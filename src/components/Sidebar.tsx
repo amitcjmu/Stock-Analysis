@@ -35,7 +35,7 @@ const Sidebar = () => {
         <div className="flex items-center space-x-3">
           <Cloud className="h-8 w-8 text-blue-400" />
           <div>
-            <h1 className="text-lg font-semibold">CloudBridge</h1>
+            <h1 className="text-lg font-semibold">AI Force</h1>
             <p className="text-xs text-gray-400">Migration Platform</p>
           </div>
         </div>
@@ -68,7 +68,7 @@ const Sidebar = () => {
 
       <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-700">
         <div className="text-xs text-gray-400 text-center">
-          CloudBridge v2.1.0
+          AI Force v2.1.0
         </div>
       </div>
     </div>

@@ -3,7 +3,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import FeedbackWidget from '../components/FeedbackWidget';
-import { Building2, BarChart3, Eye, Search, FileText, Wrench, Archive } from 'lucide-react';
+import { Building2, BarChart3, Eye, Search, FileText, Wrench, Archive, Sparkles } from 'lucide-react';
 
 const Index = () => {
   const phases = [
@@ -13,7 +13,7 @@ const Index = () => {
       icon: Search,
       path: '/discovery',
       color: 'bg-green-500',
-      status: 'Coming Soon'
+      status: 'Active'
     },
     {
       title: 'Assess',
@@ -29,7 +29,7 @@ const Index = () => {
       icon: Building2,
       path: '/plan',
       color: 'bg-purple-500',
-      status: 'Coming Soon'
+      status: 'Active'
     },
     {
       title: 'Execute',
@@ -37,15 +37,15 @@ const Index = () => {
       icon: Wrench,
       path: '/execute',
       color: 'bg-orange-500',
-      status: 'Coming Soon'
+      status: 'Active'
     },
     {
       title: 'Modernize',
       description: 'Modernize applications post-migration',
-      icon: Archive,
+      icon: Sparkles,
       path: '/modernize',
       color: 'bg-indigo-500',
-      status: 'Coming Soon'
+      status: 'Active'
     },
     {
       title: 'Decommission',
@@ -53,7 +53,7 @@ const Index = () => {
       icon: Archive,
       path: '/decommission',
       color: 'bg-red-500',
-      status: 'Coming Soon'
+      status: 'Active'
     },
     {
       title: 'FinOps',
@@ -81,10 +81,10 @@ const Index = () => {
           <div className="max-w-7xl mx-auto">
             <div className="mb-8">
               <h1 className="text-4xl font-bold text-gray-900 mb-4">
-                Cloud Migration Orchestrator
+                AI Force Migration Platform
               </h1>
               <p className="text-xl text-gray-600">
-                Manage your entire cloud migration journey from discovery to decommission
+                Manage your entire cloud migration journey from discovery to decommission with AI-powered automation
               </p>
             </div>
 
