@@ -16,13 +16,20 @@ import {
   ChevronRight,
   Database,
   Network,
-  Activity
+  Activity,
+  ClipboardList,
+  Calendar,
+  Route,
+  Edit
 } from 'lucide-react';
 
 const Sidebar = () => {
   const location = useLocation();
   const [discoveryExpanded, setDiscoveryExpanded] = useState(
     location.pathname.startsWith('/discovery')
+  );
+  const [assessExpanded, setAssessExpanded] = useState(
+    location.pathname.startsWith('/assess')
   );
 
   const navigationItems = [
@@ -39,7 +46,19 @@ const Sidebar = () => {
         { name: 'Scan', path: '/discovery/scan', icon: Activity }
       ]
     },
-    { name: 'Assess', path: '/assess', icon: FileText },
+    { 
+      name: 'Assess', 
+      path: '/assess', 
+      icon: FileText,
+      hasSubmenu: true,
+      submenu: [
+        { name: 'Overview', path: '/assess/overview', icon: FileText },
+        { name: 'Treatment', path: '/assess/treatment', icon: ClipboardList },
+        { name: 'Wave Planning', path: '/assess/waveplanning', icon: Calendar },
+        { name: 'Roadmap', path: '/assess/roadmap', icon: Route },
+        { name: 'Editor', path: '/assess/editor', icon: Edit }
+      ]
+    },
     { name: 'Plan', path: '/plan', icon: Building2 },
     { name: 'Execute', path: '/execute', icon: Wrench },
     { name: 'Modernize', path: '/modernize', icon: Sparkles },
@@ -50,6 +69,10 @@ const Sidebar = () => {
 
   const handleDiscoveryToggle = () => {
     setDiscoveryExpanded(!discoveryExpanded);
+  };
+
+  const handleAssessToggle = () => {
+    setAssessExpanded(!assessExpanded);
   };
 
   return (
@@ -70,6 +93,7 @@ const Sidebar = () => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
             const isDiscoveryParent = item.name === 'Discovery' && location.pathname.startsWith('/discovery');
+            const isAssessParent = item.name === 'Assess' && location.pathname.startsWith('/assess');
             
             return (
               <li key={item.name}>
@@ -77,23 +101,23 @@ const Sidebar = () => {
                   <>
                     <div
                       className={`flex items-center justify-between px-3 py-2 rounded-lg transition-colors duration-200 cursor-pointer ${
-                        isDiscoveryParent
+                        isDiscoveryParent || isAssessParent
                           ? 'bg-blue-600 text-white'
                           : 'text-gray-300 hover:bg-gray-700 hover:text-white'
                       }`}
-                      onClick={handleDiscoveryToggle}
+                      onClick={item.name === 'Discovery' ? handleDiscoveryToggle : handleAssessToggle}
                     >
                       <div className="flex items-center space-x-3">
                         <Icon className="h-5 w-5" />
                         <span className="font-medium">{item.name}</span>
                       </div>
-                      {discoveryExpanded ? (
+                      {(item.name === 'Discovery' ? discoveryExpanded : assessExpanded) ? (
                         <ChevronDown className="h-4 w-4" />
                       ) : (
                         <ChevronRight className="h-4 w-4" />
                       )}
                     </div>
-                    {discoveryExpanded && (
+                    {((item.name === 'Discovery' && discoveryExpanded) || (item.name === 'Assess' && assessExpanded)) && (
                       <ul className="ml-6 mt-2 space-y-1">
                         {item.submenu?.map((subItem) => {
                           const SubIcon = subItem.icon;

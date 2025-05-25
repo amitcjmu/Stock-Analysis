@@ -11,6 +11,11 @@ import DiscoveryIndex from "./pages/discovery/Index";
 import Inventory from "./pages/discovery/Inventory";
 import Dependencies from "./pages/discovery/Dependencies";
 import Scan from "./pages/discovery/Scan";
+import AssessIndex from "./pages/assess/Index";
+import Treatment from "./pages/assess/Treatment";
+import WavePlanning from "./pages/assess/WavePlanning";
+import Roadmap from "./pages/assess/Roadmap";
+import Editor from "./pages/assess/Editor";
 import Plan from "./pages/Plan";
 import Execute from "./pages/Execute";
 import Modernize from "./pages/Modernize";
@@ -35,6 +40,11 @@ const App = () => (
           <Route path="/discovery/dependencies" element={<Dependencies />} />
           <Route path="/discovery/scan" element={<Scan />} />
           <Route path="/assess" element={<Assess />} />
+          <Route path="/assess/overview" element={<AssessIndex />} />
+          <Route path="/assess/treatment" element={<Treatment />} />
+          <Route path="/assess/waveplanning" element={<WavePlanning />} />
+          <Route path="/assess/roadmap" element={<Roadmap />} />
+          <Route path="/assess/editor" element={<Editor />} />
           <Route path="/plan" element={<Plan />} />
           <Route path="/execute" element={<Execute />} />
           <Route path="/modernize" element={<Modernize />} />
