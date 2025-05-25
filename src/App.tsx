@@ -17,6 +17,10 @@ import WavePlanning from "./pages/assess/WavePlanning";
 import Roadmap from "./pages/assess/Roadmap";
 import Editor from "./pages/assess/Editor";
 import Plan from "./pages/Plan";
+import PlanIndex from "./pages/plan/Index";
+import Timeline from "./pages/plan/Timeline";
+import Resource from "./pages/plan/Resource";
+import Target from "./pages/plan/Target";
 import Execute from "./pages/Execute";
 import Modernize from "./pages/Modernize";
 import Decommission from "./pages/Decommission";
@@ -46,6 +50,10 @@ const App = () => (
           <Route path="/assess/roadmap" element={<Roadmap />} />
           <Route path="/assess/editor" element={<Editor />} />
           <Route path="/plan" element={<Plan />} />
+          <Route path="/plan/overview" element={<PlanIndex />} />
+          <Route path="/plan/timeline" element={<Timeline />} />
+          <Route path="/plan/resource" element={<Resource />} />
+          <Route path="/plan/target" element={<Target />} />
           <Route path="/execute" element={<Execute />} />
           <Route path="/modernize" element={<Modernize />} />
           <Route path="/decommission" element={<Decommission />} />

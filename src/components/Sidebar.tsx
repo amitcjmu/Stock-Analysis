@@ -20,7 +20,10 @@ import {
   ClipboardList,
   Calendar,
   Route,
-  Edit
+  Edit,
+  Users,
+  Target,
+  Clock
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -30,6 +33,9 @@ const Sidebar = () => {
   );
   const [assessExpanded, setAssessExpanded] = useState(
     location.pathname.startsWith('/assess')
+  );
+  const [planExpanded, setPlanExpanded] = useState(
+    location.pathname.startsWith('/plan')
   );
 
   const navigationItems = [
@@ -59,7 +65,18 @@ const Sidebar = () => {
         { name: 'Editor', path: '/assess/editor', icon: Edit }
       ]
     },
-    { name: 'Plan', path: '/plan', icon: Building2 },
+    { 
+      name: 'Plan', 
+      path: '/plan', 
+      icon: Building2,
+      hasSubmenu: true,
+      submenu: [
+        { name: 'Overview', path: '/plan/overview', icon: Building2 },
+        { name: 'Timeline', path: '/plan/timeline', icon: Clock },
+        { name: 'Resource', path: '/plan/resource', icon: Users },
+        { name: 'Target', path: '/plan/target', icon: Target }
+      ]
+    },
     { name: 'Execute', path: '/execute', icon: Wrench },
     { name: 'Modernize', path: '/modernize', icon: Sparkles },
     { name: 'Decommission', path: '/decommission', icon: Archive },
@@ -73,6 +90,10 @@ const Sidebar = () => {
 
   const handleAssessToggle = () => {
     setAssessExpanded(!assessExpanded);
+  };
+
+  const handlePlanToggle = () => {
+    setPlanExpanded(!planExpanded);
   };
 
   return (
@@ -94,6 +115,7 @@ const Sidebar = () => {
             const isActive = location.pathname === item.path;
             const isDiscoveryParent = item.name === 'Discovery' && location.pathname.startsWith('/discovery');
             const isAssessParent = item.name === 'Assess' && location.pathname.startsWith('/assess');
+            const isPlanParent = item.name === 'Plan' && location.pathname.startsWith('/plan');
             
             return (
               <li key={item.name}>
@@ -101,23 +123,33 @@ const Sidebar = () => {
                   <>
                     <div
                       className={`flex items-center justify-between px-3 py-2 rounded-lg transition-colors duration-200 cursor-pointer ${
-                        isDiscoveryParent || isAssessParent
+                        isDiscoveryParent || isAssessParent || isPlanParent
                           ? 'bg-blue-600 text-white'
                           : 'text-gray-300 hover:bg-gray-700 hover:text-white'
                       }`}
-                      onClick={item.name === 'Discovery' ? handleDiscoveryToggle : handleAssessToggle}
+                      onClick={
+                        item.name === 'Discovery' ? handleDiscoveryToggle :
+                        item.name === 'Assess' ? handleAssessToggle :
+                        handlePlanToggle
+                      }
                     >
                       <div className="flex items-center space-x-3">
                         <Icon className="h-5 w-5" />
                         <span className="font-medium">{item.name}</span>
                       </div>
-                      {(item.name === 'Discovery' ? discoveryExpanded : assessExpanded) ? (
+                      {(
+                        (item.name === 'Discovery' && discoveryExpanded) ||
+                        (item.name === 'Assess' && assessExpanded) ||
+                        (item.name === 'Plan' && planExpanded)
+                      ) ? (
                         <ChevronDown className="h-4 w-4" />
                       ) : (
                         <ChevronRight className="h-4 w-4" />
                       )}
                     </div>
-                    {((item.name === 'Discovery' && discoveryExpanded) || (item.name === 'Assess' && assessExpanded)) && (
+                    {((item.name === 'Discovery' && discoveryExpanded) || 
+                      (item.name === 'Assess' && assessExpanded) ||
+                      (item.name === 'Plan' && planExpanded)) && (
                       <ul className="ml-6 mt-2 space-y-1">
                         {item.submenu?.map((subItem) => {
                           const SubIcon = subItem.icon;
