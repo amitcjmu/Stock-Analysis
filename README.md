@@ -89,68 +89,79 @@ Built with a modern tech stack featuring a **Next.js frontend** and **FastAPI ba
 
 ### Setup Instructions
 
+#### **Option 1: Quick Setup (Recommended)**
+
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
-   cd ai-force-migration-platform
+   git clone https://github.com/CryptoYogiLLC/migrate-ui-orchestrator.git
+   cd migrate-ui-orchestrator
    ```
 
-2. **Frontend Setup**
+2. **Run the setup script**
    ```bash
-   cd frontend
-   npm install
+   chmod +x setup.sh
+   ./setup.sh
    ```
 
-3. **Backend Setup**
+#### **Option 2: Manual Setup**
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/CryptoYogiLLC/migrate-ui-orchestrator.git
+   cd migrate-ui-orchestrator
+   ```
+
+2. **Backend Setup (Python 3.11+ required for CrewAI)**
    ```bash
    cd backend
+   python3.11 -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
    pip install -r requirements.txt
+   ```
+
+3. **Frontend Setup**
+   ```bash
+   npm install
    ```
 
 4. **Environment Configuration**
    
-   Create a `.env` file in the root directory:
-   ```env
-   # Database Configuration
-   DATABASE_URL=postgresql://username:password@localhost:5432/migration_db
-   
-   # API Keys
-   OPENAI_API_KEY=your_openai_api_key
-   CREWAI_API_KEY=your_crewai_api_key
-   
-   # Application Settings
-   FRONTEND_URL=http://localhost:3000
-   BACKEND_URL=http://localhost:8000
+   Copy and configure environment file:
+   ```bash
+   cp backend/env.example backend/.env
+   # Edit backend/.env with your configuration
    ```
 
-5. **Database Setup**
-   ```bash
-   # Create PostgreSQL database
-   createdb migration_db
+5. **Start the Application**
    
-   # Run migrations (when available)
-   cd backend
-   python manage.py migrate
+   **Backend** (Terminal 1):
+   ```bash
+   cd backend && source venv/bin/activate
+   python main.py
    ```
-
-6. **Start the Application**
    
-   **Frontend** (Terminal 1):
+   **Frontend** (Terminal 2):
    ```bash
-   cd frontend
    npm run dev
    ```
-   
-   **Backend** (Terminal 2):
+
+#### **Option 3: Docker Setup**
+
+1. **Prerequisites**
+   - Docker Desktop installed and running
+   - Docker Hub account (free) for image pulls
+
+2. **Run Docker setup**
    ```bash
-   cd backend
-   uvicorn main:app --reload
+   chmod +x docker-setup.sh
+   ./docker-setup.sh
    ```
 
-7. **Access the Application**
+3. **Access the Application**
    - Frontend: http://localhost:8081 (Fixed Port)
    - Backend API: http://localhost:8000 (Fixed Port)
    - API Documentation: http://localhost:8000/docs
+   - PostgreSQL: localhost:5432
 
 ## Roadmap
 
