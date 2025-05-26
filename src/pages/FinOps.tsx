@@ -1,10 +1,34 @@
-
 import React from 'react';
 import Sidebar from '../components/Sidebar';
 import FeedbackWidget from '../components/FeedbackWidget';
-import { DollarSign, TrendingUp, AlertTriangle, Download } from 'lucide-react';
+import { DollarSign, TrendingUp, AlertTriangle, Download, ArrowRight, Cloud, BarChart, Calculator } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const FinOps = () => {
+  const finOpsAreas = [
+    { 
+      name: 'Cloud Provider Comparison', 
+      path: '/finops/cloud-comparison', 
+      icon: Cloud, 
+      description: 'AI-powered cost analysis across AWS, Azure, and GCP',
+      metrics: 'AWS Recommended | 94% Compatibility Score'
+    },
+    { 
+      name: 'Operational Savings Analysis', 
+      path: '/finops/savings-analysis', 
+      icon: TrendingUp, 
+      description: 'Track ROI and cost savings across migration waves',
+      metrics: '$328K YTD Savings | 278% Average ROI'
+    },
+    { 
+      name: 'Cost Analysis Dashboard', 
+      path: '/finops/cost-analysis', 
+      icon: Calculator, 
+      description: 'Compare current vs planned vs actual costs by application',
+      metrics: '1.2% Over Budget | 8 Applications Tracked'
+    }
+  ];
+
   const costData = [
     {
       wave: 'W1',
@@ -57,6 +81,35 @@ const FinOps = () => {
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-gray-900 mb-2">FinOps Dashboard</h1>
               <p className="text-gray-600">Track costs and optimize financial operations across migration waves</p>
+            </div>
+
+            {/* AI-Enhanced FinOps Areas */}
+            <div className="bg-white rounded-lg shadow-md mb-8">
+              <div className="p-6 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">AI-Enhanced Financial Analysis</h3>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
+                  {finOpsAreas.map((area) => {
+                    const Icon = area.icon;
+                    return (
+                      <Link
+                        key={area.name}
+                        to={area.path}
+                        className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all group"
+                      >
+                        <Icon className="h-8 w-8 text-blue-600 mr-4" />
+                        <div className="flex-1">
+                          <h4 className="font-medium text-gray-900 group-hover:text-blue-900">{area.name}</h4>
+                          <p className="text-sm text-gray-600">{area.description}</p>
+                          <p className="text-xs text-blue-600 mt-1">{area.metrics}</p>
+                        </div>
+                        <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-blue-600" />
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
 
             {/* Cost Overview Cards */}

@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -40,6 +39,9 @@ import DataRetention from "./pages/decommission/DataRetention";
 import DecommissionExecution from "./pages/decommission/Execution";
 import DecommissionValidation from "./pages/decommission/Validation";
 import FinOps from "./pages/FinOps";
+import CloudComparison from "./pages/finops/CloudComparison";
+import SavingsAnalysis from "./pages/finops/SavingsAnalysis";
+import CostAnalysis from "./pages/finops/CostAnalysis";
 import Observability from "./pages/Observability";
 import NotFound from "./pages/NotFound";
 
@@ -88,6 +90,9 @@ const App = () => (
           <Route path="/decommission/execution" element={<DecommissionExecution />} />
           <Route path="/decommission/validation" element={<DecommissionValidation />} />
           <Route path="/finops" element={<FinOps />} />
+          <Route path="/finops/cloud-comparison" element={<CloudComparison />} />
+          <Route path="/finops/savings-analysis" element={<SavingsAnalysis />} />
+          <Route path="/finops/cost-analysis" element={<CostAnalysis />} />
           <Route path="/observability" element={<Observability />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
