@@ -65,6 +65,11 @@ const App = () => (
           <Route path="/plan/resource" element={<Resource />} />
           <Route path="/plan/target" element={<Target />} />
           <Route path="/execute" element={<Execute />} />
+          <Route path="/execute/overview" element={<ExecuteIndex />} />
+          <Route path="/execute/rehost" element={<Rehost />} />
+          <Route path="/execute/replatform" element={<Replatform />} />
+          <Route path="/execute/cutovers" element={<Cutovers />} />
+          <Route path="/execute/reports" element={<Reports />} />
           <Route path="/modernize" element={<Modernize />} />
           <Route path="/modernize/overview" element={<ModernizeIndex />} />
           <Route path="/modernize/refactor" element={<Refactor />} />

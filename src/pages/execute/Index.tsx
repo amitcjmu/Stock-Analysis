@@ -1,11 +1,11 @@
 
 import React from 'react';
-import Sidebar from '../components/Sidebar';
-import FeedbackWidget from '../components/FeedbackWidget';
+import Sidebar from '../../components/Sidebar';
+import FeedbackWidget from '../../components/FeedbackWidget';
 import { Wrench, Sparkles, RefreshCw, ArrowRight, Server, Cloud, Activity, Calendar } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const Execute = () => {
+const ExecuteIndex = () => {
   const executionMetrics = [
     { label: 'Total Executions', value: '32', color: 'text-blue-600' },
     { label: 'Rehost Projects', value: '18', color: 'text-green-600' },
@@ -35,7 +35,7 @@ const Execute = () => {
             <div className="mb-8">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2">Migration Execution</h1>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">Migration Execution Overview</h1>
                   <p className="text-lg text-gray-600">
                     Execute Rehost and Replatform treatments with AI-driven migration management
                   </p>
@@ -162,4 +162,4 @@ const Execute = () => {
   );
 };
 
-export default Execute;
+export default ExecuteIndex;

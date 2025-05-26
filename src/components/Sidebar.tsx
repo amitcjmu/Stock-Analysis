@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -50,6 +49,9 @@ const Sidebar = () => {
   const [decommissionExpanded, setDecommissionExpanded] = useState(
     location.pathname.startsWith('/decommission')
   );
+  const [executeExpanded, setExecuteExpanded] = useState(
+    location.pathname.startsWith('/execute')
+  );
 
   const navigationItems = [
     { name: 'Dashboard', path: '/', icon: Home },
@@ -90,7 +92,19 @@ const Sidebar = () => {
         { name: 'Target', path: '/plan/target', icon: Target }
       ]
     },
-    { name: 'Execute', path: '/execute', icon: Wrench },
+    { 
+      name: 'Execute', 
+      path: '/execute', 
+      icon: Wrench,
+      hasSubmenu: true,
+      submenu: [
+        { name: 'Overview', path: '/execute/overview', icon: Wrench },
+        { name: 'Rehost', path: '/execute/rehost', icon: Settings },
+        { name: 'Replatform', path: '/execute/replatform', icon: Cloud },
+        { name: 'Cutovers', path: '/execute/cutovers', icon: Calendar },
+        { name: 'Reports', path: '/execute/reports', icon: Activity }
+      ]
+    },
     { 
       name: 'Modernize', 
       path: '/modernize', 
@@ -141,6 +155,10 @@ const Sidebar = () => {
     setDecommissionExpanded(!decommissionExpanded);
   };
 
+  const handleExecuteToggle = () => {
+    setExecuteExpanded(!executeExpanded);
+  };
+
   return (
     <div className="fixed left-0 top-0 h-full w-64 bg-gray-800 text-white z-50">
       <div className="p-6 border-b border-gray-700">
@@ -161,6 +179,7 @@ const Sidebar = () => {
             const isDiscoveryParent = item.name === 'Discovery' && location.pathname.startsWith('/discovery');
             const isAssessParent = item.name === 'Assess' && location.pathname.startsWith('/assess');
             const isPlanParent = item.name === 'Plan' && location.pathname.startsWith('/plan');
+            const isExecuteParent = item.name === 'Execute' && location.pathname.startsWith('/execute');
             const isModernizeParent = item.name === 'Modernize' && location.pathname.startsWith('/modernize');
             const isDecommissionParent = item.name === 'Decommission' && location.pathname.startsWith('/decommission');
             
@@ -170,7 +189,7 @@ const Sidebar = () => {
                   <>
                     <div
                       className={`flex items-center justify-between px-3 py-2 rounded-lg transition-colors duration-200 cursor-pointer ${
-                        isDiscoveryParent || isAssessParent || isPlanParent || isModernizeParent || isDecommissionParent
+                        isDiscoveryParent || isAssessParent || isPlanParent || isExecuteParent || isModernizeParent || isDecommissionParent
                           ? 'bg-blue-600 text-white'
                           : 'text-gray-300 hover:bg-gray-700 hover:text-white'
                       }`}
@@ -178,6 +197,7 @@ const Sidebar = () => {
                         item.name === 'Discovery' ? handleDiscoveryToggle :
                         item.name === 'Assess' ? handleAssessToggle :
                         item.name === 'Plan' ? handlePlanToggle :
+                        item.name === 'Execute' ? handleExecuteToggle :
                         item.name === 'Modernize' ? handleModernizeToggle :
                         item.name === 'Decommission' ? handleDecommissionToggle :
                         undefined
@@ -191,6 +211,7 @@ const Sidebar = () => {
                         (item.name === 'Discovery' && discoveryExpanded) ||
                         (item.name === 'Assess' && assessExpanded) ||
                         (item.name === 'Plan' && planExpanded) ||
+                        (item.name === 'Execute' && executeExpanded) ||
                         (item.name === 'Modernize' && modernizeExpanded) ||
                         (item.name === 'Decommission' && decommissionExpanded)
                       ) ? (
@@ -202,6 +223,7 @@ const Sidebar = () => {
                     {((item.name === 'Discovery' && discoveryExpanded) || 
                       (item.name === 'Assess' && assessExpanded) ||
                       (item.name === 'Plan' && planExpanded) ||
+                      (item.name === 'Execute' && executeExpanded) ||
                       (item.name === 'Modernize' && modernizeExpanded) ||
                       (item.name === 'Decommission' && decommissionExpanded)) && (
                       <ul className="ml-6 mt-2 space-y-1">
