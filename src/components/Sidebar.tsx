@@ -23,7 +23,10 @@ import {
   Edit,
   Users,
   Target,
-  Clock
+  Clock,
+  Trash2,
+  Shield,
+  CheckCircle
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -36,6 +39,9 @@ const Sidebar = () => {
   );
   const [planExpanded, setPlanExpanded] = useState(
     location.pathname.startsWith('/plan')
+  );
+  const [decommissionExpanded, setDecommissionExpanded] = useState(
+    location.pathname.startsWith('/decommission')
   );
 
   const navigationItems = [
@@ -79,7 +85,19 @@ const Sidebar = () => {
     },
     { name: 'Execute', path: '/execute', icon: Wrench },
     { name: 'Modernize', path: '/modernize', icon: Sparkles },
-    { name: 'Decommission', path: '/decommission', icon: Archive },
+    { 
+      name: 'Decommission', 
+      path: '/decommission', 
+      icon: Archive,
+      hasSubmenu: true,
+      submenu: [
+        { name: 'Overview', path: '/decommission/overview', icon: Archive },
+        { name: 'Planning', path: '/decommission/planning', icon: FileText },
+        { name: 'Data Retention', path: '/decommission/dataretention', icon: Database },
+        { name: 'Execution', path: '/decommission/execution', icon: Trash2 },
+        { name: 'Validation', path: '/decommission/validation', icon: CheckCircle }
+      ]
+    },
     { name: 'FinOps', path: '/finops', icon: BarChart3 },
     { name: 'Observability', path: '/observability', icon: Eye },
   ];
@@ -94,6 +112,10 @@ const Sidebar = () => {
 
   const handlePlanToggle = () => {
     setPlanExpanded(!planExpanded);
+  };
+
+  const handleDecommissionToggle = () => {
+    setDecommissionExpanded(!decommissionExpanded);
   };
 
   return (
@@ -116,6 +138,7 @@ const Sidebar = () => {
             const isDiscoveryParent = item.name === 'Discovery' && location.pathname.startsWith('/discovery');
             const isAssessParent = item.name === 'Assess' && location.pathname.startsWith('/assess');
             const isPlanParent = item.name === 'Plan' && location.pathname.startsWith('/plan');
+            const isDecommissionParent = item.name === 'Decommission' && location.pathname.startsWith('/decommission');
             
             return (
               <li key={item.name}>
@@ -123,14 +146,16 @@ const Sidebar = () => {
                   <>
                     <div
                       className={`flex items-center justify-between px-3 py-2 rounded-lg transition-colors duration-200 cursor-pointer ${
-                        isDiscoveryParent || isAssessParent || isPlanParent
+                        isDiscoveryParent || isAssessParent || isPlanParent || isDecommissionParent
                           ? 'bg-blue-600 text-white'
                           : 'text-gray-300 hover:bg-gray-700 hover:text-white'
                       }`}
                       onClick={
                         item.name === 'Discovery' ? handleDiscoveryToggle :
                         item.name === 'Assess' ? handleAssessToggle :
-                        handlePlanToggle
+                        item.name === 'Plan' ? handlePlanToggle :
+                        item.name === 'Decommission' ? handleDecommissionToggle :
+                        undefined
                       }
                     >
                       <div className="flex items-center space-x-3">
@@ -140,7 +165,8 @@ const Sidebar = () => {
                       {(
                         (item.name === 'Discovery' && discoveryExpanded) ||
                         (item.name === 'Assess' && assessExpanded) ||
-                        (item.name === 'Plan' && planExpanded)
+                        (item.name === 'Plan' && planExpanded) ||
+                        (item.name === 'Decommission' && decommissionExpanded)
                       ) ? (
                         <ChevronDown className="h-4 w-4" />
                       ) : (
@@ -149,7 +175,8 @@ const Sidebar = () => {
                     </div>
                     {((item.name === 'Discovery' && discoveryExpanded) || 
                       (item.name === 'Assess' && assessExpanded) ||
-                      (item.name === 'Plan' && planExpanded)) && (
+                      (item.name === 'Plan' && planExpanded) ||
+                      (item.name === 'Decommission' && decommissionExpanded)) && (
                       <ul className="ml-6 mt-2 space-y-1">
                         {item.submenu?.map((subItem) => {
                           const SubIcon = subItem.icon;

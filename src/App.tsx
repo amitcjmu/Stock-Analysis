@@ -24,6 +24,11 @@ import Target from "./pages/plan/Target";
 import Execute from "./pages/Execute";
 import Modernize from "./pages/Modernize";
 import Decommission from "./pages/Decommission";
+import DecommissionIndex from "./pages/decommission/Index";
+import DecommissionPlanning from "./pages/decommission/Planning";
+import DataRetention from "./pages/decommission/DataRetention";
+import DecommissionExecution from "./pages/decommission/Execution";
+import DecommissionValidation from "./pages/decommission/Validation";
 import FinOps from "./pages/FinOps";
 import Observability from "./pages/Observability";
 import NotFound from "./pages/NotFound";
@@ -57,6 +62,11 @@ const App = () => (
           <Route path="/execute" element={<Execute />} />
           <Route path="/modernize" element={<Modernize />} />
           <Route path="/decommission" element={<Decommission />} />
+          <Route path="/decommission/overview" element={<DecommissionIndex />} />
+          <Route path="/decommission/planning" element={<DecommissionPlanning />} />
+          <Route path="/decommission/dataretention" element={<DataRetention />} />
+          <Route path="/decommission/execution" element={<DecommissionExecution />} />
+          <Route path="/decommission/validation" element={<DecommissionValidation />} />
           <Route path="/finops" element={<FinOps />} />
           <Route path="/observability" element={<Observability />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
