@@ -43,7 +43,7 @@ fi
 echo "🧹 Cleaning up existing processes..."
 lsof -ti:8000 | xargs kill -9 2>/dev/null || echo "No process on port 8000"
 lsof -ti:8081 | xargs kill -9 2>/dev/null || echo "No process on port 8081"
-lsof -ti:5432 | xargs kill -9 2>/dev/null || echo "No process on port 5432"
+lsof -ti:5433 | xargs kill -9 2>/dev/null || echo "No process on port 5433"
 
 # Stop and remove existing containers
 echo "🛑 Stopping existing containers..."
@@ -68,7 +68,7 @@ if docker-compose up -d; then
     echo "   - Frontend: http://localhost:8081"
     echo "   - Backend API: http://localhost:8000"
     echo "   - API Documentation: http://localhost:8000/docs"
-    echo "   - PostgreSQL: localhost:5432"
+    echo "   - PostgreSQL: localhost:5433 (Docker)"
     echo ""
     echo "📊 Container Status:"
     docker-compose ps

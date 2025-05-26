@@ -161,7 +161,7 @@ Built with a modern tech stack featuring a **Next.js frontend** and **FastAPI ba
    - Frontend: http://localhost:8081 (Fixed Port)
    - Backend API: http://localhost:8000 (Fixed Port)
    - API Documentation: http://localhost:8000/docs
-   - PostgreSQL: localhost:5432
+   - PostgreSQL: localhost:5433 (Docker)
 
 ## Roadmap
 
