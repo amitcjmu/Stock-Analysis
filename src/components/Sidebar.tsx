@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -29,7 +30,11 @@ import {
   Settings,
   Code,
   Layers,
-  Zap
+  Zap,
+  TrendingUp,
+  Calculator,
+  DollarSign,
+  AlertTriangle
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -51,6 +56,9 @@ const Sidebar = () => {
   );
   const [executeExpanded, setExecuteExpanded] = useState(
     location.pathname.startsWith('/execute')
+  );
+  const [finopsExpanded, setFinopsExpanded] = useState(
+    location.pathname.startsWith('/finops')
   );
 
   const navigationItems = [
@@ -131,7 +139,20 @@ const Sidebar = () => {
         { name: 'Validation', path: '/decommission/validation', icon: CheckCircle }
       ]
     },
-    { name: 'FinOps', path: '/finops', icon: BarChart3 },
+    { 
+      name: 'FinOps', 
+      path: '/finops', 
+      icon: BarChart3,
+      hasSubmenu: true,
+      submenu: [
+        { name: 'Cloud Comparison', path: '/finops/cloud-comparison', icon: Cloud },
+        { name: 'Savings Analysis', path: '/finops/savings-analysis', icon: TrendingUp },
+        { name: 'Cost Analysis', path: '/finops/cost-analysis', icon: Calculator },
+        { name: 'Wave Breakdown', path: '/finops/wave-breakdown', icon: BarChart3 },
+        { name: 'Cost Trends', path: '/finops/cost-trends', icon: TrendingUp },
+        { name: 'Budget Alerts', path: '/finops/budget-alerts', icon: AlertTriangle }
+      ]
+    },
     { name: 'Observability', path: '/observability', icon: Eye },
   ];
 
@@ -159,6 +180,10 @@ const Sidebar = () => {
     setExecuteExpanded(!executeExpanded);
   };
 
+  const handleFinopsToggle = () => {
+    setFinopsExpanded(!finopsExpanded);
+  };
+
   return (
     <div className="fixed left-0 top-0 h-full w-64 bg-gray-800 text-white z-50">
       <div className="p-6 border-b border-gray-700">
@@ -182,6 +207,7 @@ const Sidebar = () => {
             const isExecuteParent = item.name === 'Execute' && location.pathname.startsWith('/execute');
             const isModernizeParent = item.name === 'Modernize' && location.pathname.startsWith('/modernize');
             const isDecommissionParent = item.name === 'Decommission' && location.pathname.startsWith('/decommission');
+            const isFinopsParent = item.name === 'FinOps' && location.pathname.startsWith('/finops');
             
             return (
               <li key={item.name}>
@@ -189,7 +215,7 @@ const Sidebar = () => {
                   <>
                     <div
                       className={`flex items-center justify-between px-3 py-2 rounded-lg transition-colors duration-200 cursor-pointer ${
-                        isDiscoveryParent || isAssessParent || isPlanParent || isExecuteParent || isModernizeParent || isDecommissionParent
+                        isDiscoveryParent || isAssessParent || isPlanParent || isExecuteParent || isModernizeParent || isDecommissionParent || isFinopsParent
                           ? 'bg-blue-600 text-white'
                           : 'text-gray-300 hover:bg-gray-700 hover:text-white'
                       }`}
@@ -200,6 +226,7 @@ const Sidebar = () => {
                         item.name === 'Execute' ? handleExecuteToggle :
                         item.name === 'Modernize' ? handleModernizeToggle :
                         item.name === 'Decommission' ? handleDecommissionToggle :
+                        item.name === 'FinOps' ? handleFinopsToggle :
                         undefined
                       }
                     >
@@ -213,7 +240,8 @@ const Sidebar = () => {
                         (item.name === 'Plan' && planExpanded) ||
                         (item.name === 'Execute' && executeExpanded) ||
                         (item.name === 'Modernize' && modernizeExpanded) ||
-                        (item.name === 'Decommission' && decommissionExpanded)
+                        (item.name === 'Decommission' && decommissionExpanded) ||
+                        (item.name === 'FinOps' && finopsExpanded)
                       ) ? (
                         <ChevronDown className="h-4 w-4" />
                       ) : (
@@ -225,7 +253,8 @@ const Sidebar = () => {
                       (item.name === 'Plan' && planExpanded) ||
                       (item.name === 'Execute' && executeExpanded) ||
                       (item.name === 'Modernize' && modernizeExpanded) ||
-                      (item.name === 'Decommission' && decommissionExpanded)) && (
+                      (item.name === 'Decommission' && decommissionExpanded) ||
+                      (item.name === 'FinOps' && finopsExpanded)) && (
                       <ul className="ml-6 mt-2 space-y-1">
                         {item.submenu?.map((subItem) => {
                           const SubIcon = subItem.icon;
