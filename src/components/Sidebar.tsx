@@ -26,7 +26,11 @@ import {
   Clock,
   Trash2,
   Shield,
-  CheckCircle
+  CheckCircle,
+  Settings,
+  Code,
+  Layers,
+  Zap
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -39,6 +43,9 @@ const Sidebar = () => {
   );
   const [planExpanded, setPlanExpanded] = useState(
     location.pathname.startsWith('/plan')
+  );
+  const [modernizeExpanded, setModernizeExpanded] = useState(
+    location.pathname.startsWith('/modernize')
   );
   const [decommissionExpanded, setDecommissionExpanded] = useState(
     location.pathname.startsWith('/decommission')
@@ -84,7 +91,19 @@ const Sidebar = () => {
       ]
     },
     { name: 'Execute', path: '/execute', icon: Wrench },
-    { name: 'Modernize', path: '/modernize', icon: Sparkles },
+    { 
+      name: 'Modernize', 
+      path: '/modernize', 
+      icon: Sparkles,
+      hasSubmenu: true,
+      submenu: [
+        { name: 'Overview', path: '/modernize/overview', icon: Sparkles },
+        { name: 'Refactor', path: '/modernize/refactor', icon: Code },
+        { name: 'Rearchitect', path: '/modernize/rearchitect', icon: Layers },
+        { name: 'Rewrite', path: '/modernize/rewrite', icon: Zap },
+        { name: 'Progress', path: '/modernize/progress', icon: Activity }
+      ]
+    },
     { 
       name: 'Decommission', 
       path: '/decommission', 
@@ -114,6 +133,10 @@ const Sidebar = () => {
     setPlanExpanded(!planExpanded);
   };
 
+  const handleModernizeToggle = () => {
+    setModernizeExpanded(!modernizeExpanded);
+  };
+
   const handleDecommissionToggle = () => {
     setDecommissionExpanded(!decommissionExpanded);
   };
@@ -138,6 +161,7 @@ const Sidebar = () => {
             const isDiscoveryParent = item.name === 'Discovery' && location.pathname.startsWith('/discovery');
             const isAssessParent = item.name === 'Assess' && location.pathname.startsWith('/assess');
             const isPlanParent = item.name === 'Plan' && location.pathname.startsWith('/plan');
+            const isModernizeParent = item.name === 'Modernize' && location.pathname.startsWith('/modernize');
             const isDecommissionParent = item.name === 'Decommission' && location.pathname.startsWith('/decommission');
             
             return (
@@ -146,7 +170,7 @@ const Sidebar = () => {
                   <>
                     <div
                       className={`flex items-center justify-between px-3 py-2 rounded-lg transition-colors duration-200 cursor-pointer ${
-                        isDiscoveryParent || isAssessParent || isPlanParent || isDecommissionParent
+                        isDiscoveryParent || isAssessParent || isPlanParent || isModernizeParent || isDecommissionParent
                           ? 'bg-blue-600 text-white'
                           : 'text-gray-300 hover:bg-gray-700 hover:text-white'
                       }`}
@@ -154,6 +178,7 @@ const Sidebar = () => {
                         item.name === 'Discovery' ? handleDiscoveryToggle :
                         item.name === 'Assess' ? handleAssessToggle :
                         item.name === 'Plan' ? handlePlanToggle :
+                        item.name === 'Modernize' ? handleModernizeToggle :
                         item.name === 'Decommission' ? handleDecommissionToggle :
                         undefined
                       }
@@ -166,6 +191,7 @@ const Sidebar = () => {
                         (item.name === 'Discovery' && discoveryExpanded) ||
                         (item.name === 'Assess' && assessExpanded) ||
                         (item.name === 'Plan' && planExpanded) ||
+                        (item.name === 'Modernize' && modernizeExpanded) ||
                         (item.name === 'Decommission' && decommissionExpanded)
                       ) ? (
                         <ChevronDown className="h-4 w-4" />
@@ -176,6 +202,7 @@ const Sidebar = () => {
                     {((item.name === 'Discovery' && discoveryExpanded) || 
                       (item.name === 'Assess' && assessExpanded) ||
                       (item.name === 'Plan' && planExpanded) ||
+                      (item.name === 'Modernize' && modernizeExpanded) ||
                       (item.name === 'Decommission' && decommissionExpanded)) && (
                       <ul className="ml-6 mt-2 space-y-1">
                         {item.submenu?.map((subItem) => {

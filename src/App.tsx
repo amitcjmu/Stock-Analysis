@@ -23,6 +23,11 @@ import Resource from "./pages/plan/Resource";
 import Target from "./pages/plan/Target";
 import Execute from "./pages/Execute";
 import Modernize from "./pages/Modernize";
+import ModernizeIndex from "./pages/modernize/Index";
+import Refactor from "./pages/modernize/Refactor";
+import Rearchitect from "./pages/modernize/Rearchitect";
+import Rewrite from "./pages/modernize/Rewrite";
+import Progress from "./pages/modernize/Progress";
 import Decommission from "./pages/Decommission";
 import DecommissionIndex from "./pages/decommission/Index";
 import DecommissionPlanning from "./pages/decommission/Planning";
@@ -61,6 +66,11 @@ const App = () => (
           <Route path="/plan/target" element={<Target />} />
           <Route path="/execute" element={<Execute />} />
           <Route path="/modernize" element={<Modernize />} />
+          <Route path="/modernize/overview" element={<ModernizeIndex />} />
+          <Route path="/modernize/refactor" element={<Refactor />} />
+          <Route path="/modernize/rearchitect" element={<Rearchitect />} />
+          <Route path="/modernize/rewrite" element={<Rewrite />} />
+          <Route path="/modernize/progress" element={<Progress />} />
           <Route path="/decommission" element={<Decommission />} />
           <Route path="/decommission/overview" element={<DecommissionIndex />} />
           <Route path="/decommission/planning" element={<DecommissionPlanning />} />
