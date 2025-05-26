@@ -132,10 +132,11 @@ if WEBSOCKET_ENABLED:
             await manager.broadcast(f"Client {client_id} disconnected")
 
 if __name__ == "__main__":
-    # Fixed port assignment - Backend always runs on port 8000
+    # Port assignment - Use Railway PORT or default to 8000 for local development
+    port = int(os.getenv("PORT", 8000))
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8000,  # Fixed port for backend
+        port=port,
         reload=True if os.getenv("ENVIRONMENT") == "development" else False
     ) 

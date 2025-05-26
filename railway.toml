@@ -1,6 +1,6 @@
 [build]
 builder = "DOCKERFILE"
-dockerfilePath = "backend/Dockerfile"
+dockerfilePath = "Dockerfile"
 
 [deploy]
 startCommand = "uvicorn main:app --host 0.0.0.0 --port $PORT"
@@ -13,6 +13,8 @@ restartPolicyMaxRetries = 10
 [environments.production.variables]
 ENVIRONMENT = "production"
 DEBUG = "false"
+FRONTEND_URL = "https://aiforce-assess.vercel.app/"
+DATABASE_URL = "${{Postgres.DATABASE_URL}}"
 
 [environments.staging]
 [environments.staging.variables]
