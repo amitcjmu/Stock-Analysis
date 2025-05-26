@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from app.core.config import settings
+from version import __version__, API_TITLE, API_DESCRIPTION, BUILD_INFO
 
 # Try to import database components
 try:
@@ -39,9 +40,9 @@ except ImportError as e:
 
 # Create FastAPI application
 app = FastAPI(
-    title="AI Force Migration Platform API",
-    description="Backend API for cloud migration management with AI-driven automation",
-    version="1.0.0",
+    title=API_TITLE,
+    description=API_DESCRIPTION,
+    version=__version__,
     docs_url="/docs",
     redoc_url="/redoc"
 )
@@ -97,12 +98,13 @@ async def startup_event():
 async def root():
     """Root endpoint with API information."""
     return {
-        "message": "AI Force Migration Platform API",
-        "version": "1.0.0",
+        "message": API_TITLE,
+        "version": __version__,
         "status": "running",
         "database_enabled": DATABASE_ENABLED,
         "websocket_enabled": WEBSOCKET_ENABLED,
-        "docs": "/docs"
+        "docs": "/docs",
+        "build_info": BUILD_INFO
     }
 
 @app.get("/health")
@@ -111,7 +113,7 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "ai-force-migration-api",
-        "version": "1.0.0",
+        "version": __version__,
         "database_enabled": DATABASE_ENABLED,
         "websocket_enabled": WEBSOCKET_ENABLED
     }

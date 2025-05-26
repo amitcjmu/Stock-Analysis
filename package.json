@@ -1,8 +1,16 @@
 {
-  "name": "vite_react_shadcn_ts",
+  "name": "ai-force-migration-platform",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.2.0",
+  "description": "AI-powered cloud migration management platform with intelligent automation and comprehensive workflow orchestration",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CryptoYogiLLC/migrate-ui-orchestrator.git"
+  },
+  "keywords": ["cloud-migration", "ai", "fastapi", "react", "typescript", "crewai", "postgresql"],
+  "author": "AI Force Migration Team",
+  "license": "MIT",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
