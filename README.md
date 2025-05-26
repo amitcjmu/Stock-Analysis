@@ -148,19 +148,22 @@ Built with a modern tech stack featuring a **Next.js frontend** and **FastAPI ba
    ```
 
 7. **Access the Application**
-   - Frontend: http://localhost:3000
-   - Backend API: http://localhost:8000
+   - Frontend: http://localhost:8081 (Fixed Port)
+   - Backend API: http://localhost:8000 (Fixed Port)
    - API Documentation: http://localhost:8000/docs
 
 ## Roadmap
 
 ### Development Sprint Plan (May 27, 2025 – August 31, 2025)
 
-#### **Sprint 1** (May 27 – June 9, 2025)
+#### **Sprint 1** (May 27 – June 9, 2025) - ✅ **COMPLETED**
 - ✅ Initialize FastAPI project structure
 - ✅ Set up CrewAI integration framework
 - ✅ Establish database schema and models
 - ✅ Create basic API endpoints
+- ✅ Configure PostgreSQL with SQLAlchemy async
+- ✅ Implement WebSocket manager for real-time updates
+- ✅ Set up Railway.app deployment configuration
 
 #### **Sprint 2** (June 10 – June 23, 2025)
 - 🔄 Implement Discovery phase backend logic
