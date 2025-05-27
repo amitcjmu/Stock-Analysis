@@ -4,7 +4,7 @@ Learns and maintains field mappings based on user feedback and AI agent learning
 """
 
 import logging
-from typing import Dict, List, Set, Optional
+from typing import Dict, List, Set, Optional, Any
 from datetime import datetime
 import json
 from pathlib import Path
@@ -20,22 +20,21 @@ class DynamicFieldMapper:
         self.data_dir.mkdir(exist_ok=True)
         self.mappings_file = self.data_dir / "field_mappings.json"
         
-        # Base field mappings - these are the starting point
+        # Base field mappings - MINIMAL starting point, AI should learn the rest
         self.base_mappings = {
-            'Asset Name': ['name', 'asset_name', 'hostname', 'ci_name', 'computer_name', 'server_name'],
-            'Asset Type': ['type', 'asset_type', 'ci_type', 'classification', 'sys_class_name'],
-            'Environment': ['environment', 'env', 'stage', 'tier'],
-            'Business Owner': ['owner', 'business_owner', 'responsible_party', 'assigned_to'],
-            'Criticality': ['criticality', 'business_criticality', 'priority', 'importance'],
-            'Operating System': ['os', 'operating_system', 'platform', 'os_name', 'os_version'],
-            'CPU Cores': ['cpu', 'cores', 'processors', 'vcpu', 'cpu_cores'],
-            'Memory (GB)': ['memory', 'ram', 'memory_gb', 'mem', 'ram_gb'],  # Enhanced with ram_gb
-            'Storage (GB)': ['storage', 'disk', 'storage_gb', 'disk_gb', 'hdd'],
-            'IP Address': ['ip_address', 'ip', 'network_address', 'host_ip'],
-            'MAC Address': ['mac_address', 'mac', 'ethernet_address'],
-            'Application Service': ['application', 'service', 'application_service', 'business_service'],
-            'Version': ['version', 'release', 'build', 'app_version'],
-            'Dependencies': ['related_ci', 'depends_on', 'relationships', 'dependencies']
+            'Asset Name': ['name', 'asset_name', 'hostname'],
+            'Asset Type': ['type', 'asset_type', 'ci_type'],
+            'Environment': ['environment', 'env'],
+            'Operating System': ['os', 'operating_system'],
+            'CPU Cores': ['cpu', 'cores'],
+            'Memory (GB)': ['memory', 'memory_gb'],  # AI must learn ram_gb mapping
+            'Storage (GB)': ['storage', 'storage_gb'],
+            'IP Address': ['ip_address', 'ip'],
+            'MAC Address': ['mac_address', 'mac'],
+            'Application Service': ['application', 'service'],
+            'Version': ['version', 'release'],
+            'Dependencies': ['related_ci', 'depends_on']
+            # Business Owner and Criticality removed - AI must learn these mappings
         }
         
         # Load existing learned mappings
@@ -124,24 +123,73 @@ class DynamicFieldMapper:
                 self._extract_mapping_from_pattern(pattern)
     
     def _extract_mapping_from_pattern(self, pattern: str):
-        """Extract field mapping from a pattern string."""
+        """Extract field mapping from a pattern string using AI-driven pattern recognition."""
         
         pattern_lower = pattern.lower()
         
-        # Extract memory field mappings
-        if 'ram_gb' in pattern_lower and 'memory' in pattern_lower:
-            memory_fields = ['ram_gb', 'memory_gb', 'memory (gb)', 'memory', 'ram']
-            self.learn_field_mapping('Memory (GB)', memory_fields, "pattern_extraction")
+        # Generic field mapping extraction using regex - let AI determine the mappings
+        import re
         
-        # Extract CPU field mappings
-        if 'cpu_cores' in pattern_lower and 'cores' in pattern_lower:
-            cpu_fields = ['cpu_cores', 'cores', 'cpu', 'processors', 'vcpu']
-            self.learn_field_mapping('CPU Cores', cpu_fields, "pattern_extraction")
+        # Pattern: "field X should map to Y" or "X maps to Y"
+        mapping_patterns = [
+            r'(\w+(?:_\w+)*)\s+(?:should\s+)?(?:map|maps)\s+to\s+["\']?([^"\']+)["\']?',
+            r'["\']?([^"\']+)["\']?\s+(?:should\s+)?(?:map|maps)\s+to\s+(\w+(?:_\w+)*)',
+            r'field\s+["\']?([^"\']+)["\']?\s+(?:is\s+)?(?:same\s+as|equivalent\s+to)\s+["\']?([^"\']+)["\']?',
+            r'(\w+(?:_\w+)*)\s+(?:is\s+)?(?:available|present)\s+(?:for|as)\s+["\']?([^"\']+)["\']?',
+            r'["\']?([^"\']+)["\']?\s+(?:shows|appears)\s+as\s+(\w+(?:_\w+)*)',
+            r'(\w+(?:_\w+)*)\s+(?:should\s+be\s+)?(?:recognized\s+as)\s+["\']?([^"\']+)["\']?'
+        ]
         
-        # Extract asset name mappings
-        if 'asset_name' in pattern_lower and 'name' in pattern_lower:
-            name_fields = ['asset_name', 'asset name', 'name', 'hostname', 'ci_name']
-            self.learn_field_mapping('Asset Name', name_fields, "pattern_extraction")
+        for regex_pattern in mapping_patterns:
+            matches = re.findall(regex_pattern, pattern_lower, re.IGNORECASE)
+            for match in matches:
+                source_field, target_field = match
+                # Determine which is the canonical field name
+                canonical_field = self._determine_canonical_field(source_field, target_field)
+                if canonical_field:
+                    variations = [source_field.strip(), target_field.strip()]
+                    self.learn_field_mapping(canonical_field, variations, "ai_pattern_extraction")
+                    logger.info(f"AI extracted field mapping: {source_field} → {canonical_field}")
+    
+    def _determine_canonical_field(self, field1: str, field2: str) -> str:
+        """Determine which field name should be the canonical one."""
+        
+        # Check if either field matches our known canonical names (base + learned)
+        all_canonical_names = list(self.base_mappings.keys()) + list(self.learned_mappings.keys())
+        
+        for canonical in all_canonical_names:
+            if canonical.lower().replace(' ', '_') in field1.lower() or canonical.lower() in field1.lower():
+                return canonical
+            if canonical.lower().replace(' ', '_') in field2.lower() or canonical.lower() in field2.lower():
+                return canonical
+        
+        # Special mappings for common business terms
+        business_mappings = {
+            'application_owner': 'Business Owner',
+            'business_owner': 'Business Owner', 
+            'owner': 'Business Owner',
+            'dr_tier': 'Criticality',
+            'business_criticality': 'Criticality',
+            'criticality': 'Criticality',
+            'ram_gb': 'Memory (GB)',
+            'memory_gb': 'Memory (GB)',
+            'memory': 'Memory (GB)'
+        }
+        
+        # Check if either field has a known business mapping
+        field1_lower = field1.lower()
+        field2_lower = field2.lower()
+        
+        if field1_lower in business_mappings:
+            return business_mappings[field1_lower]
+        if field2_lower in business_mappings:
+            return business_mappings[field2_lower]
+        
+        # If neither matches, prefer the more descriptive one
+        if len(field1) > len(field2):
+            return field1.title().replace('_', ' ')
+        else:
+            return field2.title().replace('_', ' ')
     
     def find_matching_fields(self, available_columns: List[str], required_field: str) -> List[str]:
         """Find matching fields in available columns for a required field."""
@@ -213,6 +261,173 @@ class DynamicFieldMapper:
         except Exception as e:
             logger.error(f"Failed to export mappings: {e}")
             return False
+
+    # External Tool Interface for AI Agents
+    def agent_query_field_mapping(self, field_name: str) -> Dict[str, Any]:
+        """
+        External tool for agents to query field mappings.
+        Returns all known variations for a canonical field name.
+        """
+        mappings = self.get_field_mappings()
+        
+        # Try exact match first
+        if field_name in mappings:
+            return {
+                "canonical_field": field_name,
+                "variations": mappings[field_name],
+                "source": "exact_match",
+                "confidence": 1.0
+            }
+        
+        # Try fuzzy matching
+        field_lower = field_name.lower().replace(' ', '_')
+        for canonical, variations in mappings.items():
+            canonical_lower = canonical.lower().replace(' ', '_')
+            if field_lower in canonical_lower or canonical_lower in field_lower:
+                return {
+                    "canonical_field": canonical,
+                    "variations": variations,
+                    "source": "fuzzy_match",
+                    "confidence": 0.8
+                }
+            
+            # Check if field matches any variation
+            for variation in variations:
+                if field_lower == variation.lower() or variation.lower() in field_lower:
+                    return {
+                        "canonical_field": canonical,
+                        "variations": variations,
+                        "source": "variation_match",
+                        "confidence": 0.9
+                    }
+        
+        return {
+            "canonical_field": None,
+            "variations": [],
+            "source": "no_match",
+            "confidence": 0.0,
+            "suggestion": "Consider learning this as a new field mapping"
+        }
+    
+    def agent_learn_field_mapping(self, source_field: str, target_field: str, context: str = "") -> Dict[str, Any]:
+        """
+        External tool for agents to learn new field mappings from data analysis or feedback.
+        
+        Args:
+            source_field: The field name found in data
+            target_field: The canonical field name it should map to
+            context: Additional context about where this mapping was learned
+        """
+        try:
+            # Determine canonical field
+            canonical_field = self._determine_canonical_field(source_field, target_field)
+            
+            # Learn the mapping
+            variations = [source_field.lower().strip(), target_field.lower().strip()]
+            self.learn_field_mapping(canonical_field, variations, f"agent_learning_{context}")
+            
+            return {
+                "success": True,
+                "canonical_field": canonical_field,
+                "learned_variations": variations,
+                "context": context,
+                "message": f"Successfully learned mapping: {source_field} → {canonical_field}"
+            }
+            
+        except Exception as e:
+            logger.error(f"Agent failed to learn field mapping: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "message": f"Failed to learn mapping: {source_field} → {target_field}"
+            }
+    
+    def agent_analyze_columns(self, columns: List[str], asset_type: str = "server") -> Dict[str, Any]:
+        """
+        External tool for agents to analyze available columns and identify mappings.
+        
+        Args:
+            columns: List of column names from data
+            asset_type: Type of asset being analyzed
+            
+        Returns:
+            Analysis of field mappings and missing fields
+        """
+        try:
+            # Get current mappings
+            mappings = self.get_field_mappings(asset_type)
+            
+            # Analyze each column
+            column_analysis = {}
+            for col in columns:
+                mapping_result = self.agent_query_field_mapping(col)
+                column_analysis[col] = mapping_result
+            
+            # Identify missing fields
+            missing_fields = self.identify_missing_fields(columns, asset_type)
+            
+            # Find potential new mappings
+            unmapped_columns = [col for col in columns 
+                              if column_analysis[col]["confidence"] == 0.0]
+            
+            return {
+                "total_columns": len(columns),
+                "mapped_columns": len(columns) - len(unmapped_columns),
+                "unmapped_columns": unmapped_columns,
+                "missing_fields": missing_fields,
+                "column_mappings": column_analysis,
+                "asset_type": asset_type,
+                "suggestions": self._generate_mapping_suggestions(unmapped_columns, missing_fields)
+            }
+            
+        except Exception as e:
+            logger.error(f"Agent column analysis failed: {e}")
+            return {
+                "error": str(e),
+                "message": "Column analysis failed"
+            }
+    
+    def _generate_mapping_suggestions(self, unmapped_columns: List[str], missing_fields: List[str]) -> List[Dict[str, str]]:
+        """Generate suggestions for potential field mappings."""
+        suggestions = []
+        
+        for unmapped_col in unmapped_columns:
+            col_lower = unmapped_col.lower()
+            
+            for missing_field in missing_fields:
+                missing_lower = missing_field.lower().replace(' ', '_')
+                
+                # Simple similarity check
+                if any(word in col_lower for word in missing_lower.split('_')):
+                    suggestions.append({
+                        "unmapped_column": unmapped_col,
+                        "suggested_mapping": missing_field,
+                        "reason": f"Column '{unmapped_col}' contains keywords from '{missing_field}'"
+                    })
+        
+        return suggestions
+    
+    def agent_get_mapping_context(self) -> Dict[str, Any]:
+        """
+        External tool for agents to get context about the current state of field mappings.
+        Useful for agents to understand what they've learned so far.
+        """
+        stats = self.get_mapping_statistics()
+        
+        # Get recent learning activity
+        recent_mappings = {}
+        for field, variations in self.learned_mappings.items():
+            if variations:  # Only include fields with learned variations
+                recent_mappings[field] = variations
+        
+        return {
+            "mapping_statistics": stats,
+            "learned_mappings": recent_mappings,
+            "base_field_types": list(self.base_mappings.keys()),
+            "total_variations_learned": sum(len(v) for v in self.learned_mappings.values()),
+            "learning_effectiveness": stats.get("learning_effectiveness", 0),
+            "context_message": f"Currently tracking {len(self.base_mappings)} base field types with {stats.get('learned_variations', 0)} learned variations"
+        }
 
 
 # Global instance

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Clock, AlertCircle, CheckCircle, Bot, Brain, Zap, Users } from 'lucide-react';
+import { Activity, Clock, AlertCircle, CheckCircle, Bot, Brain, Zap, Users, RefreshCw } from 'lucide-react';
 import { API_CONFIG } from '../config/api';
 
 interface AgentStatus {
@@ -81,6 +81,7 @@ const AgentMonitor: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [testingTask, setTestingTask] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const fetchMonitoringData = async () => {
     try {
@@ -106,6 +107,15 @@ const AgentMonitor: React.FC = () => {
       setAgentDetails(data.agents || []);
     } catch (err) {
       console.error('Failed to fetch agent details:', err);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([fetchMonitoringData(), fetchAgentDetails()]);
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -136,6 +146,8 @@ const AgentMonitor: React.FC = () => {
       if (response.ok) {
         const result = await response.json();
         console.log('Test task completed:', result);
+        // Refresh monitoring data after test task
+        await handleRefresh();
       }
     } catch (err) {
       console.error('Test task failed:', err);
@@ -186,15 +198,8 @@ const AgentMonitor: React.FC = () => {
       setLoading(false);
     };
 
+    // Only fetch data on component mount - no automatic polling
     fetchData();
-
-    // Set up polling for real-time updates
-    const interval = setInterval(() => {
-      fetchMonitoringData();
-      fetchAgentDetails();
-    }, 5000); // Update every 5 seconds
-
-    return () => clearInterval(interval);
   }, []);
 
   const getStatusColor = (status: string) => {
@@ -273,11 +278,22 @@ const AgentMonitor: React.FC = () => {
               <Bot className="h-6 w-6 mr-2 text-purple-600" />
               Agent Monitoring
             </h2>
-            <div className="flex items-center space-x-2">
-              <div className={`w-3 h-3 rounded-full ${monitoringData?.monitoring.active ? 'bg-green-500' : 'bg-red-500'}`}></div>
-              <span className="text-sm text-gray-600">
-                {monitoringData?.monitoring.active ? 'Active' : 'Inactive'}
-              </span>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="flex items-center space-x-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title="Refresh monitoring data"
+              >
+                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                <span>{refreshing ? 'Refreshing...' : 'Refresh'}</span>
+              </button>
+              <div className="flex items-center space-x-2">
+                <div className={`w-3 h-3 rounded-full ${monitoringData?.monitoring.active ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                <span className="text-sm text-gray-600">
+                  {monitoringData?.monitoring.active ? 'Active' : 'Inactive'}
+                </span>
+              </div>
             </div>
           </div>
         </div>

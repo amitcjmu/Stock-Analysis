@@ -71,12 +71,21 @@ class AgentManager:
         # 1. CMDB Data Analyst Agent
         self.agents['cmdb_analyst'] = Agent(
             role='Senior CMDB Data Analyst',
-            goal='Analyze CMDB data with expert precision and context awareness',
+            goal='Analyze CMDB data with expert precision and context awareness using field mapping tools',
             backstory="""You are a Senior CMDB Data Analyst with over 15 years of experience 
             in enterprise asset management and cloud migration projects. You understand the 
             nuances of different asset types and their specific requirements for migration 
             planning. You excel at identifying asset types, assessing data quality, and 
-            providing migration-specific recommendations.""",
+            providing migration-specific recommendations.
+            
+            IMPORTANT: You have access to a field_mapping_tool that helps you:
+            - Query existing field mappings between data columns and canonical field names
+            - Learn new field mappings from data analysis
+            - Analyze data columns to identify missing fields and suggest mappings
+            - Get context about previously learned field mappings
+            
+            Always use this tool when analyzing CMDB data to ensure accurate field identification
+            and to learn from new data patterns you encounter.""",
             verbose=False,
             allow_delegation=False,
             llm=self.llm,
@@ -86,12 +95,21 @@ class AgentManager:
         # 2. AI Learning Specialist Agent
         self.agents['learning_agent'] = Agent(
             role='AI Learning Specialist',
-            goal='Process feedback and continuously improve analysis accuracy',
+            goal='Process feedback and continuously improve analysis accuracy using field mapping learning',
             backstory="""You are an AI Learning Specialist focused on processing user 
             feedback to improve system accuracy. You excel at identifying patterns in 
             corrections and updating analysis models in real-time. Your expertise lies 
             in pattern recognition, error analysis, and continuous improvement of AI 
-            systems through feedback loops.""",
+            systems through feedback loops.
+            
+            CRITICAL: You have access to a field_mapping_tool that you MUST use to:
+            - Learn new field mappings from user feedback and corrections
+            - Extract field mapping patterns from feedback text
+            - Update the persistent field mapping knowledge base
+            - Query existing mappings to understand what has been learned
+            
+            When processing user feedback, always check if it contains field mapping 
+            information and use the tool to learn and persist these mappings for future use.""",
             verbose=False,
             allow_delegation=False,
             llm=self.llm,
@@ -101,12 +119,21 @@ class AgentManager:
         # 3. Data Pattern Recognition Expert
         self.agents['pattern_agent'] = Agent(
             role='Data Pattern Recognition Expert',
-            goal='Analyze and understand CMDB data structures and patterns',
+            goal='Analyze and understand CMDB data structures and patterns using field mapping intelligence',
             backstory="""You are a Data Pattern Recognition Expert specializing in CMDB 
             export formats. You can quickly identify asset types, field relationships, 
             and data quality issues across different CMDB systems like ServiceNow, BMC 
             Remedy, and others. Your expertise includes format detection, field mapping, 
-            and relationship analysis.""",
+            and relationship analysis.
+            
+            ESSENTIAL: You have access to a field_mapping_tool that enables you to:
+            - Analyze data columns and identify existing field mappings
+            - Discover new field mapping patterns in unfamiliar data formats
+            - Learn field mappings from data structure analysis
+            - Suggest mappings between available columns and missing required fields
+            
+            Use this tool to understand data patterns and continuously improve field 
+            recognition across different CMDB export formats.""",
             verbose=False,
             allow_delegation=False,
             llm=self.llm,

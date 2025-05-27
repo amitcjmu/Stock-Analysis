@@ -24,6 +24,7 @@ from app.services.agents import AgentManager
 from app.services.analysis import IntelligentAnalyzer, PlaceholderAnalyzer
 from app.services.feedback import FeedbackProcessor
 from app.services.agent_monitor import agent_monitor, TaskStatus
+from app.services.tools.field_mapping_tool import field_mapping_tool
 
 logger = logging.getLogger(__name__)
 
@@ -270,21 +271,45 @@ class CrewAIService:
                 "data_structure": cmdb_data.get('structure', {})
             })
             
-            # Create agentic task with memory context - SIMPLIFIED to avoid OpenAI memory issues
+            # Get available columns for field mapping analysis
+            available_columns = []
+            if cmdb_data.get('structure', {}).get('columns'):
+                available_columns = cmdb_data['structure']['columns']
+            elif cmdb_data.get('sample_data') and len(cmdb_data['sample_data']) > 0:
+                available_columns = list(cmdb_data['sample_data'][0].keys())
+            
+            # Use field mapping tool to analyze columns
+            field_analysis = field_mapping_tool.analyze_data_columns(available_columns, "server")
+            mapping_context = field_mapping_tool.get_mapping_context()
+            
+            # Create agentic task with field mapping intelligence
             task = Task(
                 description=f"""
-                As a Senior CMDB Data Analyst, analyze this CMDB export data.
+                As a Senior CMDB Data Analyst with access to field mapping intelligence, analyze this CMDB export data.
                 
                 CURRENT ANALYSIS:
                 File: {cmdb_data.get('filename')}
                 Data Structure: {cmdb_data.get('structure')}
                 Sample Records: {cmdb_data.get('sample_data', [])}
+                Available Columns: {available_columns}
+                
+                FIELD MAPPING INTELLIGENCE:
+                Field Analysis: {field_analysis}
+                Mapping Context: {mapping_context}
                 
                 ANALYSIS REQUIREMENTS:
-                1. Determine the PRIMARY asset type from the data patterns
-                2. Assess data quality based on asset type appropriateness
-                3. Identify truly missing fields (not irrelevant ones)
-                4. Provide migration-specific recommendations
+                1. Use field mapping tool to understand column mappings
+                2. Determine the PRIMARY asset type from the data patterns
+                3. Assess data quality based on asset type appropriateness
+                4. Identify truly missing fields using learned field mappings
+                5. Learn new field mappings from this data if patterns are discovered
+                6. Provide migration-specific recommendations
+                
+                FIELD MAPPING INSTRUCTIONS:
+                - Use the field_mapping_tool to query existing mappings for each column
+                - If you discover new field mapping patterns, use the tool to learn them
+                - Consider the learned mappings when identifying missing fields
+                - Don't report fields as missing if they exist under different names
                 
                 CRITICAL INTELLIGENCE:
                 - If data contains CI_TYPE or similar fields, use them for classification
@@ -292,6 +317,7 @@ class CrewAIService:
                 - Servers require infrastructure details
                 - Look for dependency fields (Related_CI, Depends_On, etc.)
                 - Consider field naming patterns and data content
+                - Use field mapping intelligence to avoid false missing field alerts
                 
                 Return ONLY a valid JSON response with this exact structure:
                 {{
@@ -300,15 +326,16 @@ class CrewAIService:
                     "data_quality_score": 85,
                     "issues": ["specific issues found"],
                     "recommendations": ["actionable recommendations"],
-                    "missing_fields_relevant": ["only truly missing fields for this asset type"],
+                    "missing_fields_relevant": ["only truly missing fields after field mapping analysis"],
                     "migration_readiness": "ready|needs_work|insufficient_data",
-                    "learning_notes": "what patterns were recognized"
+                    "learning_notes": "what patterns were recognized and field mappings learned",
+                    "field_mappings_learned": ["any new field mappings discovered"]
                 }}
                 
                 IMPORTANT: Return ONLY the JSON object, no other text or explanation.
                 """,
                 agent=self.agents['cmdb_analyst'],
-                expected_output="Valid JSON analysis of CMDB data with asset type detection and quality assessment"
+                expected_output="Valid JSON analysis of CMDB data with asset type detection, quality assessment, and field mapping intelligence"
             )
             
             # Execute with simplified crew (no memory to avoid OpenAI issues)
@@ -414,10 +441,15 @@ class CrewAIService:
             # Get all past feedback for pattern recognition
             past_feedback = self.memory.experiences.get("user_feedback", [])
             
-            # Create learning task
+            # Use field mapping tool to learn from feedback
+            feedback_text = str(user_corrections)
+            field_learning_result = field_mapping_tool.learn_from_feedback_text(feedback_text, f"feedback_{filename}")
+            current_mapping_context = field_mapping_tool.get_mapping_context()
+            
+            # Create learning task with field mapping intelligence
             learning_task = Task(
                 description=f"""
-                As an AI Learning Specialist, process this user feedback to improve future CMDB analysis accuracy.
+                As an AI Learning Specialist with access to field mapping tools, process this user feedback to improve future CMDB analysis accuracy.
                 
                 CURRENT FEEDBACK:
                 File: {filename}
@@ -425,33 +457,46 @@ class CrewAIService:
                 Asset Type Override: {asset_type_override}
                 Original Analysis Issues: {feedback_data.get('original_analysis', {}).get('issues', [])}
                 
+                FIELD MAPPING LEARNING:
+                Field Learning Result: {field_learning_result}
+                Current Mapping Context: {current_mapping_context}
+                
                 LEARNING CONTEXT:
                 Total Past Feedback: {len(past_feedback)} instances
                 Recent Patterns: {past_feedback[-5:] if past_feedback else "None"}
                 
+                CRITICAL FIELD MAPPING INSTRUCTIONS:
+                1. Use field_mapping_tool to extract and learn field mappings from user feedback
+                2. If user mentions fields are "available" or "present" under different names, learn these mappings
+                3. Look for patterns like "RAM_GB should map to Memory (GB)" in feedback text
+                4. Use the tool to learn mappings like "APPLICATION_OWNER → Business Owner"
+                5. Update the persistent field mapping knowledge base
+                
                 LEARNING OBJECTIVES:
                 1. Identify why the original analysis was incorrect
-                2. Extract patterns from user corrections
+                2. Extract and learn field mapping patterns from user corrections
                 3. Update asset type detection rules
-                4. Improve field relevance mapping
-                5. Enhance future analysis accuracy
+                4. Improve field relevance mapping using learned mappings
+                5. Enhance future analysis accuracy through persistent learning
                 
                 SPECIFIC ANALYSIS:
                 - If user corrected asset type, understand what indicators were missed
-                - If user corrected missing fields, learn which fields are truly important
+                - If user corrected missing fields, learn the actual field mappings
+                - Extract field equivalencies from feedback text (e.g., "RAM_GB is available for memory")
+                - Use field_mapping_tool to persist these learnings for future use
                 - Identify recurring correction patterns across all feedback
-                - Update internal knowledge about CMDB data patterns
                 
                 Return detailed learning insights in JSON format:
                 {{
                     "learning_applied": true,
                     "patterns_identified": ["specific patterns found"],
+                    "field_mappings_learned": ["field mappings extracted and learned"],
                     "knowledge_updates": ["what was learned"],
                     "accuracy_improvements": ["how future analysis will improve"],
                     "confidence_boost": 0.0-1.0,
                     "corrected_analysis": {{
                         "asset_type": "corrected type",
-                        "relevant_missing_fields": ["truly missing fields"],
+                        "relevant_missing_fields": ["truly missing fields after applying learned mappings"],
                         "updated_recommendations": ["improved recommendations"]
                     }}
                 }}

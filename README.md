@@ -33,6 +33,33 @@ Built with a modern tech stack featuring a **Next.js frontend** and **FastAPI ba
 - **💬 Feedback Widget**: Integrated user feedback collection for continuous improvement
 - **🧭 Sidebar Navigation**: Intuitive phase-based navigation system
 
+### 🧠 AI Learning System (Latest Enhancement)
+
+The platform now features a sophisticated AI learning system that continuously improves through user feedback and data analysis:
+
+#### **Dynamic Field Mapping**
+- **🔧 External Tool Interface**: AI agents can query, learn, and update field mappings through dedicated tools
+- **📚 Persistent Learning**: Field mappings are learned from user feedback and stored across sessions
+- **🎯 Reduced False Alerts**: System learns field equivalencies (e.g., RAM_GB → Memory (GB), APPLICATION_OWNER → Business Owner)
+- **🔄 Continuous Improvement**: Each interaction teaches the system new patterns
+
+#### **Agent Monitoring & Management**
+- **📊 Real-time Agent Status**: Monitor AI agent activities and task execution
+- **🔄 Manual Refresh Controls**: On-demand monitoring updates instead of excessive polling
+- **📈 Performance Tracking**: Track agent success rates, execution times, and learning progress
+- **🎛️ Task Management**: View active tasks, completed work, and hanging processes
+
+#### **Field Mapping Intelligence**
+- **🗺️ Smart Field Recognition**: Automatically maps data columns to canonical field names
+- **📝 User Feedback Learning**: Learns from corrections like "DR_TIER should map to Criticality"
+- **💾 Persistent Knowledge Base**: Stores learned mappings in `field_mappings.json` for future use
+- **🔍 Pattern Recognition**: Identifies field mapping patterns across different CMDB export formats
+
+#### **Testing & Verification**
+- **🧪 Comprehensive Test Suite**: Automated tests verify AI learning functionality
+- **🐳 Docker Integration**: All AI features work seamlessly in containerized environments
+- **✅ Verification Scripts**: Built-in scripts to test field mapping and agent functionality
+
 ## Architecture
 
 ### High-Level Architecture
@@ -162,6 +189,43 @@ Built with a modern tech stack featuring a **Next.js frontend** and **FastAPI ba
    - Backend API: http://localhost:8000 (Fixed Port)
    - API Documentation: http://localhost:8000/docs
    - PostgreSQL: localhost:5433 (Docker)
+
+#### **Docker Management Scripts**
+
+For development and troubleshooting, use these additional Docker scripts:
+
+**Rebuild containers with latest code changes:**
+```bash
+./docker-rebuild.sh
+```
+This script:
+- Stops all containers
+- Removes existing containers and images
+- Rebuilds with latest code changes
+- Starts fresh containers
+
+**Verify all systems are working:**
+```bash
+./verify-docker-changes.sh
+```
+This script tests:
+- Container health status
+- Backend API functionality
+- Field mapping tool availability
+- Agent monitoring endpoints
+- Frontend accessibility
+
+**View logs for debugging:**
+```bash
+# Backend logs
+docker-compose logs -f backend
+
+# Frontend logs
+docker-compose logs -f frontend
+
+# All services
+docker-compose logs -f
+```
 
 ## Roadmap
 

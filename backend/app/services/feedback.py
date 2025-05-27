@@ -122,15 +122,16 @@ class FeedbackProcessor:
             if 'business owner' in missing_fields_feedback.lower():
                 patterns.append("Business Owner is important for application assets")
             
-            # Enhanced field mapping patterns
-            if 'ram_gb' in missing_fields_feedback.lower() or 'memory' in missing_fields_feedback.lower():
-                patterns.append("Field mapping: RAM_GB, Memory_GB, Memory (GB) are equivalent memory fields")
+            # Let AI agents learn field mappings dynamically from feedback text
+            # Extract any field mapping patterns mentioned in the feedback
+            if 'available' in missing_fields_feedback.lower() and 'for' in missing_fields_feedback.lower():
+                patterns.append(f"Field mapping pattern detected in feedback: {missing_fields_feedback}")
             
-            if 'cpu_cores' in missing_fields_feedback.lower() or 'cores' in missing_fields_feedback.lower():
-                patterns.append("Field mapping: CPU_Cores, cpu_cores, Cores are equivalent CPU fields")
+            if 'should map' in missing_fields_feedback.lower() or 'maps to' in missing_fields_feedback.lower():
+                patterns.append(f"Field mapping instruction: {missing_fields_feedback}")
             
-            if 'asset_name' in missing_fields_feedback.lower() or 'name' in missing_fields_feedback.lower():
-                patterns.append("Field mapping: Asset_Name, Asset Name, Name are equivalent identifier fields")
+            if 'recognized as' in missing_fields_feedback.lower() or 'equivalent' in missing_fields_feedback.lower():
+                patterns.append(f"Field equivalence pattern: {missing_fields_feedback}")
         
         # Comments patterns with field mapping detection
         comments = user_corrections.get('comments', '')
