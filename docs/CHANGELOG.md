@@ -5,6 +5,122 @@ All notable changes to the AI Force Migration Platform will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.8] - 2025-01-27
+
+### 🔧 **Dynamic Headers & Improved Field Mapping**
+
+This release fixes critical field mapping issues and implements truly dynamic table headers that adapt to the actual data structure.
+
+### 🐛 **Fixed**
+
+#### **Field Mapping Issues**
+- **Flexible Field Detection**: Implemented `_get_field_value()` function that searches multiple possible field names
+- **Robust Asset Type Detection**: Enhanced `_standardize_asset_type()` to use both asset type and name for better classification
+- **Smart Tech Stack Extraction**: Updated `_get_tech_stack()` to intelligently extract technology information from various field combinations
+- **Department Mapping**: Fixed department field mapping to correctly identify business owners from various field formats
+
+#### **Dynamic Table Headers**
+- **Data-Driven Headers**: Headers now dynamically generate based on actual data content and relevance
+- **Asset-Type-Specific Columns**: Applications show different columns than servers/databases
+- **Smart Field Detection**: Only shows columns that have meaningful data in the dataset
+- **Contextual Descriptions**: Each header includes helpful tooltips explaining the field purpose
+
+#### **Enhanced Data Processing**
+- **Multi-Format Support**: Handles various CMDB export formats (ServiceNow, BMC Remedy, custom CSV)
+- **Intelligent Fallbacks**: Graceful handling when expected fields are missing or named differently
+- **Quality Preservation**: Maintains data quality while adapting to different field structures
+
+### 🚀 **Technical Improvements**
+
+#### **Backend Enhancements**
+```python
+# Flexible field value extraction
+def _get_field_value(asset: Dict[str, Any], field_names: List[str]) -> str:
+    """Get field value using flexible field name matching."""
+    for field_name in field_names:
+        value = asset.get(field_name)
+        if value and str(value).strip() and str(value).strip().lower() not in ['unknown', 'null', 'none', '']:
+            return str(value).strip()
+    return "Unknown"
+
+# Enhanced asset type detection
+def _standardize_asset_type(asset_type: str, asset_name: str = "") -> str:
+    """Standardize asset type names using both type and name fields."""
+    combined_text = f"{asset_type or ''} {asset_name or ''}".lower()
+    # Database detection (check name patterns first for better accuracy)
+    if any(keyword in combined_text for keyword in ["database", "db-", "-db", "sql", "oracle", "mysql", "postgres"]):
+        return "Database"
+    # ... additional logic
+```
+
+#### **Dynamic Header Generation**
+```python
+# Smart header suggestions based on data analysis
+def _generate_suggested_headers(assets: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+    """Generate suggested table headers based on actual asset data."""
+    # Analyze data to determine relevant fields
+    # Include server-specific fields only when servers/databases present
+    # Provide contextual descriptions for each field
+```
+
+#### **Frontend Integration**
+```typescript
+// Dynamic header rendering
+{suggestedHeaders.length > 0 ? (
+  suggestedHeaders.map((header) => (
+    <th key={header.key} title={header.description}>
+      {header.label}
+    </th>
+  ))
+) : (
+  // Fallback static headers
+)}
+
+// Flexible data display
+{header.key === 'cpuCores' || header.key === 'memoryGb' || header.key === 'storageGb' ? (
+  asset[header.key] ? `${asset[header.key]}${header.key === 'cpuCores' ? '' : ' GB'}` : '-'
+) : (
+  asset[header.key] || '-'
+)}
+```
+
+### 🎯 **User Experience Improvements**
+
+#### **Before This Release**
+- ❌ Static table headers that didn't match data structure
+- ❌ Poor field mapping causing incorrect data display
+- ❌ "Tech Stack" showing generic values like "Application"
+- ❌ Department field showing person names instead of departments
+
+#### **After This Release**
+- ✅ Dynamic headers that adapt to data structure
+- ✅ Intelligent field mapping with multiple fallback options
+- ✅ Meaningful tech stack information (OS, versions, platforms)
+- ✅ Correct department/business owner mapping
+- ✅ Asset-type-specific column visibility
+- ✅ Contextual tooltips for all headers
+
+### 🌟 **Key Benefits**
+
+#### **Intelligent Data Adaptation**
+- **Multi-Format Support**: Works with ServiceNow, BMC Remedy, and custom CMDB exports
+- **Smart Field Detection**: Automatically finds relevant data regardless of field naming conventions
+- **Context-Aware Display**: Shows appropriate columns based on asset types in the dataset
+- **Quality Preservation**: Maintains data integrity while adapting to different structures
+
+#### **Enhanced User Experience**
+- **Relevant Information**: Only shows columns that contain meaningful data
+- **Clear Context**: Tooltips explain what each field represents
+- **Proper Formatting**: CPU cores, memory, and storage display with appropriate units
+- **Visual Clarity**: Clean separation between different types of information
+
+#### **Production Ready**
+- **Robust Error Handling**: Graceful fallbacks when data doesn't match expected formats
+- **Performance Optimized**: Efficient field mapping and header generation
+- **Scalable Architecture**: Ready for various CMDB export formats and custom field mappings
+
+---
+
 ## [0.2.7] - 2025-01-27
 
 ### 🚀 **Live Asset Inventory Integration**

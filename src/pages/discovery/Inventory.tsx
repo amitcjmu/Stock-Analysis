@@ -20,6 +20,8 @@ const Inventory = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [error, setError] = useState(null);
+  const [dataSource, setDataSource] = useState('test');
+  const [suggestedHeaders, setSuggestedHeaders] = useState([]);
 
   // Fetch assets from API
   const fetchAssets = async () => {
@@ -39,31 +41,23 @@ const Inventory = () => {
         pending: 0
       });
       setLastUpdated(response.lastUpdated);
+      setDataSource(response.dataSource || 'test');
+      setSuggestedHeaders(response.suggestedHeaders || []);
       
     } catch (error) {
       console.error('Failed to fetch assets:', error);
       setError(error.message);
       
-      // Fallback to sample data if API fails
-      const fallbackAssets = [
-        { id: 'APP001', type: 'Application', name: 'CRM System', techStack: 'Java 8', department: 'Finance', status: 'Discovered' },
-        { id: 'APP002', type: 'Application', name: 'HR Portal', techStack: '.NET Core', department: 'HR', status: 'Discovered' },
-        { id: 'SRV001', type: 'Server', name: 'Web Server 01', techStack: 'Linux RHEL 8', department: 'IT', status: 'Discovered' },
-        { id: 'SRV002', type: 'Server', name: 'App Server 01', techStack: 'Windows Server 2019', department: 'IT', status: 'Pending' },
-        { id: 'DB001', type: 'Database', name: 'Customer DB', techStack: 'MySQL 8.0', department: 'Finance', status: 'Discovered' },
-        { id: 'DB002', type: 'Database', name: 'Analytics DB', techStack: 'PostgreSQL 13', department: 'Marketing', status: 'Pending' },
-        { id: 'APP003', type: 'Application', name: 'Legacy ERP', techStack: 'COBOL', department: 'Finance', status: 'Discovered' },
-        { id: 'SRV003', type: 'Server', name: 'Database Server', techStack: 'Linux Ubuntu 20.04', department: 'IT', status: 'Discovered' }
-      ];
-      
-      setAssets(fallbackAssets);
+      // Set error state - the backend will return test data by default
+      setDataSource('error');
+      setAssets([]);
       setSummary({
-        total: fallbackAssets.length,
-        applications: fallbackAssets.filter(a => a.type === 'Application').length,
-        servers: fallbackAssets.filter(a => a.type === 'Server').length,
-        databases: fallbackAssets.filter(a => a.type === 'Database').length,
-        discovered: fallbackAssets.filter(a => a.status === 'Discovered').length,
-        pending: fallbackAssets.filter(a => a.status === 'Pending').length
+        total: 0,
+        applications: 0,
+        servers: 0,
+        databases: 0,
+        discovered: 0,
+        pending: 0
       });
       
     } finally {
@@ -128,11 +122,15 @@ const Inventory = () => {
                   <p className="text-sm text-gray-700">
                     {error ? (
                       <span className="text-red-600">
-                        <strong>Error:</strong> {error} - Showing sample data
+                        <strong>Error:</strong> {error} - Unable to load data
                       </span>
-                    ) : assets.length > 0 ? (
+                    ) : dataSource === 'live' ? (
                       <span className="text-green-600">
                         <strong>Live Data:</strong> Showing {assets.length} processed assets from CMDB import
+                      </span>
+                    ) : dataSource === 'test' ? (
+                      <span className="text-blue-600">
+                        <strong>Test Data:</strong> Showing sample data for UI development - Upload and process CMDB files to see your real assets
                       </span>
                     ) : (
                       <span>
@@ -186,6 +184,29 @@ const Inventory = () => {
               </div>
             </div>
 
+            {/* Suggested Headers Info */}
+            {suggestedHeaders.length > 0 && dataSource === 'test' && (
+              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-blue-800">AI-Generated Table Headers</h4>
+                    <p className="text-sm text-blue-700 mt-1">
+                      The table columns below are dynamically generated based on your data structure. 
+                      When you process real CMDB data, the headers will automatically adjust to show the most relevant fields.
+                    </p>
+                    <p className="text-xs text-blue-600 mt-2">
+                      Current headers: {suggestedHeaders.map(h => h.label).join(', ')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Asset Table */}
             <div className="bg-white rounded-lg shadow-md">
               <div className="p-6 border-b border-gray-200">
@@ -223,12 +244,27 @@ const Inventory = () => {
                 <table className="w-full">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Asset ID</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tech Stack</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      {suggestedHeaders.length > 0 ? (
+                        suggestedHeaders.map((header) => (
+                          <th 
+                            key={header.key} 
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                            title={header.description}
+                          >
+                            {header.label}
+                          </th>
+                        ))
+                      ) : (
+                        // Fallback headers if no suggested headers available
+                        <>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Asset ID</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tech Stack</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        </>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -261,24 +297,51 @@ const Inventory = () => {
                         const Icon = getTypeIcon(asset.type);
                         return (
                           <tr key={asset.id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{asset.id}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              <div className="flex items-center space-x-2">
-                                <Icon className="h-4 w-4 text-gray-500" />
-                                <span>{asset.type}</span>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{asset.name}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{asset.techStack}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{asset.department}</td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`px-2 py-1 text-xs rounded-full ${
-                                asset.status === 'Discovered' ? 'bg-green-100 text-green-800' :
-                                'bg-yellow-100 text-yellow-800'
-                              }`}>
-                                {asset.status}
-                              </span>
-                            </td>
+                            {suggestedHeaders.length > 0 ? (
+                              suggestedHeaders.map((header) => (
+                                <td key={header.key} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  {header.key === 'type' ? (
+                                    <div className="flex items-center space-x-2">
+                                      <Icon className="h-4 w-4 text-gray-500" />
+                                      <span>{asset[header.key]}</span>
+                                    </div>
+                                  ) : header.key === 'status' ? (
+                                    <span className={`px-2 py-1 text-xs rounded-full ${
+                                      asset.status === 'Discovered' ? 'bg-green-100 text-green-800' :
+                                      'bg-yellow-100 text-yellow-800'
+                                    }`}>
+                                      {asset[header.key]}
+                                    </span>
+                                  ) : header.key === 'cpuCores' || header.key === 'memoryGb' || header.key === 'storageGb' ? (
+                                    asset[header.key] ? `${asset[header.key]}${header.key === 'cpuCores' ? '' : ' GB'}` : '-'
+                                  ) : (
+                                    asset[header.key] || '-'
+                                  )}
+                                </td>
+                              ))
+                            ) : (
+                              // Fallback static columns
+                              <>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{asset.id}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  <div className="flex items-center space-x-2">
+                                    <Icon className="h-4 w-4 text-gray-500" />
+                                    <span>{asset.type}</span>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{asset.name}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{asset.techStack}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{asset.department}</td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <span className={`px-2 py-1 text-xs rounded-full ${
+                                    asset.status === 'Discovered' ? 'bg-green-100 text-green-800' :
+                                    'bg-yellow-100 text-yellow-800'
+                                  }`}>
+                                    {asset.status}
+                                  </span>
+                                </td>
+                              </>
+                            )}
                           </tr>
                         );
                       })

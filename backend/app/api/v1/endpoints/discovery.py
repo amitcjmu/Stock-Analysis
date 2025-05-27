@@ -613,29 +613,167 @@ processed_assets_store = []
 async def get_processed_assets():
     """
     Get all processed assets from CMDB imports.
+    Returns test data if no processed data exists.
     """
     try:
-        # Return processed assets with proper formatting
-        formatted_assets = []
+        # Check if we have processed data
+        has_processed_data = len(processed_assets_store) > 0
         
-        for asset in processed_assets_store:
-            # Standardize asset data format
-            formatted_asset = {
-                "id": asset.get("ci_id") or asset.get("name") or asset.get("asset_name") or f"ASSET_{len(formatted_assets) + 1}",
-                "type": _standardize_asset_type(asset.get("ci_type") or asset.get("type") or asset.get("asset_type") or "Unknown"),
-                "name": asset.get("name") or asset.get("asset_name") or asset.get("hostname") or "Unknown",
-                "techStack": _get_tech_stack(asset),
-                "department": asset.get("business_owner") or asset.get("department") or asset.get("owner") or "Unknown",
-                "status": "Discovered",
-                "environment": asset.get("environment") or "Unknown",
-                "criticality": asset.get("criticality") or "Medium",
-                "ipAddress": asset.get("ip_address") or asset.get("ip") or None,
-                "operatingSystem": asset.get("operating_system") or asset.get("os") or None,
-                "cpuCores": asset.get("cpu_cores") or asset.get("cpu") or None,
-                "memoryGb": asset.get("memory_gb") or asset.get("memory") or asset.get("ram") or None,
-                "storageGb": asset.get("storage_gb") or asset.get("storage") or None
-            }
-            formatted_assets.append(formatted_asset)
+        if has_processed_data:
+            # Return processed assets with proper formatting
+            formatted_assets = []
+            
+            for asset in processed_assets_store:
+                # Get asset name for better type detection with flexible field mapping
+                asset_name = _get_field_value(asset, ["asset_name", "name", "hostname", "ci_name"])
+                asset_type = _get_field_value(asset, ["asset_type", "ci_type", "type", "sys_class_name"])
+                
+                # Standardize asset data format with flexible field mapping
+                formatted_asset = {
+                    "id": _get_field_value(asset, ["ci_id", "asset_id", "id", "asset_name", "name"]) or f"ASSET_{len(formatted_assets) + 1}",
+                    "type": _standardize_asset_type(asset_type, asset_name),
+                    "name": asset_name,
+                    "techStack": _get_tech_stack(asset),
+                    "department": _get_field_value(asset, ["business_owner", "department", "owner", "responsible_party", "assigned_to"]),
+                    "status": "Discovered",
+                    "environment": _get_field_value(asset, ["environment", "env", "stage", "tier"]),
+                    "criticality": _get_field_value(asset, ["criticality", "business_criticality", "priority", "importance"]),
+                    "ipAddress": _get_field_value(asset, ["ip_address", "ip", "network_address", "host_ip"]),
+                    "operatingSystem": _get_field_value(asset, ["operating_system", "os", "platform", "os_name"]),
+                    "cpuCores": _get_field_value(asset, ["cpu_cores", "cpu", "cores", "processors", "vcpu"]),
+                    "memoryGb": _get_field_value(asset, ["memory_gb", "memory", "ram", "ram_gb", "mem"]),
+                    "storageGb": _get_field_value(asset, ["storage_gb", "storage", "disk", "disk_gb", "hdd"])
+                }
+                formatted_assets.append(formatted_asset)
+            
+            data_source = "live"
+            
+        else:
+            # Return default test data for UI development and demonstration
+            formatted_assets = [
+                {
+                    "id": "APP001",
+                    "type": "Application",
+                    "name": "HR_Payroll",
+                    "techStack": "Java 8 | Spring Boot",
+                    "department": "Human Resources",
+                    "status": "Discovered",
+                    "environment": "Production",
+                    "criticality": "High",
+                    "ipAddress": None,
+                    "operatingSystem": None,
+                    "cpuCores": None,
+                    "memoryGb": None,
+                    "storageGb": None
+                },
+                {
+                    "id": "APP002",
+                    "type": "Application",
+                    "name": "Finance_ERP",
+                    "techStack": ".NET Core 6",
+                    "department": "Finance",
+                    "status": "Discovered",
+                    "environment": "Production",
+                    "criticality": "Critical",
+                    "ipAddress": None,
+                    "operatingSystem": None,
+                    "cpuCores": None,
+                    "memoryGb": None,
+                    "storageGb": None
+                },
+                {
+                    "id": "SRV001",
+                    "type": "Server",
+                    "name": "srv-hr-01",
+                    "techStack": "Windows Server 2019",
+                    "department": "IT Operations",
+                    "status": "Discovered",
+                    "environment": "Production",
+                    "criticality": "High",
+                    "ipAddress": "192.168.1.10",
+                    "operatingSystem": "Windows Server 2019",
+                    "cpuCores": 8,
+                    "memoryGb": 32,
+                    "storageGb": 500
+                },
+                {
+                    "id": "SRV002",
+                    "type": "Server",
+                    "name": "srv-erp-01",
+                    "techStack": "Red Hat Enterprise Linux 8",
+                    "department": "IT Operations",
+                    "status": "Discovered",
+                    "environment": "Production",
+                    "criticality": "Critical",
+                    "ipAddress": "192.168.1.11",
+                    "operatingSystem": "Red Hat Enterprise Linux 8",
+                    "cpuCores": 16,
+                    "memoryGb": 64,
+                    "storageGb": 1000
+                },
+                {
+                    "id": "DB001",
+                    "type": "Database",
+                    "name": "srv-hr-db-01",
+                    "techStack": "MySQL 8.0",
+                    "department": "Human Resources",
+                    "status": "Discovered",
+                    "environment": "Production",
+                    "criticality": "High",
+                    "ipAddress": "192.168.1.20",
+                    "operatingSystem": "Linux Ubuntu 20.04",
+                    "cpuCores": 8,
+                    "memoryGb": 32,
+                    "storageGb": 2000
+                },
+                {
+                    "id": "DB002",
+                    "type": "Database",
+                    "name": "finance-db-cluster",
+                    "techStack": "PostgreSQL 13",
+                    "department": "Finance",
+                    "status": "Discovered",
+                    "environment": "Production",
+                    "criticality": "Critical",
+                    "ipAddress": "192.168.1.21",
+                    "operatingSystem": "Linux Ubuntu 20.04",
+                    "cpuCores": 16,
+                    "memoryGb": 64,
+                    "storageGb": 5000
+                },
+                {
+                    "id": "APP003",
+                    "type": "Application",
+                    "name": "CRM_System",
+                    "techStack": "Python Django",
+                    "department": "Sales",
+                    "status": "Pending",
+                    "environment": "Production",
+                    "criticality": "Medium",
+                    "ipAddress": None,
+                    "operatingSystem": None,
+                    "cpuCores": None,
+                    "memoryGb": None,
+                    "storageGb": None
+                },
+                {
+                    "id": "SRV003",
+                    "type": "Server",
+                    "name": "web-server-01",
+                    "techStack": "Linux Ubuntu 22.04",
+                    "department": "IT Operations",
+                    "status": "Discovered",
+                    "environment": "Production",
+                    "criticality": "Medium",
+                    "ipAddress": "192.168.1.30",
+                    "operatingSystem": "Linux Ubuntu 22.04",
+                    "cpuCores": 4,
+                    "memoryGb": 16,
+                    "storageGb": 250
+                }
+            ]
+            
+            data_source = "test"
         
         # Calculate summary statistics
         summary = {
@@ -647,9 +785,14 @@ async def get_processed_assets():
             "pending": len([a for a in formatted_assets if a["status"] == "Pending"])
         }
         
+        # Generate suggested headers based on actual data
+        suggested_headers = _generate_suggested_headers(formatted_assets)
+        
         return {
             "assets": formatted_assets,
             "summary": summary,
+            "dataSource": data_source,
+            "suggestedHeaders": suggested_headers,
             "lastUpdated": datetime.now().isoformat()
         }
         
@@ -657,55 +800,120 @@ async def get_processed_assets():
         logger.error(f"Error retrieving processed assets: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve assets: {str(e)}")
 
-def _standardize_asset_type(asset_type: str) -> str:
-    """Standardize asset type names."""
-    if not asset_type:
+def _standardize_asset_type(asset_type: str, asset_name: str = "") -> str:
+    """Standardize asset type names using both type and name fields."""
+    if not asset_type and not asset_name:
         return "Unknown"
     
-    asset_type_lower = asset_type.lower()
+    # Combine type and name for better detection
+    combined_text = f"{asset_type or ''} {asset_name or ''}".lower()
     
-    if any(keyword in asset_type_lower for keyword in ["application", "app", "service", "software"]):
-        return "Application"
-    elif any(keyword in asset_type_lower for keyword in ["server", "host", "machine", "vm", "computer"]):
-        return "Server"
-    elif any(keyword in asset_type_lower for keyword in ["database", "db", "sql", "oracle", "mysql", "postgres"]):
+    # Database detection (check name patterns first for better accuracy)
+    if any(keyword in combined_text for keyword in ["database", "db-", "-db", "sql", "oracle", "mysql", "postgres", "mongodb", "redis"]):
         return "Database"
-    elif any(keyword in asset_type_lower for keyword in ["network", "switch", "router", "firewall"]):
+    # Application detection
+    elif any(keyword in combined_text for keyword in ["application", "app-", "-app", "service", "software", "portal", "system", "platform"]):
+        return "Application"
+    # Server detection (most generic, check last)
+    elif any(keyword in combined_text for keyword in ["server", "srv-", "-srv", "host", "machine", "vm", "computer", "node"]):
+        return "Server"
+    # Network detection
+    elif any(keyword in combined_text for keyword in ["network", "switch", "router", "firewall", "gateway"]):
         return "Network"
     else:
         return "Unknown"
 
+def _get_field_value(asset: Dict[str, Any], field_names: List[str]) -> str:
+    """Get field value using flexible field name matching."""
+    for field_name in field_names:
+        value = asset.get(field_name)
+        if value and str(value).strip() and str(value).strip().lower() not in ['unknown', 'null', 'none', '']:
+            return str(value).strip()
+    return "Unknown"
+
 def _get_tech_stack(asset: Dict[str, Any]) -> str:
-    """Extract technology stack information from asset data."""
+    """Extract technology stack information from asset data with flexible field mapping."""
     # Try to build tech stack from available fields
     tech_components = []
     
     # Operating System
-    os_info = asset.get("operating_system") or asset.get("os")
-    if os_info:
-        tech_components.append(str(os_info))
+    os_info = _get_field_value(asset, ["operating_system", "os", "platform", "os_name"])
+    if os_info != "Unknown":
+        tech_components.append(os_info)
     
     # Version information
-    version = asset.get("version") or asset.get("release")
-    if version:
+    version = _get_field_value(asset, ["version", "release", "app_version", "software_version"])
+    if version != "Unknown":
         tech_components.append(f"v{version}")
     
     # Database specific
-    if asset.get("database_version"):
-        tech_components.append(str(asset.get("database_version")))
+    db_version = _get_field_value(asset, ["database_version", "db_version", "db_release"])
+    if db_version != "Unknown":
+        tech_components.append(db_version)
     
     # Platform information
-    platform = asset.get("platform")
-    if platform:
-        tech_components.append(str(platform))
+    platform = _get_field_value(asset, ["platform", "technology", "framework"])
+    if platform != "Unknown" and platform not in tech_components:
+        tech_components.append(platform)
     
     # If no tech stack info found, use asset type
     if not tech_components:
-        asset_type = asset.get("ci_type") or asset.get("type") or asset.get("asset_type")
-        if asset_type:
-            tech_components.append(str(asset_type))
+        asset_type = _get_field_value(asset, ["asset_type", "ci_type", "type", "sys_class_name"])
+        if asset_type != "Unknown":
+            tech_components.append(asset_type)
     
     return " | ".join(tech_components) if tech_components else "Unknown"
+
+def _generate_suggested_headers(assets: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+    """Generate suggested table headers based on actual asset data."""
+    if not assets:
+        return []
+    
+    # Analyze the data to determine which fields are most relevant
+    sample_asset = assets[0]
+    headers = []
+    
+    # Always include basic identification fields
+    headers.extend([
+        {"key": "id", "label": "Asset ID", "description": "Unique identifier for the asset"},
+        {"key": "type", "label": "Type", "description": "Asset classification (Application, Server, Database)"},
+        {"key": "name", "label": "Name", "description": "Asset name or hostname"}
+    ])
+    
+    # Check if we have tech stack information
+    if any(asset.get("techStack") and asset["techStack"] != "Unknown" for asset in assets):
+        headers.append({"key": "techStack", "label": "Tech Stack", "description": "Technology platform and versions"})
+    
+    # Check if we have department information
+    if any(asset.get("department") and asset["department"] != "Unknown" for asset in assets):
+        headers.append({"key": "department", "label": "Department", "description": "Business owner or responsible department"})
+    
+    # Check if we have environment information
+    if any(asset.get("environment") and asset["environment"] != "Unknown" for asset in assets):
+        headers.append({"key": "environment", "label": "Environment", "description": "Deployment environment (Production, Test, Dev)"})
+    
+    # Check if we have criticality information
+    if any(asset.get("criticality") and asset["criticality"] != "Medium" for asset in assets):
+        headers.append({"key": "criticality", "label": "Criticality", "description": "Business criticality level"})
+    
+    # Check if we have server-specific fields (for servers and databases)
+    has_servers = any(asset.get("type") in ["Server", "Database"] for asset in assets)
+    if has_servers:
+        if any(asset.get("ipAddress") for asset in assets):
+            headers.append({"key": "ipAddress", "label": "IP Address", "description": "Network IP address"})
+        if any(asset.get("operatingSystem") for asset in assets):
+            headers.append({"key": "operatingSystem", "label": "Operating System", "description": "Server operating system"})
+        if any(asset.get("cpuCores") for asset in assets):
+            headers.append({"key": "cpuCores", "label": "CPU Cores", "description": "Number of CPU cores"})
+        if any(asset.get("memoryGb") for asset in assets):
+            headers.append({"key": "memoryGb", "label": "Memory (GB)", "description": "RAM memory in gigabytes"})
+        if any(asset.get("storageGb") for asset in assets):
+            headers.append({"key": "storageGb", "label": "Storage (GB)", "description": "Storage capacity in gigabytes"})
+    
+    # Always include status
+    headers.append({"key": "status", "label": "Status", "description": "Discovery and processing status"})
+    
+    return headers
 
 @router.get("/cmdb-templates")
 async def get_cmdb_templates():
