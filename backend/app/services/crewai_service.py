@@ -11,6 +11,7 @@ from datetime import datetime
 try:
     from crewai import Agent, Task, Crew
     from langchain_openai import ChatOpenAI
+    from langchain_community.llms import DeepInfra
     CREWAI_AVAILABLE = True
 except ImportError:
     CREWAI_AVAILABLE = False
@@ -31,7 +32,7 @@ class CrewAIService:
         self.agents = {}
         self.crews = {}
         
-        if CREWAI_AVAILABLE and settings.OPENAI_API_KEY:
+        if CREWAI_AVAILABLE and settings.DEEPINFRA_API_KEY:
             self._initialize_llm()
             self._create_agents()
             self._create_crews()
@@ -39,17 +40,31 @@ class CrewAIService:
             logger.warning("CrewAI service initialized in placeholder mode")
     
     def _initialize_llm(self):
-        """Initialize the language model for CrewAI."""
+        """Initialize the language model for CrewAI using DeepInfra."""
         try:
-            self.llm = ChatOpenAI(
-                model=settings.CREWAI_MODEL,
+            self.llm = DeepInfra(
+                model_id=settings.CREWAI_MODEL,
+                deepinfra_api_token=settings.DEEPINFRA_API_KEY,
                 temperature=settings.CREWAI_TEMPERATURE,
-                api_key=settings.OPENAI_API_KEY
+                max_tokens=settings.CREWAI_MAX_TOKENS
             )
-            logger.info(f"Initialized LLM: {settings.CREWAI_MODEL}")
+            logger.info(f"Initialized DeepInfra LLM: {settings.CREWAI_MODEL}")
         except Exception as e:
-            logger.error(f"Failed to initialize LLM: {e}")
-            self.llm = None
+            logger.error(f"Failed to initialize DeepInfra LLM: {e}")
+            # Fallback to OpenAI if available
+            try:
+                if hasattr(settings, 'OPENAI_API_KEY') and settings.OPENAI_API_KEY:
+                    self.llm = ChatOpenAI(
+                        model="gpt-3.5-turbo",
+                        temperature=settings.CREWAI_TEMPERATURE,
+                        api_key=settings.OPENAI_API_KEY
+                    )
+                    logger.info("Fallback to OpenAI LLM initialized")
+                else:
+                    self.llm = None
+            except Exception as fallback_error:
+                logger.error(f"Fallback LLM initialization failed: {fallback_error}")
+                self.llm = None
     
     def _create_agents(self):
         """Create specialized AI agents for migration tasks."""

@@ -16,7 +16,7 @@ DEBUG = "false"
 FRONTEND_URL = "https://aiforce-assess.vercel.app/"
 DATABASE_URL = "${{Postgres.DATABASE_URL}}"
 SECRET_KEY = "${{RAILWAY_SECRET_KEY}}"
-OPENAI_API_KEY = "${{OPENAI_API_KEY}}"
+DEEPINFRA_API_KEY = "${{DEEPINFRA_API_KEY}}"
 
 [environments.staging]
 [environments.staging.variables]

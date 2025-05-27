@@ -44,9 +44,27 @@ class Settings(BaseSettings):
             return self.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
         return self.DATABASE_URL
     
-    # AI/ML API Keys
+    # DeepInfra API Configuration
+    DEEPINFRA_API_KEY: str = Field(
+        default="U8JskPYWXprQvw2PGbv4lyxfcJQggI48", 
+        env="DEEPINFRA_API_KEY"
+    )
+    DEEPINFRA_MODEL: str = Field(
+        default="meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+        env="DEEPINFRA_MODEL"
+    )
+    DEEPINFRA_BASE_URL: str = Field(
+        default="https://api.deepinfra.com/v1/inference",
+        env="DEEPINFRA_BASE_URL"
+    )
+    
+    @property
+    def deepinfra_model_url(self) -> str:
+        """Get the full DeepInfra model URL."""
+        return f"{self.DEEPINFRA_BASE_URL}/{self.DEEPINFRA_MODEL}"
+    
+    # Legacy OpenAI support (for compatibility)
     OPENAI_API_KEY: Optional[str] = Field(default=None, env="OPENAI_API_KEY")
-    CREWAI_API_KEY: Optional[str] = Field(default=None, env="CREWAI_API_KEY")
     
     # Security settings
     SECRET_KEY: str = Field(
@@ -69,9 +87,13 @@ class Settings(BaseSettings):
     # WebSocket settings
     WS_HEARTBEAT_INTERVAL: int = Field(default=30, env="WS_HEARTBEAT_INTERVAL")
     
-    # CrewAI settings
-    CREWAI_MODEL: str = Field(default="gpt-4", env="CREWAI_MODEL")
+    # CrewAI settings (using DeepInfra)
+    CREWAI_MODEL: str = Field(
+        default="meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8", 
+        env="CREWAI_MODEL"
+    )
     CREWAI_TEMPERATURE: float = Field(default=0.7, env="CREWAI_TEMPERATURE")
+    CREWAI_MAX_TOKENS: int = Field(default=2048, env="CREWAI_MAX_TOKENS")
     
     # Migration specific settings
     MAX_ASSETS_PER_SCAN: int = Field(default=1000, env="MAX_ASSETS_PER_SCAN")
