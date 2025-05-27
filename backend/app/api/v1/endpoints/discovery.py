@@ -431,6 +431,16 @@ async def process_cmdb_data(request: CMDBProcessingRequest):
             'project_info': request.projectInfo
         })
         
+        # Store processed assets in memory (in production, this would be saved to database)
+        processed_data_records = processed_df.to_dict('records')
+        
+        # Clear existing data and add new processed assets
+        global processed_assets_store
+        processed_assets_store.clear()
+        processed_assets_store.extend(processed_data_records)
+        
+        logger.info(f"Stored {len(processed_data_records)} processed assets in inventory")
+        
         # Handle project creation if requested
         project_created = False
         project_id = None
@@ -595,6 +605,107 @@ async def submit_cmdb_feedback(request: CMDBFeedbackRequest):
     except Exception as e:
         logger.error(f"Error processing user feedback: {e}")
         raise HTTPException(status_code=500, detail=f"Feedback processing failed: {str(e)}")
+
+# In-memory storage for processed assets (in production, this would be a database)
+processed_assets_store = []
+
+@router.get("/assets")
+async def get_processed_assets():
+    """
+    Get all processed assets from CMDB imports.
+    """
+    try:
+        # Return processed assets with proper formatting
+        formatted_assets = []
+        
+        for asset in processed_assets_store:
+            # Standardize asset data format
+            formatted_asset = {
+                "id": asset.get("ci_id") or asset.get("name") or asset.get("asset_name") or f"ASSET_{len(formatted_assets) + 1}",
+                "type": _standardize_asset_type(asset.get("ci_type") or asset.get("type") or asset.get("asset_type") or "Unknown"),
+                "name": asset.get("name") or asset.get("asset_name") or asset.get("hostname") or "Unknown",
+                "techStack": _get_tech_stack(asset),
+                "department": asset.get("business_owner") or asset.get("department") or asset.get("owner") or "Unknown",
+                "status": "Discovered",
+                "environment": asset.get("environment") or "Unknown",
+                "criticality": asset.get("criticality") or "Medium",
+                "ipAddress": asset.get("ip_address") or asset.get("ip") or None,
+                "operatingSystem": asset.get("operating_system") or asset.get("os") or None,
+                "cpuCores": asset.get("cpu_cores") or asset.get("cpu") or None,
+                "memoryGb": asset.get("memory_gb") or asset.get("memory") or asset.get("ram") or None,
+                "storageGb": asset.get("storage_gb") or asset.get("storage") or None
+            }
+            formatted_assets.append(formatted_asset)
+        
+        # Calculate summary statistics
+        summary = {
+            "total": len(formatted_assets),
+            "applications": len([a for a in formatted_assets if a["type"] == "Application"]),
+            "servers": len([a for a in formatted_assets if a["type"] == "Server"]),
+            "databases": len([a for a in formatted_assets if a["type"] == "Database"]),
+            "discovered": len([a for a in formatted_assets if a["status"] == "Discovered"]),
+            "pending": len([a for a in formatted_assets if a["status"] == "Pending"])
+        }
+        
+        return {
+            "assets": formatted_assets,
+            "summary": summary,
+            "lastUpdated": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error retrieving processed assets: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve assets: {str(e)}")
+
+def _standardize_asset_type(asset_type: str) -> str:
+    """Standardize asset type names."""
+    if not asset_type:
+        return "Unknown"
+    
+    asset_type_lower = asset_type.lower()
+    
+    if any(keyword in asset_type_lower for keyword in ["application", "app", "service", "software"]):
+        return "Application"
+    elif any(keyword in asset_type_lower for keyword in ["server", "host", "machine", "vm", "computer"]):
+        return "Server"
+    elif any(keyword in asset_type_lower for keyword in ["database", "db", "sql", "oracle", "mysql", "postgres"]):
+        return "Database"
+    elif any(keyword in asset_type_lower for keyword in ["network", "switch", "router", "firewall"]):
+        return "Network"
+    else:
+        return "Unknown"
+
+def _get_tech_stack(asset: Dict[str, Any]) -> str:
+    """Extract technology stack information from asset data."""
+    # Try to build tech stack from available fields
+    tech_components = []
+    
+    # Operating System
+    os_info = asset.get("operating_system") or asset.get("os")
+    if os_info:
+        tech_components.append(str(os_info))
+    
+    # Version information
+    version = asset.get("version") or asset.get("release")
+    if version:
+        tech_components.append(f"v{version}")
+    
+    # Database specific
+    if asset.get("database_version"):
+        tech_components.append(str(asset.get("database_version")))
+    
+    # Platform information
+    platform = asset.get("platform")
+    if platform:
+        tech_components.append(str(platform))
+    
+    # If no tech stack info found, use asset type
+    if not tech_components:
+        asset_type = asset.get("ci_type") or asset.get("type") or asset.get("asset_type")
+        if asset_type:
+            tech_components.append(str(asset_type))
+    
+    return " | ".join(tech_components) if tech_components else "Unknown"
 
 @router.get("/cmdb-templates")
 async def get_cmdb_templates():
