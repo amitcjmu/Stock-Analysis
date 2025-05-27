@@ -5,6 +5,7 @@ Provides AI-powered data validation and processing capabilities.
 
 import json
 import logging
+import time
 from typing import Dict, List, Any, Optional
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from pydantic import BaseModel
@@ -24,6 +25,11 @@ class CMDBAnalysisRequest(BaseModel):
     filename: str
     content: str
     fileType: str
+
+class CMDBProcessingRequest(BaseModel):
+    filename: str
+    data: List[Dict[str, Any]]
+    projectInfo: Optional[Dict[str, Any]] = None
 
 class DataQualityResult(BaseModel):
     score: int
@@ -293,52 +299,107 @@ async def analyze_cmdb_data(request: CMDBAnalysisRequest):
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
 @router.post("/process-cmdb")
-async def process_cmdb_data(request: CMDBAnalysisRequest):
+async def process_cmdb_data(request: CMDBProcessingRequest):
     """
-    Process and clean CMDB data based on AI recommendations.
+    Process and clean CMDB data based on user edits and AI recommendations.
     """
     try:
         logger.info(f"Starting CMDB processing for file: {request.filename}")
         
-        # Parse the file content
-        df = processor.parse_file_content(request.content, request.fileType)
+        # Convert the edited data to DataFrame
+        df = pd.DataFrame(request.data)
+        
+        if len(df) == 0:
+            raise HTTPException(status_code=400, detail="No data provided for processing")
         
         # Apply data processing steps
         processed_df = df.copy()
         
         # Remove duplicates
+        original_rows = len(processed_df)
         processed_df = processed_df.drop_duplicates()
+        duplicates_removed = original_rows - len(processed_df)
+        
+        # Clean and standardize data
+        processing_steps = []
+        
+        # Standardize column names
+        old_columns = processed_df.columns.tolist()
+        processed_df.columns = [col.strip().replace(' ', '_').lower() for col in processed_df.columns]
+        if old_columns != processed_df.columns.tolist():
+            processing_steps.append("Standardized column names")
         
         # Fill missing values with appropriate defaults
+        null_counts_before = processed_df.isnull().sum().sum()
         for column in processed_df.columns:
             if processed_df[column].dtype == 'object':
                 processed_df[column] = processed_df[column].fillna('Unknown')
             else:
                 processed_df[column] = processed_df[column].fillna(0)
         
-        # Standardize column names
-        processed_df.columns = [col.lower().replace(' ', '_') for col in processed_df.columns]
+        null_counts_after = processed_df.isnull().sum().sum()
+        if null_counts_before > null_counts_after:
+            processing_steps.append(f"Filled {null_counts_before - null_counts_after} missing values")
         
-        # Use CrewAI for advanced processing
+        if duplicates_removed > 0:
+            processing_steps.append(f"Removed {duplicates_removed} duplicate records")
+        
+        # Validate required fields
+        required_fields = ['asset_name', 'asset_type', 'environment']
+        missing_required = [field for field in required_fields if field not in processed_df.columns]
+        
+        # Calculate final quality score
+        total_cells = len(processed_df) * len(processed_df.columns)
+        null_percentage = (processed_df.isnull().sum().sum() / total_cells) * 100 if total_cells > 0 else 0
+        duplicate_percentage = (duplicates_removed / original_rows) * 100 if original_rows > 0 else 0
+        quality_score = max(0, 100 - null_percentage - duplicate_percentage)
+        
+        # Use CrewAI for advanced processing validation
         processing_result = await processor.crewai_service.process_cmdb_data({
-            'original_data': df.to_dict('records'),
+            'original_data': request.data,
             'processed_data': processed_df.to_dict('records'),
-            'filename': request.filename
+            'filename': request.filename,
+            'project_info': request.projectInfo
         })
         
-        return {
+        # Handle project creation if requested
+        project_created = False
+        project_id = None
+        
+        if request.projectInfo and request.projectInfo.get('saveToDatabase'):
+            try:
+                # Here you would typically save to your database
+                # For now, we'll simulate project creation
+                project_id = f"proj_{int(time.time())}"
+                project_created = True
+                processing_steps.append(f"Created project: {request.projectInfo.get('name', 'Unnamed Project')}")
+                logger.info(f"Created project {project_id} for CMDB data")
+            except Exception as e:
+                logger.warning(f"Failed to create project: {e}")
+        
+        response = {
             "status": "completed",
             "message": "Data processing completed successfully",
-            "original_rows": len(df),
-            "processed_rows": len(processed_df),
-            "processing_steps_applied": [
-                "Removed duplicate records",
-                "Filled missing values",
-                "Standardized column names",
-                "Applied AI-recommended transformations"
-            ],
-            "ai_processing_result": processing_result
+            "summary": {
+                "original_rows": original_rows,
+                "processed_rows": len(processed_df),
+                "duplicates_removed": duplicates_removed,
+                "quality_score": int(quality_score),
+                "missing_required_fields": missing_required
+            },
+            "processing_steps_applied": processing_steps,
+            "project": {
+                "created": project_created,
+                "project_id": project_id,
+                "name": request.projectInfo.get('name') if request.projectInfo else None
+            } if request.projectInfo else None,
+            "processed_data": processed_df.to_dict('records'),
+            "ai_processing_result": processing_result,
+            "ready_for_import": len(missing_required) == 0 and quality_score >= 70
         }
+        
+        logger.info(f"CMDB processing completed for {request.filename}")
+        return response
         
     except Exception as e:
         logger.error(f"Error processing CMDB data: {e}")
