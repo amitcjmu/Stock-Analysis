@@ -1,171 +1,121 @@
 """
 CrewAI service integration for AI-powered migration analysis.
-Provides AI agents for migration planning, 6R analysis, and recommendations.
+Provides truly agentic AI agents with memory, learning, and adaptive capabilities.
 """
 
 import json
 import logging
+import asyncio
+import concurrent.futures
+import uuid
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 
 try:
-    from crewai import Agent, Task, Crew
-    from langchain_openai import ChatOpenAI
-    from langchain_community.llms import DeepInfra
+    from crewai import Task, LLM
     CREWAI_AVAILABLE = True
 except ImportError:
     CREWAI_AVAILABLE = False
     logging.warning("CrewAI not available. AI features will use placeholder logic.")
 
 from app.core.config import settings
-from app.models.asset import Asset, SixRStrategy
-from app.models.assessment import Assessment, AssessmentType
+from app.services.memory import AgentMemory
+from app.services.agents import AgentManager
+from app.services.analysis import IntelligentAnalyzer, PlaceholderAnalyzer
+from app.services.feedback import FeedbackProcessor
+from app.services.agent_monitor import agent_monitor, TaskStatus
 
 logger = logging.getLogger(__name__)
 
 
+
+
+
 class CrewAIService:
-    """Service for managing CrewAI agents and tasks."""
+    """Service for managing truly agentic CrewAI agents with memory and learning."""
     
     def __init__(self):
         self.llm = None
-        self.agents = {}
-        self.crews = {}
+        self.memory = AgentMemory()
+        self.agent_manager = None
+        self.analyzer = IntelligentAnalyzer(self.memory)
+        self.feedback_processor = FeedbackProcessor(self.memory)
         
-        if CREWAI_AVAILABLE and settings.DEEPINFRA_API_KEY:
+        # Start agent monitoring
+        agent_monitor.start_monitoring()
+        
+        if CREWAI_AVAILABLE and settings.DEEPINFRA_API_KEY and settings.CREWAI_ENABLED:
             self._initialize_llm()
-            self._create_agents()
-            self._create_crews()
+            self.agent_manager = AgentManager(self.llm)
         else:
-            logger.warning("CrewAI service initialized in placeholder mode")
+            if not settings.CREWAI_ENABLED:
+                logger.info("CrewAI service disabled by configuration - using placeholder mode")
+            else:
+                logger.warning("CrewAI service initialized in placeholder mode - DeepInfra API key required")
     
     def _initialize_llm(self):
-        """Initialize the language model for CrewAI using DeepInfra."""
+        """Initialize the LiteLLM configuration for DeepInfra."""
         try:
-            self.llm = DeepInfra(
-                model_id=settings.CREWAI_MODEL,
-                deepinfra_api_token=settings.DEEPINFRA_API_KEY,
-                temperature=settings.CREWAI_TEMPERATURE,
-                max_tokens=settings.CREWAI_MAX_TOKENS
-            )
-            logger.info(f"Initialized DeepInfra LLM: {settings.CREWAI_MODEL}")
-        except Exception as e:
-            logger.error(f"Failed to initialize DeepInfra LLM: {e}")
-            # Fallback to OpenAI if available
-            try:
-                if hasattr(settings, 'OPENAI_API_KEY') and settings.OPENAI_API_KEY:
-                    self.llm = ChatOpenAI(
-                        model="gpt-3.5-turbo",
-                        temperature=settings.CREWAI_TEMPERATURE,
-                        api_key=settings.OPENAI_API_KEY
-                    )
-                    logger.info("Fallback to OpenAI LLM initialized")
-                else:
-                    self.llm = None
-            except Exception as fallback_error:
-                logger.error(f"Fallback LLM initialization failed: {fallback_error}")
+            if not settings.DEEPINFRA_API_KEY:
+                logger.error("DeepInfra API key is required but not provided")
                 self.llm = None
-    
-    def _create_agents(self):
-        """Create specialized AI agents for migration tasks."""
-        if not self.llm:
-            return
-        
-        try:
-            # Migration Strategy Agent
-            self.agents['migration_strategist'] = Agent(
-                role='Migration Strategy Expert',
-                goal='Analyze infrastructure assets and recommend optimal 6R migration strategies',
-                backstory="""You are an expert cloud migration strategist with deep knowledge of the 6R framework:
-                Rehost (lift-and-shift), Replatform (lift-tinker-shift), Refactor (re-architect), 
-                Rearchitect (rebuild), Retire (decommission), and Retain (keep as-is).
-                You analyze technical specifications, dependencies, and business requirements to recommend 
-                the most suitable migration approach for each asset.""",
-                verbose=True,
-                allow_delegation=False,
-                llm=self.llm
+                return
+            
+            # Initialize LiteLLM for DeepInfra with optimized settings
+            self.llm = LLM(
+                model="deepinfra/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+                api_key=settings.DEEPINFRA_API_KEY,
+                temperature=0.1,  # Lower temperature for consistent responses
+                max_tokens=1000   # Increased token limit for complete responses
             )
             
-            # Risk Assessment Agent
-            self.agents['risk_assessor'] = Agent(
-                role='Migration Risk Analyst',
-                goal='Identify and assess migration risks, dependencies, and potential blockers',
-                backstory="""You are a seasoned risk analyst specializing in cloud migration projects.
-                You excel at identifying technical risks, dependency conflicts, security concerns,
-                compliance issues, and operational challenges that could impact migration success.
-                Your assessments help teams prepare mitigation strategies and contingency plans.""",
-                verbose=True,
-                allow_delegation=False,
-                llm=self.llm
-            )
-            
-            # Cost Optimization Agent
-            self.agents['cost_optimizer'] = Agent(
-                role='Cloud Cost Optimization Specialist',
-                goal='Analyze current costs and project cloud migration cost implications',
-                backstory="""You are a cloud economics expert who understands the cost implications
-                of different migration strategies. You analyze current infrastructure costs,
-                project cloud costs for various scenarios, and identify cost optimization opportunities.
-                Your recommendations help organizations make financially sound migration decisions.""",
-                verbose=True,
-                allow_delegation=False,
-                llm=self.llm
-            )
-            
-            # Wave Planning Agent
-            self.agents['wave_planner'] = Agent(
-                role='Migration Wave Planning Expert',
-                goal='Optimize migration sequencing and wave planning based on dependencies and priorities',
-                backstory="""You are a migration orchestration expert who specializes in creating
-                optimal migration sequences. You understand dependency relationships, business priorities,
-                resource constraints, and risk factors to create efficient wave plans that minimize
-                disruption and maximize success probability.""",
-                verbose=True,
-                allow_delegation=False,
-                llm=self.llm
-            )
-            
-            logger.info("Created CrewAI agents successfully")
+            logger.info(f"Initialized LiteLLM for DeepInfra: {self.llm.model}")
             
         except Exception as e:
-            logger.error(f"Failed to create CrewAI agents: {e}")
-            self.agents = {}
+            logger.error(f"Failed to initialize LiteLLM: {e}")
+            self.llm = None
     
-    def _create_crews(self):
-        """Create specialized crews for different migration tasks."""
-        if not self.agents:
+    def reinitialize_with_fresh_llm(self) -> None:
+        """Reinitialize the service with a fresh LLM instance to avoid any caching issues."""
+        if not CREWAI_AVAILABLE or not settings.DEEPINFRA_API_KEY:
+            logger.warning("Cannot reinitialize - CrewAI not available or API key missing")
             return
         
-        try:
-            # 6R Analysis Crew
-            self.crews['six_r_analysis'] = Crew(
-                agents=[
-                    self.agents['migration_strategist'],
-                    self.agents['risk_assessor'],
-                    self.agents['cost_optimizer']
-                ],
-                verbose=True
-            )
-            
-            # Wave Planning Crew
-            self.crews['wave_planning'] = Crew(
-                agents=[
-                    self.agents['wave_planner'],
-                    self.agents['risk_assessor']
-                ],
-                verbose=True
-            )
-            
-            logger.info("Created CrewAI crews successfully")
-            
-        except Exception as e:
-            logger.error(f"Failed to create CrewAI crews: {e}")
-            self.crews = {}
+        logger.info("Reinitializing CrewAI service with fresh LiteLLM instance")
+        
+        # Create a fresh LiteLLM instance
+        fresh_llm = LLM(
+            model="deepinfra/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+            api_key=settings.DEEPINFRA_API_KEY,
+            temperature=0.1,  # Lower temperature for consistent responses
+            max_tokens=1000   # Increased token limit for complete responses
+        )
+        
+        # Update the LLM
+        self.llm = fresh_llm
+        
+        # Reinitialize agent manager with fresh LLM
+        if self.agent_manager:
+            self.agent_manager.reinitialize_with_fresh_llm(fresh_llm)
+        else:
+            self.agent_manager = AgentManager(fresh_llm)
+        
+        logger.info("Successfully reinitialized CrewAI service with fresh LiteLLM")
+    
+    @property
+    def agents(self):
+        """Get agents from agent manager."""
+        return self.agent_manager.agents if self.agent_manager else {}
+    
+    @property
+    def crews(self):
+        """Get crews from agent manager."""
+        return self.agent_manager.crews if self.agent_manager else {}
     
     async def analyze_asset_6r_strategy(self, asset_data: Dict[str, Any]) -> Dict[str, Any]:
         """Analyze an asset and recommend 6R migration strategy."""
         if not CREWAI_AVAILABLE or not self.agents.get('migration_strategist'):
-            return self._placeholder_6r_analysis(asset_data)
+            return PlaceholderAnalyzer.placeholder_6r_analysis(asset_data)
         
         try:
             task = Task(
@@ -193,7 +143,8 @@ class CrewAIService:
                 
                 Return the analysis in JSON format.
                 """,
-                agent=self.agents['migration_strategist']
+                agent=self.agents['migration_strategist'],
+                expected_output="JSON analysis with 6R strategy recommendation, risk assessment, and migration planning details"
             )
             
             result = await self._execute_task_async(task)
@@ -201,12 +152,12 @@ class CrewAIService:
             
         except Exception as e:
             logger.error(f"Error in 6R analysis: {e}")
-            return self._placeholder_6r_analysis(asset_data)
+            return PlaceholderAnalyzer.placeholder_6r_analysis(asset_data)
     
     async def assess_migration_risks(self, migration_data: Dict[str, Any]) -> Dict[str, Any]:
         """Assess risks for a migration project."""
         if not CREWAI_AVAILABLE or not self.agents.get('risk_assessor'):
-            return self._placeholder_risk_assessment(migration_data)
+            return PlaceholderAnalyzer.placeholder_risk_assessment(migration_data)
         
         try:
             task = Task(
@@ -230,7 +181,8 @@ class CrewAIService:
                 
                 Return the assessment in JSON format.
                 """,
-                agent=self.agents['risk_assessor']
+                agent=self.agents['risk_assessor'],
+                expected_output="JSON risk assessment with identified risks, mitigation strategies, and overall risk level"
             )
             
             result = await self._execute_task_async(task)
@@ -238,12 +190,12 @@ class CrewAIService:
             
         except Exception as e:
             logger.error(f"Error in risk assessment: {e}")
-            return self._placeholder_risk_assessment(migration_data)
+            return PlaceholderAnalyzer.placeholder_risk_assessment(migration_data)
     
     async def optimize_wave_plan(self, assets_data: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Optimize migration wave planning based on assets and dependencies."""
         if not CREWAI_AVAILABLE or not self.agents.get('wave_planner'):
-            return self._placeholder_wave_plan(assets_data)
+            return PlaceholderAnalyzer.placeholder_wave_plan(assets_data)
         
         try:
             task = Task(
@@ -266,7 +218,8 @@ class CrewAIService:
                 
                 Return the wave plan in JSON format.
                 """,
-                agent=self.agents['wave_planner']
+                agent=self.agents['wave_planner'],
+                expected_output="JSON wave plan with 3-5 migration waves, asset assignments, and timeline recommendations"
             )
             
             result = await self._execute_task_async(task)
@@ -274,63 +227,134 @@ class CrewAIService:
             
         except Exception as e:
             logger.error(f"Error in wave planning: {e}")
-            return self._placeholder_wave_plan(assets_data)
+            return PlaceholderAnalyzer.placeholder_wave_plan(assets_data)
 
     async def analyze_cmdb_data(self, cmdb_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Analyze CMDB data for quality, completeness, and migration readiness with asset type context."""
-        if not CREWAI_AVAILABLE or not self.agents.get('migration_strategist'):
-            return self._placeholder_cmdb_analysis(cmdb_data)
+        """Truly agentic CMDB data analysis with memory and learning."""
+        if not CREWAI_AVAILABLE or not self.agents.get('cmdb_analyst'):
+            logger.info("CrewAI not available, using intelligent placeholder analysis")
+            return self.analyzer.intelligent_placeholder_analysis(cmdb_data)
         
         try:
-            primary_asset_type = cmdb_data.get('primary_asset_type', 'unknown')
-            asset_context = cmdb_data.get('asset_type_context', {})
+            logger.info(f"Starting CrewAI analysis for {cmdb_data.get('filename', 'unknown')}")
             
+            # Add timeout for CrewAI execution
+            async def run_crewai_analysis():
+                return await self._run_crewai_analysis_internal(cmdb_data)
+            
+            # Run with timeout
+            try:
+                analysis = await asyncio.wait_for(run_crewai_analysis(), timeout=30.0)
+                logger.info("CrewAI analysis completed successfully")
+                return analysis
+            except asyncio.TimeoutError:
+                logger.warning("CrewAI analysis timed out after 30 seconds, falling back to placeholder")
+                return self.analyzer.intelligent_placeholder_analysis(cmdb_data)
+                
+        except Exception as e:
+            logger.error(f"Error in agentic CMDB analysis: {e}")
+            # Fallback to enhanced placeholder with memory
+            return self.analyzer.intelligent_placeholder_analysis(cmdb_data)
+    
+    async def _run_crewai_analysis_internal(self, cmdb_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Internal method to run CrewAI analysis."""
+        try:
+            # Get relevant past experiences
+            filename = cmdb_data.get('filename', '')
+            relevant_experiences = self.memory.get_relevant_experiences(filename)
+            
+            # Record this analysis attempt
+            self.memory.add_experience("analysis_attempt", {
+                "filename": filename,
+                "timestamp": datetime.utcnow().isoformat(),
+                "data_structure": cmdb_data.get('structure', {})
+            })
+            
+            # Create agentic task with memory context - SIMPLIFIED to avoid OpenAI memory issues
             task = Task(
                 description=f"""
-                Analyze the following CMDB data for migration readiness with asset type context:
+                As a Senior CMDB Data Analyst, analyze this CMDB export data.
                 
+                CURRENT ANALYSIS:
                 File: {cmdb_data.get('filename')}
-                Primary Asset Type: {primary_asset_type}
-                Asset Distribution: {asset_context}
-                Structure: {cmdb_data.get('structure')}
-                Asset Coverage: {cmdb_data.get('coverage')}
-                Missing Fields: {cmdb_data.get('missing_fields')}
-                Sample Data: {cmdb_data.get('sample_data', [])}
+                Data Structure: {cmdb_data.get('structure')}
+                Sample Records: {cmdb_data.get('sample_data', [])}
                 
-                IMPORTANT CONTEXT:
-                - Primary asset type is {primary_asset_type}
-                - Applications should NOT be expected to have OS, IP addresses, or hardware specs
-                - Applications typically have: name, version, business service, dependencies (related_ci)
-                - Servers should have: hostname, OS, IP address, hardware specifications
-                - Databases should have: instance name, version, host server, port
+                ANALYSIS REQUIREMENTS:
+                1. Determine the PRIMARY asset type from the data patterns
+                2. Assess data quality based on asset type appropriateness
+                3. Identify truly missing fields (not irrelevant ones)
+                4. Provide migration-specific recommendations
                 
-                Provide analysis on:
-                1. Data quality assessment and scoring (considering asset type context)
-                2. Completeness for migration planning (asset-type appropriate)
-                3. Identification of critical missing information (relevant to asset type)
-                4. Data consistency and standardization issues
-                5. Recommendations for data improvement (asset-type specific)
-                6. Migration readiness assessment
+                CRITICAL INTELLIGENCE:
+                - If data contains CI_TYPE or similar fields, use them for classification
+                - Applications don't need hardware specs (CPU, Memory, IP Address)
+                - Servers require infrastructure details
+                - Look for dependency fields (Related_CI, Depends_On, etc.)
+                - Consider field naming patterns and data content
                 
-                For {primary_asset_type} assets, focus on fields relevant to that asset type.
-                Do NOT flag missing server-specific fields for application assets.
+                Return ONLY a valid JSON response with this exact structure:
+                {{
+                    "asset_type_detected": "application|server|database|mixed",
+                    "confidence_level": 0.9,
+                    "data_quality_score": 85,
+                    "issues": ["specific issues found"],
+                    "recommendations": ["actionable recommendations"],
+                    "missing_fields_relevant": ["only truly missing fields for this asset type"],
+                    "migration_readiness": "ready|needs_work|insufficient_data",
+                    "learning_notes": "what patterns were recognized"
+                }}
                 
-                Return analysis in JSON format with specific issues and recommendations.
+                IMPORTANT: Return ONLY the JSON object, no other text or explanation.
                 """,
-                agent=self.agents['migration_strategist']
+                agent=self.agents['cmdb_analyst'],
+                expected_output="Valid JSON analysis of CMDB data with asset type detection and quality assessment"
             )
             
-            result = await self._execute_task_async(task)
-            return self._parse_ai_response(result)
+            # Execute with simplified crew (no memory to avoid OpenAI issues)
+            from crewai import Crew, Process
+            
+            # Create a simple crew without memory
+            simple_crew = Crew(
+                agents=[self.agents['cmdb_analyst']],
+                tasks=[task],
+                process=Process.sequential,
+                verbose=False,  # Disable verbose to reduce overhead
+                memory=False    # CRITICAL: Disable memory to avoid OpenAI API calls
+            )
+            
+            # Run crew execution in thread pool to avoid blocking
+            def run_crew():
+                return simple_crew.kickoff()
+            
+            loop = asyncio.get_event_loop()
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                result = await loop.run_in_executor(executor, run_crew)
+            
+            # Parse and enhance the result
+            analysis = self._parse_ai_response(str(result))
+            
+            # Record successful analysis
+            self.memory.add_experience("successful_analysis", {
+                "filename": filename,
+                "result": analysis,
+                "timestamp": datetime.utcnow().isoformat()
+            })
+            
+            # Update learning metrics
+            self.memory.update_learning_metrics("total_analyses", 1)
+            
+            return analysis
             
         except Exception as e:
-            logger.error(f"Error in CMDB analysis: {e}")
-            return self._placeholder_cmdb_analysis(cmdb_data)
+            logger.error(f"Error in internal CrewAI analysis: {e}")
+            # Fallback to enhanced placeholder with memory
+            return self.analyzer.intelligent_placeholder_analysis(cmdb_data)
 
     async def process_cmdb_data(self, processing_data: Dict[str, Any]) -> Dict[str, Any]:
         """Process and enhance CMDB data based on AI recommendations."""
         if not CREWAI_AVAILABLE or not self.agents.get('migration_strategist'):
-            return self._placeholder_cmdb_processing(processing_data)
+            return PlaceholderAnalyzer.placeholder_cmdb_processing(processing_data)
         
         try:
             task = Task(
@@ -357,7 +381,8 @@ class CrewAIService:
                 
                 Return processing recommendations in JSON format.
                 """,
-                agent=self.agents['migration_strategist']
+                agent=self.agents['migration_strategist'],
+                expected_output="JSON recommendations for CMDB data processing, standardization, and migration preparation"
             )
             
             result = await self._execute_task_async(task)
@@ -365,265 +390,238 @@ class CrewAIService:
             
         except Exception as e:
             logger.error(f"Error in CMDB processing: {e}")
-            return self._placeholder_cmdb_processing(processing_data)
+            return PlaceholderAnalyzer.placeholder_cmdb_processing(processing_data)
     
     async def process_user_feedback(self, feedback_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Process user feedback to improve future AI analysis."""
-        if not CREWAI_AVAILABLE or not self.agents.get('migration_strategist'):
-            return self._placeholder_feedback_processing(feedback_data)
+        """Truly agentic feedback processing with persistent learning."""
+        if not CREWAI_AVAILABLE or not self.agents.get('learning_agent'):
+            return self.feedback_processor.intelligent_feedback_processing(feedback_data)
         
         try:
-            task = Task(
+            filename = feedback_data.get('filename', '')
+            user_corrections = feedback_data.get('user_corrections', {})
+            asset_type_override = feedback_data.get('asset_type_override')
+            
+            # Record the user feedback for learning
+            self.memory.add_experience("user_feedback", {
+                "filename": filename,
+                "corrections": user_corrections,
+                "asset_type_override": asset_type_override,
+                "timestamp": datetime.utcnow().isoformat(),
+                "original_analysis": feedback_data.get('original_analysis', {})
+            })
+            
+            # Get all past feedback for pattern recognition
+            past_feedback = self.memory.experiences.get("user_feedback", [])
+            
+            # Create learning task
+            learning_task = Task(
                 description=f"""
-                Process user feedback to improve CMDB analysis accuracy:
+                As an AI Learning Specialist, process this user feedback to improve future CMDB analysis accuracy.
                 
-                File: {feedback_data.get('filename')}
-                Original Analysis: {feedback_data.get('original_analysis')}
-                User Corrections: {feedback_data.get('user_corrections')}
-                Asset Type Override: {feedback_data.get('asset_type_override')}
+                CURRENT FEEDBACK:
+                File: {filename}
+                User Corrections: {user_corrections}
+                Asset Type Override: {asset_type_override}
+                Original Analysis Issues: {feedback_data.get('original_analysis', {}).get('issues', [])}
                 
-                Learn from this feedback to improve future analysis:
-                1. Understand why the original analysis was incorrect
-                2. Identify patterns in user corrections
-                3. Update asset type detection logic
-                4. Improve field requirement mapping
-                5. Enhance context-aware recommendations
+                LEARNING CONTEXT:
+                Total Past Feedback: {len(past_feedback)} instances
+                Recent Patterns: {past_feedback[-5:] if past_feedback else "None"}
                 
-                Return learning insights and updated analysis parameters.
+                LEARNING OBJECTIVES:
+                1. Identify why the original analysis was incorrect
+                2. Extract patterns from user corrections
+                3. Update asset type detection rules
+                4. Improve field relevance mapping
+                5. Enhance future analysis accuracy
+                
+                SPECIFIC ANALYSIS:
+                - If user corrected asset type, understand what indicators were missed
+                - If user corrected missing fields, learn which fields are truly important
+                - Identify recurring correction patterns across all feedback
+                - Update internal knowledge about CMDB data patterns
+                
+                Return detailed learning insights in JSON format:
+                {{
+                    "learning_applied": true,
+                    "patterns_identified": ["specific patterns found"],
+                    "knowledge_updates": ["what was learned"],
+                    "accuracy_improvements": ["how future analysis will improve"],
+                    "confidence_boost": 0.0-1.0,
+                    "corrected_analysis": {{
+                        "asset_type": "corrected type",
+                        "relevant_missing_fields": ["truly missing fields"],
+                        "updated_recommendations": ["improved recommendations"]
+                    }}
+                }}
                 """,
-                agent=self.agents['migration_strategist']
+                agent=self.agents['learning_agent'],
+                expected_output="Detailed learning insights and corrected analysis based on user feedback"
             )
             
-            result = await self._execute_task_async(task)
-            return self._parse_ai_response(result)
+            # Execute learning with the crew
+            crew = self.crews['learning']
+            crew.tasks = [learning_task]
+            
+            # Run crew execution in thread pool to avoid blocking
+            def run_learning_crew():
+                return crew.kickoff()
+            
+            loop = asyncio.get_event_loop()
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                result = await loop.run_in_executor(executor, run_learning_crew)
+            
+            # Parse the learning result
+            learning_result = self._parse_ai_response(str(result))
+            
+            # Update learning metrics
+            self.memory.update_learning_metrics("user_corrections", 1)
+            self.memory.update_learning_metrics("accuracy_improvements", 
+                                               learning_result.get('confidence_boost', 0))
+            
+            # Store the learning patterns for future use
+            if learning_result.get('patterns_identified'):
+                self.memory.add_experience("learned_patterns", {
+                    "patterns": learning_result['patterns_identified'],
+                    "source_feedback": filename,
+                    "timestamp": datetime.utcnow().isoformat()
+                })
+            
+            logger.info(f"Processed user feedback and learned new patterns for {filename}")
+            return learning_result
             
         except Exception as e:
-            logger.error(f"Error processing user feedback: {e}")
-            return self._placeholder_feedback_processing(feedback_data)
+            logger.error(f"Error in agentic feedback processing: {e}")
+            return self.feedback_processor.intelligent_feedback_processing(feedback_data)
     
     async def _execute_task_async(self, task: Any) -> str:
-        """Execute a CrewAI task asynchronously."""
-        # Note: CrewAI doesn't have native async support yet
-        # This is a placeholder for future async implementation
-        return "AI analysis placeholder - CrewAI integration pending"
+        """Execute a CrewAI task asynchronously with enhanced monitoring."""
+        task_id = str(uuid.uuid4())[:8]
+        agent_name = getattr(task.agent, 'role', 'unknown_agent')
+        description = getattr(task, 'description', 'No description')[:100]
+        
+        # Start monitoring
+        task_exec = agent_monitor.start_task(task_id, agent_name, description)
+        
+        try:
+            # Update status to running
+            agent_monitor.update_task_status(task_id, TaskStatus.RUNNING)
+            
+            # Record thinking phase
+            agent_monitor.record_thinking_phase(task_id, "Initializing CrewAI task execution")
+            
+            # CrewAI doesn't have native async support, so we run it in a thread
+            def run_task():
+                try:
+                    # Record thinking phase
+                    agent_monitor.record_thinking_phase(task_id, "Creating temporary crew")
+                    
+                    # Create a simple crew with just this task - NO MEMORY
+                    from crewai import Crew, Process
+                    temp_crew = Crew(
+                        agents=[task.agent],
+                        tasks=[task],
+                        process=Process.sequential,
+                        verbose=False,  # Disable verbose for debugging
+                        memory=False    # CRITICAL: Disable memory to avoid OpenAI API calls
+                    )
+                    
+                    # Record that we're about to call the LLM
+                    agent_monitor.record_thinking_phase(task_id, "Starting crew kickoff")
+                    call_id = agent_monitor.start_llm_call(
+                        task_id, 
+                        "crew_kickoff", 
+                        len(str(task.description))
+                    )
+                    
+                    # Execute the crew
+                    try:
+                        result = temp_crew.kickoff()
+                        
+                        # Complete the LLM call successfully
+                        agent_monitor.complete_llm_call(task_id, len(str(result)))
+                        
+                        # Record final processing phase
+                        agent_monitor.record_thinking_phase(task_id, "Processing crew result")
+                        
+                        return result
+                        
+                    except Exception as llm_error:
+                        # Complete the LLM call with error
+                        agent_monitor.complete_llm_call(task_id, 0, str(llm_error))
+                        raise llm_error
+                    
+                except Exception as e:
+                    agent_monitor.fail_task(task_id, str(e))
+                    raise
+            
+            # Run the task in a thread pool to avoid blocking
+            loop = asyncio.get_event_loop()
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                # Add timeout to the executor call
+                future = loop.run_in_executor(executor, run_task)
+                
+                # Wait with timeout
+                try:
+                    result = await asyncio.wait_for(future, timeout=45.0)
+                except asyncio.TimeoutError:
+                    agent_monitor.fail_task(task_id, "Task execution timed out after 45 seconds")
+                    raise asyncio.TimeoutError("CrewAI task execution timed out")
+            
+            # Complete the task
+            result_str = str(result)
+            agent_monitor.complete_task(task_id, result_str)
+            
+            return result_str
+            
+        except Exception as e:
+            logger.error(f"Error executing CrewAI task: {e}")
+            if task_id in agent_monitor.active_tasks:
+                agent_monitor.fail_task(task_id, str(e))
+            return f"Error: {str(e)}"
     
     def _parse_ai_response(self, response: str) -> Dict[str, Any]:
-        """Parse AI response and return structured data."""
+        """Parse AI response and return structured data with improved JSON extraction."""
         try:
-            # Try to parse as JSON
+            # Clean the response string
+            response = response.strip()
+            
+            # Try to find JSON in the response
+            import re
+            
+            # Look for JSON object pattern
+            json_match = re.search(r'\{.*\}', response, re.DOTALL)
+            if json_match:
+                json_str = json_match.group(0)
+                try:
+                    return json.loads(json_str)
+                except json.JSONDecodeError:
+                    pass
+            
+            # If no JSON found, try parsing the whole response
             return json.loads(response)
+            
         except json.JSONDecodeError:
+            logger.warning(f"Failed to parse AI response as JSON: {response[:200]}...")
             # Return structured placeholder if parsing fails
             return {
-                "ai_response": response,
+                "asset_type_detected": "unknown",
+                "confidence_level": 0.0,
+                "data_quality_score": 0,
+                "issues": ["Failed to parse AI response"],
+                "recommendations": ["Review data format and try again"],
+                "missing_fields_relevant": [],
+                "migration_readiness": "insufficient_data",
+                "learning_notes": "Response parsing failed",
+                "ai_response": response[:500],  # Include truncated response for debugging
                 "parsed": False,
                 "timestamp": datetime.utcnow().isoformat()
             }
-    
-    def _placeholder_6r_analysis(self, asset_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Placeholder 6R analysis when CrewAI is not available."""
-        asset_type = asset_data.get('asset_type', 'unknown')
-        business_criticality = asset_data.get('business_criticality', 'medium')
-        
-        # Simple rule-based recommendations
-        if asset_type in ['database', 'application']:
-            strategy = SixRStrategy.REPLATFORM
-            complexity = "medium"
-        elif business_criticality == 'critical':
-            strategy = SixRStrategy.REHOST
-            complexity = "low"
-        else:
-            strategy = SixRStrategy.REHOST
-            complexity = "low"
-        
-        return {
-            "recommended_strategy": strategy.value,
-            "alternative_strategies": [
-                {"strategy": "rehost", "score": 85, "rationale": "Low risk, quick migration"},
-                {"strategy": "replatform", "score": 70, "rationale": "Moderate optimization potential"}
-            ],
-            "risk_level": "medium",
-            "complexity": complexity,
-            "priority": 5,
-            "confidence": 0.6,
-            "rationale": f"Placeholder analysis for {asset_type} asset",
-            "ai_model": "placeholder",
-            "timestamp": datetime.utcnow().isoformat()
-        }
-    
-    def _placeholder_risk_assessment(self, migration_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Placeholder risk assessment when CrewAI is not available."""
-        return {
-            "overall_risk": "medium",
-            "risk_score": 65,
-            "identified_risks": [
-                {
-                    "category": "technical",
-                    "description": "Dependency complexity",
-                    "impact": "medium",
-                    "probability": "medium",
-                    "mitigation": "Thorough dependency mapping and testing"
-                }
-            ],
-            "recommendations": [
-                "Conduct pilot migration with non-critical assets",
-                "Implement comprehensive monitoring",
-                "Prepare rollback procedures"
-            ],
-            "confidence": 0.5,
-            "ai_model": "placeholder",
-            "timestamp": datetime.utcnow().isoformat()
-        }
-    
-    def _placeholder_wave_plan(self, assets_data: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Placeholder wave plan when CrewAI is not available."""
-        total_assets = len(assets_data)
-        assets_per_wave = max(1, total_assets // 3)
-        
-        return {
-            "total_waves": 3,
-            "waves": [
-                {
-                    "wave_number": 1,
-                    "name": "Pilot Wave",
-                    "asset_count": min(assets_per_wave, total_assets),
-                    "description": "Low-risk assets for initial validation",
-                    "estimated_duration_days": 30
-                },
-                {
-                    "wave_number": 2,
-                    "name": "Core Wave", 
-                    "asset_count": min(assets_per_wave, total_assets - assets_per_wave),
-                    "description": "Primary business assets",
-                    "estimated_duration_days": 45
-                },
-                {
-                    "wave_number": 3,
-                    "name": "Final Wave",
-                    "asset_count": total_assets - (2 * assets_per_wave),
-                    "description": "Remaining assets and cleanup",
-                    "estimated_duration_days": 30
-                }
-            ],
-            "optimization_score": 70,
-            "confidence": 0.5,
-            "ai_model": "placeholder",
-            "timestamp": datetime.utcnow().isoformat()
-        }
 
-    def _placeholder_cmdb_analysis(self, cmdb_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Placeholder CMDB analysis when CrewAI is not available."""
-        structure = cmdb_data.get('structure', {})
-        missing_fields = cmdb_data.get('missing_fields', [])
-        primary_asset_type = cmdb_data.get('primary_asset_type', 'unknown')
-        asset_context = cmdb_data.get('asset_type_context', {})
-        
-        # Asset-type-aware analysis
-        issues = ["Data validation requires manual review"]
-        recommendations = ["Validate asset names and identifiers"]
-        
-        if primary_asset_type == 'application':
-            issues.extend([
-                "Application dependencies may need mapping",
-                "Business service relationships require validation"
-            ])
-            recommendations.extend([
-                "Map application dependencies using Related CI field",
-                "Validate business service ownership",
-                "Ensure version information is current"
-            ])
-        elif primary_asset_type == 'server':
-            issues.extend([
-                "Server hardware specifications may be incomplete",
-                "Network configuration details need verification"
-            ])
-            recommendations.extend([
-                "Validate server hardware specifications",
-                "Verify network and IP address assignments",
-                "Confirm operating system versions"
-            ])
-        else:
-            issues.append("Asset type classification needs refinement")
-            recommendations.append("Clarify asset type classification")
-        
-        # Add missing fields context
-        if missing_fields:
-            relevant_missing = []
-            for field in missing_fields:
-                if primary_asset_type == 'application' and field not in ['Operating System', 'IP Address', 'CPU Cores', 'Memory (GB)']:
-                    relevant_missing.append(field)
-                elif primary_asset_type == 'server':
-                    relevant_missing.append(field)
-                elif primary_asset_type == 'database':
-                    relevant_missing.append(field)
-            
-            if relevant_missing:
-                issues.append(f"Missing {primary_asset_type}-relevant fields: {', '.join(relevant_missing[:3])}" + ("..." if len(relevant_missing) > 3 else ""))
-        
-        return {
-            "issues": issues,
-            "recommendations": recommendations + [
-                "Enrich data with business context",
-                "Establish dependency relationships",
-                "Standardize environment classifications",
-                "Implement data quality monitoring"
-            ],
-            "migration_readiness": "Requires data enhancement",
-            "confidence_score": max(50, 100 - len(missing_fields) * 5),  # Less penalty for irrelevant missing fields
-            "asset_type_context": primary_asset_type,
-            "ai_model": "placeholder",
-            "timestamp": datetime.utcnow().isoformat()
-        }
 
-    def _placeholder_cmdb_processing(self, processing_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Placeholder CMDB processing when CrewAI is not available."""
-        return {
-            "transformations_applied": [
-                "Standardized column naming conventions",
-                "Removed duplicate records",
-                "Filled missing values with defaults",
-                "Normalized data types"
-            ],
-            "enrichment_suggestions": [
-                "Add business criticality scoring",
-                "Implement dependency mapping",
-                "Enhance with cost information",
-                "Include compliance requirements",
-                "Add migration complexity scoring"
-            ],
-            "data_quality_improvement": "15%",
-            "migration_readiness_score": 75,
-            "next_steps": [
-                "Review and validate processed data",
-                "Engage business stakeholders for context",
-                "Perform dependency discovery",
-                "Establish migration priorities"
-            ],
-            "ai_model": "placeholder",
-            "timestamp": datetime.utcnow().isoformat()
-        }
-    
-    def _placeholder_feedback_processing(self, feedback_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Placeholder feedback processing when CrewAI is not available."""
-        asset_type_override = feedback_data.get('asset_type_override')
-        user_corrections = feedback_data.get('user_corrections', {})
-        
-        return {
-            "learning_applied": True,
-            "feedback_processed": {
-                "asset_type_correction": asset_type_override,
-                "field_corrections": len(user_corrections),
-                "analysis_improvement": "Future analysis will consider asset type context"
-            },
-            "updated_parameters": {
-                "asset_type_detection": "Enhanced with user feedback",
-                "field_requirements": "Updated based on asset type",
-                "context_awareness": "Improved"
-            },
-            "confidence_improvement": 15,
-            "ai_model": "placeholder",
-            "timestamp": datetime.utcnow().isoformat()
-        }
+
+
 
 
 # Global service instance

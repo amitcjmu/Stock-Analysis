@@ -1,0 +1,5 @@
+{
+  "filename": "test_cmdb_import.csv",
+  "content": "Name,CI_Type,Environment,IP_Address,OS,CPU_Cores,Memory_GB,Business_Owner\nWebServer01,Server,Production,192.168.1.10,Linux,4,8,IT Team\nWebServer02,Server,Production,192.168.1.11,Linux,4,8,IT Team\nPaymentApp,Application,Production,,,,,Finance Team\nUserPortal,Application,Production,,,,,HR Team\nDatabaseServer,Server,Production,192.168.1.20,Linux,8,16,IT Team\nPaymentDB,Database,Production,192.168.1.20,MySQL,,,Finance Team",
+  "fileType": "text/csv"
+} 

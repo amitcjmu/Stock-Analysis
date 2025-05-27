@@ -63,8 +63,7 @@ class Settings(BaseSettings):
         """Get the full DeepInfra model URL."""
         return f"{self.DEEPINFRA_BASE_URL}/{self.DEEPINFRA_MODEL}"
     
-    # Legacy OpenAI support (for compatibility)
-    OPENAI_API_KEY: Optional[str] = Field(default=None, env="OPENAI_API_KEY")
+    # Removed OpenAI support - using DeepInfra exclusively
     
     # Security settings
     SECRET_KEY: str = Field(
@@ -88,6 +87,7 @@ class Settings(BaseSettings):
     WS_HEARTBEAT_INTERVAL: int = Field(default=30, env="WS_HEARTBEAT_INTERVAL")
     
     # CrewAI settings (using DeepInfra)
+    CREWAI_ENABLED: bool = Field(default=True, env="CREWAI_ENABLED")
     CREWAI_MODEL: str = Field(
         default="meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8", 
         env="CREWAI_MODEL"
@@ -103,6 +103,7 @@ class Settings(BaseSettings):
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = True
+        extra = "ignore"  # Ignore extra environment variables
 
 
 # Create global settings instance

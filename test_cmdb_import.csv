@@ -1,0 +1,7 @@
+Name,CI_Type,Environment,IP_Address,OS,CPU_Cores,Memory_GB,Business_Owner
+WebServer01,Server,Production,192.168.1.10,Linux,4,8,IT Team
+WebServer02,Server,Production,192.168.1.11,Linux,4,8,IT Team
+PaymentApp,Application,Production,,,,,Finance Team
+UserPortal,Application,Production,,,,,HR Team
+DatabaseServer,Server,Production,192.168.1.20,Linux,8,16,IT Team
+PaymentDB,Database,Production,192.168.1.20,MySQL,,,Finance Team 
