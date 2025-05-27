@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import Assess from "./pages/Assess";
 import Discovery from "./pages/Discovery";
 import DiscoveryIndex from "./pages/discovery/Index";
+import CMDBImport from "./pages/discovery/CMDBImport";
 import Inventory from "./pages/discovery/Inventory";
 import Dependencies from "./pages/discovery/Dependencies";
 import Scan from "./pages/discovery/Scan";
@@ -60,6 +61,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/discovery" element={<Discovery />} />
           <Route path="/discovery/overview" element={<DiscoveryIndex />} />
+          <Route path="/discovery/cmdb-import" element={<CMDBImport />} />
           <Route path="/discovery/inventory" element={<Inventory />} />
           <Route path="/discovery/dependencies" element={<Dependencies />} />
           <Route path="/discovery/scan" element={<Scan />} />

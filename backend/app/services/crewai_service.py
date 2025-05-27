@@ -275,6 +275,88 @@ class CrewAIService:
         except Exception as e:
             logger.error(f"Error in wave planning: {e}")
             return self._placeholder_wave_plan(assets_data)
+
+    async def analyze_cmdb_data(self, cmdb_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze CMDB data for quality, completeness, and migration readiness."""
+        if not CREWAI_AVAILABLE or not self.agents.get('migration_strategist'):
+            return self._placeholder_cmdb_analysis(cmdb_data)
+        
+        try:
+            task = Task(
+                description=f"""
+                Analyze the following CMDB data for migration readiness:
+                
+                File: {cmdb_data.get('filename')}
+                Structure: {cmdb_data.get('structure')}
+                Asset Coverage: {cmdb_data.get('coverage')}
+                Missing Fields: {cmdb_data.get('missing_fields')}
+                Sample Data: {cmdb_data.get('sample_data', [])}
+                
+                Provide analysis on:
+                1. Data quality assessment and scoring
+                2. Completeness for migration planning
+                3. Identification of critical missing information
+                4. Data consistency and standardization issues
+                5. Recommendations for data improvement
+                6. Migration readiness assessment
+                
+                Focus on identifying:
+                - Asset relationships and dependencies
+                - Business criticality indicators
+                - Technical specifications completeness
+                - Environment and ownership clarity
+                
+                Return analysis in JSON format with specific issues and recommendations.
+                """,
+                agent=self.agents['migration_strategist']
+            )
+            
+            result = await self._execute_task_async(task)
+            return self._parse_ai_response(result)
+            
+        except Exception as e:
+            logger.error(f"Error in CMDB analysis: {e}")
+            return self._placeholder_cmdb_analysis(cmdb_data)
+
+    async def process_cmdb_data(self, processing_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Process and enhance CMDB data based on AI recommendations."""
+        if not CREWAI_AVAILABLE or not self.agents.get('migration_strategist'):
+            return self._placeholder_cmdb_processing(processing_data)
+        
+        try:
+            task = Task(
+                description=f"""
+                Process and enhance the following CMDB data:
+                
+                File: {processing_data.get('filename')}
+                Original Data: {len(processing_data.get('original_data', []))} records
+                Processed Data: {len(processing_data.get('processed_data', []))} records
+                
+                Provide recommendations for:
+                1. Data standardization and normalization
+                2. Missing field population strategies
+                3. Asset categorization improvements
+                4. Dependency mapping enhancements
+                5. Business context enrichment
+                6. Migration-specific data preparation
+                
+                Suggest specific transformations and enrichments that would:
+                - Improve migration planning accuracy
+                - Enable better 6R strategy recommendations
+                - Support dependency analysis
+                - Facilitate wave planning
+                
+                Return processing recommendations in JSON format.
+                """,
+                agent=self.agents['migration_strategist']
+            )
+            
+            result = await self._execute_task_async(task)
+            return self._parse_ai_response(result)
+            
+        except Exception as e:
+            logger.error(f"Error in CMDB processing: {e}")
+            return self._placeholder_cmdb_processing(processing_data)
     
     async def _execute_task_async(self, task: Any) -> str:
         """Execute a CrewAI task asynchronously."""
@@ -382,6 +464,58 @@ class CrewAIService:
             ],
             "optimization_score": 70,
             "confidence": 0.5,
+            "ai_model": "placeholder",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
+    def _placeholder_cmdb_analysis(self, cmdb_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Placeholder CMDB analysis when CrewAI is not available."""
+        structure = cmdb_data.get('structure', {})
+        missing_fields = cmdb_data.get('missing_fields', [])
+        
+        return {
+            "issues": [
+                "Data validation requires manual review",
+                "Asset relationships need verification",
+                "Business context may be incomplete"
+            ] + ([f"Missing critical fields: {', '.join(missing_fields[:3])}" + ("..." if len(missing_fields) > 3 else "")] if missing_fields else []),
+            "recommendations": [
+                "Validate asset names and identifiers",
+                "Enrich data with business context",
+                "Establish dependency relationships",
+                "Standardize environment classifications",
+                "Implement data quality monitoring"
+            ],
+            "migration_readiness": "Requires data enhancement",
+            "confidence_score": max(50, 100 - len(missing_fields) * 10),
+            "ai_model": "placeholder",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
+    def _placeholder_cmdb_processing(self, processing_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Placeholder CMDB processing when CrewAI is not available."""
+        return {
+            "transformations_applied": [
+                "Standardized column naming conventions",
+                "Removed duplicate records",
+                "Filled missing values with defaults",
+                "Normalized data types"
+            ],
+            "enrichment_suggestions": [
+                "Add business criticality scoring",
+                "Implement dependency mapping",
+                "Enhance with cost information",
+                "Include compliance requirements",
+                "Add migration complexity scoring"
+            ],
+            "data_quality_improvement": "15%",
+            "migration_readiness_score": 75,
+            "next_steps": [
+                "Review and validate processed data",
+                "Engage business stakeholders for context",
+                "Perform dependency discovery",
+                "Establish migration priorities"
+            ],
             "ai_model": "placeholder",
             "timestamp": datetime.utcnow().isoformat()
         }

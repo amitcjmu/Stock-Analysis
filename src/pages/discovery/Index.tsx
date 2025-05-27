@@ -14,6 +14,7 @@ const DiscoveryIndex = () => {
   ];
 
   const quickActions = [
+    { title: 'CMDB Import', description: 'Import and analyze CMDB data with AI validation', path: '/discovery/cmdb-import' },
     { title: 'View Inventory', description: 'Browse discovered assets and their details', path: '/discovery/inventory' },
     { title: 'Dependency Map', description: 'Explore relationships between assets', path: '/discovery/dependencies' },
     { title: 'Scanning Status', description: 'Monitor ongoing discovery scans', path: '/discovery/scan' }

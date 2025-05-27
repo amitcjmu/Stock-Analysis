@@ -34,7 +34,8 @@ import {
   TrendingUp,
   Calculator,
   DollarSign,
-  AlertTriangle
+  AlertTriangle,
+  Upload
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -70,6 +71,7 @@ const Sidebar = () => {
       hasSubmenu: true,
       submenu: [
         { name: 'Overview', path: '/discovery/overview', icon: Search },
+        { name: 'CMDB Import', path: '/discovery/cmdb-import', icon: Upload },
         { name: 'Inventory', path: '/discovery/inventory', icon: Database },
         { name: 'Dependencies', path: '/discovery/dependencies', icon: Network },
         { name: 'Scan', path: '/discovery/scan', icon: Activity }

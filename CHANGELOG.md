@@ -5,6 +5,116 @@ All notable changes to the AI Force Migration Platform will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2025-01-27
+
+### 🎉 CMDB Import Feature - AI-Powered Data Analysis
+
+This release introduces the comprehensive CMDB Import functionality with CrewAI-powered data validation and processing.
+
+### ✨ Added
+
+#### CMDB Import System
+- **CMDB Import Page**: Complete file upload interface under Discovery phase
+- **Multi-Format Support**: CSV, Excel (.xlsx, .xls), and JSON file formats
+- **Drag & Drop Upload**: Modern file upload with react-dropzone integration
+- **AI-Powered Analysis**: CrewAI agents for data quality validation and processing recommendations
+
+#### Frontend Components
+- **File Upload Interface**: Drag & drop with format validation and preview
+- **Analysis Results Modal**: Comprehensive data quality assessment display
+- **Real-time Processing**: Live analysis status with progress indicators
+- **Data Quality Scoring**: Visual quality metrics (0-100%) with color-coded indicators
+- **Asset Coverage Statistics**: Applications, Servers, Databases, Dependencies breakdown
+- **Missing Fields Detection**: Identification of required migration parameters
+- **Processing Recommendations**: AI-generated data cleaning and preparation steps
+
+#### Backend API Endpoints
+- **POST /api/v1/discovery/analyze-cmdb**: AI-powered CMDB data analysis
+- **POST /api/v1/discovery/process-cmdb**: Data processing and cleaning recommendations
+- **GET /api/v1/discovery/cmdb-templates**: Template guidance for CMDB formats
+
+#### CrewAI Integration
+- **CMDB Analysis Agent**: Specialized AI agent for data quality assessment
+- **Data Processing Agent**: Intelligent recommendations for data preparation
+- **Asset Type Detection**: Automatic classification of Applications, Servers, Databases
+- **Migration Readiness Assessment**: Evaluation of data completeness for migration planning
+- **Quality Scoring Algorithm**: Comprehensive scoring based on completeness and consistency
+
+#### Data Processing Engine
+- **CMDBDataProcessor Class**: Intelligent data parsing and analysis
+- **Multi-Format Parser**: Support for CSV, Excel, and JSON with automatic detection
+- **Asset Type Heuristics**: Smart classification using field names and patterns
+- **Data Quality Metrics**: Null value analysis, duplicate detection, consistency checks
+- **Missing Field Analysis**: Identification of essential migration parameters
+
+### 🔧 Fixed
+
+#### Import Dependencies
+- **CrewAI Package**: Resolved import errors for crewai and langchain-openai
+- **LangChain Community**: Added langchain-community for extended AI capabilities
+- **Greenlet Package**: Fixed database initialization warnings
+- **Package Compatibility**: Ensured all AI packages work together seamlessly
+
+#### API Configuration
+- **Centralized API Config**: Created `src/config/api.ts` for proper endpoint management
+- **Absolute URL Handling**: Fixed relative API calls causing 404 errors
+- **Error Handling**: Improved error messages and debugging capabilities
+- **CORS Configuration**: Updated backend CORS settings for frontend integration
+
+### 🚀 Improved
+
+#### User Experience
+- **Intuitive Upload Flow**: Streamlined file upload with clear visual feedback
+- **Comprehensive Analysis**: Detailed breakdown of data quality and recommendations
+- **Visual Quality Indicators**: Color-coded quality scores and progress bars
+- **Actionable Insights**: Clear next steps for data processing and import
+
+#### Development Experience
+- **Sample Data Files**: Created comprehensive test datasets for development
+- **API Documentation**: Enhanced OpenAPI documentation for CMDB endpoints
+- **Error Handling**: Graceful fallbacks when CrewAI is unavailable
+- **Debugging Tools**: Enhanced logging and error reporting
+
+### 📦 New Dependencies
+
+#### Backend
+- **langchain-community**: 0.3.24 - Extended LangChain capabilities
+- **dataclasses-json**: 0.6.7 - JSON serialization for data classes
+- **httpx-sse**: 0.4.0 - Server-sent events support
+- **marshmallow**: 3.26.1 - Data serialization and validation
+- **greenlet**: 3.2.2 - Async database operations support
+
+#### Frontend
+- **react-dropzone**: Latest - File upload with drag & drop functionality
+
+### 🎯 Feature Highlights
+
+#### AI-Powered Analysis
+- **Data Quality Assessment**: Comprehensive scoring based on completeness, consistency, and migration readiness
+- **Asset Type Detection**: Automatic classification using intelligent heuristics
+- **Missing Field Identification**: Detection of essential parameters for migration planning
+- **Processing Recommendations**: Step-by-step guidance for data preparation
+
+#### User Interface
+- **Modern Upload Experience**: Drag & drop with visual feedback and format validation
+- **Detailed Analysis Modal**: Comprehensive results display with actionable insights
+- **Real-time Processing**: Live status updates during analysis
+- **Responsive Design**: Mobile-friendly interface with consistent styling
+
+#### Data Support
+- **Multiple CMDB Formats**: ServiceNow, BMC Remedy, and standard CSV/Excel exports
+- **Flexible Field Mapping**: Intelligent field detection and mapping
+- **Sample Data**: Comprehensive test datasets for validation and development
+
+### 🌐 Navigation Updates
+
+#### Discovery Phase
+- **CMDB Import**: New navigation option in Discovery sidebar
+- **Quick Actions**: Added CMDB Import to Discovery Overview page
+- **Route Integration**: Proper routing at `/discovery/cmdb-import`
+
+---
+
 ## [0.2.0] - 2025-01-27
 
 ### 🎉 Major Release - Complete Backend Implementation & Docker Containerization
