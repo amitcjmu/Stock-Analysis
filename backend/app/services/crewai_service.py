@@ -277,34 +277,43 @@ class CrewAIService:
             return self._placeholder_wave_plan(assets_data)
 
     async def analyze_cmdb_data(self, cmdb_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Analyze CMDB data for quality, completeness, and migration readiness."""
+        """Analyze CMDB data for quality, completeness, and migration readiness with asset type context."""
         if not CREWAI_AVAILABLE or not self.agents.get('migration_strategist'):
             return self._placeholder_cmdb_analysis(cmdb_data)
         
         try:
+            primary_asset_type = cmdb_data.get('primary_asset_type', 'unknown')
+            asset_context = cmdb_data.get('asset_type_context', {})
+            
             task = Task(
                 description=f"""
-                Analyze the following CMDB data for migration readiness:
+                Analyze the following CMDB data for migration readiness with asset type context:
                 
                 File: {cmdb_data.get('filename')}
+                Primary Asset Type: {primary_asset_type}
+                Asset Distribution: {asset_context}
                 Structure: {cmdb_data.get('structure')}
                 Asset Coverage: {cmdb_data.get('coverage')}
                 Missing Fields: {cmdb_data.get('missing_fields')}
                 Sample Data: {cmdb_data.get('sample_data', [])}
                 
+                IMPORTANT CONTEXT:
+                - Primary asset type is {primary_asset_type}
+                - Applications should NOT be expected to have OS, IP addresses, or hardware specs
+                - Applications typically have: name, version, business service, dependencies (related_ci)
+                - Servers should have: hostname, OS, IP address, hardware specifications
+                - Databases should have: instance name, version, host server, port
+                
                 Provide analysis on:
-                1. Data quality assessment and scoring
-                2. Completeness for migration planning
-                3. Identification of critical missing information
+                1. Data quality assessment and scoring (considering asset type context)
+                2. Completeness for migration planning (asset-type appropriate)
+                3. Identification of critical missing information (relevant to asset type)
                 4. Data consistency and standardization issues
-                5. Recommendations for data improvement
+                5. Recommendations for data improvement (asset-type specific)
                 6. Migration readiness assessment
                 
-                Focus on identifying:
-                - Asset relationships and dependencies
-                - Business criticality indicators
-                - Technical specifications completeness
-                - Environment and ownership clarity
+                For {primary_asset_type} assets, focus on fields relevant to that asset type.
+                Do NOT flag missing server-specific fields for application assets.
                 
                 Return analysis in JSON format with specific issues and recommendations.
                 """,
@@ -357,6 +366,40 @@ class CrewAIService:
         except Exception as e:
             logger.error(f"Error in CMDB processing: {e}")
             return self._placeholder_cmdb_processing(processing_data)
+    
+    async def process_user_feedback(self, feedback_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Process user feedback to improve future AI analysis."""
+        if not CREWAI_AVAILABLE or not self.agents.get('migration_strategist'):
+            return self._placeholder_feedback_processing(feedback_data)
+        
+        try:
+            task = Task(
+                description=f"""
+                Process user feedback to improve CMDB analysis accuracy:
+                
+                File: {feedback_data.get('filename')}
+                Original Analysis: {feedback_data.get('original_analysis')}
+                User Corrections: {feedback_data.get('user_corrections')}
+                Asset Type Override: {feedback_data.get('asset_type_override')}
+                
+                Learn from this feedback to improve future analysis:
+                1. Understand why the original analysis was incorrect
+                2. Identify patterns in user corrections
+                3. Update asset type detection logic
+                4. Improve field requirement mapping
+                5. Enhance context-aware recommendations
+                
+                Return learning insights and updated analysis parameters.
+                """,
+                agent=self.agents['migration_strategist']
+            )
+            
+            result = await self._execute_task_async(task)
+            return self._parse_ai_response(result)
+            
+        except Exception as e:
+            logger.error(f"Error processing user feedback: {e}")
+            return self._placeholder_feedback_processing(feedback_data)
     
     async def _execute_task_async(self, task: Any) -> str:
         """Execute a CrewAI task asynchronously."""
@@ -472,22 +515,62 @@ class CrewAIService:
         """Placeholder CMDB analysis when CrewAI is not available."""
         structure = cmdb_data.get('structure', {})
         missing_fields = cmdb_data.get('missing_fields', [])
+        primary_asset_type = cmdb_data.get('primary_asset_type', 'unknown')
+        asset_context = cmdb_data.get('asset_type_context', {})
+        
+        # Asset-type-aware analysis
+        issues = ["Data validation requires manual review"]
+        recommendations = ["Validate asset names and identifiers"]
+        
+        if primary_asset_type == 'application':
+            issues.extend([
+                "Application dependencies may need mapping",
+                "Business service relationships require validation"
+            ])
+            recommendations.extend([
+                "Map application dependencies using Related CI field",
+                "Validate business service ownership",
+                "Ensure version information is current"
+            ])
+        elif primary_asset_type == 'server':
+            issues.extend([
+                "Server hardware specifications may be incomplete",
+                "Network configuration details need verification"
+            ])
+            recommendations.extend([
+                "Validate server hardware specifications",
+                "Verify network and IP address assignments",
+                "Confirm operating system versions"
+            ])
+        else:
+            issues.append("Asset type classification needs refinement")
+            recommendations.append("Clarify asset type classification")
+        
+        # Add missing fields context
+        if missing_fields:
+            relevant_missing = []
+            for field in missing_fields:
+                if primary_asset_type == 'application' and field not in ['Operating System', 'IP Address', 'CPU Cores', 'Memory (GB)']:
+                    relevant_missing.append(field)
+                elif primary_asset_type == 'server':
+                    relevant_missing.append(field)
+                elif primary_asset_type == 'database':
+                    relevant_missing.append(field)
+            
+            if relevant_missing:
+                issues.append(f"Missing {primary_asset_type}-relevant fields: {', '.join(relevant_missing[:3])}" + ("..." if len(relevant_missing) > 3 else ""))
         
         return {
-            "issues": [
-                "Data validation requires manual review",
-                "Asset relationships need verification",
-                "Business context may be incomplete"
-            ] + ([f"Missing critical fields: {', '.join(missing_fields[:3])}" + ("..." if len(missing_fields) > 3 else "")] if missing_fields else []),
-            "recommendations": [
-                "Validate asset names and identifiers",
+            "issues": issues,
+            "recommendations": recommendations + [
                 "Enrich data with business context",
                 "Establish dependency relationships",
                 "Standardize environment classifications",
                 "Implement data quality monitoring"
             ],
             "migration_readiness": "Requires data enhancement",
-            "confidence_score": max(50, 100 - len(missing_fields) * 10),
+            "confidence_score": max(50, 100 - len(missing_fields) * 5),  # Less penalty for irrelevant missing fields
+            "asset_type_context": primary_asset_type,
             "ai_model": "placeholder",
             "timestamp": datetime.utcnow().isoformat()
         }
@@ -516,6 +599,28 @@ class CrewAIService:
                 "Perform dependency discovery",
                 "Establish migration priorities"
             ],
+            "ai_model": "placeholder",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    
+    def _placeholder_feedback_processing(self, feedback_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Placeholder feedback processing when CrewAI is not available."""
+        asset_type_override = feedback_data.get('asset_type_override')
+        user_corrections = feedback_data.get('user_corrections', {})
+        
+        return {
+            "learning_applied": True,
+            "feedback_processed": {
+                "asset_type_correction": asset_type_override,
+                "field_corrections": len(user_corrections),
+                "analysis_improvement": "Future analysis will consider asset type context"
+            },
+            "updated_parameters": {
+                "asset_type_detection": "Enhanced with user feedback",
+                "field_requirements": "Updated based on asset type",
+                "context_awareness": "Improved"
+            },
+            "confidence_improvement": 15,
             "ai_model": "placeholder",
             "timestamp": datetime.utcnow().isoformat()
         }

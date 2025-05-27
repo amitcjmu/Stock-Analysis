@@ -70,6 +70,12 @@ const CMDBImport = () => {
     description: '',
     saveToDatabase: false
   });
+  const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
+  const [feedbackData, setFeedbackData] = useState({
+    assetTypeCorrection: '',
+    analysisCorrections: '',
+    additionalComments: ''
+  });
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const newFiles = acceptedFiles.map(file => ({
@@ -269,6 +275,41 @@ const CMDBImport = () => {
       alert('Processing failed. Please try again.');
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const submitFeedback = async () => {
+    if (!selectedFile || !selectedFile.analysis) return;
+    
+    try {
+      const feedbackPayload = {
+        filename: selectedFile.file.name,
+        originalAnalysis: selectedFile.analysis,
+        userCorrections: {
+          assetType: feedbackData.assetTypeCorrection,
+          analysisIssues: feedbackData.analysisCorrections,
+          comments: feedbackData.additionalComments
+        },
+        assetTypeOverride: feedbackData.assetTypeCorrection || null
+      };
+      
+      const result = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.CMDB_FEEDBACK, {
+        method: 'POST',
+        body: JSON.stringify(feedbackPayload)
+      });
+      
+      console.log('Feedback submitted successfully:', result);
+      alert('Thank you for your feedback! This will help improve future analysis.');
+      setShowFeedbackDialog(false);
+      setFeedbackData({
+        assetTypeCorrection: '',
+        analysisCorrections: '',
+        additionalComments: ''
+      });
+      
+    } catch (error) {
+      console.error('Failed to submit feedback:', error);
+      alert('Failed to submit feedback. Please try again.');
     }
   };
 
@@ -508,6 +549,82 @@ const CMDBImport = () => {
                       className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Continue Processing
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Feedback Dialog */}
+            {showFeedbackDialog && selectedFile && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+                  <div className="p-6 border-b border-gray-200">
+                    <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+                      <Brain className="h-5 w-5 mr-2" />
+                      Improve AI Analysis
+                    </h2>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Help us improve future analysis by providing feedback
+                    </p>
+                  </div>
+                  <div className="p-6">
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Correct Asset Type (if wrong)
+                        </label>
+                        <select
+                          value={feedbackData.assetTypeCorrection}
+                          onChange={(e) => setFeedbackData(prev => ({ ...prev, assetTypeCorrection: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">Select if analysis was wrong...</option>
+                          <option value="application">Application</option>
+                          <option value="server">Server</option>
+                          <option value="database">Database</option>
+                          <option value="network">Network Device</option>
+                          <option value="storage">Storage</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          What was incorrect about the analysis?
+                        </label>
+                        <textarea
+                          value={feedbackData.analysisCorrections}
+                          onChange={(e) => setFeedbackData(prev => ({ ...prev, analysisCorrections: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          rows={3}
+                          placeholder="e.g., Applications don't need OS or IP address fields..."
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Additional Comments
+                        </label>
+                        <textarea
+                          value={feedbackData.additionalComments}
+                          onChange={(e) => setFeedbackData(prev => ({ ...prev, additionalComments: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          rows={2}
+                          placeholder="Any other feedback to improve analysis..."
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-6 border-t border-gray-200 flex justify-end space-x-3">
+                    <button
+                      onClick={() => setShowFeedbackDialog(false)}
+                      className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={submitFeedback}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                    >
+                      Submit Feedback
                     </button>
                   </div>
                 </div>
@@ -766,13 +883,21 @@ const CMDBImport = () => {
                         )}
 
                         {/* Action Buttons */}
-                        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                        <div className="flex justify-between items-center pt-4 border-t border-gray-200">
                           <button
-                            onClick={() => setSelectedFile(null)}
-                            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                            onClick={() => setShowFeedbackDialog(true)}
+                            className="px-4 py-2 text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 flex items-center"
                           >
-                            Close
+                            <Brain className="h-4 w-4 mr-2" />
+                            Improve Analysis
                           </button>
+                          <div className="flex space-x-3">
+                            <button
+                              onClick={() => setSelectedFile(null)}
+                              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                            >
+                              Close
+                            </button>
                           {selectedFile.analysis.readyForImport ? (
                             <button className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
                               <Download className="h-4 w-4 inline mr-2" />
@@ -787,6 +912,7 @@ const CMDBImport = () => {
                               Edit & Process Data
                             </button>
                           )}
+                          </div>
                         </div>
                       </div>
                     )}

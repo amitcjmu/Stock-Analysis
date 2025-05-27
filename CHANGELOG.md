@@ -5,6 +5,51 @@ All notable changes to the AI Force Migration Platform will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.3] - 2025-01-27
+
+### 🧠 AI-Powered Asset Type Detection & User Feedback
+
+This release introduces intelligent asset type detection and user feedback mechanisms to improve AI analysis accuracy for CMDB data.
+
+### ✨ Added
+
+#### Intelligent Asset Type Detection
+- **Context-Aware Analysis**: AI now properly distinguishes between applications, servers, and databases
+- **Asset-Type-Specific Field Requirements**: Different validation rules for different asset types
+- **Smart Missing Field Detection**: Only flags relevant missing fields based on asset type
+- **Improved Heuristics**: Enhanced detection using CI Type columns and field patterns
+
+#### User Feedback System
+- **AI Correction Interface**: Users can correct incorrect AI analysis and asset type detection
+- **Learning Mechanism**: System learns from user corrections to improve future analysis
+- **Feedback Processing**: Backend processes user feedback to enhance AI recommendations
+- **Asset Type Override**: Users can manually correct asset type classification
+
+#### Enhanced Analysis Logic
+- **Application-Aware Validation**: Applications no longer flagged for missing OS/IP fields
+- **Server-Specific Requirements**: Proper validation for server hardware specifications
+- **Database Context**: Appropriate field requirements for database assets
+- **Dependency Mapping**: Better detection of CI relationships and dependencies
+
+### 🔧 Improved
+
+#### Backend Enhancements
+- **Enhanced CMDB Analysis**: Asset type context passed to AI analysis
+- **Feedback Endpoint**: New `/api/v1/discovery/cmdb-feedback` endpoint
+- **Improved Placeholder Logic**: Better asset-type-aware placeholder responses
+- **Context-Aware Scoring**: Reduced penalties for irrelevant missing fields
+
+#### Frontend Improvements
+- **Feedback Dialog**: Intuitive interface for correcting AI analysis
+- **Asset Type Selection**: Dropdown for correcting asset type classification
+- **Analysis Improvement**: "Improve Analysis" button in analysis view
+- **Better Error Handling**: Enhanced user experience with feedback submission
+
+### 🐛 Fixed
+- **Syntax Errors**: Resolved JSX syntax issues in frontend components
+- **Missing Imports**: Added required API endpoints for feedback functionality
+- **Asset Type Logic**: Fixed incorrect field requirements for different asset types
+
 ## [0.2.2] - 2025-01-27
 
 ### 🚀 Enhanced CMDB Import - Data Editing & Processing

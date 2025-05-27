@@ -31,6 +31,12 @@ class CMDBProcessingRequest(BaseModel):
     data: List[Dict[str, Any]]
     projectInfo: Optional[Dict[str, Any]] = None
 
+class CMDBFeedbackRequest(BaseModel):
+    filename: str
+    originalAnalysis: Dict[str, Any]
+    userCorrections: Dict[str, Any]
+    assetTypeOverride: Optional[str] = None
+
 class DataQualityResult(BaseModel):
     score: int
     issues: List[str]
@@ -100,46 +106,74 @@ class CMDBDataProcessor:
         return analysis
     
     def identify_asset_types(self, df: pd.DataFrame) -> AssetCoverage:
-        """Identify different types of assets in the data."""
+        """Identify different types of assets in the data with improved heuristics."""
         columns = [col.lower() for col in df.columns]
         
-        # Simple heuristics to identify asset types
+        # Initialize counters
         applications = 0
         servers = 0
         databases = 0
         dependencies = 0
         
-        # Look for application indicators
-        app_indicators = ['application', 'app', 'service', 'software']
-        if any(indicator in ' '.join(columns) for indicator in app_indicators):
-            applications = len(df[df.apply(lambda row: any(
-                indicator in str(row).lower() for indicator in app_indicators
-            ), axis=1)])
+        # Check if there's an explicit asset type column
+        type_columns = ['ci_type', 'type', 'asset_type', 'category', 'classification', 'sys_class_name']
+        type_column = None
+        for col in df.columns:
+            if col.lower() in type_columns:
+                type_column = col
+                break
         
-        # Look for server indicators
-        server_indicators = ['server', 'host', 'machine', 'vm', 'instance']
-        if any(indicator in ' '.join(columns) for indicator in server_indicators):
-            servers = len(df[df.apply(lambda row: any(
-                indicator in str(row).lower() for indicator in server_indicators
-            ), axis=1)])
+        if type_column:
+            # Use explicit type column for classification
+            type_values = df[type_column].str.lower().fillna('unknown')
+            
+            # Application indicators
+            app_patterns = ['application', 'app', 'service', 'software', 'business_service']
+            applications = sum(type_values.str.contains('|'.join(app_patterns), na=False))
+            
+            # Server indicators  
+            server_patterns = ['server', 'host', 'machine', 'vm', 'instance', 'computer', 'node']
+            servers = sum(type_values.str.contains('|'.join(server_patterns), na=False))
+            
+            # Database indicators
+            db_patterns = ['database', 'db', 'sql', 'oracle', 'mysql', 'postgres', 'mongodb']
+            databases = sum(type_values.str.contains('|'.join(db_patterns), na=False))
+            
+        else:
+            # Fallback to heuristic-based detection using field patterns
+            
+            # Look for application-specific fields
+            app_fields = ['version', 'business_service', 'application_owner', 'related_ci']
+            app_score = sum(1 for field in app_fields if any(field in col for col in columns))
+            
+            # Look for server-specific fields
+            server_fields = ['ip_address', 'hostname', 'os', 'cpu', 'memory', 'ram']
+            server_score = sum(1 for field in server_fields if any(field in col for col in columns))
+            
+            # Look for database-specific fields
+            db_fields = ['database', 'schema', 'instance', 'port', 'connection']
+            db_score = sum(1 for field in db_fields if any(field in col for col in columns))
+            
+            # Classify based on field patterns
+            total_rows = len(df)
+            if app_score >= server_score and app_score >= db_score:
+                applications = total_rows
+            elif server_score >= app_score and server_score >= db_score:
+                servers = total_rows
+            elif db_score >= app_score and db_score >= server_score:
+                databases = total_rows
+            else:
+                # Default to applications if unclear
+                applications = total_rows
         
-        # Look for database indicators
-        db_indicators = ['database', 'db', 'sql', 'oracle', 'mysql', 'postgres']
-        if any(indicator in ' '.join(columns) for indicator in db_indicators):
-            databases = len(df[df.apply(lambda row: any(
-                indicator in str(row).lower() for indicator in db_indicators
-            ), axis=1)])
-        
-        # Look for dependency indicators
-        dep_indicators = ['depend', 'connect', 'link', 'relation']
-        if any(indicator in ' '.join(columns) for indicator in dep_indicators):
-            dependencies = len(df[df.apply(lambda row: any(
-                indicator in str(row).lower() for indicator in dep_indicators
-            ), axis=1)])
-        
-        # If no specific types found, assume all are generic assets
-        if applications + servers + databases == 0:
-            applications = len(df)
+        # Look for dependency relationships
+        dep_fields = ['related_ci', 'depends_on', 'relationship', 'parent_ci', 'child_ci']
+        if any(field in ' '.join(columns) for field in dep_fields):
+            # Count non-empty dependency relationships
+            for col in df.columns:
+                if any(dep_field in col.lower() for dep_field in dep_fields):
+                    dependencies = df[col].notna().sum()
+                    break
         
         return AssetCoverage(
             applications=applications,
@@ -149,33 +183,54 @@ class CMDBDataProcessor:
         )
     
     def identify_missing_fields(self, df: pd.DataFrame) -> List[str]:
-        """Identify missing required fields for migration analysis."""
-        required_fields = [
-            'name', 'hostname', 'asset_name',
-            'type', 'asset_type', 'category',
-            'environment', 'env',
-            'owner', 'business_owner',
-            'criticality', 'business_criticality',
-            'os', 'operating_system',
-            'cpu', 'memory', 'storage'
-        ]
-        
+        """Identify missing required fields based on asset type context."""
         columns_lower = [col.lower() for col in df.columns]
         missing_fields = []
         
-        # Check for essential fields
-        essential_mappings = {
-            'Asset Name': ['name', 'hostname', 'asset_name', 'server_name'],
-            'Asset Type': ['type', 'asset_type', 'category', 'classification'],
-            'Environment': ['environment', 'env', 'stage'],
-            'Business Owner': ['owner', 'business_owner', 'responsible_party'],
-            'Criticality': ['criticality', 'business_criticality', 'priority'],
-            'Operating System': ['os', 'operating_system', 'platform'],
-            'CPU Cores': ['cpu', 'cores', 'processors', 'vcpu'],
-            'Memory (GB)': ['memory', 'ram', 'memory_gb', 'mem'],
-            'Storage (GB)': ['storage', 'disk', 'storage_gb', 'hdd']
-        }
+        # Determine primary asset type
+        coverage = self.identify_asset_types(df)
+        primary_type = 'application'
+        if coverage.servers > coverage.applications and coverage.servers > coverage.databases:
+            primary_type = 'server'
+        elif coverage.databases > coverage.applications and coverage.databases > coverage.servers:
+            primary_type = 'database'
         
+        # Asset-type-specific field requirements
+        if primary_type == 'application':
+            essential_mappings = {
+                'Asset Name': ['name', 'application_name', 'service_name', 'business_service'],
+                'Asset Type': ['type', 'asset_type', 'ci_type', 'classification'],
+                'Environment': ['environment', 'env', 'stage', 'tier'],
+                'Business Owner': ['owner', 'business_owner', 'application_owner', 'responsible_party'],
+                'Criticality': ['criticality', 'business_criticality', 'priority', 'importance'],
+                'Version': ['version', 'release', 'build'],
+                'Dependencies': ['related_ci', 'depends_on', 'relationships']
+            }
+        elif primary_type == 'server':
+            essential_mappings = {
+                'Asset Name': ['name', 'hostname', 'server_name', 'computer_name'],
+                'Asset Type': ['type', 'asset_type', 'ci_type', 'classification'],
+                'Environment': ['environment', 'env', 'stage'],
+                'Business Owner': ['owner', 'business_owner', 'responsible_party'],
+                'Criticality': ['criticality', 'business_criticality', 'priority'],
+                'Operating System': ['os', 'operating_system', 'platform'],
+                'CPU Cores': ['cpu', 'cores', 'processors', 'vcpu'],
+                'Memory (GB)': ['memory', 'ram', 'memory_gb', 'mem'],
+                'IP Address': ['ip_address', 'ip', 'network_address']
+            }
+        else:  # database
+            essential_mappings = {
+                'Asset Name': ['name', 'database_name', 'instance_name'],
+                'Asset Type': ['type', 'asset_type', 'ci_type', 'db_type'],
+                'Environment': ['environment', 'env', 'stage'],
+                'Business Owner': ['owner', 'business_owner', 'dba_owner'],
+                'Criticality': ['criticality', 'business_criticality', 'priority'],
+                'Database Version': ['version', 'db_version', 'release'],
+                'Host Server': ['host', 'server', 'hostname'],
+                'Port': ['port', 'db_port', 'connection_port']
+            }
+        
+        # Check for missing essential fields
         for field_name, possible_columns in essential_mappings.items():
             if not any(col in columns_lower for col in possible_columns):
                 missing_fields.append(field_name)
@@ -235,13 +290,27 @@ async def analyze_cmdb_data(request: CMDBAnalysisRequest):
         # Suggest processing steps
         processing_steps = processor.suggest_processing_steps(df, structure_analysis)
         
-        # Use CrewAI for advanced analysis
+        # Determine primary asset type for context
+        primary_type = 'application'
+        if coverage.servers > coverage.applications and coverage.servers > coverage.databases:
+            primary_type = 'server'
+        elif coverage.databases > coverage.applications and coverage.databases > coverage.servers:
+            primary_type = 'database'
+        
+        # Use CrewAI for advanced analysis with asset type context
         crewai_analysis = await processor.crewai_service.analyze_cmdb_data({
             'filename': request.filename,
             'structure': structure_analysis,
             'coverage': coverage.dict(),
             'missing_fields': missing_fields,
-            'sample_data': df.head(5).to_dict('records') if len(df) > 0 else []
+            'sample_data': df.head(5).to_dict('records') if len(df) > 0 else [],
+            'primary_asset_type': primary_type,
+            'asset_type_context': {
+                'applications': coverage.applications,
+                'servers': coverage.servers,
+                'databases': coverage.databases,
+                'dependencies': coverage.dependencies
+            }
         })
         
         # Combine AI analysis with structural analysis
@@ -404,6 +473,56 @@ async def process_cmdb_data(request: CMDBProcessingRequest):
     except Exception as e:
         logger.error(f"Error processing CMDB data: {e}")
         raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}")
+
+@router.post("/cmdb-feedback")
+async def submit_cmdb_feedback(request: CMDBFeedbackRequest):
+    """
+    Submit user feedback to correct AI analysis and improve future predictions.
+    """
+    try:
+        logger.info(f"Receiving user feedback for file: {request.filename}")
+        
+        # Process user corrections
+        corrections = request.userCorrections
+        asset_type_override = request.assetTypeOverride
+        
+        # Re-analyze with user feedback
+        feedback_context = {
+            'filename': request.filename,
+            'original_analysis': request.originalAnalysis,
+            'user_corrections': corrections,
+            'asset_type_override': asset_type_override,
+            'feedback_timestamp': datetime.now().isoformat()
+        }
+        
+        # Use CrewAI to learn from feedback
+        learning_result = await processor.crewai_service.process_user_feedback(feedback_context)
+        
+        # Generate corrected analysis
+        corrected_analysis = {
+            'status': 'corrected',
+            'message': 'Analysis updated based on user feedback',
+            'corrections_applied': corrections,
+            'asset_type_corrected': asset_type_override,
+            'learning_result': learning_result,
+            'improved_recommendations': [
+                f"Asset type identified as: {asset_type_override}" if asset_type_override else None,
+                "Field requirements updated based on asset type context",
+                "Future analysis will consider this feedback for similar datasets"
+            ]
+        }
+        
+        # Filter out None values
+        corrected_analysis['improved_recommendations'] = [
+            rec for rec in corrected_analysis['improved_recommendations'] if rec is not None
+        ]
+        
+        logger.info(f"User feedback processed for {request.filename}")
+        return corrected_analysis
+        
+    except Exception as e:
+        logger.error(f"Error processing user feedback: {e}")
+        raise HTTPException(status_code=500, detail=f"Feedback processing failed: {str(e)}")
 
 @router.get("/cmdb-templates")
 async def get_cmdb_templates():

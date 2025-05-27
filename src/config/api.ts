@@ -20,7 +20,8 @@ export const API_CONFIG = {
     DISCOVERY: {
       ANALYZE_CMDB: '/api/v1/discovery/analyze-cmdb',
       PROCESS_CMDB: '/api/v1/discovery/process-cmdb',
-      CMDB_TEMPLATES: '/api/v1/discovery/cmdb-templates'
+      CMDB_TEMPLATES: '/api/v1/discovery/cmdb-templates',
+      CMDB_FEEDBACK: '/api/v1/discovery/cmdb-feedback'
     }
   }
 };
