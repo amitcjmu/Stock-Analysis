@@ -478,6 +478,7 @@ async def process_cmdb_data(request: CMDBProcessingRequest):
 async def submit_cmdb_feedback(request: CMDBFeedbackRequest):
     """
     Submit user feedback to correct AI analysis and improve future predictions.
+    Returns updated analysis based on user corrections.
     """
     try:
         logger.info(f"Receiving user feedback for file: {request.filename}")
@@ -498,27 +499,98 @@ async def submit_cmdb_feedback(request: CMDBFeedbackRequest):
         # Use CrewAI to learn from feedback
         learning_result = await processor.crewai_service.process_user_feedback(feedback_context)
         
-        # Generate corrected analysis
-        corrected_analysis = {
+        # Generate updated analysis based on feedback
+        original_analysis = request.originalAnalysis
+        updated_analysis = original_analysis.copy()
+        
+        # Apply asset type correction if provided
+        if asset_type_override:
+            # Update coverage based on corrected asset type
+            total_assets = (original_analysis.get('coverage', {}).get('applications', 0) + 
+                          original_analysis.get('coverage', {}).get('servers', 0) + 
+                          original_analysis.get('coverage', {}).get('databases', 0))
+            
+            if asset_type_override.lower() == 'application':
+                updated_analysis['coverage'] = {
+                    'applications': total_assets,
+                    'servers': 0,
+                    'databases': 0,
+                    'dependencies': original_analysis.get('coverage', {}).get('dependencies', 0)
+                }
+            elif asset_type_override.lower() == 'server':
+                updated_analysis['coverage'] = {
+                    'applications': 0,
+                    'servers': total_assets,
+                    'databases': 0,
+                    'dependencies': original_analysis.get('coverage', {}).get('dependencies', 0)
+                }
+            elif asset_type_override.lower() == 'database':
+                updated_analysis['coverage'] = {
+                    'applications': 0,
+                    'servers': 0,
+                    'databases': total_assets,
+                    'dependencies': original_analysis.get('coverage', {}).get('dependencies', 0)
+                }
+            
+            # Update missing fields based on asset type
+            if asset_type_override.lower() == 'application':
+                # Applications don't need hardware specs
+                hardware_fields = ['cpu_cores', 'memory_gb', 'storage_gb', 'ip_address', 'operating_system']
+                updated_missing_fields = [field for field in original_analysis.get('missingFields', []) 
+                                        if field.lower() not in [f.lower() for f in hardware_fields]]
+                updated_analysis['missingFields'] = updated_missing_fields
+            elif asset_type_override.lower() == 'server':
+                # Servers need hardware specs
+                required_server_fields = ['operating_system', 'cpu_cores', 'memory_gb']
+                current_missing = set(original_analysis.get('missingFields', []))
+                for field in required_server_fields:
+                    if field not in current_missing:
+                        current_missing.add(field)
+                updated_analysis['missingFields'] = list(current_missing)
+        
+        # Update data quality score based on corrections
+        if corrections.get('analysisIssues'):
+            # Improve quality score if user provided corrections
+            current_score = original_analysis.get('dataQuality', {}).get('score', 0)
+            improved_score = min(100, current_score + 10)  # Boost by 10 points
+            updated_analysis['dataQuality']['score'] = improved_score
+            
+            # Update issues and recommendations
+            updated_issues = original_analysis.get('dataQuality', {}).get('issues', []).copy()
+            updated_recommendations = original_analysis.get('dataQuality', {}).get('recommendations', []).copy()
+            
+            # Add feedback-based improvements
+            if asset_type_override:
+                updated_recommendations.append(f"Asset type corrected to: {asset_type_override}")
+            
+            updated_recommendations.append("Analysis improved based on user feedback")
+            
+            updated_analysis['dataQuality']['issues'] = updated_issues
+            updated_analysis['dataQuality']['recommendations'] = updated_recommendations
+        
+        # Generate response with both learning result and updated analysis
+        response = {
             'status': 'corrected',
             'message': 'Analysis updated based on user feedback',
             'corrections_applied': corrections,
             'asset_type_corrected': asset_type_override,
             'learning_result': learning_result,
-            'improved_recommendations': [
-                f"Asset type identified as: {asset_type_override}" if asset_type_override else None,
+            'updated_analysis': updated_analysis,  # Include the updated analysis
+            'improvements': [
+                f"Asset type corrected to: {asset_type_override}" if asset_type_override else None,
                 "Field requirements updated based on asset type context",
+                "Data quality score improved based on feedback",
                 "Future analysis will consider this feedback for similar datasets"
             ]
         }
         
         # Filter out None values
-        corrected_analysis['improved_recommendations'] = [
-            rec for rec in corrected_analysis['improved_recommendations'] if rec is not None
+        response['improvements'] = [
+            improvement for improvement in response['improvements'] if improvement is not None
         ]
         
         logger.info(f"User feedback processed for {request.filename}")
-        return corrected_analysis
+        return response
         
     except Exception as e:
         logger.error(f"Error processing user feedback: {e}")

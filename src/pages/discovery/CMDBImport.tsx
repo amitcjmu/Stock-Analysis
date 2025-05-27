@@ -103,7 +103,15 @@ const CMDBImport = () => {
   };
 
   const handleProcessData = async () => {
-    if (!selectedFile || !selectedFile.editableData) return;
+    if (!selectedFile) return;
+    
+    // Use editableData if available (editing mode), otherwise use the raw data from analysis
+    const dataToProcess = selectedFile.editableData || selectedFile.analysis?.rawData;
+    
+    if (!dataToProcess) {
+      console.error('No data available to process');
+      return;
+    }
     
     if (projectInfo.saveToDatabase && !projectInfo.name.trim()) {
       setShowProjectDialog(true);
@@ -111,7 +119,13 @@ const CMDBImport = () => {
     }
     
     try {
-      const processedData = await processData(selectedFile, projectInfo.saveToDatabase ? projectInfo : null);
+      // Create a temporary file object with the data to process
+      const fileToProcess = {
+        ...selectedFile,
+        editableData: dataToProcess
+      };
+      
+      const processedData = await processData(fileToProcess, projectInfo.saveToDatabase ? projectInfo : null);
       
       console.log('Data processed successfully:', processedData);
       
@@ -121,16 +135,23 @@ const CMDBImport = () => {
         analysis: {
           ...selectedFile.analysis!,
           status: 'completed',
-          readyForImport: true
+          readyForImport: true,
+          dataQuality: {
+            ...selectedFile.analysis!.dataQuality,
+            score: processedData.summary?.quality_score || selectedFile.analysis!.dataQuality.score
+          }
         }
       });
       
-      // Close editing mode
+      // Close editing mode if we were in it
       setIsEditing(false);
-      setSelectedFile(null);
+      
+      // Show success message
+      alert(`Data processed successfully! Quality score: ${processedData.summary?.quality_score || 'N/A'}%`);
       
     } catch (error) {
       console.error('Processing failed:', error);
+      alert(`Processing failed: ${error.message}`);
     }
   };
 
@@ -141,10 +162,21 @@ const CMDBImport = () => {
       const result = await submitFeedback(
         selectedFile.file.name,
         selectedFile.analysis,
-        feedbackData
+        feedbackData,
+        updateFileInList,
+        selectedFile.id
       );
       
       console.log('Feedback submitted successfully:', result);
+      
+      // Update the selected file with the new analysis
+      if (result.updated_analysis) {
+        setSelectedFile({
+          ...selectedFile,
+          analysis: result.updated_analysis
+        });
+      }
+      
       setShowFeedbackDialog(false);
       setFeedbackData({
         assetTypeCorrection: '',
@@ -243,6 +275,19 @@ const CMDBImport = () => {
                       <Edit3 className="h-4 w-4 inline mr-1 sm:mr-2" />
                       <span className="hidden sm:inline">Edit Data</span>
                       <span className="sm:hidden">Edit</span>
+                    </button>
+                    <button
+                      onClick={handleProcessData}
+                      disabled={isProcessing}
+                      className="px-3 sm:px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 text-sm sm:text-base"
+                    >
+                      {isProcessing ? (
+                        <RefreshCw className="h-4 w-4 inline mr-1 sm:mr-2 animate-spin" />
+                      ) : (
+                        <Save className="h-4 w-4 inline mr-1 sm:mr-2" />
+                      )}
+                      <span className="hidden sm:inline">{isProcessing ? 'Processing...' : 'Process Data'}</span>
+                      <span className="sm:hidden">{isProcessing ? 'Processing...' : 'Process'}</span>
                     </button>
                     <button
                       onClick={() => setShowFeedbackDialog(true)}

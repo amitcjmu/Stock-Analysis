@@ -133,7 +133,9 @@ export const useCMDBAnalysis = () => {
       assetTypeCorrection: string;
       analysisCorrections: string;
       additionalComments: string;
-    }
+    },
+    onFileUpdate?: (id: string, updates: Partial<FileUpload>) => void,
+    fileId?: string
   ) => {
     try {
       const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.CMDB_FEEDBACK, {
@@ -151,6 +153,14 @@ export const useCMDBAnalysis = () => {
       });
 
       console.log('Feedback submitted successfully:', response);
+      
+      // If we have an updated analysis and file update callback, update the file
+      if (response.updated_analysis && onFileUpdate && fileId) {
+        onFileUpdate(fileId, {
+          analysis: response.updated_analysis
+        });
+      }
+      
       return response;
     } catch (error) {
       console.error('Failed to submit feedback:', error);

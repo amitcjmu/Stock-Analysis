@@ -5,6 +5,124 @@ All notable changes to the AI Force Migration Platform will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.6] - 2025-01-27
+
+### 🔧 **CMDB Feedback & Data Processing Fixes**
+
+This release fixes critical issues with user feedback not updating analysis results and missing data processing functionality.
+
+### 🐛 **Fixed**
+
+#### **Feedback System Improvements**
+- **Real-time Analysis Updates**: User feedback now immediately updates the displayed analysis results
+- **Asset Type Corrections**: Correcting asset type via feedback properly updates coverage statistics and missing field requirements
+- **Quality Score Improvements**: Feedback submission now boosts data quality scores and updates recommendations
+- **Frontend Synchronization**: Analysis view refreshes automatically after feedback submission
+
+#### **Data Processing Functionality**
+- **Process Data Button**: Added "Process Data" button to both analysis view and editing mode
+- **Direct Processing**: Users can now process data directly from analysis view without entering edit mode
+- **Flexible Data Handling**: Processing works with both edited data and original analysis data
+- **Success Feedback**: Clear success/failure messages with quality score improvements
+- **Project Integration**: Proper project creation workflow with database storage options
+
+#### **Backend API Enhancements**
+- **Updated Feedback Endpoint**: Returns corrected analysis data for frontend consumption
+- **Asset Type Logic**: Improved asset type correction logic for applications, servers, and databases
+- **Missing Fields Updates**: Dynamic missing field requirements based on corrected asset types
+- **Quality Score Calculation**: Enhanced quality scoring with feedback-based improvements
+
+### 🚀 **User Experience Improvements**
+
+#### **Immediate Feedback Response**
+- **Live Updates**: Analysis results update instantly after providing feedback
+- **Visual Confirmation**: Clear indication when corrections are applied
+- **Improved Accuracy**: Asset type corrections properly reflected in coverage statistics
+- **Better Recommendations**: Updated recommendations based on user corrections
+
+#### **Streamlined Processing Workflow**
+- **One-Click Processing**: Process data directly from analysis view
+- **Flexible Options**: Choose between view-only processing or project creation
+- **Clear Status**: Processing status indicators and success/failure messages
+- **Quality Tracking**: See quality score improvements after processing
+
+### 🔧 **Technical Changes**
+
+#### **Frontend Updates**
+```typescript
+// Enhanced feedback submission with analysis updates
+const submitFeedback = async (filename, analysis, feedback, onUpdate, fileId) => {
+  const response = await apiCall('/cmdb-feedback', { ... });
+  
+  // Update analysis in real-time
+  if (response.updated_analysis && onUpdate && fileId) {
+    onUpdate(fileId, { analysis: response.updated_analysis });
+  }
+  
+  return response;
+};
+
+// Flexible data processing
+const handleProcessData = async () => {
+  const dataToProcess = selectedFile.editableData || selectedFile.analysis?.rawData;
+  const processedData = await processData(fileToProcess, projectInfo);
+  // Update quality scores and status
+};
+```
+
+#### **Backend Enhancements**
+```python
+# Enhanced feedback endpoint with analysis updates
+@router.post("/cmdb-feedback")
+async def submit_cmdb_feedback(request: CMDBFeedbackRequest):
+    # Generate updated analysis based on feedback
+    updated_analysis = original_analysis.copy()
+    
+    # Apply asset type corrections
+    if asset_type_override:
+        # Update coverage and missing fields based on asset type
+        updated_analysis['coverage'] = calculate_corrected_coverage(...)
+        updated_analysis['missingFields'] = get_asset_specific_fields(...)
+    
+    # Return both learning result and updated analysis
+    return {
+        'updated_analysis': updated_analysis,
+        'learning_result': learning_result,
+        'improvements': [...]
+    }
+```
+
+### 🎯 **Key Improvements**
+
+#### **Before This Release**
+- ❌ Feedback submitted but analysis didn't update
+- ❌ No way to process data from analysis view
+- ❌ Asset type corrections not reflected in UI
+- ❌ Missing clear processing workflow
+
+#### **After This Release**
+- ✅ Feedback immediately updates analysis display
+- ✅ "Process Data" button available in analysis view
+- ✅ Asset type corrections update coverage and requirements
+- ✅ Clear processing workflow with success indicators
+- ✅ Quality score improvements tracked and displayed
+
+### 🌟 **User Benefits**
+
+#### **Immediate Value**
+- **Responsive Feedback**: See corrections applied instantly
+- **Streamlined Processing**: Process data without complex workflows
+- **Clear Progress**: Visual feedback on all operations
+- **Improved Accuracy**: Better asset type detection and field requirements
+
+#### **Enhanced Workflow**
+- **Upload → Analyze → Feedback → Process**: Complete workflow now functional
+- **Real-time Updates**: No need to refresh or re-upload files
+- **Flexible Processing**: Choose your preferred processing approach
+- **Quality Tracking**: Monitor data quality improvements throughout the process
+
+---
+
 ## [0.2.5] - 2025-01-27
 
 ### 🔧 **Critical CrewAI Performance & Reliability Fixes**
