@@ -183,7 +183,7 @@ class CMDBDataProcessor:
         )
     
     def identify_missing_fields(self, df: pd.DataFrame) -> List[str]:
-        """Identify missing required fields based on asset type context."""
+        """Identify missing required fields based on asset type context and learned patterns."""
         columns_lower = [col.lower() for col in df.columns]
         missing_fields = []
         
@@ -195,10 +195,13 @@ class CMDBDataProcessor:
         elif coverage.databases > coverage.applications and coverage.databases > coverage.servers:
             primary_type = 'database'
         
-        # Asset-type-specific field requirements
+        # Get learned field mappings from agent memory if available
+        learned_mappings = self._get_learned_field_mappings()
+        
+        # Asset-type-specific field requirements with enhanced mappings
         if primary_type == 'application':
             essential_mappings = {
-                'Asset Name': ['name', 'application_name', 'service_name', 'business_service'],
+                'Asset Name': ['name', 'application_name', 'service_name', 'business_service', 'asset_name'],
                 'Asset Type': ['type', 'asset_type', 'ci_type', 'classification'],
                 'Environment': ['environment', 'env', 'stage', 'tier'],
                 'Business Owner': ['owner', 'business_owner', 'application_owner', 'responsible_party'],
@@ -208,19 +211,19 @@ class CMDBDataProcessor:
             }
         elif primary_type == 'server':
             essential_mappings = {
-                'Asset Name': ['name', 'hostname', 'server_name', 'computer_name'],
+                'Asset Name': ['name', 'hostname', 'server_name', 'computer_name', 'asset_name'],
                 'Asset Type': ['type', 'asset_type', 'ci_type', 'classification'],
                 'Environment': ['environment', 'env', 'stage'],
                 'Business Owner': ['owner', 'business_owner', 'responsible_party'],
                 'Criticality': ['criticality', 'business_criticality', 'priority'],
-                'Operating System': ['os', 'operating_system', 'platform'],
-                'CPU Cores': ['cpu', 'cores', 'processors', 'vcpu'],
-                'Memory (GB)': ['memory', 'ram', 'memory_gb', 'mem'],
+                'Operating System': ['os', 'operating_system', 'platform', 'os_version'],
+                'CPU Cores': ['cpu', 'cores', 'processors', 'vcpu', 'cpu_cores'],
+                'Memory (GB)': ['memory', 'ram', 'memory_gb', 'mem', 'ram_gb'],  # Added ram_gb
                 'IP Address': ['ip_address', 'ip', 'network_address']
             }
         else:  # database
             essential_mappings = {
-                'Asset Name': ['name', 'database_name', 'instance_name'],
+                'Asset Name': ['name', 'database_name', 'instance_name', 'asset_name'],
                 'Asset Type': ['type', 'asset_type', 'ci_type', 'db_type'],
                 'Environment': ['environment', 'env', 'stage'],
                 'Business Owner': ['owner', 'business_owner', 'dba_owner'],
@@ -230,12 +233,36 @@ class CMDBDataProcessor:
                 'Port': ['port', 'db_port', 'connection_port']
             }
         
+        # Apply learned mappings to enhance field detection
+        if learned_mappings:
+            for field_name, possible_columns in essential_mappings.items():
+                if field_name in learned_mappings:
+                    # Add learned field variations
+                    enhanced_columns = list(set(possible_columns + learned_mappings[field_name]))
+                    essential_mappings[field_name] = enhanced_columns
+        
         # Check for missing essential fields
         for field_name, possible_columns in essential_mappings.items():
             if not any(col in columns_lower for col in possible_columns):
                 missing_fields.append(field_name)
         
         return missing_fields
+    
+    def _get_learned_field_mappings(self) -> Dict[str, List[str]]:
+        """Get learned field mappings from the dynamic field mapper."""
+        try:
+            # Use the new dynamic field mapper
+            from app.services.field_mapper import field_mapper
+            return field_mapper.get_field_mappings('server')  # Default to server mappings
+                
+        except Exception as e:
+            logger.warning(f"Could not access dynamic field mapper: {e}")
+            # Fallback to basic enhanced mappings
+            return {
+                'Memory (GB)': ['memory', 'ram', 'memory_gb', 'mem', 'ram_gb'],
+                'CPU Cores': ['cpu', 'cores', 'processors', 'vcpu', 'cpu_cores'],
+                'Asset Name': ['name', 'asset_name', 'hostname', 'ci_name']
+            }
     
     def suggest_processing_steps(self, df: pd.DataFrame, analysis: Dict[str, Any]) -> List[str]:
         """Suggest data processing steps based on analysis."""
@@ -971,4 +998,55 @@ async def get_cmdb_templates():
             "Business Owner",
             "Dependencies"
         ]
-    } 
+    }
+
+@router.get("/test-field-mapping")
+async def test_field_mapping():
+    """
+    Test endpoint to verify field mapping functionality.
+    Helps debug missing field detection issues.
+    """
+    try:
+        from app.services.field_mapper import field_mapper
+        
+        # Test with the user's actual column names
+        test_columns = [
+            'Asset_ID', 'Asset_Name', 'Asset_Type', 'Manufacturer', 'Model', 
+            'Serial_Number', 'Location_Rack', 'Location_U', 'Location_DataCenter',
+            'Operating_System', 'OS_Version', 'CPU_Cores', 'RAM_GB', 'Storage_GB',
+            'IP_Address', 'MAC_Address', 'Application_Service', 'Application_Owner',
+            'Virtualization_Host_ID', 'Last_Discovery_Date', 'Support_Contract_End_Date',
+            'Maintenance_Window', 'DR_Tier', 'Cloud_Migration_Readiness_Score', 'Migration_Notes'
+        ]
+        
+        # Test missing field detection
+        missing_fields = field_mapper.identify_missing_fields(test_columns, 'server')
+        
+        # Test specific field matches
+        memory_matches = field_mapper.find_matching_fields(test_columns, 'Memory (GB)')
+        cpu_matches = field_mapper.find_matching_fields(test_columns, 'CPU Cores')
+        asset_name_matches = field_mapper.find_matching_fields(test_columns, 'Asset Name')
+        
+        # Get mapping statistics
+        stats = field_mapper.get_mapping_statistics()
+        
+        return {
+            "status": "success",
+            "test_columns": test_columns,
+            "missing_fields": missing_fields,
+            "field_matches": {
+                "Memory (GB)": memory_matches,
+                "CPU Cores": cpu_matches,
+                "Asset Name": asset_name_matches
+            },
+            "mapping_statistics": stats,
+            "message": "Field mapping test completed successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"Field mapping test failed: {e}")
+        return {
+            "status": "error",
+            "error": str(e),
+            "message": "Field mapping test failed"
+        } 

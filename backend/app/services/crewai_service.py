@@ -487,6 +487,13 @@ class CrewAIService:
                     "source_feedback": filename,
                     "timestamp": datetime.utcnow().isoformat()
                 })
+                
+                # Update dynamic field mappings based on learned patterns
+                try:
+                    from app.services.field_mapper import field_mapper
+                    field_mapper.process_feedback_patterns(learning_result['patterns_identified'])
+                except ImportError:
+                    logger.warning("Field mapper not available for pattern processing")
             
             logger.info(f"Processed user feedback and learned new patterns for {filename}")
             return learning_result

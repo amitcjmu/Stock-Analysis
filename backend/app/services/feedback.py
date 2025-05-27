@@ -50,13 +50,20 @@ class FeedbackProcessor:
         # Calculate confidence boost
         confidence_boost = self._calculate_confidence_boost(patterns_identified)
         
-        # Store learned patterns
+        # Store learned patterns and update field mappings
         if patterns_identified:
             self.memory.add_experience("learned_patterns", {
                 "patterns": patterns_identified,
                 "source_feedback": filename,
                 "confidence_boost": confidence_boost
             })
+            
+            # Update dynamic field mappings based on patterns
+            try:
+                from app.services.field_mapper import field_mapper
+                field_mapper.process_feedback_patterns(patterns_identified)
+            except ImportError:
+                logger.warning("Field mapper not available for pattern processing")
         
         # Update learning metrics
         self.memory.update_learning_metrics("user_corrections", 1)
@@ -102,7 +109,7 @@ class FeedbackProcessor:
             if 'ip address' in analysis_issues.lower():
                 patterns.append("IP Address is a key field for server assets")
         
-        # Missing fields feedback patterns
+        # Missing fields feedback patterns with enhanced field mapping detection
         missing_fields_feedback = user_corrections.get('missing_fields_feedback', '')
         if missing_fields_feedback:
             # Extract field importance patterns
@@ -114,8 +121,18 @@ class FeedbackProcessor:
             
             if 'business owner' in missing_fields_feedback.lower():
                 patterns.append("Business Owner is important for application assets")
+            
+            # Enhanced field mapping patterns
+            if 'ram_gb' in missing_fields_feedback.lower() or 'memory' in missing_fields_feedback.lower():
+                patterns.append("Field mapping: RAM_GB, Memory_GB, Memory (GB) are equivalent memory fields")
+            
+            if 'cpu_cores' in missing_fields_feedback.lower() or 'cores' in missing_fields_feedback.lower():
+                patterns.append("Field mapping: CPU_Cores, cpu_cores, Cores are equivalent CPU fields")
+            
+            if 'asset_name' in missing_fields_feedback.lower() or 'name' in missing_fields_feedback.lower():
+                patterns.append("Field mapping: Asset_Name, Asset Name, Name are equivalent identifier fields")
         
-        # Comments patterns
+        # Comments patterns with field mapping detection
         comments = user_corrections.get('comments', '')
         if comments:
             if 'clearly indicates' in comments.lower():
@@ -123,6 +140,13 @@ class FeedbackProcessor:
             
             if 'field' in comments.lower() and 'pattern' in comments.lower():
                 patterns.append("Field patterns are important for classification")
+            
+            # Detect field equivalence patterns in comments
+            if 'same as' in comments.lower() or 'equivalent' in comments.lower():
+                patterns.append("Field mapping: User identified equivalent field names")
+            
+            if 'available' in comments.lower() and 'under' in comments.lower():
+                patterns.append("Field mapping: Required fields available under different names")
         
         return patterns
     

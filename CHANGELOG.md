@@ -5,6 +5,61 @@ All notable changes to the AI Force Migration Platform will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.4] - 2025-01-27
+
+### 🎯 Dynamic Field Mapping & Enhanced AI Learning
+
+This release introduces a revolutionary dynamic field mapping system that learns from user feedback to dramatically improve field recognition accuracy and eliminate false missing field alerts.
+
+### ✨ Added
+
+#### Dynamic Field Mapping System
+- **DynamicFieldMapper Service**: New intelligent field mapping service that learns field equivalencies
+- **Persistent Learning**: Field mappings are saved and persist across sessions
+- **Pattern Recognition**: Automatically extracts field mapping patterns from user feedback
+- **Enhanced Base Mappings**: Improved default field mappings including `RAM_GB` → `Memory (GB)`
+- **Asset-Type-Aware Mappings**: Different field requirements for applications, servers, and databases
+
+#### AI Learning Enhancements
+- **Field Equivalency Learning**: AI now learns that `RAM_GB`, `Memory_GB`, and `Memory (GB)` are equivalent
+- **Feedback Pattern Extraction**: Enhanced pattern recognition from user corrections
+- **Dynamic Mapping Updates**: Real-time updates to field mappings based on user feedback
+- **Cross-Session Learning**: Learned patterns persist and improve future analysis
+
+#### Enhanced Missing Field Detection
+- **Intelligent Field Matching**: Uses learned mappings to find equivalent fields
+- **Reduced False Positives**: No longer flags available fields under different names
+- **Context-Aware Requirements**: Asset-type-specific field requirements
+- **Test Endpoint**: New `/api/v1/discovery/test-field-mapping` for debugging field detection
+
+### 🔧 Improved
+
+#### Feedback Processing
+- **Enhanced Pattern Identification**: Better extraction of field mapping patterns from user feedback
+- **Field Mapper Integration**: Feedback processor now updates dynamic field mappings
+- **Learning Persistence**: All learned patterns are saved to `data/field_mappings.json`
+- **Improved Accuracy**: Significantly reduced false missing field alerts
+
+#### CMDB Analysis
+- **Smart Field Detection**: Uses dynamic field mapper for missing field identification
+- **Enhanced Accuracy**: Correctly identifies `RAM_GB` as memory field, `CPU_Cores` as CPU field
+- **Better Asset Classification**: Improved asset type detection with learned patterns
+- **Reduced User Friction**: Fewer incorrect missing field warnings
+
+### 🐛 Fixed
+- **Field Mapping Issue**: Fixed system showing `memory_gb` and `Memory (GB)` as missing when `RAM_GB` was available
+- **False Missing Fields**: Eliminated false positives for fields available under different names
+- **Learning Application**: AI Learning Specialist now properly applies learned field mappings
+- **Feedback Loop**: User feedback now correctly updates field recognition for future analysis
+
+### 📊 Technical Improvements
+- **Field Mapping Statistics**: New statistics tracking for learning effectiveness
+- **Mapping Export**: Ability to export learned mappings for analysis
+- **Enhanced Logging**: Better logging for field mapping operations
+- **Performance Optimization**: Efficient field matching algorithms
+
+---
+
 ## [0.2.3] - 2025-01-27
 
 ### 🧠 AI-Powered Asset Type Detection & User Feedback
