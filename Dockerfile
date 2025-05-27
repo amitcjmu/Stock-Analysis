@@ -24,6 +24,9 @@ RUN pip install --no-cache-dir --upgrade pip \
 # Copy backend application code
 COPY backend/ .
 
+# Make startup scripts executable
+RUN chmod +x start.sh start.py
+
 # Create non-root user for security
 RUN adduser --disabled-password --gecos '' appuser \
     && chown -R appuser:appuser /app
@@ -31,9 +34,9 @@ RUN adduser --disabled-password --gecos '' appuser \
 # Expose port (Railway will set the PORT environment variable)
 EXPOSE 8000
 
-# Health check (using python instead of curl for non-root user)
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
+# Health check (simplified for Railway compatibility)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD python -c "import urllib.request; import os; port=os.getenv('PORT', '8000'); urllib.request.urlopen(f'http://localhost:{port}/health')" || exit 1
 
 # Switch to non-root user
 USER appuser

@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+"""
+AI Force Migration Platform - Railway Startup Script
+This script handles environment variable expansion and starts the FastAPI server.
+"""
+
+import os
+import sys
+import subprocess
+
+def main():
+    """Start the FastAPI application with proper environment handling."""
+    print("🚀 Starting AI Force Migration Platform API...")
+    
+    # Get environment variables
+    environment = os.getenv("ENVIRONMENT", "production")
+    port = os.getenv("PORT", "8000")
+    debug = os.getenv("DEBUG", "false").lower() == "true"
+    
+    print(f"Environment: {environment}")
+    print(f"Port: {port}")
+    print(f"Debug: {debug}")
+    
+    # Validate port is a number
+    try:
+        port_int = int(port)
+        if port_int < 1 or port_int > 65535:
+            raise ValueError("Port must be between 1 and 65535")
+    except ValueError as e:
+        print(f"❌ Invalid port '{port}': {e}")
+        sys.exit(1)
+    
+    # Build uvicorn command
+    cmd = [
+        "uvicorn",
+        "main:app",
+        "--host", "0.0.0.0",
+        "--port", str(port_int)
+    ]
+    
+    # Add reload flag for development
+    if debug and environment == "development":
+        cmd.append("--reload")
+    
+    print(f"Starting uvicorn on port {port}...")
+    print(f"Command: {' '.join(cmd)}")
+    
+    # Execute uvicorn
+    try:
+        os.execvp(cmd[0], cmd)
+    except Exception as e:
+        print(f"❌ Failed to start server: {e}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main() 
