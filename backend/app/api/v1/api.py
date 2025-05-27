@@ -5,7 +5,7 @@ Includes all endpoint routers and API versioning.
 
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import migrations, assets, assessments, discovery, websocket
+from app.api.v1.endpoints import migrations, assets, assessments, discovery, websocket, monitoring
 
 api_router = APIRouter()
 
@@ -32,6 +32,12 @@ api_router.include_router(
     discovery.router,
     prefix="/discovery",
     tags=["discovery"]
+)
+
+api_router.include_router(
+    monitoring.router,
+    prefix="/monitoring",
+    tags=["monitoring"]
 )
 
 api_router.include_router(

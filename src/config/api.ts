@@ -23,6 +23,14 @@ export const API_CONFIG = {
       CMDB_TEMPLATES: '/api/v1/discovery/cmdb-templates',
       CMDB_FEEDBACK: '/api/v1/discovery/cmdb-feedback',
       ASSETS: '/api/v1/discovery/assets'
+    },
+    MONITORING: {
+      STATUS: '/api/v1/monitoring/status',
+      TASKS: '/api/v1/monitoring/tasks',
+      AGENTS: '/api/v1/monitoring/agents',
+      HEALTH: '/api/v1/monitoring/health',
+      METRICS: '/api/v1/monitoring/metrics',
+      CANCEL_TASK: '/api/v1/monitoring/tasks'
     }
   }
 };
