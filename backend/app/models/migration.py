@@ -90,6 +90,7 @@ class Migration(Base):
     # Relationships
     assets = relationship("Asset", back_populates="migration", cascade="all, delete-orphan")
     assessments = relationship("Assessment", back_populates="migration", cascade="all, delete-orphan")
+    sixr_analyses = relationship("SixRAnalysis", back_populates="migration", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<Migration(id={self.id}, name='{self.name}', status='{self.status}')>"

@@ -5,6 +5,63 @@ All notable changes to the AI Force Migration Platform will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.5] - 2025-05-28
+
+### 🔧 6R Treatment Analysis - Critical Polling Fix
+
+This release resolves critical issues with the 6R Treatment Analysis workflow, specifically fixing the hanging progress page that prevented users from seeing completed analysis results.
+
+### 🐛 Fixed
+
+#### 6R Analysis Workflow Issues
+- **Progress Page Hanging**: Fixed critical issue where analysis progress page would hang at 10% despite backend completion
+- **Polling Mechanism**: Completely rewrote the polling logic in `useSixRAnalysis` hook to eliminate stale closure issues
+- **State Management**: Fixed state updates not propagating when analysis completes
+- **Auto-Navigation**: Resolved conflicts between manual and automatic tab navigation
+- **Real-time Updates**: Ensured frontend properly detects when CrewAI analysis completes
+
+#### Backend Stability Improvements
+- **Async Database Sessions**: Fixed background task database session management using proper `AsyncSessionLocal()` pattern
+- **Enum Consistency**: Corrected `AnalysisStatus` enum usage (changed `ANALYZING` to `IN_PROGRESS`)
+- **Model Import Conflicts**: Resolved naming conflicts between database models and Pydantic schemas
+- **Error Handling**: Improved error handling in background analysis tasks
+
+#### Frontend Enhancements
+- **Improved Polling**: Direct API calls in polling intervals instead of function dependencies
+- **Console Logging**: Added comprehensive logging for debugging polling behavior
+- **State Synchronization**: Better state updates to ensure UI reflects actual analysis status
+- **Automatic Completion Detection**: Polling automatically stops when analysis completes
+
+### 🔧 Technical Improvements
+
+#### Hook Optimization
+- **Simplified Dependencies**: Removed complex circular dependencies in `useSixRAnalysis` hook
+- **Direct API Integration**: Polling now makes direct `sixrApi.getAnalysis()` calls
+- **Memory Management**: Proper cleanup of polling intervals on component unmount
+- **Performance**: Reduced unnecessary re-renders and function recreations
+
+#### Database Integration
+- **Session Management**: Fixed async database session handling in background tasks
+- **Query Optimization**: Improved database queries for analysis status updates
+- **Transaction Handling**: Better error handling and rollback mechanisms
+
+### ✅ Verified Functionality
+
+#### End-to-End Workflow
+- **Selection → Parameters**: Application selection and parameter configuration working
+- **Parameters → Progress**: Analysis creation and background task execution working
+- **Progress → Results**: Real-time progress updates and completion detection working
+- **CrewAI Integration**: AI agents successfully generating 6R recommendations
+- **Database Persistence**: Analysis results properly saved and retrievable
+
+#### System Status
+- **Backend Services**: PostgreSQL, FastAPI backend, and CrewAI agents all operational
+- **Frontend Integration**: React frontend properly communicating with backend APIs
+- **Real-time Updates**: WebSocket-style polling providing live progress updates
+- **Data Integrity**: Analysis data consistently saved and retrieved across sessions
+
+---
+
 ## [0.2.4] - 2025-01-27
 
 ### 🎯 Dynamic Field Mapping & Enhanced AI Learning

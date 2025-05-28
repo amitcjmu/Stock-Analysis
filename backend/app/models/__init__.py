@@ -6,6 +6,10 @@ Imports all models to ensure they are registered with SQLAlchemy.
 from .migration import Migration, MigrationLog, MigrationStatus, MigrationPhase
 from .asset import Asset, AssetDependency, AssetType, AssetStatus, SixRStrategy
 from .assessment import Assessment, WavePlan, AssessmentType, AssessmentStatus, RiskLevel
+from .sixr_analysis import (
+    SixRAnalysis, SixRParameters, SixRIteration, SixRRecommendation,
+    SixRQuestion, SixRQuestionResponse
+)
 
 __all__ = [
     # Migration models
@@ -27,4 +31,12 @@ __all__ = [
     "AssessmentType",
     "AssessmentStatus", 
     "RiskLevel",
+    
+    # 6R Analysis models
+    "SixRAnalysis",
+    "SixRParameters",
+    "SixRIteration",
+    "SixRRecommendation",
+    "SixRQuestion",
+    "SixRQuestionResponse",
 ] 

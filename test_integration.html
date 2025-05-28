@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>6R API Integration Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .success { color: green; }
+        .error { color: red; }
+        button { margin: 5px; padding: 10px; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>6R Analysis API Integration Test</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Create Analysis</h2>
+        <button onclick="testCreateAnalysis()">Create Analysis</button>
+        <div id="create-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 2: Update Parameters</h2>
+        <button onclick="testUpdateParameters()">Update Parameters</button>
+        <div id="update-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 3: Get Recommendation</h2>
+        <button onclick="testGetRecommendation()">Get Recommendation</button>
+        <div id="recommendation-result"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api/v1';
+        let currentAnalysisId = null;
+
+        async function apiCall(endpoint, options = {}) {
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer demo-token',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(`HTTP ${response.status}: ${error.detail || response.statusText}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                console.error('API Error:', error);
+                throw error;
+            }
+        }
+
+        async function testCreateAnalysis() {
+            const resultDiv = document.getElementById('create-result');
+            resultDiv.innerHTML = 'Testing...';
+            
+            try {
+                const request = {
+                    application_ids: [1, 2],
+                    parameters: {
+                        business_value: 7.0,
+                        technical_complexity: 5.0,
+                        migration_urgency: 8.0,
+                        compliance_requirements: 6.0,
+                        cost_sensitivity: 7.0,
+                        risk_tolerance: 5.0,
+                        innovation_priority: 8.0,
+                        application_type: 'custom'
+                    }
+                };
+                
+                const result = await apiCall('/sixr-analysis', {
+                    method: 'POST',
+                    body: JSON.stringify(request)
+                });
+                
+                currentAnalysisId = result.analysis_id;
+                resultDiv.innerHTML = `<div class="success">✓ Analysis created with ID: ${currentAnalysisId}</div>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>`;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">✗ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function testUpdateParameters() {
+            const resultDiv = document.getElementById('update-result');
+            
+            if (!currentAnalysisId) {
+                resultDiv.innerHTML = '<div class="error">✗ Please create an analysis first</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = 'Testing...';
+            
+            try {
+                const parameters = {
+                    business_value: 9.0,
+                    technical_complexity: 3.0,
+                    migration_urgency: 9.0,
+                    compliance_requirements: 4.0,
+                    cost_sensitivity: 8.0,
+                    risk_tolerance: 6.0,
+                    innovation_priority: 9.0,
+                    application_type: 'custom'
+                };
+                
+                const result = await apiCall(`/sixr-analysis/${currentAnalysisId}/parameters`, {
+                    method: 'PUT',
+                    body: JSON.stringify(parameters)
+                });
+                
+                resultDiv.innerHTML = `<div class="success">✓ Parameters updated successfully</div>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>`;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">✗ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function testGetRecommendation() {
+            const resultDiv = document.getElementById('recommendation-result');
+            
+            if (!currentAnalysisId) {
+                resultDiv.innerHTML = '<div class="error">✗ Please create an analysis first</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = 'Testing...';
+            
+            try {
+                const result = await apiCall(`/sixr-analysis/${currentAnalysisId}`);
+                
+                if (result.current_recommendation) {
+                    resultDiv.innerHTML = `<div class="success">✓ Recommendation received: ${result.current_recommendation.recommended_strategy}</div>
+                        <pre>${JSON.stringify(result.current_recommendation, null, 2)}</pre>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">✗ No recommendation available yet</div>
+                        <pre>${JSON.stringify(result, null, 2)}</pre>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">✗ Error: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html> 
