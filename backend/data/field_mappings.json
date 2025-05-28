@@ -1,8 +1,8 @@
 {
   "Memory (GB)": [
     "ram (gb)",
-    "memory (gb)",
-    "ram_gb"
+    "ram_gb",
+    "memory (gb)"
   ],
   "Business Owner": [
     "application_owner",
@@ -21,26 +21,26 @@
     "test field"
   ],
   "Asset Name": [
-    "asset name",
-    "hostname"
+    "hostname",
+    "asset name"
   ],
   "IP Address": [
     "ip address"
   ],
   "Operating System": [
-    "operating system",
-    "os type"
+    "os type",
+    "operating system"
   ],
   "CPU Cores": [
     "cpu cores"
   ],
   "Storage (GB)": [
-    "disk size (gb)",
-    "storage (gb)"
+    "storage (gb)",
+    "disk size (gb)"
   ],
   "Asset Type": [
-    "workload type",
-    "asset type"
+    "asset type",
+    "workload type"
   ],
   "Environment": [
     "environment"

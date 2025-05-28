@@ -1,12 +1,12 @@
 {
   "Asset Name": [
-    "asset name",
-    "hostname"
+    "hostname",
+    "asset name"
   ],
   "Operating System": [
-    "os type",
     "operating system",
-    "workload type"
+    "workload type",
+    "os type"
   ],
   "Environment": [
     "environment"
@@ -29,5 +29,8 @@
   "Storage (GB)": [
     "disk size (gb)",
     "storage (gb)"
+  ],
+  "IP Address": [
+    "ip address"
   ]
 }

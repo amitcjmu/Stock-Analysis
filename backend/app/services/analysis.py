@@ -103,14 +103,16 @@ class IntelligentAnalyzer:
     def _find_type_indicators(self, columns: List[str], sample_data: List[Dict]) -> Optional[str]:
         """Find explicit type indicators in the data."""
         
-        # Check column names for type indicators
-        type_columns = ['ci_type', 'type', 'asset_type', 'category', 'class']
+        # Check column names for type indicators (including workload type)
+        type_columns = ['ci_type', 'type', 'asset_type', 'category', 'class', 'workload_type', 'workload type']
         
         for col in columns:
-            col_lower = col.lower().replace('_', '').replace(' ', '')
+            col_normalized = col.lower().replace('_', ' ').replace('-', ' ').strip()
             for type_col in type_columns:
-                if type_col.replace('_', '') in col_lower:
+                type_col_normalized = type_col.replace('_', ' ')
+                if type_col_normalized in col_normalized or col_normalized in type_col_normalized:
                     # Found a type column, check its values
+                    logger.info(f"Found type column: {col}")
                     return self._analyze_type_column_values(col, sample_data)
         
         return None
@@ -124,20 +126,31 @@ class IntelligentAnalyzer:
         type_counts = {"application": 0, "server": 0, "database": 0, "other": 0}
         
         for row in sample_data:
-            value = str(row.get(type_column, '')).lower()
+            value = str(row.get(type_column, '')).lower().strip()
             
-            if any(term in value for term in ['app', 'application', 'service']):
+            # Enhanced patterns for workload type analysis
+            if any(term in value for term in ['app server', 'application server', 'web server', 'api server', 'application']):
                 type_counts["application"] += 1
-            elif any(term in value for term in ['server', 'host', 'vm', 'virtual']):
-                type_counts["server"] += 1
-            elif any(term in value for term in ['db', 'database', 'sql', 'oracle', 'mysql']):
+            elif any(term in value for term in ['db server', 'database server', 'sql server', 'database']):
                 type_counts["database"] += 1
+            elif any(term in value for term in ['server', 'host', 'vm', 'virtual', 'machine']):
+                # Only count as generic server if not already classified as app or db server
+                if not any(special in value for special in ['app server', 'db server', 'database server', 'application server']):
+                    type_counts["server"] += 1
+                else:
+                    # This was already counted in app or db, don't double count
+                    pass
             else:
                 type_counts["other"] += 1
         
+        logger.info(f"Type analysis for column '{type_column}': {type_counts}")
+        
         # Return the most common type
         max_type = max(type_counts, key=type_counts.get)
-        if max_type == "other" or type_counts[max_type] < len(sample_data) * 0.6:
+        max_count = type_counts[max_type]
+        
+        # If the most common type has less than 50% of the data, consider it mixed
+        if max_count < len(sample_data) * 0.5 or max_type == "other":
             return "mixed"
         
         return max_type
@@ -189,21 +202,61 @@ class IntelligentAnalyzer:
         return False
     
     def _identify_missing_fields_from_memory(self, cmdb_data: Dict, asset_type: str, experiences: List[Dict]) -> List[str]:
-        """Identify missing fields using memory and asset type context."""
+        """Identify missing fields using memory and asset type context with enhanced field mapping."""
         
         columns = cmdb_data.get('structure', {}).get('columns', [])
-        col_lower = [col.lower() for col in columns]
         
-        # Define required fields by asset type
-        required_fields = {
-            "application": ["name", "version", "environment"],
-            "server": ["hostname", "ip_address", "os", "cpu", "memory"],
-            "database": ["db_name", "version", "host", "port"],
-            "mixed": ["name"]
-        }
+        # Use enhanced field mapping from the processor
+        try:
+            from app.api.v1.discovery.processor import CMDBDataProcessor
+            processor = CMDBDataProcessor()
+            
+            # Create a temporary DataFrame for analysis
+            import pandas as pd
+            sample_data = cmdb_data.get('sample_data', [])
+            if sample_data and len(sample_data) > 0:
+                df = pd.DataFrame(sample_data)
+                missing_fields = processor.identify_missing_fields(df)
+                logger.info(f"Enhanced missing field detection found: {missing_fields}")
+                return missing_fields
+            else:
+                logger.warning("No sample data available for enhanced field detection")
+        except Exception as e:
+            logger.warning(f"Enhanced field detection failed: {e}, using fallback")
         
-        # Get base required fields
-        base_required = required_fields.get(asset_type, required_fields["mixed"])
+        # Fallback to enhanced pattern matching
+        col_lower = [col.lower().strip() for col in columns]
+        
+        # Define required fields by asset type with enhanced mappings (focused on migration assessment)
+        if asset_type == "server":
+            required_field_mappings = {
+                'Asset Name': ['name', 'hostname', 'asset_name', 'ci_name', 'server_name'],
+                'Environment': ['environment', 'env', 'stage', 'tier'],
+                'Business Owner': ['business_owner', 'owner', 'application_owner', 'app_owner', 'responsible_party', 'contact'],
+                'Criticality': ['criticality', 'business_criticality', 'priority', 'importance', 'critical']
+            }
+        elif asset_type == "application":
+            required_field_mappings = {
+                'Asset Name': ['name', 'app_name', 'application_name', 'service_name'],
+                'Environment': ['environment', 'env', 'stage', 'tier'],
+                'Business Owner': ['business_owner', 'owner', 'application_owner', 'app_owner', 'responsible_party', 'contact'],
+                'Criticality': ['criticality', 'business_criticality', 'priority', 'importance', 'critical']
+            }
+        elif asset_type == "database":
+            required_field_mappings = {
+                'Asset Name': ['name', 'db_name', 'database_name', 'instance_name'],
+                'Environment': ['environment', 'env', 'stage', 'tier'],
+                'Business Owner': ['business_owner', 'owner', 'dba_owner', 'app_owner', 'responsible_party', 'contact'],
+                'Criticality': ['criticality', 'business_criticality', 'priority', 'importance', 'critical']
+            }
+        else:
+            # Mixed or unknown type
+            required_field_mappings = {
+                'Asset Name': ['name', 'hostname', 'asset_name', 'ci_name'],
+                'Environment': ['environment', 'env', 'stage', 'tier'],
+                'Business Owner': ['business_owner', 'owner', 'application_owner', 'app_owner', 'responsible_party', 'contact'],
+                'Criticality': ['criticality', 'business_criticality', 'priority', 'importance', 'critical']
+            }
         
         # Check for learned patterns from memory
         learned_fields = set()
@@ -213,18 +266,24 @@ class IntelligentAnalyzer:
                 if 'missing_fields_feedback' in corrections:
                     # Extract field names from feedback
                     feedback = corrections['missing_fields_feedback'].lower()
-                    for field in base_required:
-                        if field in feedback:
-                            learned_fields.add(field)
+                    for field_name in required_field_mappings.keys():
+                        if field_name.lower() in feedback:
+                            learned_fields.add(field_name)
         
-        # Combine base and learned requirements
-        all_required = set(base_required) | learned_fields
-        
-        # Find missing fields
+        # Find missing fields using enhanced matching
         missing = []
-        for field in all_required:
-            if not any(field in col for col in col_lower):
-                missing.append(field.replace('_', ' ').title())
+        for field_name, variations in required_field_mappings.items():
+            field_found = any(variation in col_lower for variation in variations)
+            
+            # Also check if this field was mentioned in learned patterns
+            if not field_found and field_name in learned_fields:
+                field_found = True
+            
+            if not field_found:
+                missing.append(field_name)
+                logger.info(f"Field '{field_name}' not found in columns: {col_lower}")
+            else:
+                logger.info(f"Field '{field_name}' found via pattern matching")
         
         return missing
     

@@ -86,6 +86,20 @@ class AgentMemory:
         
         return relevant[:limit]
     
+    def get_recent_experiences(self, limit: int = 10) -> List[Dict]:
+        """Get recent experiences regardless of type."""
+        all_experiences = []
+        
+        # Collect all experiences from all types
+        for exp_type, experiences in self.experiences.items():
+            for exp in experiences:
+                all_experiences.append(exp)
+        
+        # Sort by timestamp (most recent first)
+        all_experiences.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+        
+        return all_experiences[:limit]
+    
     def _is_relevant(self, experience: Dict, filename: str) -> bool:
         """Check if an experience is relevant to the current analysis."""
         exp_filename = experience.get('filename', '')
@@ -304,4 +318,8 @@ class AgentMemory:
             
         except Exception as e:
             logger.error(f"Failed to export memory: {e}")
-            return False 
+            return False
+
+
+# Global agent memory instance
+agent_memory = AgentMemory() 

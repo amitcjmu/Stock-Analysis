@@ -86,11 +86,11 @@ class CMDBDataProcessor:
         databases = 0
         dependencies = 0
         
-        # Check if there's an explicit asset type column
-        type_columns = ['ci_type', 'type', 'asset_type', 'category', 'classification', 'sys_class_name']
+        # Check if there's an explicit asset type column (including workload_type)
+        type_columns = ['ci_type', 'type', 'asset_type', 'category', 'classification', 'sys_class_name', 'workload_type', 'workload type']
         type_column = None
         for col in df.columns:
-            if col.lower() in type_columns:
+            if col.lower().replace(' ', '_') in [tc.replace(' ', '_') for tc in type_columns]:
                 type_column = col
                 break
         
@@ -98,17 +98,35 @@ class CMDBDataProcessor:
             # Use explicit type column for classification
             type_values = df[type_column].str.lower().fillna('unknown')
             
-            # Application indicators
-            app_patterns = ['application', 'app', 'service', 'software', 'business_service']
+            # Enhanced patterns for workload type detection
+            # Application indicators (including workload-specific patterns)
+            app_patterns = ['application', 'app', 'service', 'software', 'business_service', 'app server', 'application server', 'web server', 'api server']
             applications = sum(type_values.str.contains('|'.join(app_patterns), na=False))
             
-            # Server indicators  
-            server_patterns = ['server', 'host', 'machine', 'vm', 'instance', 'computer', 'node']
-            servers = sum(type_values.str.contains('|'.join(server_patterns), na=False))
-            
-            # Database indicators
-            db_patterns = ['database', 'db', 'sql', 'oracle', 'mysql', 'postgres', 'mongodb']
+            # Database indicators (including workload-specific patterns)
+            db_patterns = ['database', 'db', 'sql', 'oracle', 'mysql', 'postgres', 'mongodb', 'db server', 'database server']
             databases = sum(type_values.str.contains('|'.join(db_patterns), na=False))
+            
+            # Server indicators (catch-all for generic servers)
+            server_patterns = ['server', 'host', 'machine', 'vm', 'instance', 'computer', 'node']
+            # Only count as generic servers if not already counted as app or db servers
+            remaining_servers = len(df) - applications - databases
+            
+            # For workload type, we need to be more specific about what counts as a "generic server"
+            if 'workload' in type_column.lower():
+                # With workload type, count specific server types that aren't apps or databases
+                generic_server_patterns = ['file server', 'print server', 'mail server', 'dns server', 'dhcp server', 'domain controller']
+                servers = sum(type_values.str.contains('|'.join(generic_server_patterns), na=False))
+                
+                # Add any remaining unclassified items as servers
+                unclassified = len(df) - applications - databases - servers
+                if unclassified > 0:
+                    servers += unclassified
+            else:
+                # For non-workload columns, use original server detection
+                servers = sum(type_values.str.contains('|'.join(server_patterns), na=False))
+            
+            logger.info(f"Asset type detection from column '{type_column}': Apps={applications}, DBs={databases}, Servers={servers}")
             
         else:
             # Fallback to heuristic-based detection using field patterns
@@ -188,21 +206,27 @@ class CMDBDataProcessor:
             column_mappings = {}
             confidence_scores = {}
         
-        # Define essential fields by asset type
+        # Define essential fields by asset type (focused on migration assessment needs)
         if primary_type == 'application':
             essential_fields = [
-                'Asset Name', 'Asset Type', 'Environment', 'Business Owner', 
-                'Criticality', 'Version', 'Dependencies'
+                'Asset Name', 'Environment', 'Business Owner', 
+                'Criticality'
             ]
         elif primary_type == 'server':
             essential_fields = [
-                'Asset Name', 'Asset Type', 'Environment', 'Business Owner',
-                'Criticality', 'Operating System', 'CPU Cores', 'Memory (GB)', 'IP Address'
+                'Asset Name', 'Environment', 'Business Owner',
+                'Criticality'
+            ]
+        elif primary_type == 'mixed':
+            # For mixed asset types, focus on the most critical migration fields
+            essential_fields = [
+                'Asset Name', 'Environment', 'Business Owner',
+                'Criticality'
             ]
         else:  # database
             essential_fields = [
-                'Asset Name', 'Asset Type', 'Environment', 'Business Owner',
-                'Criticality', 'Database Version', 'Host Server', 'Port'
+                'Asset Name', 'Environment', 'Business Owner',
+                'Criticality'
             ]
         
         # Check each essential field
@@ -232,19 +256,12 @@ class CMDBDataProcessor:
         """Fallback method to check for field mappings using simple name matching."""
         columns_lower = [col.lower().strip() for col in available_columns]
         
-        # Simple fallback mappings for common cases
+        # Simple fallback mappings for common cases (focused on migration assessment)
         fallback_mappings = {
             'Asset Name': ['name', 'hostname', 'asset_name', 'ci_name', 'server_name'],
-            'Asset Type': ['type', 'ci_type', 'asset_type', 'classification'],
-            'Environment': ['environment', 'env', 'stage'],
-            'Operating System': ['os', 'operating_system', 'platform'],
-            'CPU Cores': ['cpu', 'cores', 'cpu_cores', 'processors'],
-            'Memory (GB)': ['memory', 'ram', 'memory_gb', 'ram_gb', 'mem'],
-            'IP Address': ['ip_address', 'ip', 'network_address', 'host_ip'],
-            'Business Owner': ['business_owner', 'owner', 'application_owner'],
-            'Criticality': ['criticality', 'business_criticality', 'priority', 'importance'],
-            'Version': ['version', 'release', 'app_version', 'software_version'],
-            'Dependencies': ['dependencies', 'related_ci', 'depends_on', 'application_mapped']
+            'Environment': ['environment', 'env', 'stage', 'tier'],
+            'Business Owner': ['business_owner', 'owner', 'application_owner', 'app_owner', 'responsible_party', 'contact', 'primary_contact'],
+            'Criticality': ['criticality', 'business_criticality', 'priority', 'importance', 'critical', 'business_priority']
         }
         
         variations = fallback_mappings.get(essential_field, [])

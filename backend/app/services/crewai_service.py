@@ -865,6 +865,40 @@ class CrewAIService:
         elif "insufficient" in response_lower:
             migration_readiness = "insufficient_data"
         
+        # INTELLIGENT MISSING FIELDS: Use dynamic field analysis instead of hardcoded values
+        missing_fields_relevant = []
+        try:
+            # Get context from agent memory to understand what fields were analyzed
+            from app.services.memory import agent_memory
+            recent_experiences = agent_memory.get_recent_experiences(limit=3)
+            
+            # Look for pattern analysis context
+            for exp in recent_experiences:
+                if ("pattern_analysis" in exp.get("action", "") or 
+                    "field_mapping" in exp.get("action", "")):
+                    # Extract missing fields from memory context
+                    context = exp.get("context", {})
+                    missing_from_analysis = context.get("missing_fields", [])
+                    if missing_from_analysis:
+                        missing_fields_relevant = missing_from_analysis[:3]  # Limit to 3 most important
+                        break
+            
+            # If no pattern analysis in memory, use intelligent defaults based on asset type
+            if not missing_fields_relevant:
+                if asset_type == "application":
+                    missing_fields_relevant = ["Business Owner", "Criticality"]
+                elif asset_type == "server":
+                    missing_fields_relevant = ["Business Owner", "Criticality"]  
+                elif asset_type == "database":
+                    missing_fields_relevant = ["Business Owner", "Criticality", "Database Version"]
+                else:
+                    missing_fields_relevant = ["Business Owner", "Criticality"]
+                    
+        except Exception as e:
+            logger.warning(f"Could not get intelligent missing fields: {e}")
+            # Safe fallback
+            missing_fields_relevant = ["Business Owner", "Criticality"]
+        
         # Create intelligent fallback
         fallback_response = {
             "asset_type_detected": asset_type,
@@ -875,7 +909,7 @@ class CrewAIService:
                 "Review data format and field mappings",
                 "Consider providing feedback to improve AI response quality"
             ],
-            "missing_fields_relevant": ["Business Owner", "Criticality"],  # Common missing fields
+            "missing_fields_relevant": missing_fields_relevant,  # Now using intelligent analysis
             "migration_readiness": migration_readiness,
             "fallback_used": True,
             "parsing_error": "Failed to parse AI response as JSON",
@@ -885,6 +919,7 @@ class CrewAIService:
         }
         
         logger.info(f"Created fallback response with {quality_score}% quality score and {asset_type} asset type")
+        logger.info(f"Intelligent missing fields: {missing_fields_relevant}")
         return fallback_response
 
 

@@ -40,7 +40,26 @@ def standardize_asset_type(asset_type: str, asset_name: str = "", asset_data: Di
     
     # Enhanced rule-based detection with device classification
     
-    # 1. Database detection (highest priority for accuracy)
+    # 1. GRANULAR WORKLOAD TYPE DETECTION (highest priority for accurate classification)
+    # Check for specific workload type patterns first before generic patterns
+    
+    # Database server types (specific patterns)
+    db_server_patterns = [
+        "db server", "database server", "sql server", "oracle server", "mysql server", 
+        "postgres server", "mongodb server", "redis server", "cassandra server"
+    ]
+    if any(pattern in combined_text for pattern in db_server_patterns):
+        return "Database"
+    
+    # Application server types (specific patterns)
+    app_server_patterns = [
+        "app server", "application server", "web server", "api server", "webserver",
+        "tomcat", "apache server", "nginx server", "iis server"
+    ]
+    if any(pattern in combined_text for pattern in app_server_patterns):
+        return "Application"
+    
+    # 2. Database detection (standalone databases)
     database_patterns = [
         "database", "db-", "-db", "sql", "oracle", "mysql", "postgres", "postgresql", 
         "mongodb", "redis", "cassandra", "elasticsearch", "influxdb", "mariadb",
@@ -49,7 +68,7 @@ def standardize_asset_type(asset_type: str, asset_name: str = "", asset_data: Di
     if any(pattern in combined_text for pattern in database_patterns):
         return "Database"
     
-    # 2. Security device detection (moved before network to catch firewall)
+    # 3. Security device detection (moved before network to catch firewall)
     security_patterns = [
         "firewall", "fw-", "-fw", "ids", "ips", "waf", "proxy", "checkpoint", 
         "symantec", "mcafee", "splunk", "qualys", "nessus", "security"
@@ -57,7 +76,7 @@ def standardize_asset_type(asset_type: str, asset_name: str = "", asset_data: Di
     if any(pattern in combined_text for pattern in security_patterns):
         return "Security Device"
     
-    # 3. Network device detection
+    # 4. Network device detection
     network_patterns = [
         "switch", "router", "gateway", "loadbalancer", "lb-", 
         "cisco", "juniper", "palo", "fortinet", "f5", "netscaler",
@@ -66,7 +85,7 @@ def standardize_asset_type(asset_type: str, asset_name: str = "", asset_data: Di
     if any(pattern in combined_text for pattern in network_patterns):
         return "Network Device"
     
-    # 4. Storage device detection
+    # 5. Storage device detection
     storage_patterns = [
         "san", "nas", "storage", "array", "netapp", "emc", "dell", "hp-3par",
         "pure", "nimble", "solidfire", "vnx", "unity", "powermax"
@@ -74,7 +93,7 @@ def standardize_asset_type(asset_type: str, asset_name: str = "", asset_data: Di
     if any(pattern in combined_text for pattern in storage_patterns):
         return "Storage Device"
     
-    # 5. Virtualization detection (before application/server to catch vmware, etc.)
+    # 6. Virtualization detection (before application/server to catch vmware, etc.)
     virtualization_patterns = [
         "vmware", "vcenter", "esxi", "hyper-v", "citrix", "xen", "kvm",
         "docker", "kubernetes", "openshift", "vsphere"
@@ -82,27 +101,24 @@ def standardize_asset_type(asset_type: str, asset_name: str = "", asset_data: Di
     if any(pattern in combined_text for pattern in virtualization_patterns):
         return "Virtualization Platform"
     
-    # 6. Server detection (moved before application for better precision)
-    server_patterns = [
+    # 7. Generic server detection (only for unclassified servers)
+    generic_server_patterns = [
         "server", "srv-", "-srv", "host", "machine", "vm", "computer", "node",
         "mail", "dns", "dhcp", "domain", "controller"
     ]
-    if any(pattern in combined_text for pattern in server_patterns):
+    if any(pattern in combined_text for pattern in generic_server_patterns):
+        # Only classify as generic server if not already caught by specific patterns above
         return "Server"
     
-    # 7. Application detection (after server to avoid misclassification)
+    # 8. Application detection (standalone applications)
     application_patterns = [
         "application", "app-", "-app", "service", "software", "portal", 
-        "system", "platform", "web", "api", "microservice", "webapp"
+        "system", "platform", "api", "microservice", "webapp"
     ]
     if any(pattern in combined_text for pattern in application_patterns):
-        # Additional check: if it has infrastructure specs, it might be a server
-        if asset_data and (asset_data.get("cpu_cores") or asset_data.get("memory_gb")):
-            # Could be application running on a server, classify as server
-            return "Server"
         return "Application"
     
-    # 8. Other infrastructure devices
+    # 9. Other infrastructure devices
     infrastructure_patterns = [
         "ups", "power", "rack", "kvm", "console", "monitor", "printer",
         "scanner", "phone", "voip", "camera", "sensor"
@@ -246,11 +262,19 @@ def assess_6r_readiness(asset_type: str, asset_data: Dict[str, Any]) -> str:
     
     elif asset_type == "Server":
         # Servers need infrastructure specs
-        has_cpu = bool(asset_data.get('CPU_Cores') or asset_data.get('cpu_cores'))
-        has_memory = bool(asset_data.get('Memory_GB') or asset_data.get('memory_gb'))
+        try:
+            cpu_cores = int(float(asset_data.get('CPU_Cores', asset_data.get('cpu_cores', 0)) or 0))
+        except (ValueError, TypeError):
+            cpu_cores = 0
+        
+        try:
+            memory_gb = int(float(asset_data.get('Memory_GB', asset_data.get('memory_gb', 0)) or 0))
+        except (ValueError, TypeError):
+            memory_gb = 0
+            
         has_os = bool(asset_data.get('OS') or asset_data.get('operating_system'))
         
-        if has_name and has_environment and has_cpu and has_memory and has_os:
+        if has_name and has_environment and cpu_cores > 0 and memory_gb > 0 and has_os:
             return "Ready"
         elif has_name and has_environment:
             return "Needs Infrastructure Data"
@@ -307,8 +331,16 @@ def assess_migration_complexity(asset_type: str, asset_data: Dict[str, Any]) -> 
     
     elif asset_type == "Server":
         # Server complexity based on specs and usage
-        cpu_cores = int(asset_data.get('CPU_Cores', asset_data.get('cpu_cores', 0)) or 0)
-        memory_gb = int(asset_data.get('Memory_GB', asset_data.get('memory_gb', 0)) or 0)
+        try:
+            cpu_cores = int(float(asset_data.get('CPU_Cores', asset_data.get('cpu_cores', 0)) or 0))
+        except (ValueError, TypeError):
+            cpu_cores = 0
+        
+        try:
+            memory_gb = int(float(asset_data.get('Memory_GB', asset_data.get('memory_gb', 0)) or 0))
+        except (ValueError, TypeError):
+            memory_gb = 0
+            
         is_production = str(asset_data.get('Environment', '')).lower() == 'production'
         
         complexity_score = 0
