@@ -319,7 +319,13 @@ class CrewAIService:
                 - Consider field naming patterns and data content
                 - Use field mapping intelligence to avoid false missing field alerts
                 
-                Return ONLY a valid JSON response with this exact structure:
+                OUTPUT FORMAT REQUIREMENTS:
+                - Do NOT include any explanations, thoughts, or reasoning
+                - Do NOT use "Thought:" or any other prefixes
+                - Return ONLY the JSON object below
+                - Start your response with {{ and end with }}
+                - No additional text before or after the JSON
+                
                 {{
                     "asset_type_detected": "application|server|database|mixed",
                     "confidence_level": 0.9,
@@ -331,8 +337,6 @@ class CrewAIService:
                     "learning_notes": "what patterns were recognized and field mappings learned",
                     "field_mappings_learned": ["any new field mappings discovered"]
                 }}
-                
-                IMPORTANT: Return ONLY the JSON object, no other text or explanation.
                 """,
                 agent=self.agents['cmdb_analyst'],
                 expected_output="Valid JSON analysis of CMDB data with asset type detection, quality assessment, and field mapping intelligence"
@@ -639,37 +643,60 @@ class CrewAIService:
             # Clean the response string
             response = response.strip()
             
-            # Try to find JSON in the response
+            # Remove common prefixes that agents might add
+            prefixes_to_remove = [
+                "Thought:", "Analysis:", "Response:", "Result:", "Output:",
+                "Here is the analysis:", "The analysis is:", "Based on the data:"
+            ]
+            
+            for prefix in prefixes_to_remove:
+                if response.startswith(prefix):
+                    response = response[len(prefix):].strip()
+            
+            # Try to find JSON object pattern - look for the outermost braces
             import re
             
-            # Look for JSON object pattern
-            json_match = re.search(r'\{.*\}', response, re.DOTALL)
-            if json_match:
-                json_str = json_match.group(0)
+            # Find the first { and last } to extract the complete JSON object
+            first_brace = response.find('{')
+            last_brace = response.rfind('}')
+            
+            if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+                json_str = response[first_brace:last_brace + 1]
                 try:
-                    return json.loads(json_str)
-                except json.JSONDecodeError:
-                    pass
+                    parsed_json = json.loads(json_str)
+                    logger.info("Successfully parsed AI response as JSON")
+                    return parsed_json
+                except json.JSONDecodeError as e:
+                    logger.warning(f"Failed to parse extracted JSON: {e}")
             
-            # If no JSON found, try parsing the whole response
-            return json.loads(response)
+            # If no braces found, try parsing the whole response
+            try:
+                parsed_json = json.loads(response)
+                logger.info("Successfully parsed entire response as JSON")
+                return parsed_json
+            except json.JSONDecodeError:
+                pass
             
-        except json.JSONDecodeError:
-            logger.warning(f"Failed to parse AI response as JSON: {response[:200]}...")
-            # Return structured placeholder if parsing fails
-            return {
-                "asset_type_detected": "unknown",
-                "confidence_level": 0.0,
-                "data_quality_score": 0,
-                "issues": ["Failed to parse AI response"],
-                "recommendations": ["Review data format and try again"],
-                "missing_fields_relevant": [],
-                "migration_readiness": "insufficient_data",
-                "learning_notes": "Response parsing failed",
-                "ai_response": response[:500],  # Include truncated response for debugging
-                "parsed": False,
-                "timestamp": datetime.utcnow().isoformat()
-            }
+            # If all parsing attempts fail, log the response for debugging
+            logger.warning(f"Failed to parse AI response as JSON. Response: {response[:300]}...")
+            
+        except Exception as e:
+            logger.error(f"Error parsing AI response: {e}")
+        
+        # Return structured placeholder if parsing fails
+        return {
+            "asset_type_detected": "unknown",
+            "confidence_level": 0.0,
+            "data_quality_score": 0,
+            "issues": ["Failed to parse AI response"],
+            "recommendations": ["Review data format and try again"],
+            "missing_fields_relevant": [],
+            "migration_readiness": "insufficient_data",
+            "learning_notes": "Response parsing failed",
+            "ai_response": response[:500] if response else "No response",  # Include truncated response for debugging
+            "parsed": False,
+            "timestamp": datetime.utcnow().isoformat()
+        }
 
 
 

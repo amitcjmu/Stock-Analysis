@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/Sidebar';
 import FeedbackWidget from '../../components/FeedbackWidget';
-import { Download, Filter, Database, Server, HardDrive, RefreshCw } from 'lucide-react';
+import { Download, Filter, Database, Server, HardDrive, RefreshCw, Router, Shield, Cpu, Cloud, Zap } from 'lucide-react';
 import { apiCall, API_CONFIG } from '../../config/api';
 
 const Inventory = () => {
@@ -14,8 +13,17 @@ const Inventory = () => {
     applications: 0,
     servers: 0,
     databases: 0,
+    devices: 0,
+    unknown: 0,
     discovered: 0,
-    pending: 0
+    pending: 0,
+    device_breakdown: {
+      network: 0,
+      storage: 0,
+      security: 0,
+      infrastructure: 0,
+      virtualization: 0
+    }
   });
   const [isLoading, setIsLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(null);
@@ -37,8 +45,17 @@ const Inventory = () => {
         applications: 0,
         servers: 0,
         databases: 0,
+        devices: 0,
+        unknown: 0,
         discovered: 0,
-        pending: 0
+        pending: 0,
+        device_breakdown: {
+          network: 0,
+          storage: 0,
+          security: 0,
+          infrastructure: 0,
+          virtualization: 0
+        }
       });
       setLastUpdated(response.lastUpdated);
       setDataSource(response.dataSource || 'test');
@@ -56,8 +73,17 @@ const Inventory = () => {
         applications: 0,
         servers: 0,
         databases: 0,
+        devices: 0,
+        unknown: 0,
         discovered: 0,
-        pending: 0
+        pending: 0,
+        device_breakdown: {
+          network: 0,
+          storage: 0,
+          security: 0,
+          infrastructure: 0,
+          virtualization: 0
+        }
       });
       
     } finally {
@@ -75,12 +101,56 @@ const Inventory = () => {
       case 'Application': return Database;
       case 'Server': return Server;
       case 'Database': return HardDrive;
+      case 'Network Device': return Router;
+      case 'Storage Device': return HardDrive;
+      case 'Security Device': return Shield;
+      case 'Infrastructure Device': return Cpu;
+      case 'Virtualization Platform': return Cloud;
+      case 'Unknown': return Zap;
       default: return Database;
     }
   };
 
+  const getTypeColor = (type) => {
+    switch (type) {
+      case 'Application': return 'text-blue-500';
+      case 'Server': return 'text-green-500';
+      case 'Database': return 'text-purple-500';
+      case 'Network Device': return 'text-orange-500';
+      case 'Storage Device': return 'text-yellow-500';
+      case 'Security Device': return 'text-red-500';
+      case 'Infrastructure Device': return 'text-gray-500';
+      case 'Virtualization Platform': return 'text-indigo-500';
+      case 'Unknown': return 'text-gray-400';
+      default: return 'text-gray-500';
+    }
+  };
+
+  const getSixRReadinessColor = (readiness) => {
+    switch (readiness) {
+      case 'Ready': return 'bg-green-100 text-green-800';
+      case 'Not Applicable': return 'bg-gray-100 text-gray-600';
+      case 'Needs Owner Info':
+      case 'Needs Infrastructure Data':
+      case 'Needs Version Info': return 'bg-yellow-100 text-yellow-800';
+      case 'Insufficient Data':
+      case 'Type Classification Needed': return 'bg-red-100 text-red-800';
+      case 'Complex Analysis Required': return 'bg-blue-100 text-blue-800';
+      default: return 'bg-gray-100 text-gray-600';
+    }
+  };
+
+  const getComplexityColor = (complexity) => {
+    switch (complexity) {
+      case 'Low': return 'bg-green-100 text-green-800';
+      case 'Medium': return 'bg-yellow-100 text-yellow-800';
+      case 'High': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-600';
+    }
+  };
+
   const filteredAssets = assets.filter(asset => {
-    const typeMatch = selectedFilter === 'all' || asset.type.toLowerCase() === selectedFilter;
+    const typeMatch = selectedFilter === 'all' || asset.type.toLowerCase().replace(' ', '_') === selectedFilter;
     const deptMatch = selectedDept === 'all' || asset.department === selectedDept;
     return typeMatch && deptMatch;
   });
@@ -147,42 +217,118 @@ const Inventory = () => {
               </div>
             </div>
 
-            {/* Summary Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center space-x-3">
-                  <Database className="h-8 w-8 text-blue-500" />
+            {/* Enhanced Summary Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
+              {/* Primary Asset Types */}
+              <div className="bg-white rounded-lg shadow-md p-4">
+                <div className="flex items-center space-x-2">
+                  <Database className="h-6 w-6 text-blue-500" />
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">Applications</h3>
-                    <p className="text-2xl font-bold text-blue-600">
+                    <h4 className="text-sm font-semibold text-gray-900">Applications</h4>
+                    <p className="text-xl font-bold text-blue-600">
                       {isLoading ? '...' : summary.applications}
                     </p>
                   </div>
                 </div>
               </div>
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center space-x-3">
-                  <Server className="h-8 w-8 text-green-500" />
+              <div className="bg-white rounded-lg shadow-md p-4">
+                <div className="flex items-center space-x-2">
+                  <Server className="h-6 w-6 text-green-500" />
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">Servers</h3>
-                    <p className="text-2xl font-bold text-green-600">
+                    <h4 className="text-sm font-semibold text-gray-900">Servers</h4>
+                    <p className="text-xl font-bold text-green-600">
                       {isLoading ? '...' : summary.servers}
                     </p>
                   </div>
                 </div>
               </div>
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center space-x-3">
-                  <HardDrive className="h-8 w-8 text-purple-500" />
+              <div className="bg-white rounded-lg shadow-md p-4">
+                <div className="flex items-center space-x-2">
+                  <HardDrive className="h-6 w-6 text-purple-500" />
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">Databases</h3>
-                    <p className="text-2xl font-bold text-purple-600">
+                    <h4 className="text-sm font-semibold text-gray-900">Databases</h4>
+                    <p className="text-xl font-bold text-purple-600">
                       {isLoading ? '...' : summary.databases}
                     </p>
                   </div>
                 </div>
               </div>
+              
+              {/* Device Summary */}
+              <div className="bg-white rounded-lg shadow-md p-4">
+                <div className="flex items-center space-x-2">
+                  <Router className="h-6 w-6 text-orange-500" />
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-900">Devices</h4>
+                    <p className="text-xl font-bold text-orange-600">
+                      {isLoading ? '...' : summary.devices}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Unknown Assets */}
+              <div className="bg-white rounded-lg shadow-md p-4">
+                <div className="flex items-center space-x-2">
+                  <Zap className="h-6 w-6 text-gray-400" />
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-900">Unknown</h4>
+                    <p className="text-xl font-bold text-gray-600">
+                      {isLoading ? '...' : summary.unknown}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Total */}
+              <div className="bg-white rounded-lg shadow-md p-4">
+                <div className="flex items-center space-x-2">
+                  <div className="h-6 w-6 bg-blue-100 rounded-full flex items-center justify-center">
+                    <span className="text-xs font-bold text-blue-600">T</span>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-900">Total</h4>
+                    <p className="text-xl font-bold text-gray-900">
+                      {isLoading ? '...' : summary.total}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
+            
+            {/* Device Breakdown */}
+            {summary.devices > 0 && (
+              <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Device Breakdown</h3>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                  <div className="text-center">
+                    <Router className="h-8 w-8 text-orange-500 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600">Network</p>
+                    <p className="text-lg font-bold text-orange-600">{summary.device_breakdown.network}</p>
+                  </div>
+                  <div className="text-center">
+                    <HardDrive className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600">Storage</p>
+                    <p className="text-lg font-bold text-yellow-600">{summary.device_breakdown.storage}</p>
+                  </div>
+                  <div className="text-center">
+                    <Shield className="h-8 w-8 text-red-500 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600">Security</p>
+                    <p className="text-lg font-bold text-red-600">{summary.device_breakdown.security}</p>
+                  </div>
+                  <div className="text-center">
+                    <Cpu className="h-8 w-8 text-gray-500 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600">Infrastructure</p>
+                    <p className="text-lg font-bold text-gray-600">{summary.device_breakdown.infrastructure}</p>
+                  </div>
+                  <div className="text-center">
+                    <Cloud className="h-8 w-8 text-indigo-500 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600">Virtualization</p>
+                    <p className="text-lg font-bold text-indigo-600">{summary.device_breakdown.virtualization}</p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Suggested Headers Info */}
             {suggestedHeaders.length > 0 && dataSource === 'test' && (
@@ -222,6 +368,12 @@ const Inventory = () => {
                       <option value="application">Applications</option>
                       <option value="server">Servers</option>
                       <option value="database">Databases</option>
+                      <option value="network_device">Network Devices</option>
+                      <option value="storage_device">Storage Devices</option>
+                      <option value="security_device">Security Devices</option>
+                      <option value="infrastructure_device">Infrastructure</option>
+                      <option value="virtualization_platform">Virtualization</option>
+                      <option value="unknown">Unknown</option>
                     </select>
                     <select 
                       value={selectedDept} 
@@ -302,7 +454,7 @@ const Inventory = () => {
                                 <td key={header.key} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                   {header.key === 'type' ? (
                                     <div className="flex items-center space-x-2">
-                                      <Icon className="h-4 w-4 text-gray-500" />
+                                      <Icon className={`h-4 w-4 ${getTypeColor(asset[header.key])}`} />
                                       <span>{asset[header.key]}</span>
                                     </div>
                                   ) : header.key === 'status' ? (
@@ -312,6 +464,14 @@ const Inventory = () => {
                                     }`}>
                                       {asset[header.key]}
                                     </span>
+                                  ) : header.key === 'sixr_ready' ? (
+                                    <span className={`px-2 py-1 text-xs rounded-full ${getSixRReadinessColor(asset[header.key])}`}>
+                                      {asset[header.key] || 'Unknown'}
+                                    </span>
+                                  ) : header.key === 'migration_complexity' ? (
+                                    <span className={`px-2 py-1 text-xs rounded-full ${getComplexityColor(asset[header.key])}`}>
+                                      {asset[header.key] || 'Unknown'}
+                                    </span>
                                   ) : header.key === 'cpuCores' || header.key === 'memoryGb' || header.key === 'storageGb' ? (
                                     asset[header.key] ? `${asset[header.key]}${header.key === 'cpuCores' ? '' : ' GB'}` : '-'
                                   ) : (
@@ -320,12 +480,12 @@ const Inventory = () => {
                                 </td>
                               ))
                             ) : (
-                              // Fallback static columns
+                              // Fallback static columns with enhanced type display
                               <>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{asset.id}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                   <div className="flex items-center space-x-2">
-                                    <Icon className="h-4 w-4 text-gray-500" />
+                                    <Icon className={`h-4 w-4 ${getTypeColor(asset.type)}`} />
                                     <span>{asset.type}</span>
                                   </div>
                                 </td>

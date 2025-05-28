@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis History Integration Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        button { margin: 5px; padding: 10px; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; max-height: 300px; }
+        .history-item { border: 1px solid #ddd; margin: 10px 0; padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Analysis History Integration Test</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: List All Analyses</h2>
+        <button onclick="testListAnalyses()">List Analyses</button>
+        <div id="list-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 2: Get Analysis History (Frontend API)</h2>
+        <button onclick="testGetHistory()">Get History</button>
+        <div id="history-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 3: Get Specific Analysis with Recommendation</h2>
+        <button onclick="testGetAnalysisWithRecommendation()">Get Analysis 39</button>
+        <div id="specific-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 4: Create New Analysis</h2>
+        <button onclick="testCreateAnalysis()">Create Analysis</button>
+        <div id="create-result"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api/v1';
+        let currentAnalysisId = null;
+
+        async function apiCall(endpoint, options = {}) {
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer demo-token',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json().catch(() => ({ detail: response.statusText }));
+                    throw new Error(`HTTP ${response.status}: ${error.detail || response.statusText}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                console.error('API Error:', error);
+                throw error;
+            }
+        }
+
+        async function testListAnalyses() {
+            const resultDiv = document.getElementById('list-result');
+            resultDiv.innerHTML = 'Testing...';
+            
+            try {
+                const result = await apiCall('/sixr?page_size=10');
+                
+                resultDiv.innerHTML = `<div class="success">✓ Found ${result.analyses.length} analyses (Total: ${result.total_count})</div>`;
+                
+                // Show first few analyses
+                if (result.analyses.length > 0) {
+                    let analysisHtml = '<h4>Sample Analyses:</h4>';
+                    result.analyses.slice(0, 3).forEach(analysis => {
+                        analysisHtml += `
+                            <div class="history-item">
+                                <strong>ID:</strong> ${analysis.analysis_id}<br>
+                                <strong>Status:</strong> ${analysis.status}<br>
+                                <strong>Applications:</strong> ${analysis.applications.map(app => app.id).join(', ')}<br>
+                                <strong>Created:</strong> ${new Date(analysis.created_at).toLocaleString()}<br>
+                                <strong>Has Recommendation:</strong> ${analysis.recommendation ? 'Yes' : 'No'}
+                            </div>
+                        `;
+                    });
+                    resultDiv.innerHTML += analysisHtml;
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">✗ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function testGetHistory() {
+            const resultDiv = document.getElementById('history-result');
+            resultDiv.innerHTML = 'Testing frontend API transformation...';
+            
+            try {
+                // Simulate the frontend API call
+                const analyses = await apiCall('/sixr?page_size=20');
+                
+                // Application name mapping (same as in frontend)
+                const applicationNames = {
+                    1: { name: 'Customer Portal', department: 'Finance' },
+                    2: { name: 'Legacy Billing System', department: 'Finance' },
+                    3: { name: 'Analytics Engine', department: 'IT' },
+                    4: { name: 'Mobile Banking App', department: 'Digital Banking' },
+                    5: { name: 'HR Management System', department: 'Human Resources' }
+                };
+                
+                // Transform to history items (same logic as frontend)
+                const historyItems = analyses.analyses.map(analysis => {
+                    const appId = analysis.applications[0]?.id || 0;
+                    const appInfo = applicationNames[appId] || { name: `Application ${appId}`, department: 'IT' };
+                    
+                    return {
+                        id: analysis.analysis_id,
+                        application_name: appInfo.name,
+                        application_id: appId,
+                        department: appInfo.department,
+                        analysis_date: new Date(analysis.created_at),
+                        status: analysis.status,
+                        recommended_strategy: analysis.recommendation?.recommended_strategy || 'pending',
+                        confidence_score: analysis.recommendation?.confidence_score || 0,
+                        iteration_count: analysis.current_iteration
+                    };
+                });
+                
+                resultDiv.innerHTML = `<div class="success">✓ Transformed ${historyItems.length} history items</div>`;
+                
+                // Show history items
+                if (historyItems.length > 0) {
+                    let historyHtml = '<h4>History Items:</h4>';
+                    historyItems.slice(0, 5).forEach(item => {
+                        historyHtml += `
+                            <div class="history-item">
+                                <strong>${item.application_name}</strong> (ID: ${item.id})<br>
+                                <strong>Department:</strong> ${item.department}<br>
+                                <strong>Status:</strong> ${item.status}<br>
+                                <strong>Strategy:</strong> ${item.recommended_strategy}<br>
+                                <strong>Confidence:</strong> ${Math.round(item.confidence_score * 100)}%<br>
+                                <strong>Date:</strong> ${item.analysis_date.toLocaleString()}
+                            </div>
+                        `;
+                    });
+                    resultDiv.innerHTML += historyHtml;
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">✗ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function testGetAnalysisWithRecommendation() {
+            const resultDiv = document.getElementById('specific-result');
+            resultDiv.innerHTML = 'Testing...';
+            
+            try {
+                const result = await apiCall('/sixr/39');
+                
+                if (result.recommendation) {
+                    resultDiv.innerHTML = `
+                        <div class="success">✓ Analysis 39 has recommendation</div>
+                        <div class="info">
+                            <strong>Strategy:</strong> ${result.recommendation.recommended_strategy}<br>
+                            <strong>Confidence:</strong> ${Math.round(result.recommendation.confidence_score * 100)}%<br>
+                            <strong>Effort:</strong> ${result.recommendation.estimated_effort}<br>
+                            <strong>Timeline:</strong> ${result.recommendation.estimated_timeline}
+                        </div>
+                        <pre>${JSON.stringify(result.recommendation, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">✗ Analysis 39 has no recommendation</div>`;
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">✗ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function testCreateAnalysis() {
+            const resultDiv = document.getElementById('create-result');
+            resultDiv.innerHTML = 'Creating new analysis...';
+            
+            try {
+                const request = {
+                    application_ids: [1],
+                    initial_parameters: {
+                        business_value: 8.0,
+                        technical_complexity: 6.0,
+                        migration_urgency: 7.0,
+                        compliance_requirements: 5.0,
+                        cost_sensitivity: 6.0,
+                        risk_tolerance: 7.0,
+                        innovation_priority: 8.0,
+                        application_type: 'custom'
+                    },
+                    analysis_name: 'Test Analysis from Integration Test'
+                };
+                
+                const result = await apiCall('/sixr/analyze', {
+                    method: 'POST',
+                    body: JSON.stringify(request)
+                });
+                
+                currentAnalysisId = result.analysis_id;
+                resultDiv.innerHTML = `
+                    <div class="success">✓ Analysis created with ID: ${currentAnalysisId}</div>
+                    <div class="info">Now you can refresh the history to see this new analysis</div>
+                `;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">✗ Error: ${error.message}</div>`;
+            }
+        }
+
+        // Auto-run the first test on page load
+        window.onload = function() {
+            testListAnalyses();
+        };
+    </script>
+</body>
+</html> 

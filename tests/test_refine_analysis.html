@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Refine Analysis Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        button { margin: 5px; padding: 10px; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; max-height: 300px; }
+    </style>
+</head>
+<body>
+    <h1>Refine Analysis Test</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Get Current Analysis</h2>
+        <button onclick="testGetCurrentAnalysis()">Get Analysis 43</button>
+        <div id="current-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 2: Iterate Analysis</h2>
+        <button onclick="testIterateAnalysis()">Refine Analysis</button>
+        <div id="iterate-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 3: Check Updated Analysis</h2>
+        <button onclick="testCheckUpdatedAnalysis()">Check Updated Analysis</button>
+        <div id="updated-result"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api/v1';
+        let currentAnalysisId = 43;
+
+        async function apiCall(endpoint, options = {}) {
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer demo-token',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json().catch(() => ({ detail: response.statusText }));
+                    throw new Error(`HTTP ${response.status}: ${error.detail || response.statusText}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                console.error('API Error:', error);
+                throw error;
+            }
+        }
+
+        async function testGetCurrentAnalysis() {
+            const resultDiv = document.getElementById('current-result');
+            resultDiv.innerHTML = 'Testing...';
+            
+            try {
+                const result = await apiCall(`/sixr/${currentAnalysisId}`);
+                
+                resultDiv.innerHTML = `
+                    <div class="success">✓ Analysis ${currentAnalysisId} loaded</div>
+                    <div class="info">
+                        <strong>Status:</strong> ${result.status}<br>
+                        <strong>Iteration:</strong> ${result.current_iteration}<br>
+                        <strong>Strategy:</strong> ${result.recommendation?.recommended_strategy || 'None'}<br>
+                        <strong>Confidence:</strong> ${result.recommendation ? Math.round(result.recommendation.confidence_score * 100) + '%' : 'N/A'}
+                    </div>
+                `;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">✗ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function testIterateAnalysis() {
+            const resultDiv = document.getElementById('iterate-result');
+            resultDiv.innerHTML = 'Testing iteration...';
+            
+            try {
+                const result = await apiCall(`/sixr/${currentAnalysisId}/iterate`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        iteration_reason: 'Frontend test iteration',
+                        stakeholder_feedback: 'Testing the Refine Analysis button functionality'
+                    })
+                });
+                
+                resultDiv.innerHTML = `
+                    <div class="success">✓ Analysis iteration started</div>
+                    <div class="info">
+                        <strong>New Status:</strong> ${result.status}<br>
+                        <strong>New Iteration:</strong> ${result.current_iteration}<br>
+                        <strong>Progress:</strong> ${result.progress_percentage}%
+                    </div>
+                `;
+                
+                // Wait a moment and check if it completes
+                setTimeout(async () => {
+                    try {
+                        const updated = await apiCall(`/sixr/${currentAnalysisId}`);
+                        resultDiv.innerHTML += `
+                            <div class="info" style="margin-top: 10px;">
+                                <strong>After 3 seconds:</strong><br>
+                                <strong>Status:</strong> ${updated.status}<br>
+                                <strong>Iteration:</strong> ${updated.current_iteration}<br>
+                                <strong>Strategy:</strong> ${updated.recommendation?.recommended_strategy || 'None'}<br>
+                                <strong>Confidence:</strong> ${updated.recommendation ? Math.round(updated.recommendation.confidence_score * 100) + '%' : 'N/A'}
+                            </div>
+                        `;
+                    } catch (error) {
+                        resultDiv.innerHTML += `<div class="error">Error checking completion: ${error.message}</div>`;
+                    }
+                }, 3000);
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">✗ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function testCheckUpdatedAnalysis() {
+            const resultDiv = document.getElementById('updated-result');
+            resultDiv.innerHTML = 'Checking...';
+            
+            try {
+                const result = await apiCall(`/sixr/${currentAnalysisId}`);
+                
+                resultDiv.innerHTML = `
+                    <div class="success">✓ Analysis ${currentAnalysisId} checked</div>
+                    <div class="info">
+                        <strong>Final Status:</strong> ${result.status}<br>
+                        <strong>Final Iteration:</strong> ${result.current_iteration}<br>
+                        <strong>Strategy:</strong> ${result.recommendation?.recommended_strategy || 'None'}<br>
+                        <strong>Confidence:</strong> ${result.recommendation ? Math.round(result.recommendation.confidence_score * 100) + '%' : 'N/A'}<br>
+                        <strong>Progress:</strong> ${result.progress_percentage}%
+                    </div>
+                    <pre>${JSON.stringify(result.recommendation, null, 2)}</pre>
+                `;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">✗ Error: ${error.message}</div>`;
+            }
+        }
+
+        // Auto-run the first test on page load
+        window.onload = function() {
+            testGetCurrentAnalysis();
+        };
+    </script>
+</body>
+</html> 

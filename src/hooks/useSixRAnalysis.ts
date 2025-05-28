@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import { 
   sixrApi, 
@@ -70,6 +70,7 @@ export interface AnalysisActions {
   // Analysis lifecycle
   createAnalysis: (request: CreateAnalysisRequest) => Promise<number | null>;
   loadAnalysis: (analysisId: number) => Promise<void>;
+  refreshAnalysis: () => Promise<void>;
   resetAnalysis: () => void;
   
   // Parameter management
@@ -131,11 +132,9 @@ const defaultBulkSummary: BulkAnalysisSummary = {
 
 export const useSixRAnalysis = (options: UseSixRAnalysisOptions = {}): [AnalysisState, AnalysisActions] => {
   const {
+    autoLoadHistory = false,
     maxIterationHistory = 10
   } = options;
-
-  // Polling ref to track intervals
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Simple state - no complex dependencies
   const [state, setState] = useState<AnalysisState>({
@@ -162,7 +161,15 @@ export const useSixRAnalysis = (options: UseSixRAnalysisOptions = {}): [Analysis
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
       
+      // Clear cache to ensure fresh data
+      sixrApi.clearCache();
+      
       const analysis = await sixrApi.getAnalysis(analysisId);
+      console.log(`Loading analysis ${analysisId}:`, {
+        status: analysis.status,
+        progress: analysis.progress_percentage,
+        hasRecommendation: !!analysis.recommendation
+      });
       
       setState(prev => ({
         ...prev,
@@ -171,7 +178,7 @@ export const useSixRAnalysis = (options: UseSixRAnalysisOptions = {}): [Analysis
         parameters: analysis.parameters,
         currentRecommendation: analysis.recommendation,
         iterationNumber: analysis.current_iteration || 1,
-        analysisProgress: analysis.progress_percentage ? {
+        analysisProgress: analysis.progress_percentage !== undefined ? {
           analysisId: analysis.analysis_id,
           status: analysis.status,
           overallProgress: analysis.progress_percentage,
@@ -213,103 +220,19 @@ export const useSixRAnalysis = (options: UseSixRAnalysisOptions = {}): [Analysis
   }, []);
 
   // Refresh current analysis data
-  const refreshData = useCallback(async () => {
+  const refreshAnalysis = useCallback(async () => {
     if (state.currentAnalysisId) {
+      console.log(`Refreshing analysis ${state.currentAnalysisId}...`);
       await loadAnalysis(state.currentAnalysisId);
+    } else {
+      console.log('No current analysis to refresh');
     }
   }, [state.currentAnalysisId, loadAnalysis]);
 
-  // Start polling when analysis is in progress
-  useEffect(() => {
-    if (state.currentAnalysisId && (state.analysisStatus === 'pending' || state.analysisStatus === 'in_progress')) {
-      console.log(`Starting polling for analysis ${state.currentAnalysisId} with status ${state.analysisStatus}`);
-      
-      // Start polling every 2 seconds
-      pollingIntervalRef.current = setInterval(async () => {
-        try {
-          console.log(`Polling analysis ${state.currentAnalysisId}...`);
-          const analysis = await sixrApi.getAnalysis(state.currentAnalysisId!);
-          console.log(`Polling result:`, { 
-            id: analysis.analysis_id, 
-            status: analysis.status, 
-            progress: analysis.progress_percentage,
-            hasRecommendation: !!analysis.recommendation 
-          });
-          
-          setState(prev => ({
-            ...prev,
-            analysisStatus: analysis.status,
-            currentRecommendation: analysis.recommendation || prev.currentRecommendation,
-            analysisProgress: analysis.progress_percentage ? {
-              analysisId: analysis.analysis_id,
-              status: analysis.status,
-              overallProgress: analysis.progress_percentage,
-              currentStep: analysis.status === 'in_progress' ? 'processing' : undefined,
-              steps: [
-                {
-                  id: 'discovery',
-                  name: 'Application Discovery',
-                  description: 'Analyzing application data and dependencies',
-                  status: analysis.progress_percentage > 0 ? 'completed' : 'pending',
-                  progress: Math.min(100, analysis.progress_percentage * 3)
-                },
-                {
-                  id: 'analysis',
-                  name: '6R Strategy Analysis',
-                  description: 'Evaluating migration strategies using AI agents',
-                  status: analysis.progress_percentage > 30 ? (analysis.progress_percentage >= 100 ? 'completed' : 'in_progress') : 'pending',
-                  progress: Math.max(0, Math.min(100, (analysis.progress_percentage - 30) * 2))
-                },
-                {
-                  id: 'validation',
-                  name: 'Recommendation Validation',
-                  description: 'Validating and finalizing recommendations',
-                  status: analysis.progress_percentage >= 100 ? 'completed' : 'pending',
-                  progress: analysis.progress_percentage >= 100 ? 100 : 0
-                }
-              ],
-              iterationNumber: analysis.current_iteration || 1,
-              startTime: new Date(analysis.created_at),
-              endTime: analysis.status === 'completed' ? new Date(analysis.updated_at) : undefined
-            } : prev.analysisProgress
-          }));
-          
-          // Stop polling if analysis is complete
-          if (analysis.status === 'completed' || analysis.status === 'failed') {
-            console.log(`Analysis ${analysis.analysis_id} completed with status: ${analysis.status}`);
-            if (pollingIntervalRef.current) {
-              clearInterval(pollingIntervalRef.current);
-              pollingIntervalRef.current = null;
-            }
-          }
-        } catch (error) {
-          console.error('Polling error:', error);
-        }
-      }, 2000);
-      
-      return () => {
-        if (pollingIntervalRef.current) {
-          clearInterval(pollingIntervalRef.current);
-          pollingIntervalRef.current = null;
-        }
-      };
-    } else {
-      // Stop polling when analysis is complete or not active
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-        pollingIntervalRef.current = null;
-      }
-    }
-  }, [state.currentAnalysisId, state.analysisStatus]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-      }
-    };
-  }, []);
+  // Refresh current analysis data (alias for compatibility)
+  const refreshData = useCallback(async () => {
+    await refreshAnalysis();
+  }, [refreshAnalysis]);
 
   // Simple actions without complex dependencies
   const createAnalysis = useCallback(async (request: CreateAnalysisRequest): Promise<number | null> => {
@@ -338,12 +261,6 @@ export const useSixRAnalysis = (options: UseSixRAnalysisOptions = {}): [Analysis
   }, []);
 
   const resetAnalysis = useCallback(() => {
-    // Clear polling when resetting
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = null;
-    }
-    
     setState(prev => ({
       ...prev,
       currentAnalysisId: null,
@@ -384,10 +301,109 @@ export const useSixRAnalysis = (options: UseSixRAnalysisOptions = {}): [Analysis
     });
   }, []);
 
+  // Load analysis history from API
+  const loadAnalysisHistory = useCallback(async (filters?: any) => {
+    try {
+      setState(prev => ({ ...prev, isLoading: true, error: null }));
+      
+      const history = await sixrApi.getAnalysisHistory(filters);
+      console.log('Loaded analysis history:', history.length, 'items');
+      
+      setState(prev => ({
+        ...prev,
+        analysisHistory: history,
+        isLoading: false
+      }));
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load analysis history';
+      setState(prev => ({ ...prev, error: errorMessage, isLoading: false }));
+    }
+  }, []);
+
+  // Accept recommendation and update application status
+  const acceptRecommendation = useCallback(async () => {
+    if (!state.currentAnalysisId || !state.currentRecommendation) {
+      return;
+    }
+
+    try {
+      setState(prev => ({ ...prev, isLoading: true, error: null }));
+      
+      // TODO: Implement backend endpoint to accept recommendation
+      // For now, just mark as accepted locally
+      console.log('Accepting recommendation for analysis:', state.currentAnalysisId);
+      
+      // Reload analysis history to reflect the accepted recommendation
+      await loadAnalysisHistory();
+      
+      setState(prev => ({ ...prev, isLoading: false }));
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to accept recommendation';
+      setState(prev => ({ ...prev, error: errorMessage, isLoading: false }));
+      throw error;
+    }
+  }, [state.currentAnalysisId, state.currentRecommendation, loadAnalysisHistory]);
+
+  // Auto-load history on mount if enabled
+  useEffect(() => {
+    if (autoLoadHistory) {
+      console.log('Auto-loading analysis history...');
+      loadAnalysisHistory();
+    }
+  }, [autoLoadHistory, loadAnalysisHistory]);
+
+  // Analysis iteration
+  const iterateAnalysis = useCallback(async (notes?: string): Promise<void> => {
+    if (!state.currentAnalysisId) {
+      throw new Error('No active analysis to iterate');
+    }
+
+    try {
+      setState(prev => ({ ...prev, isLoading: true, error: null }));
+      
+      // Call the iterate API endpoint with the correct signature
+      const result = await sixrApi.iterateAnalysis(
+        state.currentAnalysisId, 
+        notes || 'Refining analysis based on updated parameters'
+      );
+      
+      // Update state with new iteration
+      setState(prev => ({
+        ...prev,
+        iterationNumber: result.current_iteration || (prev.iterationNumber + 1),
+        analysisStatus: result.status,
+        currentRecommendation: result.recommendation || null,
+        analysisProgress: {
+          status: result.status === 'completed' ? 'completed' : 'in_progress',
+          percentage: result.progress_percentage || 0,
+          currentStep: result.status === 'completed' ? 'Analysis Complete' : 'Processing iteration...',
+          estimatedCompletion: result.estimated_completion ? new Date(result.estimated_completion) : new Date(Date.now() + 5 * 60 * 1000),
+          steps: [
+            { id: 'init', name: 'Initialize Iteration', status: 'completed', progress: 100 },
+            { id: 'analyze', name: 'Analyze Parameters', status: result.status === 'completed' ? 'completed' : 'in_progress', progress: result.progress_percentage || 0 },
+            { id: 'recommend', name: 'Generate Recommendation', status: result.recommendation ? 'completed' : 'pending', progress: result.recommendation ? 100 : 0 },
+            { id: 'validate', name: 'Validate Results', status: result.status === 'completed' ? 'completed' : 'pending', progress: result.status === 'completed' ? 100 : 0 }
+          ],
+          iterationNumber: result.current_iteration || (prev.iterationNumber + 1)
+        },
+        isLoading: false
+      }));
+      
+      toast.success(`Analysis iteration ${result.current_iteration || state.iterationNumber + 1} ${result.status === 'completed' ? 'completed' : 'started'}`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to iterate analysis';
+      setState(prev => ({ ...prev, error: errorMessage, isLoading: false }));
+      throw error;
+    }
+  }, [state.currentAnalysisId, state.iterationNumber]);
+
   // Simplified actions object
   const actions: AnalysisActions = {
     createAnalysis,
     loadAnalysis,
+    refreshAnalysis,
     resetAnalysis,
     updateParameters: async () => {},
     updateParametersLocal,
@@ -396,10 +412,10 @@ export const useSixRAnalysis = (options: UseSixRAnalysisOptions = {}): [Analysis
     submitQuestionResponse,
     submitAllQuestions: async () => {},
     startAnalysis: async () => {},
-    iterateAnalysis: async () => {},
-    acceptRecommendation: async () => {},
+    iterateAnalysis,
+    acceptRecommendation,
     rejectRecommendation: async () => {},
-    loadAnalysisHistory: async () => {},
+    loadAnalysisHistory,
     deleteAnalysis: async () => {},
     archiveAnalysis: async () => {},
     exportAnalyses: async () => {},
@@ -410,12 +426,7 @@ export const useSixRAnalysis = (options: UseSixRAnalysisOptions = {}): [Analysis
     exportBulkResults: async () => {},
     clearError: () => setState(prev => ({ ...prev, error: null })),
     refreshData,
-    cleanup: () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-        pollingIntervalRef.current = null;
-      }
-    }
+    cleanup: () => {}
   };
 
   return [state, actions];

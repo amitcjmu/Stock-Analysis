@@ -52,6 +52,7 @@ interface AnalysisProgressProps {
   onResume?: () => void;
   onCancel?: () => void;
   onRetry?: () => void;
+  onRefresh?: () => void;
   showDetails?: boolean;
   realTimeUpdates?: boolean;
   className?: string;
@@ -114,6 +115,7 @@ export const AnalysisProgress: React.FC<AnalysisProgressProps> = ({
   onResume,
   onCancel,
   onRetry,
+  onRefresh,
   showDetails = true,
   realTimeUpdates = true,
   className = ''
@@ -251,6 +253,12 @@ export const AnalysisProgress: React.FC<AnalysisProgressProps> = ({
             </CardDescription>
           </div>
           <div className="flex items-center space-x-2">
+            {onRefresh && (
+              <Button variant="outline" size="sm" onClick={onRefresh}>
+                <RotateCcw className="h-4 w-4 mr-1" />
+                Refresh
+              </Button>
+            )}
             {progress.status === 'in_progress' && onPause && (
               <Button variant="outline" size="sm" onClick={onPause}>
                 <Pause className="h-4 w-4 mr-1" />

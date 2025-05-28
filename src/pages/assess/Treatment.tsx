@@ -46,113 +46,17 @@ import {
 import { toast } from 'sonner';
 import { useSixRAnalysis } from '@/hooks/useSixRAnalysis';
 
-// Mock data - will be replaced with API calls
-const mockApplications: Application[] = [
-  {
-    id: 1,
-    name: 'Customer Portal',
-    description: 'Web-based customer service portal',
-    technology_stack: ['Java 8', 'Spring', 'MySQL'],
-    department: 'Finance',
-    business_unit: 'Customer Service',
-    criticality: 'high',
-    complexity_score: 7,
-    user_count: 1500,
-    data_volume: '500GB',
-    compliance_requirements: ['PCI-DSS', 'SOX'],
-    dependencies: ['Payment Gateway', 'CRM System'],
-    last_updated: new Date('2024-01-15'),
-    analysis_status: 'not_analyzed'
-  },
-  {
-    id: 2,
-    name: 'Legacy Billing System',
-    description: 'COBOL-based billing application',
-    technology_stack: ['COBOL', 'DB2', 'CICS'],
-    department: 'Finance',
-    business_unit: 'Billing',
-    criticality: 'critical',
-    complexity_score: 9,
-    user_count: 200,
-    data_volume: '2TB',
-    compliance_requirements: ['SOX', 'GDPR'],
-    dependencies: ['Mainframe', 'Payment Systems'],
-    last_updated: new Date('2024-01-10'),
-    analysis_status: 'completed',
-    recommended_strategy: 'replace',
-    confidence_score: 0.85
-  },
-  {
-    id: 3,
-    name: 'Analytics Engine',
-    description: 'Python-based data analytics platform',
-    technology_stack: ['Python 3.8', 'Pandas', 'PostgreSQL'],
-    department: 'IT',
-    business_unit: 'Data Analytics',
-    criticality: 'high',
-    complexity_score: 6,
-    user_count: 50,
-    data_volume: '1TB',
-    compliance_requirements: ['GDPR'],
-    dependencies: ['Data Warehouse', 'ETL Pipeline'],
-    last_updated: new Date('2024-01-20'),
-    analysis_status: 'in_progress'
-  },
-  {
-    id: 4,
-    name: 'Mobile Banking App',
-    description: 'iOS and Android banking application',
-    technology_stack: ['React Native', 'Node.js', 'MongoDB'],
-    department: 'Digital Banking',
-    business_unit: 'Consumer Banking',
-    criticality: 'critical',
-    complexity_score: 8,
-    user_count: 50000,
-    data_volume: '100GB',
-    compliance_requirements: ['PCI-DSS', 'SOX', 'GDPR'],
-    dependencies: ['Core Banking', 'Payment Gateway', 'Identity Service'],
-    last_updated: new Date('2024-01-25'),
-    analysis_status: 'not_analyzed'
-  },
-  {
-    id: 5,
-    name: 'HR Management System',
-    description: 'Employee management and payroll system',
-    technology_stack: ['PHP 7.4', 'Laravel', 'MySQL'],
-    department: 'Human Resources',
-    business_unit: 'Corporate Services',
-    criticality: 'medium',
-    complexity_score: 5,
-    user_count: 300,
-    data_volume: '50GB',
-    compliance_requirements: ['GDPR'],
-    dependencies: ['Active Directory', 'Email System'],
-    last_updated: new Date('2024-01-18'),
-    analysis_status: 'not_analyzed'
+// Remove all mock data - will be replaced with API calls
+const loadApplicationsFromBackend = async (): Promise<Application[]> => {
+  try {
+    // This should be replaced with actual API call to get applications
+    // For now, return empty array to force real data usage
+    return [];
+  } catch (error) {
+    console.error('Failed to load applications:', error);
+    return [];
   }
-];
-
-// Mock analysis queues for demonstration
-const mockQueues: AnalysisQueue[] = [
-  {
-    id: 'queue-1',
-    name: 'Finance Applications Analysis',
-    applications: [1, 2],
-    status: 'in_progress',
-    created_at: new Date('2024-01-15'),
-    priority: 1,
-    estimated_duration: 3600
-  },
-  {
-    id: 'queue-2', 
-    name: 'Legacy System Migration',
-    applications: [2, 3],
-    status: 'completed',
-    created_at: new Date('2024-01-10'),
-    priority: 2,
-    estimated_duration: 7200
-  }
-];
+};
 
 const Treatment = () => {
   // State management using the custom hook
@@ -167,6 +71,18 @@ const Treatment = () => {
   const [analysisQueues, setAnalysisQueues] = useState<AnalysisQueue[]>([]);
   const [currentQueueName, setCurrentQueueName] = useState<string>('');
 
+  // Application state management
+  const [applications, setApplications] = useState<Application[]>([]);
+
+  // Load applications on component mount
+  useEffect(() => {
+    const loadApps = async () => {
+      const apps = await loadApplicationsFromBackend();
+      setApplications(apps);
+    };
+    loadApps();
+  }, []);
+
   // Auto-navigate to results when analysis completes
   useEffect(() => {
     if (state.analysisStatus === 'completed' && state.currentRecommendation && currentTab === 'progress') {
@@ -175,11 +91,6 @@ const Treatment = () => {
       toast.success('Analysis completed! View your 6R recommendation.');
     }
   }, [state.analysisStatus, state.currentRecommendation, currentTab]);
-
-  // Initialize with mock queues
-  useEffect(() => {
-    setAnalysisQueues(mockQueues);
-  }, []);
 
   // Auto-navigate based on analysis status - DISABLED due to conflicts
   // useEffect(() => {
@@ -364,6 +275,21 @@ const Treatment = () => {
 
     try {
       await actions.acceptRecommendation();
+      
+      // Update the application status in the local state
+      if (selectedApplications.length > 0) {
+        setApplications(prev => prev.map(app => 
+          selectedApplications.includes(app.id) 
+            ? {
+                ...app,
+                analysis_status: 'completed',
+                recommended_strategy: state.currentRecommendation?.recommended_strategy,
+                confidence_score: state.currentRecommendation?.confidence_score
+              }
+            : app
+        ));
+      }
+      
       toast.success('Recommendation accepted and saved');
       setCurrentTab('selection');
       actions.resetAnalysis();
@@ -411,7 +337,7 @@ const Treatment = () => {
 
   // Get current application being analyzed
   const currentApplication = selectedApplications.length > 0 
-    ? mockApplications.find(app => app.id === selectedApplications[0])
+    ? applications.find(app => app.id === selectedApplications[0])
     : null;
 
   return (
@@ -431,6 +357,15 @@ const Treatment = () => {
                 {/* Header Actions */}
                 {state.currentAnalysisId && (
                   <div className="flex items-center space-x-3">
+                    <Button
+                      variant="outline"
+                      onClick={() => actions.refreshAnalysis()}
+                      disabled={state.isLoading}
+                      className="flex items-center space-x-2"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      <span>Refresh</span>
+                    </Button>
                     <Button
                       variant="outline"
                       onClick={() => actions.resetAnalysis()}
@@ -549,11 +484,11 @@ const Treatment = () => {
                     <div className="mt-6">
                       <TabsContent value="selection" className="space-y-6">
                         <ApplicationSelector
-                          applications={mockApplications}
+                          applications={applications}
                           selectedApplications={selectedApplications}
                           onSelectionChange={handleApplicationSelection}
                           onStartAnalysis={handleStartAnalysis}
-                          analysisQueues={[...mockQueues, ...analysisQueues]}
+                          analysisQueues={[...analysisQueues]}
                           onQueueAction={handleQueueAction}
                           showQueue={true}
                         />
@@ -616,6 +551,7 @@ const Treatment = () => {
                             onResume={() => toast.info('Resume functionality coming soon')}
                             onCancel={() => actions.resetAnalysis()}
                             onRetry={() => actions.refreshData()}
+                            onRefresh={() => actions.refreshAnalysis()}
                           />
                         )}
                       </TabsContent>
@@ -633,12 +569,33 @@ const Treatment = () => {
                       </TabsContent>
 
                       <TabsContent value="history" className="space-y-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <div>
+                            <h3 className="text-lg font-medium">Analysis History</h3>
+                            <p className="text-sm text-gray-600">View and manage your completed analyses</p>
+                          </div>
+                          <Button
+                            variant="outline"
+                            onClick={() => actions.loadAnalysisHistory()}
+                            disabled={state.isLoading}
+                            className="flex items-center space-x-2"
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                            <span>Refresh</span>
+                          </Button>
+                        </div>
                         <AnalysisHistory
                           analyses={state.analysisHistory}
                           onCompare={(ids) => console.log('Compare analyses:', ids)}
                           onExport={handleExportAnalyses}
                           onDelete={(id) => actions.deleteAnalysis(id)}
                           onArchive={(id) => actions.archiveAnalysis(id)}
+                          onViewDetails={(id) => {
+                            // Load the analysis and navigate to results
+                            actions.loadAnalysis(id);
+                            setCurrentTab('results');
+                            toast.info(`Viewing analysis ${id}`);
+                          }}
                         />
                       </TabsContent>
 

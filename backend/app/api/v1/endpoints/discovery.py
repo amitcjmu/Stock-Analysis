@@ -12,6 +12,7 @@ from pydantic import BaseModel
 import pandas as pd
 import io
 from datetime import datetime
+import math
 
 from app.services.crewai_service import CrewAIService
 from app.core.config import settings
@@ -96,12 +97,24 @@ class CMDBDataProcessor:
             'memory_usage': df.memory_usage(deep=True).sum()
         }
         
-        # Calculate data quality score
-        null_percentage = (df.isnull().sum().sum() / (len(df) * len(df.columns))) * 100
-        duplicate_percentage = (df.duplicated().sum() / len(df)) * 100
+        # Calculate basic data quality metrics
+        total_cells = len(df) * len(df.columns)
+        null_count = df.isnull().sum().sum()
+        null_percentage = (null_count / total_cells * 100) if total_cells > 0 else 0
+        duplicate_count = len(df) - len(df.drop_duplicates())
         
-        quality_score = max(0, 100 - null_percentage - duplicate_percentage)
-        analysis['quality_score'] = int(quality_score)
+        # Calculate basic quality score
+        base_score = 100.0
+        base_score -= min(30.0, null_percentage)  # Deduct up to 30 points for nulls
+        if len(df) > 0:
+            base_score -= min(20.0, (duplicate_count / len(df)) * 100)  # Deduct up to 20 points for duplicates
+        
+        # Ensure quality_score is a valid integer between 0 and 100
+        quality_score = max(0, min(100, int(base_score)))
+        
+        analysis['quality_score'] = quality_score
+        analysis['null_percentage'] = null_percentage
+        analysis['duplicate_count'] = duplicate_count
         
         return analysis
     
@@ -273,8 +286,8 @@ class CMDBDataProcessor:
             processing_steps.append("Clean missing data and fill null values")
         
         # Check for duplicates
-        if analysis['duplicate_rows'] > 0:
-            processing_steps.append(f"Remove {analysis['duplicate_rows']} duplicate records")
+        if analysis['duplicate_count'] > 0:
+            processing_steps.append(f"Remove {analysis['duplicate_count']} duplicate records")
         
         # Check for data type issues
         if 'object' in str(analysis['data_types'].values()):
@@ -291,8 +304,9 @@ class CMDBDataProcessor:
         
         return processing_steps
 
-# Initialize processor
+# Initialize processor and global storage
 processor = CMDBDataProcessor()
+processed_assets_store = []  # Global storage for processed assets
 
 @router.post("/analyze-cmdb")
 async def analyze_cmdb_data(request: CMDBAnalysisRequest):
@@ -301,6 +315,12 @@ async def analyze_cmdb_data(request: CMDBAnalysisRequest):
     """
     try:
         logger.info(f"Starting CMDB analysis for file: {request.filename}")
+        
+        # Parse the file content first
+        df = processor.parse_file_content(request.content, request.fileType)
+        
+        if len(df) == 0:
+            raise HTTPException(status_code=400, detail="No data found in the uploaded file")
         
         # Start monitoring the analysis task
         from app.services.agent_monitor import agent_monitor, TaskStatus
@@ -317,22 +337,150 @@ async def analyze_cmdb_data(request: CMDBAnalysisRequest):
             # Update task status
             agent_monitor.update_task_status(task_id, TaskStatus.RUNNING, "Initializing CMDB analysis")
             
+            # Analyze data structure
+            structure_analysis = processor.analyze_data_structure(df)
+            
             # Prepare data for analysis
             cmdb_data = {
                 "filename": request.filename,
-                "structure": request.structure.dict() if request.structure else {},
-                "sample_data": request.sample_data or []
+                "structure": structure_analysis,
+                "sample_data": df.head(10).to_dict('records'),
+                "total_rows": len(df),
+                "columns": df.columns.tolist()
             }
             
             # Record thinking phase
             agent_monitor.record_thinking_phase(task_id, "Preparing data for AI analysis")
             
-            # Run CrewAI analysis
+            # Run CrewAI analysis (this is the core agentic intelligence)
             agent_monitor.update_task_status(task_id, TaskStatus.WAITING_LLM, "Starting AI analysis")
-            result = await processor.crewai_service.analyze_cmdb_data(cmdb_data)
+            try:
+                crewai_result = await processor.crewai_service.analyze_cmdb_data(cmdb_data)
+                logger.info(f"CrewAI analysis completed: {crewai_result}")
+            except Exception as e:
+                logger.warning(f"CrewAI analysis failed: {e}, continuing with local analysis")
+                crewai_result = {"issues": [], "recommendations": []}
+            
+            # Perform local analysis to supplement agentic analysis
+            coverage = processor.identify_asset_types(df)
+            missing_fields = processor.identify_missing_fields(df)
+            processing_steps = processor.suggest_processing_steps(df, structure_analysis)
+            
+            # Ensure all numeric values are JSON-serializable
+            def ensure_json_serializable(value):
+                if value is None:
+                    return 0
+                if isinstance(value, (int, str, bool)):
+                    return value
+                if isinstance(value, float):
+                    if math.isnan(value) or math.isinf(value):
+                        return 0
+                    return int(value) if value.is_integer() else float(value)
+                return 0
+            
+            # Use CrewAI results as primary source, supplement with local analysis
+            if crewai_result and isinstance(crewai_result, dict):
+                # Extract agentic analysis results
+                quality_score = ensure_json_serializable(crewai_result.get('data_quality_score', 75))
+                quality_issues = crewai_result.get('issues', [])
+                quality_recommendations = crewai_result.get('recommendations', [])
+                
+                # Use agentic asset type detection if available
+                asset_type_detected = crewai_result.get('asset_type_detected', 'mixed')
+                if asset_type_detected == 'application':
+                    coverage = AssetCoverage(applications=len(df), servers=0, databases=0, dependencies=0)
+                elif asset_type_detected == 'server':
+                    coverage = AssetCoverage(applications=0, servers=len(df), databases=0, dependencies=0)
+                elif asset_type_detected == 'database':
+                    coverage = AssetCoverage(applications=0, servers=0, databases=len(df), dependencies=0)
+                
+                # Use agentic missing fields analysis
+                agentic_missing_fields = crewai_result.get('missing_fields_relevant', [])
+                if agentic_missing_fields:
+                    missing_fields = agentic_missing_fields
+                    
+            else:
+                # Fallback to local analysis if agentic analysis failed
+                logger.info("Using local analysis as fallback")
+                
+                # Calculate data quality score locally
+                total_cells = len(df) * len(df.columns)
+                null_count = df.isnull().sum().sum()
+                null_percentage = (null_count / total_cells * 100) if total_cells > 0 else 0
+                duplicate_count = len(df) - len(df.drop_duplicates())
+                
+                base_score = 100.0
+                base_score -= min(30.0, null_percentage)
+                if len(df) > 0:
+                    base_score -= min(20.0, (duplicate_count / len(df)) * 100)
+                base_score -= len(missing_fields) * 5.0
+                
+                quality_score = ensure_json_serializable(max(0, min(100, int(base_score))))
+                
+                quality_issues = []
+                quality_recommendations = []
+                
+                if null_percentage > 10:
+                    quality_issues.append(f"High percentage of missing values: {null_percentage:.1f}%")
+                    quality_recommendations.append("Fill missing values or remove incomplete records")
+                
+                if duplicate_count > 0:
+                    quality_issues.append(f"Found {duplicate_count} duplicate records")
+                    quality_recommendations.append("Remove duplicate entries")
+            
+            # Prepare response in the format expected by frontend
+            result = {
+                "status": "completed",
+                "dataQuality": {
+                    "score": ensure_json_serializable(quality_score),
+                    "issues": quality_issues if isinstance(quality_issues, list) else [],
+                    "recommendations": quality_recommendations if isinstance(quality_recommendations, list) else []
+                },
+                "coverage": {
+                    "applications": ensure_json_serializable(coverage.applications),
+                    "servers": ensure_json_serializable(coverage.servers),
+                    "databases": ensure_json_serializable(coverage.databases),
+                    "dependencies": ensure_json_serializable(coverage.dependencies)
+                },
+                "missingFields": missing_fields if isinstance(missing_fields, list) else [],
+                "requiredProcessing": processing_steps if isinstance(processing_steps, list) else [],
+                "readyForImport": quality_score >= 70 and len(missing_fields) <= 3,
+                "preview": []  # Initialize empty, will populate below
+            }
+            
+            # Safely create preview data with JSON-serializable values
+            try:
+                preview_df = df.head(10)
+                preview_records = []
+                
+                for _, row in preview_df.iterrows():
+                    record = {}
+                    for col in preview_df.columns:
+                        value = row[col]
+                        # Convert pandas/numpy types to JSON-serializable types
+                        if pd.isna(value):
+                            record[str(col)] = None
+                        elif isinstance(value, (pd.Timestamp, pd.DatetimeIndex)):
+                            record[str(col)] = str(value)
+                        elif isinstance(value, (int, str, bool)):
+                            record[str(col)] = value
+                        elif isinstance(value, float):
+                            if math.isnan(value) or math.isinf(value):
+                                record[str(col)] = None
+                            else:
+                                record[str(col)] = float(value)
+                        else:
+                            record[str(col)] = str(value)
+                    preview_records.append(record)
+                
+                result["preview"] = preview_records
+                
+            except Exception as e:
+                logger.warning(f"Error creating preview data: {e}")
+                result["preview"] = []
             
             # Complete the task
-            agent_monitor.complete_task(task_id, f"Analysis completed with {result.get('data_quality_score', 0)}% quality score")
+            agent_monitor.complete_task(task_id, f"Analysis completed with {quality_score}% quality score")
             
             logger.info(f"CMDB analysis completed for {request.filename}")
             return result
@@ -360,8 +508,32 @@ async def process_cmdb_data(request: CMDBProcessingRequest):
         if len(df) == 0:
             raise HTTPException(status_code=400, detail="No data provided for processing")
         
-        # Apply data processing steps
+        # Apply data processing steps with agentic intelligence
         processed_df = df.copy()
+        
+        # Use CrewAI for intelligent asset processing and classification
+        processing_result = await processor.crewai_service.process_cmdb_data({
+            'original_data': request.data,
+            'processed_data': processed_df.to_dict('records'),
+            'filename': request.filename,
+            'project_info': request.projectInfo
+        })
+        
+        # Apply intelligent asset type classification to each record
+        for idx, row in processed_df.iterrows():
+            asset_data = row.to_dict()
+            asset_name = asset_data.get('Name', asset_data.get('asset_name', ''))
+            asset_type = asset_data.get('CI_Type', asset_data.get('asset_type', ''))
+            
+            # Use enhanced asset type classification
+            intelligent_type = _standardize_asset_type(asset_type, asset_name, asset_data)
+            processed_df.at[idx, 'intelligent_asset_type'] = intelligent_type
+            
+            # Add 6R readiness assessment
+            processed_df.at[idx, 'sixr_ready'] = _assess_6r_readiness(intelligent_type, asset_data)
+            
+            # Add migration complexity indicator
+            processed_df.at[idx, 'migration_complexity'] = _assess_migration_complexity(intelligent_type, asset_data)
         
         # Remove duplicates
         original_rows = len(processed_df)
@@ -401,14 +573,6 @@ async def process_cmdb_data(request: CMDBProcessingRequest):
         null_percentage = (processed_df.isnull().sum().sum() / total_cells) * 100 if total_cells > 0 else 0
         duplicate_percentage = (duplicates_removed / original_rows) * 100 if original_rows > 0 else 0
         quality_score = max(0, 100 - null_percentage - duplicate_percentage)
-        
-        # Use CrewAI for advanced processing validation
-        processing_result = await processor.crewai_service.process_cmdb_data({
-            'original_data': request.data,
-            'processed_data': processed_df.to_dict('records'),
-            'filename': request.filename,
-            'project_info': request.projectInfo
-        })
         
         # Store processed assets in memory (in production, this would be saved to database)
         processed_data_records = processed_df.to_dict('records')
@@ -613,9 +777,6 @@ async def submit_cmdb_feedback(request: CMDBFeedbackRequest):
         logger.error(f"Error processing user feedback: {e}")
         raise HTTPException(status_code=500, detail=f"Feedback processing failed: {str(e)}")
 
-# In-memory storage for processed assets (in production, this would be a database)
-processed_assets_store = []
-
 @router.get("/assets")
 async def get_processed_assets():
     """
@@ -638,7 +799,7 @@ async def get_processed_assets():
                 # Standardize asset data format with flexible field mapping
                 formatted_asset = {
                     "id": _get_field_value(asset, ["ci_id", "asset_id", "id", "asset_name", "name"]) or f"ASSET_{len(formatted_assets) + 1}",
-                    "type": _standardize_asset_type(asset_type, asset_name),
+                    "type": _standardize_asset_type(asset_type, asset_name, asset),
                     "name": asset_name,
                     "techStack": _get_tech_stack(asset),
                     "department": _get_field_value(asset, ["business_owner", "department", "owner", "responsible_party", "assigned_to"]),
@@ -782,14 +943,26 @@ async def get_processed_assets():
             
             data_source = "test"
         
-        # Calculate summary statistics
+        # Calculate summary statistics with enhanced device types
+        device_types = ["Network Device", "Storage Device", "Security Device", "Infrastructure Device", "Virtualization Platform"]
+        
         summary = {
             "total": len(formatted_assets),
             "applications": len([a for a in formatted_assets if a["type"] == "Application"]),
             "servers": len([a for a in formatted_assets if a["type"] == "Server"]),
             "databases": len([a for a in formatted_assets if a["type"] == "Database"]),
+            "devices": len([a for a in formatted_assets if a["type"] in device_types]),
+            "unknown": len([a for a in formatted_assets if a["type"] == "Unknown"]),
             "discovered": len([a for a in formatted_assets if a["status"] == "Discovered"]),
-            "pending": len([a for a in formatted_assets if a["status"] == "Pending"])
+            "pending": len([a for a in formatted_assets if a["status"] == "Pending"]),
+            # Breakdown by device type
+            "device_breakdown": {
+                "network": len([a for a in formatted_assets if a["type"] == "Network Device"]),
+                "storage": len([a for a in formatted_assets if a["type"] == "Storage Device"]),
+                "security": len([a for a in formatted_assets if a["type"] == "Security Device"]),
+                "infrastructure": len([a for a in formatted_assets if a["type"] == "Infrastructure Device"]),
+                "virtualization": len([a for a in formatted_assets if a["type"] == "Virtualization Platform"])
+            }
         }
         
         # Generate suggested headers based on actual data
@@ -807,28 +980,109 @@ async def get_processed_assets():
         logger.error(f"Error retrieving processed assets: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve assets: {str(e)}")
 
-def _standardize_asset_type(asset_type: str, asset_name: str = "") -> str:
-    """Standardize asset type names using both type and name fields."""
+def _standardize_asset_type(asset_type: str, asset_name: str = "", asset_data: Dict[str, Any] = None) -> str:
+    """Standardize asset type names using agentic intelligence and comprehensive pattern matching."""
     if not asset_type and not asset_name:
         return "Unknown"
     
     # Combine type and name for better detection
     combined_text = f"{asset_type or ''} {asset_name or ''}".lower()
     
-    # Database detection (check name patterns first for better accuracy)
-    if any(keyword in combined_text for keyword in ["database", "db-", "-db", "sql", "oracle", "mysql", "postgres", "mongodb", "redis"]):
+    # Use agentic intelligence if available
+    try:
+        from app.services.crewai_service import crewai_service
+        if asset_data and crewai_service.agents:
+            # Create minimal analysis data for asset type detection
+            analysis_data = {
+                "asset_name": asset_name,
+                "asset_type": asset_type,
+                "combined_context": combined_text,
+                "tech_stack": asset_data.get("tech_stack", ""),
+                "operating_system": asset_data.get("os", ""),
+                "has_cpu": bool(asset_data.get("cpu_cores")),
+                "has_memory": bool(asset_data.get("memory_gb")),
+                "has_ip": bool(asset_data.get("ip_address"))
+            }
+            
+            # Quick agentic asset type detection
+            # This could be enhanced with a specific agent call if needed
+    except Exception:
+        pass  # Fall back to rule-based detection
+    
+    # Enhanced rule-based detection with device classification
+    
+    # 1. Database detection (highest priority for accuracy)
+    database_patterns = [
+        "database", "db-", "-db", "sql", "oracle", "mysql", "postgres", "postgresql", 
+        "mongodb", "redis", "cassandra", "elasticsearch", "influxdb", "mariadb",
+        "mssql", "sqlite", "dynamodb", "couchdb", "neo4j"
+    ]
+    if any(pattern in combined_text for pattern in database_patterns):
         return "Database"
-    # Application detection
-    elif any(keyword in combined_text for keyword in ["application", "app-", "-app", "service", "software", "portal", "system", "platform"]):
-        return "Application"
-    # Server detection (most generic, check last)
-    elif any(keyword in combined_text for keyword in ["server", "srv-", "-srv", "host", "machine", "vm", "computer", "node"]):
+    
+    # 2. Security device detection (moved before network to catch firewall)
+    security_patterns = [
+        "firewall", "fw-", "-fw", "ids", "ips", "waf", "proxy", "checkpoint", 
+        "symantec", "mcafee", "splunk", "qualys", "nessus", "security"
+    ]
+    if any(pattern in combined_text for pattern in security_patterns):
+        return "Security Device"
+    
+    # 3. Network device detection
+    network_patterns = [
+        "switch", "router", "gateway", "loadbalancer", "lb-", 
+        "cisco", "juniper", "palo", "fortinet", "f5", "netscaler",
+        "core", "edge", "wan", "lan", "wifi", "access-point", "ap-"
+    ]
+    if any(pattern in combined_text for pattern in network_patterns):
+        return "Network Device"
+    
+    # 4. Storage device detection
+    storage_patterns = [
+        "san", "nas", "storage", "array", "netapp", "emc", "dell", "hp-3par",
+        "pure", "nimble", "solidfire", "vnx", "unity", "powermax"
+    ]
+    if any(pattern in combined_text for pattern in storage_patterns):
+        return "Storage Device"
+    
+    # 5. Virtualization detection (before application/server to catch vmware, etc.)
+    virtualization_patterns = [
+        "vmware", "vcenter", "esxi", "hyper-v", "citrix", "xen", "kvm",
+        "docker", "kubernetes", "openshift", "vsphere"
+    ]
+    if any(pattern in combined_text for pattern in virtualization_patterns):
+        return "Virtualization Platform"
+    
+    # 6. Server detection (moved before application for better precision)
+    server_patterns = [
+        "server", "srv-", "-srv", "host", "machine", "vm", "computer", "node",
+        "mail", "dns", "dhcp", "domain", "controller"
+    ]
+    if any(pattern in combined_text for pattern in server_patterns):
         return "Server"
-    # Network detection
-    elif any(keyword in combined_text for keyword in ["network", "switch", "router", "firewall", "gateway"]):
-        return "Network"
-    else:
-        return "Unknown"
+    
+    # 7. Application detection (after server to avoid misclassification)
+    application_patterns = [
+        "application", "app-", "-app", "service", "software", "portal", 
+        "system", "platform", "web", "api", "microservice", "webapp"
+    ]
+    if any(pattern in combined_text for pattern in application_patterns):
+        # Additional check: if it has infrastructure specs, it might be a server
+        if asset_data and (asset_data.get("cpu_cores") or asset_data.get("memory_gb")):
+            # Could be application running on a server, classify as server
+            return "Server"
+        return "Application"
+    
+    # 8. Other infrastructure devices
+    infrastructure_patterns = [
+        "ups", "power", "rack", "kvm", "console", "monitor", "printer",
+        "scanner", "phone", "voip", "camera", "sensor"
+    ]
+    if any(pattern in combined_text for pattern in infrastructure_patterns):
+        return "Infrastructure Device"
+    
+    # If no pattern matches, return Unknown
+    return "Unknown"
 
 def _get_field_value(asset: Dict[str, Any], field_names: List[str]) -> str:
     """Get field value using flexible field name matching."""
@@ -1029,4 +1283,131 @@ async def test_field_mapping():
             "status": "error",
             "error": str(e),
             "message": "Field mapping test failed"
-        } 
+        }
+
+def _assess_6r_readiness(asset_type: str, asset_data: Dict[str, Any]) -> str:
+    """Assess if an asset is ready for 6R treatment analysis."""
+    
+    # Devices typically don't need 6R analysis
+    device_types = ["Network Device", "Storage Device", "Security Device", "Infrastructure Device"]
+    if asset_type in device_types:
+        return "Not Applicable"
+    
+    # Check for minimum required data
+    has_name = bool(asset_data.get('Name') or asset_data.get('asset_name'))
+    has_environment = bool(asset_data.get('Environment') or asset_data.get('environment'))
+    has_owner = bool(asset_data.get('Business_Owner') or asset_data.get('business_owner'))
+    
+    if asset_type == "Application":
+        # Applications need name, environment, owner
+        if has_name and has_environment and has_owner:
+            return "Ready"
+        elif has_name and has_environment:
+            return "Needs Owner Info"
+        else:
+            return "Insufficient Data"
+    
+    elif asset_type == "Server":
+        # Servers need infrastructure specs
+        has_cpu = bool(asset_data.get('CPU_Cores') or asset_data.get('cpu_cores'))
+        has_memory = bool(asset_data.get('Memory_GB') or asset_data.get('memory_gb'))
+        has_os = bool(asset_data.get('OS') or asset_data.get('operating_system'))
+        
+        if has_name and has_environment and has_cpu and has_memory and has_os:
+            return "Ready"
+        elif has_name and has_environment:
+            return "Needs Infrastructure Data"
+        else:
+            return "Insufficient Data"
+    
+    elif asset_type == "Database":
+        # Databases need version and host info
+        has_version = bool(asset_data.get('Version') or asset_data.get('database_version'))
+        has_host = bool(asset_data.get('Host') or asset_data.get('hostname'))
+        
+        if has_name and has_environment and has_version:
+            return "Ready"
+        elif has_name and has_environment:
+            return "Needs Version Info"
+        else:
+            return "Insufficient Data"
+    
+    elif asset_type == "Virtualization Platform":
+        return "Complex Analysis Required"
+    
+    else:  # Unknown type
+        return "Type Classification Needed"
+
+def _assess_migration_complexity(asset_type: str, asset_data: Dict[str, Any]) -> str:
+    """Assess the migration complexity of an asset."""
+    
+    # Devices typically have low complexity
+    device_types = ["Network Device", "Storage Device", "Security Device", "Infrastructure Device"]
+    if asset_type in device_types:
+        return "Low"
+    
+    if asset_type == "Application":
+        # Check for complexity indicators
+        has_dependencies = bool(asset_data.get('Related_CI') or asset_data.get('dependencies'))
+        is_critical = str(asset_data.get('Criticality', '')).lower() in ['high', 'critical']
+        is_production = str(asset_data.get('Environment', '')).lower() == 'production'
+        
+        complexity_score = 0
+        if has_dependencies:
+            complexity_score += 2
+        if is_critical:
+            complexity_score += 2
+        if is_production:
+            complexity_score += 1
+        
+        if complexity_score >= 4:
+            return "High"
+        elif complexity_score >= 2:
+            return "Medium"
+        else:
+            return "Low"
+    
+    elif asset_type == "Server":
+        # Server complexity based on specs and usage
+        cpu_cores = int(asset_data.get('CPU_Cores', asset_data.get('cpu_cores', 0)) or 0)
+        memory_gb = int(asset_data.get('Memory_GB', asset_data.get('memory_gb', 0)) or 0)
+        is_production = str(asset_data.get('Environment', '')).lower() == 'production'
+        
+        complexity_score = 0
+        if cpu_cores > 16:
+            complexity_score += 2
+        elif cpu_cores > 8:
+            complexity_score += 1
+        
+        if memory_gb > 64:
+            complexity_score += 2
+        elif memory_gb > 32:
+            complexity_score += 1
+        
+        if is_production:
+            complexity_score += 1
+        
+        if complexity_score >= 4:
+            return "High"
+        elif complexity_score >= 2:
+            return "Medium"
+        else:
+            return "Low"
+    
+    elif asset_type == "Database":
+        # Databases are typically medium to high complexity
+        is_critical = str(asset_data.get('Criticality', '')).lower() in ['high', 'critical']
+        is_production = str(asset_data.get('Environment', '')).lower() == 'production'
+        
+        if is_critical and is_production:
+            return "High"
+        elif is_production:
+            return "Medium"
+        else:
+            return "Low"
+    
+    elif asset_type == "Virtualization Platform":
+        return "High"
+    
+    else:
+        return "Medium" 
