@@ -84,7 +84,7 @@ class DockerTestRunner:
         
         services = [
             ("Backend", "http://localhost:8000"),
-            ("Frontend", "http://localhost:3000")
+            ("Frontend", "http://localhost:8081")
         ]
         
         start_time = time.time()
@@ -143,6 +143,7 @@ class DockerTestRunner:
         env = os.environ.copy()
         env.update({
             "DOCKER_API_BASE": "http://localhost:8000",
+            "DOCKER_FRONTEND_BASE": "http://localhost:8081",
             "PYTHONPATH": "backend:tests/backend",
             "TESTING": "true"
         })
@@ -172,8 +173,8 @@ class DockerTestRunner:
         
         env = os.environ.copy()
         env.update({
-            "DOCKER_FRONTEND_BASE": "http://localhost:3000",
-            "DOCKER_API_BASE": "http://localhost:8000"
+            "DOCKER_API_BASE": "http://localhost:8000",
+            "DOCKER_FRONTEND_BASE": "http://localhost:8081"
         })
         
         # Check if npm is available
@@ -211,7 +212,7 @@ class DockerTestRunner:
         env = os.environ.copy()
         env.update({
             "DOCKER_API_BASE": "http://localhost:8000",
-            "DOCKER_FRONTEND_BASE": "http://localhost:3000",
+            "DOCKER_FRONTEND_BASE": "http://localhost:8081",
             "PYTHONPATH": "tests/docker"
         })
         

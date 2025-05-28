@@ -14,7 +14,7 @@ from unittest.mock import patch, Mock
 
 # Docker test configuration
 DOCKER_API_BASE = os.getenv('DOCKER_API_BASE', 'http://localhost:8000')
-DOCKER_FRONTEND_BASE = os.getenv('DOCKER_FRONTEND_BASE', 'http://localhost:3000')
+DOCKER_FRONTEND_BASE = os.getenv('DOCKER_FRONTEND_BASE', 'http://localhost:8081')
 
 @pytest.fixture(scope="session")
 def api_client():

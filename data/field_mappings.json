@@ -1,0 +1,33 @@
+{
+  "Asset Name": [
+    "asset name",
+    "hostname"
+  ],
+  "Operating System": [
+    "os type",
+    "operating system",
+    "workload type"
+  ],
+  "Environment": [
+    "environment"
+  ],
+  "Memory (GB)": [
+    "ram (gb)",
+    "memory (gb)"
+  ],
+  "Dependencies": [
+    "dependencies",
+    "application_mapped"
+  ],
+  "Asset Type": [
+    "asset type",
+    "workload type"
+  ],
+  "CPU Cores": [
+    "cpu cores"
+  ],
+  "Storage (GB)": [
+    "disk size (gb)",
+    "storage (gb)"
+  ]
+}

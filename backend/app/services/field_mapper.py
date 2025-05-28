@@ -20,21 +20,25 @@ class DynamicFieldMapper:
         self.data_dir.mkdir(exist_ok=True)
         self.mappings_file = self.data_dir / "field_mappings.json"
         
-        # Base field mappings - MINIMAL starting point, AI should learn the rest
+        # Enhanced base field mappings with comprehensive variations
         self.base_mappings = {
-            'Asset Name': ['name', 'asset_name', 'hostname'],
-            'Asset Type': ['type', 'asset_type', 'ci_type'],
-            'Environment': ['environment', 'env'],
-            'Operating System': ['os', 'operating_system'],
-            'CPU Cores': ['cpu', 'cores'],
-            'Memory (GB)': ['memory', 'memory_gb'],  # AI must learn ram_gb mapping
-            'Storage (GB)': ['storage', 'storage_gb'],
-            'IP Address': ['ip_address', 'ip'],
-            'MAC Address': ['mac_address', 'mac'],
-            'Application Service': ['application', 'service'],
-            'Version': ['version', 'release'],
-            'Dependencies': ['related_ci', 'depends_on']
-            # Business Owner and Criticality removed - AI must learn these mappings
+            'Asset Name': ['name', 'asset_name', 'hostname', 'ci_name', 'server_name', 'host_name', 'computer_name', 'machine_name'],
+            'Asset Type': ['type', 'asset_type', 'ci_type', 'classification', 'category', 'device_type', 'workload_type', 'workload type'],
+            'Environment': ['environment', 'env', 'stage', 'tier', 'deployment_stage'],
+            'Operating System': ['os', 'operating_system', 'platform', 'os_version', 'operating_system_version', 'os_type', 'os type'],
+            'CPU Cores': ['cpu', 'cores', 'cpu_cores', 'processors', 'vcpu', 'cpu_count', 'processor_count', 'cpu cores'],
+            'Memory (GB)': ['memory', 'memory_gb', 'ram', 'ram_gb', 'mem', 'memory_size', 'ram_size', 'ram (gb)'],
+            'Storage (GB)': ['storage', 'storage_gb', 'disk', 'disk_gb', 'storage_size', 'disk_size', 'disk size (gb)'],
+            'IP Address': ['ip_address', 'ip', 'network_address', 'primary_ip', 'mgmt_ip'],
+            'MAC Address': ['mac_address', 'mac', 'physical_address', 'ethernet_address'],
+            'Business Owner': ['business_owner', 'owner', 'application_owner', 'responsible_party', 'business_contact'],
+            'Criticality': ['criticality', 'business_criticality', 'priority', 'importance', 'dr_tier', 'tier'],
+            'Application Service': ['application', 'service', 'business_service', 'app_name', 'service_name'],
+            'Version': ['version', 'release', 'build', 'software_version', 'app_version'],
+            'Dependencies': ['related_ci', 'depends_on', 'relationships', 'dependencies', 'application_mapped'],
+            'Location': ['location', 'site', 'datacenter', 'dc', 'facility'],
+            'Vendor': ['vendor', 'manufacturer', 'make', 'brand'],
+            'Model': ['model', 'device_model', 'hardware_model', 'product_model']
         }
         
         # Load existing learned mappings
@@ -428,6 +432,238 @@ class DynamicFieldMapper:
             "learning_effectiveness": stats.get("learning_effectiveness", 0),
             "context_message": f"Currently tracking {len(self.base_mappings)} base field types with {stats.get('learned_variations', 0)} learned variations"
         }
+
+    def analyze_data_patterns(self, columns: List[str], sample_data: List[List[Any]], asset_type: str = "server") -> Dict[str, Any]:
+        """
+        Analyze data patterns to suggest field mappings based on content analysis.
+        This goes beyond column name matching to examine actual data patterns.
+        """
+        try:
+            suggestions = {}
+            confidence_scores = {}
+            
+            for i, column in enumerate(columns):
+                # Extract sample values for this column
+                sample_values = []
+                for row in sample_data:
+                    if i < len(row) and row[i] is not None:
+                        sample_values.append(str(row[i]).strip())
+                
+                if not sample_values:
+                    continue
+                
+                # Analyze column patterns
+                pattern_analysis = self._analyze_column_content(column, sample_values)
+                
+                if pattern_analysis["suggested_field"]:
+                    suggestions[column] = pattern_analysis["suggested_field"]
+                    confidence_scores[column] = pattern_analysis["confidence"]
+            
+            return {
+                "column_analysis": suggestions,
+                "confidence_scores": confidence_scores,
+                "total_columns_analyzed": len(columns),
+                "mappings_found": len(suggestions),
+                "asset_type": asset_type
+            }
+            
+        except Exception as e:
+            logger.error(f"Data pattern analysis failed: {e}")
+            return {
+                "error": str(e),
+                "column_analysis": {},
+                "confidence_scores": {}
+            }
+    
+    def _analyze_column_content(self, column_name: str, sample_values: List[str]) -> Dict[str, Any]:
+        """
+        Analyze column content to determine the most likely field mapping.
+        Uses both column name and data content patterns.
+        """
+        column_lower = column_name.lower().strip()
+        suggestions = []
+        
+        # First check exact matches in base mappings
+        for canonical_field, variations in self.base_mappings.items():
+            for variation in variations:
+                if variation.lower() == column_lower:
+                    return {
+                        "suggested_field": canonical_field,
+                        "confidence": 0.95,
+                        "reason": f"Exact match with known variation: {variation}"
+                    }
+        
+        # Check learned mappings
+        for canonical_field, variations in self.learned_mappings.items():
+            for variation in variations:
+                if variation.lower() == column_lower:
+                    return {
+                        "suggested_field": canonical_field,
+                        "confidence": 0.90,
+                        "reason": f"Exact match with learned variation: {variation}"
+                    }
+        
+        # Analyze data content patterns
+        content_analysis = self._analyze_data_content_patterns(sample_values)
+        
+        # Pattern-based suggestions
+        if content_analysis["pattern_type"] == "ip_address":
+            suggestions.append(("IP Address", 0.85, "IP address pattern detected"))
+        elif content_analysis["pattern_type"] == "mac_address":
+            suggestions.append(("MAC Address", 0.85, "MAC address pattern detected"))
+        elif content_analysis["pattern_type"] == "numeric_memory":
+            suggestions.append(("Memory (GB)", 0.80, "Numeric memory values detected"))
+        elif content_analysis["pattern_type"] == "numeric_cpu":
+            suggestions.append(("CPU Cores", 0.80, "Numeric CPU values detected"))
+        elif content_analysis["pattern_type"] == "hostname":
+            suggestions.append(("Asset Name", 0.75, "Hostname pattern detected"))
+        elif content_analysis["pattern_type"] == "workload_type":
+            suggestions.append(("Asset Type", 0.85, "Workload type pattern detected"))
+        elif content_analysis["pattern_type"] == "operating_system":
+            suggestions.append(("Operating System", 0.85, "OS pattern detected"))
+        elif content_analysis["pattern_type"] == "environment":
+            suggestions.append(("Environment", 0.80, "Environment values detected"))
+        elif content_analysis["pattern_type"] == "asset_type":
+            suggestions.append(("Asset Type", 0.80, "Asset type values detected"))
+        elif content_analysis["pattern_type"] == "criticality":
+            suggestions.append(("Criticality", 0.75, "Criticality values detected"))
+        
+        # Fuzzy matching on column names
+        fuzzy_suggestions = self._fuzzy_match_column_name(column_lower)
+        suggestions.extend(fuzzy_suggestions)
+        
+        # Return best suggestion
+        if suggestions:
+            best_suggestion = max(suggestions, key=lambda x: x[1])
+            return {
+                "suggested_field": best_suggestion[0],
+                "confidence": best_suggestion[1],
+                "reason": best_suggestion[2]
+            }
+        
+        return {
+            "suggested_field": None,
+            "confidence": 0.0,
+            "reason": "No pattern match found"
+        }
+    
+    def _analyze_data_content_patterns(self, sample_values: List[str]) -> Dict[str, Any]:
+        """Analyze actual data content to identify patterns."""
+        import re
+        
+        if not sample_values:
+            return {"pattern_type": None, "confidence": 0.0}
+        
+        # Remove empty values
+        values = [v for v in sample_values if v and v.strip()]
+        if not values:
+            return {"pattern_type": None, "confidence": 0.0}
+        
+        # IP Address pattern
+        ip_pattern = re.compile(r'^(\d{1,3}\.){3}\d{1,3}$')
+        ip_matches = sum(1 for v in values if ip_pattern.match(v))
+        if ip_matches / len(values) > 0.7:
+            return {"pattern_type": "ip_address", "confidence": 0.9}
+        
+        # MAC Address pattern
+        mac_pattern = re.compile(r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$')
+        mac_matches = sum(1 for v in values if mac_pattern.match(v))
+        if mac_matches / len(values) > 0.7:
+            return {"pattern_type": "mac_address", "confidence": 0.9}
+        
+        # Numeric patterns
+        numeric_values = []
+        for v in values:
+            try:
+                numeric_values.append(float(v))
+            except ValueError:
+                continue
+        
+        if len(numeric_values) / len(values) > 0.8:
+            # Check if values look like memory (typically 4, 8, 16, 32, 64, 128, etc.)
+            if all(0 < n <= 1024 for n in numeric_values):
+                memory_indicators = sum(1 for n in numeric_values if n in [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024])
+                if memory_indicators / len(numeric_values) > 0.5:
+                    return {"pattern_type": "numeric_memory", "confidence": 0.8}
+                
+                # Check if values look like CPU cores (typically 1, 2, 4, 8, 16, 32)
+                cpu_indicators = sum(1 for n in numeric_values if n in [1, 2, 4, 8, 12, 16, 24, 32, 48, 64])
+                if cpu_indicators / len(numeric_values) > 0.5:
+                    return {"pattern_type": "numeric_cpu", "confidence": 0.8}
+        
+        # Hostname pattern
+        hostname_pattern = re.compile(r'^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*$')
+        hostname_matches = sum(1 for v in values if hostname_pattern.match(v) and len(v) > 2)
+        if hostname_matches / len(values) > 0.7:
+            return {"pattern_type": "hostname", "confidence": 0.7}
+        
+        # Workload/Asset Type pattern (specific server types)
+        workload_keywords = ['db server', 'web server', 'app server', 'application server', 'database server', 'file server', 'mail server']
+        workload_matches = sum(1 for v in values if any(keyword in v.lower() for keyword in workload_keywords))
+        if workload_matches / len(values) > 0.5:
+            return {"pattern_type": "workload_type", "confidence": 0.85}
+        
+        # Operating System pattern (specific OS names)
+        os_keywords = ['windows', 'linux', 'ubuntu', 'centos', 'rhel', 'aix', 'solaris', 'macos', 'unix', 'server 2016', 'server 2019']
+        os_matches = sum(1 for v in values if any(keyword in v.lower() for keyword in os_keywords))
+        if os_matches / len(values) > 0.5:
+            return {"pattern_type": "operating_system", "confidence": 0.8}
+        
+        # Environment pattern
+        env_keywords = ['production', 'prod', 'development', 'dev', 'test', 'staging', 'qa', 'uat']
+        env_matches = sum(1 for v in values if v.lower() in env_keywords)
+        if env_matches / len(values) > 0.5:
+            return {"pattern_type": "environment", "confidence": 0.85}
+        
+        # General Asset Type pattern (broader categories)
+        asset_keywords = ['server', 'application', 'database', 'network', 'storage', 'vm', 'virtual']
+        asset_matches = sum(1 for v in values if any(keyword in v.lower() for keyword in asset_keywords))
+        if asset_matches / len(values) > 0.5:
+            return {"pattern_type": "asset_type", "confidence": 0.8}
+        
+        # Criticality pattern
+        crit_keywords = ['critical', 'high', 'medium', 'low', 'tier', '1', '2', '3', '4']
+        crit_matches = sum(1 for v in values if v.lower() in crit_keywords or v in ['1', '2', '3', '4'])
+        if crit_matches / len(values) > 0.5:
+            return {"pattern_type": "criticality", "confidence": 0.75}
+        
+        return {"pattern_type": None, "confidence": 0.0}
+    
+    def _fuzzy_match_column_name(self, column_lower: str) -> List[tuple]:
+        """Fuzzy match column names against known field variations."""
+        suggestions = []
+        
+        # Split column name into words
+        column_words = set(column_lower.replace('_', ' ').replace('-', ' ').split())
+        
+        for canonical_field, variations in self.base_mappings.items():
+            max_score = 0
+            best_reason = ""
+            
+            for variation in variations:
+                variation_words = set(variation.replace('_', ' ').replace('-', ' ').split())
+                
+                # Calculate word overlap
+                overlap = column_words.intersection(variation_words)
+                if overlap:
+                    score = len(overlap) / max(len(column_words), len(variation_words))
+                    if score > max_score:
+                        max_score = score
+                        best_reason = f"Word overlap with '{variation}': {', '.join(overlap)}"
+            
+            # Also check if column name contains key words from canonical field
+            canonical_words = set(canonical_field.lower().replace('(', '').replace(')', '').split())
+            overlap = column_words.intersection(canonical_words)
+            if overlap:
+                score = len(overlap) / len(canonical_words)
+                if score > max_score:
+                    max_score = score
+                    best_reason = f"Contains key words from '{canonical_field}': {', '.join(overlap)}"
+            
+            if max_score > 0.3:  # Minimum threshold for fuzzy matching
+                suggestions.append((canonical_field, max_score * 0.7, best_reason))  # Reduce confidence for fuzzy matches
+        
+        return suggestions
 
 
 # Global instance

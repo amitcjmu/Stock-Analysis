@@ -196,8 +196,8 @@ class CMDBDataProcessor:
         )
     
     def identify_missing_fields(self, df: pd.DataFrame) -> List[str]:
-        """Identify missing required fields based on asset type context and learned patterns."""
-        columns_lower = [col.lower() for col in df.columns]
+        """Identify missing required fields using enhanced pattern analysis and learned mappings."""
+        columns = df.columns.tolist()
         missing_fields = []
         
         # Determine primary asset type
@@ -208,58 +208,89 @@ class CMDBDataProcessor:
         elif coverage.databases > coverage.applications and coverage.databases > coverage.servers:
             primary_type = 'database'
         
-        # Get learned field mappings from agent memory if available
-        learned_mappings = self._get_learned_field_mappings()
+        # Use pattern analysis to understand available data
+        try:
+            from app.services.tools.field_mapping_tool import field_mapping_tool
+            
+            # Prepare sample data for pattern analysis
+            sample_rows = []
+            for _, row in df.head(10).iterrows():
+                sample_row = [str(row[col]) if pd.notna(row[col]) else '' for col in columns]
+                sample_rows.append(sample_row)
+            
+            # Get pattern analysis results
+            pattern_analysis = field_mapping_tool.analyze_data_patterns(columns, sample_rows, primary_type)
+            column_mappings = pattern_analysis.get("column_analysis", {})
+            confidence_scores = pattern_analysis.get("confidence_scores", {})
+            
+            logger.info(f"Pattern analysis found {len(column_mappings)} field mappings")
+            
+        except Exception as e:
+            logger.warning(f"Pattern analysis failed, using fallback: {e}")
+            column_mappings = {}
+            confidence_scores = {}
         
-        # Asset-type-specific field requirements with enhanced mappings
+        # Define essential fields by asset type
         if primary_type == 'application':
-            essential_mappings = {
-                'Asset Name': ['name', 'application_name', 'service_name', 'business_service', 'asset_name'],
-                'Asset Type': ['type', 'asset_type', 'ci_type', 'classification'],
-                'Environment': ['environment', 'env', 'stage', 'tier'],
-                'Business Owner': ['owner', 'business_owner', 'application_owner', 'responsible_party'],
-                'Criticality': ['criticality', 'business_criticality', 'priority', 'importance'],
-                'Version': ['version', 'release', 'build'],
-                'Dependencies': ['related_ci', 'depends_on', 'relationships']
-            }
+            essential_fields = [
+                'Asset Name', 'Asset Type', 'Environment', 'Business Owner', 
+                'Criticality', 'Version', 'Dependencies'
+            ]
         elif primary_type == 'server':
-            essential_mappings = {
-                'Asset Name': ['name', 'hostname', 'server_name', 'computer_name', 'asset_name'],
-                'Asset Type': ['type', 'asset_type', 'ci_type', 'classification'],
-                'Environment': ['environment', 'env', 'stage'],
-                'Business Owner': ['owner', 'business_owner', 'responsible_party'],
-                'Criticality': ['criticality', 'business_criticality', 'priority'],
-                'Operating System': ['os', 'operating_system', 'platform', 'os_version'],
-                'CPU Cores': ['cpu', 'cores', 'processors', 'vcpu', 'cpu_cores'],
-                'Memory (GB)': ['memory', 'ram', 'memory_gb', 'mem', 'ram_gb'],  # Added ram_gb
-                'IP Address': ['ip_address', 'ip', 'network_address']
-            }
+            essential_fields = [
+                'Asset Name', 'Asset Type', 'Environment', 'Business Owner',
+                'Criticality', 'Operating System', 'CPU Cores', 'Memory (GB)', 'IP Address'
+            ]
         else:  # database
-            essential_mappings = {
-                'Asset Name': ['name', 'database_name', 'instance_name', 'asset_name'],
-                'Asset Type': ['type', 'asset_type', 'ci_type', 'db_type'],
-                'Environment': ['environment', 'env', 'stage'],
-                'Business Owner': ['owner', 'business_owner', 'dba_owner'],
-                'Criticality': ['criticality', 'business_criticality', 'priority'],
-                'Database Version': ['version', 'db_version', 'release'],
-                'Host Server': ['host', 'server', 'hostname'],
-                'Port': ['port', 'db_port', 'connection_port']
-            }
+            essential_fields = [
+                'Asset Name', 'Asset Type', 'Environment', 'Business Owner',
+                'Criticality', 'Database Version', 'Host Server', 'Port'
+            ]
         
-        # Apply learned mappings to enhance field detection
-        if learned_mappings:
-            for field_name, possible_columns in essential_mappings.items():
-                if field_name in learned_mappings:
-                    # Add learned field variations
-                    enhanced_columns = list(set(possible_columns + learned_mappings[field_name]))
-                    essential_mappings[field_name] = enhanced_columns
-        
-        # Check for missing essential fields
-        for field_name, possible_columns in essential_mappings.items():
-            if not any(col in columns_lower for col in possible_columns):
-                missing_fields.append(field_name)
+        # Check each essential field
+        for essential_field in essential_fields:
+            field_found = False
+            
+            # Check if any column maps to this essential field with high confidence
+            for column, mapped_field in column_mappings.items():
+                if mapped_field == essential_field:
+                    confidence = confidence_scores.get(column, 0.0)
+                    if confidence > 0.6:  # Accept medium to high confidence mappings
+                        field_found = True
+                        logger.info(f"Found mapping: {column} → {essential_field} (confidence: {confidence:.2f})")
+                        break
+            
+            # If not found through pattern analysis, try fallback mapping
+            if not field_found:
+                field_found = self._check_fallback_field_mapping(essential_field, columns)
+            
+            if not field_found:
+                missing_fields.append(essential_field)
+                logger.info(f"Missing field: {essential_field}")
         
         return missing_fields
+    
+    def _check_fallback_field_mapping(self, essential_field: str, available_columns: List[str]) -> bool:
+        """Fallback method to check for field mappings using simple name matching."""
+        columns_lower = [col.lower().strip() for col in available_columns]
+        
+        # Simple fallback mappings for common cases
+        fallback_mappings = {
+            'Asset Name': ['name', 'hostname', 'asset_name', 'ci_name', 'server_name'],
+            'Asset Type': ['type', 'ci_type', 'asset_type', 'classification'],
+            'Environment': ['environment', 'env', 'stage'],
+            'Operating System': ['os', 'operating_system', 'platform'],
+            'CPU Cores': ['cpu', 'cores', 'cpu_cores', 'processors'],
+            'Memory (GB)': ['memory', 'ram', 'memory_gb', 'ram_gb', 'mem'],
+            'IP Address': ['ip_address', 'ip', 'network_address', 'host_ip'],
+            'Business Owner': ['business_owner', 'owner', 'application_owner'],
+            'Criticality': ['criticality', 'business_criticality', 'priority', 'importance'],
+            'Version': ['version', 'release', 'app_version', 'software_version'],
+            'Dependencies': ['dependencies', 'related_ci', 'depends_on', 'application_mapped']
+        }
+        
+        variations = fallback_mappings.get(essential_field, [])
+        return any(variation in columns_lower for variation in variations)
     
     def _get_learned_field_mappings(self) -> Dict[str, List[str]]:
         """Get learned field mappings from the dynamic field mapper."""
@@ -358,8 +389,56 @@ async def analyze_cmdb_data(request: CMDBAnalysisRequest):
                 crewai_result = await processor.crewai_service.analyze_cmdb_data(cmdb_data)
                 logger.info(f"CrewAI analysis completed: {crewai_result}")
             except Exception as e:
-                logger.warning(f"CrewAI analysis failed: {e}, continuing with local analysis")
+                logger.warning(f"CrewAI analysis failed: {e}, continuing with enhanced fallback analysis")
                 crewai_result = {"issues": [], "recommendations": []}
+            
+            # Enhanced fallback analysis using pattern analysis if AI failed
+            if crewai_result.get("parsed") == False or crewai_result.get("fallback_used") == True:
+                logger.info("AI analysis failed or used fallback, enhancing with pattern analysis")
+                
+                # Use pattern analysis to improve the fallback
+                try:
+                    from app.services.tools.field_mapping_tool import field_mapping_tool
+                    
+                    # Prepare sample data for pattern analysis
+                    sample_rows = []
+                    if cmdb_data.get('sample_data'):
+                        for record in cmdb_data['sample_data'][:10]:
+                            row = [record.get(col, '') for col in df.columns.tolist()]
+                            sample_rows.append(row)
+                    
+                    # Get enhanced pattern analysis
+                    pattern_analysis = field_mapping_tool.analyze_data_patterns(
+                        df.columns.tolist(), sample_rows, "server"
+                    )
+                    
+                    # Use pattern analysis to enhance the result
+                    column_mappings = pattern_analysis.get("column_analysis", {})
+                    confidence_scores = pattern_analysis.get("confidence_scores", {})
+                    
+                    # Calculate better quality score based on pattern analysis
+                    total_columns = len(df.columns)
+                    mapped_columns = len([col for col, conf in confidence_scores.items() if conf > 0.6])
+                    mapping_quality = (mapped_columns / total_columns) * 100 if total_columns > 0 else 0
+                    
+                    # Enhanced missing fields detection
+                    enhanced_missing_fields = processor.identify_missing_fields(df)
+                    
+                    # Update crewai_result with enhanced data
+                    crewai_result.update({
+                        "data_quality_score": max(crewai_result.get("data_quality_score", 0), int(mapping_quality)),
+                        "missing_fields_relevant": enhanced_missing_fields,
+                        "field_mappings_discovered": [f"{col} → {mapped}" for col, mapped in column_mappings.items() if confidence_scores.get(col, 0) > 0.7],
+                        "pattern_analysis_applied": True,
+                        "columns_successfully_mapped": mapped_columns,
+                        "total_columns": total_columns,
+                        "enhanced_with_pattern_analysis": True
+                    })
+                    
+                    logger.info(f"Enhanced fallback with pattern analysis: {mapped_columns}/{total_columns} columns mapped")
+                    
+                except Exception as pattern_error:
+                    logger.warning(f"Pattern analysis enhancement failed: {pattern_error}")
             
             # Perform local analysis to supplement agentic analysis
             coverage = processor.identify_asset_types(df)
@@ -510,6 +589,68 @@ async def process_cmdb_data(request: CMDBProcessingRequest):
         
         # Apply data processing steps with agentic intelligence
         processed_df = df.copy()
+        
+        # CRITICAL: Apply field mappings discovered during analysis
+        # This ensures the data is transformed using the learned field mappings
+        try:
+            from app.services.tools.field_mapping_tool import field_mapping_tool
+            
+            # Get enhanced pattern analysis to apply field mappings
+            sample_rows = []
+            for _, row in processed_df.head(10).iterrows():
+                sample_row = [str(row[col]) if pd.notna(row[col]) else '' for col in processed_df.columns]
+                sample_rows.append(sample_row)
+            
+            # Analyze current column patterns
+            pattern_analysis = field_mapping_tool.analyze_data_patterns(
+                processed_df.columns.tolist(), sample_rows, "server"
+            )
+            
+            column_mappings = pattern_analysis.get("column_analysis", {})
+            confidence_scores = pattern_analysis.get("confidence_scores", {})
+            
+            # Apply field renaming based on discovered mappings
+            field_rename_map = {}
+            for original_column, canonical_field in column_mappings.items():
+                confidence = confidence_scores.get(original_column, 0.0)
+                if confidence > 0.7:  # High confidence mappings
+                    # Convert canonical field name to standardized column name
+                    standardized_name = canonical_field.lower().replace(' ', '_').replace('(', '').replace(')', '').replace('-', '_')
+                    field_rename_map[original_column] = standardized_name
+                    logger.info(f"Mapping field: {original_column} → {standardized_name} (canonical: {canonical_field})")
+            
+            # Apply the field renaming
+            if field_rename_map:
+                processed_df = processed_df.rename(columns=field_rename_map)
+                logger.info(f"Applied {len(field_rename_map)} field mappings during processing")
+            
+            # Combine OS fields if both exist
+            os_type_col = None
+            os_version_col = None
+            
+            # Find OS-related columns (could be renamed or original)
+            for col in processed_df.columns:
+                col_lower = col.lower()
+                if 'operating_system' in col_lower and 'version' not in col_lower:
+                    os_type_col = col
+                elif 'os_version' in col_lower or col_lower in ['os version', 'os_version']:
+                    os_version_col = col
+                elif col_lower == 'os version':
+                    os_version_col = col
+            
+            # Rename OS columns to standardized names
+            if os_type_col and os_type_col in processed_df.columns:
+                if 'operating_system' not in processed_df.columns:
+                    processed_df = processed_df.rename(columns={os_type_col: 'operating_system'})
+                    logger.info(f"Renamed {os_type_col} to operating_system")
+            
+            if os_version_col and os_version_col in processed_df.columns:
+                if 'os_version' not in processed_df.columns:
+                    processed_df = processed_df.rename(columns={os_version_col: 'os_version'})
+                    logger.info(f"Renamed {os_version_col} to os_version")
+            
+        except Exception as e:
+            logger.warning(f"Field mapping application failed: {e}")
         
         # Use CrewAI for intelligent asset processing and classification
         processing_result = await processor.crewai_service.process_cmdb_data({
@@ -796,9 +937,21 @@ async def get_processed_assets():
                 asset_name = _get_field_value(asset, ["asset_name", "name", "hostname", "ci_name"])
                 asset_type = _get_field_value(asset, ["asset_type", "ci_type", "type", "sys_class_name"])
                 
+                # Helper function to get numeric values
+                def get_numeric_value(asset, field_names):
+                    value = _get_field_value(asset, field_names)
+                    if value == "Unknown":
+                        return None
+                    try:
+                        # Handle various numeric formats
+                        numeric_val = float(str(value).replace(',', '').strip())
+                        return int(numeric_val) if numeric_val.is_integer() else numeric_val
+                    except (ValueError, AttributeError):
+                        return None
+                
                 # Standardize asset data format with flexible field mapping
                 formatted_asset = {
-                    "id": _get_field_value(asset, ["ci_id", "asset_id", "id", "asset_name", "name"]) or f"ASSET_{len(formatted_assets) + 1}",
+                    "id": _get_field_value(asset, ["ci_id", "asset_id", "id", "asset_name", "name", "hostname"]) or f"ASSET_{len(formatted_assets) + 1}",
                     "type": _standardize_asset_type(asset_type, asset_name, asset),
                     "name": asset_name,
                     "techStack": _get_tech_stack(asset),
@@ -807,10 +960,11 @@ async def get_processed_assets():
                     "environment": _get_field_value(asset, ["environment", "env", "stage", "tier"]),
                     "criticality": _get_field_value(asset, ["criticality", "business_criticality", "priority", "importance"]),
                     "ipAddress": _get_field_value(asset, ["ip_address", "ip", "network_address", "host_ip"]),
-                    "operatingSystem": _get_field_value(asset, ["operating_system", "os", "platform", "os_name"]),
-                    "cpuCores": _get_field_value(asset, ["cpu_cores", "cpu", "cores", "processors", "vcpu"]),
-                    "memoryGb": _get_field_value(asset, ["memory_gb", "memory", "ram", "ram_gb", "mem"]),
-                    "storageGb": _get_field_value(asset, ["storage_gb", "storage", "disk", "disk_gb", "hdd"])
+                    "operatingSystem": _get_field_value(asset, ["operating_system", "os", "platform", "os_name", "os_type"]),
+                    "osVersion": _get_field_value(asset, ["os_version", "version", "os_ver", "operating_system_version"]),
+                    "cpuCores": get_numeric_value(asset, ["cpu_cores", "cpu", "cores", "processors", "vcpu"]),
+                    "memoryGb": get_numeric_value(asset, ["memory_gb", "memory", "ram", "ram_gb", "mem"]),
+                    "storageGb": get_numeric_value(asset, ["storage_gb", "storage", "disk", "disk_gb", "hdd", "disk_size_gb"])
                 }
                 formatted_assets.append(formatted_asset)
             
@@ -1097,15 +1251,26 @@ def _get_tech_stack(asset: Dict[str, Any]) -> str:
     # Try to build tech stack from available fields
     tech_components = []
     
-    # Operating System
-    os_info = _get_field_value(asset, ["operating_system", "os", "platform", "os_name"])
-    if os_info != "Unknown":
-        tech_components.append(os_info)
+    # Operating System (combine OS type and version for display)
+    os_type = _get_field_value(asset, ["operating_system", "os", "platform", "os_name", "os_type"])
+    os_version = _get_field_value(asset, ["os_version", "version", "os_ver", "operating_system_version"])
     
-    # Version information
-    version = _get_field_value(asset, ["version", "release", "app_version", "software_version"])
-    if version != "Unknown":
-        tech_components.append(f"v{version}")
+    if os_type != "Unknown" and os_version != "Unknown":
+        tech_components.append(f"{os_type} {os_version}")
+    elif os_type != "Unknown":
+        tech_components.append(os_type)
+    elif os_version != "Unknown":
+        tech_components.append(os_version)
+    
+    # Application version information
+    app_version = _get_field_value(asset, ["app_version", "software_version", "application_version"])
+    if app_version != "Unknown" and app_version not in [comp for comp in tech_components]:
+        tech_components.append(f"v{app_version}")
+    
+    # Workload/Asset Type information
+    workload_type = _get_field_value(asset, ["workload_type", "workload type", "asset_type"])
+    if workload_type != "Unknown" and workload_type not in [comp for comp in tech_components]:
+        tech_components.append(workload_type)
     
     # Database specific
     db_version = _get_field_value(asset, ["database_version", "db_version", "db_release"])
@@ -1117,7 +1282,7 @@ def _get_tech_stack(asset: Dict[str, Any]) -> str:
     if platform != "Unknown" and platform not in tech_components:
         tech_components.append(platform)
     
-    # If no tech stack info found, use asset type
+    # If no tech stack info found, try to use asset type or fallback
     if not tech_components:
         asset_type = _get_field_value(asset, ["asset_type", "ci_type", "type", "sys_class_name"])
         if asset_type != "Unknown":
@@ -1163,7 +1328,9 @@ def _generate_suggested_headers(assets: List[Dict[str, Any]]) -> List[Dict[str, 
         if any(asset.get("ipAddress") for asset in assets):
             headers.append({"key": "ipAddress", "label": "IP Address", "description": "Network IP address"})
         if any(asset.get("operatingSystem") for asset in assets):
-            headers.append({"key": "operatingSystem", "label": "Operating System", "description": "Server operating system"})
+            headers.append({"key": "operatingSystem", "label": "Operating System", "description": "Server operating system type"})
+        if any(asset.get("osVersion") for asset in assets):
+            headers.append({"key": "osVersion", "label": "OS Version", "description": "Operating system version"})
         if any(asset.get("cpuCores") for asset in assets):
             headers.append({"key": "cpuCores", "label": "CPU Cores", "description": "Number of CPU cores"})
         if any(asset.get("memoryGb") for asset in assets):
@@ -1410,4 +1577,172 @@ def _assess_migration_complexity(asset_type: str, asset_data: Dict[str, Any]) ->
         return "High"
     
     else:
-        return "Medium" 
+        return "Medium"
+
+@router.get("/applications")
+async def get_applications_for_analysis():
+    """
+    Get applications from discovered assets that are suitable for 6R analysis.
+    Transforms asset inventory data into application format for 6R treatment.
+    """
+    try:
+        # Get all discovered assets
+        has_processed_data = len(processed_assets_store) > 0
+        
+        if not has_processed_data:
+            # Return demo applications if no real data
+            return {
+                "applications": [
+                    {
+                        "id": 1,
+                        "name": "HR_Payroll",
+                        "description": "Human Resources payroll management system",
+                        "techStack": "Java 8, Spring Boot, MySQL",
+                        "department": "Human Resources", 
+                        "environment": "Production",
+                        "criticality": "High",
+                        "sixr_ready": "Ready",
+                        "migration_complexity": "Medium",
+                        "application_type": "custom",
+                        "business_unit": "Human Resources",
+                        "complexity_score": 6
+                    },
+                    {
+                        "id": 2,
+                        "name": "Finance_ERP",
+                        "description": "Enterprise resource planning system for finance",
+                        "techStack": ".NET Core 6, SQL Server",
+                        "department": "Finance",
+                        "environment": "Production", 
+                        "criticality": "Critical",
+                        "sixr_ready": "Ready",
+                        "migration_complexity": "High",
+                        "application_type": "commercial",
+                        "business_unit": "Finance",
+                        "complexity_score": 8
+                    },
+                    {
+                        "id": 3,
+                        "name": "CRM_System", 
+                        "description": "Customer relationship management platform",
+                        "techStack": "Python Django, PostgreSQL",
+                        "department": "Sales",
+                        "environment": "Production",
+                        "criticality": "Medium",
+                        "sixr_ready": "Needs Owner Info",
+                        "migration_complexity": "Low",
+                        "application_type": "custom",
+                        "business_unit": "Sales",
+                        "complexity_score": 4
+                    }
+                ],
+                "summary": {
+                    "total": 3,
+                    "ready_for_analysis": 2,
+                    "need_more_data": 1,
+                    "by_criticality": {
+                        "Critical": 1,
+                        "High": 1,
+                        "Medium": 1,
+                        "Low": 0
+                    },
+                    "by_environment": {
+                        "Production": 3,
+                        "Development": 0,
+                        "Staging": 0
+                    }
+                },
+                "dataSource": "demo"
+            }
+        
+        # Filter and transform assets that are applications or can be treated as applications
+        applications = []
+        app_id_counter = 1
+        
+        for asset in processed_assets_store:
+            asset_type = _get_field_value(asset, ["asset_type", "ci_type", "type", "sys_class_name"])
+            asset_name = _get_field_value(asset, ["asset_name", "name", "hostname", "ci_name"])
+            
+            # Only include assets that make sense for 6R analysis
+            if asset_type in ["Application", "Server", "Database"]:
+                # Determine application type
+                app_type = "custom"
+                if asset_type == "Application":
+                    tech_stack = _get_tech_stack(asset)
+                    if any(tech in tech_stack.lower() for tech in ["sharepoint", "dynamics", "sap", "oracle"]):
+                        app_type = "commercial"
+                elif asset_type == "Server":
+                    # Servers can be treated as infrastructure applications
+                    app_type = "infrastructure"
+                elif asset_type == "Database":
+                    # Databases can be treated as data applications  
+                    app_type = "database"
+                
+                # Calculate complexity score
+                complexity_score = 5  # Default medium
+                if asset_type == "Application":
+                    complexity_score = 6
+                elif asset_type == "Database":
+                    complexity_score = 7
+                elif asset_type == "Server":
+                    complexity_score = 4
+                
+                # Assess 6R readiness
+                sixr_ready = _assess_6r_readiness(asset_type, asset)
+                
+                # Map complexity assessment to score
+                migration_complexity = _get_field_value(asset, ["migration_complexity"])
+                if migration_complexity == "High":
+                    complexity_score = min(complexity_score + 2, 10)
+                elif migration_complexity == "Low":
+                    complexity_score = max(complexity_score - 2, 1)
+                
+                application = {
+                    "id": app_id_counter,
+                    "name": asset_name or f"Asset_{app_id_counter}",
+                    "description": f"{asset_type} - {_get_tech_stack(asset)}",
+                    "techStack": _get_tech_stack(asset),
+                    "department": _get_field_value(asset, ["business_owner", "department", "owner", "responsible_party"]) or "Unknown",
+                    "environment": _get_field_value(asset, ["environment", "env", "stage", "tier"]) or "Unknown",
+                    "criticality": _get_field_value(asset, ["criticality", "business_criticality", "priority"]) or "Medium",
+                    "sixr_ready": sixr_ready,
+                    "migration_complexity": migration_complexity or "Medium",
+                    "application_type": app_type,
+                    "business_unit": _get_field_value(asset, ["business_owner", "department"]) or "IT Operations",
+                    "complexity_score": complexity_score,
+                    "original_asset_type": asset_type,
+                    "asset_id": _get_field_value(asset, ["ci_id", "asset_id", "id"]) or f"ASSET_{app_id_counter}"
+                }
+                
+                applications.append(application)
+                app_id_counter += 1
+        
+        # Calculate summary statistics
+        total = len(applications)
+        ready_count = len([app for app in applications if app["sixr_ready"] == "Ready"])
+        need_data_count = total - ready_count
+        
+        criticality_counts = {}
+        environment_counts = {}
+        
+        for app in applications:
+            crit = app["criticality"]
+            env = app["environment"]
+            criticality_counts[crit] = criticality_counts.get(crit, 0) + 1
+            environment_counts[env] = environment_counts.get(env, 0) + 1
+        
+        return {
+            "applications": applications,
+            "summary": {
+                "total": total,
+                "ready_for_analysis": ready_count,
+                "need_more_data": need_data_count,
+                "by_criticality": criticality_counts,
+                "by_environment": environment_counts
+            },
+            "dataSource": "live" if has_processed_data else "demo"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error retrieving applications for analysis: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve applications: {str(e)}") 

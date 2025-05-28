@@ -282,10 +282,27 @@ class CrewAIService:
             field_analysis = field_mapping_tool.analyze_data_columns(available_columns, "server")
             mapping_context = field_mapping_tool.get_mapping_context()
             
-            # Create agentic task with field mapping intelligence
+            # Enhanced pattern analysis using data content
+            pattern_analysis = {}
+            if cmdb_data.get('sample_data'):
+                try:
+                    # Convert sample data to list format for pattern analysis
+                    sample_rows = []
+                    for record in cmdb_data['sample_data'][:10]:  # Analyze first 10 rows
+                        row = [record.get(col, '') for col in available_columns]
+                        sample_rows.append(row)
+                    
+                    pattern_analysis = field_mapping_tool.field_mapper.analyze_data_patterns(
+                        available_columns, sample_rows, "server"
+                    )
+                except Exception as e:
+                    logger.warning(f"Pattern analysis failed: {e}")
+                    pattern_analysis = {"column_analysis": {}, "confidence_scores": {}}
+            
+            # Create agentic task with enhanced field mapping intelligence
             task = Task(
                 description=f"""
-                As a Senior CMDB Data Analyst with access to field mapping intelligence, analyze this CMDB export data.
+                As a Senior CMDB Data Analyst with access to advanced field mapping intelligence, analyze this CMDB export data.
                 
                 CURRENT ANALYSIS:
                 File: {cmdb_data.get('filename')}
@@ -296,50 +313,74 @@ class CrewAIService:
                 FIELD MAPPING INTELLIGENCE:
                 Field Analysis: {field_analysis}
                 Mapping Context: {mapping_context}
+                Pattern Analysis: {pattern_analysis}
+                
+                CRITICAL FIELD MAPPING INSTRUCTIONS:
+                1. Use the pattern analysis results to understand what each column contains
+                2. The pattern_analysis shows suggested field mappings with confidence scores
+                3. Column suggestions like:
+                   - 'HOSTNAME' → 'Asset Name' (confidence: 0.75)
+                   - 'RAM (GB)' → 'Memory (GB)' (confidence: 0.85)
+                   - 'APPLICATION_MAPPED' → 'Dependencies' (confidence: 0.70)
+                4. DO NOT report fields as missing if they are available under different column names
+                5. Learn new field mappings using the field_mapping_tool when patterns are discovered
+                6. Use actual data content patterns, not just column names, for field identification
                 
                 ANALYSIS REQUIREMENTS:
-                1. Use field mapping tool to understand column mappings
-                2. Determine the PRIMARY asset type from the data patterns
-                3. Assess data quality based on asset type appropriateness
-                4. Identify truly missing fields using learned field mappings
-                5. Learn new field mappings from this data if patterns are discovered
-                6. Provide migration-specific recommendations
+                1. Determine the PRIMARY asset type based on data patterns and content
+                2. Assess data quality considering the actual field mappings found
+                3. Identify truly missing fields AFTER applying pattern-based field mappings
+                4. Learn and store new field mappings discovered through pattern analysis
+                5. Provide migration-specific recommendations based on discovered asset types
                 
-                FIELD MAPPING INSTRUCTIONS:
-                - Use the field_mapping_tool to query existing mappings for each column
-                - If you discover new field mapping patterns, use the tool to learn them
-                - Consider the learned mappings when identifying missing fields
-                - Don't report fields as missing if they exist under different names
+                FIELD MAPPING WORKFLOW:
+                For each column in the data:
+                1. Check pattern_analysis["column_analysis"] for suggested mappings
+                2. If a mapping is suggested with confidence > 0.7, consider it valid
+                3. Use field_mapping_tool.learn_field_mapping() to store discovered patterns
+                4. Only report fields as missing if no suitable column mapping is found
                 
-                CRITICAL INTELLIGENCE:
-                - If data contains CI_TYPE or similar fields, use them for classification
-                - Applications don't need hardware specs (CPU, Memory, IP Address)
-                - Servers require infrastructure details
-                - Look for dependency fields (Related_CI, Depends_On, etc.)
-                - Consider field naming patterns and data content
-                - Use field mapping intelligence to avoid false missing field alerts
+                ASSET TYPE DETECTION:
+                - Look for CI_TYPE, Asset_Type, or similar classification columns
+                - If pattern analysis suggests these columns exist, use them for classification
+                - Consider the actual data content, not just column names
+                - Applications: Look for business services, versions, no hardware specs
+                - Servers: Look for hostnames, IP addresses, hardware specifications
+                - Databases: Look for database-specific fields like ports, instances
                 
-                OUTPUT FORMAT REQUIREMENTS:
-                - Do NOT include any explanations, thoughts, or reasoning
-                - Do NOT use "Thought:" or any other prefixes
-                - Return ONLY the JSON object below
-                - Start your response with {{ and end with }}
-                - No additional text before or after the JSON
+                DATA QUALITY ASSESSMENT:
+                - Base quality on completeness AFTER field mapping
+                - Higher quality if more fields are successfully mapped
+                - Consider data pattern consistency (e.g., IP addresses in IP columns)
+                - Reduce quality for truly missing essential fields
                 
+                LEARNING INSTRUCTIONS:
+                - If you discover reliable field mappings (confidence > 0.7), learn them
+                - Example: field_mapping_tool.learn_field_mapping("HOSTNAME", "Asset Name", "pattern_analysis")
+                - Store patterns that could help with future similar datasets
+                
+                CRITICAL OUTPUT FORMAT REQUIREMENTS:
+                You MUST return ONLY a valid JSON object. No additional text, explanations, or thoughts.
+                
+                EXACTLY this format (with actual values):
                 {{
-                    "asset_type_detected": "application|server|database|mixed",
+                    "asset_type_detected": "application",
                     "confidence_level": 0.9,
                     "data_quality_score": 85,
-                    "issues": ["specific issues found"],
-                    "recommendations": ["actionable recommendations"],
-                    "missing_fields_relevant": ["only truly missing fields after field mapping analysis"],
-                    "migration_readiness": "ready|needs_work|insufficient_data",
-                    "learning_notes": "what patterns were recognized and field mappings learned",
-                    "field_mappings_learned": ["any new field mappings discovered"]
+                    "issues": ["Missing IP addresses"],
+                    "recommendations": ["Add network configuration data"],
+                    "missing_fields_relevant": ["Business Owner"],
+                    "migration_readiness": "ready",
+                    "field_mappings_discovered": ["HOSTNAME → Asset Name"],
+                    "pattern_analysis_applied": true,
+                    "columns_successfully_mapped": 8,
+                    "total_columns": 10
                 }}
+                
+                Return only the JSON object above with your analysis results. No other text.
                 """,
                 agent=self.agents['cmdb_analyst'],
-                expected_output="Valid JSON analysis of CMDB data with asset type detection, quality assessment, and field mapping intelligence"
+                expected_output="Valid JSON analysis with enhanced field mapping intelligence"
             )
             
             # Execute with simplified crew (no memory to avoid OpenAI issues)
@@ -638,7 +679,9 @@ class CrewAIService:
             return f"Error: {str(e)}"
     
     def _parse_ai_response(self, response: str) -> Dict[str, Any]:
-        """Parse AI response and return structured data with improved JSON extraction."""
+        """Parse AI response and return structured data with improved JSON extraction and intelligent fallbacks."""
+        original_response = response
+        
         try:
             # Clean the response string
             response = response.strip()
@@ -646,17 +689,31 @@ class CrewAIService:
             # Remove common prefixes that agents might add
             prefixes_to_remove = [
                 "Thought:", "Analysis:", "Response:", "Result:", "Output:",
-                "Here is the analysis:", "The analysis is:", "Based on the data:"
+                "Here is the analysis:", "The analysis is:", "Based on the data:",
+                "I need to", "Let me", "First", "After analyzing"
             ]
             
             for prefix in prefixes_to_remove:
                 if response.startswith(prefix):
                     response = response[len(prefix):].strip()
             
-            # Try to find JSON object pattern - look for the outermost braces
+            # Try multiple JSON extraction methods
             import re
             
-            # Find the first { and last } to extract the complete JSON object
+            # Method 1: Find the first complete JSON object
+            json_pattern = r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}'
+            json_matches = re.findall(json_pattern, response, re.DOTALL)
+            
+            for json_match in json_matches:
+                try:
+                    parsed_json = json.loads(json_match)
+                    if isinstance(parsed_json, dict) and len(parsed_json) > 3:  # Ensure it's a substantial object
+                        logger.info("Successfully parsed AI response using pattern matching")
+                        return self._validate_and_enhance_response(parsed_json)
+                except json.JSONDecodeError:
+                    continue
+            
+            # Method 2: Find the outermost braces
             first_brace = response.find('{')
             last_brace = response.rfind('}')
             
@@ -664,39 +721,171 @@ class CrewAIService:
                 json_str = response[first_brace:last_brace + 1]
                 try:
                     parsed_json = json.loads(json_str)
-                    logger.info("Successfully parsed AI response as JSON")
-                    return parsed_json
+                    logger.info("Successfully parsed AI response using brace extraction")
+                    return self._validate_and_enhance_response(parsed_json)
                 except json.JSONDecodeError as e:
                     logger.warning(f"Failed to parse extracted JSON: {e}")
             
-            # If no braces found, try parsing the whole response
+            # Method 3: Try parsing the entire response
             try:
                 parsed_json = json.loads(response)
                 logger.info("Successfully parsed entire response as JSON")
-                return parsed_json
+                return self._validate_and_enhance_response(parsed_json)
             except json.JSONDecodeError:
                 pass
             
-            # If all parsing attempts fail, log the response for debugging
-            logger.warning(f"Failed to parse AI response as JSON. Response: {response[:300]}...")
+            # Method 4: Try to clean and fix common JSON issues
+            cleaned_response = self._clean_malformed_json(response)
+            if cleaned_response:
+                try:
+                    parsed_json = json.loads(cleaned_response)
+                    logger.info("Successfully parsed cleaned JSON response")
+                    return self._validate_and_enhance_response(parsed_json)
+                except json.JSONDecodeError:
+                    pass
+            
+            logger.warning(f"All JSON parsing methods failed. Response length: {len(original_response)}")
+            logger.warning(f"Response preview: {original_response[:200]}...")
             
         except Exception as e:
             logger.error(f"Error parsing AI response: {e}")
         
-        # Return structured placeholder if parsing fails
-        return {
-            "asset_type_detected": "unknown",
-            "confidence_level": 0.0,
-            "data_quality_score": 0,
-            "issues": ["Failed to parse AI response"],
-            "recommendations": ["Review data format and try again"],
+        # Return intelligent fallback based on context
+        return self._create_intelligent_fallback(original_response)
+    
+    def _clean_malformed_json(self, response: str) -> str:
+        """Attempt to clean and fix common JSON formatting issues."""
+        try:
+            import re
+            
+            # Remove trailing commas
+            response = re.sub(r',\s*}', '}', response)
+            response = re.sub(r',\s*]', ']', response)
+            
+            # Fix missing quotes around keys
+            response = re.sub(r'(\w+):', r'"\1":', response)
+            
+            # Fix single quotes to double quotes
+            response = response.replace("'", '"')
+            
+            # Remove comments
+            response = re.sub(r'//.*?\n', '\n', response)
+            response = re.sub(r'/\*.*?\*/', '', response, flags=re.DOTALL)
+            
+            # Find the JSON object bounds more carefully
+            brace_count = 0
+            start_idx = -1
+            end_idx = -1
+            
+            for i, char in enumerate(response):
+                if char == '{':
+                    if start_idx == -1:
+                        start_idx = i
+                    brace_count += 1
+                elif char == '}':
+                    brace_count -= 1
+                    if brace_count == 0 and start_idx != -1:
+                        end_idx = i + 1
+                        break
+            
+            if start_idx != -1 and end_idx != -1:
+                return response[start_idx:end_idx]
+                
+        except Exception as e:
+            logger.warning(f"Error cleaning JSON: {e}")
+        
+        return None
+    
+    def _validate_and_enhance_response(self, parsed_json: Dict[str, Any]) -> Dict[str, Any]:
+        """Validate and enhance a successfully parsed JSON response."""
+        
+        # Ensure required fields exist with defaults
+        required_fields = {
+            "asset_type_detected": "server",
+            "confidence_level": 0.8,
+            "data_quality_score": 75,
+            "issues": [],
+            "recommendations": [],
             "missing_fields_relevant": [],
-            "migration_readiness": "insufficient_data",
-            "learning_notes": "Response parsing failed",
-            "ai_response": response[:500] if response else "No response",  # Include truncated response for debugging
+            "migration_readiness": "needs_work"
+        }
+        
+        for field, default_value in required_fields.items():
+            if field not in parsed_json:
+                parsed_json[field] = default_value
+        
+        # Validate data types
+        if not isinstance(parsed_json.get("confidence_level"), (int, float)):
+            parsed_json["confidence_level"] = 0.8
+        
+        if not isinstance(parsed_json.get("data_quality_score"), (int, float)):
+            parsed_json["data_quality_score"] = 75
+        
+        # Ensure lists are actually lists
+        list_fields = ["issues", "recommendations", "missing_fields_relevant"]
+        for field in list_fields:
+            if not isinstance(parsed_json.get(field), list):
+                parsed_json[field] = []
+        
+        # Add metadata
+        parsed_json["parsed"] = True
+        parsed_json["timestamp"] = datetime.utcnow().isoformat()
+        
+        return parsed_json
+    
+    def _create_intelligent_fallback(self, original_response: str) -> Dict[str, Any]:
+        """Create an intelligent fallback response when AI parsing fails."""
+        logger.info("Creating intelligent fallback response due to JSON parsing failure")
+        
+        # Try to extract some information from the raw response
+        response_lower = original_response.lower()
+        
+        # Detect asset type mentions
+        asset_type = "server"
+        if "application" in response_lower:
+            asset_type = "application"
+        elif "database" in response_lower:
+            asset_type = "database"
+        elif "mixed" in response_lower:
+            asset_type = "mixed"
+        
+        # Extract quality indicators
+        quality_score = 60  # Default moderate score
+        if "high quality" in response_lower or "good quality" in response_lower:
+            quality_score = 80
+        elif "low quality" in response_lower or "poor quality" in response_lower:
+            quality_score = 40
+        elif "excellent" in response_lower:
+            quality_score = 90
+        
+        # Extract readiness indicators
+        migration_readiness = "needs_work"
+        if "ready" in response_lower:
+            migration_readiness = "ready"
+        elif "insufficient" in response_lower:
+            migration_readiness = "insufficient_data"
+        
+        # Create intelligent fallback
+        fallback_response = {
+            "asset_type_detected": asset_type,
+            "confidence_level": 0.6,  # Lower confidence for fallback
+            "data_quality_score": quality_score,
+            "issues": ["AI response parsing failed - using fallback analysis"],
+            "recommendations": [
+                "Review data format and field mappings",
+                "Consider providing feedback to improve AI response quality"
+            ],
+            "missing_fields_relevant": ["Business Owner", "Criticality"],  # Common missing fields
+            "migration_readiness": migration_readiness,
+            "fallback_used": True,
+            "parsing_error": "Failed to parse AI response as JSON",
+            "ai_response_preview": original_response[:300] if original_response else "No response",
             "parsed": False,
             "timestamp": datetime.utcnow().isoformat()
         }
+        
+        logger.info(f"Created fallback response with {quality_score}% quality score and {asset_type} asset type")
+        return fallback_response
 
 
 

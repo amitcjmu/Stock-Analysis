@@ -5,6 +5,106 @@ All notable changes to the AI Force Migration Platform will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.6] - 2025-01-28
+
+### 🎯 **OS Field Separation & Modular Architecture**
+
+This release implements critical improvements for better data analytics by separating OS Type and OS Version into distinct fields, and introduces a comprehensive modular code architecture following industry best practices.
+
+### ✨ **Enhanced Features**
+
+#### **Operating System Field Separation**
+- **BREAKING CHANGE**: OS Type and OS Version are now stored as separate fields for better analytics
+- **Enhanced Asset Data**: Asset inventory now includes separate `operatingSystem` and `osVersion` fields
+- **Better Grouping**: Enables grouping by OS family (all Linux, all Windows) regardless of version
+- **Migration Planning**: Separate OS family strategies independent of specific versions
+- **Improved Filtering**: Filter by OS type or version independently for better analysis
+- **Analytics Benefits**: Separate dimensions enable more sophisticated reporting and insights
+
+#### **Code Modularization**
+- **New Modular Structure**: Split large `discovery.py` (1660+ lines) into focused, maintainable modules:
+  - `backend/app/api/v1/discovery/models.py` - Pydantic data models (47 lines)
+  - `backend/app/api/v1/discovery/processor.py` - Data processing logic (280 lines)
+  - `backend/app/api/v1/discovery/utils.py` - Utility functions (340 lines)
+  - `backend/app/api/v1/discovery/__init__.py` - Module exports and organization
+- **Development Guidelines**: Added comprehensive `DEVELOPMENT_GUIDE.md` with:
+  - File size limits (300-400 lines maximum)
+  - Function size guidelines (50-100 lines maximum)
+  - Single responsibility principle enforcement
+  - Error handling and logging standards
+  - Testing organization guidelines
+  - Code review checklists
+
+### 🛠 **Technical Improvements**
+
+#### **Data Structure Enhancements**
+- **Separate OS Fields**: `operatingSystem` and `osVersion` maintained independently
+- **Tech Stack Display**: Combined OS information for user-friendly display while preserving separate storage
+- **Field Mapping Improvements**: Enhanced field mapping to handle OS Type and OS Version separately
+- **Better Asset Headers**: Updated suggested headers to include separate OS version field
+
+#### **Architecture Benefits**
+- **Maintainability**: Each module has clear, single responsibility
+- **Testability**: Smaller, focused modules are easier to test and debug
+- **Developer Experience**: Clear structure makes onboarding and development easier
+- **Code Quality**: Enforced standards through development guidelines
+- **Scalability**: Modular structure supports future feature additions
+
+#### **Analytics Capabilities**
+- **OS Family Analysis**: Group servers by OS family (Linux, Windows, AIX) regardless of version
+- **Version Management**: Identify outdated OS versions across the infrastructure
+- **Migration Strategies**: Plan migrations by OS family with version-specific considerations
+- **Reporting Flexibility**: Separate dimensions for comprehensive infrastructure analysis
+
+### 🐛 **Bug Fixes**
+- **Data Loss Prevention**: Fixed OS field combination that was losing valuable version information
+- **Field Mapping Accuracy**: Improved recognition of OS-related columns in CMDB imports
+- **Processing Pipeline**: Enhanced data transformation to preserve both OS type and version
+- **Import Reliability**: Better handling of various OS field naming conventions
+
+### 📈 **Performance Improvements**
+- **Modular Imports**: More efficient loading with focused module imports
+- **Memory Optimization**: Better memory usage with separated concerns
+- **Processing Efficiency**: Streamlined data processing with dedicated modules
+- **Reduced Complexity**: Individual functions are smaller and more focused
+
+### 🔄 **Migration Guide**
+
+#### **API Changes**
+- **Asset Response Updates**: Asset objects now include separate `osVersion` field alongside `operatingSystem`
+- **Backward Compatibility**: Existing `operatingSystem` field continues to work for OS type
+- **New Field Access**: Use `asset.osVersion` to access operating system version separately
+
+#### **Frontend Considerations**
+- **Table Headers**: New `osVersion` field available for display in asset tables
+- **Filtering Options**: Can now filter by OS type and version independently
+- **Grouping Capabilities**: Enhanced grouping options for better data organization
+
+#### **Development Updates**
+- **Import Paths**: New modular import paths available for discovery components
+- **Code Structure**: Follow new development guidelines for future contributions
+- **Testing Approach**: Use modular testing patterns for better coverage
+
+### 👥 **Developer Experience**
+
+#### **New Guidelines**
+- **Comprehensive Guide**: `DEVELOPMENT_GUIDE.md` provides clear standards for:
+  - Code organization and modularity
+  - Function and class size limits
+  - Error handling patterns
+  - Documentation standards
+  - Testing approaches
+- **Junior Developer Support**: Quick reference guides and common patterns
+- **Code Review**: Standardized checklists for consistent quality
+
+#### **Benefits**
+- **Easier Onboarding**: Clear structure and guidelines for new developers
+- **Consistent Quality**: Enforced standards across the codebase
+- **Better Collaboration**: Modular structure reduces conflicts and improves teamwork
+- **Future-Proof**: Architecture supports scaling and feature additions
+
+---
+
 ## [0.2.5] - 2025-05-28
 
 ### 🔧 6R Treatment Analysis - Critical Polling Fix

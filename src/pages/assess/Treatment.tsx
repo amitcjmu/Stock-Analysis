@@ -45,15 +45,43 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSixRAnalysis } from '@/hooks/useSixRAnalysis';
+import { apiCall, API_CONFIG } from '@/config/api';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
+import { Slider } from '../../components/ui/slider';
 
-// Remove all mock data - will be replaced with API calls
+// Load applications from the discovery phase for 6R analysis
 const loadApplicationsFromBackend = async (): Promise<Application[]> => {
   try {
-    // This should be replaced with actual API call to get applications
-    // For now, return empty array to force real data usage
-    return [];
+    const data = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.APPLICATIONS);
+    
+    // Transform the response to match our Application interface
+    return data.applications.map((app: any) => ({
+      id: app.id,
+      name: app.name,
+      description: app.description || `${app.original_asset_type || 'Application'} - ${app.techStack || 'Unknown Technology'}`,
+      department: app.department || 'Unknown',
+      business_unit: app.business_unit || app.department || 'Unknown',
+      criticality: (app.criticality || 'medium').toLowerCase() as 'low' | 'medium' | 'high' | 'critical',
+      complexity_score: app.complexity_score || 5,
+      technology_stack: app.techStack ? app.techStack.split(', ') : ['Unknown'],
+      application_type: app.application_type || 'custom',
+      environment: app.environment || 'Unknown',
+      sixr_ready: app.sixr_ready,
+      migration_complexity: app.migration_complexity,
+      original_asset_type: app.original_asset_type,
+      asset_id: app.asset_id,
+      analysis_status: 'not_analyzed' as const,
+      user_count: undefined,
+      data_volume: undefined,
+      compliance_requirements: [],
+      dependencies: [],
+      last_updated: undefined,
+      recommended_strategy: undefined,
+      confidence_score: undefined
+    }));
   } catch (error) {
     console.error('Failed to load applications:', error);
+    // Return empty array so UI shows no data state instead of crashing
     return [];
   }
 };
@@ -350,7 +378,14 @@ const Treatment = () => {
             <div className="mb-8">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2">6R Treatment Analysis</h1>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                    6R Treatment Analysis
+                    {currentApplication && (
+                      <span className="ml-2 text-lg font-medium text-blue-600">
+                        - {currentApplication.name}
+                      </span>
+                    )}
+                  </h1>
                   <p className="text-gray-600">AI-powered migration strategy analysis using CrewAI agents</p>
                 </div>
                 
@@ -438,6 +473,11 @@ const Treatment = () => {
                   <CardTitle className="flex items-center space-x-2">
                     <Target className="h-5 w-5" />
                     <span>Analysis Workflow</span>
+                    {currentApplication && (
+                      <span className="text-base font-normal text-blue-600">
+                        - {currentApplication.name}
+                      </span>
+                    )}
                   </CardTitle>
                   <CardDescription>
                     Follow the steps below to complete your 6R migration strategy analysis
@@ -488,9 +528,8 @@ const Treatment = () => {
                           selectedApplications={selectedApplications}
                           onSelectionChange={handleApplicationSelection}
                           onStartAnalysis={handleStartAnalysis}
-                          analysisQueues={[...analysisQueues]}
-                          onQueueAction={handleQueueAction}
-                          showQueue={true}
+                          maxSelections={1}
+                          showQueue={false}
                         />
                       </TabsContent>
 

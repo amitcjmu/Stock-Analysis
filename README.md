@@ -361,3 +361,87 @@ For questions, feedback, or support:
 ---
 
 **Built with ❤️ by the AI Force Migration Team**
+
+## 🚀 Recent Improvements
+
+### Health Check Optimization
+- **Removed Constant Health Checks**: Docker health checks are no longer running constantly
+- **On-Demand Health Checking**: New script `./scripts/health-check.sh` for manual health verification
+- **Resource Efficiency**: Reduces system resource usage while maintaining monitoring capabilities
+
+### Data Persistence Enhancement
+- **Discovery to Assessment Flow**: Asset inventory from Discovery phase now properly persists to Assessment/6R Treatment
+- **New Applications API**: Added `/api/v1/discovery/applications` endpoint to transform assets for 6R analysis
+- **Smart Asset Filtering**: Only Applications, Servers, and Databases are available for 6R treatment
+- **Demo Data Fallback**: Provides sample applications when no discovery data exists
+
+### Usage
+
+#### Health Checking
+```bash
+# Check all services
+./scripts/health-check.sh
+
+# Check specific service
+./scripts/health-check.sh backend
+./scripts/health-check.sh frontend
+./scripts/health-check.sh postgres
+./scripts/health-check.sh containers
+```
+
+#### Data Flow
+1. **Discovery Phase**: Upload and process CMDB data
+2. **Assessment Phase**: Discovered applications automatically appear in 6R Treatment
+3. **Fallback**: If no discovery data exists, demo applications are provided
+
+## 🏗️ Architecture Overview
+
+## 🔧 Data Persistence & Analysis Workflow
+
+### Discovery → Assessment Data Flow
+- **Real Application Names**: Analysis history now displays actual application names from Discovery phase
+- **Application Context**: Selected applications carry forward their department, technology stack, and criticality data
+- **Workflow Clarity**: Analysis Workflow clearly shows which application is being analyzed in the title
+- **Parameter Separation**: Distinguished between organizational parameters (set once) vs application-specific parameters
+
+### Analysis History Authenticity
+- **Real Backend Data**: History displays actual analysis records from backend database
+- **CrewAI Attribution**: Analyses are properly attributed to "CrewAI Agents" instead of generic "System"
+- **Dynamic Application Loading**: Application names are fetched from `/api/v1/discovery/applications` endpoint
+- **Fallback Handling**: Graceful fallback to display format when discovery data is unavailable
+
+### Analysis Workflow Improvements
+```
+1. Select Application → Shows real applications from Discovery phase
+2. Set Organizational Parameters → Company-wide settings (compliance, cost sensitivity, etc.)
+3. Configure App-Specific Parameters → Business value, technical complexity for the selected app
+4. Start Analysis → CrewAI agents process the application with real context
+5. View Results → Recommendations based on actual agentic analysis, not templates
+```
+
+### Bulk Analysis Clarification
+- **Purpose**: Monitoring existing bulk operations initiated from Discovery phase
+- **+New Job**: Disabled with clear messaging - bulk analysis should start from Discovery workflow
+- **Real vs Mock**: Only shows actual running/completed jobs, no mock data
+
+### Data Quality Indicators
+- **Analysis Source**: All analyses show "CrewAI Agents" as analyst to indicate agentic processing
+- **Processing Status**: Clear distinction between template responses and actual agent recommendations
+- **Application Context**: Technology stack, department, and criticality visible during analysis
+
+## 🧠 CrewAI Analysis Validation
+
+### Ensuring Authentic Agent Processing
+To verify if an analysis used real CrewAI agents vs templates:
+
+1. **Check Analysis History**: Look for "CrewAI Agents" in the Analyst column
+2. **Review Recommendations**: Authentic agent analysis includes:
+   - Specific technical factors relevant to the technology stack
+   - Context-aware next steps mentioning actual application details
+   - Confidence scores that vary based on real parameter combinations
+3. **Backend Logs**: Agent processing appears in backend logs with detailed reasoning
+
+### Mock vs Real Data Detection
+- **Mock Data Indicators**: Generic application names like "Application 44", "IT" department fallback
+- **Real Data Indicators**: Specific application names from Discovery, actual departments and tech stacks
+- **Processing History**: Real analyses show iterative agent reasoning in backend logs

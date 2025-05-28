@@ -92,6 +92,46 @@ class FieldMappingTool:
                 "message": "Column analysis failed"
             }
     
+    def analyze_data_patterns(self, columns: List[str], sample_data: List[List[Any]], asset_type: str = "server") -> Dict[str, Any]:
+        """
+        Analyze data patterns using both column names and actual data content.
+        
+        Args:
+            columns: List of column names from the data
+            sample_data: Sample data rows for pattern analysis
+            asset_type: Type of asset being analyzed
+            
+        Returns:
+            Comprehensive analysis with suggested field mappings based on patterns
+        """
+        try:
+            result = self.field_mapper.analyze_data_patterns(columns, sample_data, asset_type)
+            logger.info(f"Agent analyzed data patterns for {len(columns)} columns with {len(sample_data)} sample rows")
+            
+            # Auto-learn high-confidence mappings
+            column_analysis = result.get("column_analysis", {})
+            confidence_scores = result.get("confidence_scores", {})
+            
+            learned_mappings = []
+            for column, suggested_field in column_analysis.items():
+                confidence = confidence_scores.get(column, 0.0)
+                if confidence > 0.75:  # Auto-learn high-confidence mappings
+                    learn_result = self.learn_field_mapping(column, suggested_field, f"auto_pattern_analysis_{asset_type}")
+                    if learn_result.get("success"):
+                        learned_mappings.append(f"{column} → {suggested_field} (confidence: {confidence:.2f})")
+            
+            result["auto_learned_mappings"] = learned_mappings
+            return result
+            
+        except Exception as e:
+            logger.error(f"Data pattern analysis failed: {e}")
+            return {
+                "error": str(e),
+                "message": "Data pattern analysis failed",
+                "column_analysis": {},
+                "confidence_scores": {}
+            }
+    
     def get_mapping_context(self) -> Dict[str, Any]:
         """
         Get current context about learned field mappings.
@@ -229,6 +269,11 @@ class FieldMappingTool:
                     "name": "analyze_data_columns",
                     "description": "Analyze data columns to identify mappings and missing fields",
                     "parameters": ["columns", "asset_type"]
+                },
+                {
+                    "name": "analyze_data_patterns",
+                    "description": "Analyze data patterns using both column names and actual data content",
+                    "parameters": ["columns", "sample_data", "asset_type"]
                 },
                 {
                     "name": "get_mapping_context",

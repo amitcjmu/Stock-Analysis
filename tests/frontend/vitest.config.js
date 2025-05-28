@@ -38,7 +38,7 @@ export default defineConfig({
       NODE_ENV: 'test',
       VITE_API_BASE_URL: 'http://localhost:8000',
       DOCKER_API_BASE: 'http://localhost:8000',
-      DOCKER_FRONTEND_BASE: 'http://localhost:3000'
+      DOCKER_FRONTEND_BASE: 'http://localhost:8081'
     },
     
     // Test patterns
@@ -71,6 +71,14 @@ export default defineConfig({
       '@config': path.resolve(__dirname, '../../src/config'),
       '@hooks': path.resolve(__dirname, '../../src/hooks'),
       '@lib': path.resolve(__dirname, '../../src/lib')
+    }
+  },
+  // Define environment variables for tests
+  define: {
+    'process.env': {
+      NODE_ENV: '"test"',
+      DOCKER_API_BASE: '"http://localhost:8000"',
+      DOCKER_FRONTEND_BASE: '"http://localhost:8081"'
     }
   }
 }); 

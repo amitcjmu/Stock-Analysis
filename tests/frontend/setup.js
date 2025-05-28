@@ -85,7 +85,7 @@ beforeAll(() => {
 
   // Mock environment variables for Docker testing
   process.env.DOCKER_API_BASE = 'http://localhost:8000';
-  process.env.DOCKER_FRONTEND_BASE = 'http://localhost:3000';
+  process.env.DOCKER_FRONTEND_BASE = 'http://localhost:8081';
   process.env.NODE_ENV = 'test';
 });
 

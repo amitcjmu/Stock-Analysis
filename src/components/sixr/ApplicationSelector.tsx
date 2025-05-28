@@ -114,12 +114,12 @@ export const ApplicationSelector: React.FC<ApplicationSelectorProps> = ({
 
   // Get unique filter values
   const departments = useMemo(() => 
-    [...new Set(applications.map(app => app.department))].sort(),
+    [...new Set(applications.map(app => app.department).filter(Boolean))].sort(),
     [applications]
   );
 
   const technologies = useMemo(() => 
-    [...new Set(applications.flatMap(app => app.technology_stack))].sort(),
+    [...new Set(applications.flatMap(app => app.technology_stack || []))].sort(),
     [applications]
   );
 
@@ -129,13 +129,13 @@ export const ApplicationSelector: React.FC<ApplicationSelectorProps> = ({
       const matchesSearch = !searchTerm || 
         app.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         app.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        app.technology_stack.some(tech => tech.toLowerCase().includes(searchTerm.toLowerCase()));
+        (app.technology_stack || []).some(tech => tech.toLowerCase().includes(searchTerm.toLowerCase()));
 
       const matchesDepartment = departmentFilter === 'all' || app.department === departmentFilter;
       const matchesCriticality = criticalityFilter === 'all' || app.criticality === criticalityFilter;
       const matchesStatus = statusFilter === 'all' || app.analysis_status === statusFilter;
       const matchesTechnology = technologyFilter === 'all' || 
-        app.technology_stack.includes(technologyFilter);
+        (app.technology_stack || []).includes(technologyFilter);
 
       return matchesSearch && matchesDepartment && matchesCriticality && 
              matchesStatus && matchesTechnology;
@@ -194,14 +194,14 @@ export const ApplicationSelector: React.FC<ApplicationSelectorProps> = ({
         <TableCell className="font-medium">{app.name}</TableCell>
         <TableCell>
           <div className="flex flex-wrap gap-1">
-            {app.technology_stack.slice(0, 2).map(tech => (
+            {(app.technology_stack || []).slice(0, 2).map(tech => (
               <Badge key={tech} variant="outline" className="text-xs">
                 {tech}
               </Badge>
             ))}
-            {app.technology_stack.length > 2 && (
+            {(app.technology_stack || []).length > 2 && (
               <Badge variant="outline" className="text-xs">
-                +{app.technology_stack.length - 2}
+                +{(app.technology_stack || []).length - 2}
               </Badge>
             )}
           </div>

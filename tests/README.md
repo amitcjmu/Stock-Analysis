@@ -223,7 +223,7 @@ curl http://localhost:8000/api/v1/discovery/assets | jq .
 ```bash
 # Docker endpoints (automatically set by test runner)
 DOCKER_API_BASE=http://localhost:8000
-DOCKER_FRONTEND_BASE=http://localhost:3000
+DOCKER_FRONTEND_BASE=http://localhost:8081
 
 # Test mode flags
 TESTING=true
@@ -315,4 +315,40 @@ npm install --save-dev vitest jsdom @testing-library/react @testing-library/jest
 - **Mock External Services**: Use mocks for external APIs while preserving agentic intelligence
 - **Clear Assertions**: Use descriptive assertion messages
 
-For questions or contributions, please refer to the main project documentation. 
+For questions or contributions, please refer to the main project documentation.
+
+## Port Configuration
+
+This application uses **fixed ports** to avoid conflicts with other development projects:
+
+- **Backend API**: `http://localhost:8000` (FastAPI)
+- **Frontend**: `http://localhost:8081` (Vite React app)  
+- **PostgreSQL**: `localhost:5433` (mapped from container port 5432)
+
+### Why Port 8081 for Frontend?
+
+Port 8081 is specifically chosen to avoid conflicts with:
+- Port 3000: Common default for Next.js applications
+- Port 5173: Vite's default development port
+- Port 8080: Common for various development servers
+
+### CORS Configuration
+
+The backend accepts requests from multiple frontend ports:
+- `http://localhost:8081` - This application's frontend
+- `http://localhost:3000` - For other Next.js apps you may run
+- `http://localhost:5173` - For Vite default port compatibility
+
+All **tests** specifically use port 8081 since that's this application's designated frontend port.
+
+## Health Check Configuration
+
+The Docker backend health check runs every **2 minutes** (120 seconds) to balance:
+- System resource usage (not too frequent)
+- Reasonable failure detection (not too slow)
+
+You can adjust this in `docker-compose.yml` if needed:
+```yaml
+healthcheck:
+  interval: 120s  # Adjust as needed
+``` 

@@ -1,9 +1,13 @@
 {
   "Memory (GB)": [
+    "ram (gb)",
+    "memory (gb)",
     "ram_gb"
   ],
   "Business Owner": [
-    "application_owner"
+    "application_owner",
+    "owner",
+    "business owner"
   ],
   "Criticality": [
     "dr_tier"
@@ -15,5 +19,30 @@
   "Test Field": [
     "test_field",
     "test field"
+  ],
+  "Asset Name": [
+    "asset name",
+    "hostname"
+  ],
+  "IP Address": [
+    "ip address"
+  ],
+  "Operating System": [
+    "operating system",
+    "os type"
+  ],
+  "CPU Cores": [
+    "cpu cores"
+  ],
+  "Storage (GB)": [
+    "disk size (gb)",
+    "storage (gb)"
+  ],
+  "Asset Type": [
+    "workload type",
+    "asset type"
+  ],
+  "Environment": [
+    "environment"
   ]
 }
