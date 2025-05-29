@@ -64,7 +64,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/discovery" element={<Discovery />} />
-          <Route path="/discovery/overview" element={<DiscoveryIndex />} />
+          <Route path="/discovery/overview" element={<DiscoveryDashboard />} />
           <Route path="/discovery/dashboard" element={<DiscoveryDashboard />} />
           <Route path="/discovery/data-import" element={<DataImport />} />
           <Route path="/discovery/inventory" element={<Inventory />} />

@@ -192,7 +192,7 @@ const DiscoveryDashboard = () => {
           <div className="max-w-7xl mx-auto">
             {/* Header */}
             <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Discovery Dashboard</h1>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Discovery Overview</h1>
               <p className="text-lg text-gray-600">
                 Complete view of your IT landscape for cloud modernization planning
               </p>

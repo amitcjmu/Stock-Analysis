@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/Sidebar';
 import FeedbackWidget from '../../components/FeedbackWidget';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   Wrench, CheckCircle, AlertTriangle, Lightbulb, 
   RefreshCw, Save, Bot, User, ArrowRight, Filter, Eye,
-  ThumbsUp, ThumbsDown, MessageSquare, Zap, Target
+  ThumbsUp, ThumbsDown, MessageSquare, Zap, Target,
+  ArrowLeft, Info, FileCheck
 } from 'lucide-react';
 import { apiCall, API_CONFIG } from '../../config/api';
 
@@ -30,6 +32,8 @@ interface ValidationRule {
 }
 
 const DataCleansing = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [issues, setIssues] = useState<DataIssue[]>([]);
   const [validationRules, setValidationRules] = useState<ValidationRule[]>([]);
   const [selectedIssue, setSelectedIssue] = useState<DataIssue | null>(null);
@@ -37,11 +41,28 @@ const DataCleansing = () => {
   const [activeTab, setActiveTab] = useState('issues');
   const [filterCategory, setFilterCategory] = useState('all');
   const [progress, setProgress] = useState({ fixed: 0, pending: 0, total: 0 });
+  const [fromDataImport, setFromDataImport] = useState(false);
+  const [importedIssues, setImportedIssues] = useState<DataIssue[]>([]);
 
   useEffect(() => {
-    fetchDataIssues();
+    // Check if we came from Data Import with issues
+    const state = location.state as any;
+    if (state?.dataQualityIssues && state?.fromDataImport) {
+      setFromDataImport(true);
+      setImportedIssues(state.dataQualityIssues);
+      setIssues(state.dataQualityIssues);
+      setProgress({
+        fixed: 0,
+        pending: state.dataQualityIssues.length,
+        total: state.dataQualityIssues.length
+      });
+      setIsLoading(false);
+    } else {
+      fetchDataIssues();
+    }
+    
     fetchValidationRules();
-  }, []);
+  }, [location.state]);
 
   const fetchDataIssues = async () => {
     try {
@@ -156,10 +177,38 @@ const DataCleansing = () => {
           <div className="max-w-7xl mx-auto">
             {/* Header */}
             <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Data Cleansing & Validation</h1>
-              <p className="text-lg text-gray-600">
-                Human-in-the-loop data quality improvement powered by AI insights
-              </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">Data Cleansing & Validation</h1>
+                  <p className="text-lg text-gray-600">
+                    Human-in-the-loop data quality improvement powered by AI insights
+                  </p>
+                </div>
+                {fromDataImport && (
+                  <button
+                    onClick={() => navigate('/discovery/data-import')}
+                    className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    <span>Back to Data Import</span>
+                  </button>
+                )}
+              </div>
+              
+              {fromDataImport && (
+                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-start space-x-3">
+                    <Info className="h-6 w-6 text-blue-600 mt-0.5" />
+                    <div>
+                      <h3 className="font-medium text-blue-900 mb-1">Data Quality Issues Detected</h3>
+                      <p className="text-sm text-blue-800">
+                        Our AI crew identified {importedIssues.length} data quality issues during the import process. 
+                        Review and approve the AI's suggestions below to improve your data quality before proceeding.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Progress Summary */}

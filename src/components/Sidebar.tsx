@@ -70,8 +70,11 @@ const Sidebar = () => {
       icon: Search,
       hasSubmenu: true,
       submenu: [
-        { name: 'Dashboard', path: '/discovery/dashboard', icon: LayoutDashboard },
+        { name: 'Overview', path: '/discovery/overview', icon: LayoutDashboard },
         { name: 'Data Import', path: '/discovery/data-import', icon: Upload },
+        { name: 'Data Cleansing', path: '/discovery/data-cleansing', icon: Sparkles },
+        { name: 'Attribute Mapping', path: '/discovery/attribute-mapping', icon: Settings },
+        { name: 'Tech Debt', path: '/discovery/tech-debt-analysis', icon: BarChart3 },
         { name: 'Inventory', path: '/discovery/inventory', icon: Database },
         { name: 'Dependencies', path: '/discovery/dependencies', icon: Network }
       ]

@@ -9,8 +9,8 @@ const DiscoveryIndex = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Redirect to the discovery dashboard
-    navigate('/discovery/dashboard', { replace: true });
+    // Redirect to the discovery overview
+    navigate('/discovery/overview', { replace: true });
   }, [navigate]);
 
   const summaryCards = [

@@ -427,7 +427,7 @@ def _perform_fallback_analysis(df: pd.DataFrame, structure_analysis: Dict) -> Di
     }
 
 def _extract_data_quality(crewai_result: Dict, df: pd.DataFrame) -> DataQualityResult:
-    """Extract data quality assessment from CrewAI result."""
+    """Extract data quality assessment from CrewAI result and analyze real data issues."""
     # Get score from CrewAI result (it returns data_quality_score, not data_quality.score)
     score = crewai_result.get("data_quality_score", 75)
     
@@ -435,11 +435,81 @@ def _extract_data_quality(crewai_result: Dict, df: pd.DataFrame) -> DataQualityR
     issues = crewai_result.get("issues", [])
     recommendations = crewai_result.get("recommendations", [])
     
-    # Add additional issues based on data analysis
+    # Analyze actual DataFrame for specific data quality issues
+    # 1. Missing data analysis
     null_percentage = df.isnull().sum().sum() / (len(df) * len(df.columns)) * 100
     if null_percentage > 20:
         issues.append(f"High percentage of missing data ({null_percentage:.1f}%)")
         recommendations.append("Review data collection processes to reduce missing values")
+    
+    # 2. Duplicate detection
+    duplicate_count = df.duplicated().sum()
+    if duplicate_count > 0:
+        issues.append(f"Found {duplicate_count} duplicate records requiring de-duplication")
+        recommendations.append("Remove or consolidate duplicate entries before proceeding")
+    
+    # 3. Data format inconsistencies
+    for col in df.columns:
+        if df[col].dtype == 'object':  # String columns
+            unique_values = df[col].dropna().unique()
+            
+            # Check for mixed case inconsistencies
+            if len(unique_values) > 1:
+                lower_values = [str(v).lower() for v in unique_values]
+                if len(set(lower_values)) < len(unique_values):
+                    issues.append(f"Column '{col}' has inconsistent capitalization")
+                    recommendations.append(f"Standardize capitalization in '{col}' field")
+            
+            # Check for abbreviated values that should be standardized
+            abbreviated_values = [v for v in unique_values if isinstance(v, str) and len(v) <= 3 and v.isalpha()]
+            if abbreviated_values:
+                issues.append(f"Column '{col}' contains abbreviated values: {', '.join(abbreviated_values[:3])}")
+                recommendations.append(f"Expand abbreviated values in '{col}' to full descriptive names")
+            
+            # Check for trailing/leading whitespace
+            whitespace_values = [v for v in unique_values if isinstance(v, str) and (v.startswith(' ') or v.endswith(' '))]
+            if whitespace_values:
+                issues.append(f"Column '{col}' contains values with extra whitespace")
+                recommendations.append(f"Trim whitespace from '{col}' values")
+    
+    # 4. Missing critical fields for migration
+    critical_fields = ['hostname', 'asset_type', 'environment', 'ip_address', 'application_name']
+    missing_critical = [field for field in critical_fields if field not in df.columns]
+    if missing_critical:
+        issues.append(f"Missing critical fields for migration: {', '.join(missing_critical)}")
+        recommendations.append("Add missing critical fields or map from existing columns")
+    
+    # 5. Inconsistent naming conventions
+    column_issues = []
+    for col in df.columns:
+        if ' ' in col:
+            column_issues.append(f"'{col}' contains spaces")
+        elif col != col.lower():
+            column_issues.append(f"'{col}' not lowercase")
+    
+    if column_issues:
+        issues.append(f"Column naming inconsistencies: {'; '.join(column_issues[:3])}")
+        recommendations.append("Standardize column names to lowercase with underscores")
+    
+    # 6. Asset type validation
+    if 'asset_type' in df.columns:
+        asset_types = df['asset_type'].dropna().unique()
+        invalid_types = [at for at in asset_types if isinstance(at, str) and at.lower() not in [
+            'server', 'application', 'database', 'network device', 'storage', 'security device'
+        ]]
+        if invalid_types:
+            issues.append(f"Non-standard asset types found: {', '.join(invalid_types[:3])}")
+            recommendations.append("Standardize asset types to canonical values")
+    
+    # 7. Environment validation
+    if 'environment' in df.columns:
+        environments = df['environment'].dropna().unique()
+        # Check for empty or placeholder values
+        empty_envs = [env for env in environments if isinstance(env, str) and env.lower() in ['', 'unknown', 'tbd', 'n/a', 'null']]
+        if empty_envs or df['environment'].isnull().sum() > 0:
+            missing_env_count = df['environment'].isnull().sum() + len([env for env in environments if env in empty_envs])
+            issues.append(f"{missing_env_count} assets missing environment classification")
+            recommendations.append("Classify assets into proper environments (Production, Development, Test, etc.)")
     
     return DataQualityResult(
         score=int(score),
