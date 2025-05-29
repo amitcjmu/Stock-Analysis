@@ -5,6 +5,98 @@ All notable changes to the AI Force Migration Platform will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.9] - 2025-01-27
+
+### 🔧 **Dynamic Headers & Improved Field Mapping**
+
+This release fixes critical field mapping issues and implements truly dynamic table headers that adapt to the actual data structure.
+
+### 🐛 **Fixed**
+
+#### **Field Mapping Issues**
+- **Flexible Field Detection**: Implemented `_get_field_value()` function that searches multiple possible field names
+- **Robust Asset Type Detection**: Enhanced `_standardize_asset_type()` to use both asset type and name for better classification
+- **Smart Tech Stack Extraction**: Updated `_get_tech_stack()` to intelligently extract technology information from various field combinations
+- **Department Mapping**: Fixed department field mapping to correctly identify business owners from various field formats
+
+#### **Dynamic Table Headers**
+- **Data-Driven Headers**: Headers now dynamically generate based on actual data content and relevance
+- **Asset-Type-Specific Columns**: Applications show different columns than servers/databases
+- **Smart Field Detection**: Only shows columns that have meaningful data in the dataset
+- **Contextual Descriptions**: Each header includes helpful tooltips explaining the field purpose
+
+#### **Enhanced Data Processing**
+- **Multi-Format Support**: Handles various CMDB export formats (ServiceNow, BMC Remedy, custom CSV)
+- **Intelligent Fallbacks**: Graceful handling when expected fields are missing or named differently
+- **Quality Preservation**: Maintains data quality while adapting to different field structures
+
+### 🎯 **User Experience Improvements**
+
+#### **Before This Release**
+- ❌ Static table headers that didn't match data structure
+- ❌ Poor field mapping causing incorrect data display
+- ❌ "Tech Stack" showing generic values like "Application"
+- ❌ Department field showing person names instead of departments
+
+#### **After This Release**
+- ✅ Dynamic headers that adapt to data structure
+- ✅ Intelligent field mapping with multiple fallback options
+- ✅ Meaningful tech stack information (OS, versions, platforms)
+- ✅ Correct department/business owner mapping
+- ✅ Asset-type-specific column visibility
+- ✅ Contextual tooltips for all headers
+
+### 🌟 **Key Benefits**
+
+#### **Intelligent Data Adaptation**
+- **Multi-Format Support**: Works with ServiceNow, BMC Remedy, and custom CMDB exports
+- **Smart Field Detection**: Automatically finds relevant data regardless of field naming conventions
+- **Context-Aware Display**: Shows appropriate columns based on asset types in the dataset
+- **Quality Preservation**: Maintains data integrity while adapting to different structures
+
+#### **Enhanced User Experience**
+- **Relevant Information**: Only shows columns that contain meaningful data
+- **Clear Context**: Tooltips explain what each field represents
+- **Proper Formatting**: CPU cores, memory, and storage display with appropriate units
+- **Visual Clarity**: Clean separation between different types of information
+
+#### **Production Ready**
+- **Robust Error Handling**: Graceful fallbacks when data doesn't match expected formats
+- **Performance Optimized**: Efficient field mapping and header generation
+- **Scalable Architecture**: Ready for various CMDB export formats and custom field mappings
+
+---
+
+## [0.2.8] - 2025-01-27
+
+### 🚀 **Live Asset Inventory Integration**
+
+This release connects the Asset Inventory page to display real processed CMDB data instead of hardcoded sample data, completing the end-to-end CMDB import workflow.
+
+### ✨ **New Features**
+
+#### **Live Asset Inventory Display**
+- **Real Data Integration**: Asset Inventory now displays actual processed CMDB data
+- **Dynamic Statistics**: Summary cards show live counts of applications, servers, and databases
+- **Auto-Refresh**: Refresh button to reload latest processed assets
+- **Smart Fallback**: Graceful fallback to sample data if API is unavailable
+- **Live Status Indicators**: Clear indication of data source (live, sample, or error)
+
+#### **Enhanced Asset Management**
+- **Standardized Asset Types**: Automatic classification of applications, servers, databases, and network devices
+- **Technology Stack Detection**: Intelligent extraction of OS, versions, and platform information
+- **Department Filtering**: Dynamic department filter based on actual data
+- **Asset Status Tracking**: Real-time status updates for discovered assets
+- **Data Freshness**: Last updated timestamps for data transparency
+
+#### **Complete CMDB Workflow**
+- **Upload → Analyze → Process → Inventory**: Full end-to-end workflow now functional
+- **Persistent Storage**: Processed assets stored and accessible across sessions
+- **Data Transformation**: Raw CMDB data transformed into standardized asset format
+- **Quality Preservation**: Asset quality and metadata maintained through processing
+
+---
+
 ## [0.2.7] - 2025-01-28
 
 ### 🎯 **Complete Asset Management System Overhaul**

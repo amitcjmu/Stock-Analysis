@@ -211,6 +211,127 @@ async def get_processed_assets_paginated(
         logger.error(f"Error retrieving assets: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve assets: {str(e)}")
 
+@router.put("/assets/bulk")
+async def bulk_update_assets_endpoint(
+    request: Request
+):
+    """
+    Bulk update multiple assets.
+    
+    Expected request format:
+    {
+        "asset_ids": ["id1", "id2", "id3"],
+        "updates": {
+            "environment": "Production",
+            "department": "IT Operations"
+        }
+    }
+    """
+    try:
+        # Parse request body manually
+        request_body = await request.json()
+        asset_ids = request_body.get("asset_ids", [])
+        updates = request_body.get("updates", {})
+        
+        if not asset_ids:
+            raise HTTPException(status_code=400, detail="asset_ids are required")
+        
+        if not updates:
+            raise HTTPException(status_code=400, detail="updates are required")
+        
+        # Use the same logic as bulk_delete which works correctly
+        # Get raw processed assets directly
+        all_raw_assets = get_processed_assets()
+        
+        # Map frontend field names to backend storage field names
+        field_mapping = {
+            'type': 'asset_type',           # Frontend 'type' -> Backend 'asset_type'
+            'asset_type': 'asset_type',     # Direct mapping
+            'environment': 'environment',    # Direct mapping
+            'department': 'business_owner',  # Frontend 'department' -> Backend 'business_owner'
+            'criticality': 'status',         # Frontend 'criticality' -> Backend 'status'
+            'name': 'asset_name',           # Frontend 'name' -> Backend 'asset_name'
+            'hostname': 'hostname',         # Direct mapping
+            'ip_address': 'ip_address',     # Direct mapping
+            'operating_system': 'operating_system',  # Direct mapping
+        }
+        
+        # Translate frontend updates to backend field names
+        backend_updates = {}
+        for frontend_field, value in updates.items():
+            backend_field = field_mapping.get(frontend_field, frontend_field)
+            backend_updates[backend_field] = value
+        
+        # Find and update assets using the same ID logic as bulk delete
+        updated_count = 0
+        found_asset_ids = []
+        
+        for asset in all_raw_assets:
+            # Check multiple possible ID fields (same as bulk delete)
+            asset_id = asset.get('id') or asset.get('ci_id') or asset.get('asset_id')
+            if asset_id and str(asset_id) in asset_ids:
+                found_asset_ids.append(asset_id)
+                # Apply updates directly to the raw asset
+                asset.update(backend_updates)
+                updated_count += 1
+        
+        if updated_count > 0:
+            # Save the updated assets back to persistence
+            backup_processed_assets()
+            
+            return {
+                "status": "success",
+                "updated_count": updated_count,
+                "message": f"Successfully updated {updated_count} assets"
+            }
+        else:
+            # Return debug info when no assets found
+            return {
+                "status": "error",
+                "detail": "Asset not found",
+                "debug": {
+                    "requested_ids": asset_ids,
+                    "total_available": len(all_raw_assets),
+                    "sample_ids": [a.get('id') or a.get('ci_id') or a.get('asset_id') for a in all_raw_assets[:5]],
+                    "found_matches": found_asset_ids,
+                    "backend_updates": backend_updates
+                }
+            }
+        
+    except Exception as e:
+        logger.error(f"Error in bulk update: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to bulk update assets: {str(e)}")
+
+@router.delete("/assets/bulk")
+async def bulk_delete_assets_endpoint(
+    request: BulkDeleteRequest
+):
+    """
+    Bulk delete multiple assets.
+    
+    Expected request format:
+    {
+        "asset_ids": ["id1", "id2", "id3"]
+    }
+    """
+    try:
+        asset_ids = request.asset_ids
+        
+        if not asset_ids:
+            raise HTTPException(status_code=400, detail="asset_ids are required")
+        
+        deleted_count = bulk_delete_assets(asset_ids)
+        
+        return {
+            "status": "success",
+            "deleted_count": deleted_count,
+            "message": f"Successfully deleted {deleted_count} assets"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in bulk delete: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to bulk delete assets: {str(e)}")
+
 @router.put("/assets/{asset_id}")
 async def update_asset(asset_id: str, asset_data: Dict[str, Any]):
     """
@@ -629,119 +750,6 @@ def _extract_numeric_value(value) -> int:
     except (ValueError, TypeError):
         return None
 
-@router.put("/assets/bulk")
-async def bulk_update_assets_endpoint(
-    request: Request
-):
-    """
-    Bulk update multiple assets.
-    
-    Expected request format:
-    {
-        "asset_ids": ["id1", "id2", "id3"],
-        "updates": {
-            "environment": "Production",
-            "department": "IT Operations"
-        }
-    }
-    """
-    try:
-        # Parse request body manually
-        request_body = await request.json()
-        asset_ids = request_body.get("asset_ids", [])
-        updates = request_body.get("updates", {})
-        
-        if not asset_ids:
-            raise HTTPException(status_code=400, detail="asset_ids are required")
-        
-        if not updates:
-            raise HTTPException(status_code=400, detail="updates are required")
-        
-        # Use the EXACT same data pipeline as the main assets endpoint
-        # Step 1: Get raw processed assets (same as main endpoint)
-        all_raw_assets = get_processed_assets()
-        
-        # Step 2: Apply the same transformations as main endpoint (no filtering, get ALL assets)
-        # Transform field names to frontend format - SAME as main endpoint
-        all_transformed_assets = [_transform_asset_for_frontend(asset) for asset in all_raw_assets]
-        all_cleaned_assets = [clean_for_json_serialization(asset) for asset in all_transformed_assets]
-        
-        # Find and update assets using the frontend-transformed data
-        updated_count = 0
-        found_asset_ids = []
-        
-        for i, cleaned_asset in enumerate(all_cleaned_assets):
-            # Use the frontend ID (same as what frontend displays)
-            frontend_id = cleaned_asset.get('id')
-            
-            if str(frontend_id) in asset_ids:
-                found_asset_ids.append(frontend_id)
-                
-                # Apply updates to the original raw asset data
-                original_asset = cleaned_asset.get('_original', {})
-                if original_asset:
-                    for frontend_field, value in updates.items():
-                        backend_field = frontend_field  # Keep it simple for now
-                        original_asset[backend_field] = value
-                    
-                    updated_count += 1
-        
-        if updated_count > 0:
-            # Save the updated raw assets back to persistence
-            backup_processed_assets()
-            
-            return {
-                "status": "success",
-                "updated_count": updated_count,
-                "message": f"Successfully updated {updated_count} assets"
-            }
-        else:
-            # Return debug info when no assets found
-            return {
-                "status": "error",
-                "detail": "Asset not found",
-                "debug": {
-                    "requested_ids": asset_ids,
-                    "total_available": len(all_cleaned_assets),
-                    "sample_ids": [a.get('id') for a in all_cleaned_assets[:5]],
-                    "found_matches": found_asset_ids
-                }
-            }
-        
-    except Exception as e:
-        logger.error(f"Error in bulk update: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to bulk update assets: {str(e)}")
-
-@router.delete("/assets/bulk")
-async def bulk_delete_assets_endpoint(
-    request: BulkDeleteRequest
-):
-    """
-    Bulk delete multiple assets.
-    
-    Expected request format:
-    {
-        "asset_ids": ["id1", "id2", "id3"]
-    }
-    """
-    try:
-        asset_ids = request.asset_ids
-        
-        if not asset_ids:
-            raise HTTPException(status_code=400, detail="asset_ids are required")
-        
-        deleted_count = bulk_delete_assets(asset_ids)
-        
-        return {
-            "status": "success",
-            "deleted_count": deleted_count,
-            "message": f"Successfully deleted {deleted_count} assets"
-        }
-        
-    except Exception as e:
-        logger.error(f"Error in bulk delete: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to bulk delete assets: {str(e)}")
-
 @router.get("/assets/duplicates")
 async def find_duplicate_assets_endpoint():
     """Find potential duplicate assets in the inventory."""
@@ -772,46 +780,4 @@ async def cleanup_duplicate_assets_endpoint():
         
     except Exception as e:
         logger.error(f"Error cleaning up duplicates: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to cleanup duplicates: {str(e)}")
-
-@router.put("/assets/test-bulk-simple")
-async def test_bulk_update_simple(
-    request: BulkUpdateRequest
-):
-    """
-    Simple test endpoint to debug bulk update issues.
-    """
-    try:
-        asset_ids = request.asset_ids
-        updates = request.updates
-        
-        # Get all assets using the exact same pipeline as main endpoint
-        all_raw_assets = get_processed_assets()
-        all_transformed_assets = [_transform_asset_for_frontend(asset) for asset in all_raw_assets]
-        all_cleaned_assets = [clean_for_json_serialization(asset) for asset in all_transformed_assets]
-        
-        # Find matching assets
-        matching_assets = []
-        for asset in all_cleaned_assets:
-            if asset.get('id') in asset_ids:
-                matching_assets.append({
-                    'id': asset.get('id'),
-                    'name': asset.get('name'),
-                    'type': asset.get('type'),
-                    'found': True
-                })
-        
-        return {
-            "status": "debug",
-            "requested_ids": asset_ids,
-            "updates": updates,
-            "total_assets_available": len(all_cleaned_assets),
-            "matching_assets": matching_assets,
-            "sample_asset_ids": [a.get('id') for a in all_cleaned_assets[:5]]
-        }
-        
-    except Exception as e:
-        return {
-            "status": "error",
-            "error": str(e)
-        } 
+        raise HTTPException(status_code=500, detail=f"Failed to cleanup duplicates: {str(e)}") 
