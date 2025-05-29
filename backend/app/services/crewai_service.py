@@ -308,8 +308,9 @@ class CrewAIService:
             # Create agentic task with enhanced field mapping intelligence
             task = Task(
                 description=f"""
-                As a Senior CMDB Data Analyst with access to advanced field mapping intelligence, analyze this CMDB export data.
-                
+                As a Senior Data Quality Analyst, analyze this CMDB export data for DATA CLEANSING purposes.
+                Focus on providing CATEGORIZED, BULK-ACTIONABLE data quality issues.
+
                 CURRENT ANALYSIS:
                 File: {cmdb_data.get('filename')}
                 Data Structure: {cmdb_data.get('structure')}
@@ -321,75 +322,82 @@ class CrewAIService:
                 Mapping Context: {mapping_context}
                 Pattern Analysis: {pattern_analysis}
                 
-                CRITICAL FIELD MAPPING INSTRUCTIONS:
-                1. Use the pattern analysis results to understand what each column contains
-                2. The pattern_analysis shows suggested field mappings with confidence scores
-                3. Column suggestions like:
-                   - 'HOSTNAME' → 'Asset Name' (confidence: 0.75)
-                   - 'RAM (GB)' → 'Memory (GB)' (confidence: 0.85)
-                   - 'APPLICATION_MAPPED' → 'Dependencies' (confidence: 0.70)
-                4. DO NOT report fields as missing if they are available under different column names
-                5. Learn new field mappings using the field_mapping_tool when patterns are discovered
-                6. Use actual data content patterns, not just column names, for field identification
+                DATA CLEANSING FOCUS AREAS (PRIORITIZE THESE):
                 
-                ANALYSIS REQUIREMENTS:
-                1. Determine the PRIMARY asset type based on data patterns and content
-                2. Assess data quality considering the actual field mappings found
-                3. Identify truly missing fields AFTER applying pattern-based field mappings
-                4. Learn and store new field mappings discovered through pattern analysis
-                5. Provide migration-specific recommendations based on discovered asset types
+                1. MISSING DATA ISSUES:
+                   - Identify fields with null/empty values that are critical for migration
+                   - Focus on: environment, department, asset_type, hostname
+                   - Suggest bulk values based on naming patterns and context
+                   - Example issue: "50 assets missing environment classification"
                 
-                FIELD MAPPING WORKFLOW:
-                For each column in the data:
-                1. Check pattern_analysis["column_analysis"] for suggested mappings
-                2. If a mapping is suggested with confidence > 0.7, consider it valid
-                3. Use field_mapping_tool.learn_field_mapping() to store discovered patterns
-                4. Only report fields as missing if no suitable column mapping is found
+                2. DUPLICATE RECORDS:
+                   - Find assets with identical hostnames, IPs, or names
+                   - Suggest consolidation or unique identifier addition
+                   - Example issue: "15 duplicate hostnames requiring deduplication"
                 
-                ASSET TYPE DETECTION:
-                - Look for CI_TYPE, Asset_Type, or similar classification columns
-                - If pattern analysis suggests these columns exist, use them for classification
-                - Consider the actual data content, not just column names
-                - Applications: Look for business services, versions, no hardware specs
-                - Servers: Look for hostnames, IP addresses, hardware specifications
-                - Databases: Look for database-specific fields like ports, instances
+                3. FORMAT STANDARDIZATION:
+                   - Abbreviated values that need expansion (DB → Database, SRV → Server)
+                   - Inconsistent capitalization (production vs Production vs PRODUCTION)
+                   - Non-standard asset types that need normalization
+                   - Example issue: "25 assets with abbreviated asset types"
                 
-                DATA QUALITY ASSESSMENT:
-                - Base quality on completeness AFTER field mapping
-                - Higher quality if more fields are successfully mapped
-                - Consider data pattern consistency (e.g., IP addresses in IP columns)
-                - Reduce quality for truly missing essential fields
+                4. INCORRECT FIELD MAPPINGS:
+                   - Values in wrong fields or inconsistent formats
+                   - IP addresses in wrong format, invalid environment names
+                   - Example issue: "12 assets with non-standard environment values"
                 
-                LEARNING INSTRUCTIONS:
-                - If you discover reliable field mappings (confidence > 0.7), learn them
-                - Example: field_mapping_tool.learn_field_mapping("HOSTNAME", "Asset Name", "pattern_analysis")
-                - Store patterns that could help with future similar datasets
+                BULK OPERATION REQUIREMENTS:
+                - Group similar issues together (all missing environment issues)
+                - Provide specific counts of affected assets
+                - Suggest standardized values for bulk application
+                - Focus on migration-critical fields only
+                
+                ANALYSIS WORKFLOW:
+                1. Use pattern_analysis results to understand actual field mappings
+                2. Only report fields as missing if NO suitable mapping exists
+                3. Count actual occurrences of each issue type
+                4. Provide bulk-applicable suggestions
+                5. Categorize issues for efficient UI grouping
                 
                 CRITICAL OUTPUT FORMAT REQUIREMENTS:
-                You MUST return ONLY a valid JSON object. No additional text, explanations, or thoughts.
-                Do NOT include "Thought:", "Analysis:", or any reasoning text.
-                Do NOT include any text before or after the JSON object.
-                
-                EXACTLY this format (with actual values):
+                Return ONLY a valid JSON object with these specific fields for data cleansing:
                 
                 {{
-                    "asset_type_detected": "application",
-                    "confidence_level": 0.9,
-                    "data_quality_score": 85,
-                    "issues": ["Missing IP addresses"],
-                    "recommendations": ["Add network configuration data"],
-                    "missing_fields_relevant": ["Business Owner"],
-                    "migration_readiness": "ready",
-                    "field_mappings_discovered": ["HOSTNAME → Asset Name"],
-                    "pattern_analysis_applied": true,
-                    "columns_successfully_mapped": 8,
-                    "total_columns": 10
+                    "asset_type_detected": "server|application|database|mixed",
+                    "confidence_level": 0.85,
+                    "data_quality_score": 75,
+                    "issues": [
+                        "Missing environment data for 23 assets",
+                        "Found 8 duplicate hostnames requiring deduplication", 
+                        "15 assets have abbreviated asset types (DB, SRV)",
+                        "Inconsistent capitalization in 12 department fields"
+                    ],
+                    "recommendations": [
+                        "Bulk assign Production environment to assets with 'prod' in hostname",
+                        "Expand abbreviated asset types: DB→Database, SRV→Server", 
+                        "Standardize department capitalization to title case",
+                        "Add instance numbers to duplicate hostnames"
+                    ],
+                    "missing_fields_relevant": ["Business_Owner", "Criticality"],
+                    "migration_readiness": "requires_cleansing|ready|needs_major_work",
+                    "bulk_suggestions": {{
+                        "missing_environment": "Production",
+                        "missing_department": "Information Technology",
+                        "abbreviation_expansions": {{"DB": "Database", "SRV": "Server"}},
+                        "capitalization_standard": "title_case"
+                    }},
+                    "issue_categories": {{
+                        "missing_data": 23,
+                        "duplicates": 8, 
+                        "format_standardization": 15,
+                        "incorrect_mappings": 12
+                    }}
                 }}
                 
                 Return only the JSON object above with your analysis results. No other text.
                 """,
                 agent=self.agents['cmdb_analyst'],
-                expected_output="Valid JSON analysis with enhanced field mapping intelligence"
+                expected_output="Valid JSON analysis focused on categorized data quality issues for bulk operations"
             )
             
             # Execute with simplified crew (no memory to avoid OpenAI issues)

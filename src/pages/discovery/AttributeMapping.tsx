@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/Sidebar';
 import FeedbackWidget from '../../components/FeedbackWidget';
+import RawDataTable from '../../components/discovery/RawDataTable';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   Settings, Brain, GraduationCap, CheckCircle, AlertTriangle, 
   ArrowRight, Lightbulb, Save, RefreshCw, Eye,
-  ThumbsUp, ThumbsDown, HelpCircle, Wand2
+  ThumbsUp, ThumbsDown, HelpCircle, Wand2, Database
 } from 'lucide-react';
 import { apiCall, API_CONFIG } from '../../config/api';
 
@@ -43,12 +45,15 @@ interface LearningProgress {
 }
 
 const AttributeMapping = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [mappings, setMappings] = useState<AttributeMapping[]>([]);
   const [fieldDefinitions, setFieldDefinitions] = useState<FieldDefinition[]>([]);
   const [selectedMapping, setSelectedMapping] = useState<AttributeMapping | null>(null);
   const [activeTab, setActiveTab] = useState('mappings');
   const [filterStatus, setFilterStatus] = useState('pending');
   const [isLoading, setIsLoading] = useState(true);
+  const [rawData, setRawData] = useState<any[]>([]);
   const [learningProgress, setLearningProgress] = useState<LearningProgress>({
     totalMappings: 0,
     approvedMappings: 0,
@@ -62,6 +67,7 @@ const AttributeMapping = () => {
     fetchAttributeMappings();
     fetchFieldDefinitions();
     fetchLearningProgress();
+    fetchRawData();
   }, []);
 
   const fetchAttributeMappings = async () => {
@@ -91,6 +97,35 @@ const AttributeMapping = () => {
       setLearningProgress(response.progress || learningProgress);
     } catch (error) {
       console.error('Failed to fetch learning progress:', error);
+    }
+  };
+
+  const fetchRawData = async () => {
+    try {
+      console.log('Fetching raw data for attribute mapping...');
+      
+      // Try to get real imported data from multiple sources
+      const assetsResponse = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}?page=1&page_size=1000`);
+      console.log('Assets response for attribute mapping:', assetsResponse);
+      
+      if (assetsResponse.assets && assetsResponse.assets.length > 0) {
+        setRawData(assetsResponse.assets);
+        console.log('✓ Loaded raw data for attribute mapping:', assetsResponse.assets.length, 'records');
+      } else {
+        // Try localStorage as fallback
+        const storedData = localStorage.getItem('imported_assets');
+        if (storedData) {
+          const parsedData = JSON.parse(storedData);
+          setRawData(parsedData);
+          console.log('✓ Loaded data from localStorage for attribute mapping:', parsedData.length, 'records');
+        } else {
+          console.log('No raw data found for attribute mapping');
+          setRawData([]);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch raw data for attribute mapping:', error);
+      setRawData([]);
     }
   };
 
@@ -294,6 +329,7 @@ const AttributeMapping = () => {
             <div className="mb-6">
               <nav className="flex space-x-8">
                 {[
+                  { id: 'data', label: 'Imported Data' },
                   { id: 'mappings', label: 'Attribute Mappings' },
                   { id: 'definitions', label: 'Field Definitions' },
                   { id: 'rules', label: 'Mapping Rules' }
@@ -312,6 +348,47 @@ const AttributeMapping = () => {
                 ))}
               </nav>
             </div>
+
+            {/* Imported Data Tab */}
+            {activeTab === 'data' && (
+              <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-900">Imported Data Review</h2>
+                    <p className="text-gray-600 mt-1">
+                      Review your imported data before setting up attribute mappings. This helps the AI understand your data structure.
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <Database className="h-4 w-4" />
+                    <span>{rawData.length} records imported</span>
+                  </div>
+                </div>
+                
+                {rawData.length > 0 ? (
+                  <RawDataTable
+                    data={rawData}
+                    title="Imported Dataset for Attribute Mapping"
+                    pageSize={10}
+                    showLegend={false}
+                  />
+                ) : (
+                  <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
+                    <Database className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Data Available</h3>
+                    <p className="text-gray-600 mb-4">
+                      Import data first to begin attribute mapping.
+                    </p>
+                    <button
+                      onClick={() => navigate('/discovery/data-import')}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    >
+                      Go to Data Import
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Mappings Tab */}
             {activeTab === 'mappings' && (
@@ -516,6 +593,17 @@ const AttributeMapping = () => {
                 </div>
               </div>
             )}
+
+            {/* Continue Button */}
+            <div className="flex justify-center mt-8">
+              <button
+                onClick={() => navigate('/discovery/data-cleansing')}
+                className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-lg font-medium"
+              >
+                <span>Continue to Data Cleansing</span>
+                <ArrowRight className="h-5 w-5" />
+              </button>
+            </div>
           </div>
         </main>
       </div>

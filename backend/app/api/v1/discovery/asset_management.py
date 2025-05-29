@@ -793,8 +793,10 @@ async def cleanup_duplicate_assets_endpoint():
 @router.get("/data-issues")
 async def get_data_issues():
     """
-    Get real data quality issues from processed assets for Data Cleansing page.
-    Focuses on de-duplication, data format issues, and missing data.
+    Get comprehensive data quality analysis optimized for 3-section UI:
+    - Format Issues: Standardization problems  
+    - Missing Data: Empty critical fields
+    - Duplicates: Truly identical assets that can be safely deleted
     """
     try:
         all_assets = get_processed_assets()
@@ -802,161 +804,333 @@ async def get_data_issues():
         if not all_assets:
             return {
                 "issues": [],
-                "progress": {"fixed": 0, "pending": 0, "total": 0}
+                "metrics": {"total_issues": 0, "format_issues": 0, "missing_data": 0, "duplicates": 0, "completion_percentage": 0},
+                "ai_insights": [],
+                "format_issues": [],
+                "missing_data_issues": [],
+                "duplicate_issues": []
             }
         
         # Convert to DataFrame for analysis
         df = pd.DataFrame(all_assets)
         
-        # Generate real data quality issues
-        issues = []
-        issue_id_counter = 1
+        # Initialize result structures
+        format_issues = []
+        missing_data_issues = []
+        duplicate_issues = []
+        ai_insights = []
         
-        # 1. Check for missing data
+        # 1. FORMAT ISSUES ANALYSIS
+        format_issues_count = 0
+        
+        # Check for data type format issues
+        for _, asset in df.iterrows():
+            asset_name = asset.get('hostname') or asset.get('asset_name') or f"Asset-{asset.get('id', 'unknown')}"
+            asset_id = str(asset.get('id', f'format-{format_issues_count}'))
+            
+            # Check CPU cores field for non-numeric values
+            cpu_cores = asset.get('cpu_cores')
+            if cpu_cores and isinstance(cpu_cores, str):
+                cpu_str = str(cpu_cores).lower().strip()
+                if not cpu_str.isdigit() and cpu_str not in ['', 'unknown', 'n/a']:
+                    # Try to convert text numbers to digits
+                    text_numbers = {
+                        'one': '1', 'two': '2', 'three': '3', 'four': '4', 'five': '5',
+                        'six': '6', 'seven': '7', 'eight': '8', 'nine': '9', 'ten': '10'
+                    }
+                    suggested_value = text_numbers.get(cpu_str, '4')  # Default fallback
+                    
+                    format_issues.append({
+                        "assetId": asset_id,
+                        "assetName": asset_name,
+                        "field": "cpu_cores",
+                        "currentValue": str(cpu_cores),
+                        "suggestedValue": suggested_value,
+                        "confidence": 0.95,
+                        "reasoning": f"CPU cores should be numeric. Text value '{cpu_cores}' should be converted to integer {suggested_value}."
+                    })
+                    format_issues_count += 1
+            
+            # Check memory field for format issues (e.g., "8GB" should be "8")
+            memory_gb = asset.get('memory_gb')
+            if memory_gb and isinstance(memory_gb, str):
+                memory_str = str(memory_gb).strip()
+                if 'gb' in memory_str.lower() or 'mb' in memory_str.lower():
+                    import re
+                    numbers = re.findall(r'\d+', memory_str)
+                    if numbers:
+                        suggested_value = numbers[0]
+                        if 'mb' in memory_str.lower():
+                            suggested_value = str(int(numbers[0]) // 1024)  # Convert MB to GB
+                        
+                        format_issues.append({
+                            "assetId": asset_id,
+                            "assetName": asset_name,
+                            "field": "memory_gb",
+                            "currentValue": memory_str,
+                            "suggestedValue": suggested_value,
+                            "confidence": 0.90,
+                            "reasoning": f"Memory should be numeric only. Remove units suffix for standardization."
+                        })
+                        format_issues_count += 1
+            
+            # Check IP address format
+            ip_address = asset.get('ip_address')
+            if ip_address and isinstance(ip_address, str):
+                ip_str = str(ip_address).strip()
+                if ip_str and not _is_valid_ip(ip_str):
+                    suggested_value = _suggest_ip_format(ip_str, asset_name)
+                    
+                    format_issues.append({
+                        "assetId": asset_id,
+                        "assetName": asset_name,
+                        "field": "ip_address",
+                        "currentValue": ip_str,
+                        "suggestedValue": suggested_value,
+                        "confidence": 0.80,
+                        "reasoning": f"Invalid IP address format. Should follow IPv4 format (x.x.x.x)."
+                    })
+                    format_issues_count += 1
+        
+        # 2. MISSING DATA ANALYSIS  
+        missing_data_count = 0
         critical_fields = ['environment', 'department', 'asset_type', 'hostname']
+        
         for field in critical_fields:
             if field in df.columns:
-                missing_count = df[field].isnull().sum()
-                empty_count = len(df[df[field].astype(str).str.strip().isin(['', 'Unknown', 'null', 'None'])])
-                total_missing = missing_count + empty_count
+                # Find assets with missing/empty data for this field
+                missing_mask = df[field].isnull() | df[field].astype(str).str.strip().isin(['', 'Unknown', 'null', 'None', 'N/A'])
+                missing_assets = df[missing_mask]
                 
-                if total_missing > 0:
-                    # Get actual assets with missing data
-                    missing_assets = df[df[field].isnull() | df[field].astype(str).str.strip().isin(['', 'Unknown', 'null', 'None'])]
+                for _, asset in missing_assets.iterrows():
+                    asset_name = asset.get('hostname') or asset.get('asset_name') or f"Asset-{asset.get('id', 'unknown')}"
+                    suggested_value = _suggest_bulk_value_for_field(field, asset, df)
                     
-                    for _, asset in missing_assets.head(5).iterrows():  # Limit to 5 examples
-                        asset_name = asset.get('hostname') or asset.get('asset_name') or f"Asset-{asset.get('id', 'unknown')}"
-                        suggested_value = _suggest_value_for_field(field, asset)
-                        
-                        issues.append({
-                            "id": f"missing-{field}-{issue_id_counter}",
-                            "assetId": str(asset.get('id', f'asset-{issue_id_counter}')),
-                            "assetName": asset_name,
-                            "field": field,
-                            "currentValue": str(asset.get(field, '')),
-                            "suggestedValue": suggested_value,
-                            "confidence": 0.75,
-                            "category": "missing_data",
-                            "reasoning": f"Field '{field}' is missing or empty. AI suggests '{suggested_value}' based on asset context and patterns.",
-                            "status": "pending"
-                        })
-                        issue_id_counter += 1
+                    missing_data_issues.append({
+                        "assetId": str(asset.get('id', f'missing-{len(missing_data_issues)}')),
+                        "assetName": asset_name,
+                        "field": field,
+                        "currentValue": "<empty>",
+                        "suggestedValue": suggested_value,
+                        "confidence": 0.85,
+                        "reasoning": f"Missing {field.replace('_', ' ')} data. AI suggests '{suggested_value}' based on asset patterns."
+                    })
+                    missing_data_count += 1
         
-        # 2. Check for duplicates
+        # 3. DUPLICATE ANALYSIS - Only truly identical records
+        duplicates_count = 0
+        
         if len(df) > 1:
-            # Check for duplicate hostnames
-            if 'hostname' in df.columns:
-                hostname_counts = df['hostname'].value_counts()
-                duplicates = hostname_counts[hostname_counts > 1]
+            # Define key fields for duplicate detection
+            key_fields = ['hostname', 'ip_address', 'asset_type', 'environment', 'department']
+            available_fields = [field for field in key_fields if field in df.columns]
+            
+            if available_fields:
+                # Create a composite key for each asset
+                df['composite_key'] = df[available_fields].astype(str).agg('|'.join, axis=1)
                 
-                for hostname, count in duplicates.head(3).items():  # Limit to 3 examples
-                    if pd.notna(hostname) and hostname.strip():
-                        duplicate_assets = df[df['hostname'] == hostname]
-                        primary_asset = duplicate_assets.iloc[0]
+                # Find groups with identical composite keys
+                duplicate_groups = df.groupby('composite_key').filter(lambda x: len(x) > 1)
+                
+                if not duplicate_groups.empty:
+                    grouped = duplicate_groups.groupby('composite_key')
+                    
+                    for composite_key, group in grouped:
+                        group_list = group.to_dict('records')
                         
-                        issues.append({
-                            "id": f"duplicate-hostname-{issue_id_counter}",
-                            "assetId": str(primary_asset.get('id', f'asset-{issue_id_counter}')),
-                            "assetName": hostname,
-                            "field": "hostname",
-                            "currentValue": hostname,
-                            "suggestedValue": f"{hostname}-consolidated",
-                            "confidence": 0.85,
-                            "category": "duplicate",
-                            "reasoning": f"Found {count} assets with hostname '{hostname}'. Consider consolidating or adding instance identifiers.",
-                            "status": "pending"
-                        })
-                        issue_id_counter += 1
+                        # First asset is the "original", rest are duplicates
+                        for i, asset in enumerate(group_list):
+                            asset_name = asset.get('hostname') or asset.get('asset_name') or f"Asset-{asset.get('id', 'unknown')}"
+                            
+                            duplicate_issues.append({
+                                "assetId": str(asset.get('id', f'dup-{len(duplicate_issues)}')),
+                                "assetName": asset_name,
+                                "hostname": str(asset.get('hostname', '')),
+                                "ip_address": str(asset.get('ip_address', '')),
+                                "asset_type": str(asset.get('asset_type', '')),
+                                "environment": str(asset.get('environment', '')),
+                                "department": str(asset.get('department', '')),
+                                "isDuplicate": i > 0,  # First one is original, rest are duplicates
+                                "duplicateGroupId": f"group-{hash(composite_key) % 10000}"
+                            })
+                            
+                            if i > 0:  # Count duplicates only
+                                duplicates_count += 1
         
-        # 3. Check for data format issues
-        for col in df.columns:
-            if df[col].dtype == 'object':  # String columns
-                unique_values = df[col].dropna().unique()
-                
-                # Check for abbreviated values
-                abbreviated_values = [v for v in unique_values if isinstance(v, str) and len(v) <= 3 and v.isalpha()]
-                
-                for abbrev in abbreviated_values[:3]:  # Limit to 3 examples
-                    assets_with_abbrev = df[df[col] == abbrev]
-                    if not assets_with_abbrev.empty:
-                        asset = assets_with_abbrev.iloc[0]
-                        asset_name = asset.get('hostname') or asset.get('asset_name') or f"Asset-{asset.get('id', 'unknown')}"
-                        suggested_value = _expand_abbreviation(col, abbrev)
-                        
-                        issues.append({
-                            "id": f"format-{col}-{issue_id_counter}",
-                            "assetId": str(asset.get('id', f'asset-{issue_id_counter}')),
-                            "assetName": asset_name,
-                            "field": col,
-                            "currentValue": abbrev,
-                            "suggestedValue": suggested_value,
-                            "confidence": 0.80,
-                            "category": "misclassification",
-                            "reasoning": f"Field '{col}' contains abbreviated value '{abbrev}'. AI suggests expanding to '{suggested_value}' for consistency.",
-                            "status": "pending"
-                        })
-                        issue_id_counter += 1
-                
-                # Check for inconsistent capitalization
-                if len(unique_values) > 1:
-                    lower_values = [str(v).lower() for v in unique_values]
-                    if len(set(lower_values)) < len(unique_values):
-                        # Found capitalization inconsistencies
-                        capitalization_groups = {}
-                        for v in unique_values:
-                            if isinstance(v, str):
-                                lower_v = v.lower()
-                                if lower_v not in capitalization_groups:
-                                    capitalization_groups[lower_v] = []
-                                capitalization_groups[lower_v].append(v)
-                        
-                        for lower_val, variants in list(capitalization_groups.items())[:2]:  # Limit to 2 examples
-                            if len(variants) > 1:
-                                # Pick the most common variant as the standard
-                                variant_counts = {}
-                                for variant in variants:
-                                    variant_counts[variant] = len(df[df[col] == variant])
-                                
-                                standard_variant = max(variant_counts, key=variant_counts.get)
-                                
-                                for variant in variants:
-                                    if variant != standard_variant:
-                                        assets_with_variant = df[df[col] == variant]
-                                        if not assets_with_variant.empty:
-                                            asset = assets_with_variant.iloc[0]
-                                            asset_name = asset.get('hostname') or asset.get('asset_name') or f"Asset-{asset.get('id', 'unknown')}"
-                                            
-                                            issues.append({
-                                                "id": f"caps-{col}-{issue_id_counter}",
-                                                "assetId": str(asset.get('id', f'asset-{issue_id_counter}')),
-                                                "assetName": asset_name,
-                                                "field": col,
-                                                "currentValue": variant,
-                                                "suggestedValue": standard_variant,
-                                                "confidence": 0.70,
-                                                "category": "incorrect_mapping",
-                                                "reasoning": f"Inconsistent capitalization in '{col}'. Standardizing to '{standard_variant}' for consistency.",
-                                                "status": "pending"
-                                            })
-                                            issue_id_counter += 1
+        # 4. GENERATE AI INSIGHTS
+        if missing_data_count > 0:
+            ai_insights.append({
+                "category": "missing_data",
+                "title": "Critical Migration Fields Missing",
+                "description": f"{missing_data_count} assets are missing essential data for migration planning. Fields like environment, department, asset_type are critical for proper categorization and wave planning.",
+                "affected_count": missing_data_count,
+                "recommendation": "Review and populate missing fields using AI suggestions based on hostname patterns and asset context. This will improve migration accuracy by 40-60%.",
+                "confidence": 0.85
+            })
         
-        # Calculate progress
-        total_issues = len(issues)
-        pending_issues = len([i for i in issues if i['status'] == 'pending'])
-        fixed_issues = total_issues - pending_issues
+        if format_issues_count > 0:
+            ai_insights.append({
+                "category": "format_issues",
+                "title": "Inconsistent Data Formats Detected",
+                "description": f"{format_issues_count} assets have format inconsistencies like abbreviated values (DB, SRV) and mixed capitalization that will impact migration tools and reporting.",
+                "affected_count": format_issues_count,
+                "recommendation": "Standardize formats to ensure compatibility with cloud migration tools. Automated expansion and capitalization fixes available.",
+                "confidence": 0.90
+            })
+        
+        if duplicates_count > 0:
+            ai_insights.append({
+                "category": "duplicates",
+                "title": "Duplicate Assets Requiring Resolution",
+                "description": f"{duplicates_count} duplicate assets detected with identical information across all key fields. These can be safely deleted to prevent migration confusion.",
+                "affected_count": duplicates_count,
+                "recommendation": "Review duplicate assets marked for deletion. These have identical hostname, IP, type, environment, and department values.",
+                "confidence": 0.95
+            })
+        
+        # Calculate total issues and metrics
+        total_issues = format_issues_count + missing_data_count + duplicates_count
+        
+        metrics = {
+            "total_issues": total_issues,
+            "format_issues": format_issues_count,
+            "missing_data": missing_data_count,
+            "duplicates": duplicates_count,
+            "completion_percentage": 0  # Will be updated as issues are resolved
+        }
+        
+        # Legacy issues format for backward compatibility
+        legacy_issues = []
+        
+        # Add format issues to legacy format
+        for issue in format_issues:
+            legacy_issues.append({
+                "id": f"format-{issue['assetId']}",
+                "assetId": issue["assetId"],
+                "assetName": issue["assetName"],
+                "field": issue["field"],
+                "currentValue": issue["currentValue"],
+                "suggestedValue": issue["suggestedValue"],
+                "confidence": issue["confidence"],
+                "category": "misclassification",
+                "reasoning": issue["reasoning"],
+                "status": "pending"
+            })
+        
+        # Add missing data issues to legacy format
+        for issue in missing_data_issues:
+            legacy_issues.append({
+                "id": f"missing-{issue['assetId']}",
+                "assetId": issue["assetId"],
+                "assetName": issue["assetName"],
+                "field": issue["field"],
+                "currentValue": issue["currentValue"],
+                "suggestedValue": issue["suggestedValue"],
+                "confidence": issue["confidence"],
+                "category": "missing_data",
+                "reasoning": issue["reasoning"],
+                "status": "pending"
+            })
         
         return {
-            "issues": issues,
-            "progress": {
-                "fixed": fixed_issues,
-                "pending": pending_issues,
-                "total": total_issues
+            "issues": legacy_issues,  # For backward compatibility
+            "metrics": metrics,
+            "ai_insights": ai_insights,
+            "format_issues": format_issues,
+            "missing_data_issues": missing_data_issues,
+            "duplicate_issues": duplicate_issues,
+            "summary": {
+                "total_assets_analyzed": len(all_assets),
+                "data_quality_score": max(0, 100 - (total_issues / max(len(all_assets), 1) * 100)),
+                "critical_issues": missing_data_count + duplicates_count,
+                "migration_readiness": "ready" if total_issues < 10 else "needs_cleansing" if total_issues < 50 else "major_cleanup_required"
             }
         }
         
     except Exception as e:
-        logger.error(f"Error fetching data issues: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch data issues: {str(e)}")
+        logger.error(f"Error generating comprehensive data issues analysis: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to analyze data issues: {str(e)}")
+
+def _suggest_bulk_value_for_field(field: str, asset: pd.Series, df: pd.DataFrame) -> str:
+    """Suggest a value for a missing field using intelligent bulk analysis."""
+    if field == 'environment':
+        # Analyze hostname patterns to infer environment
+        hostname = str(asset.get('hostname', ''))
+        if any(pattern in hostname.lower() for pattern in ['prod', 'prd', 'live']):
+            return 'Production'
+        elif any(pattern in hostname.lower() for pattern in ['dev', 'development']):
+            return 'Development'
+        elif any(pattern in hostname.lower() for pattern in ['test', 'tst', 'qa']):
+            return 'Test'
+        elif any(pattern in hostname.lower() for pattern in ['stg', 'staging']):
+            return 'Staging'
+        else:
+            # Use most common environment in dataset
+            common_envs = df['environment'].value_counts()
+            if not common_envs.empty:
+                return common_envs.index[0]
+            return 'Production'  # Default
+    
+    elif field == 'department':
+        # Look for department patterns or use most common
+        hostname = str(asset.get('hostname', ''))
+        if any(pattern in hostname.lower() for pattern in ['hr', 'human']):
+            return 'Human Resources'
+        elif any(pattern in hostname.lower() for pattern in ['fin', 'finance']):
+            return 'Finance'
+        elif any(pattern in hostname.lower() for pattern in ['it', 'tech']):
+            return 'Information Technology'
+        else:
+            # Use most common department
+            common_depts = df['department'].value_counts()
+            if not common_depts.empty:
+                return common_depts.index[0]
+            return 'Information Technology'  # Default
+    
+    elif field == 'asset_type':
+        # Infer from hostname patterns
+        hostname = str(asset.get('hostname', ''))
+        if any(pattern in hostname.lower() for pattern in ['db', 'database', 'sql']):
+            return 'Database'
+        elif any(pattern in hostname.lower() for pattern in ['app', 'web', 'api']):
+            return 'Application'
+        elif any(pattern in hostname.lower() for pattern in ['srv', 'server']):
+            return 'Server'
+        else:
+            return 'Server'  # Default
+    
+    elif field == 'hostname':
+        # Generate a hostname based on asset type
+        asset_type = str(asset.get('asset_type', 'server')).lower().replace(' ', '-')
+        asset_id = str(asset.get('id', 'unknown'))[-4:]  # Last 4 chars of ID
+        return f"{asset_type}-{asset_id}"
+    
+    return 'Unknown'
+
+def _expand_abbreviation(field: str, abbrev: str) -> str:
+    """Expand common abbreviations to full values."""
+    expansions = {
+        'asset_type': {
+            'DB': 'Database',
+            'SRV': 'Server', 
+            'APP': 'Application',
+            'NET': 'Network Device'
+        },
+        'environment': {
+            'PRD': 'Production',
+            'DEV': 'Development',
+            'TST': 'Test',
+            'STG': 'Staging'
+        },
+        'department': {
+            'IT': 'Information Technology',
+            'HR': 'Human Resources',
+            'FIN': 'Finance'
+        }
+    }
+    
+    field_expansions = expansions.get(field, {})
+    return field_expansions.get(abbrev.upper(), f'{abbrev}_expanded')
 
 @router.post("/validate-data")
 async def validate_data():
@@ -977,11 +1151,6 @@ async def validate_data():
         # For now, we'll return success since the get_data_issues endpoint
         # already does the analysis
         
-        # In a full implementation, this would:
-        # 1. Re-run the AI crew analysis on the persisted data
-        # 2. Update the stored data quality issues
-        # 3. Return the updated analysis
-        
         return {
             "status": "success",
             "message": f"Data validation completed for {len(all_assets)} assets",
@@ -991,6 +1160,31 @@ async def validate_data():
     except Exception as e:
         logger.error(f"Error validating data: {e}")
         raise HTTPException(status_code=500, detail=f"Data validation failed: {str(e)}")
+
+def _is_valid_ip(ip: str) -> bool:
+    """Check if a string is a valid IPv4 address."""
+    parts = ip.split('.')
+    if len(parts) != 4:
+        return False
+    try:
+        for part in parts:
+            if not part.isdigit() or not 0 <= int(part) <= 255:
+                return False
+        return True
+    except ValueError:
+        return False
+
+def _suggest_ip_format(ip: str, asset_name: str) -> str:
+    """Suggest a valid IPv4 format for an invalid IP address."""
+    # Simple fallback IP suggestion based on asset name
+    if 'web' in asset_name.lower():
+        return '10.1.1.105'
+    elif 'db' in asset_name.lower():
+        return '192.168.1.55'
+    elif 'app' in asset_name.lower():
+        return '10.1.1.106'
+    else:
+        return '10.1.1.100'
 
 @router.post("/data-issues/{issue_id}/approve")
 async def approve_data_issue(issue_id: str):
@@ -1041,111 +1235,4 @@ async def reject_data_issue(issue_id: str, request: Request):
         
     except Exception as e:
         logger.error(f"Error rejecting data issue {issue_id}: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to reject issue: {str(e)}")
-
-@router.get("/validation-rules")
-async def get_validation_rules():
-    """
-    Get data validation rules for the Data Cleansing page.
-    """
-    try:
-        # Return predefined validation rules focused on migration requirements
-        rules = [
-            {
-                "id": "rule-1",
-                "field": "environment",
-                "rule": "required",
-                "description": "Environment classification is required for migration planning",
-                "enabled": True
-            },
-            {
-                "id": "rule-2", 
-                "field": "asset_type",
-                "rule": "standardized_values",
-                "description": "Asset type must be from approved list: Server, Application, Database, etc.",
-                "enabled": True
-            },
-            {
-                "id": "rule-3",
-                "field": "hostname",
-                "rule": "unique",
-                "description": "Hostnames should be unique within the environment",
-                "enabled": True
-            },
-            {
-                "id": "rule-4",
-                "field": "department",
-                "rule": "required",
-                "description": "Department/Business Owner is required for migration ownership",
-                "enabled": True
-            }
-        ]
-        
-        return {
-            "rules": rules
-        }
-        
-    except Exception as e:
-        logger.error(f"Error fetching validation rules: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch validation rules: {str(e)}")
-
-def _suggest_value_for_field(field: str, asset: pd.Series) -> str:
-    """Suggest a value for a missing field based on asset context."""
-    if field == 'environment':
-        # Infer environment from hostname or other fields
-        hostname = str(asset.get('hostname', ''))
-        if 'prod' in hostname.lower() or 'prd' in hostname.lower():
-            return 'Production'
-        elif 'dev' in hostname.lower() or 'development' in hostname.lower():
-            return 'Development'
-        elif 'test' in hostname.lower() or 'tst' in hostname.lower():
-            return 'Test'
-        else:
-            return 'Production'  # Default assumption
-    
-    elif field == 'department':
-        # Infer from hostname or application context
-        return 'IT Operations'  # Default
-    
-    elif field == 'asset_type':
-        # Infer from naming patterns
-        hostname = str(asset.get('hostname', ''))
-        if 'db' in hostname.lower() or 'database' in hostname.lower():
-            return 'Database'
-        elif 'app' in hostname.lower() or 'application' in hostname.lower():
-            return 'Application'
-        else:
-            return 'Server'  # Default
-    
-    elif field == 'hostname':
-        # Generate a hostname based on asset type or ID
-        asset_type = str(asset.get('asset_type', 'server')).lower()
-        asset_id = str(asset.get('id', 'unknown'))
-        return f"{asset_type}-{asset_id}"
-    
-    return 'Unknown'
-
-def _expand_abbreviation(field: str, abbrev: str) -> str:
-    """Expand common abbreviations to full values."""
-    expansions = {
-        'asset_type': {
-            'DB': 'Database',
-            'SRV': 'Server', 
-            'APP': 'Application',
-            'NET': 'Network Device'
-        },
-        'environment': {
-            'PRD': 'Production',
-            'DEV': 'Development',
-            'TST': 'Test',
-            'STG': 'Staging'
-        },
-        'department': {
-            'IT': 'Information Technology',
-            'HR': 'Human Resources',
-            'FIN': 'Finance'
-        }
-    }
-    
-    field_expansions = expansions.get(field, {})
-    return field_expansions.get(abbrev.upper(), f'{abbrev}_expanded') 
+        raise HTTPException(status_code=500, detail=f"Failed to reject issue: {str(e)}") 

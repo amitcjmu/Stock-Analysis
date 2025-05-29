@@ -4,7 +4,7 @@ import FeedbackWidget from '../../components/FeedbackWidget';
 import { 
   BarChart3, TrendingUp, Activity, AlertTriangle, CheckCircle,
   FileText, Database, Server, Network, Shield, Cloud,
-  Clock, LineChart, Bug, Zap, Users, Sparkles, Settings, ArrowRight
+  Clock, LineChart, Bug, Zap, Users, Sparkles, Settings, ArrowRight, Upload
 } from 'lucide-react';
 import { apiCall, API_CONFIG } from '../../config/api';
 import { Link } from 'react-router-dom';
@@ -704,22 +704,22 @@ const DiscoveryDashboard = () => {
             <div className="mt-12">
               <div className="bg-white rounded-lg shadow-md p-6">
                 <h2 className="text-xl font-semibold text-gray-900 mb-6">Discovery Tools</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   <Link
-                    to="/discovery/data-cleansing"
+                    to="/discovery/data-import"
                     className="group block p-6 border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition-all duration-200"
                   >
                     <div className="flex items-center justify-between mb-4">
-                      <div className="bg-yellow-500 p-3 rounded-lg text-white">
-                        <Sparkles className="h-6 w-6" />
+                      <div className="bg-blue-500 p-3 rounded-lg text-white">
+                        <Upload className="h-6 w-6" />
                       </div>
                       <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-blue-500" />
                     </div>
                     <h3 className="font-medium text-gray-900 group-hover:text-blue-600 mb-2">
-                      Data Cleansing
+                      Data Import
                     </h3>
                     <p className="text-sm text-gray-600">
-                      Human-in-the-loop data quality improvement with AI assistance
+                      Import and analyze CMDB data with AI validation and quality assessment
                     </p>
                   </Link>
 
@@ -737,7 +737,61 @@ const DiscoveryDashboard = () => {
                       Attribute Mapping
                     </h3>
                     <p className="text-sm text-gray-600">
-                      Train AI crew on field mappings and attribute associations
+                      Train AI crew on field mappings and attribute associations for data understanding
+                    </p>
+                  </Link>
+
+                  <Link
+                    to="/discovery/data-cleansing"
+                    className="group block p-6 border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition-all duration-200"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="bg-yellow-500 p-3 rounded-lg text-white">
+                        <Sparkles className="h-6 w-6" />
+                      </div>
+                      <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-blue-500" />
+                    </div>
+                    <h3 className="font-medium text-gray-900 group-hover:text-blue-600 mb-2">
+                      Data Cleansing
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      AI-powered data quality improvement with human-in-the-loop validation
+                    </p>
+                  </Link>
+
+                  <Link
+                    to="/discovery/inventory"
+                    className="group block p-6 border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition-all duration-200"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="bg-green-500 p-3 rounded-lg text-white">
+                        <Database className="h-6 w-6" />
+                      </div>
+                      <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-blue-500" />
+                    </div>
+                    <h3 className="font-medium text-gray-900 group-hover:text-blue-600 mb-2">
+                      Asset Inventory
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      Browse and manage discovered assets with detailed metadata and insights
+                    </p>
+                  </Link>
+
+                  <Link
+                    to="/discovery/dependencies"
+                    className="group block p-6 border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition-all duration-200"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="bg-teal-500 p-3 rounded-lg text-white">
+                        <Activity className="h-6 w-6" />
+                      </div>
+                      <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-blue-500" />
+                    </div>
+                    <h3 className="font-medium text-gray-900 group-hover:text-blue-600 mb-2">
+                      Dependency Mapping
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      Explore relationships and dependencies between assets for migration planning
                     </p>
                   </Link>
 
@@ -755,25 +809,7 @@ const DiscoveryDashboard = () => {
                       Tech Debt Analysis
                     </h3>
                     <p className="text-sm text-gray-600">
-                      Analyze technology stack support and modernization needs
-                    </p>
-                  </Link>
-
-                  <Link
-                    to="/discovery/dependencies"
-                    className="group block p-6 border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition-all duration-200"
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="bg-teal-500 p-3 rounded-lg text-white">
-                        <Activity className="h-6 w-6" />
-                      </div>
-                      <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-blue-500" />
-                    </div>
-                    <h3 className="font-medium text-gray-900 group-hover:text-blue-600 mb-2">
-                      Dependency Map
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      Explore relationships and dependencies between assets
+                      Analyze technology stack support and modernization requirements
                     </p>
                   </Link>
                 </div>

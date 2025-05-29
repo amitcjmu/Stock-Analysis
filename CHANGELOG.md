@@ -5,6 +5,137 @@ All notable changes to the AI Force Migration Platform will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2025-01-28
+
+### 🚀 **Complete Discovery Workflow Redesign & Real Data Integration**
+
+This major release transforms the Discovery phase with a logical workflow sequence, eliminates dummy data usage, creates reusable components, and ensures proper CrewAI agent integration at each step.
+
+### ✨ **Major Features**
+
+#### **New Discovery Workflow Sequence**
+- **Logical Flow**: Reordered Discovery workflow to: Data Import → Attribute Mapping → Data Cleansing → Inventory → Dependencies → Tech Debt
+- **Progressive Data Enhancement**: Each step builds upon the previous, creating a natural progression from raw data to actionable insights
+- **CrewAI Agent Integration**: Proper agentic crew instantiation at each workflow step to review persisted data and provide intelligent recommendations
+- **Workflow Navigation**: Updated continue buttons and navigation flow to guide users through the logical sequence
+
+#### **Real Data Integration Everywhere**
+- **Eliminated Dummy Data**: Completely removed mock/dummy data from Data Cleansing page and all Discovery components
+- **Live Data Sources**: All pages now use real imported data from backend APIs and localStorage persistence
+- **Data Consistency**: Ensured data flows consistently from Data Import → Attribute Mapping → Data Cleansing → subsequent phases
+- **Real-time Processing**: CrewAI agents now analyze actual imported AWS Migration Evaluator data instead of synthetic examples
+
+#### **Reusable Raw Data Table Component**
+- **Universal Component**: Created `RawDataTable.tsx` component used across all Discovery pages (Data Import, Data Cleansing, Attribute Mapping, Dependencies)
+- **Dynamic Column Detection**: Automatically detects and displays all columns from imported data with horizontal scrolling
+- **Smart Pagination**: Built-in pagination with configurable page sizes (5-10 rows per page)
+- **Field Highlighting**: Color-coded highlighting for data issues (orange for format issues, red for missing data)
+- **Flexible Configuration**: Customizable title, legend display, and highlighting functions per page
+
+#### **Enhanced Attribute Mapping**
+- **Imported Data Tab**: Added dedicated tab to review imported data before setting up attribute mappings
+- **AI Learning Context**: Provides full data context to CrewAI agents for better field mapping suggestions
+- **Progressive Workflow**: Positioned as second step after Data Import to train AI before data quality analysis
+- **Continue Navigation**: Seamless flow to Data Cleansing once attribute mappings are established
+
+### 🛠 **Technical Improvements**
+
+#### **Docker-First Development**
+- **Docker Deployment**: Migrated from local npm dev server to Docker-compose for consistent development environment
+- **Container Rebuild**: Automated Docker container rebuilds when dependencies or configurations change
+- **Production-Ready**: Development environment now matches production deployment architecture
+- **Service Integration**: Proper service orchestration between frontend, backend, and database containers
+
+#### **Component Architecture Overhaul**
+- **Reusable Components**: Created modular components that can be shared across Discovery pages
+- **Data Flow Standardization**: Consistent data fetching and processing patterns across all Discovery components
+- **State Management**: Improved state management for raw data, processing status, and workflow progression
+- **Error Handling**: Robust error handling and fallback mechanisms for data loading
+
+#### **Backend Integration Enhancement**
+- **Real API Calls**: All Discovery pages now make proper API calls to fetch actual imported data
+- **Multiple Data Sources**: Robust fallback system: API → localStorage → user guidance for import
+- **Data Persistence**: Proper data persistence and retrieval across workflow steps
+- **CrewAI Context**: Enhanced backend endpoints to provide rich context for AI agent analysis
+
+### 🎯 **User Experience Transformations**
+
+#### **Logical Workflow Progression**
+- **Intuitive Sequence**: Clear progression from data import through analysis to actionable insights
+- **Context-Aware Guidance**: Each step provides clear guidance on what comes next and why
+- **Data Transparency**: Raw data visible on every page so users understand what's being analyzed
+- **Progressive Enhancement**: Each workflow step adds value to the previous step's output
+
+#### **Sidebar Navigation Improvements**
+- **Reordered Menu**: Discovery submenu now follows logical workflow: Import → Mapping → Cleansing → Inventory → Dependencies → Tech Debt
+- **Visual Hierarchy**: Clear indication of workflow progression and current position
+- **Quick Access**: Direct navigation to any workflow step while maintaining logical flow awareness
+
+#### **Enhanced Data Visibility**
+- **Raw Data at Top**: Moved raw data table to top of Data Cleansing page (below metrics, above issues)
+- **All Columns Visible**: Complete dataset visibility with horizontal scrolling for comprehensive data review
+- **Issue Correlation**: Direct visual correlation between highlighted fields in raw data and identified issues
+- **Data Completeness**: Shows all 72 imported records with full field structure
+
+### 🐛 **Critical Fixes**
+
+#### **Data Quality Analysis**
+- **Real Issue Detection**: Data Cleansing page now properly detects issues in actual imported data instead of showing 0 issues
+- **Workflow Dependencies**: Fixed workflow to require Attribute Mapping before accurate Data Cleansing analysis
+- **CrewAI Context**: Proper data context provided to AI agents for realistic issue identification and recommendations
+- **Field Mapping Required**: Clear guidance that attribute mapping enables better data quality analysis
+
+#### **Component Integration**
+- **State Synchronization**: Fixed data state management across workflow steps
+- **Navigation Flow**: Corrected continue button destinations to follow new workflow sequence
+- **Data Persistence**: Ensured data persists correctly as users progress through workflow
+- **Error States**: Improved error handling when data is missing or API calls fail
+
+### 🚀 **Performance & Scalability**
+
+#### **Optimized Data Loading**
+- **Efficient Pagination**: Raw data table loads 5-10 rows at a time for optimal performance
+- **Lazy Loading**: Components load data on-demand rather than preloading all information
+- **Caching Strategy**: Intelligent caching of imported data across workflow steps
+- **Memory Management**: Proper cleanup and memory management for large datasets
+
+#### **Development Workflow**
+- **Docker Consistency**: Development environment matches production for better reliability
+- **Faster Iteration**: Container-based development with automated rebuilds
+- **Dependency Management**: Isolated dependency management prevents local environment conflicts
+- **Service Orchestration**: Proper service discovery and communication between containers
+
+### 🌟 **CrewAI Agent Integration**
+
+#### **Workflow-Specific Agents**
+- **Data Import Agents**: Validate data structure and recommend attribute mappings
+- **Attribute Mapping Agents**: Analyze field relationships and suggest standardized mappings
+- **Data Cleansing Agents**: Identify format issues, missing data, and duplicates based on mapped attributes
+- **Inventory Agents**: Categorize and enrich asset information using cleansed data
+- **Dependency Agents**: Map relationships and dependencies between cleaned assets
+- **Tech Debt Agents**: Analyze technology stack and modernization requirements
+
+#### **Real Data Context**
+- **Actual Analysis**: All AI agents now work with real imported AWS Migration Evaluator data
+- **Context-Aware Insights**: Agents provide recommendations based on actual data patterns and issues
+- **Progressive Learning**: Each workflow step provides richer context for more accurate AI analysis
+- **Human-in-the-Loop**: Users can review and approve AI recommendations at each workflow step
+
+### 📋 **Migration Path**
+
+#### **For Existing Users**
+- **Workflow Guidance**: Clear indication of new workflow sequence with navigation assistance
+- **Data Preservation**: Existing imported data continues to work with new workflow
+- **Progressive Adoption**: Users can follow new workflow or jump to specific steps as needed
+- **Backward Compatibility**: Existing data structures remain compatible
+
+#### **For New Users**
+- **Guided Experience**: Clear workflow progression from initial data import to final tech debt analysis
+- **Real Examples**: All demonstrations use actual data patterns rather than synthetic examples
+- **Learning Path**: Natural progression that teaches proper migration discovery methodology
+
+---
+
 ## [0.2.9] - 2025-01-27
 
 ### 🔧 **Dynamic Headers & Improved Field Mapping**

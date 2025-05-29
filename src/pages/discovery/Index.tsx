@@ -29,25 +29,11 @@ const DiscoveryIndex = () => {
       color: 'bg-blue-500'
     },
     { 
-      title: 'CMDB Import', 
+      title: 'Data Import', 
       description: 'Import and analyze CMDB data with AI validation', 
-      path: '/discovery/cmdb-import',
+      path: '/discovery/data-import',
       icon: Database,
       color: 'bg-green-500'
-    },
-    { 
-      title: 'Asset Inventory', 
-      description: 'Browse discovered assets and their details', 
-      path: '/discovery/inventory',
-      icon: Server,
-      color: 'bg-purple-500'
-    },
-    { 
-      title: 'Data Cleansing', 
-      description: 'Human-in-the-loop data quality improvement', 
-      path: '/discovery/data-cleansing',
-      icon: Sparkles,
-      color: 'bg-yellow-500'
     },
     { 
       title: 'Attribute Mapping', 
@@ -57,11 +43,18 @@ const DiscoveryIndex = () => {
       color: 'bg-indigo-500'
     },
     { 
-      title: 'Tech Debt Analysis', 
-      description: 'Analyze technology stack support and modernization needs', 
-      path: '/discovery/tech-debt-analysis',
-      icon: BarChart3,
-      color: 'bg-red-500'
+      title: 'Data Cleansing', 
+      description: 'Human-in-the-loop data quality improvement', 
+      path: '/discovery/data-cleansing',
+      icon: Sparkles,
+      color: 'bg-yellow-500'
+    },
+    { 
+      title: 'Asset Inventory', 
+      description: 'Browse discovered assets and their details', 
+      path: '/discovery/inventory',
+      icon: Server,
+      color: 'bg-purple-500'
     },
     { 
       title: 'Dependency Map', 
@@ -69,6 +62,13 @@ const DiscoveryIndex = () => {
       path: '/discovery/dependencies',
       icon: Activity,
       color: 'bg-teal-500'
+    },
+    { 
+      title: 'Tech Debt Analysis', 
+      description: 'Analyze technology stack support and modernization needs', 
+      path: '/discovery/tech-debt-analysis',
+      icon: BarChart3,
+      color: 'bg-red-500'
     },
     { 
       title: 'Scanning Status', 
