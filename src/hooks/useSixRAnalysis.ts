@@ -8,7 +8,7 @@ import {
   type IterateAnalysisRequest,
   type BulkAnalysisRequest,
   type ApiError
-} from '../lib/api/sixr';
+} from '../lib/api';
 import { 
   SixRParameters, 
   QualifyingQuestion, 

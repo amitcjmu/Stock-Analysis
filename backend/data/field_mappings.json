@@ -1,14 +1,14 @@
 {
   "Memory (GB)": [
-    "ram (gb)",
-    "memory (gb)",
     "cpu (cores)",
-    "ram_gb"
+    "ram (gb)",
+    "ram_gb",
+    "memory (gb)"
   ],
   "Business Owner": [
-    "business owner",
+    "application_owner",
     "owner",
-    "application_owner"
+    "business owner"
   ],
   "Criticality": [
     "dr_tier",
@@ -25,19 +25,21 @@
   "Asset Name": [
     "hostname",
     "name",
-    "asset_name",
-    "asset name"
+    "asset name",
+    "asset_name"
   ],
   "IP Address": [
+    "ip_address",
     "ip address",
-    "ip_address"
+    "destination ip",
+    "source ip"
   ],
   "Operating System": [
-    "os_version",
-    "operating system",
-    "operating_system",
     "os",
-    "os type"
+    "os type",
+    "operating_system",
+    "operating system",
+    "os_version"
   ],
   "CPU Cores": [
     "cpu cores",

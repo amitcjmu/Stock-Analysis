@@ -10,8 +10,20 @@ const getBackendUrl = (): string => {
     return 'http://localhost:8000';
   }
   
-  // In production, use the same origin or environment variable
-  return import.meta.env.VITE_BACKEND_URL || window.location.origin;
+  // In production, prioritize environment variable, then fall back to Railway URL
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  if (backendUrl) {
+    return backendUrl;
+  }
+  
+  // If no environment variable is set, check if we're likely on Vercel and use Railway
+  if (window.location.hostname.includes('vercel.app')) {
+    // Default Railway backend URL - you should replace this with your actual Railway URL
+    return 'https://migrate-ui-orchestrator-production.up.railway.app';
+  }
+  
+  // For local production builds or other deployments, use same origin
+  return window.location.origin;
 };
 
 export const API_CONFIG = {
