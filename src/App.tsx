@@ -7,10 +7,13 @@ import Index from "./pages/Index";
 import Assess from "./pages/Assess";
 import Discovery from "./pages/Discovery";
 import DiscoveryIndex from "./pages/discovery/Index";
-import CMDBImport from "./pages/discovery/CMDBImport";
+import DataImport from "./pages/discovery/CMDBImport";
 import Inventory from "./pages/discovery/Inventory";
 import Dependencies from "./pages/discovery/Dependencies";
-import Scan from "./pages/discovery/Scan";
+import DataCleansing from "./pages/discovery/DataCleansing";
+import AttributeMapping from "./pages/discovery/AttributeMapping";
+import TechDebtAnalysis from "./pages/discovery/TechDebtAnalysis";
+import DiscoveryDashboard from "./pages/discovery/DiscoveryDashboard";
 import AssessIndex from "./pages/assess/Index";
 import Treatment from "./pages/assess/Treatment";
 import WavePlanning from "./pages/assess/WavePlanning";
@@ -62,10 +65,13 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/discovery" element={<Discovery />} />
           <Route path="/discovery/overview" element={<DiscoveryIndex />} />
-          <Route path="/discovery/cmdb-import" element={<CMDBImport />} />
+          <Route path="/discovery/dashboard" element={<DiscoveryDashboard />} />
+          <Route path="/discovery/data-import" element={<DataImport />} />
           <Route path="/discovery/inventory" element={<Inventory />} />
+          <Route path="/discovery/data-cleansing" element={<DataCleansing />} />
+          <Route path="/discovery/attribute-mapping" element={<AttributeMapping />} />
+          <Route path="/discovery/tech-debt-analysis" element={<TechDebtAnalysis />} />
           <Route path="/discovery/dependencies" element={<Dependencies />} />
-          <Route path="/discovery/scan" element={<Scan />} />
           <Route path="/assess" element={<Assess />} />
           <Route path="/assess/overview" element={<AssessIndex />} />
           <Route path="/assess/treatment" element={<Treatment />} />

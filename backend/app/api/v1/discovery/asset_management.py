@@ -173,6 +173,14 @@ async def get_processed_assets_paginated(
             "page": page,
             "page_size": page_size,
             "total_pages": total_pages,
+            "pagination": {
+                "current_page": page,
+                "page_size": page_size,
+                "total_items": total_assets,
+                "total_pages": total_pages,
+                "has_next": page < total_pages,
+                "has_previous": page > 1
+            },
             "summary": {
                 # Frontend-compatible format
                 "total": total_assets,

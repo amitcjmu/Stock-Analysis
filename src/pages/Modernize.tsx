@@ -1,8 +1,8 @@
-
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import FeedbackWidget from '../components/FeedbackWidget';
-import { Sparkles, Zap, Layers, Container, Code, Cloud, TrendingUp, RefreshCw } from 'lucide-react';
+import { Sparkles, Zap, Layers, Package, Code, Cloud, TrendingUp, RefreshCw } from 'lucide-react';
 
 const Modernize = () => {
   const [selectedCategory, setSelectedCategory] = useState('containerization');
@@ -51,7 +51,7 @@ const Modernize = () => {
     {
       category: 'containerization',
       name: 'Containerization',
-      icon: Container,
+      icon: Package,
       applications: 23,
       completed: 15,
       description: 'Migrate applications to containerized environments'

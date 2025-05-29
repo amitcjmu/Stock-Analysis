@@ -2,12 +2,17 @@ import React from 'react';
 import { 
   CheckCircle, 
   AlertTriangle, 
-  XCircle, 
+  X, 
   Loader, 
   Eye, 
   Edit3, 
   Brain,
-  FileText 
+  FileText,
+  FileSpreadsheet,
+  Download,
+  Clock,
+  File,
+  Database
 } from 'lucide-react';
 
 export interface AnalysisResult {
@@ -60,7 +65,7 @@ const FileList: React.FC<FileListProps> = ({
       case 'processed':
         return <CheckCircle className="h-5 w-5 text-green-500" />;
       case 'error':
-        return <XCircle className="h-5 w-5 text-red-500" />;
+        return <X className="h-5 w-5 text-red-500" />;
       default:
         return <FileText className="h-5 w-5 text-gray-500" />;
     }

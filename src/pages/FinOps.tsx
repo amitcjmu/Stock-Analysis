@@ -1,7 +1,7 @@
 import React from 'react';
 import Sidebar from '../components/Sidebar';
 import FeedbackWidget from '../components/FeedbackWidget';
-import { DollarSign, TrendingUp, AlertTriangle, Download, ArrowRight, Cloud, BarChart, Calculator } from 'lucide-react';
+import { DollarSign, TrendingUp, AlertTriangle, Download, ArrowRight, Cloud, BarChart3, Calculator } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const FinOps = () => {

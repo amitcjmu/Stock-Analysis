@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -35,7 +34,8 @@ import {
   Calculator,
   DollarSign,
   AlertTriangle,
-  Upload
+  Upload,
+  LayoutDashboard
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -70,11 +70,10 @@ const Sidebar = () => {
       icon: Search,
       hasSubmenu: true,
       submenu: [
-        { name: 'Overview', path: '/discovery/overview', icon: Search },
-        { name: 'CMDB Import', path: '/discovery/cmdb-import', icon: Upload },
+        { name: 'Dashboard', path: '/discovery/dashboard', icon: LayoutDashboard },
+        { name: 'Data Import', path: '/discovery/data-import', icon: Upload },
         { name: 'Inventory', path: '/discovery/inventory', icon: Database },
-        { name: 'Dependencies', path: '/discovery/dependencies', icon: Network },
-        { name: 'Scan', path: '/discovery/scan', icon: Activity }
+        { name: 'Dependencies', path: '/discovery/dependencies', icon: Network }
       ]
     },
     { 

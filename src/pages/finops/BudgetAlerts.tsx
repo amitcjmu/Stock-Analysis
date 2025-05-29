@@ -1,8 +1,8 @@
-
-import React from 'react';
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import Sidebar from '../../components/Sidebar';
 import FeedbackWidget from '../../components/FeedbackWidget';
-import { AlertTriangle, CheckCircle, XCircle, Bell, Settings, Download } from 'lucide-react';
+import { AlertTriangle, CheckCircle, X, Bell, Settings, Download } from 'lucide-react';
 
 const BudgetAlerts = () => {
   const alerts = [
@@ -93,7 +93,7 @@ const BudgetAlerts = () => {
   const getAlertIcon = (type) => {
     switch (type) {
       case 'critical':
-        return <XCircle className="h-5 w-5 text-red-500" />;
+        return <X className="h-5 w-5 text-red-500" />;
       case 'warning':
         return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
       case 'info':
@@ -167,7 +167,7 @@ const BudgetAlerts = () => {
               <div className="bg-white rounded-lg shadow p-6">
                 <div className="flex items-center">
                   <div className="bg-orange-500 p-3 rounded-lg">
-                    <XCircle className="h-6 w-6 text-white" />
+                    <X className="h-6 w-6 text-white" />
                   </div>
                   <div className="ml-4">
                     <p className="text-2xl font-semibold text-gray-900">{criticalAlerts}</p>

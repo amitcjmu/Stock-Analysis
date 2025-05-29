@@ -1,14 +1,15 @@
 """
 CMDB Data Processor
-Handles CMDB data processing and validation with agentic intelligence.
+Handles intelligent data processing and validation with agentic intelligence.
 """
 
 import json
 import logging
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional, Tuple
 import pandas as pd
 import io
 from datetime import datetime
+import re
 
 from app.services.crewai_service import CrewAIService
 from .models import AssetCoverage
@@ -17,13 +18,52 @@ logger = logging.getLogger(__name__)
 
 
 class CMDBDataProcessor:
-    """Handles CMDB data processing and validation."""
+    """Handles intelligent data processing and validation."""
     
     def __init__(self):
         self.crewai_service = CrewAIService()
         
-    def parse_file_content(self, content: str, file_type: str) -> pd.DataFrame:
-        """Parse file content based on file type."""
+    def parse_file_content(self, content: str, file_type: str, filename: str = "") -> Tuple[Optional[pd.DataFrame], Dict[str, Any]]:
+        """Parse file content intelligently based on file type and content."""
+        try:
+            # Try structured data parsing first
+            df = self._parse_structured_data(content, file_type)
+            if df is not None:
+                return df, {"type": "structured", "parsed_as": "dataframe"}
+            
+            # For non-structured content, extract text and delegate to AI crew
+            text_content = self._extract_text_content(content, file_type, filename)
+            if text_content:
+                # Let AI crew analyze the text content
+                ai_analysis = self._analyze_text_with_ai_crew(text_content, file_type, filename)
+                return None, {
+                    "type": "unstructured", 
+                    "content": text_content,
+                    "ai_analysis": ai_analysis
+                }
+            
+            # Fallback for unknown content
+            return None, {
+                "type": "unknown",
+                "content": content[:1000] if len(content) > 1000 else content,
+                "ai_analysis": {"error": f"Unable to process file type: {file_type}"}
+            }
+            
+        except Exception as e:
+            logger.error(f"Error parsing file content: {e}")
+            # Even on error, try to get AI crew insights
+            try:
+                ai_analysis = self._analyze_text_with_ai_crew(content[:2000], file_type, filename)
+                return None, {
+                    "type": "error",
+                    "error": str(e),
+                    "ai_analysis": ai_analysis
+                }
+            except:
+                raise ValueError(f"Failed to parse file: {str(e)}")
+    
+    def _parse_structured_data(self, content: str, file_type: str) -> Optional[pd.DataFrame]:
+        """Parse structured data formats (CSV, JSON, Excel)."""
         try:
             if file_type in ['text/csv', 'application/csv']:
                 return pd.read_csv(io.StringIO(content))
@@ -38,10 +78,180 @@ class CMDBDataProcessor:
                 # This is a simplified version for demo purposes
                 return pd.read_csv(io.StringIO(content))
             else:
-                raise ValueError(f"Unsupported file type: {file_type}")
+                return None
+        except:
+            return None
+    
+    def _extract_text_content(self, content: str, file_type: str, filename: str) -> str:
+        """Extract text content from various file types."""
+        try:
+            if file_type == 'application/pdf':
+                # For PDF files, return content as-is for now
+                # In production, you'd use a proper PDF parser like PyPDF2 or pdfplumber
+                return f"PDF Document: {filename}\n\nContent analysis required by AI crew.\n\nNote: This appears to be a PDF document. AI crew will analyze the document structure and extract relevant information for migration assessment."
+            
+            elif file_type in ['application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']:
+                return f"Word Document: {filename}\n\nContent: {content[:2000]}..."
+            
+            elif file_type == 'text/markdown':
+                return f"Markdown Document: {filename}\n\n{content}"
+            
+            elif file_type.startswith('text/'):
+                return content
+            
+            else:
+                # For unknown types, return basic info
+                return f"Document: {filename}\nType: {file_type}\nContent preview: {content[:500]}..."
+                
         except Exception as e:
-            logger.error(f"Error parsing file content: {e}")
-            raise ValueError(f"Failed to parse file: {str(e)}")
+            logger.warning(f"Error extracting text content: {e}")
+            return f"File: {filename}\nContent extraction error, delegating to AI crew for analysis."
+    
+    def _analyze_text_with_ai_crew(self, text_content: str, file_type: str, filename: str) -> Dict[str, Any]:
+        """Use AI crew to analyze unstructured content."""
+        try:
+            # Create a prompt for the AI crew to analyze the content
+            analysis_prompt = f"""
+            Analyze this content for migration assessment purposes:
+            
+            Filename: {filename}
+            File Type: {file_type}
+            
+            Content:
+            {text_content[:2000]}
+            
+            Please identify:
+            1. What type of information this contains (applications, servers, documentation, etc.)
+            2. Any specific assets, applications, or infrastructure mentioned
+            3. Relevance to cloud migration planning (1-10 scale)
+            4. Key insights that would help with migration assessment
+            5. Recommended next steps for processing this information
+            """
+            
+            # For now, return a structured response
+            # In production, you'd call the actual AI crew service
+            return {
+                "content_type": self._detect_content_type(text_content, filename),
+                "relevance_score": self._calculate_relevance_score(text_content),
+                "insights": self._extract_key_insights(text_content, filename),
+                "assets_mentioned": self._find_asset_references(text_content),
+                "recommendation": self._get_processing_recommendation(file_type, text_content)
+            }
+            
+        except Exception as e:
+            logger.error(f"AI crew analysis failed: {e}")
+            return {
+                "content_type": "unknown",
+                "relevance_score": 50,
+                "insights": ["Content requires manual review"],
+                "assets_mentioned": [],
+                "recommendation": "Manual analysis recommended"
+            }
+    
+    def _detect_content_type(self, content: str, filename: str) -> str:
+        """Detect the type of content based on keywords and patterns."""
+        content_lower = content.lower()
+        
+        # Application-related keywords
+        app_keywords = ['application', 'service', 'api', 'microservice', 'database', 'web app']
+        if any(keyword in content_lower for keyword in app_keywords):
+            return "application_documentation"
+        
+        # Infrastructure keywords
+        infra_keywords = ['server', 'vm', 'instance', 'infrastructure', 'network', 'storage']
+        if any(keyword in content_lower for keyword in infra_keywords):
+            return "infrastructure_documentation"
+        
+        # Architecture keywords
+        arch_keywords = ['architecture', 'design', 'diagram', 'component', 'system']
+        if any(keyword in content_lower for keyword in arch_keywords):
+            return "architecture_documentation"
+        
+        # Migration keywords
+        migration_keywords = ['migration', 'modernization', 'cloud', 'aws', 'azure', 'gcp']
+        if any(keyword in content_lower for keyword in migration_keywords):
+            return "migration_documentation"
+        
+        # Based on file extension
+        if filename.lower().endswith('.pdf'):
+            return "pdf_document"
+        elif filename.lower().endswith(('.md', '.txt')):
+            return "text_documentation"
+        
+        return "general_documentation"
+    
+    def _calculate_relevance_score(self, content: str) -> int:
+        """Calculate relevance score for migration assessment."""
+        content_lower = content.lower()
+        score = 50  # Base score
+        
+        # Positive indicators
+        positive_keywords = [
+            'application', 'database', 'server', 'infrastructure', 'migration',
+            'cloud', 'architecture', 'system', 'service', 'api', 'dependency'
+        ]
+        
+        for keyword in positive_keywords:
+            if keyword in content_lower:
+                score += 5
+        
+        # Specific technology mentions
+        tech_keywords = ['java', 'python', '.net', 'sql', 'oracle', 'mysql', 'postgres', 'mongodb']
+        for tech in tech_keywords:
+            if tech in content_lower:
+                score += 3
+        
+        return min(100, max(10, score))
+    
+    def _extract_key_insights(self, content: str, filename: str) -> List[str]:
+        """Extract key insights from the content."""
+        insights = []
+        content_lower = content.lower()
+        
+        if 'pdf' in filename.lower():
+            insights.append("PDF document detected - may contain detailed technical specifications")
+        
+        if any(word in content_lower for word in ['application', 'system', 'service']):
+            insights.append("Contains application or system information relevant to migration")
+        
+        if any(word in content_lower for word in ['database', 'sql', 'oracle', 'mysql']):
+            insights.append("Database information detected - important for data migration planning")
+        
+        if any(word in content_lower for word in ['architecture', 'design', 'diagram']):
+            insights.append("Architectural information found - valuable for understanding system structure")
+        
+        if not insights:
+            insights.append("Document requires further analysis to determine migration relevance")
+        
+        return insights
+    
+    def _find_asset_references(self, content: str) -> List[str]:
+        """Find potential asset references in the content."""
+        assets = []
+        
+        # Look for common naming patterns
+        patterns = [
+            r'\b[A-Z][A-Za-z0-9-]+(?:Server|DB|App|Service)\b',
+            r'\b(?:app|db|srv|web|api)-[A-Za-z0-9-]+\b',
+            r'\b[A-Za-z0-9]+\.[A-Za-z0-9]+\.com\b'
+        ]
+        
+        for pattern in patterns:
+            matches = re.findall(pattern, content)
+            assets.extend(matches[:5])  # Limit to 5 matches per pattern
+        
+        return list(set(assets))[:10]  # Return unique assets, max 10
+    
+    def _get_processing_recommendation(self, file_type: str, content: str) -> str:
+        """Get recommendation for how to process this content."""
+        if file_type == 'application/pdf':
+            return "Extract structured data using PDF parsing tools and analyze for application inventory"
+        elif 'application' in content.lower() or 'system' in content.lower():
+            return "Analyze for application metadata and add to asset inventory"
+        elif 'server' in content.lower() or 'infrastructure' in content.lower():
+            return "Extract infrastructure details for migration planning"
+        else:
+            return "Review manually and extract relevant migration information"
     
     def analyze_data_structure(self, df: pd.DataFrame) -> Dict[str, Any]:
         """Analyze the structure and quality of the data."""

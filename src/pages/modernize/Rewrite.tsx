@@ -1,8 +1,8 @@
-
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import Sidebar from '../../components/Sidebar';
 import FeedbackWidget from '../../components/FeedbackWidget';
-import { Zap, Sparkles, Code2, Rocket, AlertCircle, TrendingUp } from 'lucide-react';
+import { Zap, Sparkles, Code, Rocket, AlertCircle, TrendingUp } from 'lucide-react';
 
 const Rewrite = () => {
   const [activeTab, setActiveTab] = useState('strategy');
@@ -142,7 +142,7 @@ const Rewrite = () => {
                 <nav className="flex">
                   {[
                     { id: 'strategy', name: 'Strategy', icon: Zap },
-                    { id: 'projects', name: 'Projects', icon: Code2 },
+                    { id: 'projects', name: 'Projects', icon: Code },
                     { id: 'execution', name: 'Execution', icon: Rocket }
                   ].map((tab) => {
                     const Icon = tab.icon;

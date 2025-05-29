@@ -1,10 +1,11 @@
 {
   "Memory (GB)": [
-    "ram (gb)",
     "ram_gb",
+    "cpu (cores)",
     "network interfaces",
+    "network adapter",
     "memory (gb)",
-    "cpu (cores)"
+    "ram (gb)"
   ],
   "Business Owner": [
     "application_owner",
@@ -24,37 +25,38 @@
     "test field"
   ],
   "Asset Name": [
-    "hostname",
+    "asset name",
     "name",
     "asset_name",
-    "asset name"
+    "hostname"
   ],
   "IP Address": [
-    "destination ip",
     "ip_address",
+    "destination ip",
     "ip address",
     "source ip"
   ],
   "Operating System": [
     "os",
-    "os type",
     "os_version",
-    "operating_system",
-    "operating system"
+    "operating system",
+    "os type",
+    "operating_system"
   ],
   "CPU Cores": [
-    "cpu cores",
-    "cpu_cores"
+    "cpu_cores",
+    "cpu cores"
   ],
   "Storage (GB)": [
-    "storage (gb)",
     "disk size (gb)",
+    "storage (gb)",
     "storage_gb"
   ],
   "Asset Type": [
-    "application_service",
     "asset type",
     "workload type",
+    "type",
+    "application_service",
     "asset_type"
   ],
   "Environment": [

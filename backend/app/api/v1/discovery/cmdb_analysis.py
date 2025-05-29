@@ -46,112 +46,216 @@ feedback_store = load_from_file("feedback_store", [])
 @router.post("/analyze-cmdb", response_model=CMDBAnalysisResponse)
 async def analyze_cmdb_data(request: CMDBAnalysisRequest):
     """
-    Analyze CMDB data using CrewAI agents with enhanced monitoring.
+    Analyze data intelligently using CrewAI agents with enhanced monitoring.
+    Handles both structured data (CSV, JSON) and unstructured content (PDF, docs).
     """
     try:
-        logger.info(f"Starting CMDB analysis for file: {request.filename}")
+        logger.info(f"Starting intelligent analysis for file: {request.filename}")
         
-        # Parse the file content first
-        df = processor.parse_file_content(request.content, request.fileType)
-        
-        if len(df) == 0:
-            raise HTTPException(status_code=400, detail="No data found in the uploaded file")
+        # Parse the file content intelligently
+        df, parsing_info = processor.parse_file_content(
+            request.content, 
+            request.fileType, 
+            request.filename
+        )
         
         # Start monitoring the analysis task
-        task_id = f"cmdb_analysis_{str(uuid.uuid4())[:8]}"
+        task_id = f"intelligent_analysis_{str(uuid.uuid4())[:8]}"
         task_exec = agent_monitor.start_task(
             task_id, 
-            "CMDB_Analysis_Crew", 
-            f"Analyzing CMDB data from {request.filename}"
+            "Intelligent_Analysis_Crew", 
+            f"Analyzing {parsing_info['type']} content from {request.filename}"
         )
         
         try:
-            # Update task status
-            agent_monitor.update_task_status(task_id, TaskStatus.RUNNING, "Initializing CMDB analysis")
+            # Handle structured data (traditional CMDB processing)
+            if df is not None and len(df) > 0:
+                return await _process_structured_data(df, request, task_id)
             
-            # Analyze data structure
-            structure_analysis = processor.analyze_data_structure(df)
+            # Handle unstructured content (documents, PDFs, etc.)
+            elif parsing_info['type'] in ['unstructured', 'unknown', 'error']:
+                return await _process_unstructured_content(parsing_info, request, task_id)
             
-            # Use agentic field mapping to analyze columns
-            columns = df.columns.tolist()
-            sample_rows = []
-            for _, row in df.head(10).iterrows():
-                sample_row = [str(row[col]) if pd.notna(row[col]) else '' for col in columns]
-                sample_rows.append(sample_row)
-            
-            # Get intelligent field mapping analysis
-            agent_monitor.update_task_status(task_id, TaskStatus.RUNNING, "Analyzing field patterns with AI")
-            mapping_analysis = field_mapping_tool.analyze_data_patterns(columns, sample_rows, "server")
-            
-            # Prepare enhanced data for analysis
-            cmdb_data = {
-                "filename": request.filename,
-                "structure": structure_analysis,
-                "sample_data": df.head(10).to_dict('records'),
-                "total_rows": len(df),
-                "columns": columns,
-                "field_mapping_analysis": mapping_analysis
-            }
-            
-            # Record thinking phase
-            agent_monitor.record_thinking_phase(task_id, "Preparing data for AI analysis")
-            
-            # Run CrewAI analysis (this is the core agentic intelligence)
-            agent_monitor.update_task_status(task_id, TaskStatus.WAITING_LLM, "Starting AI analysis")
-            try:
-                crewai_result = await processor.crewai_service.analyze_cmdb_data(cmdb_data)
-                logger.info(f"CrewAI analysis completed: {crewai_result}")
-            except Exception as e:
-                logger.warning(f"CrewAI analysis failed: {e}, continuing with enhanced fallback analysis")
+            else:
+                raise HTTPException(status_code=400, detail="No analyzable content found in the uploaded file")
                 
-                # Enhanced fallback analysis with structured approach
-                agent_monitor.update_task_status(task_id, TaskStatus.RUNNING, "Using fallback analysis method")
-                crewai_result = _perform_fallback_analysis(df, structure_analysis)
-            
-            # Process the analysis result
-            agent_monitor.update_task_status(task_id, TaskStatus.RUNNING, "Processing analysis results")
-            
-            # Extract data quality assessment
-            data_quality = _extract_data_quality(crewai_result, df)
-            
-            # Extract coverage information  
-            coverage = _extract_coverage(crewai_result, df)
-            
-            # Identify missing fields and processing requirements
-            missing_fields = _identify_missing_fields(crewai_result, df)
-            required_processing = _identify_processing_requirements(crewai_result, df)
-            
-            # Determine if ready for import
-            ready_for_import = _assess_import_readiness(data_quality, coverage, missing_fields)
-            
-            # Generate preview data
-            preview_data = _generate_preview_data(df, structure_analysis)
-            
-            # Complete the task
-            agent_monitor.complete_task(
-                task_id, 
-                f"CMDB analysis completed for {request.filename} - Quality: {data_quality.score}%, Assets: {coverage.applications + coverage.servers + coverage.databases}"
-            )
-            
-            return CMDBAnalysisResponse(
-                status="success",
-                dataQuality=data_quality,
-                coverage=coverage,
-                missingFields=missing_fields,
-                requiredProcessing=required_processing,
-                readyForImport=ready_for_import,
-                preview=preview_data
-            )
-            
         except Exception as e:
             agent_monitor.fail_task(task_id, f"Analysis failed: {str(e)}")
             raise
             
     except Exception as e:
-        logger.error(f"CMDB analysis error: {e}")
+        logger.error(f"Intelligent analysis error: {e}")
         if "HTTPException" in str(type(e)):
             raise
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+
+async def _process_structured_data(df: pd.DataFrame, request: CMDBAnalysisRequest, task_id: str) -> CMDBAnalysisResponse:
+    """Process structured data (CSV, JSON, Excel) using traditional CMDB analysis."""
+    
+    # Update task status
+    agent_monitor.update_task_status(task_id, TaskStatus.RUNNING, "Analyzing structured data")
+    
+    # Analyze data structure
+    structure_analysis = processor.analyze_data_structure(df)
+    
+    # Use agentic field mapping to analyze columns
+    columns = df.columns.tolist()
+    sample_rows = []
+    for _, row in df.head(10).iterrows():
+        sample_row = [str(row[col]) if pd.notna(row[col]) else '' for col in columns]
+        sample_rows.append(sample_row)
+    
+    # Get intelligent field mapping analysis
+    agent_monitor.update_task_status(task_id, TaskStatus.RUNNING, "Analyzing field patterns with AI")
+    mapping_analysis = field_mapping_tool.analyze_data_patterns(columns, sample_rows, "server")
+    
+    # Prepare enhanced data for analysis
+    cmdb_data = {
+        "filename": request.filename,
+        "structure": structure_analysis,
+        "sample_data": df.head(10).to_dict('records'),
+        "total_rows": len(df),
+        "columns": columns,
+        "field_mapping_analysis": mapping_analysis
+    }
+    
+    # Record thinking phase
+    agent_monitor.record_thinking_phase(task_id, "Preparing structured data for AI analysis")
+    
+    # Run CrewAI analysis (this is the core agentic intelligence)
+    agent_monitor.update_task_status(task_id, TaskStatus.WAITING_LLM, "Starting AI analysis")
+    try:
+        crewai_result = await processor.crewai_service.analyze_cmdb_data(cmdb_data)
+        logger.info(f"CrewAI analysis completed: {crewai_result}")
+    except Exception as e:
+        logger.warning(f"CrewAI analysis failed: {e}, continuing with enhanced fallback analysis")
+        
+        # Enhanced fallback analysis with structured approach
+        agent_monitor.update_task_status(task_id, TaskStatus.RUNNING, "Using fallback analysis method")
+        crewai_result = _perform_fallback_analysis(df, structure_analysis)
+    
+    # Process the analysis result
+    agent_monitor.update_task_status(task_id, TaskStatus.RUNNING, "Processing analysis results")
+    
+    # Extract data quality assessment
+    data_quality = _extract_data_quality(crewai_result, df)
+    
+    # Extract coverage information  
+    coverage = _extract_coverage(crewai_result, df)
+    
+    # Identify missing fields and processing requirements
+    missing_fields = _identify_missing_fields(crewai_result, df)
+    required_processing = _identify_processing_requirements(crewai_result, df)
+    
+    # Determine if ready for import
+    ready_for_import = _assess_import_readiness(data_quality, coverage, missing_fields)
+    
+    # Generate preview data
+    preview_data = _generate_preview_data(df, structure_analysis)
+    
+    # Complete the task
+    agent_monitor.complete_task(
+        task_id, 
+        f"Structured data analysis completed for {request.filename} - Quality: {data_quality.score}%, Assets: {coverage.applications + coverage.servers + coverage.databases}"
+    )
+    
+    return CMDBAnalysisResponse(
+        status="success",
+        dataQuality=data_quality,
+        coverage=coverage,
+        missingFields=missing_fields,
+        requiredProcessing=required_processing,
+        readyForImport=ready_for_import,
+        preview=preview_data
+    )
+
+async def _process_unstructured_content(parsing_info: Dict[str, Any], request: CMDBAnalysisRequest, task_id: str) -> CMDBAnalysisResponse:
+    """Process unstructured content (PDFs, documents) using AI content analysis."""
+    
+    agent_monitor.update_task_status(task_id, TaskStatus.RUNNING, "Analyzing unstructured content with AI")
+    
+    # Extract AI analysis from parsing info
+    ai_analysis = parsing_info.get('ai_analysis', {})
+    content_type = ai_analysis.get('content_type', 'unknown')
+    relevance_score = ai_analysis.get('relevance_score', 50)
+    insights = ai_analysis.get('insights', [])
+    assets_mentioned = ai_analysis.get('assets_mentioned', [])
+    recommendation = ai_analysis.get('recommendation', '')
+    
+    # Record thinking phase
+    agent_monitor.record_thinking_phase(task_id, f"AI analyzing {content_type} content")
+    
+    # Create data quality result based on AI analysis
+    data_quality = DataQualityResult(
+        score=min(100, max(50, relevance_score)),  # Convert relevance to quality score
+        issues=[] if relevance_score > 70 else [
+            "Document content requires manual review for structured data extraction",
+            "Consider converting to structured format for better processing"
+        ],
+        recommendations=[
+            recommendation,
+            "Extract key information from document for migration planning",
+            "Review document for application and infrastructure details",
+            "Consider using OCR or document parsing tools for better analysis"
+        ] if recommendation else [
+            "Manual document review recommended",
+            "Extract structured data from document content",
+            "Identify migration-relevant information"
+        ]
+    )
+    
+    # Create coverage based on content analysis
+    coverage = AssetCoverage(
+        applications=len([asset for asset in assets_mentioned if 'app' in asset.lower() or 'service' in asset.lower()]),
+        servers=len([asset for asset in assets_mentioned if 'server' in asset.lower() or 'srv' in asset.lower()]),
+        databases=len([asset for asset in assets_mentioned if 'db' in asset.lower() or 'database' in asset.lower()]),
+        dependencies=0  # Cannot determine from unstructured content
+    )
+    
+    # Define missing fields for unstructured content
+    missing_fields = [
+        "Structured asset inventory needed",
+        "Application metadata extraction required",
+        "Technical specifications documentation"
+    ]
+    
+    # Processing requirements for unstructured content
+    required_processing = [
+        "Extract structured data from document content",
+        recommendation,
+        "Convert findings to asset inventory format",
+        "Validate extracted information with stakeholders"
+    ]
+    
+    # Unstructured content typically requires additional processing
+    ready_for_import = False
+    
+    # Create preview data based on AI insights
+    preview_data = [
+        {
+            "Content Type": content_type,
+            "AI Relevance Score": f"{relevance_score}%",
+            "Assets Found": len(assets_mentioned),
+            "Key Insights": ", ".join(insights[:3]) if insights else "Manual review required",
+            "Recommendation": recommendation
+        }
+    ]
+    
+    # Complete the task
+    agent_monitor.complete_task(
+        task_id, 
+        f"Unstructured content analysis completed for {request.filename} - Type: {content_type}, Relevance: {relevance_score}%"
+    )
+    
+    return CMDBAnalysisResponse(
+        status="success",
+        dataQuality=data_quality,
+        coverage=coverage,
+        missingFields=missing_fields,
+        requiredProcessing=required_processing,
+        readyForImport=ready_for_import,
+        preview=preview_data
+    )
 
 @router.post("/process-cmdb")
 async def process_cmdb_data(request: CMDBProcessingRequest):
