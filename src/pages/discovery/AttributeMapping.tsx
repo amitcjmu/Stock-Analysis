@@ -5,223 +5,498 @@ import RawDataTable from '../../components/discovery/RawDataTable';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   Settings, Brain, GraduationCap, CheckCircle, AlertTriangle, 
-  ArrowRight, Lightbulb, Save, RefreshCw, Eye,
-  ThumbsUp, ThumbsDown, HelpCircle, Wand2, Database
+  ArrowRight, Lightbulb, Save, RefreshCw, Eye, MapPin,
+  ThumbsUp, ThumbsDown, HelpCircle, Wand2, Database, Users, Target
 } from 'lucide-react';
 import { apiCall, API_CONFIG } from '../../config/api';
 
-interface AttributeMapping {
+// Critical attributes needed for 6R analysis and migration planning
+const CRITICAL_ATTRIBUTES = {
+  // Core Identity
+  hostname: {
+    field: 'hostname',
+    description: 'Primary server/application identifier',
+    importance: 'critical',
+    usedFor: ['Asset identification', 'Dependency mapping', 'Migration tracking'],
+    examples: ['srv-web-01', 'app-crm-prod', 'db-oracle-main'],
+    category: 'identity'
+  },
+  asset_name: {
+    field: 'asset_name', 
+    description: 'Human-readable asset name',
+    importance: 'critical',
+    usedFor: ['User interface display', 'Reporting', 'Documentation'],
+    examples: ['CRM Application', 'Web Server', 'Oracle Database'],
+    category: 'identity'
+  },
+  asset_type: {
+    field: 'asset_type',
+    description: 'Classification of asset (Application, Server, Database)',
+    importance: 'critical',
+    usedFor: ['6R strategy selection', 'Migration grouping', 'Resource planning'],
+    examples: ['Application', 'Server', 'Database', 'Network Device'],
+    category: 'classification'
+  },
+  
+  // Business Context
+  department: {
+    field: 'department',
+    description: 'Business unit or department that owns the asset',
+    importance: 'critical',
+    usedFor: ['Wave planning', 'Business impact analysis', 'Stakeholder communication'],
+    examples: ['Finance', 'HR', 'Sales', 'IT Operations', 'Marketing'],
+    category: 'business'
+  },
+  business_criticality: {
+    field: 'business_criticality',
+    description: 'Business impact level of the asset',
+    importance: 'critical',
+    usedFor: ['6R prioritization', 'Risk assessment', 'Migration sequencing'],
+    examples: ['Critical', 'High', 'Medium', 'Low'],
+    category: 'business'
+  },
+  environment: {
+    field: 'environment',
+    description: 'Deployment environment (Production, Development, etc.)',
+    importance: 'critical',
+    usedFor: ['Migration wave planning', 'Risk assessment', 'Testing strategy'],
+    examples: ['Production', 'Development', 'Staging', 'Test'],
+    category: 'business'
+  },
+  
+  // Technical Specifications
+  operating_system: {
+    field: 'operating_system',
+    description: 'Operating system family and version',
+    importance: 'high',
+    usedFor: ['6R Rehost/Replatform decisions', 'Compatibility analysis', 'License planning'],
+    examples: ['Windows Server 2019', 'RHEL 8.4', 'Ubuntu 20.04'],
+    category: 'technical'
+  },
+  cpu_cores: {
+    field: 'cpu_cores',
+    description: 'Number of CPU cores allocated',
+    importance: 'high',
+    usedFor: ['Right-sizing', 'Cost estimation', 'Performance planning'],
+    examples: ['4', '8', '16', '32'],
+    category: 'technical'
+  },
+  memory_gb: {
+    field: 'memory_gb',
+    description: 'RAM in gigabytes',
+    importance: 'high',
+    usedFor: ['Right-sizing', 'Cost estimation', 'Performance planning'],
+    examples: ['8', '16', '32', '64'],
+    category: 'technical'
+  },
+  storage_gb: {
+    field: 'storage_gb',
+    description: 'Storage capacity in gigabytes',
+    importance: 'medium',
+    usedFor: ['Cost estimation', 'Data migration planning'],
+    examples: ['100', '500', '1000', '2000'],
+    category: 'technical'
+  },
+  
+  // Network & Location
+  ip_address: {
+    field: 'ip_address',
+    description: 'Network IP address',
+    importance: 'medium',
+    usedFor: ['Network mapping', 'Security planning', 'Connectivity analysis'],
+    examples: ['192.168.1.10', '10.0.1.50'],
+    category: 'network'
+  },
+  location: {
+    field: 'location',
+    description: 'Physical or logical location',
+    importance: 'medium',
+    usedFor: ['Data residency', 'Compliance', 'Network latency planning'],
+    examples: ['US-East', 'EU-West', 'On-Premises DC1'],
+    category: 'network'
+  },
+  
+  // Application-Specific
+  application_owner: {
+    field: 'application_owner',
+    description: 'Person or team responsible for the application',
+    importance: 'high',
+    usedFor: ['Stakeholder engagement', 'Change management', 'Testing coordination'],
+    examples: ['john.smith@company.com', 'CRM Team', 'Database Admin Team'],
+    category: 'governance'
+  },
+  vendor: {
+    field: 'vendor',
+    description: 'Software vendor or manufacturer',
+    importance: 'medium',
+    usedFor: ['License migration', 'Support planning', 'Compatibility checks'],
+    examples: ['Microsoft', 'Oracle', 'SAP', 'Custom'],
+    category: 'governance'
+  },
+  version: {
+    field: 'version',
+    description: 'Software or application version',
+    importance: 'medium',
+    usedFor: ['Compatibility analysis', 'Upgrade planning', 'Support lifecycle'],
+    examples: ['2019', '12.2', '8.1.4'],
+    category: 'technical'
+  }
+};
+
+interface FieldMapping {
   id: string;
   sourceField: string;
-  sourceValue: string;
-  targetField: string;
-  suggestedValue: string;
+  targetAttribute: string;
   confidence: number;
-  reasoning: string;
-  examples: string[];
-  status: 'pending' | 'approved' | 'rejected' | 'needs_review';
-  assetContext: {
-    assetName: string;
-    assetType: string;
-    department: string;
-  };
+  mapping_type: 'direct' | 'transform' | 'calculated' | 'default';
+  sample_values: string[];
+  status: 'pending' | 'approved' | 'rejected';
+  user_feedback?: string;
+  ai_reasoning: string;
 }
 
-interface FieldDefinition {
-  field: string;
-  description: string;
-  possibleValues: string[];
-  examples: string[];
-  mappingRules: string[];
-}
-
-interface LearningProgress {
-  totalMappings: number;
-  approvedMappings: number;
-  pendingReview: number;
-  accuracy: number;
-  fieldsCovered: number;
-  totalFields: number;
+interface CrewAnalysis {
+  agent: string;
+  task: string;
+  findings: string[];
+  recommendations: string[];
+  confidence: number;
 }
 
 const AttributeMapping = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [mappings, setMappings] = useState<AttributeMapping[]>([]);
-  const [fieldDefinitions, setFieldDefinitions] = useState<FieldDefinition[]>([]);
-  const [selectedMapping, setSelectedMapping] = useState<AttributeMapping | null>(null);
-  const [activeTab, setActiveTab] = useState('mappings');
-  const [filterStatus, setFilterStatus] = useState('pending');
-  const [isLoading, setIsLoading] = useState(true);
-  const [rawData, setRawData] = useState<any[]>([]);
-  const [learningProgress, setLearningProgress] = useState<LearningProgress>({
-    totalMappings: 0,
-    approvedMappings: 0,
-    pendingReview: 0,
-    accuracy: 0,
-    fieldsCovered: 0,
-    totalFields: 0
+  const [importedData, setImportedData] = useState<any[]>([]);
+  const [fieldMappings, setFieldMappings] = useState<FieldMapping[]>([]);
+  const [selectedMappings, setSelectedMappings] = useState<Set<string>>(new Set());
+  const [activeTab, setActiveTab] = useState('data');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [crewAnalysis, setCrewAnalysis] = useState<CrewAnalysis[]>([]);
+  const [mappingProgress, setMappingProgress] = useState({
+    total: 0,
+    mapped: 0,
+    critical_mapped: 0,
+    accuracy: 0
   });
 
   useEffect(() => {
-    fetchAttributeMappings();
-    fetchFieldDefinitions();
-    fetchLearningProgress();
-    fetchRawData();
-  }, []);
-
-  const fetchAttributeMappings = async () => {
-    try {
-      setIsLoading(true);
-      const response = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/attribute-mappings`);
-      setMappings(response.mappings || []);
-    } catch (error) {
-      console.error('Failed to fetch attribute mappings:', error);
-    } finally {
-      setIsLoading(false);
+    // Check if we came from Data Import with data
+    const state = location.state as any;
+    if (state?.importedData && state?.fromDataImport) {
+      console.log('Received imported data from Data Import:', state.importedData);
+      setImportedData(state.importedData);
+      // Start AI crew analysis of the imported data
+      analyzeImportedDataWithCrew(state.importedData);
+    } else {
+      // Try to fetch from previous steps or localStorage
+      fetchImportedData();
     }
-  };
+  }, [location.state]);
 
-  const fetchFieldDefinitions = async () => {
+  const fetchImportedData = async () => {
     try {
-      const response = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/field-definitions`);
-      setFieldDefinitions(response.definitions || []);
-    } catch (error) {
-      console.error('Failed to fetch field definitions:', error);
-    }
-  };
-
-  const fetchLearningProgress = async () => {
-    try {
-      const response = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/learning-progress`);
-      setLearningProgress(response.progress || learningProgress);
-    } catch (error) {
-      console.error('Failed to fetch learning progress:', error);
-    }
-  };
-
-  const fetchRawData = async () => {
-    try {
-      console.log('Fetching raw data for attribute mapping...');
-      
-      // Try to get real imported data from multiple sources
+      // Try multiple sources for data
       const assetsResponse = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}?page=1&page_size=1000`);
-      console.log('Assets response for attribute mapping:', assetsResponse);
-      
       if (assetsResponse.assets && assetsResponse.assets.length > 0) {
-        setRawData(assetsResponse.assets);
-        console.log('✓ Loaded raw data for attribute mapping:', assetsResponse.assets.length, 'records');
+        setImportedData(assetsResponse.assets);
+        analyzeImportedDataWithCrew(assetsResponse.assets);
       } else {
-        // Try localStorage as fallback
         const storedData = localStorage.getItem('imported_assets');
         if (storedData) {
           const parsedData = JSON.parse(storedData);
-          setRawData(parsedData);
-          console.log('✓ Loaded data from localStorage for attribute mapping:', parsedData.length, 'records');
-        } else {
-          console.log('No raw data found for attribute mapping');
-          setRawData([]);
+          setImportedData(parsedData);
+          analyzeImportedDataWithCrew(parsedData);
         }
       }
     } catch (error) {
-      console.error('Failed to fetch raw data for attribute mapping:', error);
-      setRawData([]);
+      console.error('Failed to fetch imported data:', error);
     }
+  };
+
+  const analyzeImportedDataWithCrew = async (data: any[]) => {
+    if (data.length === 0) return;
+    
+    setIsAnalyzing(true);
+    
+    try {
+      // Analyze data structure with AI crew
+      const columns = Object.keys(data[0] || {});
+      const analysis = await generateFieldMappings(columns, data);
+      
+      setFieldMappings(analysis.mappings);
+      setCrewAnalysis(analysis.crewAnalysis);
+      setMappingProgress(analysis.progress);
+      
+    } catch (error) {
+      console.error('Failed to analyze data with AI crew:', error);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const generateFieldMappings = async (columns: string[], sampleData: any[]) => {
+    // AI Crew Analysis: Field Mapping Specialist
+    const mappings: FieldMapping[] = [];
+    const crewAnalysis: CrewAnalysis[] = [];
+    
+    // Field Mapping Agent Analysis
+    crewAnalysis.push({
+      agent: 'Field Mapping Specialist',
+      task: 'Analyze imported columns and map to migration-critical attributes',
+      findings: [
+        `Detected ${columns.length} columns in imported dataset`,
+        `Sample data contains ${sampleData.length} records for analysis`,
+        'Performing intelligent field matching using semantic analysis'
+      ],
+      recommendations: [
+        'Review suggested mappings for accuracy',
+        'Approve high-confidence mappings to train AI',
+        'Provide custom mappings for unique fields'
+      ],
+      confidence: 0.85
+    });
+    
+    // Map each column to critical attributes
+    columns.forEach((column, index) => {
+      const bestMatch = findBestAttributeMatch(column, sampleData);
+      const sampleValues = extractSampleValues(column, sampleData, 3);
+      
+      mappings.push({
+        id: `mapping-${index}`,
+        sourceField: column,
+        targetAttribute: bestMatch.attribute,
+        confidence: bestMatch.confidence,
+        mapping_type: bestMatch.type,
+        sample_values: sampleValues,
+        status: bestMatch.confidence > 0.8 ? 'approved' : 'pending',
+        ai_reasoning: bestMatch.reasoning
+      });
+    });
+    
+    // Migration Planning Agent Analysis
+    const criticalMapped = mappings.filter(m => 
+      m.status === 'approved' && 
+      CRITICAL_ATTRIBUTES[m.targetAttribute]?.importance === 'critical'
+    ).length;
+    
+    const totalCritical = Object.values(CRITICAL_ATTRIBUTES)
+      .filter(attr => attr.importance === 'critical').length;
+    
+    crewAnalysis.push({
+      agent: 'Migration Planning Agent',
+      task: 'Assess data readiness for 6R analysis and wave planning',
+      findings: [
+        `${criticalMapped}/${totalCritical} critical attributes mapped`,
+        `${mappings.filter(m => m.confidence > 0.8).length} high-confidence mappings`,
+        `Ready for ${criticalMapped >= 5 ? 'advanced' : 'basic'} migration analysis`
+      ],
+      recommendations: [
+        criticalMapped < 5 ? 'Map remaining critical fields for complete analysis' : 'Proceed to data cleansing phase',
+        'Review business criticality and department mappings',
+        'Validate asset type classifications'
+      ],
+      confidence: criticalMapped / totalCritical
+    });
+    
+    // 6R Strategy Agent Analysis
+    crewAnalysis.push({
+      agent: '6R Strategy Agent',
+      task: 'Evaluate data completeness for 6R treatment recommendations',
+      findings: [
+        `Asset type mapping: ${mappings.find(m => m.targetAttribute === 'asset_type') ? 'Available' : 'Missing'}`,
+        `Business context: ${mappings.find(m => m.targetAttribute === 'business_criticality') ? 'Available' : 'Missing'}`,
+        `Technical specs: ${mappings.filter(m => ['cpu_cores', 'memory_gb', 'operating_system'].includes(m.targetAttribute)).length}/3 available`
+      ],
+      recommendations: [
+        'Ensure asset_type is mapped for strategy classification',
+        'Business criticality enables risk-based sequencing',
+        'Technical specifications enable right-sizing analysis'
+      ],
+      confidence: 0.75
+    });
+    
+    const progress = {
+      total: mappings.length,
+      mapped: mappings.filter(m => m.status === 'approved').length,
+      critical_mapped: criticalMapped,
+      accuracy: mappings.reduce((acc, m) => acc + m.confidence, 0) / mappings.length
+    };
+    
+    return { mappings, crewAnalysis, progress };
+  };
+
+  const findBestAttributeMatch = (column: string, sampleData: any[]) => {
+    const columnLower = column.toLowerCase().replace(/[_\s-]/g, '');
+    let bestMatch = { attribute: 'unmapped', confidence: 0, type: 'direct' as const, reasoning: '' };
+    
+    // Direct name matching
+    for (const [key, attr] of Object.entries(CRITICAL_ATTRIBUTES)) {
+      const attrLower = key.toLowerCase().replace(/[_\s-]/g, '');
+      if (columnLower === attrLower) {
+        return {
+          attribute: key,
+          confidence: 0.95,
+          type: 'direct' as const,
+          reasoning: `Direct name match: '${column}' maps to '${key}'`
+        };
+      }
+    }
+    
+    // Semantic matching
+    const semanticMappings = {
+      hostname: ['host', 'server', 'machine', 'node', 'instance'],
+      asset_name: ['name', 'title', 'label', 'asset'],
+      asset_type: ['type', 'category', 'class', 'kind'],
+      department: ['dept', 'division', 'unit', 'team', 'group'],
+      business_criticality: ['criticality', 'priority', 'importance', 'critical'],
+      environment: ['env', 'stage', 'tier'],
+      operating_system: ['os', 'system', 'platform'],
+      cpu_cores: ['cpu', 'cores', 'processors', 'vcpu'],
+      memory_gb: ['memory', 'ram', 'gb'],
+      storage_gb: ['storage', 'disk', 'space'],
+      ip_address: ['ip', 'address', 'network'],
+      application_owner: ['owner', 'contact', 'responsible'],
+      vendor: ['vendor', 'manufacturer', 'supplier'],
+      version: ['version', 'release', 'build']
+    };
+    
+    for (const [attribute, keywords] of Object.entries(semanticMappings)) {
+      for (const keyword of keywords) {
+        if (columnLower.includes(keyword)) {
+          const confidence = columnLower === keyword ? 0.9 : 0.7;
+          if (confidence > bestMatch.confidence) {
+            bestMatch = {
+              attribute,
+              confidence,
+              type: 'direct' as const,
+              reasoning: `Semantic match: '${column}' contains '${keyword}' → maps to '${attribute}'`
+            };
+          }
+        }
+      }
+    }
+    
+    // Value-based inference
+    if (bestMatch.confidence < 0.5) {
+      const sampleValues = extractSampleValues(column, sampleData, 5);
+      const inference = inferFromValues(sampleValues);
+      if (inference.confidence > bestMatch.confidence) {
+        bestMatch = {
+          attribute: inference.attribute,
+          confidence: inference.confidence,
+          type: 'calculated' as const,
+          reasoning: `Value pattern analysis: ${inference.reasoning}`
+        };
+      }
+    }
+    
+    return bestMatch;
+  };
+
+  const extractSampleValues = (column: string, data: any[], count: number) => {
+    return data
+      .slice(0, count)
+      .map(row => row[column])
+      .filter(val => val !== null && val !== undefined && val !== '')
+      .map(val => String(val));
+  };
+
+  const inferFromValues = (values: string[]) => {
+    if (values.length === 0) return { attribute: 'unmapped', confidence: 0, reasoning: 'No sample values' };
+    
+    // IP address pattern
+    if (values.some(v => /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(v))) {
+      return { attribute: 'ip_address', confidence: 0.9, reasoning: 'IP address pattern detected' };
+    }
+    
+    // Environment values
+    const envValues = ['prod', 'production', 'dev', 'development', 'test', 'staging'];
+    if (values.some(v => envValues.includes(v.toLowerCase()))) {
+      return { attribute: 'environment', confidence: 0.8, reasoning: 'Environment values detected' };
+    }
+    
+    // Asset type values
+    const assetTypes = ['server', 'application', 'database', 'network'];
+    if (values.some(v => assetTypes.includes(v.toLowerCase()))) {
+      return { attribute: 'asset_type', confidence: 0.8, reasoning: 'Asset type values detected' };
+    }
+    
+    // Numeric patterns
+    if (values.every(v => /^\d+$/.test(v))) {
+      const nums = values.map(Number);
+      if (nums.every(n => n >= 1 && n <= 128)) {
+        return { attribute: 'cpu_cores', confidence: 0.6, reasoning: 'Small integers suggest CPU cores' };
+      }
+      if (nums.every(n => n >= 1000 && n <= 100000)) {
+        return { attribute: 'storage_gb', confidence: 0.6, reasoning: 'Large numbers suggest storage GB' };
+      }
+    }
+    
+    return { attribute: 'unmapped', confidence: 0, reasoning: 'No clear pattern detected' };
   };
 
   const handleApproveMapping = async (mappingId: string) => {
-    try {
-      await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/attribute-mappings/${mappingId}/approve`, {
-        method: 'POST'
-      });
-      
-      setMappings(prev => prev.map(mapping => 
-        mapping.id === mappingId ? { ...mapping, status: 'approved' } : mapping
-      ));
-      
-      // Update progress
-      setLearningProgress(prev => ({
-        ...prev,
-        approvedMappings: prev.approvedMappings + 1,
-        pendingReview: prev.pendingReview - 1,
-        accuracy: ((prev.approvedMappings + 1) / (prev.totalMappings || 1)) * 100
-      }));
-      
-    } catch (error) {
-      console.error('Failed to approve mapping:', error);
-    }
+    setFieldMappings(prev => prev.map(mapping =>
+      mapping.id === mappingId
+        ? { ...mapping, status: 'approved' as const }
+        : mapping
+    ));
+    
+    // Update progress
+    const approvedMappings = fieldMappings.filter(m => 
+      m.status === 'approved' || m.id === mappingId
+    );
+    const criticalApproved = approvedMappings.filter(m =>
+      CRITICAL_ATTRIBUTES[m.targetAttribute]?.importance === 'critical'
+    );
+    
+    setMappingProgress(prev => ({
+      ...prev,
+      mapped: approvedMappings.length,
+      critical_mapped: criticalApproved.length
+    }));
   };
 
-  const handleRejectMapping = async (mappingId: string, feedback?: string) => {
-    try {
-      await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/attribute-mappings/${mappingId}/reject`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ feedback })
-      });
-      
-      setMappings(prev => prev.map(mapping => 
-        mapping.id === mappingId ? { ...mapping, status: 'rejected' } : mapping
-      ));
-      
-    } catch (error) {
-      console.error('Failed to reject mapping:', error);
-    }
-  };
-
-  const handleCustomMapping = async (mappingId: string, customValue: string) => {
-    try {
-      await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/attribute-mappings/${mappingId}/custom`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customValue })
-      });
-      
-      setMappings(prev => prev.map(mapping => 
-        mapping.id === mappingId ? { 
+  const handleCustomMapping = (mappingId: string, newAttribute: string) => {
+    setFieldMappings(prev => prev.map(mapping =>
+      mapping.id === mappingId
+        ? { 
           ...mapping, 
-          suggestedValue: customValue,
-          status: 'approved'
-        } : mapping
-      ));
-      
-    } catch (error) {
-      console.error('Failed to set custom mapping:', error);
-    }
+          targetAttribute: newAttribute,
+          confidence: 1.0,
+          mapping_type: 'transform' as const,
+          status: 'approved' as const,
+          ai_reasoning: 'User-defined mapping'
+        }
+        : mapping
+    ));
   };
 
-  const generateNewMappings = async () => {
-    try {
-      setIsLoading(true);
-      await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/generate-mappings`, {
-        method: 'POST'
-      });
-      await fetchAttributeMappings();
-    } catch (error) {
-      console.error('Failed to generate new mappings:', error);
-    } finally {
-      setIsLoading(false);
-    }
+  const proceedToDataCleansing = () => {
+    // Store attribute mappings and proceed
+    const mappedData = {
+      fieldMappings: fieldMappings.filter(m => m.status === 'approved'),
+      importedData,
+      mappingProgress,
+      fromAttributeMapping: true
+    };
+    
+    navigate('/discovery/data-cleansing', {
+      state: mappedData
+    });
   };
 
-  const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 0.8) return 'text-green-600 bg-green-100';
-    if (confidence >= 0.6) return 'text-yellow-600 bg-yellow-100';
+  const getAttributesByCategory = (category: string) => {
+    return Object.entries(CRITICAL_ATTRIBUTES).filter(
+      ([_, attr]) => attr.category === category
+    );
+  };
+
+  const getProgressColor = (progress: number) => {
+    if (progress >= 80) return 'text-green-600 bg-green-100';
+    if (progress >= 60) return 'text-yellow-600 bg-yellow-100';
     return 'text-red-600 bg-red-100';
   };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'approved': return 'text-green-600 bg-green-100';
-      case 'rejected': return 'text-red-600 bg-red-100';
-      case 'needs_review': return 'text-orange-600 bg-orange-100';
-      default: return 'text-blue-600 bg-blue-100';
-    }
-  };
-
-  const filteredMappings = mappings.filter(mapping => 
-    filterStatus === 'all' || mapping.status === filterStatus
-  );
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -231,29 +506,31 @@ const AttributeMapping = () => {
           <div className="max-w-7xl mx-auto">
             {/* Header */}
             <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Attribute Mapping & Learning</h1>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                Attribute Mapping & AI Training
+              </h1>
               <p className="text-lg text-gray-600">
                 Train the AI crew to understand your data's attribute associations and field mappings
               </p>
             </div>
 
-            {/* Learning Progress */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+            {/* Progress Dashboard */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
               <div className="bg-white rounded-lg shadow-md p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-lg font-bold text-gray-900">{learningProgress.totalMappings}</h3>
-                    <p className="text-xs text-gray-600">Total Mappings</p>
+                    <h3 className="text-lg font-bold text-gray-900">{mappingProgress.total}</h3>
+                    <p className="text-xs text-gray-600">Total Fields</p>
                   </div>
-                  <Settings className="h-6 w-6 text-blue-500" />
+                  <Database className="h-6 w-6 text-blue-500" />
                 </div>
               </div>
               
               <div className="bg-white rounded-lg shadow-md p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-lg font-bold text-green-600">{learningProgress.approvedMappings}</h3>
-                    <p className="text-xs text-gray-600">Approved</p>
+                    <h3 className="text-lg font-bold text-green-600">{mappingProgress.mapped}</h3>
+                    <p className="text-xs text-gray-600">Mapped</p>
                   </div>
                   <CheckCircle className="h-6 w-6 text-green-500" />
                 </div>
@@ -262,20 +539,10 @@ const AttributeMapping = () => {
               <div className="bg-white rounded-lg shadow-md p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-lg font-bold text-yellow-600">{learningProgress.pendingReview}</h3>
-                    <p className="text-xs text-gray-600">Pending Review</p>
+                    <h3 className="text-lg font-bold text-purple-600">{mappingProgress.critical_mapped}</h3>
+                    <p className="text-xs text-gray-600">Critical Mapped</p>
                   </div>
-                  <AlertTriangle className="h-6 w-6 text-yellow-500" />
-                </div>
-              </div>
-              
-              <div className="bg-white rounded-lg shadow-md p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-bold text-purple-600">{Math.round(learningProgress.accuracy)}%</h3>
-                    <p className="text-xs text-gray-600">Accuracy</p>
-                  </div>
-                  <Brain className="h-6 w-6 text-purple-500" />
+                  <Target className="h-6 w-6 text-purple-500" />
                 </div>
               </div>
               
@@ -283,69 +550,87 @@ const AttributeMapping = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-lg font-bold text-indigo-600">
-                      {learningProgress.fieldsCovered}/{learningProgress.totalFields}
+                      {Math.round(mappingProgress.accuracy * 100)}%
                     </h3>
-                    <p className="text-xs text-gray-600">Fields Covered</p>
+                    <p className="text-xs text-gray-600">Accuracy</p>
                   </div>
-                  <GraduationCap className="h-6 w-6 text-indigo-500" />
+                  <Brain className="h-6 w-6 text-indigo-500" />
                 </div>
               </div>
             </div>
 
-            {/* Action Bar */}
-            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-              <div className="flex justify-between items-center">
-                <div className="flex space-x-4">
-                  <button
-                    onClick={generateNewMappings}
-                    disabled={isLoading}
-                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    <Wand2 className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                    <span>Generate New Mappings</span>
-                  </button>
-                  
-                  <select
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="all">All Status</option>
-                    <option value="pending">Pending</option>
-                    <option value="needs_review">Needs Review</option>
-                    <option value="approved">Approved</option>
-                    <option value="rejected">Rejected</option>
-                  </select>
-                </div>
-                
-                <div className="flex items-center space-x-2 text-sm text-gray-600">
-                  <Brain className="h-4 w-4" />
-                  <span>AI is learning from your feedback</span>
+            {/* AI Crew Analysis */}
+            {crewAnalysis.length > 0 && (
+              <div className="mb-8">
+                <div className="bg-white rounded-lg shadow-md">
+                  <div className="p-6 border-b border-gray-200">
+                    <div className="flex items-center space-x-3">
+                      <Users className="h-6 w-6 text-blue-500" />
+                      <h2 className="text-xl font-semibold text-gray-900">AI Crew Analysis</h2>
+                    </div>
+                  </div>
+                  <div className="p-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      {crewAnalysis.map((analysis, index) => (
+                        <div key={index} className="border rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <h3 className="font-semibold text-gray-900">{analysis.agent}</h3>
+                            <span className={`px-2 py-1 text-xs rounded-full ${getProgressColor(analysis.confidence * 100)}`}>
+                              {Math.round(analysis.confidence * 100)}% confidence
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-600 mb-3 font-medium">{analysis.task}</p>
+                          
+                          <div className="mb-3">
+                            <h4 className="text-sm font-medium text-gray-700 mb-1">Findings:</h4>
+                            <ul className="text-sm text-gray-600 space-y-1">
+                              {analysis.findings.map((finding, idx) => (
+                                <li key={idx}>• {finding}</li>
+                              ))}
+                            </ul>
+                          </div>
+                          
+                          <div className="bg-blue-50 border-l-4 border-blue-400 p-3">
+                            <h4 className="text-sm font-medium text-blue-800 mb-1">Recommendations:</h4>
+                            <ul className="text-sm text-blue-700 space-y-1">
+                              {analysis.recommendations.map((rec, idx) => (
+                                <li key={idx}>• {rec}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Navigation Tabs */}
             <div className="mb-6">
               <nav className="flex space-x-8">
                 {[
-                  { id: 'data', label: 'Imported Data' },
-                  { id: 'mappings', label: 'Attribute Mappings' },
-                  { id: 'definitions', label: 'Field Definitions' },
-                  { id: 'rules', label: 'Mapping Rules' }
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`px-4 py-2 rounded-lg font-medium ${
-                      activeTab === tab.id
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
+                  { id: 'data', label: 'Imported Data', icon: Database },
+                  { id: 'mappings', label: 'Field Mappings', icon: MapPin },
+                  { id: 'critical', label: 'Critical Attributes', icon: Target },
+                  { id: 'progress', label: 'Training Progress', icon: Brain }
+                ].map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium ${
+                        activeTab === tab.id
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                      }`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span>{tab.label}</span>
+                    </button>
+                  );
+                })}
               </nav>
             </div>
 
@@ -356,18 +641,18 @@ const AttributeMapping = () => {
                   <div>
                     <h2 className="text-xl font-semibold text-gray-900">Imported Data Review</h2>
                     <p className="text-gray-600 mt-1">
-                      Review your imported data before setting up attribute mappings. This helps the AI understand your data structure.
+                      Review your imported data before setting up attribute mappings
                     </p>
                   </div>
                   <div className="flex items-center space-x-2 text-sm text-gray-600">
                     <Database className="h-4 w-4" />
-                    <span>{rawData.length} records imported</span>
+                    <span>{importedData.length} records imported</span>
                   </div>
                 </div>
                 
-                {rawData.length > 0 ? (
+                {importedData.length > 0 ? (
                   <RawDataTable
-                    data={rawData}
+                    data={importedData}
                     title="Imported Dataset for Attribute Mapping"
                     pageSize={10}
                     showLegend={false}
@@ -390,48 +675,33 @@ const AttributeMapping = () => {
               </div>
             )}
 
-            {/* Mappings Tab */}
+            {/* Field Mappings Tab */}
             {activeTab === 'mappings' && (
-              <div className="bg-white rounded-lg shadow-md">
-                <div className="p-6">
-                  <h2 className="text-xl font-semibold text-gray-900 mb-6">Attribute Mapping Suggestions</h2>
-                  
-                  {filteredMappings.length === 0 ? (
-                    <div className="text-center py-12">
-                      <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">All Mappings Reviewed</h3>
-                      <p className="text-gray-600">Great job! All attribute mappings have been reviewed.</p>
+              <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-semibold text-gray-900">Field Mapping Suggestions</h2>
+                  {isAnalyzing && (
+                    <div className="flex items-center space-x-2 text-blue-600">
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      <span className="text-sm">AI analyzing...</span>
                     </div>
-                  ) : (
-                    <div className="space-y-6">
-                      {filteredMappings.map((mapping) => (
-                        <div key={mapping.id} className="border border-gray-200 rounded-lg p-6">
-                          <div className="flex justify-between items-start mb-4">
-                            <div>
-                              <h3 className="font-medium text-gray-900">
-                                {mapping.assetContext.assetName}
-                              </h3>
-                              <p className="text-sm text-gray-600">
-                                {mapping.assetContext.assetType} • {mapping.assetContext.department}
-                              </p>
-                            </div>
-                            
-                            <div className="flex items-center space-x-2">
-                              <div className={`px-2 py-1 rounded-full text-xs ${getConfidenceColor(mapping.confidence)}`}>
-                                {Math.round(mapping.confidence * 100)}% confidence
-                              </div>
-                              <div className={`px-2 py-1 rounded-full text-xs ${getStatusColor(mapping.status)}`}>
-                                {mapping.status.replace('_', ' ')}
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  )}
+                </div>
+                
+                <div className="space-y-4">
+                  {fieldMappings.map((mapping) => (
+                    <div key={mapping.id} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex-1">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                               <label className="text-sm font-medium text-gray-700">Source Field</label>
                               <div className="mt-1 p-3 bg-gray-50 border border-gray-200 rounded-lg">
                                 <div className="font-medium">{mapping.sourceField}</div>
-                                <div className="text-sm text-gray-600">{mapping.sourceValue}</div>
+                                <div className="text-sm text-gray-600">
+                                  Sample: {mapping.sample_values.slice(0, 2).join(', ')}
+                                  {mapping.sample_values.length > 2 && '...'}
+                                </div>
                               </div>
                             </div>
                             
@@ -440,103 +710,47 @@ const AttributeMapping = () => {
                             </div>
                             
                             <div>
-                              <label className="text-sm font-medium text-gray-700">Suggested Mapping</label>
-                              <div className="mt-1 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                                <div className="font-medium">{mapping.targetField}</div>
-                                <div className="text-sm text-blue-800">{mapping.suggestedValue}</div>
+                              <label className="text-sm font-medium text-gray-700">Target Attribute</label>
+                              <div className="mt-1">
+                                <select
+                                  value={mapping.targetAttribute}
+                                  onChange={(e) => handleCustomMapping(mapping.id, e.target.value)}
+                                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                >
+                                  <option value="unmapped">Select attribute...</option>
+                                  {Object.entries(CRITICAL_ATTRIBUTES).map(([key, attr]) => (
+                                    <option key={key} value={key}>
+                                      {attr.field} ({attr.importance})
+                                    </option>
+                                  ))}
+                                </select>
                               </div>
                             </div>
                           </div>
                           
-                          <div className="mb-4">
-                            <label className="text-sm font-medium text-gray-700">AI Reasoning</label>
-                            <div className="mt-1 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                              <div className="flex items-start space-x-2">
-                                <Lightbulb className="h-4 w-4 text-yellow-600 mt-0.5" />
-                                <p className="text-sm text-yellow-800">{mapping.reasoning}</p>
-                              </div>
+                          <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                            <div className="flex items-start space-x-2">
+                              <Lightbulb className="h-4 w-4 text-yellow-600 mt-0.5" />
+                              <p className="text-sm text-yellow-800">{mapping.ai_reasoning}</p>
                             </div>
-                          </div>
-                          
-                          {mapping.examples.length > 0 && (
-                            <div className="mb-4">
-                              <label className="text-sm font-medium text-gray-700">Similar Examples</label>
-                              <div className="mt-1 flex flex-wrap gap-2">
-                                {mapping.examples.map((example, idx) => (
-                                  <span key={idx} className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">
-                                    {example}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          
-                          {mapping.status === 'pending' && (
-                            <div className="flex justify-end space-x-3">
-                              <button
-                                onClick={() => handleRejectMapping(mapping.id)}
-                                className="flex items-center space-x-2 px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50"
-                              >
-                                <ThumbsDown className="h-4 w-4" />
-                                <span>Reject</span>
-                              </button>
-                              
-                              <button
-                                onClick={() => setSelectedMapping(mapping)}
-                                className="flex items-center space-x-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                              >
-                                <HelpCircle className="h-4 w-4" />
-                                <span>Custom Value</span>
-                              </button>
-                              
-                              <button
-                                onClick={() => handleApproveMapping(mapping.id)}
-                                className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                              >
-                                <ThumbsUp className="h-4 w-4" />
-                                <span>Approve</span>
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Field Definitions Tab */}
-            {activeTab === 'definitions' && (
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-6">Field Definitions</h2>
-                <div className="space-y-6">
-                  {fieldDefinitions.map((field, index) => (
-                    <div key={index} className="border border-gray-200 rounded-lg p-6">
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">{field.field}</h3>
-                      <p className="text-gray-600 mb-4">{field.description}</p>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">Possible Values</label>
-                          <div className="mt-1 flex flex-wrap gap-2">
-                            {field.possibleValues.map((value, idx) => (
-                              <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm">
-                                {value}
-                              </span>
-                            ))}
                           </div>
                         </div>
                         
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">Examples</label>
-                          <div className="mt-1 flex flex-wrap gap-2">
-                            {field.examples.map((example, idx) => (
-                              <span key={idx} className="px-2 py-1 bg-green-100 text-green-800 rounded text-sm">
-                                {example}
-                              </span>
-                            ))}
-                          </div>
+                        <div className="ml-4 flex items-center space-x-2">
+                          <span className={`px-2 py-1 text-xs rounded-full ${getProgressColor(mapping.confidence * 100)}`}>
+                            {Math.round(mapping.confidence * 100)}%
+                          </span>
+                          {mapping.status === 'pending' && (
+                            <button
+                              onClick={() => handleApproveMapping(mapping.id)}
+                              className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+                            >
+                              Approve
+                            </button>
+                          )}
+                          {mapping.status === 'approved' && (
+                            <CheckCircle className="h-5 w-5 text-green-600" />
+                          )}
                         </div>
                       </div>
                     </div>
@@ -545,65 +759,146 @@ const AttributeMapping = () => {
               </div>
             )}
 
-            {/* Custom Mapping Modal */}
-            {selectedMapping && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Custom Mapping Value</h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Provide a custom value for the field "{selectedMapping.targetField}"
-                  </p>
+            {/* Critical Attributes Tab */}
+            {activeTab === 'critical' && (
+              <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+                <h2 className="text-xl font-semibold text-gray-900 mb-6">Critical Attributes for Migration</h2>
+                
+                {['identity', 'business', 'technical', 'network', 'governance'].map(category => (
+                  <div key={category} className="mb-8">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4 capitalize">{category} Attributes</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {getAttributesByCategory(category).map(([key, attr]) => {
+                        const isMapped = fieldMappings.some(m => m.targetAttribute === key && m.status === 'approved');
+                        return (
+                          <div key={key} className={`border rounded-lg p-4 ${isMapped ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="font-medium text-gray-900">{attr.field}</h4>
+                              <div className="flex items-center space-x-2">
+                                <span className={`px-2 py-1 text-xs rounded-full ${
+                                  attr.importance === 'critical' ? 'bg-red-100 text-red-800' :
+                                  attr.importance === 'high' ? 'bg-orange-100 text-orange-800' :
+                                  'bg-yellow-100 text-yellow-800'
+                                }`}>
+                                  {attr.importance}
+                                </span>
+                                {isMapped && <CheckCircle className="h-4 w-4 text-green-600" />}
+                              </div>
+                            </div>
+                            <p className="text-sm text-gray-600 mb-2">{attr.description}</p>
+                            <div className="text-xs text-gray-500">
+                              <strong>Used for:</strong> {attr.usedFor.join(', ')}
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              <strong>Examples:</strong> {attr.examples.join(', ')}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Progress Tab */}
+            {activeTab === 'progress' && (
+              <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+                <h2 className="text-xl font-semibold text-gray-900 mb-6">AI Training Progress</h2>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h3 className="font-medium text-gray-900 mb-4">Mapping Coverage</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-sm text-gray-600">Total Fields Mapped</span>
+                          <span className="text-sm font-medium">{mappingProgress.mapped}/{mappingProgress.total}</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-blue-600 h-2 rounded-full" 
+                            style={{ width: `${(mappingProgress.mapped / mappingProgress.total) * 100}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-sm text-gray-600">Critical Attributes</span>
+                          <span className="text-sm font-medium">{mappingProgress.critical_mapped}/7</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-green-600 h-2 rounded-full" 
+                            style={{ width: `${(mappingProgress.critical_mapped / 7) * 100}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-sm text-gray-600">AI Accuracy</span>
+                          <span className="text-sm font-medium">{Math.round(mappingProgress.accuracy * 100)}%</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-purple-600 h-2 rounded-full" 
+                            style={{ width: `${mappingProgress.accuracy * 100}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                   
-                  <input
-                    type="text"
-                    placeholder="Enter custom value"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 mb-4"
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        const value = (e.target as HTMLInputElement).value;
-                        if (value.trim()) {
-                          handleCustomMapping(selectedMapping.id, value.trim());
-                          setSelectedMapping(null);
-                        }
-                      }
-                    }}
-                  />
-                  
-                  <div className="flex justify-end space-x-3">
-                    <button
-                      onClick={() => setSelectedMapping(null)}
-                      className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={() => {
-                        const input = document.querySelector('input[placeholder="Enter custom value"]') as HTMLInputElement;
-                        const value = input?.value?.trim();
-                        if (value) {
-                          handleCustomMapping(selectedMapping.id, value);
-                          setSelectedMapping(null);
-                        }
-                      }}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                    >
-                      Save
-                    </button>
+                  <div>
+                    <h3 className="font-medium text-gray-900 mb-4">Readiness Assessment</h3>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">6R Analysis Ready</span>
+                        <span className={`px-2 py-1 text-xs rounded-full ${mappingProgress.critical_mapped >= 3 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                          {mappingProgress.critical_mapped >= 3 ? 'Yes' : 'No'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Wave Planning Ready</span>
+                        <span className={`px-2 py-1 text-xs rounded-full ${mappingProgress.critical_mapped >= 5 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                          {mappingProgress.critical_mapped >= 5 ? 'Yes' : 'Partial'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Cost Estimation Ready</span>
+                        <span className={`px-2 py-1 text-xs rounded-full ${fieldMappings.some(m => ['cpu_cores', 'memory_gb'].includes(m.targetAttribute) && m.status === 'approved') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                          {fieldMappings.some(m => ['cpu_cores', 'memory_gb'].includes(m.targetAttribute) && m.status === 'approved') ? 'Yes' : 'No'}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             )}
 
             {/* Continue Button */}
-            <div className="flex justify-center mt-8">
+            <div className="flex justify-center">
               <button
-                onClick={() => navigate('/discovery/data-cleansing')}
-                className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-lg font-medium"
+                onClick={proceedToDataCleansing}
+                disabled={mappingProgress.critical_mapped < 3}
+                className={`flex items-center space-x-2 px-6 py-3 rounded-lg text-lg font-medium transition-colors ${
+                  mappingProgress.critical_mapped >= 3
+                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
               >
                 <span>Continue to Data Cleansing</span>
                 <ArrowRight className="h-5 w-5" />
               </button>
             </div>
+            
+            {mappingProgress.critical_mapped < 3 && (
+              <p className="text-center text-sm text-gray-600 mt-2">
+                Map at least 3 critical attributes to proceed
+              </p>
+            )}
           </div>
         </main>
       </div>

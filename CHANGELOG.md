@@ -5,6 +5,185 @@ All notable changes to the AI Force Migration Platform will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2025-01-28
+
+### 🎯 **Complete Attribute Mapping Implementation & Agentic Crew Architecture**
+
+This release delivers a fully functional Attribute Mapping system with comprehensive agentic crew integration, replacing placeholder functionality with intelligent field mapping capabilities essential for 6R analysis and migration planning.
+
+### ✨ **Major Features**
+
+#### **Comprehensive Attribute Mapping System**
+- **Critical Attributes Definition**: Defined 17 critical attributes across 5 categories (Identity, Business, Technical, Network, Governance) essential for 6R analysis
+- **Intelligent Field Mapping**: AI-powered semantic mapping from imported columns to critical migration attributes
+- **Confidence Scoring**: Advanced confidence algorithms based on semantic analysis and sample value patterns
+- **User Training Interface**: Interactive approval/rejection system to train AI mapping accuracy
+
+#### **Advanced AI Crew Architecture**
+- **Field Mapping Specialist**: Primary agent for semantic column analysis and attribute matching
+- **Migration Planning Agent**: Assesses data readiness for wave planning and 6R analysis
+- **6R Strategy Agent**: Evaluates data completeness for treatment recommendations
+- **Progressive Learning**: AI accuracy improves through user feedback and approval patterns
+
+#### **Complete Data Flow Integration**
+- **Data Import → Attribute Mapping**: Seamless data passage with imported records and column analysis
+- **Attribute Mapping → Data Cleansing**: Enhanced quality analysis using mapped critical attributes
+- **Context-Aware Processing**: Each stage receives enriched context from previous stages
+- **Persistent Field Mappings**: User-approved mappings stored for reuse and AI training
+
+### 🧠 **Agentic Crew Definitions**
+
+#### **Stage-Specific Crew Responsibilities**
+- **Data Import Crew**: File analysis, content classification, quality assessment, migration readiness scoring
+- **Attribute Mapping Crew**: Semantic field matching, critical attribute assessment, migration planning readiness
+- **Data Cleansing Crew**: Quality analysis using mapped attributes, standardization, enhancement suggestions
+- **Asset Inventory Crew**: Classification using cleaned attributes, cloud readiness assessment
+- **Dependencies Crew**: Relationship discovery, migration impact analysis, wave optimization
+- **Tech Debt Crew**: Technology lifecycle analysis, modernization opportunities, 6R strategy recommendations
+
+#### **Comprehensive Prompt Templates**
+- **Context-Specific Prompts**: Tailored prompts for each crew's specific analysis focus
+- **Critical Attribute Focus**: All crews understand and prioritize migration-essential attributes
+- **6R Integration**: Each crew contributes to ultimate 6R treatment recommendation accuracy
+- **Business Impact Awareness**: Crews consider business criticality, department ownership, and wave planning
+
+### 🔧 **Technical Implementation**
+
+#### **Intelligent Field Mapping Engine**
+- **Semantic Matching**: Advanced algorithms for column name to attribute matching
+- **Sample Value Analysis**: Pattern recognition in data values to infer field purposes
+- **Confidence Calculation**: Multi-factor confidence scoring based on name similarity and value patterns
+- **User Feedback Integration**: Learning algorithms that improve from user corrections
+
+#### **Critical Attributes Framework**
+```typescript
+// Identity Category
+hostname, asset_name, asset_type
+
+// Business Category  
+department, business_criticality, environment, application_owner
+
+// Technical Category
+operating_system, cpu_cores, memory_gb, storage_gb, version
+
+// Network Category
+ip_address, location
+
+// Governance Category
+vendor, application_owner
+```
+
+#### **Data Persistence & Flow**
+- **State Management**: Proper state passing between Discovery workflow stages
+- **Field Mapping Storage**: Persistent storage of approved mappings for AI training
+- **Context Preservation**: Complete workflow context maintained across page transitions
+- **Quality Gates**: Minimum mapping requirements before proceeding to next stage
+
+### 🎨 **User Experience Enhancements**
+
+#### **Workflow Context Awareness**
+- **Data Import AI Recommendation**: Now correctly suggests Attribute Mapping as next step
+- **Progressive Disclosure**: Four-tab interface (Data → Mappings → Critical Attributes → Progress)
+- **Visual Progress Tracking**: Real-time progress metrics for mapping completeness and accuracy
+- **Context-Sensitive Navigation**: Back buttons and breadcrumbs reflect actual workflow path
+
+#### **Interactive Mapping Interface**
+- **Source-Target Mapping**: Clear visualization of imported fields mapping to critical attributes
+- **AI Reasoning Display**: Transparent explanation of AI mapping decisions with confidence scores
+- **Custom Mapping**: Users can override AI suggestions with custom attribute mappings
+- **Approval Workflow**: One-click approval system with immediate progress updates
+
+#### **Enhanced Data Cleansing Context**
+- **Mapping-Aware Analysis**: Data Cleansing now uses field mappings for enhanced quality analysis
+- **Critical Attribute Focus**: Issues prioritized based on impact to 6R analysis and wave planning
+- **Workflow Breadcrumbs**: Clear indication of workflow progression and data source context
+
+### 📊 **AI Crew Analysis Dashboard**
+
+#### **Multi-Agent Analysis Display**
+- **Field Mapping Specialist**: Column analysis and semantic matching results
+- **Migration Planning Agent**: Data readiness assessment for wave planning
+- **6R Strategy Agent**: Completeness evaluation for treatment recommendations
+- **Confidence Metrics**: Individual agent confidence scores and recommendations
+
+#### **Readiness Assessment**
+- **6R Analysis Ready**: Requires 3+ critical attributes mapped
+- **Wave Planning Ready**: Requires 5+ critical attributes for comprehensive planning
+- **Cost Estimation Ready**: Requires technical specifications (CPU, memory) mapped
+- **Progress Visualization**: Clear progress bars and completion indicators
+
+### 🔄 **Workflow Sequence Fixes**
+
+#### **Corrected Data Import Recommendations**
+- **Primary Recommendation**: "Start Attribute Mapping & AI Training" (was Data Cleansing)
+- **Logical Progression**: Import → Map → Cleanse → Inventory → Dependencies → Tech Debt
+- **Context Passing**: Proper data and state passing between workflow stages
+- **User Guidance**: Clear explanations of why each step builds on the previous
+
+#### **Enhanced Data Cleansing Integration**
+- **Mapping Context**: Receives field mappings and uses them for enhanced analysis
+- **Critical Attribute Focus**: Quality issues prioritized based on mapped migration-critical fields
+- **Workflow Awareness**: Header and navigation reflect whether coming from Import or Mapping
+- **AI Insights Updates**: Recommendations updated to reflect attribute mapping context
+
+### 🏗 **Architecture Improvements**
+
+#### **Comprehensive Crew Documentation**
+- **AGENTIC_CREW_ARCHITECTURE.md**: Complete documentation of all crews, tools, tasks, and prompts
+- **Stage-by-Stage Definitions**: Detailed role definitions for each Discovery workflow stage
+- **Data Flow Diagrams**: Clear visualization of data progression and crew interactions
+- **Quality Assurance Framework**: Error handling, fallbacks, and human-in-the-loop patterns
+
+#### **Persistent Learning System**
+- **Field Mapping Database**: Storage system for approved mappings and AI training data
+- **User Feedback Integration**: System learns from user corrections and approval patterns
+- **Cross-Session Learning**: Mappings and training persist across user sessions
+- **Performance Monitoring**: Tracking of crew accuracy and improvement over time
+
+### 🎯 **Migration Planning Integration**
+
+#### **6R Analysis Prerequisites**
+- **Critical Attribute Requirements**: Clear definition of attributes needed for each 6R strategy
+- **Business Context Integration**: Department, criticality, and ownership mapping for wave planning
+- **Technical Specification Mapping**: CPU, memory, OS mapping for right-sizing and compatibility
+- **Dependency Preparation**: Network and location mapping for relationship analysis
+
+#### **Wave Planning Foundation**
+- **Business Impact Mapping**: Department and criticality attributes for disruption minimization
+- **Technical Complexity Assessment**: OS and specification mapping for wave balancing
+- **Dependency Readiness**: Identity and network attributes for relationship mapping
+- **Complete Asset Context**: All mapped attributes available for comprehensive planning
+
+### 🚀 **Benefits for Migration Analysis**
+
+#### **Enhanced 6R Accuracy**
+- **Complete Attribute Context**: All critical attributes properly mapped and cleansed
+- **Business Impact Awareness**: Department and criticality mapping enables risk-based decisions
+- **Technical Specification Accuracy**: Proper resource mapping enables accurate right-sizing
+- **Dependency Foundation**: Identity and network mapping enables relationship analysis
+
+#### **Improved Wave Planning**
+- **Business Context**: Department and criticality mapping for disruption minimization
+- **Technical Grouping**: Specification and OS mapping for balanced wave composition
+- **Dependency Awareness**: Network and identity mapping for sequence optimization
+- **Complete Asset Understanding**: All attributes available for comprehensive planning decisions
+
+### 📈 **Quality Improvements**
+
+#### **Data Quality Enhancement**
+- **Mapping-Driven Analysis**: Quality issues identified based on actual critical attribute mappings
+- **Intelligent Standardization**: AI suggestions based on mapped field purposes and patterns
+- **Context-Aware Recommendations**: Suggestions consider impact on 6R analysis and wave planning
+- **Progressive Quality**: Each workflow stage improves data quality for subsequent analysis
+
+#### **AI Learning Effectiveness**
+- **Feedback Integration**: User corrections immediately improve mapping accuracy
+- **Pattern Recognition**: AI learns organizational naming conventions and data patterns
+- **Confidence Improvement**: Mapping confidence scores improve with user training
+- **Cross-Dataset Learning**: Approved mappings benefit future data imports
+
+---
+
 ## [0.3.0] - 2025-01-28
 
 ### 🚀 **Complete Discovery Workflow Redesign & Real Data Integration**

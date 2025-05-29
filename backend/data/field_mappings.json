@@ -1,16 +1,16 @@
 {
   "Memory (GB)": [
+    "ram (gb)",
+    "network adapter",
     "cpu (cores)",
     "memory (gb)",
-    "ram_gb",
     "network interfaces",
-    "network adapter",
-    "ram (gb)"
+    "ram_gb"
   ],
   "Business Owner": [
-    "application_owner",
+    "owner",
     "business owner",
-    "owner"
+    "application_owner"
   ],
   "Criticality": [
     "dr_tier",
@@ -25,46 +25,46 @@
     "test field"
   ],
   "Asset Name": [
-    "asset name",
-    "hostname",
     "name",
-    "asset_name"
+    "asset_name",
+    "asset name",
+    "hostname"
   ],
   "IP Address": [
     "ip address",
+    "destination ip",
     "ip_address",
-    "source ip",
-    "destination ip"
+    "source ip"
   ],
   "Operating System": [
     "operating system",
-    "os",
-    "os_version",
     "os type",
-    "operating_system"
+    "operating_system",
+    "os",
+    "os_version"
   ],
   "CPU Cores": [
-    "cpu_cores",
-    "cpu cores"
+    "cpu cores",
+    "cpu_cores"
   ],
   "Storage (GB)": [
-    "disk size (gb)",
     "storage_gb",
-    "storage (gb)"
+    "storage (gb)",
+    "disk size (gb)"
   ],
   "Asset Type": [
-    "type",
-    "asset type",
     "application_service",
-    "asset_type",
-    "workload type"
+    "asset type",
+    "workload type",
+    "type",
+    "asset_type"
   ],
   "Environment": [
     "environment"
   ],
   "Vendor": [
-    "vendor",
-    "manufacturer"
+    "manufacturer",
+    "vendor"
   ],
   "Model": [
     "model"

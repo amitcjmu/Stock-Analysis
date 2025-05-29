@@ -470,20 +470,21 @@ const DataImport = () => {
     // AI crew determines next steps based on actual analysis
     const nextSteps = [
       { 
+        label: 'Start Attribute Mapping & AI Training', 
+        route: '/discovery/attribute-mapping',
+        description: `Map your data fields to migration-critical attributes (${preview.length} records ready)`,
+        importedData: preview
+      },
+      { 
         label: 'Proceed to AI-Powered Data Cleansing', 
         route: '/discovery/data-cleansing',
         description: `Clean and standardize your data (${realDataQualityIssues.length} issues detected)`,
         dataQualityIssues: realDataQualityIssues
       },
       { 
-        label: 'Set up Intelligent Attribute Mapping', 
-        route: '/discovery/attribute-mapping',
-        description: 'AI-assisted field mapping and normalization'
-      },
-      { 
-        label: 'Review AI Quality Assessment', 
+        label: 'Review Asset Inventory', 
         route: '/discovery/inventory',
-        description: 'Verify AI processing results in asset inventory'
+        description: 'Verify processed results in asset inventory'
       },
       { 
         label: 'View Discovery Overview', 
@@ -763,6 +764,13 @@ const DataImport = () => {
                                           navigate(step.route, {
                                             state: {
                                               dataQualityIssues: step.dataQualityIssues,
+                                              fromDataImport: true
+                                            }
+                                          });
+                                        } else if (step.route === '/discovery/attribute-mapping' && step.importedData) {
+                                          navigate(step.route, {
+                                            state: {
+                                              importedData: step.importedData,
                                               fromDataImport: true
                                             }
                                           });
