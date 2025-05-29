@@ -44,4 +44,61 @@ python-dateutil>=2.8.0
 orjson>=3.8.0
 
 # Data processing
-pandas>=2.0.0 
+pandas>=2.0.0
+
+# AI Force Migration Platform - Backend Dependencies (Docker)
+
+# Core FastAPI and dependencies
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
+starlette>=0.27.0
+
+# Database
+sqlalchemy>=2.0.0
+alembic>=1.12.0
+asyncpg>=0.29.0
+
+# DeepInfra AI provider using OpenAI-compatible API
+openai>=1.0.0
+
+# CrewAI and AI frameworks
+crewai>=0.121.0
+litellm>=1.55.0
+
+# LangChain ecosystem (core only - no OpenAI specific)
+langchain>=0.3.0
+langchain-core>=0.3.0
+langchain-community>=0.3.0
+
+# Data processing
+pandas>=2.1.0
+numpy>=1.24.0
+
+# HTTP and requests
+aiohttp>=3.9.0
+requests>=2.31.0
+
+# Environment and configuration
+python-dotenv>=1.0.0
+pydantic>=2.4.0
+pydantic-settings>=2.0.0
+
+# Authentication and security
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+
+# WebSocket support
+websockets>=12.0
+
+# Async support
+aiofiles>=23.0.0
+
+# Development and testing
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+httpx>=0.24.0
+
+# Utilities
+python-dateutil>=2.8.2
+structlog>=24.4.0 

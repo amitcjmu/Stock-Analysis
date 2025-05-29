@@ -14,9 +14,13 @@ import numpy as np
 import io
 from datetime import datetime
 import math
+import uuid
+from pathlib import Path
+import os
 
 from app.services.crewai_service import CrewAIService
 from app.core.config import settings
+from app.services.agent_monitor import agent_monitor, TaskStatus
 from app.api.v1.discovery import (
     CMDBDataProcessor,
     standardize_asset_type,
@@ -34,6 +38,43 @@ router = APIRouter()
 # Initialize processor and global storage
 processor = CMDBDataProcessor()
 processed_assets_store = []  # Global storage for processed assets
+
+# Simple persistence helpers until full client account design
+DATA_DIR = Path("data/persistence")
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+def save_to_file(filename: str, data: any):
+    """Save data to a JSON file for persistence."""
+    try:
+        filepath = DATA_DIR / f"{filename}.json"
+        with open(filepath, 'w') as f:
+            json.dump(data, f, indent=2, default=str)
+    except Exception as e:
+        logger.warning(f"Failed to save {filename}: {e}")
+
+def load_from_file(filename: str, default_value=None):
+    """Load data from a JSON file."""
+    try:
+        filepath = DATA_DIR / f"{filename}.json"
+        if filepath.exists():
+            with open(filepath, 'r') as f:
+                return json.load(f)
+    except Exception as e:
+        logger.warning(f"Failed to load {filename}: {e}")
+    return default_value or []
+
+# Initialize persistent stores
+feedback_store = load_from_file("feedback_store", [])
+
+# Load processed assets from backup on startup
+saved_assets = load_from_file("processed_assets_backup", [])
+if saved_assets:
+    processed_assets_store.extend(saved_assets)
+    logger.info(f"Loaded {len(saved_assets)} assets from backup")
+
+def backup_processed_assets():
+    """Backup processed assets to file."""
+    save_to_file("processed_assets_backup", processed_assets_store)
 
 def clean_for_json_serialization(data):
     """Convert pandas/numpy data types to JSON-serializable types."""
@@ -81,6 +122,14 @@ class CMDBFeedbackRequest(BaseModel):
     userCorrections: Dict[str, Any]
     assetTypeOverride: Optional[str] = None
 
+class PageFeedbackRequest(BaseModel):
+    page: str
+    rating: int
+    comment: str
+    category: str = 'general'
+    breadcrumb: str = ''
+    timestamp: str
+
 class DataQualityResult(BaseModel):
     score: int
     issues: List[str]
@@ -116,9 +165,6 @@ async def analyze_cmdb_data(request: CMDBAnalysisRequest):
             raise HTTPException(status_code=400, detail="No data found in the uploaded file")
         
         # Start monitoring the analysis task
-        from app.services.agent_monitor import agent_monitor, TaskStatus
-        import uuid
-        
         task_id = f"cmdb_analysis_{str(uuid.uuid4())[:8]}"
         task_exec = agent_monitor.start_task(
             task_id, 
@@ -372,6 +418,8 @@ async def process_cmdb_data(request: CMDBProcessingRequest):
     """
     Process and clean CMDB data based on user edits and AI recommendations.
     """
+    global processed_assets_store  # Move global declaration to the beginning
+    
     try:
         logger.info(f"Starting CMDB processing for file: {request.filename}")
         
@@ -472,12 +520,61 @@ async def process_cmdb_data(request: CMDBProcessingRequest):
             # Get asset type - CRITICAL: Use workload_type which contains the granular classification
             workload_type = get_field_value(asset_data, ['workload_type', 'workload type', 'asset_type', 'ci_type', 'type'])
             
+            # ENHANCED APPLICATION MAPPING - Try multiple field patterns and smart detection
+            app_mapped = get_field_value(asset_data, [
+                'application_mapped', 'app_mapped', 'application mapped', 'mapped_application', 
+                'application_service', 'application', 'app_name', 'business_service',
+                'service_name', 'hosted_application', 'running_application'
+            ])
+            
+            # Smart application detection for servers based on naming patterns
+            if app_mapped == "Unknown" and workload_type in ["App Server", "Application Server", "Web Server"]:
+                # Try to infer application from server name
+                server_name_lower = asset_name.lower()
+                if "hr" in server_name_lower or "payroll" in server_name_lower:
+                    app_mapped = "HR_Payroll"
+                elif "finance" in server_name_lower or "erp" in server_name_lower:
+                    app_mapped = "Finance_ERP"
+                elif "crm" in server_name_lower or "customer" in server_name_lower:
+                    app_mapped = "CRM_System"
+                elif "web" in server_name_lower and "app" in server_name_lower:
+                    app_mapped = f"WebApp_{asset_name[:10]}"
+                elif "db" in server_name_lower or "database" in server_name_lower:
+                    app_mapped = f"Database_{asset_name[:10]}"
+                elif "file" in server_name_lower:
+                    app_mapped = "File_Services"
+                elif "ad" in server_name_lower or "domain" in server_name_lower:
+                    app_mapped = "Active_Directory"
+                else:
+                    # Create application mapping based on department or owner
+                    department = get_field_value(asset_data, ['business_owner', 'department', 'owner'])
+                    if department != "Unknown":
+                        app_mapped = f"{department.replace(' ', '_')}_Application"
+            
+            # For databases, try to map to related applications
+            elif app_mapped == "Unknown" and workload_type in ["Database Server", "DB Server"]:
+                server_name_lower = asset_name.lower()
+                if "hr" in server_name_lower or "payroll" in server_name_lower:
+                    app_mapped = "HR_Payroll"
+                elif "finance" in server_name_lower or "erp" in server_name_lower:
+                    app_mapped = "Finance_ERP"
+                elif "crm" in server_name_lower:
+                    app_mapped = "CRM_System"
+                else:
+                    app_mapped = f"Database_Service_{asset_name[:10]}"
+            
             # Use enhanced asset type classification with workload type
             intelligent_type = standardize_asset_type(workload_type, asset_name, asset_data)
             processed_df.at[idx, 'intelligent_asset_type'] = intelligent_type
             
             # Also update the main asset_type field to use the intelligent classification
             processed_df.at[idx, 'asset_type'] = intelligent_type
+            
+            # PRESERVE and ENHANCE the application mapping data
+            if app_mapped != "Unknown":
+                processed_df.at[idx, 'application_mapped'] = app_mapped
+                processed_df.at[idx, 'app_mapped'] = app_mapped  # Store in both fields
+                logger.info(f"Preserved/Enhanced app mapping for {asset_name}: {app_mapped}")
             
             # Add 6R readiness assessment
             processed_df.at[idx, 'sixr_ready'] = assess_6r_readiness(intelligent_type, asset_data)
@@ -502,10 +599,23 @@ async def process_cmdb_data(request: CMDBProcessingRequest):
         # Fill missing values with appropriate defaults
         null_counts_before = processed_df.isnull().sum().sum()
         for column in processed_df.columns:
-            if processed_df[column].dtype == 'object':
-                processed_df[column] = processed_df[column].fillna('Unknown')
-            else:
-                processed_df[column] = processed_df[column].fillna(0)
+            try:
+                # Check if column exists and is accessible
+                if column in processed_df.columns and not processed_df[column].empty:
+                    if processed_df[column].dtype == 'object':
+                        processed_df[column] = processed_df[column].fillna('Unknown')
+                    else:
+                        processed_df[column] = processed_df[column].fillna(0)
+                else:
+                    logger.warning(f"Skipping column {column} - empty or inaccessible")
+            except Exception as e:
+                logger.warning(f"Error processing column {column}: {e}")
+                # Set default values for problematic columns
+                try:
+                    processed_df[column] = processed_df[column].fillna('Unknown')
+                except:
+                    logger.error(f"Failed to fill NA values for column {column}")
+                    continue
         
         null_counts_after = processed_df.isnull().sum().sum()
         if null_counts_before > null_counts_after:
@@ -576,7 +686,13 @@ async def process_cmdb_data(request: CMDBProcessingRequest):
         # Clean the entire response to ensure no numpy types anywhere
         response = clean_for_json_serialization(response)
         
-        logger.info(f"CMDB processing completed for {request.filename}")
+        # Store processed assets globally for cross-endpoint access
+        processed_assets_store = processed_data_records
+        
+        # Backup processed assets for persistence
+        backup_processed_assets()
+        
+        logger.info(f"CMDB processing completed for {request.filename}. Processed {len(processed_data_records)} assets")
         return response
         
     except Exception as e:
@@ -593,9 +709,6 @@ async def submit_cmdb_feedback(request: CMDBFeedbackRequest):
         logger.info(f"Receiving user feedback for file: {request.filename}")
         
         # Start monitoring the feedback processing task
-        from app.services.agent_monitor import agent_monitor, TaskStatus
-        import uuid
-        
         task_id = f"feedback_processing_{str(uuid.uuid4())[:8]}"
         task_exec = agent_monitor.start_task(
             task_id, 
@@ -733,10 +846,120 @@ async def submit_cmdb_feedback(request: CMDBFeedbackRequest):
         logger.error(f"Error processing user feedback: {e}")
         raise HTTPException(status_code=500, detail=f"Feedback processing failed: {str(e)}")
 
-@router.get("/assets")
-async def get_processed_assets():
+@router.post("/feedback")
+async def submit_page_feedback(request: PageFeedbackRequest):
     """
-    Get all processed assets from CMDB imports.
+    Submit general page feedback from users.
+    Stores feedback for analysis and improvements.
+    """
+    try:
+        logger.info(f"Receiving page feedback for: {request.page}")
+        
+        # Store feedback with persistent storage
+        global feedback_store
+        feedback_entry = {
+            "id": str(uuid.uuid4()),
+            "page": request.page,
+            "rating": request.rating,
+            "comment": request.comment,
+            "category": request.category,
+            "breadcrumb": request.breadcrumb,
+            "timestamp": request.timestamp,
+            "status": "new"
+        }
+        
+        # Add to in-memory store
+        feedback_store.append(feedback_entry)
+        
+        # Save to persistent storage
+        save_to_file("feedback_store", feedback_store)
+        
+        logger.info(f"Feedback stored with ID: {feedback_entry['id']}")
+        
+        return {
+            "status": "success",
+            "message": "Feedback submitted successfully",
+            "feedback_id": feedback_entry["id"]
+        }
+        
+    except Exception as e:
+        logger.error(f"Error storing page feedback: {e}")
+        raise HTTPException(status_code=500, detail=f"Feedback submission failed: {str(e)}")
+
+@router.get("/feedback")
+async def get_feedback():
+    """
+    Get all submitted feedback from persistent storage.
+    """
+    try:
+        global feedback_store
+        
+        # If no feedback in store, load demo data
+        if not feedback_store:
+            demo_feedback = [
+                {
+                    "id": "demo-1",
+                    "page": "Asset Inventory",
+                    "rating": 4,
+                    "comment": "The app dependencies dropdown is now working great with the refresh button! Makes it much easier to see which applications are mapped to servers.",
+                    "category": "feature",
+                    "breadcrumb": "/discovery/inventory",
+                    "timestamp": "2025-01-28T15:45:00Z",
+                    "status": "resolved"
+                },
+                {
+                    "id": "demo-2",
+                    "page": "Chat Interface",
+                    "rating": 5,
+                    "comment": "The enhanced chat provides much better context about my actual asset data instead of generic responses.",
+                    "category": "feature",
+                    "breadcrumb": "/discovery/inventory",
+                    "timestamp": "2025-01-28T14:30:00Z",
+                    "status": "reviewed"
+                }
+            ]
+            return {
+                "feedback": demo_feedback,
+                "summary": {
+                    "total": len(demo_feedback),
+                    "avgRating": 4.5,
+                    "byStatus": {"new": 0, "reviewed": 1, "resolved": 1}
+                }
+            }
+        
+        # Calculate summary from actual feedback
+        total = len(feedback_store)
+        avgRating = sum(f["rating"] for f in feedback_store) / total if total > 0 else 0
+        byStatus = {}
+        for feedback in feedback_store:
+            status = feedback.get("status", "new")
+            byStatus[status] = byStatus.get(status, 0) + 1
+        
+        return {
+            "feedback": feedback_store,
+            "summary": {
+                "total": total,
+                "avgRating": round(avgRating, 1),
+                "byStatus": byStatus
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error retrieving feedback: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve feedback: {str(e)}")
+
+@router.get("/assets")
+async def get_processed_assets(
+    page: int = 1,
+    page_size: int = 50,
+    asset_type: str = None,
+    environment: str = None,
+    department: str = None,
+    criticality: str = None,
+    search: str = None
+):
+    """
+    Get all processed assets from CMDB imports with pagination and filtering.
     Returns test data if no processed data exists.
     """
     try:
@@ -750,7 +973,7 @@ async def get_processed_assets():
             for asset in processed_assets_store:
                 # Get asset name for better type detection with flexible field mapping
                 asset_name = get_field_value(asset, ["asset_name", "name", "hostname", "ci_name"])
-                asset_type = get_field_value(asset, ["asset_type", "ci_type", "type", "sys_class_name"])
+                asset_type_value = get_field_value(asset, ["asset_type", "ci_type", "type", "sys_class_name"])
                 
                 # Helper function to get numeric values
                 def get_numeric_value(asset, field_names):
@@ -764,10 +987,23 @@ async def get_processed_assets():
                     except (ValueError, AttributeError):
                         return None
                 
+                # CRITICAL: Preserve Application Mapping data
+                app_mapped = get_field_value(asset, ["application_mapped", "app_mapped", "application mapped"])
+                
+                # Extract app ID from application mapping (e.g., "App 130" -> "130")
+                app_id = None
+                if app_mapped != "Unknown" and "app" in app_mapped.lower():
+                    try:
+                        app_id = ''.join(filter(str.isdigit, app_mapped))
+                        if app_id:
+                            app_id = f"APP_{app_id}"
+                    except:
+                        pass
+                
                 # Standardize asset data format with flexible field mapping
                 formatted_asset = {
                     "id": get_field_value(asset, ["ci_id", "asset_id", "id", "asset_name", "name", "hostname"]) or f"ASSET_{len(formatted_assets) + 1}",
-                    "type": standardize_asset_type(asset_type, asset_name, asset),
+                    "type": standardize_asset_type(asset_type_value, asset_name, asset),
                     "name": asset_name,
                     "techStack": get_tech_stack(asset),
                     "department": get_field_value(asset, ["business_owner", "department", "owner", "responsible_party", "assigned_to"]),
@@ -779,7 +1015,19 @@ async def get_processed_assets():
                     "osVersion": get_field_value(asset, ["os_version", "version", "os_ver", "operating_system_version"]),
                     "cpuCores": get_numeric_value(asset, ["cpu_cores", "cpu", "cores", "processors", "vcpu"]),
                     "memoryGb": get_numeric_value(asset, ["memory_gb", "memory", "ram", "ram_gb", "mem"]),
-                    "storageGb": get_numeric_value(asset, ["storage_gb", "storage", "disk", "disk_gb", "hdd", "disk_size_gb"])
+                    "storageGb": get_numeric_value(asset, ["storage_gb", "storage", "disk", "disk_gb", "hdd", "disk_size_gb"]),
+                    # PRESERVE APP MAPPING
+                    "applicationMapped": app_mapped if app_mapped != "Unknown" else None,
+                    "applicationId": app_id,
+                    # Additional fields for enhanced functionality
+                    "workloadType": get_field_value(asset, ["workload_type", "workload type"]),
+                    "location": get_field_value(asset, ["location", "datacenter", "site"]),
+                    "vendor": get_field_value(asset, ["vendor", "manufacturer"]),
+                    "model": get_field_value(asset, ["model", "hardware_model"]),
+                    "serialNumber": get_field_value(asset, ["serial_number", "serial", "asset_tag"]),
+                    # Metadata for editing
+                    "lastUpdated": asset.get("last_updated", "2025-01-28T10:18:14"),
+                    "discoverySource": "CMDB Import"
                 }
                 formatted_assets.append(formatted_asset)
             
@@ -799,24 +1047,19 @@ async def get_processed_assets():
                     "criticality": "High",
                     "ipAddress": None,
                     "operatingSystem": None,
+                    "osVersion": None,
                     "cpuCores": None,
                     "memoryGb": None,
-                    "storageGb": None
-                },
-                {
-                    "id": "APP002",
-                    "type": "Application",
-                    "name": "Finance_ERP",
-                    "techStack": ".NET Core 6",
-                    "department": "Finance",
-                    "status": "Discovered",
-                    "environment": "Production",
-                    "criticality": "Critical",
-                    "ipAddress": None,
-                    "operatingSystem": None,
-                    "cpuCores": None,
-                    "memoryGb": None,
-                    "storageGb": None
+                    "storageGb": None,
+                    "applicationMapped": None,
+                    "applicationId": "APP001",
+                    "workloadType": "Application",
+                    "location": "Datacenter A",
+                    "vendor": None,
+                    "model": None,
+                    "serialNumber": None,
+                    "lastUpdated": "2025-01-28T10:18:14",
+                    "discoverySource": "Demo Data"
                 },
                 {
                     "id": "SRV001",
@@ -829,117 +1072,93 @@ async def get_processed_assets():
                     "criticality": "High",
                     "ipAddress": "192.168.1.10",
                     "operatingSystem": "Windows Server 2019",
+                    "osVersion": "2019",
                     "cpuCores": 8,
                     "memoryGb": 32,
-                    "storageGb": 500
-                },
-                {
-                    "id": "SRV002",
-                    "type": "Server",
-                    "name": "srv-erp-01",
-                    "techStack": "Red Hat Enterprise Linux 8",
-                    "department": "IT Operations",
-                    "status": "Discovered",
-                    "environment": "Production",
-                    "criticality": "Critical",
-                    "ipAddress": "192.168.1.11",
-                    "operatingSystem": "Red Hat Enterprise Linux 8",
-                    "cpuCores": 16,
-                    "memoryGb": 64,
-                    "storageGb": 1000
-                },
-                {
-                    "id": "DB001",
-                    "type": "Database",
-                    "name": "srv-hr-db-01",
-                    "techStack": "MySQL 8.0",
-                    "department": "Human Resources",
-                    "status": "Discovered",
-                    "environment": "Production",
-                    "criticality": "High",
-                    "ipAddress": "192.168.1.20",
-                    "operatingSystem": "Linux Ubuntu 20.04",
-                    "cpuCores": 8,
-                    "memoryGb": 32,
-                    "storageGb": 2000
-                },
-                {
-                    "id": "DB002",
-                    "type": "Database",
-                    "name": "finance-db-cluster",
-                    "techStack": "PostgreSQL 13",
-                    "department": "Finance",
-                    "status": "Discovered",
-                    "environment": "Production",
-                    "criticality": "Critical",
-                    "ipAddress": "192.168.1.21",
-                    "operatingSystem": "Linux Ubuntu 20.04",
-                    "cpuCores": 16,
-                    "memoryGb": 64,
-                    "storageGb": 5000
-                },
-                {
-                    "id": "APP003",
-                    "type": "Application",
-                    "name": "CRM_System",
-                    "techStack": "Python Django",
-                    "department": "Sales",
-                    "status": "Pending",
-                    "environment": "Production",
-                    "criticality": "Medium",
-                    "ipAddress": None,
-                    "operatingSystem": None,
-                    "cpuCores": None,
-                    "memoryGb": None,
-                    "storageGb": None
-                },
-                {
-                    "id": "SRV003",
-                    "type": "Server",
-                    "name": "web-server-01",
-                    "techStack": "Linux Ubuntu 22.04",
-                    "department": "IT Operations",
-                    "status": "Discovered",
-                    "environment": "Production",
-                    "criticality": "Medium",
-                    "ipAddress": "192.168.1.30",
-                    "operatingSystem": "Linux Ubuntu 22.04",
-                    "cpuCores": 4,
-                    "memoryGb": 16,
-                    "storageGb": 250
+                    "storageGb": 500,
+                    "applicationMapped": "HR_Payroll",
+                    "applicationId": "APP001",
+                    "workloadType": "App Server",
+                    "location": "Datacenter A",
+                    "vendor": "Dell",
+                    "model": "PowerEdge R640",
+                    "serialNumber": "SRV001-2023",
+                    "lastUpdated": "2025-01-28T10:18:14",
+                    "discoverySource": "Demo Data"
                 }
             ]
             
             data_source = "test"
+        
+        # Apply filters
+        filtered_assets = formatted_assets
+        
+        if asset_type:
+            filtered_assets = [a for a in filtered_assets if a["type"].lower() == asset_type.lower()]
+        
+        if environment:
+            filtered_assets = [a for a in filtered_assets if a["environment"].lower() == environment.lower()]
+            
+        if department:
+            filtered_assets = [a for a in filtered_assets if department.lower() in a["department"].lower()]
+            
+        if criticality:
+            filtered_assets = [a for a in filtered_assets if a["criticality"].lower() == criticality.lower()]
+            
+        if search:
+            search_lower = search.lower()
+            filtered_assets = [a for a in filtered_assets if 
+                             search_lower in a["name"].lower() or 
+                             search_lower in a["type"].lower() or
+                             search_lower in a["techStack"].lower() or
+                             search_lower in (a["applicationMapped"] or "").lower()]
+        
+        # Calculate pagination
+        total_filtered = len(filtered_assets)
+        start_idx = (page - 1) * page_size
+        end_idx = start_idx + page_size
+        paginated_assets = filtered_assets[start_idx:end_idx]
         
         # Calculate summary statistics with enhanced device types
         device_types = ["Network Device", "Storage Device", "Security Device", "Infrastructure Device", "Virtualization Platform"]
         
         summary = {
             "total": len(formatted_assets),
-            "applications": len([a for a in formatted_assets if a["type"] == "Application"]),
-            "servers": len([a for a in formatted_assets if a["type"] == "Server"]),
-            "databases": len([a for a in formatted_assets if a["type"] == "Database"]),
-            "devices": len([a for a in formatted_assets if a["type"] in device_types]),
-            "unknown": len([a for a in formatted_assets if a["type"] == "Unknown"]),
-            "discovered": len([a for a in formatted_assets if a["status"] == "Discovered"]),
-            "pending": len([a for a in formatted_assets if a["status"] == "Pending"]),
+            "filtered": total_filtered,
+            "applications": len([a for a in filtered_assets if a["type"] == "Application"]),
+            "servers": len([a for a in filtered_assets if a["type"] == "Server"]),
+            "databases": len([a for a in filtered_assets if a["type"] == "Database"]),
+            "devices": len([a for a in filtered_assets if a["type"] in device_types]),
+            "unknown": len([a for a in filtered_assets if a["type"] == "Unknown"]),
+            "discovered": len([a for a in filtered_assets if a["status"] == "Discovered"]),
+            "pending": len([a for a in filtered_assets if a["status"] == "Pending"]),
             # Breakdown by device type
             "device_breakdown": {
-                "network": len([a for a in formatted_assets if a["type"] == "Network Device"]),
-                "storage": len([a for a in formatted_assets if a["type"] == "Storage Device"]),
-                "security": len([a for a in formatted_assets if a["type"] == "Security Device"]),
-                "infrastructure": len([a for a in formatted_assets if a["type"] == "Infrastructure Device"]),
-                "virtualization": len([a for a in formatted_assets if a["type"] == "Virtualization Platform"])
+                "network": len([a for a in filtered_assets if a["type"] == "Network Device"]),
+                "storage": len([a for a in filtered_assets if a["type"] == "Storage Device"]),
+                "security": len([a for a in filtered_assets if a["type"] == "Security Device"]),
+                "infrastructure": len([a for a in filtered_assets if a["type"] == "Infrastructure Device"]),
+                "virtualization": len([a for a in filtered_assets if a["type"] == "Virtualization Platform"])
             }
         }
         
         # Generate suggested headers based on actual data
         suggested_headers = generate_suggested_headers(formatted_assets)
         
+        # Pagination metadata
+        total_pages = (total_filtered + page_size - 1) // page_size
+        
         return {
-            "assets": formatted_assets,
+            "assets": paginated_assets,
             "summary": summary,
+            "pagination": {
+                "current_page": page,
+                "page_size": page_size,
+                "total_items": total_filtered,
+                "total_pages": total_pages,
+                "has_next": page < total_pages,
+                "has_previous": page > 1
+            },
             "dataSource": data_source,
             "suggestedHeaders": suggested_headers,
             "lastUpdated": datetime.now().isoformat()
@@ -1318,4 +1537,454 @@ async def reprocess_stored_assets():
             "status": "error",
             "error": str(e),
             "message": "Asset reprocessing failed"
+        }
+
+@router.put("/assets/{asset_id}")
+async def update_asset(asset_id: str, asset_data: Dict[str, Any]):
+    """
+    Update an individual asset in the inventory.
+    """
+    try:
+        global processed_assets_store
+        
+        if not processed_assets_store:
+            raise HTTPException(status_code=404, detail="No assets found")
+        
+        # Find the asset to update
+        asset_found = False
+        for i, asset in enumerate(processed_assets_store):
+            asset_id_in_store = get_field_value(asset, ["ci_id", "asset_id", "id", "asset_name", "name", "hostname"])
+            if asset_id_in_store == asset_id or f"ASSET_{i + 1}" == asset_id:
+                # Update the asset with new data
+                for key, value in asset_data.items():
+                    # Map frontend field names to backend field names
+                    if key == "name":
+                        asset["asset_name"] = value
+                        asset["name"] = value
+                    elif key == "type":
+                        asset["asset_type"] = value
+                        asset["intelligent_asset_type"] = value
+                    elif key == "applicationMapped":
+                        asset["application_mapped"] = value
+                    elif key == "ipAddress":
+                        asset["ip_address"] = value
+                    elif key == "operatingSystem":
+                        asset["operating_system"] = value
+                    elif key == "osVersion":
+                        asset["os_version"] = value
+                    elif key == "cpuCores":
+                        asset["cpu_cores"] = value
+                    elif key == "memoryGb":
+                        asset["memory_gb"] = value
+                    elif key == "storageGb":
+                        asset["storage_gb"] = value
+                    else:
+                        # Direct mapping for other fields
+                        asset[key] = value
+                
+                # Update timestamp
+                asset["last_updated"] = datetime.now().isoformat()
+                
+                asset_found = True
+                logger.info(f"Updated asset {asset_id}: {asset_data}")
+                break
+        
+        if not asset_found:
+            raise HTTPException(status_code=404, detail=f"Asset {asset_id} not found")
+        
+        # Backup processed assets after successful update
+        backup_processed_assets()
+        
+        return {
+            "status": "success",
+            "message": f"Asset {asset_id} updated successfully",
+            "updated_fields": list(asset_data.keys())
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating asset {asset_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to update asset: {str(e)}")
+
+@router.get("/test-json-parsing")
+async def test_json_parsing_improvements():
+    """
+    Test endpoint to validate improved JSON parsing logic.
+    """
+    try:
+        test_results = processor.crewai_service.test_json_parsing_improvements()
+        return {
+            "status": "completed",
+            "message": "JSON parsing test completed",
+            "results": test_results
+        }
+        
+    except Exception as e:
+        logger.error(f"Error testing JSON parsing: {e}")
+        return {
+            "status": "error",
+            "error": str(e),
+            "message": "JSON parsing test failed"
+        }
+
+@router.get("/ai-parsing-analytics")
+async def get_ai_parsing_analytics():
+    """
+    Get analytics on AI response parsing success rates and common issues.
+    """
+    try:
+        # Get analytics from agent memory
+        from app.services.memory import agent_memory
+        
+        # Get recent analysis experiences
+        recent_analyses = agent_memory.get_recent_experiences(limit=50)
+        
+        # Count parsing successes vs failures
+        parsing_stats = {
+            "total_analyses": 0,
+            "successful_parses": 0,
+            "fallback_used": 0,
+            "parsing_failures": 0,
+            "common_issues": {},
+            "success_rate": 0.0,
+            "last_24h_success_rate": 0.0,
+            "model_performance": {
+                "avg_response_length": 0,
+                "avg_parsing_time": 0,
+                "most_common_asset_types": {}
+            }
+        }
+        
+        fallback_reasons = []
+        asset_types = []
+        
+        for exp in recent_analyses:
+            if exp.get("action") == "successful_analysis":
+                parsing_stats["total_analyses"] += 1
+                result = exp.get("result", {})
+                
+                if result.get("parsed") == True:
+                    parsing_stats["successful_parses"] += 1
+                elif result.get("fallback_used") == True:
+                    parsing_stats["fallback_used"] += 1
+                    if "parsing_error" in result:
+                        error = result["parsing_error"]
+                        fallback_reasons.append(error)
+                else:
+                    parsing_stats["parsing_failures"] += 1
+                
+                # Track asset types
+                asset_type = result.get("asset_type_detected", "unknown")
+                asset_types.append(asset_type)
+        
+        # Calculate success rate
+        if parsing_stats["total_analyses"] > 0:
+            parsing_stats["success_rate"] = (parsing_stats["successful_parses"] / parsing_stats["total_analyses"]) * 100
+        
+        # Count common issues
+        from collections import Counter
+        if fallback_reasons:
+            parsing_stats["common_issues"] = dict(Counter(fallback_reasons).most_common(5))
+        
+        if asset_types:
+            parsing_stats["model_performance"]["most_common_asset_types"] = dict(Counter(asset_types).most_common(5))
+        
+        # Add recommendations based on success rate
+        recommendations = []
+        if parsing_stats["success_rate"] < 80:
+            recommendations.append("Consider adjusting LLM temperature settings for more structured output")
+            recommendations.append("Review prompt engineering to emphasize JSON-only responses")
+        
+        if parsing_stats["fallback_used"] > parsing_stats["successful_parses"]:
+            recommendations.append("High fallback usage detected - consider model fine-tuning")
+        
+        if parsing_stats["success_rate"] > 95:
+            recommendations.append("Excellent parsing performance - system is operating optimally")
+        
+        return {
+            "status": "success",
+            "parsing_analytics": parsing_stats,
+            "recommendations": recommendations,
+            "robustness_indicators": {
+                "parsing_resilience": "High" if parsing_stats["success_rate"] > 90 else "Medium" if parsing_stats["success_rate"] > 70 else "Low",
+                "fallback_effectiveness": "Functioning" if parsing_stats["fallback_used"] > 0 else "Untested",
+                "system_reliability": "Production Ready" if parsing_stats["success_rate"] > 85 else "Needs Improvement"
+            },
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting AI parsing analytics: {e}")
+        return {
+            "status": "error",
+            "error": str(e),
+            "message": "Failed to retrieve AI parsing analytics"
+        }
+
+@router.post("/chat-test")
+async def chat_test(request: Dict[str, Any]):
+    """
+    Enhanced chat endpoint with app context and asset data awareness.
+    """
+    try:
+        from app.services.multi_model_service import multi_model_service
+        
+        message = request.get("message", "Hello!")
+        task_type = request.get("task_type", "chat")
+        system_prompt = request.get("system_prompt")
+        context = request.get("context", "")
+        
+        # Build enhanced context with current asset data
+        global processed_assets_store
+        
+        # Get current asset summary for context
+        asset_summary = {
+            "total_assets": len(processed_assets_store),
+            "applications": 0,
+            "servers": 0,
+            "databases": 0,
+            "mapped_assets": 0,
+            "environments": set(),
+            "departments": set()
+        }
+        
+        for asset in processed_assets_store:
+            asset_type = get_field_value(asset, ["asset_type", "ci_type", "type"]).lower()
+            if "application" in asset_type:
+                asset_summary["applications"] += 1
+            elif "server" in asset_type:
+                asset_summary["servers"] += 1
+            elif "database" in asset_type:
+                asset_summary["databases"] += 1
+            
+            # Check if asset has application mapping
+            app_mapped = get_field_value(asset, ["application_mapped", "app_mapped"])
+            if app_mapped != "Unknown" and app_mapped:
+                asset_summary["mapped_assets"] += 1
+            
+            # Collect environments and departments
+            env = get_field_value(asset, ["environment", "env"])
+            if env != "Unknown":
+                asset_summary["environments"].add(env)
+            
+            dept = get_field_value(asset, ["department", "dept", "business_unit"])
+            if dept != "Unknown":
+                asset_summary["departments"].add(dept)
+        
+        # Convert sets to lists for JSON serialization
+        asset_summary["environments"] = list(asset_summary["environments"])
+        asset_summary["departments"] = list(asset_summary["departments"])
+        
+        # Enhanced context with actual app data
+        enhanced_context = f"""
+CURRENT SYSTEM CONTEXT:
+- Asset Inventory: {asset_summary['total_assets']} total assets discovered
+- Applications: {asset_summary['applications']} identified
+- Servers: {asset_summary['servers']} discovered  
+- Databases: {asset_summary['databases']} found
+- Application Mapping: {asset_summary['mapped_assets']} assets mapped to applications
+- Environments: {', '.join(asset_summary['environments'][:5])}
+- Departments: {', '.join(asset_summary['departments'][:5])}
+
+USER QUESTION CONTEXT: {context}
+CURRENT DATA STATE: {'Live CMDB data loaded' if len(processed_assets_store) > 0 else 'Demo/sample data in use'}
+
+When answering questions, reference this actual data context. For asset inventory questions, provide specific insights based on the numbers above.
+"""
+        
+        # Enhanced system prompt with context awareness
+        if system_prompt:
+            full_system_prompt = f"{system_prompt}\n\n{enhanced_context}"
+        else:
+            full_system_prompt = f"""You are a specialized AI assistant for IT infrastructure migration and cloud transformation with full access to the current asset inventory data.
+
+CURRENT ASSET CONTEXT:
+{enhanced_context}
+
+EXPERTISE AREAS:
+- Asset inventory analysis (reference current data: {asset_summary['total_assets']} assets)
+- Application dependency mapping ({asset_summary['mapped_assets']} currently mapped)
+- 6R migration strategies for discovered assets
+- Cloud migration planning based on current inventory
+- Infrastructure modernization recommendations
+- Cost optimization using actual asset data
+
+RESPONSE GUIDELINES:
+- Always reference actual asset numbers when relevant
+- Provide specific recommendations based on current inventory state
+- For inventory questions, use the real data context above
+- Keep responses focused on migration and infrastructure
+- Be specific and actionable, not generic
+
+For off-topic questions, respond: "I'm specialized in IT migration and infrastructure. Based on your current inventory of {asset_summary['total_assets']} assets, how can I help you with migration planning or infrastructure analysis instead?"
+
+Be specific and data-driven in your responses."""
+        
+        result = await multi_model_service.generate_response(
+            prompt=message,
+            task_type=task_type,
+            system_message=full_system_prompt
+        )
+        
+        return {
+            "status": "success",
+            "chat_response": result.get("response", "Hello there! How can I help you today? 😊"),
+            "model_used": result.get("model_used", "gemma3_4b"),
+            "timestamp": result.get("timestamp", datetime.now().isoformat()),
+            "multi_model_service_available": True,
+            "tokens_used": result.get("tokens_used", 0),
+            "context_applied": True,
+            "asset_context": asset_summary,
+            "context_source": "live_data" if len(processed_assets_store) > 0 else "demo_data"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in chat test: {e}")
+        return {
+            "status": "error",
+            "error": str(e),
+            "message": "Chat test failed",
+            "multi_model_service_available": False,
+            "fallback_response": "I'm here to help with IT migration and infrastructure questions. Please try again!"
         } 
+
+@router.get("/app-server-mappings")
+async def get_app_server_mappings():
+    """
+    Get application to server dependency mappings.
+    """
+    try:
+        global processed_assets_store
+        
+        if not processed_assets_store:
+            # Return demo data if no processed data
+            return {
+                "applications": [
+                    {
+                        "id": "APP001",
+                        "name": "HR_Payroll",
+                        "description": "Human Resources Payroll System",
+                        "servers": [
+                            {
+                                "id": "SRV001",
+                                "name": "srv-hr-01",
+                                "type": "Server",
+                                "ipAddress": "192.168.1.10",
+                                "operatingSystem": "Windows Server 2019",
+                                "cpuCores": 8,
+                                "memoryGb": 32,
+                                "storageGb": 500,
+                                "environment": "Production",
+                                "role": "Application Server"
+                            }
+                        ]
+                    }
+                ],
+                "summary": {
+                    "total_applications": 1,
+                    "total_servers": 1,
+                    "unmapped_servers": 0
+                },
+                "dataSource": "demo"
+            }
+        
+        # Build app-to-server mappings from processed data
+        app_mappings = {}
+        unmapped_servers = []
+        
+        for asset in processed_assets_store:
+            asset_type = get_field_value(asset, ["asset_type", "intelligent_asset_type"])
+            asset_name = get_field_value(asset, ["asset_name", "name", "hostname"])
+            app_mapped = get_field_value(asset, ["application_mapped", "app_mapped"])
+            
+            if asset_type in ["Server", "Database"] and app_mapped != "Unknown":
+                # Extract app name/ID from mapping
+                app_name = app_mapped
+                app_id = f"APP_{hash(app_name) % 10000}"  # Generate consistent ID
+                
+                if app_name not in app_mappings:
+                    app_mappings[app_name] = {
+                        "id": app_id,
+                        "name": app_name,
+                        "description": f"Application: {app_name}",
+                        "servers": []
+                    }
+                
+                # Add server to application
+                server_info = {
+                    "id": get_field_value(asset, ["ci_id", "asset_id", "id"]) or asset_name,
+                    "name": asset_name,
+                    "type": asset_type,
+                    "ipAddress": get_field_value(asset, ["ip_address", "ip"]),
+                    "operatingSystem": get_field_value(asset, ["operating_system", "os"]),
+                    "cpuCores": asset.get("cpu_cores"),
+                    "memoryGb": asset.get("memory_gb"),
+                    "storageGb": asset.get("storage_gb"),
+                    "environment": get_field_value(asset, ["environment", "env"]),
+                    "workloadType": get_field_value(asset, ["workload_type", "workload type"]),
+                    "role": get_field_value(asset, ["workload_type", "workload type", "role"])
+                }
+                app_mappings[app_name]["servers"].append(server_info)
+                
+            elif asset_type in ["Server", "Database"] and app_mapped == "Unknown":
+                # Track unmapped servers
+                unmapped_servers.append({
+                    "id": get_field_value(asset, ["ci_id", "asset_id", "id"]) or asset_name,
+                    "name": asset_name,
+                    "type": asset_type,
+                    "ipAddress": get_field_value(asset, ["ip_address", "ip"]),
+                    "operatingSystem": get_field_value(asset, ["operating_system", "os"]),
+                    "environment": get_field_value(asset, ["environment", "env"]),
+                    "workloadType": get_field_value(asset, ["workload_type", "workload type"])
+                })
+        
+        applications = list(app_mappings.values())
+        
+        return {
+            "applications": applications,
+            "unmapped_servers": unmapped_servers,
+            "summary": {
+                "total_applications": len(applications),
+                "total_servers": sum(len(app["servers"]) for app in applications),
+                "unmapped_servers": len(unmapped_servers)
+            },
+            "dataSource": "live"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error retrieving app-server mappings: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve mappings: {str(e)}")
+
+@router.post("/app-server-mappings/{app_id}/add-server")
+async def add_server_to_app(app_id: str, server_data: Dict[str, Any]):
+    """
+    Add a server to an application mapping.
+    """
+    try:
+        global processed_assets_store
+        
+        server_id = server_data.get("server_id")
+        if not server_id:
+            raise HTTPException(status_code=400, detail="Server ID is required")
+        
+        # Find the server and update its application mapping
+        for asset in processed_assets_store:
+            asset_id = get_field_value(asset, ["ci_id", "asset_id", "id", "asset_name", "name"])
+            if asset_id == server_id:
+                asset["application_mapped"] = app_id
+                asset["last_updated"] = datetime.now().isoformat()
+                logger.info(f"Mapped server {server_id} to application {app_id}")
+                break
+        
+        # Backup after mapping change
+        backup_processed_assets()
+        
+        return {
+            "status": "success",
+            "message": f"Server {server_id} added to application {app_id}"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error adding server to app: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to add server: {str(e)}")

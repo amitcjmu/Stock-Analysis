@@ -47,6 +47,7 @@ import WaveBreakdown from "./pages/finops/WaveBreakdown";
 import CostTrends from "./pages/finops/CostTrends";
 import BudgetAlerts from "./pages/finops/BudgetAlerts";
 import Observability from "./pages/Observability";
+import FeedbackView from "./pages/FeedbackView";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -102,6 +103,7 @@ const App = () => (
           <Route path="/finops/cost-trends" element={<CostTrends />} />
           <Route path="/finops/budget-alerts" element={<BudgetAlerts />} />
           <Route path="/observability" element={<Observability />} />
+          <Route path="/feedback-view" element={<FeedbackView />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -1,0 +1,12 @@
+[
+  {
+    "id": "f7a20b6c-1101-4665-9053-7b67a98418a4",
+    "page": "Asset Inventory",
+    "rating": 5,
+    "comment": "Testing persistent feedback storage with Docker backend!",
+    "category": "feature",
+    "breadcrumb": "/discovery/inventory",
+    "timestamp": "2025-01-28T12:30:00Z",
+    "status": "new"
+  }
+]

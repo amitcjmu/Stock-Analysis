@@ -23,7 +23,8 @@ export const API_CONFIG = {
       CMDB_TEMPLATES: '/api/v1/discovery/cmdb-templates',
       CMDB_FEEDBACK: '/api/v1/discovery/cmdb-feedback',
       ASSETS: '/api/v1/discovery/assets',
-      APPLICATIONS: '/api/v1/discovery/applications'
+      APPLICATIONS: '/api/v1/discovery/applications',
+      APP_MAPPINGS: '/api/v1/discovery/app-server-mappings'
     },
     MONITORING: {
       STATUS: '/api/v1/monitoring/status',

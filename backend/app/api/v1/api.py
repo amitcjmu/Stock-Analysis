@@ -5,7 +5,7 @@ Includes all endpoint routers and API versioning.
 
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import migrations, assets, assessments, discovery, websocket, monitoring
+from app.api.v1.endpoints import migrations, assets, assessments, discovery, websocket, monitoring, chat
 
 # Import 6R analysis endpoints
 try:
@@ -51,6 +51,13 @@ api_router.include_router(
     websocket.router,
     prefix="/ws",
     tags=["websocket"]
+)
+
+# Include chat endpoints for user interactions
+api_router.include_router(
+    chat.router,
+    prefix="/chat",
+    tags=["chat"]
 )
 
 # Include 6R analysis endpoints if available

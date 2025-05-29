@@ -62,15 +62,18 @@ class CrewAIService:
                 self.llm = None
                 return
             
-            # Initialize LiteLLM for DeepInfra with optimized settings
+            # Initialize LiteLLM for DeepInfra with optimized settings for JSON output
             self.llm = LLM(
                 model="deepinfra/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
                 api_key=settings.DEEPINFRA_API_KEY,
-                temperature=0.1,  # Lower temperature for consistent responses
-                max_tokens=1000   # Increased token limit for complete responses
+                temperature=0.0,  # Zero temperature for deterministic, structured output
+                max_tokens=1500,  # Adequate tokens for complete JSON responses
+                top_p=0.1,        # Low top_p for more focused output
+                frequency_penalty=0.0,  # No penalty to avoid incomplete responses
+                presence_penalty=0.0    # No penalty to avoid incomplete responses
             )
             
-            logger.info(f"Initialized LiteLLM for DeepInfra: {self.llm.model}")
+            logger.info(f"Initialized LiteLLM for DeepInfra with JSON-optimized settings: {self.llm.model}")
             
         except Exception as e:
             logger.error(f"Failed to initialize LiteLLM: {e}")
@@ -84,12 +87,15 @@ class CrewAIService:
         
         logger.info("Reinitializing CrewAI service with fresh LiteLLM instance")
         
-        # Create a fresh LiteLLM instance
+        # Create a fresh LiteLLM instance with JSON-optimized settings
         fresh_llm = LLM(
             model="deepinfra/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
             api_key=settings.DEEPINFRA_API_KEY,
-            temperature=0.1,  # Lower temperature for consistent responses
-            max_tokens=1000   # Increased token limit for complete responses
+            temperature=0.0,  # Zero temperature for deterministic, structured output
+            max_tokens=1500,  # Adequate tokens for complete JSON responses
+            top_p=0.1,        # Low top_p for more focused output
+            frequency_penalty=0.0,  # No penalty to avoid incomplete responses
+            presence_penalty=0.0    # No penalty to avoid incomplete responses
         )
         
         # Update the LLM
@@ -361,8 +367,11 @@ class CrewAIService:
                 
                 CRITICAL OUTPUT FORMAT REQUIREMENTS:
                 You MUST return ONLY a valid JSON object. No additional text, explanations, or thoughts.
+                Do NOT include "Thought:", "Analysis:", or any reasoning text.
+                Do NOT include any text before or after the JSON object.
                 
                 EXACTLY this format (with actual values):
+                
                 {{
                     "asset_type_detected": "application",
                     "confidence_level": 0.9,
@@ -686,55 +695,87 @@ class CrewAIService:
             # Clean the response string
             response = response.strip()
             
-            # Remove common prefixes that agents might add
+            # Remove common prefixes that agents might add including "Thought:" patterns
             prefixes_to_remove = [
                 "Thought:", "Analysis:", "Response:", "Result:", "Output:",
                 "Here is the analysis:", "The analysis is:", "Based on the data:",
-                "I need to", "Let me", "First", "After analyzing"
+                "I need to", "Let me", "First", "After analyzing", "I will start by"
             ]
             
             for prefix in prefixes_to_remove:
                 if response.startswith(prefix):
                     response = response[len(prefix):].strip()
             
-            # Try multiple JSON extraction methods
+            # ENHANCED: Remove entire thinking/reasoning blocks that some models include
             import re
             
-            # Method 1: Find the first complete JSON object
-            json_pattern = r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}'
+            # Remove "Thought: ... \n\n{JSON}" patterns - common with reasoning models
+            thought_pattern = r'Thought:.*?(?=\{)'
+            response = re.sub(thought_pattern, '', response, flags=re.DOTALL)
+            response = response.strip()
+            
+            # Remove any text before the first JSON object
+            first_brace = response.find('{')
+            if first_brace > 0:
+                # Check if there's significant text before the JSON (likely reasoning)
+                prefix_text = response[:first_brace].strip()
+                if len(prefix_text) > 50:  # More than a simple label, likely reasoning
+                    response = response[first_brace:]
+            
+            # Try multiple JSON extraction methods with enhanced patterns
+            
+            # Method 1: Find the most complete JSON object using balanced braces
+            def extract_balanced_json(text):
+                """Extract the first balanced JSON object from text."""
+                brace_count = 0
+                start_idx = -1
+                
+                for i, char in enumerate(text):
+                    if char == '{':
+                        if start_idx == -1:
+                            start_idx = i
+                        brace_count += 1
+                    elif char == '}':
+                        brace_count -= 1
+                        if brace_count == 0 and start_idx != -1:
+                            return text[start_idx:i + 1]
+                return None
+            
+            balanced_json = extract_balanced_json(response)
+            if balanced_json:
+                try:
+                    parsed_json = json.loads(balanced_json)
+                    if isinstance(parsed_json, dict) and len(parsed_json) > 3:
+                        logger.info("Successfully parsed AI response using balanced brace extraction")
+                        return self._validate_and_enhance_response(parsed_json)
+                except json.JSONDecodeError:
+                    pass
+            
+            # Method 2: Enhanced regex pattern for complete JSON objects
+            json_pattern = r'\{(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*\}'
             json_matches = re.findall(json_pattern, response, re.DOTALL)
+            
+            # Try larger JSON objects first (more likely to be complete)
+            json_matches.sort(key=len, reverse=True)
             
             for json_match in json_matches:
                 try:
                     parsed_json = json.loads(json_match)
-                    if isinstance(parsed_json, dict) and len(parsed_json) > 3:  # Ensure it's a substantial object
-                        logger.info("Successfully parsed AI response using pattern matching")
+                    if isinstance(parsed_json, dict) and len(parsed_json) > 3:
+                        logger.info("Successfully parsed AI response using enhanced regex pattern")
                         return self._validate_and_enhance_response(parsed_json)
                 except json.JSONDecodeError:
                     continue
             
-            # Method 2: Find the outermost braces
-            first_brace = response.find('{')
-            last_brace = response.rfind('}')
-            
-            if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
-                json_str = response[first_brace:last_brace + 1]
-                try:
-                    parsed_json = json.loads(json_str)
-                    logger.info("Successfully parsed AI response using brace extraction")
-                    return self._validate_and_enhance_response(parsed_json)
-                except json.JSONDecodeError as e:
-                    logger.warning(f"Failed to parse extracted JSON: {e}")
-            
-            # Method 3: Try parsing the entire response
+            # Method 3: Try parsing the entire cleaned response
             try:
                 parsed_json = json.loads(response)
-                logger.info("Successfully parsed entire response as JSON")
+                logger.info("Successfully parsed entire cleaned response as JSON")
                 return self._validate_and_enhance_response(parsed_json)
             except json.JSONDecodeError:
                 pass
             
-            # Method 4: Try to clean and fix common JSON issues
+            # Method 4: Enhanced JSON cleaning and fixing
             cleaned_response = self._clean_malformed_json(response)
             if cleaned_response:
                 try:
@@ -744,14 +785,76 @@ class CrewAIService:
                 except json.JSONDecodeError:
                     pass
             
+            # Method 5: Last resort - try to extract key-value pairs manually
+            extracted_json = self._extract_json_from_text(response)
+            if extracted_json:
+                logger.info("Successfully extracted JSON from unstructured text")
+                return self._validate_and_enhance_response(extracted_json)
+            
             logger.warning(f"All JSON parsing methods failed. Response length: {len(original_response)}")
-            logger.warning(f"Response preview: {original_response[:200]}...")
+            logger.warning(f"Cleaned response preview: {response[:300]}...")
             
         except Exception as e:
             logger.error(f"Error parsing AI response: {e}")
         
         # Return intelligent fallback based on context
         return self._create_intelligent_fallback(original_response)
+
+    def _extract_json_from_text(self, text: str) -> Optional[Dict[str, Any]]:
+        """Last resort: extract JSON-like data from unstructured text."""
+        try:
+            import re
+            
+            extracted = {}
+            
+            # Extract common fields using regex patterns
+            patterns = {
+                'asset_type_detected': r'asset_type[_\s]*detected["\s]*:[\s]*["\']?([^",\n]+)["\']?',
+                'confidence_level': r'confidence[_\s]*level["\s]*:[\s]*([0-9.]+)',
+                'data_quality_score': r'data[_\s]*quality[_\s]*score["\s]*:[\s]*([0-9]+)',
+                'migration_readiness': r'migration[_\s]*readiness["\s]*:[\s]*["\']?([^",\n]+)["\']?'
+            }
+            
+            for field, pattern in patterns.items():
+                match = re.search(pattern, text, re.IGNORECASE)
+                if match:
+                    value = match.group(1).strip()
+                    if field in ['confidence_level', 'data_quality_score']:
+                        try:
+                            extracted[field] = float(value)
+                        except ValueError:
+                            continue
+                    else:
+                        extracted[field] = value
+            
+            # Extract lists (issues, recommendations)
+            list_patterns = {
+                'issues': r'issues["\s]*:[\s]*\[(.*?)\]',
+                'recommendations': r'recommendations["\s]*:[\s]*\[(.*?)\]',
+                'missing_fields_relevant': r'missing[_\s]*fields[_\s]*relevant["\s]*:[\s]*\[(.*?)\]'
+            }
+            
+            for field, pattern in list_patterns.items():
+                match = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
+                if match:
+                    list_content = match.group(1)
+                    # Simple list extraction
+                    items = re.findall(r'["\']([^"\']+)["\']', list_content)
+                    if items:
+                        extracted[field] = items
+                    else:
+                        extracted[field] = []
+                else:
+                    extracted[field] = []
+            
+            # Only return if we extracted substantial data
+            if len(extracted) >= 3:
+                return extracted
+            
+        except Exception as e:
+            logger.warning(f"Text extraction failed: {e}")
+        
+        return None
     
     def _clean_malformed_json(self, response: str) -> str:
         """Attempt to clean and fix common JSON formatting issues."""
@@ -921,6 +1024,49 @@ class CrewAIService:
         logger.info(f"Created fallback response with {quality_score}% quality score and {asset_type} asset type")
         logger.info(f"Intelligent missing fields: {missing_fields_relevant}")
         return fallback_response
+
+    def test_json_parsing_improvements(self) -> Dict[str, Any]:
+        """Test method to validate improved JSON parsing logic."""
+        test_cases = [
+            # Case 1: Response with "Thought:" prefix
+            'Thought: I will analyze the data carefully and provide a structured response.\n\n{"asset_type_detected": "server", "confidence_level": 0.9, "data_quality_score": 85, "issues": ["Missing data"], "recommendations": ["Clean data"], "missing_fields_relevant": ["Environment"], "migration_readiness": "ready"}',
+            
+            # Case 2: Response with reasoning before JSON
+            'I need to analyze this CMDB data to determine the asset type and quality. After examining the data patterns, I can see that this contains server information.\n\n{"asset_type_detected": "application", "confidence_level": 0.8, "data_quality_score": 75, "issues": [], "recommendations": ["Review mappings"], "missing_fields_relevant": [], "migration_readiness": "needs_work"}',
+            
+            # Case 3: Malformed JSON
+            '{"asset_type_detected": "database", "confidence_level": 0.7, "data_quality_score": 90, "issues": ["Some issue",], "recommendations": ["Fix this"], "missing_fields_relevant": ["Owner"], "migration_readiness": "ready"}',
+            
+            # Case 4: Clean JSON
+            '{"asset_type_detected": "mixed", "confidence_level": 0.95, "data_quality_score": 88, "issues": [], "recommendations": [], "missing_fields_relevant": [], "migration_readiness": "ready"}'
+        ]
+        
+        results = []
+        for i, test_response in enumerate(test_cases, 1):
+            try:
+                parsed = self._parse_ai_response(test_response)
+                results.append({
+                    f"test_case_{i}": {
+                        "success": parsed.get("parsed", False),
+                        "asset_type": parsed.get("asset_type_detected", "unknown"),
+                        "fallback_used": parsed.get("fallback_used", False)
+                    }
+                })
+            except Exception as e:
+                results.append({
+                    f"test_case_{i}": {
+                        "success": False,
+                        "error": str(e),
+                        "fallback_used": True
+                    }
+                })
+        
+        return {
+            "test_results": results,
+            "total_tests": len(test_cases),
+            "successful_parses": len([r for r in results if list(r.values())[0].get("success", False)]),
+            "test_timestamp": datetime.utcnow().isoformat()
+        }
 
 
 
