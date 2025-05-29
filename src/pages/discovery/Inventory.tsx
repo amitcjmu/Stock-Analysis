@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/Sidebar';
 import { 
   Download, Filter, Database, Server, HardDrive, RefreshCw, Router, Shield, Cpu, Cloud, Zap,
-  Edit3, Save, X, ChevronLeft, ChevronRight, Search, Plus, Trash2, Eye, ArrowUpDown, MessageCircle
+  ChevronLeft, ChevronRight, Search, Plus, Trash2, Eye, ArrowUpDown, MessageCircle
 } from 'lucide-react';
 import { apiCall, API_CONFIG } from '../../config/api';
 import ChatInterface from '../../components/ui/ChatInterface';
@@ -53,10 +53,16 @@ const Inventory = () => {
   const [dataSource, setDataSource] = useState('test');
   const [suggestedHeaders, setSuggestedHeaders] = useState([]);
   
-  // Editing state
-  const [editingAsset, setEditingAsset] = useState(null);
-  const [editFormData, setEditFormData] = useState<any>({});
-  const [isSaving, setIsSaving] = useState(false);
+  // Bulk operations state
+  const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
+  const [showBulkEditDialog, setShowBulkEditDialog] = useState(false);
+  const [bulkEditData, setBulkEditData] = useState({
+    environment: '',
+    department: '',
+    criticality: '',
+    asset_type: ''
+  });
+  const [isBulkOperating, setIsBulkOperating] = useState(false);
   
   // App-to-server mapping state
   const [showAppMapping, setShowAppMapping] = useState(false);
@@ -168,7 +174,7 @@ const Inventory = () => {
       setMappingLoading(true);
       console.log('Fetching app mappings from:', API_CONFIG.ENDPOINTS.DISCOVERY.APP_MAPPINGS);
       
-      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.APP_MAPPINGS || '/api/v1/discovery/app-server-mappings');
+      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.APP_MAPPINGS);
       
       console.log('App mappings response:', response);
       console.log('Applications found:', response.applications?.length || 0);
@@ -294,57 +300,6 @@ const Inventory = () => {
     }
   };
 
-  // Handle asset editing
-  const startEditing = (asset) => {
-    setEditingAsset(asset.id);
-    setEditFormData({ ...asset });
-  };
-
-  const cancelEditing = () => {
-    setEditingAsset(null);
-    setEditFormData({});
-  };
-
-  const saveAsset = async () => {
-    try {
-      setIsSaving(true);
-      
-      await apiCall(`/api/v1/discovery/assets/${editingAsset}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(editFormData)
-      });
-      
-      // Refresh the assets list
-      const filters = {
-        asset_type: selectedFilter,
-        environment: selectedEnv,
-        department: selectedDept,
-        criticality: selectedCriticality,
-        search: searchTerm
-      };
-      await fetchAssets(currentPage, filters);
-      
-      setEditingAsset(null);
-      setEditFormData({});
-      
-    } catch (error) {
-      console.error('Failed to save asset:', error);
-      alert('Failed to save changes: ' + error.message);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const updateEditFormData = (field, value) => {
-    setEditFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
   // Get unique values for filter dropdowns
   const getUniqueValues = (field) => {
     return [...new Set(assets.map(asset => asset[field]).filter(value => value && value !== 'Unknown'))];
@@ -423,6 +378,159 @@ const Inventory = () => {
     window.URL.revokeObjectURL(url);
   };
 
+  // Bulk operations
+  const toggleAssetSelection = (assetId: string) => {
+    setSelectedAssets(prev => 
+      prev.includes(assetId) 
+        ? prev.filter(id => id !== assetId)
+        : [...prev, assetId]
+    );
+  };
+
+  const selectAllAssets = () => {
+    setSelectedAssets(assets.map(asset => asset.id));
+  };
+
+  const clearSelection = () => {
+    setSelectedAssets([]);
+  };
+
+  const bulkUpdateAssets = async () => {
+    if (selectedAssets.length === 0) return;
+    
+    try {
+      setIsBulkOperating(true);
+      
+      // Filter out empty values from bulkEditData
+      const updates = Object.fromEntries(
+        Object.entries(bulkEditData).filter(([_, value]) => value !== '')
+      );
+      
+      if (Object.keys(updates).length === 0) {
+        alert('Please select at least one field to update');
+        return;
+      }
+      
+      await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS_BULK, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          asset_ids: selectedAssets,
+          updates: updates
+        })
+      });
+      
+      // Refresh the assets list
+      const filters = {
+        asset_type: selectedFilter,
+        environment: selectedEnv,
+        department: selectedDept,
+        criticality: selectedCriticality,
+        search: searchTerm
+      };
+      await fetchAssets(currentPage, filters);
+      
+      // Clear selection and close dialog
+      clearSelection();
+      setShowBulkEditDialog(false);
+      setBulkEditData({
+        environment: '',
+        department: '',
+        criticality: '',
+        asset_type: ''
+      });
+      
+      alert(`Successfully updated ${selectedAssets.length} assets`);
+      
+    } catch (error) {
+      console.error('Failed to bulk update:', error);
+      alert('Failed to update assets: ' + error.message);
+    } finally {
+      setIsBulkOperating(false);
+    }
+  };
+
+  const bulkDeleteAssets = async () => {
+    if (selectedAssets.length === 0) return;
+    
+    const confirmed = window.confirm(
+      `Are you sure you want to delete ${selectedAssets.length} selected assets? This action cannot be undone.`
+    );
+    
+    if (!confirmed) return;
+    
+    try {
+      setIsBulkOperating(true);
+      
+      await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS_BULK, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          asset_ids: selectedAssets
+        })
+      });
+      
+      // Refresh the assets list
+      const filters = {
+        asset_type: selectedFilter,
+        environment: selectedEnv,
+        department: selectedDept,
+        criticality: selectedCriticality,
+        search: searchTerm
+      };
+      await fetchAssets(currentPage, filters);
+      
+      // Clear selection
+      clearSelection();
+      
+      alert(`Successfully deleted ${selectedAssets.length} assets`);
+      
+    } catch (error) {
+      console.error('Failed to bulk delete:', error);
+      alert('Failed to delete assets: ' + error.message);
+    } finally {
+      setIsBulkOperating(false);
+    }
+  };
+
+  const cleanupDuplicates = async () => {
+    const confirmed = window.confirm(
+      'This will remove duplicate assets from your inventory. Do you want to continue?'
+    );
+    
+    if (!confirmed) return;
+    
+    try {
+      setIsBulkOperating(true);
+      
+      const result = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS_CLEANUP, {
+        method: 'POST'
+      });
+      
+      // Refresh the assets list
+      const filters = {
+        asset_type: selectedFilter,
+        environment: selectedEnv,
+        department: selectedDept,
+        criticality: selectedCriticality,
+        search: searchTerm
+      };
+      await fetchAssets(currentPage, filters);
+      
+      alert(`Successfully removed ${result.removed_count} duplicate assets`);
+      
+    } catch (error) {
+      console.error('Failed to cleanup duplicates:', error);
+      alert('Failed to cleanup duplicates: ' + error.message);
+    } finally {
+      setIsBulkOperating(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <Sidebar />
@@ -439,6 +547,41 @@ const Inventory = () => {
                   </p>
                 </div>
                 <div className="flex items-center space-x-3">
+                  {selectedAssets.length > 0 && (
+                    <>
+                      <button
+                        onClick={() => setShowBulkEditDialog(true)}
+                        disabled={isBulkOperating}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 disabled:opacity-50"
+                      >
+                        <Database className="h-5 w-5" />
+                        <span>Edit {selectedAssets.length}</span>
+                      </button>
+                      <button
+                        onClick={bulkDeleteAssets}
+                        disabled={isBulkOperating}
+                        className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2 disabled:opacity-50"
+                      >
+                        <Trash2 className="h-5 w-5" />
+                        <span>Delete {selectedAssets.length}</span>
+                      </button>
+                      <button
+                        onClick={clearSelection}
+                        className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center space-x-2"
+                      >
+                        <Eye className="h-5 w-5" />
+                        <span>Clear</span>
+                      </button>
+                    </>
+                  )}
+                  <button
+                    onClick={cleanupDuplicates}
+                    disabled={isBulkOperating}
+                    className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-2 disabled:opacity-50"
+                  >
+                    <ArrowUpDown className="h-5 w-5" />
+                    <span>De-dupe</span>
+                  </button>
                   <button 
                     onClick={() => setShowAppMapping(!showAppMapping)}
                     className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${
@@ -622,13 +765,23 @@ const Inventory = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            checked={selectedAssets.length === assets.length && assets.length > 0}
+                            onChange={() => selectedAssets.length === assets.length ? clearSelection() : selectAllAssets()}
+                            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                          <span>Select</span>
+                        </div>
+                      </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Asset</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tech Stack</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Environment</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Specs</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">App Mapped</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -665,25 +818,25 @@ const Inventory = () => {
                     ) : (
                       assets.map((asset) => {
                         const Icon = getTypeIcon(asset.type);
-                        const isEditing = editingAsset === asset.id;
                         
                         return (
-                          <tr key={asset.id} className={`hover:bg-gray-50 ${isEditing ? 'bg-blue-50' : ''}`}>
+                          <tr key={asset.id} className={`hover:bg-gray-50 ${selectedAssets.includes(asset.id) ? 'bg-blue-50' : ''}`}>
+                            {/* Selection Checkbox */}
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <input
+                                type="checkbox"
+                                checked={selectedAssets.includes(asset.id)}
+                                onChange={() => toggleAssetSelection(asset.id)}
+                                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                              />
+                            </td>
+                            
                             {/* Asset Info */}
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="flex items-center">
                                 <Icon className={`h-5 w-5 ${getTypeColor(asset.type)} mr-3`} />
                                 <div>
-                                  {isEditing ? (
-                                    <input
-                                      type="text"
-                                      value={editFormData.name || ''}
-                                      onChange={(e) => updateEditFormData('name', e.target.value)}
-                                      className="text-sm font-medium text-gray-900 border border-gray-300 rounded px-2 py-1"
-                                    />
-                                  ) : (
-                                    <div className="text-sm font-medium text-gray-900">{asset.name}</div>
-                                  )}
+                                  <div className="text-sm font-medium text-gray-900">{asset.name}</div>
                                   <div className="text-sm text-gray-500">{asset.type}</div>
                                 </div>
                               </div>
@@ -691,55 +844,24 @@ const Inventory = () => {
 
                             {/* Tech Stack */}
                             <td className="px-6 py-4">
-                              {isEditing ? (
-                                <input
-                                  type="text"
-                                  value={editFormData.techStack || ''}
-                                  onChange={(e) => updateEditFormData('techStack', e.target.value)}
-                                  className="text-sm text-gray-900 border border-gray-300 rounded px-2 py-1 w-full"
-                                />
-                              ) : (
-                                <div className="text-sm text-gray-900">{asset.techStack}</div>
-                              )}
+                              <div className="text-sm text-gray-900">{asset.techStack}</div>
                             </td>
 
                             {/* Department */}
                             <td className="px-6 py-4 whitespace-nowrap">
-                              {isEditing ? (
-                                <input
-                                  type="text"
-                                  value={editFormData.department || ''}
-                                  onChange={(e) => updateEditFormData('department', e.target.value)}
-                                  className="text-sm text-gray-900 border border-gray-300 rounded px-2 py-1"
-                                />
-                              ) : (
-                                <div className="text-sm text-gray-900">{asset.department}</div>
-                              )}
+                              <div className="text-sm text-gray-900">{asset.department}</div>
                             </td>
 
                             {/* Environment */}
                             <td className="px-6 py-4 whitespace-nowrap">
-                              {isEditing ? (
-                                <select
-                                  value={editFormData.environment || ''}
-                                  onChange={(e) => updateEditFormData('environment', e.target.value)}
-                                  className="text-sm text-gray-900 border border-gray-300 rounded px-2 py-1"
-                                >
-                                  <option value="Production">Production</option>
-                                  <option value="Test">Test</option>
-                                  <option value="Dev">Development</option>
-                                  <option value="Staging">Staging</option>
-                                </select>
-                              ) : (
-                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                  asset.environment === 'Production' ? 'bg-red-100 text-red-800' :
-                                  asset.environment === 'Test' ? 'bg-yellow-100 text-yellow-800' :
-                                  asset.environment === 'Dev' ? 'bg-green-100 text-green-800' :
-                                  'bg-gray-100 text-gray-800'
-                                }`}>
-                                  {asset.environment}
-                                </span>
-                              )}
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                asset.environment === 'Production' ? 'bg-red-100 text-red-800' :
+                                asset.environment === 'Test' ? 'bg-yellow-100 text-yellow-800' :
+                                asset.environment === 'Dev' ? 'bg-green-100 text-green-800' :
+                                'bg-gray-100 text-gray-800'
+                              }`}>
+                                {asset.environment}
+                              </span>
                             </td>
 
                             {/* Specs */}
@@ -757,48 +879,12 @@ const Inventory = () => {
 
                             {/* Application Mapped */}
                             <td className="px-6 py-4 whitespace-nowrap">
-                              {isEditing ? (
-                                <input
-                                  type="text"
-                                  value={editFormData.applicationMapped || ''}
-                                  onChange={(e) => updateEditFormData('applicationMapped', e.target.value)}
-                                  placeholder="App name or ID"
-                                  className="text-sm text-gray-900 border border-gray-300 rounded px-2 py-1"
-                                />
-                              ) : asset.applicationMapped ? (
+                              {asset.applicationMapped ? (
                                 <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
                                   {asset.applicationMapped}
                                 </span>
                               ) : (
                                 <span className="text-gray-400">-</span>
-                              )}
-                            </td>
-
-                            {/* Actions */}
-                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                              {isEditing ? (
-                                <div className="flex items-center space-x-2">
-                                  <button
-                                    onClick={saveAsset}
-                                    disabled={isSaving}
-                                    className="text-green-600 hover:text-green-900 disabled:opacity-50"
-                                  >
-                                    <Save className="h-4 w-4" />
-                                  </button>
-                                  <button
-                                    onClick={cancelEditing}
-                                    className="text-gray-600 hover:text-gray-900"
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </button>
-                                </div>
-                              ) : (
-                                <button
-                                  onClick={() => startEditing(asset)}
-                                  className="text-indigo-600 hover:text-indigo-900"
-                                >
-                                  <Edit3 className="h-4 w-4" />
-                                </button>
                               )}
                             </td>
                           </tr>
@@ -1048,6 +1134,109 @@ const Inventory = () => {
         onClose={() => setIsChatOpen(false)}
         currentPage="Asset Inventory"
       />
+
+      {/* Bulk Edit Dialog */}
+      {showBulkEditDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Bulk Edit {selectedAssets.length} Assets
+            </h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Asset Type
+                </label>
+                <select
+                  value={bulkEditData.asset_type}
+                  onChange={(e) => setBulkEditData(prev => ({ ...prev, asset_type: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Keep current values</option>
+                  <option value="Application">Application</option>
+                  <option value="Server">Server</option>
+                  <option value="Database">Database</option>
+                  <option value="Network Device">Network Device</option>
+                  <option value="Storage Device">Storage Device</option>
+                  <option value="Security Device">Security Device</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Environment
+                </label>
+                <select
+                  value={bulkEditData.environment}
+                  onChange={(e) => setBulkEditData(prev => ({ ...prev, environment: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Keep current values</option>
+                  <option value="Production">Production</option>
+                  <option value="Test">Test</option>
+                  <option value="Development">Development</option>
+                  <option value="Staging">Staging</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Department
+                </label>
+                <input
+                  type="text"
+                  value={bulkEditData.department}
+                  onChange={(e) => setBulkEditData(prev => ({ ...prev, department: e.target.value }))}
+                  placeholder="Leave empty to keep current values"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Criticality
+                </label>
+                <select
+                  value={bulkEditData.criticality}
+                  onChange={(e) => setBulkEditData(prev => ({ ...prev, criticality: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Keep current values</option>
+                  <option value="Critical">Critical</option>
+                  <option value="High">High</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Low">Low</option>
+                </select>
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowBulkEditDialog(false);
+                  setBulkEditData({
+                    environment: '',
+                    department: '',
+                    criticality: '',
+                    asset_type: ''
+                  });
+                }}
+                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={bulkUpdateAssets}
+                disabled={isBulkOperating}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                {isBulkOperating ? 'Updating...' : `Update ${selectedAssets.length} Assets`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

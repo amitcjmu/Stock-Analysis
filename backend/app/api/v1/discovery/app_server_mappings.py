@@ -22,53 +22,73 @@ async def get_app_server_mappings():
     try:
         all_assets = get_processed_assets()
         
-        # Demo data structure for development
-        demo_mappings = [
-            {
-                "id": "mapping-1",
-                "application": {
-                    "id": "app-1",
-                    "name": "Customer Portal",
-                    "department": "Finance",
-                    "environment": "Production",
-                    "criticality": "High"
-                },
-                "servers": [
-                    {
-                        "id": "server-1", 
-                        "hostname": "web-server-01",
-                        "role": "Web Server",
-                        "environment": "Production",
-                        "dependencies": ["database-server-01"]
-                    }
-                ],
-                "dependencies": [
-                    {
-                        "type": "database",
-                        "target": "PostgreSQL Database",
-                        "connection_type": "TCP/5432"
-                    }
-                ],
-                "created_date": "2024-01-15T10:30:00Z",
-                "last_updated": "2024-01-20T14:15:00Z"
-            }
-        ]
-        
-        # If we have real assets, try to build mappings from them
-        if all_assets:
-            real_mappings = _build_app_server_mappings(all_assets)
-            if real_mappings:
-                return {
-                    "mappings": real_mappings,
-                    "total_count": len(real_mappings),
-                    "summary": _get_mapping_summary(real_mappings)
+        # Extract actual applications from the current asset inventory
+        applications = []
+        for asset in all_assets:
+            asset_type = asset.get('intelligent_asset_type') or asset.get('asset_type', '')
+            if asset_type and asset_type.lower() == 'application':
+                app_data = {
+                    "id": asset.get('ci_id') or asset.get('id') or str(asset.get('hostname', 'unknown')),
+                    "name": asset.get('asset_name') or asset.get('hostname', 'Unknown'),
+                    "department": asset.get('business_owner', 'Unknown'),
+                    "environment": asset.get('environment', 'Unknown'),
+                    "criticality": asset.get('status', 'Unknown'),
+                    "hostname": asset.get('hostname', ''),
+                    "ip_address": asset.get('ip_address', ''),
+                    "operating_system": asset.get('operating_system', ''),
+                    "version": asset.get('version/hostname', ''),
+                    "location": asset.get('location', ''),
+                    "_original": asset
                 }
+                applications.append(app_data)
         
-        # Return demo data if no real mappings available
+        # Build mappings from real assets if we have them
+        if applications:
+            real_mappings = _build_app_server_mappings_from_apps(applications, all_assets)
+            summary = _get_mapping_summary(real_mappings)
+            summary["total_applications"] = len(applications)
+            
+            return {
+                "mappings": real_mappings,
+                "applications": applications,  # Frontend expects this
+                "total_count": len(real_mappings),
+                "summary": summary
+            }
+        
+        # Fallback: Create demo data if no applications found
+        demo_application = {
+            "id": "demo-app-1",
+            "name": "Demo Application",
+            "department": "IT",
+            "environment": "Development",
+            "criticality": "Medium",
+            "hostname": "demo-app",
+            "ip_address": "192.168.1.100",
+            "operating_system": "Ubuntu 20.04",
+            "version": "1.0.0",
+            "location": "Data Center 1"
+        }
+        
+        demo_mappings = [{
+            "id": "mapping-demo",
+            "application": demo_application,
+            "servers": [],
+            "dependencies": [],
+            "created_date": "2024-01-15T10:30:00Z",
+            "last_updated": "2024-01-20T14:15:00Z"
+        }]
+        
         return {
             "mappings": demo_mappings,
+            "applications": [demo_application],  # Frontend expects this
             "total_count": len(demo_mappings),
-            "summary": _get_mapping_summary(demo_mappings)
+            "summary": {
+                "total_applications": 1,
+                "total_servers": 0,
+                "avg_servers_per_app": 0.0,
+                "by_environment": {"Development": 1},
+                "by_department": {"IT": 1}
+            }
         }
         
     except Exception as e:
@@ -152,7 +172,7 @@ def _build_app_server_mappings(assets: List[Dict[str, Any]]) -> List[Dict[str, A
                     }
                     for server in group['servers']
                 ],
-                "dependencies": _extract_dependencies(group),
+                "dependencies": _extract_dependencies(group['application']),
                 "created_date": group['application'].get('processed_timestamp'),
                 "last_updated": group['application'].get('updated_timestamp', group['application'].get('processed_timestamp'))
             }
@@ -160,27 +180,23 @@ def _build_app_server_mappings(assets: List[Dict[str, Any]]) -> List[Dict[str, A
     
     return mappings
 
-def _extract_dependencies(app_group: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """Extract dependencies from application group."""
+def _extract_dependencies(app_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Extract dependencies from application data."""
     dependencies = []
     
-    # Look for dependencies in application and servers
-    all_assets = [app_group['application']] + app_group['servers']
+    # Look for dependencies in the original asset data
+    original = app_data.get('_original', {})
+    deps = original.get('dependencies', '')
     
-    for asset in all_assets:
-        if not asset:
-            continue
-            
-        deps = asset.get('dependencies', '')
-        if deps:
-            for dep in deps.split(','):
-                dep = dep.strip()
-                if dep:
-                    dependencies.append({
-                        "type": "service",
-                        "target": dep,
-                        "connection_type": "Unknown"
-                    })
+    if deps:
+        for dep in deps.split(','):
+            dep = dep.strip()
+            if dep and dep.lower() != 'unknown':
+                dependencies.append({
+                    "type": "service",
+                    "target": dep,
+                    "connection_type": "Unknown"
+                })
     
     return dependencies
 
@@ -206,4 +222,42 @@ def _get_mapping_summary(mappings: List[Dict[str, Any]]) -> Dict[str, Any]:
         "avg_servers_per_app": round(total_servers / total_applications, 2) if total_applications > 0 else 0,
         "by_environment": env_count,
         "by_department": dept_count
-    } 
+    }
+
+def _build_app_server_mappings_from_apps(applications: List[Dict[str, Any]], all_assets: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Build application-server mappings from a list of applications and all assets."""
+    mappings = []
+    
+    for app in applications:
+        app_name = app['name']
+        app_id = app['id']
+        
+        # Find all servers that depend on this application
+        dependent_servers = []
+        for asset in all_assets:
+            if asset.get('dependencies'):
+                for dep in asset['dependencies'].split(','):
+                    if dep.strip() == app_name:
+                        dependent_servers.append(asset)
+        
+        if dependent_servers:
+            mapping = {
+                "id": f"mapping-{app_id}",
+                "application": app,
+                "servers": [
+                    {
+                        "id": server.get('id'),
+                        "hostname": server.get('hostname'),
+                        "role": server.get('asset_type', 'Server'),
+                        "environment": server.get('environment'),
+                        "dependencies": server.get('dependencies', '').split(',') if server.get('dependencies') else []
+                    }
+                    for server in dependent_servers
+                ],
+                "dependencies": _extract_dependencies(app),
+                "created_date": app.get('processed_timestamp'),
+                "last_updated": app.get('updated_timestamp', app.get('processed_timestamp'))
+            }
+            mappings.append(mapping)
+    
+    return mappings 

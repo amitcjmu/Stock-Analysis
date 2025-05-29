@@ -8,5 +8,222 @@
     "breadcrumb": "/discovery/inventory",
     "timestamp": "2025-01-28T12:30:00Z",
     "status": "new"
+  },
+  {
+    "id": "3864464a-7297-43c2-883e-51472851b3f0",
+    "timestamp": "2025-05-29T02:47:45.106861",
+    "filename": "AWS_MigrationEvaluator_Assessment_OilGas_Datacenter.csv",
+    "original_analysis": {
+      "status": "success",
+      "dataQuality": {
+        "score": 90,
+        "issues": [
+          "Missing Business Owner information",
+          "Inconsistent License Model data"
+        ],
+        "recommendations": [
+          "Add business owner details",
+          "Standardize license model information"
+        ]
+      },
+      "coverage": {
+        "applications": 0,
+        "servers": 5,
+        "databases": 0,
+        "dependencies": 0
+      },
+      "missingFields": [
+        "department",
+        "environment",
+        "Business Owner",
+        "Environment",
+        "Location",
+        "hostname",
+        "asset_type"
+      ],
+      "requiredProcessing": [],
+      "readyForImport": false,
+      "preview": [
+        {
+          "Server Name": "OG-ME-SRV01",
+          "Operating System": "Windows Server 2019",
+          "CPU Cores": 8,
+          "Memory (GB)": 32,
+          "Disk Size (GB)": 1000,
+          "Network Interfaces": 1,
+          "IP Address": "192.168.1.30",
+          "CPU Utilization (%)": 70,
+          "Memory Utilization (%)": 65,
+          "AWS Readiness": "Ready",
+          "Recommended AWS Instance Type": "t3.xlarge",
+          "Estimated Monthly AWS Cost (USD)": 420,
+          "Workload Type": "Seismic Data Processing",
+          "Application Group": "Geoscience",
+          "License Model": "Bring Your Own License (BYOL)"
+        },
+        {
+          "Server Name": "OG-ME-SRV02",
+          "Operating System": "Linux Red Hat 8",
+          "CPU Cores": 16,
+          "Memory (GB)": 64,
+          "Disk Size (GB)": 2000,
+          "Network Interfaces": 2,
+          "IP Address": "192.168.1.31",
+          "CPU Utilization (%)": 80,
+          "Memory Utilization (%)": 75,
+          "AWS Readiness": "Ready",
+          "Recommended AWS Instance Type": "m5.4xlarge",
+          "Estimated Monthly AWS Cost (USD)": 720,
+          "Workload Type": "Reservoir Simulation",
+          "Application Group": "Simulation",
+          "License Model": null
+        },
+        {
+          "Server Name": "OG-ME-SRV03",
+          "Operating System": "Windows Server 2016",
+          "CPU Cores": 4,
+          "Memory (GB)": 16,
+          "Disk Size (GB)": 500,
+          "Network Interfaces": 1,
+          "IP Address": "192.168.1.32",
+          "CPU Utilization (%)": 50,
+          "Memory Utilization (%)": 55,
+          "AWS Readiness": "Conditionally Ready",
+          "Recommended AWS Instance Type": "t3.large",
+          "Estimated Monthly AWS Cost (USD)": 160,
+          "Workload Type": "SCADA System",
+          "Application Group": "Operations",
+          "License Model": "License Included (LI)"
+        },
+        {
+          "Server Name": "OG-ME-SRV04",
+          "Operating System": "Linux Ubuntu 20.04",
+          "CPU Cores": 8,
+          "Memory (GB)": 32,
+          "Disk Size (GB)": 750,
+          "Network Interfaces": 1,
+          "IP Address": "192.168.1.33",
+          "CPU Utilization (%)": 60,
+          "Memory Utilization (%)": 60,
+          "AWS Readiness": "Ready",
+          "Recommended AWS Instance Type": "m5.2xlarge",
+          "Estimated Monthly AWS Cost (USD)": 360,
+          "Workload Type": "File Server",
+          "Application Group": "Enterprise",
+          "License Model": null
+        },
+        {
+          "Server Name": "OG-ME-SRV05",
+          "Operating System": "Windows Server 2012 R2",
+          "CPU Cores": 12,
+          "Memory (GB)": 48,
+          "Disk Size (GB)": 1500,
+          "Network Interfaces": 2,
+          "IP Address": "192.168.1.34",
+          "CPU Utilization (%)": 85,
+          "Memory Utilization (%)": 80,
+          "AWS Readiness": "Not Ready",
+          "Recommended AWS Instance Type": "Not Applicable",
+          "Estimated Monthly AWS Cost (USD)": 0,
+          "Workload Type": "Legacy ERP",
+          "Application Group": "Finance",
+          "License Model": "Incompatible"
+        }
+      ],
+      "rawData": [
+        {
+          "Server Name": "OG-ME-SRV01",
+          "Operating System": "Windows Server 2019",
+          "CPU Cores": "8",
+          "Memory (GB)": "32",
+          "Disk Size (GB)": "1000",
+          "Network Interfaces": "1",
+          "IP Address": "192.168.1.30",
+          "CPU Utilization (%)": "70",
+          "Memory Utilization (%)": "65",
+          "AWS Readiness": "Ready",
+          "Recommended AWS Instance Type": "t3.xlarge",
+          "Estimated Monthly AWS Cost (USD)": "420.00",
+          "Workload Type": "Seismic Data Processing",
+          "Application Group": "Geoscience",
+          "License Model": "Bring Your Own License (BYOL)"
+        },
+        {
+          "Server Name": "OG-ME-SRV02",
+          "Operating System": "Linux Red Hat 8",
+          "CPU Cores": "16",
+          "Memory (GB)": "64",
+          "Disk Size (GB)": "2000",
+          "Network Interfaces": "2",
+          "IP Address": "192.168.1.31",
+          "CPU Utilization (%)": "80",
+          "Memory Utilization (%)": "75",
+          "AWS Readiness": "Ready",
+          "Recommended AWS Instance Type": "m5.4xlarge",
+          "Estimated Monthly AWS Cost (USD)": "720.00",
+          "Workload Type": "Reservoir Simulation",
+          "Application Group": "Simulation",
+          "License Model": "None"
+        },
+        {
+          "Server Name": "OG-ME-SRV03",
+          "Operating System": "Windows Server 2016",
+          "CPU Cores": "4",
+          "Memory (GB)": "16",
+          "Disk Size (GB)": "500",
+          "Network Interfaces": "1",
+          "IP Address": "192.168.1.32",
+          "CPU Utilization (%)": "50",
+          "Memory Utilization (%)": "55",
+          "AWS Readiness": "Conditionally Ready",
+          "Recommended AWS Instance Type": "t3.large",
+          "Estimated Monthly AWS Cost (USD)": "160.00",
+          "Workload Type": "SCADA System",
+          "Application Group": "Operations",
+          "License Model": "License Included (LI)"
+        },
+        {
+          "Server Name": "OG-ME-SRV04",
+          "Operating System": "Linux Ubuntu 20.04",
+          "CPU Cores": "8",
+          "Memory (GB)": "32",
+          "Disk Size (GB)": "750",
+          "Network Interfaces": "1",
+          "IP Address": "192.168.1.33",
+          "CPU Utilization (%)": "60",
+          "Memory Utilization (%)": "60",
+          "AWS Readiness": "Ready",
+          "Recommended AWS Instance Type": "m5.2xlarge",
+          "Estimated Monthly AWS Cost (USD)": "360.00",
+          "Workload Type": "File Server",
+          "Application Group": "Enterprise",
+          "License Model": "None"
+        },
+        {
+          "Server Name": "OG-ME-SRV05",
+          "Operating System": "Windows Server 2012 R2",
+          "CPU Cores": "12",
+          "Memory (GB)": "48",
+          "Disk Size (GB)": "1500",
+          "Network Interfaces": "2",
+          "IP Address": "192.168.1.34",
+          "CPU Utilization (%)": "85",
+          "Memory Utilization (%)": "80",
+          "AWS Readiness": "Not Ready",
+          "Recommended AWS Instance Type": "Not Applicable",
+          "Estimated Monthly AWS Cost (USD)": "0.00",
+          "Workload Type": "Legacy ERP",
+          "Application Group": "Finance",
+          "License Model": "Incompatible"
+        }
+      ]
+    },
+    "user_corrections": {
+      "assetType": "application",
+      "analysisIssues": "department is not a missing required field - it should have been mapped to Application Group",
+      "comments": ""
+    },
+    "asset_type_override": "application",
+    "feedback_type": "cmdb_analysis"
   }
 ]

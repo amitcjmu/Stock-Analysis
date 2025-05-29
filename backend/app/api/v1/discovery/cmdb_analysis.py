@@ -33,6 +33,7 @@ from app.api.v1.discovery.persistence import (
     load_from_file
 )
 from app.api.v1.discovery.serialization import clean_for_json_serialization
+from app.services.tools.field_mapping_tool import field_mapping_tool
 
 logger = logging.getLogger(__name__)
 
@@ -71,13 +72,25 @@ async def analyze_cmdb_data(request: CMDBAnalysisRequest):
             # Analyze data structure
             structure_analysis = processor.analyze_data_structure(df)
             
-            # Prepare data for analysis
+            # Use agentic field mapping to analyze columns
+            columns = df.columns.tolist()
+            sample_rows = []
+            for _, row in df.head(10).iterrows():
+                sample_row = [str(row[col]) if pd.notna(row[col]) else '' for col in columns]
+                sample_rows.append(sample_row)
+            
+            # Get intelligent field mapping analysis
+            agent_monitor.update_task_status(task_id, TaskStatus.RUNNING, "Analyzing field patterns with AI")
+            mapping_analysis = field_mapping_tool.analyze_data_patterns(columns, sample_rows, "server")
+            
+            # Prepare enhanced data for analysis
             cmdb_data = {
                 "filename": request.filename,
                 "structure": structure_analysis,
                 "sample_data": df.head(10).to_dict('records'),
                 "total_rows": len(df),
-                "columns": df.columns.tolist()
+                "columns": columns,
+                "field_mapping_analysis": mapping_analysis
             }
             
             # Record thinking phase
@@ -117,8 +130,7 @@ async def analyze_cmdb_data(request: CMDBAnalysisRequest):
             # Complete the task
             agent_monitor.complete_task(
                 task_id, 
-                f"CMDB analysis completed for {request.filename}",
-                {"data_quality_score": data_quality.score, "asset_count": coverage.applications + coverage.servers + coverage.databases}
+                f"CMDB analysis completed for {request.filename} - Quality: {data_quality.score}%, Assets: {coverage.applications + coverage.servers + coverage.databases}"
             )
             
             return CMDBAnalysisResponse(
@@ -176,8 +188,7 @@ async def process_cmdb_data(request: CMDBProcessingRequest):
                 agent_monitor.update_task_status(
                     task_id, 
                     TaskStatus.RUNNING, 
-                    f"Processing asset {index + 1}/{total_rows} ({progress}%)",
-                    progress_percentage=progress
+                    f"Processing asset {index + 1}/{total_rows} ({progress}%)"
                 )
                 
                 # Process individual asset
@@ -195,8 +206,7 @@ async def process_cmdb_data(request: CMDBProcessingRequest):
         # Complete task
         agent_monitor.complete_task(
             task_id,
-            f"Successfully processed {len(processed_assets)} assets",
-            {"processed_count": len(processed_assets), "total_input": total_rows}
+            f"Successfully processed {len(processed_assets)} assets from {total_rows} rows"
         )
         
         return {
@@ -314,39 +324,110 @@ def _perform_fallback_analysis(df: pd.DataFrame, structure_analysis: Dict) -> Di
 
 def _extract_data_quality(crewai_result: Dict, df: pd.DataFrame) -> DataQualityResult:
     """Extract data quality assessment from CrewAI result."""
-    dq_data = crewai_result.get("data_quality", {})
+    # Get score from CrewAI result (it returns data_quality_score, not data_quality.score)
+    score = crewai_result.get("data_quality_score", 75)
     
-    issues = []
-    recommendations = []
+    # Get issues and recommendations from CrewAI
+    issues = crewai_result.get("issues", [])
+    recommendations = crewai_result.get("recommendations", [])
     
-    # Check for common data quality issues
+    # Add additional issues based on data analysis
     null_percentage = df.isnull().sum().sum() / (len(df) * len(df.columns)) * 100
     if null_percentage > 20:
         issues.append(f"High percentage of missing data ({null_percentage:.1f}%)")
         recommendations.append("Review data collection processes to reduce missing values")
     
     return DataQualityResult(
-        score=int(dq_data.get("score", 75)),
-        issues=issues + dq_data.get("issues", []),
-        recommendations=recommendations + dq_data.get("recommendations", [])
+        score=int(score),
+        issues=issues,
+        recommendations=recommendations
     )
 
 def _extract_coverage(crewai_result: Dict, df: pd.DataFrame) -> AssetCoverage:
     """Extract asset coverage from CrewAI result."""
-    coverage_data = crewai_result.get("coverage", {})
+    # CrewAI doesn't return coverage directly, calculate from detected asset type
+    asset_type_detected = crewai_result.get("asset_type_detected", "mixed")
+    total_rows = len(df)
     
-    return AssetCoverage(
-        applications=coverage_data.get("applications", 0),
-        servers=coverage_data.get("servers", 0), 
-        databases=coverage_data.get("databases", 0),
-        dependencies=coverage_data.get("dependencies", 0)
-    )
+    # If CrewAI detected a specific type, assign all rows to that type
+    if asset_type_detected == "server":
+        return AssetCoverage(
+            applications=0,
+            servers=total_rows,
+            databases=0,
+            dependencies=0
+        )
+    elif asset_type_detected == "application":
+        return AssetCoverage(
+            applications=total_rows,
+            servers=0,
+            databases=0,
+            dependencies=0
+        )
+    elif asset_type_detected == "database":
+        return AssetCoverage(
+            applications=0,
+            servers=0,
+            databases=total_rows,
+            dependencies=0
+        )
+    else:
+        # Mixed or unknown - try to analyze columns for hints
+        applications = 0
+        servers = 0
+        databases = 0
+        
+        # Look for asset type hints in column names or data
+        columns_str = ' '.join(df.columns).lower()
+        if 'server' in columns_str or 'host' in columns_str:
+            servers = total_rows
+        elif 'app' in columns_str or 'application' in columns_str:
+            applications = total_rows
+        elif 'db' in columns_str or 'database' in columns_str:
+            databases = total_rows
+        else:
+            # Default to servers if AWS migration data
+            servers = total_rows
+        
+        return AssetCoverage(
+            applications=applications,
+            servers=servers,
+            databases=databases,
+            dependencies=0
+        )
 
 def _identify_missing_fields(crewai_result: Dict, df: pd.DataFrame) -> List[str]:
-    """Identify missing required fields."""
-    required_fields = ["hostname", "asset_type", "environment", "department"]
-    missing = [field for field in required_fields if field not in df.columns]
-    return missing + crewai_result.get("missing_fields", [])
+    """Identify missing required fields using agentic field mapping analysis."""
+    
+    # Get field mapping analysis from the enhanced data
+    columns = df.columns.tolist()
+    sample_rows = []
+    for _, row in df.head(5).iterrows():
+        sample_row = [str(row[col]) if pd.notna(row[col]) else '' for col in columns]
+        sample_rows.append(sample_row)
+    
+    # Use the field mapping tool to analyze what's actually missing
+    mapping_analysis = field_mapping_tool.analyze_data_columns(columns, "server")
+    
+    # Get fields that are truly missing (not just differently named)
+    missing_fields = mapping_analysis.get("missing_fields", [])
+    
+    # Also include any missing fields from CrewAI analysis that aren't resolved by field mapping
+    crewai_missing = crewai_result.get("missing_fields_relevant", [])
+    column_mappings = mapping_analysis.get("column_mappings", {})
+    
+    # Filter CrewAI missing fields - only include if not mapped by field mapping tool
+    mapped_canonical_fields = set()
+    for col, mapping_info in column_mappings.items():
+        canonical = mapping_info.get("canonical_field")
+        if canonical and mapping_info.get("confidence", 0) > 0.5:
+            mapped_canonical_fields.add(canonical)
+    
+    for crewai_field in crewai_missing:
+        if crewai_field not in mapped_canonical_fields and crewai_field not in missing_fields:
+            missing_fields.append(crewai_field)
+    
+    return list(set(missing_fields))  # Remove duplicates
 
 def _identify_processing_requirements(crewai_result: Dict, df: pd.DataFrame) -> List[str]:
     """Identify required processing steps."""
@@ -373,31 +454,48 @@ def _generate_preview_data(df: pd.DataFrame, structure_analysis: Dict) -> List[D
     return [clean_for_json_serialization(row) for row in preview]
 
 async def _process_single_asset(row: pd.Series, project_info: Optional[Dict] = None) -> Dict[str, Any]:
-    """Process a single asset with enhanced AI capabilities."""
+    """Process a single asset using agentic field mapping intelligence."""
     
-    # Extract basic information
+    # Get the raw data
+    raw_data = row.to_dict()
+    columns = list(raw_data.keys())
+    
+    # Use agentic field mapping to analyze and map the columns
+    mapping_analysis = field_mapping_tool.analyze_data_columns(columns, "server")
+    column_mappings = mapping_analysis.get("column_mappings", {})
+    
+    # Build the processed asset using intelligent field mapping
     asset_id = str(uuid.uuid4())
-    hostname = get_field_value(row, ['hostname', 'host', 'server_name', 'machine_name'])
-    asset_type = standardize_asset_type(get_field_value(row, ['asset_type', 'type', 'category']))
     
-    # Build processed asset
+    # Use agentic field mapping to extract values
+    def get_mapped_value(canonical_field: str, default: str = "Unknown") -> str:
+        """Get value using agentic field mapping."""
+        for column, mapping_info in column_mappings.items():
+            if mapping_info.get("canonical_field") == canonical_field and mapping_info.get("confidence", 0) > 0.5:
+                value = raw_data.get(column)
+                if value and str(value).strip() and str(value).strip().lower() not in ['unknown', 'null', 'none', '']:
+                    return str(value).strip()
+        return default
+    
+    # Build processed asset using canonical field names
     processed_asset = {
         "id": asset_id,
-        "hostname": hostname,
-        "asset_type": asset_type,
-        "environment": get_field_value(row, ['environment', 'env', 'stage']),
-        "department": get_field_value(row, ['department', 'dept', 'business_unit']),
-        "operating_system": get_field_value(row, ['os', 'operating_system', 'platform']),
-        "ip_address": get_field_value(row, ['ip', 'ip_address', 'host_ip']),
-        "application_name": get_field_value(row, ['application', 'app_name', 'service']),
+        "hostname": get_mapped_value("Asset Name") or get_mapped_value("hostname"),
+        "asset_type": standardize_asset_type(get_mapped_value("Asset Type")),
+        "environment": get_mapped_value("Environment"),
+        "department": get_mapped_value("Business Owner") or get_mapped_value("Department"),
+        "operating_system": get_mapped_value("Operating System"),
+        "ip_address": get_mapped_value("IP Address"),
+        "application_name": get_mapped_value("Application Name") or get_mapped_value("Service Name"),
         "technology_stack": get_tech_stack(row),
-        "criticality": get_field_value(row, ['criticality', 'priority', 'importance']),
-        "dependencies": get_field_value(row, ['dependencies', 'dependent_services']),
-        "six_r_readiness": assess_6r_readiness(row),
-        "migration_complexity": assess_migration_complexity(row),
+        "criticality": get_mapped_value("Criticality"),
+        "dependencies": get_mapped_value("Dependencies"),
+        "six_r_readiness": assess_6r_readiness(get_mapped_value("Asset Type"), raw_data),
+        "migration_complexity": assess_migration_complexity(get_mapped_value("Asset Type"), raw_data),
         "discovery_source": "cmdb_import",
         "processed_timestamp": pd.Timestamp.now().isoformat(),
-        "raw_data": clean_for_json_serialization(row.to_dict())
+        "raw_data": clean_for_json_serialization(raw_data),
+        "field_mappings_used": {col: info.get("canonical_field") for col, info in column_mappings.items() if info.get("confidence", 0) > 0.5}
     }
     
     return clean_for_json_serialization(processed_asset) 

@@ -6,11 +6,11 @@ Test the improved agentic field mapping with real-world CMDB data formats.
 
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'backend'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../backend'))
 
 from app.services.field_mapper import field_mapper
 from app.services.tools.field_mapping_tool import field_mapping_tool
-from app.api.v1.endpoints.discovery import processor
+from app.api.v1.discovery.processor import CMDBDataProcessor as processor
 import pandas as pd
 import json
 

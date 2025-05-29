@@ -59,7 +59,7 @@ The AI Force Migration Platform has been successfully migrated to use **DeepInfr
 
 ```bash
 # DeepInfra Configuration (Primary and Only AI Provider)
-DEEPINFRA_API_KEY=U8JskPYWXprQvw2PGbv4lyxfcJQggI48
+DEEPINFRA_API_KEY=U8JskPYWXprQQvw2PGbv4lyxfcJQggI48
 DEEPINFRA_MODEL=meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8
 DEEPINFRA_BASE_URL=https://api.deepinfra.com/v1/inference
 
@@ -139,7 +139,7 @@ docker build -t migrate-ui-backend .
 #### Run Container
 ```bash
 docker run --rm -p 8000:8000 \
-  -e DEEPINFRA_API_KEY=U8JskPYWXprQvw2PGbv4lyxfcJQggI48 \
+  -e DEEPINFRA_API_KEY=U8JskPYWXprQQvw2PGbv4lyxfcJQggI48 \
   -e CHROMA_OPENAI_API_KEY=not_needed_using_deepinfra \
   migrate-ui-backend
 ```

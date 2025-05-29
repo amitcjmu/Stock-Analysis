@@ -199,8 +199,9 @@ async def ask_about_assets(request: ChatRequest):
     """
     try:
         # Get current asset context
-        from app.api.v1.endpoints.discovery import processed_assets_store
+        from app.api.v1.discovery.persistence import get_processed_assets
         
+        processed_assets_store = get_processed_assets()
         asset_context = ""
         if processed_assets_store:
             total_assets = len(processed_assets_store)

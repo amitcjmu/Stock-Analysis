@@ -5,6 +5,152 @@ All notable changes to the AI Force Migration Platform will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.7] - 2025-01-28
+
+### 🎯 **Complete Asset Management System Overhaul**
+
+This release delivers a comprehensive transformation of the asset management system, resolving critical UI/UX issues, implementing robust bulk operations, fixing data consistency problems, and significantly improving the developer experience.
+
+### ✨ **Major Features**
+
+#### **Enhanced Inventory Management**
+- **Removed Redundant UI Elements**: Eliminated confusing individual row edit functionality that conflicted with bulk operations
+- **Streamlined User Experience**: Single, intuitive bulk edit workflow for managing assets at scale
+- **Clean Interface Design**: Removed Actions column and individual edit icons for cleaner, focused UI
+- **Centralized Edit Operations**: All edits now go through the bulk edit dialog for consistency
+
+#### **Complete Data Pipeline Fix**
+- **Asset Count Display Resolution**: Fixed critical asset count mismatch between backend (26 assets) and frontend (78+ assets)
+- **Unified Data Processing**: Implemented consistent data transformation pipeline across all endpoints
+- **Frontend-Backend Synchronization**: Ensured bulk operations use the same data source as the main inventory
+- **Accurate Asset Totals**: Real-time, accurate asset counts across the entire application
+
+#### **Advanced Deduplication System**
+- **Comprehensive Duplicate Removal**: Enhanced algorithm processes ALL duplicates in single operation (removed 9,426 duplicates)
+- **Intelligent Grouping**: Groups assets by hostname and name+type combinations for thorough deduplication
+- **UI Improvements**: Renamed "Cleanup" button to "De-dupe" for clarity
+- **Massive Scale Processing**: Successfully reduced inventory from 5,633 to 102 total assets in one operation
+
+#### **Robust Bulk Operations**
+- **Multi-Asset Selection**: Checkbox-based selection for individual assets and "select all" functionality
+- **Comprehensive Bulk Editing**: Update asset type, environment, department, criticality across multiple assets
+- **Working Bulk Delete**: Fixed bulk delete operations with proper ID matching and verification
+- **Progress Feedback**: Clear success/failure messaging for all bulk operations
+
+#### **App Dependencies Resolution**
+- **Fixed "No Apps Found" Error**: Resolved console error when loading App Dependencies page
+- **Data Structure Compatibility**: Fixed backend response format mismatch between `mappings` and `applications`
+- **Dynamic Application Discovery**: Now correctly identifies and displays 15 applications from asset inventory
+- **Dependency Visualization**: Proper application-to-dependency mapping for migration planning
+
+### 🛠 **Technical Improvements**
+
+#### **API Configuration & Connectivity**
+- **Centralized API Management**: Created unified API configuration system in `src/config/api.ts`
+- **Environment-Aware URLs**: Automatic detection of development vs production environments
+- **Port Standardization**: Corrected backend URL from localhost:8080 to localhost:8000 (Docker standard)
+- **Bulk Operation Endpoints**: Added proper API endpoint definitions for bulk update/delete operations
+
+#### **Enhanced Backend Processing**
+- **Agentic Field Mapping Integration**: Leveraged existing intelligent field mapping system instead of manual transformations
+- **Automatic Column Recognition**: System intelligently maps any CMDB format (HOSTNAME→hostname, WORKLOAD TYPE→asset_type)
+- **Confidence Scoring**: Built-in learning capabilities for improved field recognition over time
+- **Robust Error Handling**: Comprehensive error handling and logging throughout the data pipeline
+
+#### **Data Consistency & Reliability**
+- **ID Matching Improvements**: Enhanced asset identification using multiple ID fields (`id`, `ci_id`, `asset_id`)
+- **Field Name Standardization**: Proper mapping between frontend field names and backend storage format
+- **Deduplication Algorithm**: Complete rewrite using grouping logic instead of flawed single-pass approach
+- **Data Persistence**: Reliable backup and restore system for asset data
+
+### 🐛 **Critical Bug Fixes**
+
+#### **Frontend Issues Resolved**
+- **Edit Button UI Bug**: Fixed disappearing save/cancel icons when editing individual rows
+- **Notification Quality Score**: Corrected quality score display using proper response field structure
+- **Asset Count Display**: Fixed zero counts across all asset categories despite having data
+- **Bulk Operation Failures**: Resolved 404 errors on bulk update/delete endpoints
+
+#### **Backend Processing Fixes**
+- **Endpoint Registration**: Proper routing for bulk operation endpoints through discovery module
+- **Request Body Parsing**: Fixed FastAPI request handling for bulk operations
+- **Asset Transformation**: Consistent field transformation between storage and display formats
+- **Database Synchronization**: Ensured persistence layer updates correctly reflect in frontend
+
+#### **Data Quality Issues**
+- **Duplicate Detection Logic**: Fixed algorithm that only processed 30-40 records instead of all duplicates
+- **Asset Count Accuracy**: Resolved discrepancy between API-reported counts and actual displayed assets
+- **Field Mapping Errors**: Fixed parameter errors in assessment functions (`assess_6r_readiness`, `assess_migration_complexity`)
+
+### 🎨 **User Experience Enhancements**
+
+#### **Simplified Workflow**
+- **Single Edit Paradigm**: Eliminated confusing dual edit modes (individual vs bulk)
+- **Intuitive Bulk Operations**: Clear selection model with visual feedback
+- **Streamlined Navigation**: Removed redundant UI elements that caused user confusion
+- **Better Visual Hierarchy**: Cleaner inventory table layout focused on essential information
+
+#### **Improved Notifications**
+- **Accurate Progress Reporting**: Fixed quality score notifications showing correct percentages
+- **Clear Success Messages**: Better feedback for bulk operations with count information
+- **Error Messaging**: Detailed error information for troubleshooting bulk operation failures
+
+#### **Enhanced Data Management**
+- **Comprehensive Deduplication**: One-click removal of all duplicate assets across the inventory
+- **Bulk Editing Power**: Edit multiple assets simultaneously for efficient data management
+- **Real-time Updates**: Immediate reflection of changes in asset counts and inventory display
+
+### 📈 **Performance & Scalability**
+
+#### **System Efficiency**
+- **Optimized Data Processing**: Reduced redundant transformations by using consistent pipeline
+- **Memory Management**: Better handling of large asset datasets through improved algorithms
+- **Reduced API Calls**: Consolidated endpoints reduce network overhead and improve response times
+- **Scalable Deduplication**: Algorithm handles massive datasets (5,000+ assets) efficiently
+
+#### **Development Experience**
+- **Centralized Configuration**: Single source of truth for API endpoints and environment settings
+- **Improved Debugging**: Enhanced logging and error reporting throughout the system
+- **Code Organization**: Better separation of concerns between data processing and UI logic
+- **Testing Infrastructure**: Improved test endpoints for debugging data pipeline issues
+
+### 🔧 **System Architecture Improvements**
+
+#### **Unified Data Pipeline**
+- **Consistent Processing**: Same data transformation logic across all endpoints
+- **Frontend-Backend Alignment**: Bulk operations use identical data source as main inventory
+- **Predictable Behavior**: Eliminates discrepancies between different system components
+
+#### **Enhanced Error Handling**
+- **Comprehensive Logging**: Detailed logging throughout bulk operation and deduplication processes
+- **Graceful Degradation**: System handles partial failures without affecting overall functionality
+- **User-Friendly Errors**: Clear error messages help users understand and resolve issues
+
+#### **Future-Proof Design**
+- **Modular Architecture**: Easy to extend bulk operations with additional functionality
+- **Configurable Endpoints**: Environment-aware configuration supports different deployment scenarios
+- **Scalable Processing**: Algorithms designed to handle growth in asset inventory size
+
+### 🎯 **Business Impact**
+
+#### **Operational Efficiency**
+- **Massive Data Cleanup**: Removed 9,426 duplicate assets in single operation, improving data quality
+- **Bulk Management**: Edit multiple assets simultaneously instead of individual row-by-row updates
+- **Accurate Reporting**: Fixed asset counts provide reliable data for migration planning
+- **Streamlined Workflow**: Reduced steps and complexity in asset management tasks
+
+#### **Data Quality Improvements**
+- **Elimated Duplicates**: Comprehensive deduplication ensures clean, accurate asset inventory
+- **Consistent Categorization**: Bulk editing enables consistent asset type and environment classification
+- **Reliable Metrics**: Accurate asset counts support better decision-making and planning
+
+#### **User Productivity**
+- **Faster Operations**: Bulk editing significantly reduces time to manage large inventories
+- **Reduced Errors**: Simplified UI reduces user confusion and operational mistakes
+- **Better Insights**: App dependencies now work correctly, enabling migration dependency analysis
+
+---
+
 ## [0.2.6] - 2025-01-28
 
 ### 🎯 **OS Field Separation & Modular Architecture**

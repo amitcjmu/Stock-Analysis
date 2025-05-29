@@ -12,12 +12,12 @@ from typing import Dict, Any
 # Add backend to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../backend'))
 
-from app.api.v1.endpoints.discovery import (
-    _standardize_asset_type,
-    _assess_6r_readiness,
-    _assess_migration_complexity,
-    CMDBDataProcessor
+from app.api.v1.discovery.utils import (
+    standardize_asset_type as _standardize_asset_type,
+    assess_6r_readiness as _assess_6r_readiness,
+    assess_migration_complexity as _assess_migration_complexity
 )
+from app.api.v1.discovery.processor import CMDBDataProcessor
 
 
 class TestAssetTypeClassification:
@@ -531,7 +531,7 @@ class TestFieldMappingIntelligence:
     
     def test_flexible_field_value_extraction(self):
         """Test flexible field value extraction."""
-        from app.api.v1.endpoints.discovery import _get_field_value
+        from app.api.v1.discovery.utils import get_field_value
         
         # Test multiple field name variations
         asset_data = {
@@ -541,16 +541,16 @@ class TestFieldMappingIntelligence:
         }
         
         # Should find RAM_GB for memory field
-        memory_value = _get_field_value(asset_data, ['memory_gb', 'memory', 'ram', 'ram_gb'])
+        memory_value = get_field_value(asset_data, ['memory_gb', 'memory', 'ram', 'ram_gb'])
         assert memory_value == '32'
         
         # Should find cpu_count for CPU field
-        cpu_value = _get_field_value(asset_data, ['cpu_cores', 'cpu', 'cores', 'cpu_count'])
+        cpu_value = get_field_value(asset_data, ['cpu_cores', 'cpu', 'cores', 'cpu_count'])
         assert cpu_value == '8'
     
     def test_tech_stack_extraction(self):
         """Test technology stack extraction."""
-        from app.api.v1.endpoints.discovery import _get_tech_stack
+        from app.api.v1.discovery.utils import get_tech_stack
         
         asset_data = {
             'operating_system': 'Linux Ubuntu 20.04',
@@ -558,7 +558,7 @@ class TestFieldMappingIntelligence:
             'platform': 'Docker'
         }
         
-        tech_stack = _get_tech_stack(asset_data)
+        tech_stack = get_tech_stack(asset_data)
         
         assert 'Linux Ubuntu 20.04' in tech_stack
         assert 'v2.1.3' in tech_stack
@@ -566,7 +566,7 @@ class TestFieldMappingIntelligence:
     
     def test_header_generation(self):
         """Test dynamic header generation based on asset data."""
-        from app.api.v1.endpoints.discovery import _generate_suggested_headers
+        from app.api.v1.discovery.utils import generate_suggested_headers
         
         assets = [
             {
@@ -585,7 +585,7 @@ class TestFieldMappingIntelligence:
             }
         ]
         
-        headers = _generate_suggested_headers(assets)
+        headers = generate_suggested_headers(assets)
         
         # Should include basic fields
         header_keys = [h['key'] for h in headers]

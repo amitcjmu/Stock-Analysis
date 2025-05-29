@@ -6,8 +6,9 @@ Simple test for CMDB analysis without CrewAI.
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../backend'))
 
-from app.api.v1.endpoints.discovery import processor
+from app.api.v1.discovery.processor import CMDBDataProcessor as processor
 import pandas as pd
 import io
 

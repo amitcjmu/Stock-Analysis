@@ -6,19 +6,33 @@ Handles asset CRUD operations and queries.
 import logging
 import math
 from typing import Dict, List, Any, Optional
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel
 import pandas as pd
+import uuid
 
 from app.api.v1.discovery.persistence import (
     get_processed_assets,
     update_asset_by_id,
-    backup_processed_assets
+    backup_processed_assets,
+    bulk_update_assets,
+    bulk_delete_assets,
+    cleanup_duplicates,
+    find_duplicate_assets
 )
 from app.api.v1.discovery.serialization import clean_for_json_serialization
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+# Add request models
+class BulkUpdateRequest(BaseModel):
+    asset_ids: List[str]
+    updates: Dict[str, Any]
+
+class BulkDeleteRequest(BaseModel):
+    asset_ids: List[str]
 
 @router.get("/assets")
 async def get_processed_assets_paginated(
@@ -117,8 +131,9 @@ async def get_processed_assets_paginated(
         # Get page assets
         page_assets = filtered_assets[start_index:end_index]
         
-        # Clean data for JSON serialization
-        cleaned_assets = [clean_for_json_serialization(asset) for asset in page_assets]
+        # Transform field names to frontend format and clean data for JSON serialization
+        transformed_assets = [_transform_asset_for_frontend(asset) for asset in page_assets]
+        cleaned_assets = [clean_for_json_serialization(asset) for asset in transformed_assets]
         
         # Calculate summary statistics for the filtered set
         asset_types = {}
@@ -138,6 +153,20 @@ async def get_processed_assets_paginated(
             dept_val = asset.get('department', 'Unknown')
             departments[dept_val] = departments.get(dept_val, 0) + 1
         
+        # Calculate counts by type for frontend compatibility
+        applications = sum(1 for a in filtered_assets if 'application' in a.get('asset_type', '').lower())
+        servers = sum(1 for a in filtered_assets if 'server' in a.get('asset_type', '').lower())
+        databases = sum(1 for a in filtered_assets if 'database' in a.get('asset_type', '').lower())
+        infrastructure_devices = sum(1 for a in filtered_assets if 'infrastructure' in a.get('asset_type', '').lower())
+        network_devices = sum(1 for a in filtered_assets if 'network' in a.get('asset_type', '').lower())
+        storage_devices = sum(1 for a in filtered_assets if 'storage' in a.get('asset_type', '').lower())
+        security_devices = sum(1 for a in filtered_assets if 'security' in a.get('asset_type', '').lower())
+        unknown = sum(1 for a in filtered_assets if a.get('asset_type', '').lower() in ['unknown', ''])
+        
+        # Calculate total devices (non-server, non-app, non-db assets)
+        devices = infrastructure_devices + network_devices + storage_devices + security_devices
+        other = total_assets - applications - servers - databases - devices - unknown
+        
         return {
             "assets": cleaned_assets,
             "total": total_assets,
@@ -145,14 +174,35 @@ async def get_processed_assets_paginated(
             "page_size": page_size,
             "total_pages": total_pages,
             "summary": {
+                # Frontend-compatible format
+                "total": total_assets,
+                "filtered": len(filtered_assets),
+                "applications": applications,
+                "servers": servers,
+                "databases": databases,
+                "devices": devices,
+                "unknown": unknown,
+                "discovered": total_assets,  # All are discovered for now
+                "pending": 0,  # None pending for now
+                
+                # Device breakdown
+                "device_breakdown": {
+                    "network": network_devices,
+                    "storage": storage_devices,
+                    "security": security_devices,
+                    "infrastructure": infrastructure_devices,
+                    "virtualization": 0  # Add virtualization detection later
+                },
+                
+                # Detailed breakdowns (keeping for API compatibility)
                 "asset_types": asset_types,
                 "environments": environments,
                 "departments": departments,
                 "total_by_type": {
-                    "applications": sum(1 for a in filtered_assets if 'application' in a.get('asset_type', '').lower()),
-                    "servers": sum(1 for a in filtered_assets if 'server' in a.get('asset_type', '').lower()),
-                    "databases": sum(1 for a in filtered_assets if 'database' in a.get('asset_type', '').lower()),
-                    "other": sum(1 for a in filtered_assets if not any(t in a.get('asset_type', '').lower() for t in ['application', 'server', 'database']))
+                    "applications": applications,
+                    "servers": servers,
+                    "databases": databases,
+                    "other": other + unknown
                 }
             }
         }
@@ -468,16 +518,300 @@ def _extract_technology_distribution(applications: List[Dict]) -> Dict[str, int]
     return tech_count
 
 def _get_complexity_distribution(applications: List[Dict]) -> Dict[str, int]:
-    """Get complexity distribution."""
-    distribution = {'Low (1-2)': 0, 'Medium (3)': 0, 'High (4-5)': 0}
+    """Get complexity score distribution."""
+    distribution = {"Low": 0, "Medium": 0, "High": 0}
     
     for app in applications:
-        score = app.get('complexity_score', 1)
-        if score <= 2:
-            distribution['Low (1-2)'] += 1
-        elif score == 3:
-            distribution['Medium (3)'] += 1
+        complexity = app.get("estimated_migration_effort", "Medium")
+        if complexity in distribution:
+            distribution[complexity] += 1
         else:
-            distribution['High (4-5)'] += 1
+            distribution["Medium"] += 1
     
-    return distribution 
+    return distribution
+
+def _transform_asset_for_frontend(asset: Dict[str, Any]) -> Dict[str, Any]:
+    """Transform asset field names from storage format to frontend format."""
+    
+    # Create a new asset dict with frontend-expected field names
+    frontend_asset = {}
+    
+    # Basic identification fields
+    frontend_asset['id'] = asset.get('ci_id') or asset.get('id') or str(uuid.uuid4())
+    frontend_asset['name'] = asset.get('asset_name') or asset.get('hostname') or asset.get('version/hostname') or 'Unknown'
+    frontend_asset['type'] = asset.get('intelligent_asset_type') or asset.get('asset_type') or asset.get('ci_type') or 'Unknown'
+    
+    # Technical details
+    frontend_asset['hostname'] = asset.get('version/hostname') or asset.get('hostname') or asset.get('asset_name') or 'Unknown'
+    frontend_asset['ipAddress'] = asset.get('ip_address') or ''
+    frontend_asset['operatingSystem'] = asset.get('operating_system') or ''
+    frontend_asset['techStack'] = _build_tech_stack_from_asset(asset)
+    
+    # Business details
+    frontend_asset['environment'] = asset.get('environment') or 'Unknown'
+    frontend_asset['department'] = asset.get('business_owner') or 'Unknown'
+    frontend_asset['criticality'] = _map_criticality(asset.get('status', 'Medium'))
+    
+    # Technical specifications (for servers/databases)
+    frontend_asset['cpuCores'] = _extract_numeric_value(asset.get('cpu_cores'))
+    frontend_asset['memoryGb'] = _extract_numeric_value(asset.get('memory_gb')) or _extract_numeric_value(asset.get('ram_(gb)'))
+    frontend_asset['storageGb'] = _extract_numeric_value(asset.get('storage_gb'))
+    
+    # Application mapping
+    frontend_asset['applicationMapped'] = asset.get('related_ci') or ''
+    
+    # Migration readiness
+    frontend_asset['sixrReady'] = asset.get('sixr_ready') or 'Unknown'
+    frontend_asset['migrationComplexity'] = asset.get('migration_complexity') or 'Medium'
+    
+    # Additional fields
+    frontend_asset['location'] = asset.get('location') or ''
+    frontend_asset['status'] = 'Discovered'
+    frontend_asset['discoverySource'] = 'CMDB Import'
+    
+    # Keep original data for debugging
+    frontend_asset['_original'] = asset
+    
+    return frontend_asset
+
+def _build_tech_stack_from_asset(asset: Dict[str, Any]) -> str:
+    """Build technology stack string from various asset fields."""
+    tech_components = []
+    
+    # Operating system
+    os_info = asset.get('operating_system')
+    if os_info and os_info != 'Unknown':
+        tech_components.append(os_info)
+    
+    # Version information
+    version = asset.get('version/hostname')
+    if version and version != asset.get('asset_name') and version not in tech_components:
+        tech_components.append(f"v{version}")
+    
+    # Asset type if descriptive
+    asset_type = asset.get('intelligent_asset_type') or asset.get('asset_type')
+    if asset_type and asset_type not in ['Unknown', 'Server', 'Application', 'Database']:
+        tech_components.append(asset_type)
+    
+    return ' | '.join(tech_components) if tech_components else 'Unknown'
+
+def _map_criticality(status: str) -> str:
+    """Map status to criticality level."""
+    if not status:
+        return 'Medium'
+    
+    status_lower = status.lower()
+    if 'critical' in status_lower or 'high' in status_lower:
+        return 'High'
+    elif 'low' in status_lower:
+        return 'Low'
+    else:
+        return 'Medium'
+
+def _extract_numeric_value(value) -> int:
+    """Extract numeric value from various formats."""
+    if not value:
+        return None
+    
+    try:
+        # If it's already a number
+        if isinstance(value, (int, float)):
+            return int(value)
+        
+        # If it's a string, try to extract numbers
+        if isinstance(value, str):
+            import re
+            match = re.search(r'(\d+)', value.replace(',', ''))
+            if match:
+                return int(match.group(1))
+        
+        return None
+    except (ValueError, TypeError):
+        return None
+
+@router.put("/assets/bulk")
+async def bulk_update_assets_endpoint(
+    request: Request
+):
+    """
+    Bulk update multiple assets.
+    
+    Expected request format:
+    {
+        "asset_ids": ["id1", "id2", "id3"],
+        "updates": {
+            "environment": "Production",
+            "department": "IT Operations"
+        }
+    }
+    """
+    try:
+        # Parse request body manually
+        request_body = await request.json()
+        asset_ids = request_body.get("asset_ids", [])
+        updates = request_body.get("updates", {})
+        
+        if not asset_ids:
+            raise HTTPException(status_code=400, detail="asset_ids are required")
+        
+        if not updates:
+            raise HTTPException(status_code=400, detail="updates are required")
+        
+        # Use the EXACT same data pipeline as the main assets endpoint
+        # Step 1: Get raw processed assets (same as main endpoint)
+        all_raw_assets = get_processed_assets()
+        
+        # Step 2: Apply the same transformations as main endpoint (no filtering, get ALL assets)
+        # Transform field names to frontend format - SAME as main endpoint
+        all_transformed_assets = [_transform_asset_for_frontend(asset) for asset in all_raw_assets]
+        all_cleaned_assets = [clean_for_json_serialization(asset) for asset in all_transformed_assets]
+        
+        # Find and update assets using the frontend-transformed data
+        updated_count = 0
+        found_asset_ids = []
+        
+        for i, cleaned_asset in enumerate(all_cleaned_assets):
+            # Use the frontend ID (same as what frontend displays)
+            frontend_id = cleaned_asset.get('id')
+            
+            if str(frontend_id) in asset_ids:
+                found_asset_ids.append(frontend_id)
+                
+                # Apply updates to the original raw asset data
+                original_asset = cleaned_asset.get('_original', {})
+                if original_asset:
+                    for frontend_field, value in updates.items():
+                        backend_field = frontend_field  # Keep it simple for now
+                        original_asset[backend_field] = value
+                    
+                    updated_count += 1
+        
+        if updated_count > 0:
+            # Save the updated raw assets back to persistence
+            backup_processed_assets()
+            
+            return {
+                "status": "success",
+                "updated_count": updated_count,
+                "message": f"Successfully updated {updated_count} assets"
+            }
+        else:
+            # Return debug info when no assets found
+            return {
+                "status": "error",
+                "detail": "Asset not found",
+                "debug": {
+                    "requested_ids": asset_ids,
+                    "total_available": len(all_cleaned_assets),
+                    "sample_ids": [a.get('id') for a in all_cleaned_assets[:5]],
+                    "found_matches": found_asset_ids
+                }
+            }
+        
+    except Exception as e:
+        logger.error(f"Error in bulk update: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to bulk update assets: {str(e)}")
+
+@router.delete("/assets/bulk")
+async def bulk_delete_assets_endpoint(
+    request: BulkDeleteRequest
+):
+    """
+    Bulk delete multiple assets.
+    
+    Expected request format:
+    {
+        "asset_ids": ["id1", "id2", "id3"]
+    }
+    """
+    try:
+        asset_ids = request.asset_ids
+        
+        if not asset_ids:
+            raise HTTPException(status_code=400, detail="asset_ids are required")
+        
+        deleted_count = bulk_delete_assets(asset_ids)
+        
+        return {
+            "status": "success",
+            "deleted_count": deleted_count,
+            "message": f"Successfully deleted {deleted_count} assets"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in bulk delete: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to bulk delete assets: {str(e)}")
+
+@router.get("/assets/duplicates")
+async def find_duplicate_assets_endpoint():
+    """Find potential duplicate assets in the inventory."""
+    try:
+        duplicates = find_duplicate_assets()
+        
+        return {
+            "status": "success",
+            "duplicate_count": len(duplicates),
+            "duplicates": duplicates
+        }
+        
+    except Exception as e:
+        logger.error(f"Error finding duplicates: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to find duplicates: {str(e)}")
+
+@router.post("/assets/cleanup-duplicates")
+async def cleanup_duplicate_assets_endpoint():
+    """Remove duplicate assets from the inventory."""
+    try:
+        removed_count = cleanup_duplicates()
+        
+        return {
+            "status": "success",
+            "removed_count": removed_count,
+            "message": f"Successfully removed {removed_count} duplicate assets"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error cleaning up duplicates: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to cleanup duplicates: {str(e)}")
+
+@router.put("/assets/test-bulk-simple")
+async def test_bulk_update_simple(
+    request: BulkUpdateRequest
+):
+    """
+    Simple test endpoint to debug bulk update issues.
+    """
+    try:
+        asset_ids = request.asset_ids
+        updates = request.updates
+        
+        # Get all assets using the exact same pipeline as main endpoint
+        all_raw_assets = get_processed_assets()
+        all_transformed_assets = [_transform_asset_for_frontend(asset) for asset in all_raw_assets]
+        all_cleaned_assets = [clean_for_json_serialization(asset) for asset in all_transformed_assets]
+        
+        # Find matching assets
+        matching_assets = []
+        for asset in all_cleaned_assets:
+            if asset.get('id') in asset_ids:
+                matching_assets.append({
+                    'id': asset.get('id'),
+                    'name': asset.get('name'),
+                    'type': asset.get('type'),
+                    'found': True
+                })
+        
+        return {
+            "status": "debug",
+            "requested_ids": asset_ids,
+            "updates": updates,
+            "total_assets_available": len(all_cleaned_assets),
+            "matching_assets": matching_assets,
+            "sample_asset_ids": [a.get('id') for a in all_cleaned_assets[:5]]
+        }
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e)
+        } 

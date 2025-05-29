@@ -5,7 +5,8 @@ Includes all endpoint routers and API versioning.
 
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import migrations, assets, assessments, discovery, websocket, monitoring, chat
+from app.api.v1.endpoints import migrations, assets, assessments, websocket, monitoring, chat
+from app.api.v1.endpoints import discovery_modular as discovery
 
 # Import 6R analysis endpoints
 try:

@@ -147,7 +147,7 @@ const CMDBImport = () => {
       setIsEditing(false);
       
       // Show success message
-      alert(`Data processed successfully! Quality score: ${processedData.summary?.quality_score || 'N/A'}%`);
+      alert(`Data processed successfully! Quality score: ${selectedFile.analysis?.dataQuality?.score || 'N/A'}%`);
       
     } catch (error) {
       console.error('Processing failed:', error);

@@ -5,7 +5,7 @@
 
 // Get the backend URL from environment or use default
 const getBackendUrl = (): string => {
-  // In development, use localhost:8000
+  // In development, use localhost:8000 (Docker backend port)
   if (import.meta.env.DEV) {
     return 'http://localhost:8000';
   }
@@ -35,8 +35,12 @@ export const API_CONFIG = {
       CMDB_TEMPLATES: '/api/v1/discovery/cmdb-templates',
       CMDB_FEEDBACK: '/api/v1/discovery/cmdb-feedback',
       ASSETS: '/api/v1/discovery/assets',
+      ASSETS_BULK: '/api/v1/discovery/assets/bulk',
+      ASSETS_CLEANUP: '/api/v1/discovery/assets/cleanup-duplicates',
       APPLICATIONS: '/api/v1/discovery/applications',
-      APP_MAPPINGS: '/api/v1/discovery/app-server-mappings'
+      APP_MAPPINGS: '/api/v1/discovery/app-server-mappings',
+      FEEDBACK: '/api/v1/discovery/feedback',
+      CHAT: '/api/v1/discovery/chat-test'
     },
     MONITORING: {
       STATUS: '/api/v1/monitoring/status',
