@@ -1,11 +1,11 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useSixRAnalysis } from '../useSixRAnalysis';
-import { sixrApi } from '../../lib/api';
+import { sixrApi } from '../../lib/api/sixr';
 import { useSixRWebSocket } from '../useSixRWebSocket';
 
 // Mock the API client
-vi.mock('../../lib/api', () => ({
+vi.mock('../../lib/api/sixr', () => ({
   sixrApi: {
     createAnalysis: vi.fn(),
     getAnalysis: vi.fn(),
