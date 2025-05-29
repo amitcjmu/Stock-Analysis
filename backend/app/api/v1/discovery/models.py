@@ -29,6 +29,16 @@ class CMDBFeedbackRequest(BaseModel):
     assetTypeOverride: Optional[str] = None
 
 
+class PageFeedbackRequest(BaseModel):
+    """Request model for general page feedback."""
+    page: str
+    rating: int
+    comment: str
+    category: str = 'general'
+    breadcrumb: str = ''
+    timestamp: str
+
+
 class DataQualityResult(BaseModel):
     """Data quality assessment result."""
     score: int

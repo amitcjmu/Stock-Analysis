@@ -54,6 +54,9 @@ env/
 ENV/
 .venv/
 .env/
+backend/.env
+backend/env.example
+
 
 # Environment files
 .env
