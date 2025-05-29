@@ -1240,3 +1240,121 @@ This release marks the completion of **Sprint 1** with a fully functional FastAP
 - **Documentation**: [API Docs](http://localhost:8000/docs)
 - **Issues**: [GitHub Issues](https://github.com/CryptoYogiLLC/migrate-ui-orchestrator/issues)
 - **Roadmap**: See README.md for detailed sprint planning 
+
+## [0.3.2] - 2025-01-28
+
+### 🚀 **Enhanced Attribute Mapping & Master CrewAI Documentation**
+
+This release significantly enhances the Attribute Mapping system with comprehensive field management capabilities, integrates all agentic crews into a master documentation framework, and adds critical missing attributes essential for cloud migration analysis.
+
+### ✨ **Major Features**
+
+#### **Enhanced CrewAI Master Documentation**
+- **Integrated Architecture**: Merged AGENTIC_CREW_ARCHITECTURE.md into CREWAI.md as the master document for all AI agents across all platform phases
+- **Phase Coverage**: Extended documentation to cover Discovery, Assess, Plan, Migrate, Modernize, Decommission, FinOps, and Observability phases
+- **Agent Registry**: Added comprehensive agent registry with real-time monitoring and task tracking capabilities
+- **Living Document Structure**: Designed as a scalable framework for continuous expansion as new phases and agents are added
+
+#### **Critical Attributes Enhancement**
+- **Dependency Mapping**: Added essential dependency attributes:
+  - `dependencies`: General asset dependencies
+  - `app_mapped_to`: Applications hosted on servers
+  - `closely_coupled_apps`: Apps that must migrate together
+  - `upstream_dependencies`: Systems that consume from this asset
+  - `downstream_dependencies`: Systems that this asset serves
+- **Application Complexity**: Added `application_complexity` for 6R strategy analysis
+- **Cloud Readiness**: Added `cloud_readiness` assessment attribute
+- **Data Sources**: Added `data_sources` for integration point analysis
+- **Application Name**: Enhanced with `application_name` as distinct from generic asset names
+
+#### **Field Action Management System**
+- **Ignore Fields**: Mark irrelevant fields to exclude from analysis while preserving data
+- **Delete Fields**: Remove erroneous or noise-contributing fields entirely from the dataset
+- **Action Reasoning**: AI-powered reasoning for field action suggestions
+- **Undo Capability**: Restore ignored or deleted fields with one-click undo functionality
+- **Visual Indicators**: Clear status badges and icons for all field actions
+
+#### **Custom Attribute Creation**
+- **Dynamic Attribute Definition**: Create organization-specific critical attributes beyond the standard set
+- **Smart Categorization**: AI-suggested categories, importance levels, and data types based on field analysis
+- **Comprehensive Properties**: Full attribute definition including description, usage examples, and migration relevance
+- **Category Support**: Extended categories including Dependencies, Complexity, Integration, and custom categories
+- **Data Type Validation**: Support for string, number, boolean, array, and object data types
+
+#### **Enhanced Field Mapping Intelligence**
+- **Semantic Matching**: Expanded semantic patterns for dependency, complexity, and business context fields
+- **Value Pattern Analysis**: Enhanced data pattern recognition for better automatic mapping suggestions
+- **Confidence Scoring**: Improved confidence algorithms incorporating custom attributes and field patterns
+- **Custom Attribute Integration**: Seamless mapping to user-defined custom attributes alongside standard ones
+
+### 🛠️ **Technical Improvements**
+
+#### **Data Flow Architecture**
+- **Enhanced State Management**: Comprehensive state tracking for custom attributes, field actions, and mapping progress
+- **Progress Calculation**: Dynamic progress metrics incorporating custom attributes in critical mapping counts
+- **Data Persistence**: Enhanced data passing between workflow stages including custom attributes and field mappings
+- **Action State Tracking**: Persistent tracking of field actions across component re-renders
+
+#### **User Experience Enhancements**
+- **Interactive Dialogs**: Modal interfaces for field actions and custom attribute creation
+- **Visual Status System**: Enhanced status indicators with icons and color coding for all mapping states
+- **Progress Visualization**: Real-time progress updates reflecting custom attributes and field actions
+- **Action Feedback**: Immediate visual feedback for all user actions with undo capabilities
+
+#### **Agent Integration Points**
+- **Custom Attribute Specialist**: New AI agent for suggesting custom attributes from unmapped fields
+- **Enhanced Migration Planning**: Updated progress calculations incorporating custom critical attributes
+- **Field Action Reasoning**: AI-powered explanations for recommended field actions
+- **Observability Integration**: Agent registration and monitoring for all Discovery phase crews
+
+### 📊 **Migration Analysis Improvements**
+
+#### **6R Strategy Enhancement**
+- **Dependency Analysis**: Complete dependency mapping enables accurate wave planning and migration sequencing
+- **Complexity Assessment**: Application complexity scoring informs 6R treatment recommendations
+- **Cloud Readiness**: Direct assessment of cloud migration readiness for each asset
+- **Business Context**: Enhanced business criticality and departmental mapping for risk-based planning
+
+#### **Data Quality Management**
+- **Noise Reduction**: Field action system removes irrelevant data that could skew AI analysis
+- **Custom Relevance**: Organization-specific attributes ensure migration analysis reflects unique business requirements
+- **Relationship Mapping**: Comprehensive dependency attributes enable accurate application relationship analysis
+- **Migration Readiness**: Enhanced attribute mapping provides complete context for migration planning
+
+### 🔄 **Workflow Integration**
+
+#### **Discovery Phase Enhancement**
+- **Complete Attribute Mapping**: All 25+ critical attributes including custom organizational fields
+- **Field Management**: Professional-grade field action system for data curation
+- **Progress Tracking**: Real-time progress with custom attribute awareness
+- **Seamless Handoff**: Enhanced data passing to Data Cleansing phase with complete context
+
+#### **Cross-Phase Preparation**
+- **Assess Phase Ready**: Complete data context for assessment AI crews
+- **Plan Phase Foundation**: Dependency and complexity data for wave planning
+- **Migration Execution**: Technical specifications and dependencies for execution planning
+- **Modernization Context**: Cloud readiness and technical debt assessment for modernization crews
+
+### 📈 **Platform Scalability**
+
+#### **Master Documentation Framework**
+- **Centralized Agent Management**: Single source of truth for all AI agents across all platform phases
+- **Real-time Monitoring**: Observability integration for agent performance and task completion tracking
+- **Extensible Architecture**: Structured framework supporting addition of new phases and agents
+- **Version Management**: Comprehensive versioning and change tracking for agent definitions
+
+### 🔧 **Backend Alignment**
+
+#### **API Endpoint Preparation**
+- **Custom Attribute Storage**: Database schema and API endpoints for custom attribute persistence
+- **Field Action Processing**: Backend support for field ignore/delete operations
+- **Enhanced Mapping**: API enhancements for comprehensive attribute mapping with custom fields
+- **Agent Registry**: Backend infrastructure for agent monitoring and task tracking
+
+### 💡 **Key Benefits**
+
+1. **Complete Migration Context**: All critical attributes for comprehensive 6R analysis and wave planning
+2. **Organization Adaptability**: Custom attributes ensure platform adapts to unique organizational requirements  
+3. **Data Quality Control**: Professional field management eliminates noise and focuses analysis on relevant data
+4. **Scalable Agent Framework**: Master documentation supports platform growth across all migration phases
+5. **Real-time Monitoring**: Observability integration provides visibility into AI agent performance and task completion 

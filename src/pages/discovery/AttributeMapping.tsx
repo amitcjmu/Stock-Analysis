@@ -19,7 +19,8 @@ const CRITICAL_ATTRIBUTES = {
     importance: 'critical',
     usedFor: ['Asset identification', 'Dependency mapping', 'Migration tracking'],
     examples: ['srv-web-01', 'app-crm-prod', 'db-oracle-main'],
-    category: 'identity'
+    category: 'identity',
+    dataType: 'string'
   },
   asset_name: {
     field: 'asset_name', 
@@ -27,7 +28,17 @@ const CRITICAL_ATTRIBUTES = {
     importance: 'critical',
     usedFor: ['User interface display', 'Reporting', 'Documentation'],
     examples: ['CRM Application', 'Web Server', 'Oracle Database'],
-    category: 'identity'
+    category: 'identity',
+    dataType: 'string'
+  },
+  application_name: {
+    field: 'application_name',
+    description: 'Specific application or service name',
+    importance: 'critical',
+    usedFor: ['Application portfolio mapping', 'Business service identification', 'Dependency analysis'],
+    examples: ['Salesforce CRM', 'Payroll System', 'Customer Portal'],
+    category: 'identity',
+    dataType: 'string'
   },
   asset_type: {
     field: 'asset_type',
@@ -35,17 +46,19 @@ const CRITICAL_ATTRIBUTES = {
     importance: 'critical',
     usedFor: ['6R strategy selection', 'Migration grouping', 'Resource planning'],
     examples: ['Application', 'Server', 'Database', 'Network Device'],
-    category: 'classification'
+    category: 'classification',
+    dataType: 'string'
   },
   
-  // Business Context
+  // Enhanced Business Context
   department: {
     field: 'department',
     description: 'Business unit or department that owns the asset',
     importance: 'critical',
     usedFor: ['Wave planning', 'Business impact analysis', 'Stakeholder communication'],
     examples: ['Finance', 'HR', 'Sales', 'IT Operations', 'Marketing'],
-    category: 'business'
+    category: 'business',
+    dataType: 'string'
   },
   business_criticality: {
     field: 'business_criticality',
@@ -53,7 +66,8 @@ const CRITICAL_ATTRIBUTES = {
     importance: 'critical',
     usedFor: ['6R prioritization', 'Risk assessment', 'Migration sequencing'],
     examples: ['Critical', 'High', 'Medium', 'Low'],
-    category: 'business'
+    category: 'business',
+    dataType: 'string'
   },
   environment: {
     field: 'environment',
@@ -61,17 +75,115 @@ const CRITICAL_ATTRIBUTES = {
     importance: 'critical',
     usedFor: ['Migration wave planning', 'Risk assessment', 'Testing strategy'],
     examples: ['Production', 'Development', 'Staging', 'Test'],
-    category: 'business'
+    category: 'business',
+    dataType: 'string'
   },
   
-  // Technical Specifications
+  // Dependencies (New Critical Category)
+  dependencies: {
+    field: 'dependencies',
+    description: 'Applications or services this asset depends on',
+    importance: 'critical',
+    usedFor: ['Wave sequencing', 'Risk assessment', 'Migration planning'],
+    examples: ['Database-01, Auth-Service', 'AD, Exchange', 'Oracle-DB, File-Server'],
+    category: 'dependencies',
+    dataType: 'array'
+  },
+  app_mapped_to: {
+    field: 'app_mapped_to',
+    description: 'Applications hosted or supported by this asset',
+    importance: 'critical',
+    usedFor: ['Server-application mapping', 'Impact analysis', 'Dependency planning'],
+    examples: ['CRM-App, HR-Portal', 'E-commerce-Web', 'Analytics-Dashboard'],
+    category: 'dependencies',
+    dataType: 'array'
+  },
+  closely_coupled_apps: {
+    field: 'closely_coupled_apps',
+    description: 'Applications tightly coupled requiring joint migration',
+    importance: 'high',
+    usedFor: ['Migration grouping', 'Risk mitigation', 'Wave planning'],
+    examples: ['Frontend-Backend pair', 'Microservices cluster', 'ERP modules'],
+    category: 'dependencies',
+    dataType: 'array'
+  },
+  upstream_dependencies: {
+    field: 'upstream_dependencies',
+    description: 'Services or systems this asset consumes from',
+    importance: 'high',
+    usedFor: ['Dependency sequencing', 'Prerequisites planning', 'Risk assessment'],
+    examples: ['Identity-Service', 'Payment-Gateway', 'Data-Warehouse'],
+    category: 'dependencies',
+    dataType: 'array'
+  },
+  downstream_dependencies: {
+    field: 'downstream_dependencies',
+    description: 'Services or systems that consume from this asset',
+    importance: 'high',
+    usedFor: ['Impact analysis', 'Testing requirements', 'Rollback planning'],
+    examples: ['Reporting-Service', 'Analytics-Engine', 'Mobile-Apps'],
+    category: 'dependencies',
+    dataType: 'array'
+  },
+  
+  // Application Complexity Assessment
+  application_complexity: {
+    field: 'application_complexity',
+    description: 'Technical complexity score of the application',
+    importance: 'critical',
+    usedFor: ['6R strategy selection', 'Timeline estimation', 'Resource planning'],
+    examples: ['Low', 'Medium', 'High', 'Very High'],
+    category: 'complexity',
+    dataType: 'string'
+  },
+  cloud_readiness: {
+    field: 'cloud_readiness',
+    description: 'Assessment of cloud migration readiness',
+    importance: 'critical',
+    usedFor: ['6R strategy selection', 'Migration approach', 'Modernization planning'],
+    examples: ['Ready', 'Needs Refactoring', 'Major Changes Required', 'Not Suitable'],
+    category: 'complexity',
+    dataType: 'string'
+  },
+  technical_debt: {
+    field: 'technical_debt',
+    description: 'Level of technical debt in the application',
+    importance: 'high',
+    usedFor: ['Modernization planning', 'Cost estimation', 'Risk assessment'],
+    examples: ['Low', 'Medium', 'High', 'Critical'],
+    category: 'complexity',
+    dataType: 'string'
+  },
+  
+  // Data Sources and Integration
+  data_sources: {
+    field: 'data_sources',
+    description: 'External data sources or databases used',
+    importance: 'high',
+    usedFor: ['Data migration planning', 'Integration mapping', 'Dependency analysis'],
+    examples: ['Oracle-DB, MySQL', 'SQL Server, MongoDB', 'File-shares, APIs'],
+    category: 'integration',
+    dataType: 'array'
+  },
+  integration_points: {
+    field: 'integration_points',
+    description: 'External system integration endpoints',
+    importance: 'medium',
+    usedFor: ['API migration', 'Integration testing', 'Connectivity planning'],
+    examples: ['REST APIs, SOAP services', 'Message queues', 'File transfers'],
+    category: 'integration',
+    dataType: 'array'
+  },
+  
+  // Technical Specifications (Enhanced)
   operating_system: {
     field: 'operating_system',
     description: 'Operating system family and version',
     importance: 'high',
     usedFor: ['6R Rehost/Replatform decisions', 'Compatibility analysis', 'License planning'],
     examples: ['Windows Server 2019', 'RHEL 8.4', 'Ubuntu 20.04'],
-    category: 'technical'
+    category: 'technical',
+    dataType: 'string'
   },
   cpu_cores: {
     field: 'cpu_cores',
@@ -79,7 +191,8 @@ const CRITICAL_ATTRIBUTES = {
     importance: 'high',
     usedFor: ['Right-sizing', 'Cost estimation', 'Performance planning'],
     examples: ['4', '8', '16', '32'],
-    category: 'technical'
+    category: 'technical',
+    dataType: 'number'
   },
   memory_gb: {
     field: 'memory_gb',
@@ -87,7 +200,8 @@ const CRITICAL_ATTRIBUTES = {
     importance: 'high',
     usedFor: ['Right-sizing', 'Cost estimation', 'Performance planning'],
     examples: ['8', '16', '32', '64'],
-    category: 'technical'
+    category: 'technical',
+    dataType: 'number'
   },
   storage_gb: {
     field: 'storage_gb',
@@ -95,7 +209,8 @@ const CRITICAL_ATTRIBUTES = {
     importance: 'medium',
     usedFor: ['Cost estimation', 'Data migration planning'],
     examples: ['100', '500', '1000', '2000'],
-    category: 'technical'
+    category: 'technical',
+    dataType: 'number'
   },
   
   // Network & Location
@@ -105,7 +220,8 @@ const CRITICAL_ATTRIBUTES = {
     importance: 'medium',
     usedFor: ['Network mapping', 'Security planning', 'Connectivity analysis'],
     examples: ['192.168.1.10', '10.0.1.50'],
-    category: 'network'
+    category: 'network',
+    dataType: 'string'
   },
   location: {
     field: 'location',
@@ -113,17 +229,19 @@ const CRITICAL_ATTRIBUTES = {
     importance: 'medium',
     usedFor: ['Data residency', 'Compliance', 'Network latency planning'],
     examples: ['US-East', 'EU-West', 'On-Premises DC1'],
-    category: 'network'
+    category: 'network',
+    dataType: 'string'
   },
   
-  // Application-Specific
+  // Governance & Compliance
   application_owner: {
     field: 'application_owner',
     description: 'Person or team responsible for the application',
     importance: 'high',
     usedFor: ['Stakeholder engagement', 'Change management', 'Testing coordination'],
     examples: ['john.smith@company.com', 'CRM Team', 'Database Admin Team'],
-    category: 'governance'
+    category: 'governance',
+    dataType: 'string'
   },
   vendor: {
     field: 'vendor',
@@ -131,7 +249,8 @@ const CRITICAL_ATTRIBUTES = {
     importance: 'medium',
     usedFor: ['License migration', 'Support planning', 'Compatibility checks'],
     examples: ['Microsoft', 'Oracle', 'SAP', 'Custom'],
-    category: 'governance'
+    category: 'governance',
+    dataType: 'string'
   },
   version: {
     field: 'version',
@@ -139,20 +258,43 @@ const CRITICAL_ATTRIBUTES = {
     importance: 'medium',
     usedFor: ['Compatibility analysis', 'Upgrade planning', 'Support lifecycle'],
     examples: ['2019', '12.2', '8.1.4'],
-    category: 'technical'
+    category: 'technical',
+    dataType: 'string'
+  },
+  compliance_requirements: {
+    field: 'compliance_requirements',
+    description: 'Regulatory or compliance requirements',
+    importance: 'high',
+    usedFor: ['Cloud provider selection', 'Security planning', 'Audit preparation'],
+    examples: ['SOX', 'HIPAA', 'GDPR', 'PCI-DSS'],
+    category: 'governance',
+    dataType: 'array'
   }
 };
 
+// Enhanced interfaces for attribute mapping
 interface FieldMapping {
   id: string;
   sourceField: string;
   targetAttribute: string;
   confidence: number;
-  mapping_type: 'direct' | 'transform' | 'calculated' | 'default';
+  mapping_type: 'direct' | 'calculated' | 'manual';
   sample_values: string[];
-  status: 'pending' | 'approved' | 'rejected';
-  user_feedback?: string;
+  status: 'pending' | 'approved' | 'rejected' | 'ignored' | 'deleted';
   ai_reasoning: string;
+  action?: 'ignore' | 'delete';
+}
+
+interface CustomAttribute {
+  field: string;
+  description: string;
+  importance: 'critical' | 'high' | 'medium' | 'low';
+  usedFor: string[];
+  examples: string[];
+  category: string;
+  dataType: 'string' | 'number' | 'boolean' | 'array' | 'object';
+  customField: boolean;
+  createdBy?: string;
 }
 
 interface CrewAnalysis {
@@ -178,6 +320,20 @@ const AttributeMapping = () => {
     critical_mapped: 0,
     accuracy: 0
   });
+  
+  // Enhanced state for custom attributes and field actions
+  const [customAttributes, setCustomAttributes] = useState<CustomAttribute[]>([]);
+  const [showCustomAttributeDialog, setShowCustomAttributeDialog] = useState(false);
+  const [newCustomAttribute, setNewCustomAttribute] = useState<Partial<CustomAttribute>>({
+    category: 'custom',
+    importance: 'medium',
+    dataType: 'string',
+    customField: true
+  });
+  const [fieldActions, setFieldActions] = useState<Record<string, 'ignore' | 'delete' | null>>({});
+  const [showFieldActionDialog, setShowFieldActionDialog] = useState(false);
+  const [selectedFieldForAction, setSelectedFieldForAction] = useState<string>('');
+  const [actionReasoning, setActionReasoning] = useState<string>('');
 
   useEffect(() => {
     // Check if we came from Data Import with data
@@ -239,6 +395,12 @@ const AttributeMapping = () => {
     const mappings: FieldMapping[] = [];
     const crewAnalysis: CrewAnalysis[] = [];
     
+    // Combine standard and custom attributes
+    const allAttributes = { ...CRITICAL_ATTRIBUTES };
+    customAttributes.forEach(attr => {
+      allAttributes[attr.field] = attr;
+    });
+    
     // Field Mapping Agent Analysis
     crewAnalysis.push({
       agent: 'Field Mapping Specialist',
@@ -246,19 +408,38 @@ const AttributeMapping = () => {
       findings: [
         `Detected ${columns.length} columns in imported dataset`,
         `Sample data contains ${sampleData.length} records for analysis`,
+        `Using ${Object.keys(allAttributes).length} critical attributes (${customAttributes.length} custom)`,
         'Performing intelligent field matching using semantic analysis'
       ],
       recommendations: [
         'Review suggested mappings for accuracy',
         'Approve high-confidence mappings to train AI',
-        'Provide custom mappings for unique fields'
+        'Create custom attributes for unique organizational fields',
+        'Consider ignoring or deleting irrelevant fields'
       ],
       confidence: 0.85
     });
     
     // Map each column to critical attributes
     columns.forEach((column, index) => {
-      const bestMatch = findBestAttributeMatch(column, sampleData);
+      // Check if field has been marked for action
+      const fieldAction = fieldActions[column];
+      if (fieldAction === 'ignore' || fieldAction === 'delete') {
+        mappings.push({
+          id: `mapping-${index}`,
+          sourceField: column,
+          targetAttribute: 'unmapped',
+          confidence: 1.0,
+          mapping_type: 'direct',
+          sample_values: extractSampleValues(column, sampleData, 3),
+          status: fieldAction === 'ignore' ? 'ignored' : 'deleted',
+          ai_reasoning: `User marked field to ${fieldAction}`,
+          action: fieldAction
+        });
+        return;
+      }
+      
+      const bestMatch = findBestAttributeMatch(column, sampleData, allAttributes);
       const sampleValues = extractSampleValues(column, sampleData, 3);
       
       mappings.push({
@@ -273,13 +454,34 @@ const AttributeMapping = () => {
       });
     });
     
-    // Migration Planning Agent Analysis
+    // Suggest new custom attributes based on unmapped fields
+    const unmappedFields = mappings.filter(m => m.targetAttribute === 'unmapped' && m.status === 'pending');
+    if (unmappedFields.length > 0) {
+      const customAttributeSuggestions = await suggestCustomAttributes(unmappedFields, sampleData);
+      crewAnalysis.push({
+        agent: 'Custom Attribute Specialist',
+        task: 'Suggest new critical attributes for unmapped fields',
+        findings: [
+          `${unmappedFields.length} fields could not be mapped to existing attributes`,
+          `Identified ${customAttributeSuggestions.length} potential custom attributes`,
+          'Fields may represent organization-specific data elements'
+        ],
+        recommendations: [
+          'Review suggested custom attributes for relevance',
+          'Create custom attributes for important organizational fields',
+          'Ignore fields that are not migration-relevant'
+        ],
+        confidence: 0.70
+      });
+    }
+    
+    // Enhanced Migration Planning Agent Analysis
     const criticalMapped = mappings.filter(m => 
       m.status === 'approved' && 
-      CRITICAL_ATTRIBUTES[m.targetAttribute]?.importance === 'critical'
+      allAttributes[m.targetAttribute]?.importance === 'critical'
     ).length;
     
-    const totalCritical = Object.values(CRITICAL_ATTRIBUTES)
+    const totalCritical = Object.values(allAttributes)
       .filter(attr => attr.importance === 'critical').length;
     
     crewAnalysis.push({
@@ -288,28 +490,44 @@ const AttributeMapping = () => {
       findings: [
         `${criticalMapped}/${totalCritical} critical attributes mapped`,
         `${mappings.filter(m => m.confidence > 0.8).length} high-confidence mappings`,
-        `Ready for ${criticalMapped >= 5 ? 'advanced' : 'basic'} migration analysis`
+        `${mappings.filter(m => m.status === 'ignored').length} fields marked to ignore`,
+        `${mappings.filter(m => m.status === 'deleted').length} fields marked for deletion`,
+        `Ready for ${criticalMapped >= 8 ? 'advanced' : 'basic'} migration analysis`
       ],
       recommendations: [
-        criticalMapped < 5 ? 'Map remaining critical fields for complete analysis' : 'Proceed to data cleansing phase',
-        'Review business criticality and department mappings',
-        'Validate asset type classifications'
+        criticalMapped < 8 ? 'Map remaining critical fields for complete analysis' : 'Proceed to data cleansing phase',
+        'Review dependency mapping fields for application relationships',
+        'Validate complexity and cloud readiness attribute mappings',
+        'Consider creating custom attributes for unique business context'
       ],
       confidence: criticalMapped / totalCritical
     });
     
-    // 6R Strategy Agent Analysis
+    // Enhanced 6R Strategy Agent Analysis
+    const dependencyFieldsMapped = mappings.filter(m => 
+      ['dependencies', 'app_mapped_to', 'closely_coupled_apps', 'upstream_dependencies', 'downstream_dependencies']
+      .includes(m.targetAttribute) && m.status === 'approved'
+    ).length;
+    
+    const complexityFieldsMapped = mappings.filter(m => 
+      ['application_complexity', 'cloud_readiness', 'technical_debt']
+      .includes(m.targetAttribute) && m.status === 'approved'
+    ).length;
+    
     crewAnalysis.push({
       agent: '6R Strategy Agent',
       task: 'Evaluate data completeness for 6R treatment recommendations',
       findings: [
         `Asset type mapping: ${mappings.find(m => m.targetAttribute === 'asset_type') ? 'Available' : 'Missing'}`,
         `Business context: ${mappings.find(m => m.targetAttribute === 'business_criticality') ? 'Available' : 'Missing'}`,
+        `Dependency fields: ${dependencyFieldsMapped}/5 mapped`,
+        `Complexity assessment: ${complexityFieldsMapped}/3 mapped`,
         `Technical specs: ${mappings.filter(m => ['cpu_cores', 'memory_gb', 'operating_system'].includes(m.targetAttribute)).length}/3 available`
       ],
       recommendations: [
         'Ensure asset_type is mapped for strategy classification',
-        'Business criticality enables risk-based sequencing',
+        'Dependencies enable accurate wave sequencing',
+        'Complexity fields enable informed 6R recommendations',
         'Technical specifications enable right-sizing analysis'
       ],
       confidence: 0.75
@@ -325,12 +543,12 @@ const AttributeMapping = () => {
     return { mappings, crewAnalysis, progress };
   };
 
-  const findBestAttributeMatch = (column: string, sampleData: any[]) => {
+  const findBestAttributeMatch = (column: string, sampleData: any[], allAttributes: any) => {
     const columnLower = column.toLowerCase().replace(/[_\s-]/g, '');
     let bestMatch = { attribute: 'unmapped', confidence: 0, type: 'direct' as const, reasoning: '' };
     
     // Direct name matching
-    for (const [key, attr] of Object.entries(CRITICAL_ATTRIBUTES)) {
+    for (const [key, attr] of Object.entries(allAttributes)) {
       const attrLower = key.toLowerCase().replace(/[_\s-]/g, '');
       if (columnLower === attrLower) {
         return {
@@ -342,22 +560,50 @@ const AttributeMapping = () => {
       }
     }
     
-    // Semantic matching
+    // Enhanced semantic matching with new critical attributes
     const semanticMappings = {
+      // Core Identity
       hostname: ['host', 'server', 'machine', 'node', 'instance'],
       asset_name: ['name', 'title', 'label', 'asset'],
+      application_name: ['app', 'application', 'service', 'system'],
       asset_type: ['type', 'category', 'class', 'kind'],
-      department: ['dept', 'division', 'unit', 'team', 'group'],
-      business_criticality: ['criticality', 'priority', 'importance', 'critical'],
+      
+      // Business Context
+      department: ['dept', 'division', 'unit', 'team', 'group', 'org'],
+      business_criticality: ['criticality', 'priority', 'importance', 'critical', 'business'],
       environment: ['env', 'stage', 'tier'],
+      
+      // Dependencies
+      dependencies: ['depends', 'dependency', 'requires', 'needs'],
+      app_mapped_to: ['mapped', 'hosts', 'runs', 'supports'],
+      closely_coupled_apps: ['coupled', 'linked', 'paired', 'connected'],
+      upstream_dependencies: ['upstream', 'source', 'consumes'],
+      downstream_dependencies: ['downstream', 'target', 'serves'],
+      
+      // Complexity
+      application_complexity: ['complexity', 'complex', 'simple', 'difficulty'],
+      cloud_readiness: ['ready', 'cloud', 'migration', 'suitable'],
+      technical_debt: ['debt', 'legacy', 'outdated', 'modernization'],
+      
+      // Integration
+      data_sources: ['datasource', 'database', 'source', 'data'],
+      integration_points: ['integration', 'api', 'interface', 'endpoint'],
+      
+      // Technical
       operating_system: ['os', 'system', 'platform'],
       cpu_cores: ['cpu', 'cores', 'processors', 'vcpu'],
       memory_gb: ['memory', 'ram', 'gb'],
       storage_gb: ['storage', 'disk', 'space'],
+      
+      // Network
       ip_address: ['ip', 'address', 'network'],
-      application_owner: ['owner', 'contact', 'responsible'],
-      vendor: ['vendor', 'manufacturer', 'supplier'],
-      version: ['version', 'release', 'build']
+      location: ['location', 'site', 'datacenter', 'region'],
+      
+      // Governance
+      application_owner: ['owner', 'contact', 'responsible', 'manager'],
+      vendor: ['vendor', 'manufacturer', 'supplier', 'provider'],
+      version: ['version', 'release', 'build'],
+      compliance_requirements: ['compliance', 'regulatory', 'sox', 'hipaa', 'gdpr']
     };
     
     for (const [attribute, keywords] of Object.entries(semanticMappings)) {
@@ -376,7 +622,7 @@ const AttributeMapping = () => {
       }
     }
     
-    // Value-based inference
+    // Value-based inference with enhanced patterns
     if (bestMatch.confidence < 0.5) {
       const sampleValues = extractSampleValues(column, sampleData, 5);
       const inference = inferFromValues(sampleValues);
@@ -496,6 +742,98 @@ const AttributeMapping = () => {
     if (progress >= 80) return 'text-green-600 bg-green-100';
     if (progress >= 60) return 'text-yellow-600 bg-yellow-100';
     return 'text-red-600 bg-red-100';
+  };
+
+  const suggestCustomAttributes = async (unmappedFields: FieldMapping[], sampleData: any[]) => {
+    const suggestions: CustomAttribute[] = [];
+    
+    unmappedFields.forEach(field => {
+      const sampleValues = field.sample_values;
+      
+      // Analyze sample values to suggest custom attribute properties
+      let suggestedCategory = 'custom';
+      let suggestedImportance = 'medium';
+      let suggestedDataType = 'string';
+      
+      // Pattern analysis for category suggestion
+      if (sampleValues.some(v => v.toLowerCase().includes('dept') || v.toLowerCase().includes('team'))) {
+        suggestedCategory = 'business';
+        suggestedImportance = 'high';
+      } else if (sampleValues.some(v => /^\d+$/.test(v))) {
+        suggestedDataType = 'number';
+        suggestedCategory = 'technical';
+      } else if (sampleValues.some(v => v.toLowerCase().includes('app') || v.toLowerCase().includes('service'))) {
+        suggestedCategory = 'dependencies';
+        suggestedImportance = 'high';
+      }
+      
+      suggestions.push({
+        field: field.sourceField,
+        description: `Custom attribute for ${field.sourceField} (auto-suggested)`,
+        importance: suggestedImportance as 'critical' | 'high' | 'medium' | 'low',
+        usedFor: ['Migration analysis', 'Custom reporting'],
+        examples: sampleValues.slice(0, 3),
+        category: suggestedCategory,
+        dataType: suggestedDataType as 'string' | 'number' | 'boolean' | 'array' | 'object',
+        customField: true,
+        createdBy: 'AI Suggestion'
+      });
+    });
+    
+    return suggestions;
+  };
+
+  const handleMappingAction = (mappingId: string, action: 'approve' | 'reject') => {
+    setFieldMappings(mappings => 
+      mappings.map(mapping => 
+        mapping.id === mappingId 
+          ? { ...mapping, status: action === 'approve' ? 'approved' : 'rejected' }
+          : mapping
+      )
+    );
+    
+    // Update progress
+    const updatedMappings = fieldMappings.map(mapping => 
+      mapping.id === mappingId 
+        ? { ...mapping, status: action === 'approve' ? 'approved' : 'rejected' }
+        : mapping
+    );
+    
+    updateMappingProgress(updatedMappings);
+  };
+
+  const updateMappingProgress = (mappings: FieldMapping[]) => {
+    const allAttributes = { ...CRITICAL_ATTRIBUTES };
+    customAttributes.forEach(attr => {
+      allAttributes[attr.field] = attr;
+    });
+    
+    const criticalMapped = mappings.filter(m => 
+      m.status === 'approved' && 
+      allAttributes[m.targetAttribute]?.importance === 'critical'
+    ).length;
+    
+    setMappingProgress({
+      total: mappings.length,
+      mapped: mappings.filter(m => m.status === 'approved').length,
+      critical_mapped: criticalMapped,
+      accuracy: mappings.reduce((acc, m) => acc + m.confidence, 0) / mappings.length
+    });
+  };
+
+  const handleContinueToDataCleansing = () => {
+    // Prepare enhanced data with field mappings for Data Cleansing
+    const approvedMappings = fieldMappings.filter(m => m.status === 'approved');
+    
+    navigate('/discovery/data-cleansing', {
+      state: {
+        fromAttributeMapping: true,
+        fieldMappings: approvedMappings,
+        customAttributes: customAttributes,
+        importedData: importedData,
+        mappingProgress: mappingProgress
+      }
+    });
   };
 
   return (
@@ -742,7 +1080,10 @@ const AttributeMapping = () => {
                           </span>
                           {mapping.status === 'pending' && (
                             <button
-                              onClick={() => handleApproveMapping(mapping.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMappingAction(mapping.id, 'approve');
+                              }}
                               className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
                             >
                               Approve
@@ -881,7 +1222,7 @@ const AttributeMapping = () => {
             {/* Continue Button */}
             <div className="flex justify-center">
               <button
-                onClick={proceedToDataCleansing}
+                onClick={handleContinueToDataCleansing}
                 disabled={mappingProgress.critical_mapped < 3}
                 className={`flex items-center space-x-2 px-6 py-3 rounded-lg text-lg font-medium transition-colors ${
                   mappingProgress.critical_mapped >= 3
