@@ -3,26 +3,24 @@
  * Manages backend API endpoints and configuration
  */
 
-// Get the backend URL from environment or use default
+// Get the backend URL from environment variables with proper fallbacks
 const getBackendUrl = (): string => {
-  // In development, use localhost:8000 (Docker backend port)
-  if (import.meta.env.DEV) {
+  // First, check for environment-specific variables
+  const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE_URL;
+  
+  if (backendUrl) {
+    // Remove /api/v1 suffix if it exists to get the base URL
+    return backendUrl.replace(/\/api\/v1$/, '');
+  }
+  
+  // In development mode, use localhost
+  if (import.meta.env.DEV || import.meta.env.MODE === 'development') {
     return 'http://localhost:8000';
   }
   
-  // In production, prioritize environment variable, then fall back to Railway URL
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
-  if (backendUrl) {
-    return backendUrl;
-  }
-  
-  // If no environment variable is set, check if we're likely on Vercel and use Railway
-  if (window.location.hostname.includes('vercel.app')) {
-    // Default Railway backend URL - you should replace this with your actual Railway URL
-    return 'https://migrate-ui-orchestrator-production.up.railway.app';
-  }
-  
-  // For local production builds or other deployments, use same origin
+  // For production without explicit backend URL, use same origin
+  // This is a fallback that should not be used with Vercel + Railway setup
+  console.warn('No VITE_BACKEND_URL environment variable found. Using same origin as fallback.');
   return window.location.origin;
 };
 

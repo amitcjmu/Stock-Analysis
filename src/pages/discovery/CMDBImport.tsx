@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import Sidebar from '../../components/Sidebar';
 import FeedbackWidget from '../../components/FeedbackWidget';
 import { Link, useNavigate } from 'react-router-dom';
+import { API_CONFIG } from '../../config/api';
 import { 
   Upload,
   FileSpreadsheet,
@@ -264,8 +265,8 @@ const DataImport = () => {
         
         console.log('Sending file to AI crew for intelligent analysis:', analysisRequest.filename);
         
-        // Call backend with intelligent agentic analysis
-        const response = await fetch('http://localhost:8000/api/v1/discovery/analyze-cmdb', {
+        // Call backend with intelligent agentic analysis using API configuration
+        const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.DISCOVERY.ANALYZE_CMDB}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'

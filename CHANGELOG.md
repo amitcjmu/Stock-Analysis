@@ -1358,3 +1358,136 @@ This release significantly enhances the Attribute Mapping system with comprehens
 3. **Data Quality Control**: Professional field management eliminates noise and focuses analysis on relevant data
 4. **Scalable Agent Framework**: Master documentation supports platform growth across all migration phases
 5. **Real-time Monitoring**: Observability integration provides visibility into AI agent performance and task completion 
+
+## [0.3.3] - 2025-01-28
+
+### 🚀 **Production Deployment Fixes - Environment Variable Configuration**
+
+This critical release resolves hardcoded localhost URLs that prevented the application from working in production with Vercel (frontend) and Railway (backend) deployments.
+
+### 🐛 **Critical Production Fixes**
+
+#### **Hardcoded URL Resolution**
+- **API Configuration**: Removed hardcoded `localhost:8000` URLs from `src/config/api.ts`
+- **6R Analysis API**: Fixed hardcoded URLs in `src/lib/api/sixr.ts` for proper production deployment
+- **CMDB Import**: Updated `src/pages/discovery/CMDBImport.tsx` to use environment variables instead of hardcoded localhost
+- **Environment Variable Priority**: Implemented proper fallback chain for URL resolution
+
+#### **Environment Variable System**
+- **VITE_ Prefix Support**: All frontend environment variables now properly use `VITE_` prefix for Vite compatibility
+- **Multiple Variable Names**: Support for both `VITE_BACKEND_URL` and `VITE_API_BASE_URL` for flexibility
+- **Automatic URL Conversion**: Smart conversion between HTTP/HTTPS and WS/WSS protocols
+- **Development vs Production**: Proper detection and handling of development vs production environments
+
+#### **Docker Configuration**
+- **Updated docker-compose.yml**: Fixed environment variable naming to use `VITE_BACKEND_URL` instead of `VITE_API_BASE_URL`
+- **WebSocket Support**: Added `VITE_WS_BASE_URL` configuration for WebSocket connections
+- **Container Environment**: Proper environment variable passing to frontend container
+
+### ✨ **Environment Configuration Enhancements**
+
+#### **URL Resolution Logic**
+- **Priority System**: Environment variables → Development mode → Production fallback
+- **Smart Fallbacks**: Automatic URL derivation when partial configuration is provided
+- **Error Handling**: Clear console warnings when environment variables are missing
+- **Protocol Detection**: Automatic HTTP/WS to HTTPS/WSS conversion for production
+
+#### **Development vs Production Support**
+- **Local Development**: `http://localhost:8000` for Docker and local development
+- **Vercel + Railway**: Environment variable-based configuration for production
+- **Flexible Deployment**: Support for various deployment architectures
+- **Debug Information**: Console logging for troubleshooting URL resolution
+
+### 🛠️ **Configuration Files**
+
+#### **New Documentation**
+- **Environment Guide**: Created comprehensive `docs/ENVIRONMENT_CONFIGURATION.md`
+- **Frontend Example**: Added `.env.example` for frontend environment variables
+- **Production Checklist**: Step-by-step deployment configuration guide
+- **Troubleshooting**: Common issues and debug commands
+
+#### **Variable Naming Convention**
+```env
+# Primary variables
+VITE_BACKEND_URL=https://your-railway-app.railway.app
+VITE_WS_BASE_URL=wss://your-railway-app.railway.app/api/v1/ws
+
+# Alternative/legacy names (for compatibility)
+VITE_API_BASE_URL=https://your-railway-app.railway.app
+VITE_WS_URL=wss://your-railway-app.railway.app/api/v1/ws
+```
+
+### 🔧 **Technical Improvements**
+
+#### **API Configuration Overhaul**
+- **Centralized Configuration**: All URL resolution logic in `src/config/api.ts`
+- **Consistent Patterns**: Same configuration pattern across all API files
+- **Import Management**: Proper API_CONFIG imports where needed
+- **Type Safety**: TypeScript support for environment variable access
+
+#### **WebSocket Configuration**
+- **Automatic Derivation**: WebSocket URLs derived from HTTP URLs when not explicitly set
+- **Protocol Conversion**: Smart HTTP → WS and HTTPS → WSS conversion
+- **Fallback Support**: Multiple fallback options for WebSocket connections
+- **Development Testing**: Proper localhost WebSocket support
+
+#### **Build System Integration**
+- **Vite Compatibility**: All environment variables properly prefixed for Vite
+- **Build-time Resolution**: Environment variables resolved at build time
+- **Hot Reload Support**: Development server automatically picks up environment changes
+- **Production Optimization**: Optimized bundle size with proper dead code elimination
+
+### 🌐 **Deployment Support**
+
+#### **Vercel Frontend Configuration**
+```env
+# Set these in Vercel dashboard
+VITE_BACKEND_URL=https://migrate-ui-orchestrator-production.up.railway.app
+VITE_WS_BASE_URL=wss://migrate-ui-orchestrator-production.up.railway.app/api/v1/ws
+```
+
+#### **Railway Backend Compatibility**
+- **Automatic HTTPS**: Railway provides HTTPS URLs automatically
+- **CORS Configuration**: Backend CORS settings updated for Vercel domains
+- **Health Checks**: Production health check endpoints working correctly
+- **WebSocket Tunneling**: WSS support through Railway's infrastructure
+
+#### **Local Development**
+```env
+# .env.local for local development
+VITE_BACKEND_URL=http://localhost:8000
+VITE_WS_BASE_URL=ws://localhost:8000/api/v1/ws
+```
+
+### 💡 **Key Benefits**
+
+1. **Production Ready**: Application now works correctly with Vercel + Railway deployment
+2. **Environment Flexibility**: Supports various deployment architectures and configurations
+3. **Development Experience**: Maintains excellent local development experience
+4. **Debug Friendly**: Clear error messages and logging for configuration issues
+5. **Future Proof**: Extensible configuration system for additional deployment targets
+
+### 🔄 **Migration Guide**
+
+#### **For Local Development**
+1. Create `.env.local` with `VITE_BACKEND_URL=http://localhost:8000`
+2. Restart development server: `npm run dev`
+3. Verify configuration in browser console
+
+#### **For Production (Vercel)**
+1. Set `VITE_BACKEND_URL` in Vercel environment variables
+2. Optional: Set `VITE_WS_BASE_URL` for WebSocket support
+3. Redeploy application
+4. Test API connectivity in production
+
+#### **For Docker Development**
+1. Use updated `docker-compose.yml` (no changes needed)
+2. Restart containers: `docker-compose down && docker-compose up`
+3. Verify environment variables are properly set
+
+### 🚨 **Breaking Changes**
+- **Docker Environment**: Changed `VITE_API_BASE_URL` to `VITE_BACKEND_URL` in docker-compose.yml
+- **API Imports**: Added required `API_CONFIG` import in CMDBImport.tsx
+- **URL Format**: Environment URLs should not include `/api/v1` suffix (automatically added)
+
+--- 

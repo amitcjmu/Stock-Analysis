@@ -12,46 +12,54 @@ import {
 
 // API Configuration
 const getApiBaseUrl = (): string => {
-  // In development, use localhost:8000
-  if (import.meta.env.DEV) {
+  // First, check for environment-specific variables
+  const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE_URL;
+  
+  if (backendUrl) {
+    // Ensure it ends with /api/v1
+    const baseUrl = backendUrl.replace(/\/api\/v1$/, '');
+    return `${baseUrl}/api/v1`;
+  }
+  
+  // In development mode, use localhost
+  if (import.meta.env.DEV || import.meta.env.MODE === 'development') {
     return 'http://localhost:8000/api/v1';
   }
   
-  // In production, prioritize environment variable, then fall back to Railway URL
-  const backendUrl = import.meta.env.VITE_API_BASE_URL;
-  if (backendUrl) {
-    return backendUrl;
-  }
-  
-  // If no environment variable is set, check if we're likely on Vercel and use Railway
-  if (window.location.hostname.includes('vercel.app')) {
-    // Default Railway backend URL - you should replace this with your actual Railway URL
-    return 'https://migrate-ui-orchestrator-production.up.railway.app/api/v1';
-  }
-  
-  // For local production builds or other deployments, use same origin
+  // For production without explicit backend URL, use same origin
+  // This is a fallback that should not be used with Vercel + Railway setup
+  console.warn('No VITE_BACKEND_URL environment variable found. Using same origin as fallback.');
   return `${window.location.origin}/api/v1`;
 };
 
 const getWsBaseUrl = (): string => {
-  // In development, use localhost:8000
-  if (import.meta.env.DEV) {
-    return 'ws://localhost:8000/api/v1/ws';
-  }
+  // First, check for WebSocket-specific environment variable
+  const wsUrl = import.meta.env.VITE_WS_BASE_URL || import.meta.env.VITE_WS_URL;
   
-  // In production, prioritize environment variable, then fall back to Railway URL
-  const wsUrl = import.meta.env.VITE_WS_BASE_URL;
   if (wsUrl) {
     return wsUrl;
   }
   
-  // If no environment variable is set, check if we're likely on Vercel and use Railway
-  if (window.location.hostname.includes('vercel.app')) {
-    // Default Railway backend URL - you should replace this with your actual Railway URL
-    return 'wss://migrate-ui-orchestrator-production.up.railway.app/api/v1/ws';
+  // If no WebSocket URL specified, derive from backend URL
+  const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE_URL;
+  
+  if (backendUrl) {
+    const baseUrl = backendUrl.replace(/\/api\/v1$/, '');
+    // Convert HTTP(S) to WS(S)
+    const wsBaseUrl = baseUrl.replace(/^https?:/, (match) => 
+      match === 'https:' ? 'wss:' : 'ws:'
+    );
+    return `${wsBaseUrl}/api/v1/ws`;
   }
   
-  // For local production builds or other deployments, use same origin
+  // In development mode, use localhost
+  if (import.meta.env.DEV || import.meta.env.MODE === 'development') {
+    return 'ws://localhost:8000/api/v1/ws';
+  }
+  
+  // For production without explicit backend URL, use same origin
+  // This is a fallback that should not be used with Vercel + Railway setup
+  console.warn('No VITE_WS_BASE_URL environment variable found. Deriving from current location.');
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   return `${protocol}//${window.location.host}/api/v1/ws`;
 };
