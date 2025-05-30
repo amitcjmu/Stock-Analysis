@@ -25,7 +25,8 @@ from app.services.agents import AgentManager
 from app.services.analysis import IntelligentAnalyzer, PlaceholderAnalyzer
 from app.services.feedback import FeedbackProcessor
 from app.services.agent_monitor import agent_monitor, TaskStatus
-from app.services.tools.field_mapping_tool import field_mapping_tool
+from app.services.tools.sixr_tools import get_sixr_tools
+from app.services.memory import MemoryService
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +80,15 @@ class CrewAIService:
                 logger.info("CrewAI service disabled by configuration - using placeholder mode")
             else:
                 logger.warning("CrewAI service initialized in placeholder mode - DeepInfra API key required")
+        
+        # Initialize field mapping tool for agents
+        try:
+            from app.services.field_mapper_modular import field_mapper
+            self.field_mapping_tool = field_mapper
+            logger.info("Field mapping tool initialized for agents")
+        except ImportError as e:
+            logger.warning(f"Field mapping tool not available: {e}")
+            self.field_mapping_tool = None
     
     def _initialize_llm(self):
         """Initialize the LiteLLM configuration for DeepInfra."""
@@ -311,25 +321,21 @@ class CrewAIService:
                 available_columns = list(cmdb_data['sample_data'][0].keys())
             
             # Use field mapping tool to analyze columns
-            field_analysis = field_mapping_tool.analyze_data_columns(available_columns, "server")
-            mapping_context = field_mapping_tool.get_mapping_context()
+            field_analysis = self.field_mapping_tool.agent_analyze_columns(available_columns, "server")
+            mapping_context = self.field_mapping_tool.agent_get_mapping_context()
             
             # Enhanced pattern analysis using data content
             pattern_analysis = {}
-            if cmdb_data.get('sample_data'):
-                try:
-                    # Convert sample data to list format for pattern analysis
-                    sample_rows = []
-                    for record in cmdb_data['sample_data'][:10]:  # Analyze first 10 rows
-                        row = [record.get(col, '') for col in available_columns]
-                        sample_rows.append(row)
-                    
-                    pattern_analysis = field_mapping_tool.field_mapper.analyze_data_patterns(
-                        available_columns, sample_rows, "server"
-                    )
-                except Exception as e:
-                    logger.warning(f"Pattern analysis failed: {e}")
-                    pattern_analysis = {"column_analysis": {}, "confidence_scores": {}}
+            if cmdb_data.get('sample_data') and len(cmdb_data['sample_data']) > 0:
+                # Analyze column patterns from sample data
+                sample_rows = []
+                for record in cmdb_data['sample_data'][:10]:  # Analyze first 10 rows
+                    row = [record.get(col, '') for col in available_columns]
+                    sample_rows.append(row)
+                
+                pattern_analysis = self.field_mapping_tool.analyze_columns(
+                    available_columns, "server"
+                )
             
             # Create agentic task with enhanced field mapping intelligence
             task = Task(
@@ -531,8 +537,8 @@ class CrewAIService:
             
             # Use field mapping tool to learn from feedback
             feedback_text = str(user_corrections)
-            field_learning_result = field_mapping_tool.learn_from_feedback_text(feedback_text, f"feedback_{filename}")
-            current_mapping_context = field_mapping_tool.get_mapping_context()
+            field_learning_result = self.field_mapping_tool.learn_from_feedback_text(feedback_text, f"feedback_{filename}")
+            current_mapping_context = self.field_mapping_tool.agent_get_mapping_context()
             
             # Create learning task with field mapping intelligence
             learning_task = Task(
@@ -622,10 +628,9 @@ class CrewAIService:
                 })
                 
                 # Update dynamic field mappings based on learned patterns
-                try:
-                    from app.services.field_mapper import field_mapper
-                    field_mapper.process_feedback_patterns(learning_result['patterns_identified'])
-                except ImportError:
+                if self.field_mapping_tool:
+                    self.field_mapping_tool.process_feedback_patterns(learning_result['patterns_identified'])
+                else:
                     logger.warning("Field mapper not available for pattern processing")
             
             logger.info(f"Processed user feedback and learned new patterns for {filename}")

@@ -16,6 +16,16 @@ class FeedbackProcessor:
     
     def __init__(self, memory):
         self.memory = memory
+        """Initialize optional dependencies with graceful fallbacks."""
+        try:
+            from app.services.field_mapper_modular import field_mapper
+            self.field_mapper = field_mapper
+            self.field_mapper_available = True
+            logger.info("Field mapper integration enabled")
+        except ImportError as e:
+            logger.warning(f"Field mapper not available: {e}")
+            self.field_mapper = None
+            self.field_mapper_available = False
     
     def intelligent_feedback_processing(self, feedback_data: Dict[str, Any]) -> Dict[str, Any]:
         """Process user feedback intelligently when CrewAI is unavailable."""
@@ -59,10 +69,9 @@ class FeedbackProcessor:
             })
             
             # Update dynamic field mappings based on patterns
-            try:
-                from app.services.field_mapper import field_mapper
-                field_mapper.process_feedback_patterns(patterns_identified)
-            except ImportError:
+            if self.field_mapper_available:
+                self.field_mapper.process_feedback_patterns(patterns_identified)
+            else:
                 logger.warning("Field mapper not available for pattern processing")
         
         # Update learning metrics

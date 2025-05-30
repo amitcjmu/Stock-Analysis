@@ -6,6 +6,9 @@ Handles CMDB templates and field mappings.
 import logging
 from typing import Dict, Any
 
+# Import field mapper for intelligent field mapping
+from app.services.field_mapper_modular import field_mapper
+
 logger = logging.getLogger(__name__)
 
 class TemplateHandler:
@@ -18,7 +21,6 @@ class TemplateHandler:
     def _initialize_dependencies(self):
         """Initialize optional dependencies with graceful fallbacks."""
         try:
-            from app.services.field_mapper import field_mapper
             self.field_mapper = field_mapper
             self.field_mapper_available = True
             logger.info("Field mapper service initialized successfully")

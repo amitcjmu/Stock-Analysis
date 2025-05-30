@@ -623,7 +623,7 @@ class CrewAIService:
                 
                 # Update dynamic field mappings based on learned patterns
                 try:
-                    from app.services.field_mapper import field_mapper
+                    from app.services.field_mapper_modular import field_mapper
                     field_mapper.process_feedback_patterns(learning_result['patterns_identified'])
                 except ImportError:
                     logger.warning("Field mapper not available for pattern processing")
