@@ -91,8 +91,18 @@ try:
     app.include_router(api_router, prefix="/api/v1")
     API_ROUTES_ENABLED = True
     print("✅ API routes loaded successfully")
+    
+    # Test if discovery routes are available
+    try:
+        routes_list = [route.path for route in api_router.routes]
+        discovery_routes = [route for route in routes_list if 'discovery' in route]
+        print(f"📋 Discovery routes available: {discovery_routes}")
+    except Exception as e:
+        print(f"⚠️  Could not enumerate routes: {e}")
+        
 except Exception as e:
     print(f"⚠️  API routes could not be loaded: {e}")
+    print(f"📋 Traceback: {traceback.format_exc()}")
     API_ROUTES_ENABLED = False
 
 # Try to import WebSocket manager

@@ -6,7 +6,13 @@ Includes all endpoint routers and API versioning.
 from fastapi import APIRouter
 
 from app.api.v1.endpoints import migrations, assets, assessments, websocket, monitoring, chat
-from app.api.v1.endpoints import discovery_modular as discovery
+
+# Use simplified discovery for now to resolve 404 issues
+try:
+    from app.api.v1.endpoints import discovery_simple as discovery
+    DISCOVERY_AVAILABLE = True
+except ImportError:
+    DISCOVERY_AVAILABLE = False
 
 # Import 6R analysis endpoints
 try:
@@ -36,11 +42,13 @@ api_router.include_router(
     tags=["assessments"]
 )
 
-api_router.include_router(
-    discovery.router,
-    prefix="/discovery",
-    tags=["discovery"]
-)
+# Include discovery router if available
+if DISCOVERY_AVAILABLE:
+    api_router.include_router(
+        discovery.router,
+        prefix="/discovery",
+        tags=["discovery"]
+    )
 
 api_router.include_router(
     monitoring.router,
