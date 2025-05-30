@@ -16,6 +16,10 @@ openai>=1.0.0
 crewai>=0.121.0
 litellm>=1.55.0
 
+# Local embeddings for CrewAI memory (replaces OpenAI embeddings)
+sentence-transformers>=2.2.0
+chromadb>=0.4.0
+
 # LangChain ecosystem (core only - no OpenAI specific)
 langchain>=0.3.0
 langchain-core>=0.3.0

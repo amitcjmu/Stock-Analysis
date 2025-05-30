@@ -78,6 +78,23 @@ ALLOWED_ORIGINS=http://localhost:8081,http://localhost:3000,http://localhost:517
 
 **Important**: Replace `aiforce-assess.vercel.app` with your actual Vercel domain. FastAPI CORS middleware doesn't support wildcard patterns, so you need to specify each domain explicitly.
 
+**Critical: Set CrewAI Environment Variables**
+
+For CrewAI to work properly with DeepInfra and local embeddings, set these Railway environment variables:
+
+```env
+# CrewAI Configuration for DeepInfra + Local Embeddings
+CHROMA_OPENAI_API_KEY=not_needed_using_local_embeddings
+DEEPINFRA_API_KEY=your_deepinfra_api_key_here
+DEEPINFRA_MODEL=meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8
+
+# Local embeddings configuration
+EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
+EMBEDDING_PROVIDER=local
+CHROMA_CLIENT_TYPE=local
+CHROMA_PERSIST_DIRECTORY=./data/chroma_db
+```
+
 If you have multiple Vercel deployments (preview branches), add them individually:
 ```env
 ALLOWED_ORIGINS=http://localhost:8081,https://aiforce-assess.vercel.app,https://aiforce-assess-git-main-yourname.vercel.app

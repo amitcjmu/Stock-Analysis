@@ -8,6 +8,7 @@ import logging
 import asyncio
 import concurrent.futures
 import uuid
+import os
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 
@@ -28,9 +29,34 @@ from app.services.tools.field_mapping_tool import field_mapping_tool
 
 logger = logging.getLogger(__name__)
 
+# Set up proper environment for CrewAI with local embeddings
+def configure_crewai_environment():
+    """Configure environment variables for CrewAI to work with DeepInfra and local embeddings."""
+    
+    # Set CHROMA_OPENAI_API_KEY to a placeholder if not set
+    # CrewAI checks for this but we'll use local embeddings instead
+    if not os.getenv('CHROMA_OPENAI_API_KEY'):
+        os.environ['CHROMA_OPENAI_API_KEY'] = 'not_needed_using_local_embeddings'
+        logging.info("Set CHROMA_OPENAI_API_KEY placeholder for local embeddings")
+    
+    # Configure Chroma to use local embeddings instead of OpenAI
+    os.environ['CHROMA_CLIENT_TYPE'] = 'local'
+    os.environ['CHROMA_PERSIST_DIRECTORY'] = './data/chroma_db'
+    
+    # Ensure we're using DeepInfra for the main LLM
+    deepinfra_key = os.getenv('DEEPINFRA_API_KEY')
+    if deepinfra_key:
+        os.environ['LITELLM_API_KEY'] = deepinfra_key
+        logging.info("Configured LiteLLM to use DeepInfra API key")
+    
+    # Set embedding model to use local sentence transformers instead of OpenAI
+    os.environ['EMBEDDING_MODEL'] = 'sentence-transformers/all-MiniLM-L6-v2'
+    os.environ['EMBEDDING_PROVIDER'] = 'local'
+    
+    logging.info("CrewAI environment configured for DeepInfra + local embeddings")
 
-
-
+# Configure environment before importing CrewAI
+configure_crewai_environment()
 
 class CrewAIService:
     """Service for managing truly agentic CrewAI agents with memory and learning."""

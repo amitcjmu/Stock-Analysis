@@ -68,6 +68,19 @@ backend/env.example
 # Database
 *.db
 *.sqlite3
+*.duckdb
+
+# AI and Vector Database
+# Keep directory structure but exclude database contents
+backend/data/chroma_db/*
+!backend/data/chroma_db/.gitkeep
+backend/data/agent_memory.pkl
+backend/data/field_mappings.json
+
+# Model caches
+.cache/
+models/
+sentence_transformers_cache/
 
 # Testing
 .pytest_cache/

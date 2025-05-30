@@ -4,7 +4,20 @@ Creates and manages specialized AI agents for CMDB analysis and migration planni
 """
 
 import logging
+import os
 from typing import Dict, Any, Optional
+from datetime import datetime
+
+# Check for required environment variables early
+CHROMA_OPENAI_API_KEY = os.getenv('CHROMA_OPENAI_API_KEY')
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+DEEPINFRA_API_KEY = os.getenv('DEEPINFRA_API_KEY')
+
+# Determine if full CrewAI functionality is available
+CREWAI_AVAILABLE = bool(CHROMA_OPENAI_API_KEY or OPENAI_API_KEY or DEEPINFRA_API_KEY)
+
+if not CREWAI_AVAILABLE:
+    logging.warning("No AI API keys found. CrewAI functionality will be limited.")
 
 try:
     from crewai import Agent, Crew, Process
@@ -30,19 +43,21 @@ logger = logging.getLogger(__name__)
 
 
 class AgentManager:
-    """Manages creation and lifecycle of AI agents and crews."""
+    """Manages all CrewAI agents and crews."""
     
-    def __init__(self, llm: Optional[Any] = None):
-        self.llm = llm
+    def __init__(self, llm=None):
+        """Initialize the agent manager with optional LLM."""
         self.agents = {}
         self.crews = {}
+        self.llm = llm
         
         if CREWAI_AVAILABLE and self.llm:
             self._create_agents()
             self._create_crews()
-            logger.info("AgentManager initialized with CrewAI agents and crews")
+            logger.info(f"Created {len(self.agents)} specialized agents")
+            logger.info(f"Created {len(self.crews)} collaborative crews")
         else:
-            logger.warning("AgentManager initialized in mock mode (CrewAI not available or no LLM)")
+            logger.warning("AgentManager initialized in limited mode (CrewAI not available or no LLM)")
     
     def reinitialize_with_fresh_llm(self, fresh_llm: Any) -> None:
         """Reinitialize all agents and crews with a fresh LLM instance."""
@@ -89,7 +104,7 @@ class AgentManager:
             verbose=False,
             allow_delegation=False,
             llm=self.llm,
-            memory=False  # Disable memory to avoid OpenAI API calls
+            memory=True  # Enable memory for OpenAI API calls
         )
         
         # 2. AI Learning Specialist Agent
@@ -113,7 +128,7 @@ class AgentManager:
             verbose=False,
             allow_delegation=False,
             llm=self.llm,
-            memory=False  # Disable memory to avoid OpenAI API calls
+            memory=True  # Enable memory for OpenAI API calls
         )
         
         # 3. Data Pattern Recognition Expert
@@ -137,7 +152,7 @@ class AgentManager:
             verbose=False,
             allow_delegation=False,
             llm=self.llm,
-            memory=False  # Disable memory to avoid OpenAI API calls
+            memory=True  # Enable memory for OpenAI API calls
         )
         
         # 4. Migration Strategy Expert
@@ -152,7 +167,7 @@ class AgentManager:
             verbose=False,
             allow_delegation=False,
             llm=self.llm,
-            memory=False  # Disable memory to avoid OpenAI API calls
+            memory=True  # Enable memory for OpenAI API calls
         )
         
         # 5. Risk Assessment Specialist
@@ -167,7 +182,7 @@ class AgentManager:
             verbose=False,
             allow_delegation=False,
             llm=self.llm,
-            memory=False  # Disable memory to avoid OpenAI API calls
+            memory=True  # Enable memory for OpenAI API calls
         )
         
         # 6. Wave Planning Coordinator
@@ -182,63 +197,61 @@ class AgentManager:
             verbose=False,
             allow_delegation=False,
             llm=self.llm,
-            memory=False  # Disable memory to avoid OpenAI API calls
+            memory=True  # Enable memory for OpenAI API calls
         )
         
         logger.info(f"Created {len(self.agents)} specialized agents")
     
     def _create_crews(self):
-        """Create collaborative crews."""
-        
-        # 1. CMDB Analysis Crew
-        self.crews['cmdb_analysis'] = Crew(
-            agents=[
-                self.agents['cmdb_analyst'],
-                self.agents['pattern_agent']
-            ],
-            tasks=[],  # Tasks will be added dynamically
-            verbose=False,
-            memory=False,  # Disable memory to avoid OpenAI API calls
-            process=Process.sequential
-        )
-        
-        # 2. Learning Crew
-        self.crews['learning'] = Crew(
-            agents=[
-                self.agents['learning_agent'],
-                self.agents['cmdb_analyst']
-            ],
-            tasks=[],  # Tasks will be added dynamically
-            verbose=False,
-            memory=False,  # Disable memory to avoid OpenAI API calls
-            process=Process.sequential
-        )
-        
-        # 3. Migration Strategy Crew
-        self.crews['migration_strategy'] = Crew(
-            agents=[
-                self.agents['migration_strategist'],
-                self.agents['risk_assessor']
-            ],
-            tasks=[],  # Tasks will be added dynamically
-            verbose=False,
-            memory=False,  # Disable memory to avoid OpenAI API calls
-            process=Process.sequential
-        )
-        
-        # 4. Wave Planning Crew
-        self.crews['wave_planning'] = Crew(
-            agents=[
-                self.agents['wave_planner'],
-                self.agents['migration_strategist']
-            ],
-            tasks=[],  # Tasks will be added dynamically
-            verbose=True,
-            memory=True,
-            process=Process.sequential
-        )
-        
-        logger.info(f"Created {len(self.crews)} collaborative crews")
+        """Create collaborative crews from agents with graceful error handling."""
+        try:
+            # Import Process here to avoid import errors
+            from crewai import Process
+            
+            # 1. Data Analysis Crew (CMDB analysis and learning)
+            self.crews['data_analysis'] = Crew(
+                agents=[
+                    self.agents['learning_agent'],
+                    self.agents['cmdb_analyst']
+                ],
+                tasks=[],  # Tasks will be added dynamically
+                verbose=False,
+                memory=True,  # Enable memory for OpenAI API calls
+                process=Process.sequential
+            )
+            
+            # 2. Migration Strategy Crew
+            self.crews['migration_strategy'] = Crew(
+                agents=[
+                    self.agents['migration_strategist'],
+                    self.agents['risk_assessor']
+                ],
+                tasks=[],  # Tasks will be added dynamically
+                verbose=False,
+                memory=True,  # Enable memory for OpenAI API calls
+                process=Process.sequential
+            )
+            
+            # 3. Wave Planning Crew
+            self.crews['wave_planning'] = Crew(
+                agents=[
+                    self.agents['wave_planner'],
+                    self.agents['migration_strategist']
+                ],
+                tasks=[],  # Tasks will be added dynamically
+                verbose=False,
+                memory=True,  # Enable memory for OpenAI API calls
+                process=Process.sequential
+            )
+            
+        except Exception as e:
+            logger.error(f"Failed to create crews: {e}")
+            # Create empty crews as fallback
+            self.crews = {
+                'data_analysis': None,
+                'migration_strategy': None,
+                'wave_planning': None
+            }
     
     def get_agent(self, agent_name: str) -> Optional[Agent]:
         """Get a specific agent by name."""
@@ -343,7 +356,7 @@ class AgentManager:
         validation_results = {}
         
         expected_crews = [
-            'cmdb_analysis', 'learning', 'migration_strategy', 'wave_planning'
+            'data_analysis', 'migration_strategy', 'wave_planning'
         ]
         
         for crew_name in expected_crews:
