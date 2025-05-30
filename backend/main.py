@@ -110,15 +110,38 @@ except Exception as e:
     manager = DummyConnectionManager()
 
 # CORS middleware configuration
+# Build origins list from multiple sources
+cors_origins = [
+    "http://localhost:8081",  # Fixed frontend port
+    "http://localhost:3000",  # React dev server (fallback)
+    "http://localhost:5173",  # Vite dev server (fallback)
+    getattr(settings, 'FRONTEND_URL', "http://localhost:8081")
+]
+
+# Add origins from environment variable
+if hasattr(settings, 'allowed_origins_list'):
+    cors_origins.extend(settings.allowed_origins_list)
+
+# Add specific Vercel domains (wildcard patterns don't work with FastAPI CORS)
+cors_origins.extend([
+    "https://aiforce-assess.vercel.app",  # Specific Vercel domain
+    "https://aiforce-assess-git-main-chockas-projects.vercel.app",  # Git branch deployments
+    "https://aiforce-assess-chockas-projects.vercel.app",  # Project-specific domain
+])
+
+# Add Railway deployment patterns
+cors_origins.extend([
+    "https://migrate-ui-orchestrator-production.up.railway.app",  # Specific Railway domain
+])
+
+# Remove duplicates and filter out empty strings
+cors_origins = list(set(filter(None, cors_origins)))
+
+print(f"🌐 CORS Origins configured: {cors_origins}")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:8081",  # Fixed frontend port
-        "http://localhost:3000",  # React dev server (fallback)
-        "http://localhost:5173",  # Vite dev server (fallback)
-        "https://*.railway.app",  # Railway deployment
-        getattr(settings, 'FRONTEND_URL', "http://localhost:8081")
-    ],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

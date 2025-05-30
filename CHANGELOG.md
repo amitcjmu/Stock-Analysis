@@ -1490,4 +1490,102 @@ VITE_WS_BASE_URL=ws://localhost:8000/api/v1/ws
 - **API Imports**: Added required `API_CONFIG` import in CMDBImport.tsx
 - **URL Format**: Environment URLs should not include `/api/v1` suffix (automatically added)
 
+---
+
+## [0.3.4] - 2025-01-28
+
+### 🚨 **Critical CORS Fix for Vercel + Railway Production**
+
+This hotfix resolves CORS (Cross-Origin Resource Sharing) errors preventing the Vercel frontend from communicating with the Railway backend in production.
+
+### 🐛 **Critical Fixes**
+
+#### **CORS Configuration**
+- **Backend CORS Update**: Enhanced CORS middleware in `backend/main.py` to include Vercel domains
+- **Vercel Domain Support**: Added explicit support for `https://aiforce-assess.vercel.app` and `https://*.vercel.app`
+- **Environment Variable Integration**: Proper integration with `ALLOWED_ORIGINS` environment variable
+- **Railway Configuration**: Updated backend environment example with production CORS settings
+
+#### **Error Resolution**
+- **"Access to fetch blocked by CORS policy"**: Fixed by adding Vercel origins to backend CORS middleware
+- **"Failed to fetch" errors**: Resolved through proper origin whitelisting
+- **Production API calls**: Now properly allowed from Vercel frontend to Railway backend
+
+### 🛠️ **Required Railway Configuration**
+
+**CRITICAL**: In your Railway project dashboard, add this environment variable:
+
+```env
+ALLOWED_ORIGINS=http://localhost:8081,http://localhost:3000,http://localhost:5173,https://aiforce-assess.vercel.app
+```
+
+**Important**: Replace `aiforce-assess.vercel.app` with your actual Vercel domain. **Do not use wildcard patterns** (`*.vercel.app`) as FastAPI CORS middleware doesn't support them.
+
+### 🐛 **Additional Fix - Wildcard Pattern Issue**
+
+- **Removed Wildcard Patterns**: FastAPI CORS middleware doesn't support `https://*.vercel.app` patterns
+- **Explicit Domain List**: Updated to use specific domain names instead of wildcards
+- **Debug Logging**: Added CORS origins logging to help troubleshoot configuration
+- **Duplicate Removal**: Enhanced CORS configuration to remove duplicates and empty entries
+
+### 🔧 **Technical Implementation**
+
+#### **Enhanced CORS Middleware**
+- **Multiple Origin Sources**: Combines hardcoded origins, environment variables, and deployment patterns
+- **Vercel Pattern Support**: Supports both specific domains and wildcard patterns
+- **Railway Integration**: Maintains existing Railway deployment support
+- **Development Compatibility**: Preserves all local development origins
+
+#### **Environment Variable Support**
+- **Backend Configuration**: Uses `ALLOWED_ORIGINS` environment variable for production
+- **Flexible Format**: Comma-separated list of allowed origins
+- **Production Ready**: Includes production domains by default
+- **Development Fallbacks**: Maintains localhost origins for development
+
+### 📋 **Deployment Steps**
+
+#### **1. Update Railway Backend**
+1. Go to your Railway project dashboard
+2. Navigate to the backend service
+3. Add environment variable: `ALLOWED_ORIGINS=http://localhost:8081,http://localhost:3000,http://localhost:5173,https://aiforce-assess.vercel.app`
+4. Replace `aiforce-assess.vercel.app` with your actual Vercel domain
+5. Restart the Railway service
+
+#### **2. Deploy Backend Changes**
+1. Push these changes to your Railway-connected repository
+2. Railway will automatically redeploy with the new CORS configuration
+3. Monitor Railway logs for successful deployment
+
+#### **3. Test Production**
+1. Visit your Vercel app
+2. Try uploading a file in the Data Import section
+3. Check browser console - CORS errors should be resolved
+4. Verify API calls are working in the Network tab
+
+### 🔍 **Verification**
+
+#### **Test CORS Configuration**
+```bash
+# Test CORS preflight from your Vercel domain
+curl -H "Origin: https://aiforce-assess.vercel.app" \
+     -H "Access-Control-Request-Method: POST" \
+     -H "Access-Control-Request-Headers: Content-Type" \
+     -X OPTIONS \
+     https://your-railway-app.railway.app/api/v1/discovery/analyze-cmdb
+
+# Should return CORS headers allowing the request
+```
+
+#### **Debug Steps**
+1. **Check Railway logs** for CORS-related errors
+2. **Verify environment variables** are set correctly in Railway
+3. **Test backend health** endpoint: `https://your-railway-app.railway.app/health`
+4. **Check browser console** for remaining CORS or network errors
+
+### 💡 **Key Benefits**
+1. **Production Deployment Working**: Vercel + Railway setup now fully functional
+2. **Flexible CORS Management**: Easy to add new domains via environment variables
+3. **Development Preserved**: All local development origins maintained
+4. **Security Maintained**: Only explicitly allowed origins can access the API
+
 --- 

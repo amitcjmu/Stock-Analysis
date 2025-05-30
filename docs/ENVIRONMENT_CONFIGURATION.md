@@ -68,6 +68,27 @@ VITE_WS_BASE_URL=wss://migrate-ui-orchestrator-production.up.railway.app/api/v1/
 
 Railway automatically provides the backend URL. Ensure your Railway app is properly configured with the backend environment variables from `backend/env.example`.
 
+**Critical: Set CORS Environment Variable**
+
+In your Railway project dashboard, set this environment variable to allow requests from Vercel:
+
+```env
+ALLOWED_ORIGINS=http://localhost:8081,http://localhost:3000,http://localhost:5173,https://aiforce-assess.vercel.app
+```
+
+**Important**: Replace `aiforce-assess.vercel.app` with your actual Vercel domain. FastAPI CORS middleware doesn't support wildcard patterns, so you need to specify each domain explicitly.
+
+If you have multiple Vercel deployments (preview branches), add them individually:
+```env
+ALLOWED_ORIGINS=http://localhost:8081,https://aiforce-assess.vercel.app,https://aiforce-assess-git-main-yourname.vercel.app
+```
+
+Other important Railway environment variables:
+- `DATABASE_URL` - Automatically provided by Railway
+- `DEEPINFRA_API_KEY` - Your DeepInfra API key for AI features
+- `SECRET_KEY` - Change the default secret key for security
+- `ENVIRONMENT=production` - Set production mode
+
 ## How URL Resolution Works
 
 ### API Base URL Resolution Priority
@@ -107,14 +128,21 @@ Railway automatically provides the backend URL. Ensure your Railway app is prope
 
 1. **"CORS Error" in production**
    - Ensure `VITE_BACKEND_URL` points to the correct Railway URL
-   - Verify Railway backend has correct CORS settings
+   - **CRITICAL**: Set `ALLOWED_ORIGINS` environment variable in Railway dashboard
+   - Include your exact Vercel domain in the ALLOWED_ORIGINS list
+   - Restart Railway service after changing environment variables
 
-2. **"Network Error" in development**
+2. **"Failed to fetch" errors**
+   - Check Railway logs for CORS-related errors
+   - Verify backend service is running and accessible
+   - Test backend health endpoint directly: `https://migrate-ui-orchestrator-production.up.railway.app/health`
+
+3. **"Network Error" in development**
    - Check if Docker containers are running: `docker-compose ps`
    - Verify backend is accessible: `curl http://localhost:8000/health`
 
-3. **Environment variables not working**
-   - Ensure variables are prefixed with `VITE_`
+4. **Environment variables not working**
+   - Ensure variables are prefixed with `VITE_` for frontend
    - Restart development server after changing environment variables
    - Check browser developer tools for actual values
 
