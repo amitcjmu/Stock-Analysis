@@ -7,12 +7,20 @@ from fastapi import APIRouter
 
 from app.api.v1.endpoints import migrations, assets, assessments, websocket, monitoring, chat
 
-# Use simplified discovery for now to resolve 404 issues
+# Use robust discovery router with graceful error handling
 try:
-    from app.api.v1.endpoints import discovery_simple as discovery
+    from app.api.v1.endpoints import discovery_robust as discovery
     DISCOVERY_AVAILABLE = True
-except ImportError:
-    DISCOVERY_AVAILABLE = False
+    print("✅ Using robust discovery router")
+except ImportError as e:
+    print(f"⚠️ Robust discovery not available: {e}")
+    try:
+        from app.api.v1.endpoints import discovery_simple as discovery
+        DISCOVERY_AVAILABLE = True
+        print("✅ Falling back to simple discovery router")
+    except ImportError as e2:
+        print(f"⚠️ No discovery router available: {e2}")
+        DISCOVERY_AVAILABLE = False
 
 # Import 6R analysis endpoints
 try:

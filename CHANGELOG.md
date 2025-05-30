@@ -1589,3 +1589,64 @@ curl -H "Origin: https://aiforce-assess.vercel.app" \
 4. **Security Maintained**: Only explicitly allowed origins can access the API
 
 --- 
+
+## [0.3.5] - 2025-01-28
+
+### 🏗️ **Architectural Fix - Robust Discovery Router**
+
+This version addresses the fundamental routing issues with a proper long-term solution instead of temporary workarounds.
+
+### 🛠️ **Production Infrastructure Improvements**
+
+#### **Robust Discovery Router (`discovery_robust.py`)**
+- **Graceful Dependency Loading**: New router with fallback mechanisms for missing dependencies  
+- **Component Health Monitoring**: Real-time status of models, processor, and monitoring components
+- **Full vs Basic Analysis**: Automatically falls back to basic analysis when complex dependencies fail
+- **Production-Ready Error Handling**: Comprehensive exception handling and logging
+- **Dependency Chain Isolation**: Each component fails gracefully without breaking the entire router
+
+#### **Root Cause Resolution**
+- **Import Chain Issues Fixed**: The original problem was complex dependency chains in `discovery_modular.py`
+- **Pandas/CrewAI Dependencies**: Robust handling of heavy dependencies that may fail in production
+- **Agent Monitor Integration**: Optional integration with monitoring systems
+- **Memory Management**: Reduced memory footprint for production deployments
+
+### 🚀 **Enhanced API Architecture**
+
+#### **Multi-Tier Fallback System**
+1. **Primary**: `discovery_robust.py` - Full featured with all dependencies
+2. **Secondary**: `discovery_simple.py` - Basic functionality without heavy dependencies  
+3. **Tertiary**: Core API continues to function even if discovery fails
+
+#### **Removed Temporary Solutions**
+- **Main.py Endpoints Removed**: Eliminated direct endpoints that were bypassing proper routing
+- **Clean Architecture**: Restored proper separation of concerns
+- **Maintainable Codebase**: Sustainable solution for ongoing development
+
+### 🔧 **Technical Details**
+
+#### **Dependency Management**
+```python
+# Graceful import pattern used throughout:
+try:
+    from app.api.v1.discovery.processor import CMDBDataProcessor
+    PROCESSOR_AVAILABLE = True
+except ImportError:
+    PROCESSOR_AVAILABLE = False
+    # Continue with limited functionality
+```
+
+#### **Component Status Reporting**
+- **Health Endpoint Enhanced**: `/api/v1/discovery/health` now reports component availability
+- **Debug Information**: Clear indicators of which components are operational
+- **Production Monitoring**: Easy to identify which features are available in deployment
+
+### 📊 **Why This Approach is Sustainable**
+
+1. **Scalable**: Easy to add new components with fallback mechanisms
+2. **Maintainable**: Clear separation between core and optional functionality  
+3. **Production-Ready**: Graceful degradation instead of complete failures
+4. **Developer-Friendly**: Clear error messages and component status reporting
+5. **Railway/Vercel Compatible**: Works reliably in production environments
+
+--- 
