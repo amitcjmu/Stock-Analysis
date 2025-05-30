@@ -7,20 +7,26 @@ from fastapi import APIRouter
 
 from app.api.v1.endpoints import migrations, assets, assessments, websocket, monitoring, chat
 
-# Use robust discovery router with graceful error handling
+# Use modular discovery router with robust error handling and clean architecture
 try:
-    from app.api.v1.endpoints import discovery_robust as discovery
+    from app.api.v1.endpoints import discovery
     DISCOVERY_AVAILABLE = True
-    print("✅ Using robust discovery router")
+    print("✅ Using modular discovery router")
 except ImportError as e:
-    print(f"⚠️ Robust discovery not available: {e}")
+    print(f"⚠️ Modular discovery not available: {e}")
     try:
-        from app.api.v1.endpoints import discovery_simple as discovery
+        from app.api.v1.endpoints import discovery_robust as discovery
         DISCOVERY_AVAILABLE = True
-        print("✅ Falling back to simple discovery router")
+        print("✅ Falling back to robust discovery router")
     except ImportError as e2:
-        print(f"⚠️ No discovery router available: {e2}")
-        DISCOVERY_AVAILABLE = False
+        print(f"⚠️ Robust discovery not available: {e2}")
+        try:
+            from app.api.v1.endpoints import discovery_simple as discovery
+            DISCOVERY_AVAILABLE = True
+            print("✅ Falling back to simple discovery router")
+        except ImportError as e3:
+            print(f"⚠️ No discovery router available: {e3}")
+            DISCOVERY_AVAILABLE = False
 
 # Import 6R analysis endpoints
 try:
