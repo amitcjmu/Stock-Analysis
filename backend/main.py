@@ -157,6 +157,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/debug/routes")
+async def debug_routes():
+    """Debug endpoint to see what routes are loaded."""
+    routes_info = []
+    for route in app.routes:
+        if hasattr(route, 'path') and hasattr(route, 'methods'):
+            routes_info.append({
+                "path": route.path,
+                "methods": list(route.methods) if route.methods else [],
+                "name": getattr(route, 'name', 'unnamed')
+            })
+    
+    return {
+        "total_routes": len(routes_info),
+        "api_routes_enabled": API_ROUTES_ENABLED,
+        "routes": routes_info[:20],  # First 20 routes
+        "discovery_routes": [r for r in routes_info if 'discovery' in r['path']]
+    }
+
 # Update health check with component status
 @app.get("/health")
 async def health_check():
