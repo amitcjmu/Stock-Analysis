@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { getVersionInfo } from '../utils/version';
 import { 
   Home, 
   Search, 
@@ -40,6 +41,8 @@ import {
 
 const Sidebar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const versionInfo = getVersionInfo();
   const [discoveryExpanded, setDiscoveryExpanded] = useState(
     location.pathname.startsWith('/discovery')
   );
@@ -188,6 +191,13 @@ const Sidebar = () => {
     setFinopsExpanded(!finopsExpanded);
   };
 
+  const handleVersionClick = () => {
+    console.log('🔍 Version clicked - navigating to feedback-view');
+    console.log('Current location:', location.pathname);
+    console.log('Version info:', versionInfo);
+    navigate('/feedback-view');
+  };
+
   return (
     <div className="fixed left-0 top-0 h-full w-64 bg-gray-800 text-white z-50">
       <div className="p-6 border-b border-gray-700">
@@ -303,8 +313,15 @@ const Sidebar = () => {
       </nav>
 
       <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-700">
-        <div className="text-xs text-gray-400 text-center">
-          AI Force v2.1.0
+        <div 
+          className="text-xs text-gray-400 text-center cursor-pointer hover:text-blue-400 transition-colors duration-200 py-2 px-3 rounded-lg hover:bg-gray-700"
+          onClick={handleVersionClick}
+          title="Click to view feedback and reports"
+        >
+          {versionInfo.fullVersion}
+          <div className="text-[10px] text-gray-500 mt-1">
+            Click for feedback
+          </div>
         </div>
       </div>
     </div>
