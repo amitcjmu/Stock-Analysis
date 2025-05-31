@@ -12,7 +12,16 @@ from .sixr_analysis import (
 )
 
 # New multi-tenant models (primary imports)
-from .client_account import ClientAccount, Engagement, User, UserAccountAssociation
+try:
+    from .client_account import ClientAccount, Engagement, User, UserAccountAssociation
+    CLIENT_ACCOUNT_AVAILABLE = True
+except ImportError:
+    CLIENT_ACCOUNT_AVAILABLE = False
+    ClientAccount = None
+    Engagement = None
+    User = None
+    UserAccountAssociation = None
+
 from .cmdb_asset import CMDBAsset, CMDBSixRAnalysis, MigrationWave, AssetType, AssetStatus, SixRStrategy
 from .tags import Tag, CMDBAssetEmbedding, AssetTag
 from .data_import import (
@@ -49,11 +58,7 @@ __all__ = [
     "SixRQuestion",
     "SixRQuestionResponse",
     
-    # New multi-tenant models (primary)
-    "ClientAccount",
-    "Engagement", 
-    "User",
-    "UserAccountAssociation",
+    # CMDB models (always available)
     "CMDBAsset",
     "CMDBSixRAnalysis",  # This is the new one from cmdb_asset.py
     "MigrationWave",
@@ -74,4 +79,13 @@ __all__ = [
     "DataQualityIssue",
     "ImportStatus",
     "ImportType"
-] 
+]
+
+# Add client account models only if available
+if CLIENT_ACCOUNT_AVAILABLE:
+    __all__.extend([
+        "ClientAccount",
+        "Engagement", 
+        "User",
+        "UserAccountAssociation"
+    ]) 
