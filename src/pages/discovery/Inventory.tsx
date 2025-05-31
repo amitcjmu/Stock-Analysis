@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/Sidebar';
+import AgentClarificationPanel from '../../components/discovery/AgentClarificationPanel';
+import DataClassificationDisplay from '../../components/discovery/DataClassificationDisplay';
+import AgentInsightsSection from '../../components/discovery/AgentInsightsSection';
 import { 
   Download, Filter, Database, Server, HardDrive, RefreshCw, Router, Shield, Cpu, Cloud, Zap,
   ChevronLeft, ChevronRight, Search, Plus, Trash2, Eye, ArrowUpDown
@@ -533,8 +536,11 @@ const Inventory = () => {
     <div className="min-h-screen bg-gray-50 flex">
       <Sidebar />
       <div className="flex-1 ml-64">
-        <main className="p-8">
-          <div className="max-w-7xl mx-auto">
+        <div className="flex h-full">
+          {/* Main Content Area */}
+          <div className="flex-1 overflow-y-auto">
+            <main className="p-8">
+              <div className="max-w-5xl mx-auto">
             {/* Header */}
             <div className="mb-8">
               <div className="flex items-center justify-between">
@@ -1113,10 +1119,60 @@ const Inventory = () => {
                 </div>
               </div>
             )}
+              </div>
+            </main>
           </div>
-        </main>
-      </div>
 
+          {/* Agent Interaction Sidebar */}
+          <div className="w-96 border-l border-gray-200 bg-gray-50 overflow-y-auto">
+            <div className="p-4 space-y-4">
+              {/* Agent Clarification Panel */}
+              <AgentClarificationPanel 
+                pageContext="asset-inventory"
+                onQuestionAnswered={(questionId, response) => {
+                  console.log('Inventory question answered:', questionId, response);
+                  // Trigger asset re-analysis or asset updates based on agent learning
+                  const filters = {
+                    asset_type: selectedFilter,
+                    environment: selectedEnv,
+                    department: selectedDept,
+                    criticality: selectedCriticality,
+                    search: searchTerm
+                  };
+                  fetchAssets(currentPage, filters);
+                }}
+              />
+
+              {/* Data Classification Display */}
+              <DataClassificationDisplay 
+                pageContext="asset-inventory"
+                onClassificationUpdate={(itemId, newClassification) => {
+                  console.log('Asset classification updated:', itemId, newClassification);
+                  // Update local asset data quality classification
+                  setAssets(prev => prev.map(asset => 
+                    asset.id === itemId 
+                      ? { ...asset, dataQuality: newClassification }
+                      : asset
+                  ));
+                }}
+              />
+
+              {/* Agent Insights Section */}
+              <AgentInsightsSection 
+                pageContext="asset-inventory"
+                onInsightAction={(insightId, action) => {
+                  console.log('Inventory insight action:', insightId, action);
+                  // Apply agent insights for inventory optimization
+                  if (action === 'apply_insight') {
+                    // Trigger bulk updates or asset categorization improvements
+                    console.log('Applying agent inventory insights');
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Bulk Edit Dialog */}
       {showBulkEditDialog && (

@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/Sidebar';
 import RawDataTable from '../../components/discovery/RawDataTable';
+import AgentClarificationPanel from '../../components/discovery/AgentClarificationPanel';
+import DataClassificationDisplay from '../../components/discovery/DataClassificationDisplay';
+import AgentInsightsSection from '../../components/discovery/AgentInsightsSection';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   Settings, Brain, GraduationCap, CheckCircle, AlertTriangle, 
@@ -390,15 +393,38 @@ const AttributeMapping = () => {
   };
 
   const generateFieldMappings = async (columns: string[], sampleData: any[]) => {
-    // AI Crew Analysis: Field Mapping Specialist
-    const mappings: FieldMapping[] = [];
-    const crewAnalysis: CrewAnalysis[] = [];
+    setIsAnalyzing(true);
     
-    // Combine standard and custom attributes
-    const allAttributes = { ...CRITICAL_ATTRIBUTES };
-    customAttributes.forEach(attr => {
-      allAttributes[attr.field] = attr;
-    });
+    try {
+      // Agent-driven field mapping analysis
+      const agentResponse = await apiCall('/discovery/agents/agent-analysis', 'POST', {
+        data_source: {
+          field_data: {
+            columns: columns,
+            sample_data: sampleData.slice(0, 10)
+          },
+          metadata: {
+            context: 'field_mapping',
+            existing_mappings: fieldMappings.map(m => ({
+              source: m.sourceField,
+              target: m.targetAttribute,
+              confidence: m.confidence
+            }))
+          }
+        },
+        analysis_type: 'field_mapping_analysis',
+        page_context: 'attribute-mapping'
+      });
+
+      // AI Crew Analysis: Field Mapping Specialist
+      const mappings: FieldMapping[] = [];
+      const crewAnalysis: CrewAnalysis[] = [];
+      
+      // Combine standard and custom attributes
+      const allAttributes = { ...CRITICAL_ATTRIBUTES };
+      customAttributes.forEach(attr => {
+        allAttributes[attr.field] = attr;
+      });
     
     // Field Mapping Agent Analysis
     crewAnalysis.push({
@@ -438,7 +464,26 @@ const AttributeMapping = () => {
         return;
       }
       
-      const bestMatch = findBestAttributeMatch(column, sampleData, allAttributes);
+      // Check if agent provided specific mapping recommendation
+      let agentMapping = null;
+      if (agentResponse.status === 'success' && agentResponse.field_mappings) {
+        agentMapping = agentResponse.field_mappings.find(fm => fm.source_field === column);
+      }
+      
+      let bestMatch;
+      if (agentMapping) {
+        // Use agent recommendation
+        bestMatch = {
+          attribute: agentMapping.target_attribute,
+          confidence: agentMapping.confidence,
+          type: 'agent_recommended',
+          reasoning: agentMapping.reasoning || `Agent recommendation: ${agentMapping.target_attribute} with ${Math.round(agentMapping.confidence * 100)}% confidence`
+        };
+      } else {
+        // Fallback to heuristic matching
+        bestMatch = findBestAttributeMatch(column, sampleData, allAttributes);
+      }
+      
       const sampleValues = extractSampleValues(column, sampleData, 3);
       
       mappings.push({
@@ -532,14 +577,82 @@ const AttributeMapping = () => {
       confidence: 0.75
     });
     
-    const progress = {
-      total: mappings.length,
-      mapped: mappings.filter(m => m.status === 'approved').length,
-      critical_mapped: criticalMapped,
-      accuracy: mappings.reduce((acc, m) => acc + m.confidence, 0) / mappings.length
-    };
-    
-    return { mappings, crewAnalysis, progress };
+      const progress = {
+        total: mappings.length,
+        mapped: mappings.filter(m => m.status === 'approved').length,
+        critical_mapped: criticalMapped,
+        accuracy: mappings.reduce((acc, m) => acc + m.confidence, 0) / mappings.length
+      };
+      
+      return { mappings, crewAnalysis, progress };
+    } catch (error) {
+      console.error('Error in agent-driven field mapping:', error);
+      
+      // Fallback to original analysis if agents fail
+      const mappings: FieldMapping[] = [];
+      const crewAnalysis: CrewAnalysis[] = [];
+      
+      const allAttributes = { ...CRITICAL_ATTRIBUTES };
+      customAttributes.forEach(attr => {
+        allAttributes[attr.field] = attr;
+      });
+      
+      columns.forEach((column, index) => {
+        const fieldAction = fieldActions[column];
+        if (fieldAction === 'ignore' || fieldAction === 'delete') {
+          mappings.push({
+            id: `mapping-${index}`,
+            sourceField: column,
+            targetAttribute: 'unmapped',
+            confidence: 1.0,
+            mapping_type: 'direct',
+            sample_values: extractSampleValues(column, sampleData, 3),
+            status: fieldAction === 'ignore' ? 'ignored' : 'deleted',
+            ai_reasoning: `User marked field to ${fieldAction}`,
+            action: fieldAction
+          });
+          return;
+        }
+        
+        const bestMatch = findBestAttributeMatch(column, sampleData, allAttributes);
+        const sampleValues = extractSampleValues(column, sampleData, 3);
+        
+        mappings.push({
+          id: `mapping-${index}`,
+          sourceField: column,
+          targetAttribute: bestMatch.attribute,
+          confidence: bestMatch.confidence,
+          mapping_type: bestMatch.type,
+          sample_values: sampleValues,
+          status: bestMatch.confidence > 0.8 ? 'approved' : 'pending',
+          ai_reasoning: bestMatch.reasoning + ' (Agent analysis unavailable)'
+        });
+      });
+      
+      crewAnalysis.push({
+        agent: 'Fallback Analysis',
+        task: 'Basic field mapping without agent intelligence',
+        findings: ['Agent analysis unavailable', 'Using heuristic mapping only'],
+        recommendations: ['Check agent system status', 'Retry analysis when agents available'],
+        confidence: 0.60
+      });
+      
+      const criticalMapped = mappings.filter(m => 
+        m.status === 'approved' && 
+        allAttributes[m.targetAttribute]?.importance === 'critical'
+      ).length;
+      
+      const progress = {
+        total: mappings.length,
+        mapped: mappings.filter(m => m.status === 'approved').length,
+        critical_mapped: criticalMapped,
+        accuracy: mappings.reduce((acc, m) => acc + m.confidence, 0) / mappings.length
+      };
+      
+      return { mappings, crewAnalysis, progress };
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const findBestAttributeMatch = (column: string, sampleData: any[], allAttributes: any) => {
@@ -681,6 +794,33 @@ const AttributeMapping = () => {
   };
 
   const handleApproveMapping = async (mappingId: string) => {
+    try {
+      const mapping = fieldMappings.find(m => m.id === mappingId);
+      if (!mapping) return;
+      
+      // Send learning feedback to agents
+      await apiCall('/discovery/agents/agent-learning', 'POST', {
+        learning_type: 'field_mapping',
+        original_prediction: {
+          source_field: mapping.sourceField,
+          target_attribute: mapping.targetAttribute,
+          confidence: mapping.confidence
+        },
+        user_correction: {
+          action: 'approved',
+          final_mapping: mapping.targetAttribute
+        },
+        context: {
+          page_context: 'attribute-mapping',
+          sample_values: mapping.sample_values,
+          mapping_type: mapping.mapping_type
+        },
+        page_context: 'attribute-mapping'
+      });
+    } catch (error) {
+      console.log('Agent learning unavailable:', error);
+    }
+    
     setFieldMappings(prev => prev.map(mapping =>
       mapping.id === mappingId
         ? { ...mapping, status: 'approved' as const }
@@ -782,11 +922,43 @@ const AttributeMapping = () => {
     return suggestions;
   };
 
-  const handleMappingAction = (mappingId: string, action: 'approve' | 'reject') => {
+  const handleMappingAction = async (mappingId: string, action: 'approve' | 'reject') => {
+    if (action === 'approve') {
+      await handleApproveMapping(mappingId);
+      return;
+    }
+    
+    try {
+      const mapping = fieldMappings.find(m => m.id === mappingId);
+      if (!mapping) return;
+      
+      // Send rejection feedback to agents for learning
+      await apiCall('/discovery/agents/agent-learning', 'POST', {
+        learning_type: 'field_mapping',
+        original_prediction: {
+          source_field: mapping.sourceField,
+          target_attribute: mapping.targetAttribute,
+          confidence: mapping.confidence
+        },
+        user_correction: {
+          action: 'rejected',
+          reason: 'User rejected this mapping suggestion'
+        },
+        context: {
+          page_context: 'attribute-mapping',
+          sample_values: mapping.sample_values,
+          mapping_type: mapping.mapping_type
+        },
+        page_context: 'attribute-mapping'
+      });
+    } catch (error) {
+      console.log('Agent learning unavailable:', error);
+    }
+    
     setFieldMappings(mappings => 
       mappings.map(mapping => 
         mapping.id === mappingId 
-          ? { ...mapping, status: action === 'approve' ? 'approved' : 'rejected' }
+          ? { ...mapping, status: 'rejected' }
           : mapping
       )
     );
@@ -794,7 +966,7 @@ const AttributeMapping = () => {
     // Update progress
     const updatedMappings = fieldMappings.map(mapping => 
       mapping.id === mappingId 
-        ? { ...mapping, status: action === 'approve' ? 'approved' : 'rejected' }
+        ? { ...mapping, status: 'rejected' }
         : mapping
     );
     
@@ -839,8 +1011,11 @@ const AttributeMapping = () => {
     <div className="min-h-screen bg-gray-50 flex">
       <Sidebar />
       <div className="flex-1 ml-64">
-        <main className="p-8">
-          <div className="max-w-7xl mx-auto">
+        <div className="flex h-full">
+          {/* Main Content Area */}
+          <div className="flex-1 overflow-y-auto">
+            <main className="p-8">
+              <div className="max-w-5xl mx-auto">
             {/* Header */}
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
@@ -1239,8 +1414,59 @@ const AttributeMapping = () => {
                 Map at least 3 critical attributes to proceed
               </p>
             )}
+                </div>
+              </main>
+            </div>
+
+            {/* Agent Interaction Sidebar */}
+            <div className="w-96 border-l border-gray-200 bg-gray-50 overflow-y-auto">
+              <div className="p-4 space-y-4">
+                {/* Agent Clarification Panel */}
+                <AgentClarificationPanel 
+                  pageContext="attribute-mapping"
+                  onQuestionAnswered={(questionId, response) => {
+                    console.log('Mapping question answered:', questionId, response);
+                    // Trigger re-analysis of field mappings with agent learning
+                    if (importedData.length > 0) {
+                      const columns = Object.keys(importedData[0]);
+                      generateFieldMappings(columns, importedData.slice(0, 5));
+                    }
+                  }}
+                />
+
+                {/* Data Classification Display */}
+                <DataClassificationDisplay 
+                  pageContext="attribute-mapping"
+                  onClassificationUpdate={(itemId, newClassification) => {
+                    console.log('Field classification updated:', itemId, newClassification);
+                    // Update field mapping confidence based on classification
+                    setFieldMappings(prev => prev.map(mapping => 
+                      mapping.id === itemId 
+                        ? { 
+                            ...mapping, 
+                            confidence: newClassification === 'good_data' ? Math.min(mapping.confidence + 0.1, 1.0) : Math.max(mapping.confidence - 0.1, 0.1)
+                          }
+                        : mapping
+                    ));
+                  }}
+                />
+
+                {/* Agent Insights Section */}
+                <AgentInsightsSection 
+                  pageContext="attribute-mapping"
+                  onInsightAction={(insightId, action) => {
+                    console.log('Mapping insight action:', insightId, action);
+                    // Apply agent recommendations to field mappings
+                    if (action === 'helpful') {
+                      // Boost confidence of related mappings
+                      console.log('Applying agent recommendations for mapping improvement');
+                    }
+                  }}
+                />
+              </div>
+            </div>
           </div>
-        </main>
+        </div>
       </div>
     </div>
   );
