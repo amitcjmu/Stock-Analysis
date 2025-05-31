@@ -92,6 +92,14 @@ try:
     API_ROUTES_ENABLED = True
     print("✅ API routes loaded successfully")
     
+    # Include demo data endpoints
+    try:
+        from app.api.v1.endpoints.demo_data import router as demo_router
+        app.include_router(demo_router, prefix="/api/v1")
+        print("✅ Demo data endpoints loaded successfully")
+    except Exception as demo_e:
+        print(f"⚠️  Demo data endpoints could not be loaded: {demo_e}")
+    
     # Test if discovery routes are available
     try:
         routes_list = [route.path for route in api_router.routes]

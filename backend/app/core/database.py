@@ -77,7 +77,10 @@ async def init_db():
     """Initialize database tables."""
     async with engine.begin() as conn:
         # Import all models here to ensure they are registered with Base
-        from app.models import migration, asset, assessment  # noqa
+        from app.models import (
+            migration, asset, assessment, sixr_analysis,  # Legacy models
+            client_account, cmdb_asset, tags  # New multi-tenant models
+        )
         
         # Create all tables
         await conn.run_sync(Base.metadata.create_all)

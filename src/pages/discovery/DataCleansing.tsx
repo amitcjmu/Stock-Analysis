@@ -141,33 +141,59 @@ const DataCleansing = () => {
     try {
       setIsLoading(true);
       
-      // Try multiple sources for real imported data
-      console.log('Attempting to fetch real imported data...');
+      // Try to get real imported data from the persistent database
+      console.log('Fetching real data from persistent database...');
       
-      // 1. Try to get processed assets from backend
-      const assetsResponse = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}?page=1&page_size=1000`);
-      console.log('Assets response:', assetsResponse);
-      
-      if (assetsResponse.assets && assetsResponse.assets.length > 0) {
-        setRawData(assetsResponse.assets);
-        console.log('✓ Loaded real imported data from assets endpoint:', assetsResponse.assets);
-      } else {
-        console.log('No assets found, trying import history...');
+      // 1. Get the latest import session
+      try {
+        const latestImport = await apiCall(`/api/v1/data_import/imports/latest`);
+        console.log('✓ Found latest import:', latestImport);
         
-        // 2. Try to get from import history
-        const importResponse = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/import-history`);
-        console.log('Import history response:', importResponse);
+        // 2. Get raw records from this import
+        const rawRecordsResponse = await apiCall(`/api/v1/data_import/imports/${latestImport.id}/raw-records`);
+        console.log('✓ Loaded raw records:', rawRecordsResponse.records);
         
-        if (importResponse.imports && importResponse.imports.length > 0) {
-          const latestImport = importResponse.imports[0];
-          if (latestImport.data) {
-            setRawData(latestImport.data);
-            console.log('✓ Loaded latest import data:', latestImport.data);
-          }
-        } else {
-          console.log('No import history found, checking localStorage...');
+        if (rawRecordsResponse.records && rawRecordsResponse.records.length > 0) {
+          // Transform raw records to display format
+          const transformedData = rawRecordsResponse.records.map(record => ({
+            id: record.record_id,
+            ...record.raw_data,  // Use the original raw data
+            _meta: {
+              row_number: record.row_number,
+              is_processed: record.is_processed,
+              is_valid: record.is_valid
+            }
+          }));
           
-          // 3. Try localStorage as fallback
+          setRawData(transformedData);
+          console.log('✓ Transformed raw data for display:', transformedData);
+        }
+        
+        // 3. Get data quality issues from this import
+        const qualityIssuesResponse = await apiCall(`/api/v1/data_import/imports/${latestImport.id}/quality-issues`);
+        console.log('✓ Loaded quality issues:', qualityIssuesResponse.issues);
+        
+        if (qualityIssuesResponse.issues && qualityIssuesResponse.issues.length > 0) {
+          processRealDataQualityIssues(qualityIssuesResponse.issues);
+        } else {
+          console.log('No quality issues found from import');
+          setEmptyStates();
+        }
+        
+      } catch (importError) {
+        console.log('No import data found, checking for demo assets...', importError);
+        
+        // Fallback: try to get processed assets from backend
+        const assetsResponse = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}?page=1&page_size=1000`);
+        console.log('Assets response:', assetsResponse);
+        
+        if (assetsResponse.assets && assetsResponse.assets.length > 0) {
+          setRawData(assetsResponse.assets);
+          console.log('✓ Loaded processed assets as fallback:', assetsResponse.assets);
+        } else {
+          console.log('No assets found, checking localStorage...');
+          
+          // Final fallback: localStorage
           const storedData = localStorage.getItem('imported_assets');
           if (storedData) {
             const parsedData = JSON.parse(storedData);
@@ -178,59 +204,15 @@ const DataCleansing = () => {
             setRawData([]);
           }
         }
-      }
-      
-      // Fetch real data quality issues from backend
-      console.log('Fetching data quality issues...');
-      const issuesResponse = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/data-issues`);
-      console.log('Issues response:', issuesResponse);
-      
-      if (issuesResponse.issues && issuesResponse.issues.length > 0) {
-        console.log('✓ Processing real data quality issues:', issuesResponse.issues);
-        processDataQualityIssues(issuesResponse.issues);
-      } else {
-        console.log('No data quality issues found from backend');
-        // If no backend issues, create empty states but keep the real data
-        setFormatIssues([]);
-        setMissingDataIssues([]);
-        setDuplicateIssues([]);
-        setMetrics({
-          total_issues: 0,
-          format_issues: 0,
-          missing_data: 0,
-          duplicates: 0,
-          completion_percentage: 100
-        });
-        setAiInsights([]);
+        
+        // Set empty states since no import-specific issues
+        setEmptyStates();
       }
       
     } catch (error) {
-      console.error('Failed to fetch real data:', error);
-      
-      // Final fallback - try localStorage
-      const storedData = localStorage.getItem('imported_assets');
-      if (storedData) {
-        try {
-          const parsedData = JSON.parse(storedData);
-          setRawData(parsedData);
-          console.log('✓ Loaded fallback data from localStorage:', parsedData);
-        } catch (parseError) {
-          console.error('Failed to parse localStorage data:', parseError);
-        }
-      }
-      
-      // Set empty states
-      setFormatIssues([]);
-      setMissingDataIssues([]);
-      setDuplicateIssues([]);
-      setMetrics({
-        total_issues: 0,
-        format_issues: 0,
-        missing_data: 0,
-        duplicates: 0,
-        completion_percentage: 100
-      });
-      setAiInsights([]);
+      console.error('Failed to fetch data:', error);
+      setEmptyStates();
+      setRawData([]);
     } finally {
       setIsLoading(false);
     }
@@ -372,7 +354,10 @@ const DataCleansing = () => {
         environment: 'Production',
         department: 'IT Operations',
         isDuplicate: index % 2 === 1, // Every other one is a duplicate
-        duplicateGroupId: `group-${Math.floor(index / 2)}`
+        duplicateGroupId: `group-${Math.floor(index / 2)}`,
+        applications: 'Unknown',
+        databases: 'Unknown',
+        owner: 'Unknown'
       }));
     
     setDuplicateIssues(duplicateRows);
@@ -607,6 +592,145 @@ const DataCleansing = () => {
       return '<empty>';
     }
     return String(value);
+  };
+
+  const processRealDataQualityIssues = (issues: any[]) => {
+    console.log('Processing real data quality issues:', issues);
+    
+    // Group issues by type
+    const formatIssuesList: FormatIssueRow[] = [];
+    const missingDataList: MissingDataRow[] = [];
+    const duplicatesList: DuplicateRow[] = [];
+    
+    let totalIssues = issues.length;
+    let formatCount = 0;
+    let missingCount = 0;
+    let duplicateCount = 0;
+    
+    issues.forEach((issue, index) => {
+      const issueRow = {
+        id: issue.id,
+        assetId: `asset-${index + 1}`,
+        assetName: issue.field_name || 'Unknown Asset',
+        field: issue.field_name,
+        currentValue: issue.current_value,
+        suggestedValue: issue.suggested_value,
+        confidence: issue.confidence_score,
+        reasoning: issue.reasoning,
+        status: issue.status,
+        hostname: issue.current_value || 'Unknown',
+        ip_address: 'Unknown',
+        asset_type: 'Unknown',
+        environment: 'Unknown',
+        applications: 'Unknown',
+        databases: 'Unknown',
+        owner: 'Unknown',
+        department: 'Unknown',
+        isDuplicate: false,
+        duplicateGroupId: `group-${index}`
+      };
+      
+      switch (issue.issue_type) {
+        case 'format_error':
+          formatIssuesList.push(issueRow);
+          formatCount++;
+          break;
+        case 'missing_data':
+          missingDataList.push(issueRow);
+          missingCount++;
+          break;
+        case 'duplicate':
+          duplicatesList.push(issueRow);
+          duplicateCount++;
+          break;
+        default:
+          missingDataList.push(issueRow);
+          missingCount++;
+      }
+    });
+    
+    // Update states
+    setFormatIssues(formatIssuesList);
+    setMissingDataIssues(missingDataList);
+    setDuplicateIssues(duplicatesList);
+    
+    setMetrics({
+      total_issues: totalIssues,
+      format_issues: formatCount,
+      missing_data: missingCount,
+      duplicates: duplicateCount,
+      completion_percentage: Math.max(0, 100 - (totalIssues * 10)) // Rough estimate
+    });
+    
+    // Generate AI insights based on real issues
+    const insights = generateRealAIInsights(issues);
+    setAiInsights(insights);
+    
+    console.log('✓ Processed quality issues:', {
+      total: totalIssues,
+      format: formatCount,
+      missing: missingCount,
+      duplicates: duplicateCount
+    });
+  };
+
+  const generateRealAIInsights = (issues: any[]) => {
+    const insights: AIInsight[] = [];
+    
+    // Group issues by type for insights
+    const issuesByType = issues.reduce((acc, issue) => {
+      acc[issue.issue_type] = (acc[issue.issue_type] || 0) + 1;
+      return acc;
+    }, {});
+    
+    if (issuesByType.missing_data > 0) {
+      insights.push({
+        title: "Critical Data Gaps Detected",
+        description: `${issuesByType.missing_data} assets have missing critical information`,
+        recommendation: "Complete missing IP addresses and OS information before proceeding to 6R analysis",
+        confidence: 0.9,
+        affected_count: issuesByType.missing_data,
+        category: "data_quality"
+      });
+    }
+    
+    if (issuesByType.format_error > 0) {
+      insights.push({
+        title: "Data Format Inconsistencies",
+        description: `${issuesByType.format_error} fields have format validation issues`,
+        recommendation: "Standardize data formats using AI suggestions for better analysis accuracy",
+        confidence: 0.85,
+        affected_count: issuesByType.format_error,
+        category: "data_quality"
+      });
+    }
+    
+    if (issues.length === 0) {
+      insights.push({
+        title: "Data Quality Excellent",
+        description: "Your imported data meets all quality standards",
+        recommendation: "Proceed to Asset Inventory for detailed analysis",
+        confidence: 0.95,
+        affected_count: 0,
+        category: "data_quality"
+      });
+    }
+    
+    return insights;
+  };
+
+  const setEmptyStates = () => {
+    setFormatIssues([]);
+    setMissingDataIssues([]);
+    setDuplicateIssues([]);
+    setMetrics({
+      total_issues: 0,
+      format_issues: 0,
+      missing_data: 0,
+      duplicates: 0,
+      completion_percentage: 100
+    });
+    setAiInsights([]);
   };
 
   return (

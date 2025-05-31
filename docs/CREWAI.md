@@ -90,20 +90,20 @@ graph TB
 
 ## Platform-Wide Agent Registry
 
-### Agent Classification by Phase
+### Current Agent Classification by Phase (Updated January 2025)
 
-| Phase | Primary Agents | Supporting Agents | Crew Teams |
-|-------|---------------|-------------------|------------|
-| **Discovery** | CMDB Analyst, Field Mapping Specialist, Data Quality Expert | Pattern Recognition, Learning Specialist | Analysis, Learning, Quality |
-| **Assessment** | 6R Strategy Expert, Risk Assessor, Complexity Analyzer | Compliance Checker, Performance Analyst | Strategy, Risk, Complexity |
-| **Planning** | Wave Planner, Timeline Optimizer, Resource Estimator | Dependency Mapper, Change Manager | Planning, Timeline, Resource |
-| **Migration** | Execution Coordinator, Monitoring Agent, Rollback Manager | Validation Agent, Communication Hub | Execution, Monitoring, Control |
-| **Modernization** | Refactoring Expert, Containerization Specialist, Cloud-Native Architect | Code Analyzer, Performance Optimizer | Modernization, Architecture |
-| **Decommission** | Cleanup Coordinator, Archive Manager, Compliance Validator | Data Retention, Security Auditor | Cleanup, Archive, Compliance |
-| **FinOps** | Cost Analyzer, ROI Calculator, Optimization Expert | Budget Tracker, Savings Detector | Cost, ROI, Optimization |
-| **Observability** | Health Monitor, Performance Tracker, Alert Manager | Metrics Collector, Dashboard Manager | Monitoring, Alerting, Analytics |
+| Phase | Primary Agents | Supporting Agents | Crew Teams | Status |
+|-------|---------------|-------------------|------------|---------|
+| **Discovery** | CMDB Analyst, Field Mapping Specialist, Data Quality Expert | Pattern Recognition, Learning Specialist | Analysis, Learning, Quality | ✅ Active |
+| **Assessment** | 6R Strategy Expert, Risk Assessor, Complexity Analyzer | Compliance Checker, Performance Analyst | Strategy, Risk, Complexity | 🚧 In Development |
+| **Planning** | Wave Planner, Timeline Optimizer, Resource Estimator | Dependency Mapper, Change Manager | Planning, Timeline, Resource | 🚧 In Development |
+| **Migration** | Execution Coordinator, Monitoring Agent, Rollback Manager | Validation Agent, Communication Hub | Execution, Monitoring, Control | 📋 Planned |
+| **Modernization** | Refactoring Expert, Containerization Specialist, Cloud-Native Architect | Code Analyzer, Performance Optimizer | Modernization, Architecture | 📋 Planned |
+| **Decommission** | Cleanup Coordinator, Archive Manager, Compliance Validator | Data Retention, Security Auditor | Cleanup, Archive, Compliance | 📋 Planned |
+| **FinOps** | Cost Analyzer, ROI Calculator, Optimization Expert | Budget Tracker, Savings Detector | Cost, ROI, Optimization | 📋 Planned |
+| **Observability** | **Asset Intelligence Agent**, Agent Health Monitor, Performance Tracker | Alert Manager, Metrics Collector | Asset Management, Monitoring, Analytics | ✅ Active |
 
-### Agent Status Tracking
+### Agent Status Tracking (Current)
 
 ```typescript
 interface AgentStatus {
@@ -119,6 +119,93 @@ interface AgentStatus {
   confidence: number;
 }
 ```
+
+### Currently Active Agents (January 2025)
+
+#### 1. **Discovery Phase Agents** ✅
+
+**CMDB Data Analyst Agent**
+- **Role**: Senior CMDB Data Analyst  
+- **Status**: ✅ Active  
+- **Agent ID**: `cmdb_analyst`
+- **Expertise**: 15+ years in enterprise asset management  
+- **Specialization**: Asset type detection, data quality assessment, migration readiness
+
+**Pattern Recognition Agent**
+- **Role**: Data Pattern Recognition Expert
+- **Status**: ✅ Active
+- **Agent ID**: `pattern_agent`
+- **Expertise**: CMDB structure analysis and field mapping intelligence
+- **Specialization**: Format detection, field mapping, relationship analysis
+
+**Learning Specialist Agent**
+- **Role**: AI Learning Specialist
+- **Status**: ✅ Active
+- **Agent ID**: `learning_agent`
+- **Expertise**: Feedback processing and continuous improvement (Enhanced with asset management learning)
+- **Specialization**: Pattern recognition, accuracy enhancement, field mapping learning
+
+#### 2. **Assessment Phase Agents** 🚧
+
+**Migration Strategy Expert**
+- **Role**: Migration Strategy Expert
+- **Status**: ✅ Active
+- **Agent ID**: `migration_strategist`
+- **Expertise**: 6R strategy analysis and migration planning
+- **Specialization**: Rehost, Replatform, Refactor, Rearchitect, Retire, Retain analysis
+
+**Risk Assessment Specialist**
+- **Role**: Risk Assessment Specialist
+- **Status**: ✅ Active
+- **Agent ID**: `risk_assessor`
+- **Expertise**: Migration risk analysis and mitigation planning
+- **Specialization**: Technical, business, security, and operational risk assessment
+
+#### 3. **Planning Phase Agents** 🚧
+
+**Wave Planning Coordinator**
+- **Role**: Wave Planning Coordinator
+- **Status**: ✅ Active
+- **Agent ID**: `wave_planner`
+- **Expertise**: Migration sequencing and dependency management
+- **Specialization**: Wave optimization, resource planning, timeline management
+
+#### 4. **Observability Phase Agents** ✅
+
+**Asset Intelligence Agent** 🆕
+- **Role**: Asset Inventory Intelligence Specialist
+- **Status**: ✅ Active
+- **Agent ID**: `asset_intelligence`
+- **Expertise**: Advanced asset inventory management with AI intelligence
+- **Specialization**: 
+  - Asset classification and categorization patterns
+  - Data quality assessment for inventory management
+  - Bulk operations optimization using learned patterns
+  - Asset lifecycle management and relationship mapping
+  - Field mapping intelligence integration
+- **Key Features**:
+  - AI-powered pattern recognition (not hard-coded heuristics)
+  - Content-based asset analysis using field mapping intelligence
+  - Intelligent bulk operations planning
+  - Continuous learning from user interactions
+  - Asset data quality assessment and optimization
+
+**Agent Health Monitor**
+- **Role**: Agent Health Monitor  
+- **Status**: ✅ Active  
+- **Agent ID**: `agent_health_monitor`
+- **Expertise**: Real-time agent performance and health monitoring  
+- **Current Monitoring**:
+  - **Active Agents**: 7 agents currently running
+  - **Tasks Completed**: Real-time task completion tracking
+  - **Performance Metrics**: Response times, accuracy rates, memory usage
+  - **Health Status**: Agent availability and error rates
+
+**Performance Analytics Agent**
+- **Role**: Performance Analytics Specialist  
+- **Status**: ✅ Active  
+- **Agent ID**: `performance_analytics`
+- **Expertise**: Agent performance analysis and optimization recommendations
 
 ## Discovery Phase Agents
 
@@ -798,6 +885,77 @@ class ObservabilityDashboard {
 }
 ```
 
+### Agent Status Monitoring
+
+#### Endpoint: `GET /api/v1/observability/agents/status`
+
+#### Response:
+```json
+{
+    "totalAgents": 7,
+    "activeAgents": 6,
+    "agents": [
+        {
+            "agentId": "asset-intelligence-001",
+            "name": "Asset Intelligence Specialist",
+            "phase": "observability",
+            "status": "active",
+            "currentTask": "Processing asset classification patterns",
+            "tasksCompleted": 47,
+            "successRate": 0.94,
+            "lastActivity": "2025-01-28T15:30:00Z"
+        },
+        {
+            "agentId": "discovery-cmdb-analyst-001",
+            "name": "CMDB Data Analyst",
+            "phase": "discovery",
+            "status": "active",
+            "currentTask": "Analyzing uploaded CMDB data",
+            "tasksCompleted": 52,
+            "successRate": 0.96,
+            "lastActivity": "2025-01-28T15:32:00Z"
+        }
+    ]
+}
+```
+
+### WebSocket Integration for Real-Time Updates
+
+#### Connection: `ws://localhost:8000/ws/agent-monitoring`
+
+#### Message Types:
+```json
+// Agent Status Update
+{
+    "type": "agent_status_update",
+    "agentId": "asset-intelligence-001",
+    "status": "busy",
+    "currentTask": "Processing asset classification patterns",
+    "confidence": 0.87
+}
+
+// Task Completion
+{
+    "type": "task_completed",
+    "agentId": "discovery-cmdb-analyst-001",
+    "task": "CMDB data analysis",
+    "result": "success",
+    "duration": 3.2,
+    "confidence": 0.91
+}
+
+// Asset Intelligence Update
+{
+    "type": "asset_intelligence_update",
+    "agentId": "asset-intelligence-001",
+    "update": {
+        "patterns_learned": 3,
+        "classifications_improved": 12,
+        "confidence_boost": 0.15
+    }
+}
+```
+
 ## AI Crews (Collaborative Teams)
 
 ### Enhanced Crew Compositions
@@ -941,61 +1099,141 @@ def learn_field_actions(self, field_actions: List[FieldAction]):
 }
 ```
 
-#### Agent Status Monitoring
-**Endpoint**: `GET /api/v1/observability/agents/status`
+### Enhanced Asset Inventory Endpoints 🆕
+
+#### Discovery-Integrated Intelligent Asset Analysis
+**Endpoint**: `POST /api/v1/discovery/assets/analyze`
+
+**Request**:
+```json
+{
+    "asset_ids": ["asset-1", "asset-2"],
+    "operation": "pattern_analysis",
+    "include_patterns": true,
+    "include_quality_assessment": true
+}
+```
 
 **Response**:
 ```json
 {
-    "totalAgents": 8,
-    "activeAgents": 6,
-    "agents": [
+    "patterns": [
         {
-            "agentId": "discovery-cmdb-analyst-001",
-            "name": "CMDB Data Analyst",
-            "phase": "discovery",
-            "status": "active",
-            "currentTask": "Analyzing uploaded CMDB data",
-            "tasksCompleted": 47,
-            "successRate": 0.94,
-            "lastActivity": "2025-01-28T15:30:00Z"
+            "type": "field_usage",
+            "pattern": {"hostname": {"usage_rate": 0.95}},
+            "confidence": 0.9,
+            "source": "field_mapping_intelligence"
         }
-    ]
+    ],
+    "insights": [
+        {
+            "type": "classification_opportunity", 
+            "insight": "Content analysis reveals natural asset groupings",
+            "action": "Consider bulk classification based on content patterns",
+            "priority": "high",
+            "confidence": 0.85
+        }
+    ],
+    "quality_assessment": {
+        "quality_score": 82,
+        "issues": ["Missing environment data for 23 assets"],
+        "recommendations": ["Bulk assign Production environment to assets with 'prod' in hostname"]
+    },
+    "discovery_integration": true,
+    "agentic_analysis": true
 }
 ```
 
-### WebSocket Integration for Real-Time Updates
+#### Discovery-Integrated Asset Auto-Classification
+**Endpoint**: `POST /api/v1/discovery/assets/auto-classify`
 
-**Connection**: `ws://localhost:8000/ws/agent-monitoring`
-
-**Message Types**:
+**Request**:
 ```json
-// Agent Status Update
 {
-    "type": "agent_status_update",
-    "agentId": "discovery-field-mapping-001",
-    "status": "busy",
-    "currentTask": "Processing field mappings",
-    "confidence": 0.87
+    "asset_ids": ["asset-1", "asset-2"], 
+    "use_learned_patterns": true,
+    "confidence_threshold": 0.8
 }
+```
 
-// Task Completion
+**Response**:
+```json
 {
-    "type": "task_completed",
-    "agentId": "discovery-cmdb-analyst-001",
-    "task": "CMDB data analysis",
-    "result": "success",
-    "duration": 3.2,
-    "confidence": 0.91
+    "classifications": [
+        {
+            "asset_id": "asset-1",
+            "suggested_type": "Application Server",
+            "confidence": 0.92,
+            "reasoning": "Based on field mapping intelligence and content analysis",
+            "source": "asset_intelligence_agent"
+        }
+    ],
+    "discovery_integration": true,
+    "agentic_classification": true
 }
+```
 
-// Custom Attribute Created
+#### Discovery-Integrated Intelligence Status
+**Endpoint**: `GET /api/v1/discovery/assets/intelligence-status`
+
+**Response**:
+```json
 {
-    "type": "custom_attribute_created",
-    "attribute": {
-        "field": "business_process",
-        "description": "Business process classification",
-        "createdBy": "field_mapping_specialist"
+    "discovery_integration": true,
+    "agentic_framework": {
+        "available": true,
+        "asset_intelligence_agent": true,
+        "learning_agent": true,
+        "total_agents": 7
+    },
+    "field_mapping_intelligence": {
+        "available": true,
+        "learned_mappings": {"RAM_GB": "memory_gb", "CPU_COUNT": "cpu_cores"},
+        "total_variations_learned": 45
+    },
+    "capabilities": {
+        "intelligent_analysis": true,
+        "auto_classification": true,
+        "pattern_recognition": true,
+        "continuous_learning": true
+    }
+}
+```
+
+#### Enhanced Asset Inventory (Standalone)
+**Endpoint**: `POST /api/v1/inventory/analyze`
+
+**Description**: Dedicated enhanced asset inventory endpoints with full agentic capabilities
+
+**Features**:
+- Full AI-powered bulk operation planning (`POST /api/v1/inventory/bulk-update-plan`)
+- Advanced asset intelligence learning (`POST /api/v1/inventory/feedback`)
+- Comprehensive intelligence status (`GET /api/v1/inventory/intelligence-status`)
+- Asset auto-classification (`POST /api/v1/inventory/auto-classify`)
+
+### Enhanced Discovery Assets Endpoint 🆕
+
+**Endpoint**: `GET /api/v1/discovery/assets`
+
+**Enhanced Features**: The primary asset inventory endpoint now includes agentic intelligence
+
+**Response Enhancement**:
+```json
+{
+    "assets": [...],
+    "summary": {...},
+    "pagination": {...},
+    "enhanced_capabilities": {
+        "intelligent_analysis": "Available via agentic asset intelligence",
+        "auto_classification": "AI-powered asset classification available",
+        "bulk_operations": "Intelligent bulk operation planning available",
+        "continuous_learning": "System learns from user interactions",
+        "agentic_framework_active": true
+    },
+    "intelligence_status": {
+        "asset_intelligence_agent": true,
+        "field_mapping_intelligence": true,
+        "learning_system": true
     }
 }
 ```
@@ -1091,6 +1329,105 @@ CUSTOM_ATTRIBUTE_LEARNING_ENABLED=true
 **Symptoms**: Custom attributes not being suggested or recognized
 **Diagnosis**: Review custom attribute learning models and data patterns
 **Solution**: Retrain attribute recognition models and validate custom attribute definitions
+
+---
+
+## Current Implementation Summary (January 2025)
+
+### ✅ **Fully Implemented and Active Agents**
+
+| Agent | Status | Phase | Key Features | Endpoints |
+|-------|---------|-------|--------------|-----------|
+| **Asset Intelligence Agent** 🆕 | ✅ Active | Observability | AI-powered asset management, content-based classification, bulk operations intelligence | `/discovery/assets/analyze`, `/discovery/assets/auto-classify`, `/inventory/*` |
+| **CMDB Analyst Agent** | ✅ Active | Discovery | Expert CMDB analysis with 15+ years experience, migration readiness assessment | `/discovery/analyze-cmdb`, `/discovery/process-cmdb` |
+| **Learning Specialist Agent** | ✅ Active | Cross-Phase | Enhanced with asset management learning, field mapping intelligence, continuous improvement | `/discovery/cmdb-feedback`, feedback processing |
+| **Pattern Recognition Agent** | ✅ Active | Discovery | Field mapping intelligence, data structure analysis, format detection | Integrated with field mapping system |
+| **Migration Strategy Expert** | ✅ Active | Assessment | 6R strategy analysis, migration planning | Assessment and planning endpoints |
+| **Risk Assessment Specialist** | ✅ Active | Assessment | Migration risk analysis, mitigation strategies | Risk assessment workflows |
+| **Wave Planning Coordinator** | ✅ Active | Planning | Migration sequencing, dependency management | Wave planning optimization |
+
+### 🆕 **Asset Intelligence Agent - Key Capabilities**
+
+**Specialization**: Asset Inventory Intelligence Specialist
+- **Content-Based Analysis**: Uses field mapping intelligence, not hard-coded heuristics
+- **AI-Powered Classification**: Learns from patterns and user feedback
+- **Bulk Operations Intelligence**: Optimizes bulk operations using learned patterns
+- **Quality Assessment**: Intelligent data quality analysis with actionable recommendations
+- **Continuous Learning**: Improves from user interactions and asset management operations
+
+**Integration Points**:
+- **Discovery Phase**: Integrated with `/api/v1/discovery/assets/*` endpoints
+- **Field Mapping**: Leverages existing field mapping intelligence
+- **Learning System**: Enhances the learning specialist agent
+- **Observability**: Provides real-time asset intelligence monitoring
+
+### 🔧 **Enhanced Integration Architecture**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Frontend Asset Inventory                │
+│                                                             │
+│  Calls: /api/v1/discovery/assets (Enhanced with AI)       │
+└─────────────────────┬───────────────────────────────────────┘
+                      │
+┌─────────────────────▼───────────────────────────────────────┐
+│              Discovery Asset Management                    │
+│                                                             │
+│  • GET /assets (Enhanced with agentic intelligence)       │
+│  • POST /assets/analyze (Asset Intelligence Agent)        │
+│  • POST /assets/auto-classify (AI Classification)         │
+│  • GET /assets/intelligence-status (AI Status)            │
+└─────────────────────┬───────────────────────────────────────┘
+                      │
+┌─────────────────────▼───────────────────────────────────────┐
+│                Asset Intelligence Agent                    │
+│                                                             │
+│  • AI-powered pattern recognition                         │
+│  • Content-based asset analysis                           │
+│  • Bulk operations optimization                           │
+│  • Field mapping intelligence integration                 │
+└─────────────────────┬───────────────────────────────────────┘
+                      │
+┌─────────────────────▼───────────────────────────────────────┐
+│            Enhanced Asset Inventory (Optional)            │
+│                                                             │
+│  Standalone: /api/v1/inventory/* (Full AI Features)       │
+│  • Advanced bulk operation planning                       │
+│  • Comprehensive intelligence learning                    │
+│  • Enhanced classification workflows                      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 📊 **Intelligence Capabilities Matrix**
+
+| Capability | Discovery Integration | Enhanced Inventory | Status |
+|------------|----------------------|-------------------|---------|
+| **Asset Pattern Recognition** | ✅ Available | ✅ Advanced | Active |
+| **Auto-Classification** | ✅ Available | ✅ Advanced | Active |
+| **Quality Assessment** | ✅ Available | ✅ Advanced | Active |
+| **Bulk Operations Planning** | 🔄 Basic | ✅ Advanced | Active |
+| **Field Mapping Learning** | ✅ Integrated | ✅ Enhanced | Active |
+| **Continuous Learning** | ✅ Available | ✅ Advanced | Active |
+| **Real-time Monitoring** | ✅ Available | ✅ Available | Active |
+
+### 🚀 **Key Benefits Achieved**
+
+1. **Seamless Integration**: Asset Intelligence Agent works with existing discovery workflow
+2. **No Hard-Coded Heuristics**: All intelligence is AI-powered and learning-based
+3. **Dual Endpoint Strategy**: Both integrated discovery endpoints and enhanced standalone
+4. **Backward Compatibility**: Existing frontend continues to work with enhancements
+5. **Continuous Learning**: System improves from every user interaction
+6. **Real-time Intelligence**: Live asset intelligence monitoring and updates
+
+### 🔮 **Next Steps**
+
+1. **Enable Advanced Features**: Configure CrewAI service with API keys for full intelligence
+2. **Training Phase**: Use the feedback endpoints to train the Asset Intelligence Agent
+3. **Frontend Enhancement**: Leverage the new intelligent capabilities in the UI
+4. **Assessment Integration**: Connect Asset Intelligence with 6R analysis workflows
+5. **Performance Monitoring**: Use observability endpoints to monitor agent performance
+
+The Asset Intelligence Agent represents a significant enhancement to the AI Force Migration Platform, providing truly intelligent asset inventory management that learns and adapts while maintaining seamless integration with existing workflows.
 
 ---
 

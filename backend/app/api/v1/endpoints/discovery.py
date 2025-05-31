@@ -23,6 +23,14 @@ processing_handler = DataProcessingHandler()
 template_handler = TemplateHandler()
 feedback_handler = FeedbackHandler()
 
+# Include asset management router from discovery module
+try:
+    from app.api.v1.discovery.asset_management import router as asset_management_router
+    router.include_router(asset_management_router, tags=["discovery-assets"])
+    logger.info("✅ Asset management router included in discovery")
+except ImportError as e:
+    logger.warning(f"⚠️ Asset management router not available: {e}")
+
 @router.get("/health")
 async def discovery_health_check():
     """Health check endpoint for the discovery module."""
@@ -34,14 +42,19 @@ async def discovery_health_check():
             "cmdb_analysis": cmdb_handler.is_available(),
             "data_processing": processing_handler.is_available(),
             "templates": template_handler.is_available(),
-            "feedback": feedback_handler.is_available()
+            "feedback": feedback_handler.is_available(),
+            "asset_management": True  # Asset management is now included
         },
         "available_endpoints": [
             "/health",
             "/analyze-cmdb",
             "/process-cmdb", 
             "/cmdb-feedback",
-            "/cmdb-templates"
+            "/cmdb-templates",
+            "/assets",  # Asset management endpoints
+            "/assets/analyze",
+            "/assets/auto-classify",
+            "/assets/intelligence-status"
         ]
     }
 

@@ -28,7 +28,8 @@ class AssetCRUDHandler:
                 bulk_update_assets,
                 bulk_delete_assets,
                 cleanup_duplicates,
-                find_duplicate_assets
+                find_duplicate_assets,
+                initialize_persistence
             )
             self.get_processed_assets = get_processed_assets
             self.update_asset_by_id = update_asset_by_id
@@ -37,8 +38,13 @@ class AssetCRUDHandler:
             self.bulk_delete_assets = bulk_delete_assets
             self.cleanup_duplicates = cleanup_duplicates
             self.find_duplicate_assets = find_duplicate_assets
+            
+            # Initialize persistence to load existing assets
+            initialize_persistence()
+            assets_count = len(get_processed_assets())
+            logger.info(f"Asset persistence services initialized successfully with {assets_count} assets loaded")
+            
             self.persistence_available = True
-            logger.info("Asset persistence services initialized successfully")
         except (ImportError, AttributeError, Exception) as e:
             logger.warning(f"Asset persistence services not available: {e}")
             self.persistence_available = False

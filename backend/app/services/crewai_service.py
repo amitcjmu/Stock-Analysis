@@ -26,7 +26,6 @@ from app.services.analysis import IntelligentAnalyzer, PlaceholderAnalyzer
 from app.services.feedback import FeedbackProcessor
 from app.services.agent_monitor import agent_monitor, TaskStatus
 from app.services.tools.sixr_tools import get_sixr_tools
-from app.services.memory import MemoryService
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +88,10 @@ class CrewAIService:
         except ImportError as e:
             logger.warning(f"Field mapping tool not available: {e}")
             self.field_mapping_tool = None
+
+    def is_available(self) -> bool:
+        """Check if the CrewAI service is available and properly initialized."""
+        return CREWAI_AVAILABLE and self.llm is not None and self.agent_manager is not None
     
     def _initialize_llm(self):
         """Initialize the LiteLLM configuration for DeepInfra."""
@@ -1107,10 +1110,441 @@ class CrewAIService:
             "test_timestamp": datetime.utcnow().isoformat()
         }
 
-
-
-
-
+    # Enhanced asset inventory management methods
+    async def analyze_asset_inventory(self, inventory_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Agentic asset inventory analysis using Asset Intelligence Agent.
+        Leverages learned field mappings and intelligent pattern recognition.
+        """
+        if not CREWAI_AVAILABLE or not self.agents.get('asset_intelligence'):
+            logger.info("Asset Intelligence Agent not available, using enhanced fallback analysis")
+            return self._fallback_asset_analysis(inventory_data)
+        
+        try:
+            logger.info(f"Starting Asset Intelligence analysis for {inventory_data.get('operation', 'general_analysis')}")
+            
+            # Get field mapping context for intelligent analysis
+            field_context = {}
+            if self.field_mapping_tool:
+                field_context = self.field_mapping_tool.get_mapping_context()
+            
+            # Create agentic task with asset intelligence
+            task = Task(
+                description=f"""
+                As an Asset Inventory Intelligence Specialist, analyze the following asset inventory data:
+                
+                Asset Context: {inventory_data}
+                Operation: {inventory_data.get('operation', 'general_analysis')}
+                Assets Count: {len(inventory_data.get('assets', []))}
+                
+                Using your advanced AI intelligence and learned field mapping patterns:
+                
+                1. PATTERN ANALYSIS: Identify intelligent patterns in asset data using content analysis, not hard-coded rules
+                   - Analyze field usage patterns across assets using learned mappings: {field_context}
+                   - Identify natural asset groupings based on content characteristics
+                   - Detect quality consistency patterns for targeted improvements
+                
+                2. INTELLIGENT CLASSIFICATION: Provide AI-powered classification suggestions
+                   - Use learned field mapping intelligence to understand asset characteristics
+                   - Base suggestions on content patterns and historical learning
+                   - Provide confidence scores for each classification suggestion
+                
+                3. DATA QUALITY ASSESSMENT: Intelligent quality analysis using field mapping intelligence
+                   - Identify quality issues using learned field mapping context
+                   - Generate actionable recommendations for bulk quality improvements
+                   - Focus on categorized issues suitable for bulk operations
+                
+                4. BULK OPERATIONS OPTIMIZATION: Plan intelligent bulk operations
+                   - Suggest bulk update opportunities based on identified patterns
+                   - Optimize operations using learned asset management patterns
+                   - Recommend validation strategies for safe bulk operations
+                
+                5. ACTIONABLE INSIGHTS: Generate prioritized, actionable insights
+                   - Focus on insights that leverage learned patterns and field mappings
+                   - Provide specific actions users can take to improve inventory management
+                   - Include confidence scores and reasoning for each insight
+                
+                CRITICAL: Base all analysis on AI intelligence and learned patterns, NOT hard-coded heuristics.
+                Use the field mapping context to understand data relationships intelligently.
+                
+                Return structured JSON with intelligent asset inventory insights.
+                """,
+                agent=self.agents['asset_intelligence'],
+                expected_output="JSON analysis with intelligent asset inventory insights, pattern recognition, and actionable recommendations"
+            )
+            
+            # Execute with timeout for reliability
+            try:
+                result = await asyncio.wait_for(self._execute_task_async(task), timeout=45.0)
+                logger.info("Asset Intelligence analysis completed successfully")
+                
+                # Record successful analysis for learning
+                self.memory.add_experience("asset_inventory_analysis", {
+                    "operation": inventory_data.get('operation'),
+                    "asset_count": len(inventory_data.get('assets', [])),
+                    "result_summary": result[:200] if isinstance(result, str) else str(result)[:200],
+                    "timestamp": datetime.utcnow().isoformat()
+                })
+                
+                return self._parse_ai_response(result)
+                
+            except asyncio.TimeoutError:
+                logger.warning("Asset Intelligence analysis timed out, falling back to enhanced analysis")
+                return self._fallback_asset_analysis(inventory_data)
+                
+        except Exception as e:
+            logger.error(f"Asset inventory analysis failed: {e}")
+            return self._fallback_asset_analysis(inventory_data)
+    
+    async def plan_asset_bulk_operation(self, operation_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        AI-powered bulk operation planning using Asset Intelligence Agent.
+        """
+        if not CREWAI_AVAILABLE or not self.agents.get('asset_intelligence'):
+            return self._fallback_bulk_operation_planning(operation_data)
+        
+        try:
+            # Get field mapping context for intelligent planning
+            field_context = {}
+            if self.field_mapping_tool:
+                field_context = self.field_mapping_tool.get_mapping_context()
+            
+            task = Task(
+                description=f"""
+                As an Asset Inventory Intelligence Specialist, plan the following bulk operation:
+                
+                Operation Data: {operation_data}
+                Asset IDs: {len(operation_data.get('asset_ids', []))} assets
+                Proposed Updates: {operation_data.get('proposed_updates', {})}
+                
+                Using your AI intelligence and field mapping knowledge:
+                
+                1. INTELLIGENT VALIDATION: Validate the bulk operation using learned patterns
+                   - Use field mapping intelligence: {field_context}
+                   - Identify potential validation issues based on learned data patterns
+                   - Suggest field-level validations using mapping context
+                
+                2. OPTIMAL STRATEGY: Determine the best execution strategy
+                   - Analyze operation complexity and scale
+                   - Recommend batch sizes and execution approach
+                   - Consider parallel vs sequential execution based on AI analysis
+                
+                3. RISK ASSESSMENT: AI-powered risk assessment
+                   - Identify risks based on operation scope and learned patterns
+                   - Suggest mitigation strategies using historical operation insights
+                   - Provide confidence levels for risk assessments
+                
+                4. EXECUTION PLAN: Create detailed execution plan
+                   - Optimize execution order using AI intelligence
+                   - Plan rollback strategies for safe operation
+                   - Include monitoring and validation checkpoints
+                
+                Base all recommendations on AI analysis and learned patterns, not hard-coded rules.
+                
+                Return structured JSON with comprehensive bulk operation plan.
+                """,
+                agent=self.agents['asset_intelligence'],
+                expected_output="JSON bulk operation plan with AI-optimized strategy, validation, and execution details"
+            )
+            
+            result = await self._execute_task_async(task)
+            return self._parse_ai_response(result)
+            
+        except Exception as e:
+            logger.error(f"Bulk operation planning failed: {e}")
+            return self._fallback_bulk_operation_planning(operation_data)
+    
+    async def classify_assets(self, classification_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        AI-powered asset classification using learned patterns and field mapping intelligence.
+        """
+        if not CREWAI_AVAILABLE or not self.agents.get('asset_intelligence'):
+            return self._fallback_asset_classification(classification_data)
+        
+        try:
+            # Get field mapping context for intelligent classification
+            field_context = {}
+            if self.field_mapping_tool:
+                field_context = self.field_mapping_tool.get_mapping_context()
+            
+            task = Task(
+                description=f"""
+                As an Asset Inventory Intelligence Specialist, classify the following assets:
+                
+                Classification Data: {classification_data}
+                Asset IDs: {len(classification_data.get('asset_ids', []))} assets
+                Use Learned Patterns: {classification_data.get('use_learned_patterns', True)}
+                Confidence Threshold: {classification_data.get('confidence_threshold', 0.8)}
+                
+                Using your AI intelligence and field mapping knowledge:
+                
+                1. CONTENT-BASED CLASSIFICATION: Analyze asset content using learned field mappings
+                   - Use field mapping intelligence: {field_context}
+                   - Analyze asset characteristics based on canonical field mappings
+                   - Consider content patterns, not just field names
+                
+                2. PATTERN-BASED SUGGESTIONS: Use learned patterns for classification
+                   - Apply historical classification patterns from similar assets
+                   - Use AI pattern recognition to identify asset types
+                   - Provide confidence scores based on pattern matching
+                
+                3. INTELLIGENT GROUPING: Identify natural asset groupings
+                   - Group assets with similar characteristics using AI analysis
+                   - Suggest bulk classification opportunities
+                   - Consider business context and asset relationships
+                
+                4. CLASSIFICATION VALIDATION: Validate classifications using AI intelligence
+                   - Check classification consistency across similar assets
+                   - Identify potential classification conflicts or issues
+                   - Suggest manual review for low-confidence classifications
+                
+                Base all classifications on AI analysis and learned patterns, not hard-coded categorization rules.
+                
+                Return structured JSON with asset classifications, confidence scores, and validation results.
+                """,
+                agent=self.agents['asset_intelligence'],
+                expected_output="JSON asset classification results with AI-generated suggestions, confidence scores, and validation insights"
+            )
+            
+            result = await self._execute_task_async(task)
+            return self._parse_ai_response(result)
+            
+        except Exception as e:
+            logger.error(f"Asset classification failed: {e}")
+            return self._fallback_asset_classification(classification_data)
+    
+    async def process_asset_feedback(self, feedback_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Process user feedback from asset management operations to improve AI intelligence.
+        """
+        if not CREWAI_AVAILABLE or not self.agents.get('learning_agent'):
+            return self._fallback_feedback_processing(feedback_data)
+        
+        try:
+            # Get current field mapping context
+            field_context = {}
+            if self.field_mapping_tool:
+                field_context = self.field_mapping_tool.get_mapping_context()
+            
+            task = Task(
+                description=f"""
+                As an AI Learning Specialist, process this asset management feedback to improve system intelligence:
+                
+                Feedback Data: {feedback_data}
+                Context: Asset inventory management
+                Operation Type: {feedback_data.get('operation_type', 'general')}
+                
+                Extract learning patterns for system improvement:
+                
+                1. FIELD MAPPING LEARNING: Extract field mapping insights
+                   - Current field mapping context: {field_context}
+                   - Identify new field variations mentioned in feedback
+                   - Learn field mapping corrections from user input
+                   - Update field mapping intelligence based on user corrections
+                
+                2. ASSET CLASSIFICATION LEARNING: Improve classification intelligence
+                   - Extract asset classification corrections from feedback
+                   - Learn new classification patterns from user input
+                   - Update asset type recognition based on user corrections
+                
+                3. DATA QUALITY LEARNING: Enhance quality assessment
+                   - Learn from data quality feedback and corrections
+                   - Identify new quality patterns from user observations
+                   - Update quality assessment criteria based on feedback
+                
+                4. BULK OPERATIONS LEARNING: Optimize bulk operation strategies
+                   - Learn from bulk operation outcomes and user feedback
+                   - Identify successful operation patterns
+                   - Update bulk operation planning based on user experiences
+                
+                5. USER WORKFLOW LEARNING: Understand user preferences
+                   - Identify user workflow patterns from feedback
+                   - Learn user preferences for asset management operations
+                   - Update recommendations based on user behavior patterns
+                
+                Use the field mapping tool to learn and persist new mappings discovered in feedback.
+                Apply learned insights to improve future asset management operations.
+                
+                Return structured JSON with learning insights and applied improvements.
+                """,
+                agent=self.agents['learning_agent'],
+                expected_output="JSON learning patterns for asset management enhancement with applied improvements"
+            )
+            
+            result = await self._execute_task_async(task)
+            
+            # Apply learned insights to improve future operations
+            await self._apply_asset_learning_insights(result)
+            
+            # Record learning activity
+            self.memory.add_experience("asset_feedback_processing", {
+                "feedback_type": feedback_data.get('operation_type'),
+                "learning_summary": str(result)[:200] if isinstance(result, str) else str(result)[:200],
+                "timestamp": datetime.utcnow().isoformat()
+            })
+            
+            return self._parse_ai_response(result)
+            
+        except Exception as e:
+            logger.error(f"Asset feedback processing failed: {e}")
+            return self._fallback_feedback_processing(feedback_data)
+    
+    # Enhanced fallback methods for asset management
+    def _fallback_asset_analysis(self, inventory_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Enhanced fallback asset analysis when AI agents are not available."""
+        assets = inventory_data.get('assets', [])
+        operation = inventory_data.get('operation', 'general_analysis')
+        
+        # Basic intelligent analysis using available data
+        analysis = {
+            "status": "completed_fallback",
+            "operation": operation,
+            "asset_count": len(assets),
+            "patterns": self._basic_pattern_analysis(assets),
+            "insights": self._basic_asset_insights(assets, operation),
+            "recommendations": self._basic_asset_recommendations(assets),
+            "quality_assessment": self._basic_quality_assessment(assets),
+            "fallback_mode": True,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+        return analysis
+    
+    def _fallback_bulk_operation_planning(self, operation_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Fallback bulk operation planning."""
+        asset_ids = operation_data.get('asset_ids', [])
+        updates = operation_data.get('proposed_updates', {})
+        
+        return {
+            "status": "planned_fallback",
+            "asset_count": len(asset_ids),
+            "updates": updates,
+            "strategy": {
+                "approach": "batch_update",
+                "batch_size": min(50, len(asset_ids)),
+                "validation_required": True
+            },
+            "risk_assessment": {
+                "overall_risk": "medium",
+                "mitigation": "Use staged execution with validation"
+            },
+            "fallback_mode": True,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    
+    def _fallback_asset_classification(self, classification_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Fallback asset classification."""
+        asset_ids = classification_data.get('asset_ids', [])
+        
+        return {
+            "status": "classified_fallback",
+            "asset_count": len(asset_ids),
+            "classifications": [],
+            "confidence": 0.5,
+            "method": "fallback_classification",
+            "recommendation": "Use AI classification when available for better results",
+            "fallback_mode": True,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    
+    async def _apply_asset_learning_insights(self, learning_result: Any) -> None:
+        """Apply learned insights to improve asset management capabilities."""
+        try:
+            if isinstance(learning_result, str):
+                # Try to parse if it's a JSON string
+                import json
+                try:
+                    learning_data = json.loads(learning_result)
+                except:
+                    learning_data = {"insights": "Parsing failed"}
+            else:
+                learning_data = learning_result
+            
+            # Apply field mapping learning if available
+            if self.field_mapping_tool and learning_data.get('field_mappings'):
+                for mapping in learning_data['field_mappings']:
+                    source_field = mapping.get('source_field')
+                    target_field = mapping.get('target_field')
+                    if source_field and target_field:
+                        self.field_mapping_tool.learn_field_mapping(
+                            source_field, target_field, "agent_learning"
+                        )
+            
+            # Update learning metrics
+            self.memory.update_learning_metrics("asset_learning_applications", 1)
+            
+        except Exception as e:
+            logger.warning(f"Failed to apply asset learning insights: {e}")
+    
+    def _basic_pattern_analysis(self, assets: List[Dict]) -> List[Dict]:
+        """Basic pattern analysis for fallback mode."""
+        patterns = []
+        
+        if assets:
+            # Simple field usage analysis
+            field_usage = {}
+            for asset in assets:
+                for field in asset.keys():
+                    field_usage[field] = field_usage.get(field, 0) + 1
+            
+            patterns.append({
+                "type": "field_usage",
+                "pattern": field_usage,
+                "confidence": 0.6,
+                "source": "basic_analysis"
+            })
+        
+        return patterns
+    
+    def _basic_asset_insights(self, assets: List[Dict], operation: str) -> List[Dict]:
+        """Basic asset insights for fallback mode."""
+        insights = []
+        
+        if assets:
+            insights.append({
+                "type": "basic_insight",
+                "insight": f"Analyzed {len(assets)} assets for {operation}",
+                "action": "Consider using AI analysis for enhanced insights",
+                "priority": "medium",
+                "confidence": 0.5
+            })
+        
+        return insights
+    
+    def _basic_asset_recommendations(self, assets: List[Dict]) -> List[Dict]:
+        """Basic asset recommendations for fallback mode."""
+        recommendations = []
+        
+        if assets:
+            recommendations.append({
+                "type": "enhancement",
+                "recommendation": "Enable AI asset intelligence for advanced analysis",
+                "action": "Configure CrewAI and DeepInfra API for intelligent asset management",
+                "priority": "high"
+            })
+        
+        return recommendations
+    
+    def _basic_quality_assessment(self, assets: List[Dict]) -> Dict[str, Any]:
+        """Basic quality assessment for fallback mode."""
+        if not assets:
+            return {"quality_score": 0, "issues": [], "recommendations": []}
+        
+        # Simple completeness check
+        total_fields = sum(len(asset) for asset in assets)
+        populated_fields = sum(
+            sum(1 for value in asset.values() if value and str(value).strip())
+            for asset in assets
+        )
+        
+        quality_score = (populated_fields / total_fields * 100) if total_fields > 0 else 0
+        
+        return {
+            "quality_score": round(quality_score, 2),
+            "issues": [],
+            "recommendations": ["Use AI quality assessment for detailed analysis"],
+            "method": "basic_completeness_check"
+        }
 
 # Global service instance
 crewai_service = CrewAIService() 

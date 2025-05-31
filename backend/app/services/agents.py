@@ -81,126 +81,159 @@ class AgentManager:
         logger.info(f"Successfully reinitialized {len(self.agents)} agents and {len(self.crews)} crews")
     
     def _create_agents(self):
-        """Create all specialized agents."""
-        
-        # 1. CMDB Data Analyst Agent
-        self.agents['cmdb_analyst'] = Agent(
-            role='Senior CMDB Data Analyst',
-            goal='Analyze CMDB data with expert precision and context awareness using field mapping tools',
-            backstory="""You are a Senior CMDB Data Analyst with over 15 years of experience 
-            in enterprise asset management and cloud migration projects. You understand the 
-            nuances of different asset types and their specific requirements for migration 
-            planning. You excel at identifying asset types, assessing data quality, and 
-            providing migration-specific recommendations.
+        """Create all specialized agents with graceful error handling."""
+        try:
+            from crewai import Agent
             
-            IMPORTANT: You have access to a field_mapping_tool that helps you:
-            - Query existing field mappings between data columns and canonical field names
-            - Learn new field mappings from data analysis
-            - Analyze data columns to identify missing fields and suggest mappings
-            - Get context about previously learned field mappings
+            # Import asset intelligence tools
+            try:
+                from app.services.tools.asset_intelligence_tools import get_asset_intelligence_tools
+                asset_tools = get_asset_intelligence_tools(field_mapper=None)  # Will be injected later
+            except ImportError:
+                logger.warning("Asset intelligence tools not available")
+                asset_tools = []
             
-            Always use this tool when analyzing CMDB data to ensure accurate field identification
-            and to learn from new data patterns you encounter.""",
-            verbose=False,
-            allow_delegation=False,
-            llm=self.llm,
-            memory=True  # Enable memory for OpenAI API calls
-        )
-        
-        # 2. AI Learning Specialist Agent
-        self.agents['learning_agent'] = Agent(
-            role='AI Learning Specialist',
-            goal='Process feedback and continuously improve analysis accuracy using field mapping learning',
-            backstory="""You are an AI Learning Specialist focused on processing user 
-            feedback to improve system accuracy. You excel at identifying patterns in 
-            corrections and updating analysis models in real-time. Your expertise lies 
-            in pattern recognition, error analysis, and continuous improvement of AI 
-            systems through feedback loops.
+            agents = {}
             
-            CRITICAL: You have access to a field_mapping_tool that you MUST use to:
-            - Learn new field mappings from user feedback and corrections
-            - Extract field mapping patterns from feedback text
-            - Update the persistent field mapping knowledge base
-            - Query existing mappings to understand what has been learned
+            # Existing agents...
+            # CMDB Data Analyst Agent
+            agents["cmdb_analyst"] = Agent(
+                role="Senior CMDB Data Analyst", 
+                goal="Analyze CMDB data with expert precision using advanced field mapping tools",
+                backstory="""You are a world-class expert in enterprise asset management and CMDB data analysis. 
+                Your expertise spans across multiple domains including infrastructure discovery, data quality assessment, 
+                and migration planning. You have deep knowledge of field mapping patterns and can intelligently 
+                interpret data structures from various sources. You use advanced field mapping tools to understand 
+                data relationships and provide actionable insights for enterprise IT asset management.""",
+                verbose=True,
+                allow_delegation=False,
+                llm=self.llm,
+                memory=False
+            )
+
+            # NEW: Asset Intelligence Agent for inventory management
+            agents["asset_intelligence"] = Agent(
+                role="Asset Inventory Intelligence Specialist",
+                goal="Intelligently manage asset inventory operations with advanced learning capabilities and field mapping intelligence",
+                backstory="""You are an expert IT Asset Management specialist with deep knowledge of:
+                - Enterprise asset classification and categorization patterns
+                - Advanced data quality assessment for inventory management
+                - Intelligent bulk operations optimization using learned patterns
+                - Asset lifecycle management and relationship mapping
+                - Field mapping intelligence and data structure analysis
+                
+                You excel at analyzing asset data patterns using AI intelligence rather than hard-coded rules.
+                You leverage field mapping tools to understand data relationships and provide increasingly 
+                intelligent inventory management recommendations. You learn from user interactions and asset 
+                data patterns to continuously improve your analysis and recommendations.
+                
+                Your approach is always data-driven, using learned patterns and content analysis to provide
+                actionable insights for asset inventory optimization.""",
+                tools=asset_tools,  # Asset-specific AI tools
+                verbose=True,
+                allow_delegation=False, 
+                llm=self.llm,
+                memory=False
+            )
+
+            # Learning Agent with enhanced asset learning capabilities
+            agents["learning_agent"] = Agent(
+                role="AI Learning Specialist",
+                goal="Process feedback and continuously improve analysis accuracy using advanced field mapping learning and asset management insights",
+                backstory="""You are an advanced AI learning specialist focused on continuous improvement 
+                of the migration analysis platform. Your core competencies include:
+                
+                - Processing user feedback to extract actionable learning patterns
+                - Enhancing field mapping accuracy through experience analysis
+                - Improving asset classification and data quality assessment
+                - Learning from bulk operation outcomes to optimize future recommendations
+                - Identifying patterns in user workflows and preferences
+                
+                You work closely with field mapping tools to learn new data structure patterns and
+                asset management optimization strategies. You ensure the platform becomes more intelligent
+                and accurate with each user interaction.""",
+                verbose=True,
+                allow_delegation=False,
+                llm=self.llm,
+                memory=False
+            )
+
+            # 3. Data Pattern Recognition Expert
+            agents['pattern_agent'] = Agent(
+                role='Data Pattern Recognition Expert',
+                goal='Analyze and understand CMDB data structures and patterns using field mapping intelligence',
+                backstory="""You are a Data Pattern Recognition Expert specializing in CMDB 
+                export formats. You can quickly identify asset types, field relationships, 
+                and data quality issues across different CMDB systems like ServiceNow, BMC 
+                Remedy, and others. Your expertise includes format detection, field mapping, 
+                and relationship analysis.
+                
+                ESSENTIAL: You have access to a field_mapping_tool that enables you to:
+                - Analyze data columns and identify existing field mappings
+                - Discover new field mapping patterns in unfamiliar data formats
+                - Learn field mappings from data structure analysis
+                - Suggest mappings between available columns and missing required fields
+                
+                Use this tool to understand data patterns and continuously improve field 
+                recognition across different CMDB export formats.""",
+                verbose=False,
+                allow_delegation=False,
+                llm=self.llm,
+                memory=True  # Enable memory for OpenAI API calls
+            )
             
-            When processing user feedback, always check if it contains field mapping 
-            information and use the tool to learn and persist these mappings for future use.""",
-            verbose=False,
-            allow_delegation=False,
-            llm=self.llm,
-            memory=True  # Enable memory for OpenAI API calls
-        )
-        
-        # 3. Data Pattern Recognition Expert
-        self.agents['pattern_agent'] = Agent(
-            role='Data Pattern Recognition Expert',
-            goal='Analyze and understand CMDB data structures and patterns using field mapping intelligence',
-            backstory="""You are a Data Pattern Recognition Expert specializing in CMDB 
-            export formats. You can quickly identify asset types, field relationships, 
-            and data quality issues across different CMDB systems like ServiceNow, BMC 
-            Remedy, and others. Your expertise includes format detection, field mapping, 
-            and relationship analysis.
+            # 4. Migration Strategy Expert
+            agents['migration_strategist'] = Agent(
+                role='Migration Strategy Expert',
+                goal='Analyze assets and recommend optimal 6R migration strategies',
+                backstory="""You are a Migration Strategy Expert with deep knowledge of the 
+                6R migration strategies (Rehost, Replatform, Refactor, Rearchitect, Retire, 
+                Retain). You can assess technical complexity, business impact, and recommend 
+                the most appropriate migration approach for each asset. Your expertise includes 
+                cloud architecture, application modernization, and migration planning.""",
+                verbose=False,
+                allow_delegation=False,
+                llm=self.llm,
+                memory=True  # Enable memory for OpenAI API calls
+            )
             
-            ESSENTIAL: You have access to a field_mapping_tool that enables you to:
-            - Analyze data columns and identify existing field mappings
-            - Discover new field mapping patterns in unfamiliar data formats
-            - Learn field mappings from data structure analysis
-            - Suggest mappings between available columns and missing required fields
+            # 5. Risk Assessment Specialist
+            agents['risk_assessor'] = Agent(
+                role='Risk Assessment Specialist',
+                goal='Identify and assess migration risks with mitigation strategies',
+                backstory="""You are a Risk Assessment Specialist with expertise in identifying 
+                and mitigating migration risks. You understand technical, business, security, 
+                and operational risks associated with cloud migrations. Your expertise includes 
+                risk quantification, impact analysis, and developing comprehensive mitigation 
+                strategies for complex migration projects.""",
+                verbose=False,
+                allow_delegation=False,
+                llm=self.llm,
+                memory=True  # Enable memory for OpenAI API calls
+            )
             
-            Use this tool to understand data patterns and continuously improve field 
-            recognition across different CMDB export formats.""",
-            verbose=False,
-            allow_delegation=False,
-            llm=self.llm,
-            memory=True  # Enable memory for OpenAI API calls
-        )
+            # 6. Wave Planning Coordinator
+            agents['wave_planner'] = Agent(
+                role='Wave Planning Coordinator',
+                goal='Optimize migration wave planning based on dependencies and priorities',
+                backstory="""You are a Wave Planning Coordinator expert who creates optimal 
+                migration sequences considering asset dependencies, business priorities, and 
+                resource constraints while minimizing business disruption. Your expertise 
+                includes dependency analysis, resource optimization, timeline management, 
+                and parallel execution planning.""",
+                verbose=False,
+                allow_delegation=False,
+                llm=self.llm,
+                memory=True  # Enable memory for OpenAI API calls
+            )
+            
+            self.agents = agents
+            logger.info(f"Created {len(self.agents)} specialized agents")
         
-        # 4. Migration Strategy Expert
-        self.agents['migration_strategist'] = Agent(
-            role='Migration Strategy Expert',
-            goal='Analyze assets and recommend optimal 6R migration strategies',
-            backstory="""You are a Migration Strategy Expert with deep knowledge of the 
-            6R migration strategies (Rehost, Replatform, Refactor, Rearchitect, Retire, 
-            Retain). You can assess technical complexity, business impact, and recommend 
-            the most appropriate migration approach for each asset. Your expertise includes 
-            cloud architecture, application modernization, and migration planning.""",
-            verbose=False,
-            allow_delegation=False,
-            llm=self.llm,
-            memory=True  # Enable memory for OpenAI API calls
-        )
-        
-        # 5. Risk Assessment Specialist
-        self.agents['risk_assessor'] = Agent(
-            role='Risk Assessment Specialist',
-            goal='Identify and assess migration risks with mitigation strategies',
-            backstory="""You are a Risk Assessment Specialist with expertise in identifying 
-            and mitigating migration risks. You understand technical, business, security, 
-            and operational risks associated with cloud migrations. Your expertise includes 
-            risk quantification, impact analysis, and developing comprehensive mitigation 
-            strategies for complex migration projects.""",
-            verbose=False,
-            allow_delegation=False,
-            llm=self.llm,
-            memory=True  # Enable memory for OpenAI API calls
-        )
-        
-        # 6. Wave Planning Coordinator
-        self.agents['wave_planner'] = Agent(
-            role='Wave Planning Coordinator',
-            goal='Optimize migration wave planning based on dependencies and priorities',
-            backstory="""You are a Wave Planning Coordinator expert who creates optimal 
-            migration sequences considering asset dependencies, business priorities, and 
-            resource constraints while minimizing business disruption. Your expertise 
-            includes dependency analysis, resource optimization, timeline management, 
-            and parallel execution planning.""",
-            verbose=False,
-            allow_delegation=False,
-            llm=self.llm,
-            memory=True  # Enable memory for OpenAI API calls
-        )
-        
-        logger.info(f"Created {len(self.agents)} specialized agents")
+        except Exception as e:
+            logger.error(f"Failed to create agents: {e}")
+            # Create empty agents as fallback
+            self.agents = {}
     
     def _create_crews(self):
         """Create collaborative crews from agents with graceful error handling."""

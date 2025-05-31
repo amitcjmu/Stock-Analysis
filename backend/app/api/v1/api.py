@@ -35,6 +35,33 @@ try:
 except ImportError:
     SIXR_AVAILABLE = False
 
+# Import demo endpoints
+try:
+    from app.api.v1.endpoints import demo
+    DEMO_AVAILABLE = True
+    print("✅ Demo endpoints available")
+except ImportError as e:
+    print(f"⚠️ Demo endpoints not available: {e}")
+    DEMO_AVAILABLE = False
+
+# Import data import endpoints
+try:
+    from app.api.v1.endpoints import data_import
+    DATA_IMPORT_AVAILABLE = True
+    print("✅ Data import endpoints available")
+except ImportError as e:
+    print(f"⚠️ Data import endpoints not available: {e}")
+    DATA_IMPORT_AVAILABLE = False
+
+# Import enhanced asset inventory endpoints
+try:
+    from app.api.v1.endpoints import asset_inventory
+    ASSET_INVENTORY_AVAILABLE = True
+    print("✅ Enhanced asset inventory endpoints available")
+except ImportError as e:
+    print(f"⚠️ Enhanced asset inventory endpoints not available: {e}")
+    ASSET_INVENTORY_AVAILABLE = False
+
 api_router = APIRouter()
 
 # Include all endpoint routers
@@ -64,6 +91,14 @@ if DISCOVERY_AVAILABLE:
         tags=["discovery"]
     )
 
+# Include demo router if available
+if DEMO_AVAILABLE:
+    api_router.include_router(
+        demo.router,
+        prefix="/demo",
+        tags=["demo"]
+    )
+
 api_router.include_router(
     monitoring.router,
     prefix="/monitoring",
@@ -89,4 +124,20 @@ if SIXR_AVAILABLE:
         sixr_analysis.router,
         prefix="/sixr",
         tags=["6r-analysis"]
+    )
+
+# Include enhanced asset inventory endpoints if available (additional intelligent features)
+if ASSET_INVENTORY_AVAILABLE:
+    api_router.include_router(
+        asset_inventory.router,
+        prefix="/inventory",  # Use /inventory prefix to avoid conflicts
+        tags=["enhanced-asset-inventory"]
+    )
+
+# Include data import endpoints if available
+if DATA_IMPORT_AVAILABLE:
+    api_router.include_router(
+        data_import.router,
+        prefix="/data_import",
+        tags=["data-import"]
     ) 
