@@ -2,6 +2,9 @@ import React, { useState, useCallback } from 'react';
 import Sidebar from '../../components/Sidebar';
 import { Link, useNavigate } from 'react-router-dom';
 import { API_CONFIG } from '../../config/api';
+import AgentClarificationPanel from '../../components/discovery/AgentClarificationPanel';
+import DataClassificationDisplay from '../../components/discovery/DataClassificationDisplay';
+import AgentInsightsSection from '../../components/discovery/AgentInsightsSection';
 import { 
   Upload,
   FileSpreadsheet,
@@ -264,8 +267,32 @@ const DataImport = () => {
         
         console.log('Sending file to AI crew for intelligent analysis:', analysisRequest.filename);
         
-        // Call backend with intelligent agentic analysis using API configuration
-        const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.DISCOVERY.ANALYZE_CMDB}`, {
+        // Call new agent-driven analysis API
+        const agentResponse = await fetch(`${API_CONFIG.BASE_URL}/discovery/agents/agent-analysis`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            data_source: {
+              file_data: parseFileContent(fileContent, fileUpload.file.name),
+              metadata: {
+                filename: fileUpload.file.name,
+                size: fileUpload.file.size,
+                type: fileUpload.file.type
+              },
+              upload_context: {
+                intended_type: fileUpload.type,
+                user_context: getUploadAreaInfo(fileUpload.type)
+              }
+            },
+            analysis_type: 'data_source_analysis',
+            page_context: 'data-import'
+          })
+        });
+
+        // Fallback to original API if agent analysis fails
+        const response = agentResponse.ok ? agentResponse : await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.DISCOVERY.ANALYZE_CMDB}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -335,6 +362,35 @@ const DataImport = () => {
       };
       reader.readAsText(file);
     });
+  };
+
+  const parseFileContent = (content: string, filename: string) => {
+    // Parse content based on file type for agent analysis
+    try {
+      if (filename.endsWith('.csv')) {
+        const lines = content.split('\n').filter(line => line.trim());
+        if (lines.length === 0) return [];
+        
+        const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+        return lines.slice(1, 6).map(line => { // Send first 5 rows for analysis
+          const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
+          const row: any = {};
+          headers.forEach((header, index) => {
+            row[header] = values[index] || '';
+          });
+          return row;
+        }).filter(row => Object.values(row).some(v => v)); // Remove empty rows
+      } else if (filename.endsWith('.json')) {
+        const parsed = JSON.parse(content);
+        return Array.isArray(parsed) ? parsed.slice(0, 5) : [parsed];
+      } else {
+        // For other file types, return a sample of the content
+        return [{ content: content.substring(0, 1000) }];
+      }
+    } catch (error) {
+      console.error('Error parsing file content:', error);
+      return [{ content: content.substring(0, 500) }];
+    }
   };
 
   const getUploadAreaInfo = (uploadType: string) => {
@@ -584,7 +640,10 @@ const DataImport = () => {
         
         <div className="flex-1 flex flex-col overflow-hidden ml-64">
           <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50">
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-7xl">
+            <div className="flex h-full">
+              {/* Main Content Area */}
+              <div className="flex-1 overflow-y-auto">
+                <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-5xl">
               <div className="mb-8">
                 <h1 className="text-3xl font-bold text-gray-900">Intelligent Data Analysis</h1>
                 <p className="mt-2 text-gray-600">
@@ -894,6 +953,40 @@ const DataImport = () => {
                   </div>
                 </div>
               )}
+                </div>
+              </div>
+
+              {/* Agent Interaction Sidebar */}
+              <div className="w-96 border-l border-gray-200 bg-gray-50 overflow-y-auto">
+                <div className="p-4 space-y-4">
+                  {/* Agent Clarification Panel */}
+                  <AgentClarificationPanel 
+                    pageContext="data-import"
+                    onQuestionAnswered={(questionId, response) => {
+                      console.log('Question answered:', questionId, response);
+                      // Refresh any relevant data or show feedback
+                    }}
+                  />
+
+                  {/* Data Classification Display */}
+                  <DataClassificationDisplay 
+                    pageContext="data-import"
+                    onClassificationUpdate={(itemId, newClassification) => {
+                      console.log('Classification updated:', itemId, newClassification);
+                      // Show success feedback or refresh data
+                    }}
+                  />
+
+                  {/* Agent Insights Section */}
+                  <AgentInsightsSection 
+                    pageContext="data-import"
+                    onInsightAction={(insightId, action) => {
+                      console.log('Insight action:', insightId, action);
+                      // Handle insight feedback
+                    }}
+                  />
+                </div>
+              </div>
             </div>
           </main>
         </div>
