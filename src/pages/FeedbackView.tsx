@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MessageSquare, Clock, User, Filter, Search, Star, ThumbsUp, AlertTriangle, CheckCircle } from 'lucide-react';
-import { apiCall } from '../config/api';
+import { apiCall, API_CONFIG } from '../config/api';
 
 interface FeedbackItem {
   id: string;
@@ -46,6 +46,17 @@ const FeedbackView: React.FC = () => {
     try {
       setIsLoading(true);
       setError(null);
+
+      // Debug: Log the API configuration
+      console.log('🔍 API Configuration Debug:');
+      console.log('BASE_URL:', API_CONFIG.BASE_URL);
+      console.log('FEEDBACK Endpoint:', API_CONFIG.ENDPOINTS.DISCOVERY.FEEDBACK);
+      console.log('Full URL:', `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.DISCOVERY.FEEDBACK}`);
+      console.log('Environment Variables:');
+      console.log('- VITE_BACKEND_URL:', import.meta.env.VITE_BACKEND_URL);
+      console.log('- VITE_API_BASE_URL:', import.meta.env.VITE_API_BASE_URL);
+      console.log('- MODE:', import.meta.env.MODE);
+      console.log('- PROD:', import.meta.env.PROD);
 
       // Try to fetch from actual API first
       const response = await apiCall('/api/v1/discovery/feedback');
