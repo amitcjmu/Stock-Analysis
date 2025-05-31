@@ -50,8 +50,48 @@ const FeedbackView: React.FC = () => {
       // Try to fetch from actual API first
       try {
         const response = await apiCall('/api/v1/discovery/feedback');
-        setFeedback(response.feedback || []);
-        setSummary(response.summary || {});
+        const feedbackData = response.feedback || [];
+        setFeedback(feedbackData);
+        
+        // Calculate summary from feedback data to ensure consistency
+        if (feedbackData.length > 0) {
+          const total = feedbackData.length;
+          const avgRating = feedbackData.reduce((sum: number, f: FeedbackItem) => sum + f.rating, 0) / total;
+          const byStatus = feedbackData.reduce((acc: any, f: FeedbackItem) => {
+            acc[f.status] = (acc[f.status] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>);
+          const byPage = feedbackData.reduce((acc: any, f: FeedbackItem) => {
+            acc[f.page] = (acc[f.page] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>);
+          const byRating = feedbackData.reduce((acc: any, f: FeedbackItem) => {
+            const rating = f.rating.toString();
+            acc[rating] = (acc[rating] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>);
+
+          setSummary({ 
+            total, 
+            avgRating, 
+            byStatus: {
+              new: byStatus['new'] || 0,
+              reviewed: byStatus['reviewed'] || 0,
+              resolved: byStatus['resolved'] || 0
+            },
+            byPage,
+            byRating 
+          });
+        } else {
+          // Set empty summary if no feedback
+          setSummary({
+            total: 0,
+            avgRating: 0,
+            byStatus: { new: 0, reviewed: 0, resolved: 0 },
+            byPage: {},
+            byRating: {}
+          });
+        }
       } catch (apiError) {
         // If API fails, generate demo data
         console.warn('API not available, using demo data:', apiError);
@@ -286,7 +326,7 @@ const FeedbackView: React.FC = () => {
               <Star className="h-8 w-8 text-yellow-500" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Average Rating</p>
-                <p className="text-2xl font-bold text-gray-900">{summary.avgRating.toFixed(1)}</p>
+                <p className="text-2xl font-bold text-gray-900">{(summary.avgRating || 0).toFixed(1)}</p>
               </div>
             </div>
           </div>
