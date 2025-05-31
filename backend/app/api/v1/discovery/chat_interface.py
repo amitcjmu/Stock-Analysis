@@ -40,30 +40,37 @@ Please provide helpful, specific answers about migration planning, asset analysi
 User Question: {user_message}"""
 
         try:
-            # Try to use CrewAI service for response
-            crewai_service = CrewAIService()
-            response = await crewai_service.process_chat_query({
-                "message": user_message,
-                "context": context,
-                "system_prompt": system_prompt
-            })
+            # Use multi-model service for proper chat with Gemma-3-4b
+            from app.services.multi_model_service import multi_model_service
             
-            if response and response.get("response"):
+            response = await multi_model_service.generate_response(
+                prompt=user_message,
+                task_type="chat",  # This ensures Gemma-3-4b is used
+                system_message=system_prompt
+            )
+            
+            if response and response.get("status") == "success":
                 return {
-                    "response": response["response"],
+                    "status": "success",
+                    "chat_response": response["response"],
+                    "model_used": response["model_used"],
+                    "timestamp": response["timestamp"],
                     "context_used": context,
-                    "source": "crewai"
+                    "multi_model_service_available": True
                 }
         except Exception as e:
-            logger.warning(f"CrewAI chat failed: {e}, using fallback response")
+            logger.warning(f"Multi-model chat failed: {e}, using fallback response")
         
         # Fallback response with context awareness
         fallback_response = _generate_fallback_response(user_message, context)
         
         return {
-            "response": fallback_response,
+            "status": "success",
+            "chat_response": fallback_response,
+            "model_used": "fallback",
+            "timestamp": None,
             "context_used": context,
-            "source": "fallback"
+            "multi_model_service_available": False
         }
         
     except Exception as e:

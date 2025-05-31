@@ -57,6 +57,7 @@ const FeedbackView: React.FC = () => {
       console.log('- VITE_API_BASE_URL:', import.meta.env.VITE_API_BASE_URL);
       console.log('- MODE:', import.meta.env.MODE);
       console.log('- PROD:', import.meta.env.PROD);
+      console.log('- Window location:', typeof window !== 'undefined' ? window.location.href : 'SSR');
 
       // Try to fetch from actual API first
       const response = await apiCall('/api/v1/discovery/feedback');
@@ -128,11 +129,17 @@ const FeedbackView: React.FC = () => {
       
     } catch (error) {
       console.error('Failed to fetch feedback:', error);
+      console.error('Error details:', {
+        name: error?.name,
+        message: error?.message,
+        stack: error?.stack
+      });
+      
       setError(`Failed to load feedback data: ${error}`);
       
-      // Only fall back to demo data if explicitly requested for development
-      if (import.meta.env.DEV) {
-        console.warn('Development mode: Using demo data as fallback');
+      // In production, always show demo data as fallback for better UX
+      if (import.meta.env.PROD || import.meta.env.DEV) {
+        console.warn('Using demo data as fallback');
         generateDemoFeedback();
       }
     } finally {

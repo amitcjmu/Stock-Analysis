@@ -268,7 +268,8 @@ class AssetCRUDHandler:
             if not self.persistence_available:
                 return self._fallback_cleanup_duplicates()
             
-            removed_count = self.cleanup_duplicates()
+            # Call the persistence method, not self.cleanup_duplicates()
+            removed_count = cleanup_duplicates()
             
             return {
                 "status": "success",
