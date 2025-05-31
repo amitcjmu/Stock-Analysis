@@ -1,7 +1,7 @@
 """
 Feedback System Endpoints.
-Handles user feedback collection and management using database storage.
-Updated for Vercel serverless compatibility (no file system writes).
+Handles user feedback collection and management using database storage with graceful fallback.
+Updated for Vercel serverless compatibility and Railway deployment resilience.
 """
 
 import logging
@@ -85,9 +85,6 @@ async def submit_page_feedback(request: PageFeedbackRequest):
             
             # Store in global fallback store
             global FALLBACK_FEEDBACK_STORE
-            if 'FALLBACK_FEEDBACK_STORE' not in globals():
-                FALLBACK_FEEDBACK_STORE = []
-            
             FALLBACK_FEEDBACK_STORE.append(feedback_entry)
             
             logger.info(f"Page feedback stored in fallback for {request.page}: {request.rating}/5")
@@ -109,267 +106,244 @@ async def get_feedback(
     feedback_type: Optional[str] = None,
     page: Optional[str] = None,
     status: Optional[str] = None,
-    limit: int = 100,
-    db: AsyncSession = Depends(get_db)
+    limit: int = 100
 ):
     """
-    Get feedback from database with optional filtering.
+    Get feedback with automatic fallback between database and memory storage.
     """
+    # Try database first
     try:
-        # Build query using select for async compatibility
-        query = select(Feedback)
+        from app.core.database import AsyncSessionLocal
         
-        # Apply filters
-        if feedback_type:
-            query = query.where(Feedback.feedback_type == feedback_type)
-        if page:
-            query = query.where(Feedback.page == page)
-        if status:
-            query = query.where(Feedback.status == status)
-        
-        # Order by most recent first
-        query = query.order_by(desc(Feedback.created_at))
-        
-        # Apply limit
-        query = query.limit(limit)
-        
-        # Execute query
-        result = await db.execute(query)
-        feedback_items = result.scalars().all()
-        
-        # Convert to dict format for API response
-        feedback_list = []
-        for item in feedback_items:
-            feedback_dict = {
-                "id": str(item.id),
-                "feedback_type": item.feedback_type,
-                "timestamp": item.created_at.isoformat() if item.created_at else None,
-                "status": item.status or "new"
-            }
+        async with AsyncSessionLocal() as db:
+            # Build query using select for async compatibility
+            query = select(Feedback)
             
-            # Add fields based on feedback type
-            if item.is_page_feedback:
-                feedback_dict.update({
+            # Apply filters
+            if feedback_type:
+                query = query.where(Feedback.feedback_type == feedback_type)
+            if page:
+                query = query.where(Feedback.page == page)
+            if status:
+                query = query.where(Feedback.status == status)
+            
+            # Order by most recent first
+            query = query.order_by(desc(Feedback.created_at))
+            
+            # Apply limit
+            query = query.limit(limit)
+            
+            # Execute query
+            result = await db.execute(query)
+            feedback_items = result.scalars().all()
+            
+            # Convert to dict format for API response
+            feedback_list = []
+            for item in feedback_items:
+                feedback_dict = {
+                    "id": str(item.id),
+                    "feedback_type": item.feedback_type,
+                    "timestamp": item.created_at.isoformat() if item.created_at else None,
+                    "status": item.status or "new"
+                }
+                
+                # Add fields based on feedback type
+                if item.is_page_feedback:
+                    feedback_dict.update({
+                        "page": item.page,
+                        "rating": item.rating,
+                        "comment": item.comment,
+                        "category": item.category,
+                        "breadcrumb": item.breadcrumb,
+                        "user_timestamp": item.user_timestamp
+                    })
+                elif item.is_cmdb_feedback:
+                    feedback_dict.update({
+                        "filename": item.filename,
+                        "original_analysis": item.original_analysis,
+                        "user_corrections": item.user_corrections,
+                        "asset_type_override": item.asset_type_override
+                    })
+                
+                feedback_list.append(feedback_dict)
+            
+            # Calculate summary statistics using async queries
+            total_count_result = await db.execute(select(func.count(Feedback.id)))
+            total_count = total_count_result.scalar()
+            
+            # Get summary by type
+            summary_by_type = {}
+            type_counts_result = await db.execute(
+                select(Feedback.feedback_type, func.count(Feedback.id))
+                .group_by(Feedback.feedback_type)
+            )
+            type_counts = type_counts_result.all()
+            
+            for feedback_type_db, count in type_counts:
+                summary_by_type[feedback_type_db] = count
+            
+            # Get summary by page (for page feedback only)
+            summary_by_page = {}
+            page_counts_result = await db.execute(
+                select(Feedback.page, func.count(Feedback.id))
+                .where(Feedback.feedback_type == "page_feedback")
+                .where(Feedback.page.isnot(None))
+                .group_by(Feedback.page)
+            )
+            page_counts = page_counts_result.all()
+            
+            for page_db, count in page_counts:
+                summary_by_page[page_db] = count
+            
+            # Get summary by rating
+            summary_by_rating = {}
+            rating_counts_result = await db.execute(
+                select(Feedback.rating, func.count(Feedback.id))
+                .where(Feedback.rating.isnot(None))
+                .group_by(Feedback.rating)
+            )
+            rating_counts = rating_counts_result.all()
+            
+            for rating, count in rating_counts:
+                summary_by_rating[f"{rating} stars"] = count
+            
+            # Get recent feedback (last 10)
+            recent_feedback_result = await db.execute(
+                select(Feedback)
+                .order_by(desc(Feedback.created_at))
+                .limit(10)
+            )
+            recent_feedback = recent_feedback_result.scalars().all()
+            
+            recent_list = []
+            for item in recent_feedback:
+                recent_dict = {
+                    "id": str(item.id),
                     "page": item.page,
                     "rating": item.rating,
                     "comment": item.comment,
-                    "category": item.category,
-                    "breadcrumb": item.breadcrumb,
-                    "user_timestamp": item.user_timestamp
-                })
-            elif item.is_cmdb_feedback:
-                feedback_dict.update({
-                    "filename": item.filename,
-                    "original_analysis": item.original_analysis,
-                    "user_corrections": item.user_corrections,
-                    "asset_type_override": item.asset_type_override
-                })
+                    "timestamp": item.created_at.isoformat() if item.created_at else None
+                }
+                recent_list.append(recent_dict)
             
-            feedback_list.append(feedback_dict)
-        
-        # Calculate summary statistics using async queries
-        total_count_result = await db.execute(select(func.count(Feedback.id)))
-        total_count = total_count_result.scalar()
-        
-        # Get summary by type
-        summary_by_type = {}
-        type_counts_result = await db.execute(
-            select(Feedback.feedback_type, func.count(Feedback.id))
-            .group_by(Feedback.feedback_type)
-        )
-        type_counts = type_counts_result.all()
-        
-        for feedback_type, count in type_counts:
-            summary_by_type[feedback_type] = count
-        
-        # Get summary by page (for page feedback only)
-        summary_by_page = {}
-        page_counts_result = await db.execute(
-            select(Feedback.page, func.count(Feedback.id))
-            .where(Feedback.feedback_type == "page_feedback")
-            .where(Feedback.page.isnot(None))
-            .group_by(Feedback.page)
-        )
-        page_counts = page_counts_result.all()
-        
-        for page, count in page_counts:
-            summary_by_page[page] = count
-        
-        # Get summary by rating
-        summary_by_rating = {}
-        rating_counts_result = await db.execute(
-            select(Feedback.rating, func.count(Feedback.id))
-            .where(Feedback.rating.isnot(None))
-            .group_by(Feedback.rating)
-        )
-        rating_counts = rating_counts_result.all()
-        
-        for rating, count in rating_counts:
-            summary_by_rating[f"{rating} stars"] = count
-        
-        # Get recent feedback (last 10)
-        recent_feedback_result = await db.execute(
-            select(Feedback)
-            .order_by(desc(Feedback.created_at))
-            .limit(10)
-        )
-        recent_feedback = recent_feedback_result.scalars().all()
-        
-        recent_list = []
-        for item in recent_feedback:
-            recent_dict = {
-                "id": str(item.id),
-                "page": item.page,
-                "rating": item.rating,
-                "comment": item.comment,
-                "timestamp": item.created_at.isoformat() if item.created_at else None
+            return {
+                "feedback": feedback_list,
+                "total_count": total_count,
+                "summary": {
+                    "by_type": summary_by_type,
+                    "by_page": summary_by_page,
+                    "by_rating": summary_by_rating,
+                    "recent_feedback": recent_list
+                },
+                "storage_method": "database",
+                "filters_applied": {
+                    "feedback_type": feedback_type,
+                    "page": page,
+                    "status": status,
+                    "limit": limit
+                }
             }
-            recent_list.append(recent_dict)
         
-        return {
-            "feedback": feedback_list,
-            "total_count": total_count,
-            "summary": {
-                "by_type": summary_by_type,
-                "by_page": summary_by_page,
-                "by_rating": summary_by_rating,
-                "recent_feedback": recent_list
-            },
-            "storage_method": "database",
-            "filters_applied": {
-                "feedback_type": feedback_type,
-                "page": page,
-                "status": status,
-                "limit": limit
+    except Exception as db_error:
+        logger.warning(f"Database retrieval failed: {db_error}. Using fallback storage...")
+        
+        # Fall back to in-memory storage
+        try:
+            global FALLBACK_FEEDBACK_STORE
+            
+            # Apply filters to fallback data
+            filtered_feedback = FALLBACK_FEEDBACK_STORE.copy()
+            
+            if feedback_type:
+                filtered_feedback = [f for f in filtered_feedback if f.get("feedback_type") == feedback_type]
+            if page:
+                filtered_feedback = [f for f in filtered_feedback if f.get("page") == page]
+            if status:
+                filtered_feedback = [f for f in filtered_feedback if f.get("status") == status]
+            
+            # Apply limit
+            if limit:
+                filtered_feedback = filtered_feedback[:limit]
+            
+            # Calculate summary
+            total_count = len(FALLBACK_FEEDBACK_STORE)
+            summary_by_page = {}
+            summary_by_rating = {}
+            
+            for item in FALLBACK_FEEDBACK_STORE:
+                # By page
+                page_name = item.get("page", "Unknown")
+                summary_by_page[page_name] = summary_by_page.get(page_name, 0) + 1
+                
+                # By rating
+                rating = item.get("rating")
+                if rating:
+                    rating_key = f"{rating} stars"
+                    summary_by_rating[rating_key] = summary_by_rating.get(rating_key, 0) + 1
+            
+            return {
+                "feedback": filtered_feedback,
+                "total_count": total_count,
+                "summary": {
+                    "by_type": {"page_feedback": total_count},
+                    "by_page": summary_by_page,
+                    "by_rating": summary_by_rating,
+                    "recent_feedback": filtered_feedback[:10]
+                },
+                "storage_method": "fallback_memory",
+                "warning": "Database unavailable - showing fallback data",
+                "filters_applied": {
+                    "feedback_type": feedback_type,
+                    "page": page,
+                    "status": status,
+                    "limit": limit
+                }
             }
-        }
-        
-    except Exception as e:
-        logger.error(f"Failed to retrieve feedback: {e}")
-        raise HTTPException(status_code=500, detail="Failed to retrieve feedback")
-
-@router.post("/feedback/{feedback_id}/status")
-async def update_feedback_status(
-    feedback_id: str,
-    status: str,
-    db: AsyncSession = Depends(get_db)
-):
-    """
-    Update feedback status (new -> reviewed -> resolved).
-    """
-    try:
-        result = await db.execute(select(Feedback).where(Feedback.id == feedback_id))
-        feedback = result.scalar_one_or_none()
-        
-        if not feedback:
-            raise HTTPException(status_code=404, detail="Feedback not found")
-        
-        # Validate status
-        valid_statuses = ["new", "reviewed", "resolved"]
-        if status not in valid_statuses:
-            raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {valid_statuses}")
-        
-        feedback.status = status
-        await db.commit()
-        
-        logger.info(f"Updated feedback {feedback_id} status to {status}")
-        
-        return {
-            "status": "success",
-            "message": f"Feedback status updated to {status}",
-            "feedback_id": feedback_id,
-            "new_status": status
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Failed to update feedback status: {e}")
-        await db.rollback()
-        raise HTTPException(status_code=500, detail="Failed to update feedback status")
-
-@router.delete("/feedback/{feedback_id}")
-async def delete_feedback(feedback_id: str, db: AsyncSession = Depends(get_db)):
-    """
-    Delete feedback entry.
-    """
-    try:
-        result = await db.execute(select(Feedback).where(Feedback.id == feedback_id))
-        feedback = result.scalar_one_or_none()
-        
-        if not feedback:
-            raise HTTPException(status_code=404, detail="Feedback not found")
-        
-        await db.delete(feedback)
-        await db.commit()
-        
-        logger.info(f"Deleted feedback {feedback_id}")
-        
-        return {
-            "status": "success",
-            "message": "Feedback deleted successfully",
-            "feedback_id": feedback_id
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Failed to delete feedback: {e}")
-        await db.rollback()
-        raise HTTPException(status_code=500, detail="Failed to delete feedback")
+            
+        except Exception as fallback_error:
+            logger.error(f"Both database and fallback failed: {fallback_error}")
+            raise HTTPException(status_code=500, detail="Failed to retrieve feedback from all sources")
 
 @router.get("/feedback/stats")
-async def get_feedback_stats(db: AsyncSession = Depends(get_db)):
+async def get_feedback_stats():
     """
-    Get comprehensive feedback statistics.
+    Get comprehensive feedback statistics with fallback support.
     """
     try:
-        total_feedback_result = await db.execute(select(func.count(Feedback.id)))
-        total_feedback = total_feedback_result.scalar()
+        from app.core.database import AsyncSessionLocal
         
-        # Average rating for page feedback
-        avg_rating_result = await db.execute(
-            select(func.avg(Feedback.rating))
-            .where(Feedback.feedback_type == "page_feedback")
-            .where(Feedback.rating.isnot(None))
-        )
-        avg_rating = avg_rating_result.scalar()
-        
-        # Status breakdown
-        status_stats_result = await db.execute(
-            select(Feedback.status, func.count(Feedback.id))
-            .group_by(Feedback.status)
-        )
-        status_stats = status_stats_result.all()
-        
-        status_breakdown = {}
-        for status, count in status_stats:
-            status_breakdown[status or "unknown"] = count
-        
-        # Page feedback breakdown
-        page_stats_result = await db.execute(
-            select(Feedback.page, func.count(Feedback.id), func.avg(Feedback.rating))
-            .where(Feedback.feedback_type == "page_feedback")
-            .where(Feedback.page.isnot(None))
-            .group_by(Feedback.page)
-        )
-        page_stats = page_stats_result.all()
-        
-        page_breakdown = {}
-        for page, count, avg_rating_for_page in page_stats:
-            page_breakdown[page] = {
-                "count": count,
-                "average_rating": float(avg_rating_for_page or 0)
+        async with AsyncSessionLocal() as db:
+            total_feedback_result = await db.execute(select(func.count(Feedback.id)))
+            total_feedback = total_feedback_result.scalar()
+            
+            # Average rating for page feedback
+            avg_rating_result = await db.execute(
+                select(func.avg(Feedback.rating))
+                .where(Feedback.feedback_type == "page_feedback")
+                .where(Feedback.rating.isnot(None))
+            )
+            avg_rating = avg_rating_result.scalar()
+            
+            return {
+                "total_feedback": total_feedback,
+                "average_rating": float(avg_rating or 0),
+                "storage_method": "database"
             }
+        
+    except Exception as db_error:
+        logger.warning(f"Database stats failed: {db_error}. Using fallback...")
+        
+        # Fall back to in-memory stats
+        global FALLBACK_FEEDBACK_STORE
+        total_feedback = len(FALLBACK_FEEDBACK_STORE)
+        
+        # Calculate average rating from fallback
+        ratings = [f.get("rating") for f in FALLBACK_FEEDBACK_STORE if f.get("rating")]
+        avg_rating = sum(ratings) / len(ratings) if ratings else 0
         
         return {
             "total_feedback": total_feedback,
-            "average_rating": float(avg_rating or 0),
-            "status_breakdown": status_breakdown,
-            "page_breakdown": page_breakdown,
-            "storage_method": "database"
-        }
-        
-    except Exception as e:
-        logger.error(f"Failed to get feedback stats: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get feedback statistics") 
+            "average_rating": float(avg_rating),
+            "storage_method": "fallback_memory",
+            "warning": "Database unavailable - showing fallback stats"
+        } 

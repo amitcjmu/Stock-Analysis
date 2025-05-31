@@ -54,6 +54,14 @@ try:
 except ImportError as e:
     logger.warning(f"⚠️ Chat interface router not available: {e}")
 
+# Include database test router for Railway deployment verification
+try:
+    from app.api.v1.discovery.database_test import router as database_test_router
+    router.include_router(database_test_router, tags=["discovery-database"])
+    logger.info("✅ Database test router included in discovery")
+except ImportError as e:
+    logger.warning(f"⚠️ Database test router not available: {e}")
+
 @router.get("/health")
 async def discovery_health_check():
     """Health check endpoint for the discovery module."""
@@ -79,7 +87,9 @@ async def discovery_health_check():
             "/assets/analyze",
             "/assets/auto-classify",
             "/assets/intelligence-status",
-            "/chat-test"  # Chat interface
+            "/chat-test",  # Chat interface
+            "/database/test",  # Database connectivity test
+            "/database/health"  # Database health check
         ]
     }
 

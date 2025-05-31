@@ -69,6 +69,10 @@ async def test_database_connection():
         else:
             sync_url = database_url
         
+        # Remove sslmode parameter for psycopg2 connection as it might cause issues
+        if '?sslmode=' in sync_url:
+            sync_url = sync_url.split('?sslmode=')[0]
+        
         # Test sync connection first
         conn = psycopg2.connect(sync_url)
         cursor = conn.cursor()

@@ -126,9 +126,9 @@ def get_database_url() -> str:
     
     # Railway.app specific adjustments
     if os.getenv("RAILWAY_ENVIRONMENT") or "railway.app" in database_url:
-        # Ensure SSL is properly configured for Railway
-        if "sslmode" not in database_url:
-            database_url += "?sslmode=require"
+        # For Railway, don't add sslmode parameter as it's handled by asyncpg differently
+        # asyncpg handles SSL automatically based on the connection
+        pass
     
     return database_url
 
