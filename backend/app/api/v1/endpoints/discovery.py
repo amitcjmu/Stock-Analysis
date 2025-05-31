@@ -31,6 +31,29 @@ try:
 except ImportError as e:
     logger.warning(f"⚠️ Asset management router not available: {e}")
 
+# Include feedback system router from discovery module
+try:
+    from app.api.v1.discovery.feedback_system import router as feedback_system_router
+    router.include_router(feedback_system_router, tags=["discovery-feedback"])
+    logger.info("✅ Feedback system router included in discovery")
+except ImportError as e:
+    logger.warning(f"⚠️ Feedback system router not available: {e}")
+
+# Include other discovery routers
+try:
+    from app.api.v1.discovery.cmdb_analysis import router as cmdb_analysis_router
+    router.include_router(cmdb_analysis_router, tags=["discovery-cmdb"])
+    logger.info("✅ CMDB analysis router included in discovery")
+except ImportError as e:
+    logger.warning(f"⚠️ CMDB analysis router not available: {e}")
+
+try:
+    from app.api.v1.discovery.chat_interface import router as chat_interface_router
+    router.include_router(chat_interface_router, tags=["discovery-chat"])
+    logger.info("✅ Chat interface router included in discovery")
+except ImportError as e:
+    logger.warning(f"⚠️ Chat interface router not available: {e}")
+
 @router.get("/health")
 async def discovery_health_check():
     """Health check endpoint for the discovery module."""
@@ -51,10 +74,12 @@ async def discovery_health_check():
             "/process-cmdb", 
             "/cmdb-feedback",
             "/cmdb-templates",
+            "/feedback",  # General page feedback
             "/assets",  # Asset management endpoints
             "/assets/analyze",
             "/assets/auto-classify",
-            "/assets/intelligence-status"
+            "/assets/intelligence-status",
+            "/chat-test"  # Chat interface
         ]
     }
 

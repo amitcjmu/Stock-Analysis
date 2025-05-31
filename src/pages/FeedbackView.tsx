@@ -161,7 +161,17 @@ const FeedbackView: React.FC = () => {
       return acc;
     }, {} as Record<string, number>);
 
-    setSummary({ total, avgRating, byStatus, byPage, byRating });
+    setSummary({ 
+      total, 
+      avgRating, 
+      byStatus: {
+        new: byStatus['new'] || 0,
+        reviewed: byStatus['reviewed'] || 0,
+        resolved: byStatus['resolved'] || 0
+      },
+      byPage,
+      byRating 
+    });
   };
 
   const applyFilters = () => {
