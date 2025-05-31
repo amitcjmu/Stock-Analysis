@@ -51,6 +51,7 @@ async def root():
 DATABASE_ENABLED = False
 WEBSOCKET_ENABLED = False
 API_ROUTES_ENABLED = False
+API_ROUTES_ERROR = None
 
 try:
     from app.core.config import settings
@@ -112,6 +113,7 @@ except Exception as e:
     print(f"⚠️  API routes could not be loaded: {e}")
     print(f"📋 Traceback: {traceback.format_exc()}")
     API_ROUTES_ENABLED = False
+    API_ROUTES_ERROR = str(e)
 
 # Try to import WebSocket manager
 try:
@@ -180,6 +182,7 @@ async def debug_routes():
     return {
         "total_routes": len(routes_info),
         "api_routes_enabled": API_ROUTES_ENABLED,
+        "api_routes_error": API_ROUTES_ERROR,
         "routes": routes_info[:20],  # First 20 routes
         "discovery_routes": [r for r in routes_info if 'discovery' in r['path']]
     }
@@ -197,7 +200,8 @@ async def health_check():
             "websocket": WEBSOCKET_ENABLED,
             "api_routes": API_ROUTES_ENABLED
         },
-        "environment": getattr(settings, 'ENVIRONMENT', 'production')
+        "environment": getattr(settings, 'ENVIRONMENT', 'production'),
+        "error": API_ROUTES_ERROR
     }
 
 @app.on_event("startup")
