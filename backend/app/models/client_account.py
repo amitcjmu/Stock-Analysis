@@ -60,6 +60,7 @@ class ClientAccount(Base):
     user_associations = relationship("UserAccountAssociation", back_populates="client_account", cascade="all, delete-orphan")
     cmdb_assets = relationship("CMDBAsset", back_populates="client_account", cascade="all, delete-orphan")
     data_imports = relationship("DataImport", back_populates="client_account", cascade="all, delete-orphan")
+    feedback = relationship("Feedback", back_populates="client_account", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<ClientAccount(id={self.id}, name='{self.name}', slug='{self.slug}', is_mock={self.is_mock})>"
@@ -110,6 +111,7 @@ class Engagement(Base):
     created_by_user = relationship("User", foreign_keys=[created_by])
     cmdb_assets = relationship("CMDBAsset", back_populates="engagement", cascade="all, delete-orphan")
     data_imports = relationship("DataImport", back_populates="engagement", cascade="all, delete-orphan")
+    feedback = relationship("Feedback", back_populates="engagement", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<Engagement(id={self.id}, name='{self.name}', client_account_id={self.client_account_id}, is_mock={self.is_mock})>"

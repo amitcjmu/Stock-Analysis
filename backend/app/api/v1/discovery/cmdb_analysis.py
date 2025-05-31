@@ -6,7 +6,8 @@ Handles AI-powered CMDB data validation and processing.
 import logging
 import uuid
 from typing import Dict, List, Any, Optional
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
 import pandas as pd
 
 from app.services.agent_monitor import agent_monitor, TaskStatus
@@ -34,6 +35,7 @@ from app.api.v1.discovery.persistence import (
 )
 from app.api.v1.discovery.serialization import clean_for_json_serialization
 from app.services.tools.field_mapping_tool import field_mapping_tool
+from app.core.database import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -327,34 +329,42 @@ async def process_cmdb_data(request: CMDBProcessingRequest):
         raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}")
 
 @router.post("/cmdb-feedback")
-async def submit_cmdb_feedback(request: CMDBFeedbackRequest):
+async def submit_cmdb_feedback(request: CMDBFeedbackRequest, db: Session = Depends(get_db)):
     """
     Submit feedback on CMDB analysis results to improve AI accuracy.
+    Now stored in database for Vercel compatibility.
     """
     try:
-        feedback_entry = {
-            "id": str(uuid.uuid4()),
-            "timestamp": pd.Timestamp.now().isoformat(),
-            "filename": request.filename,
-            "original_analysis": request.originalAnalysis,
-            "user_corrections": request.userCorrections,
-            "asset_type_override": request.assetTypeOverride,
-            "feedback_type": "cmdb_analysis"
-        }
+        from app.models.feedback import Feedback
         
-        feedback_store.append(feedback_entry)
-        save_to_file("feedback_store", feedback_store)
+        # Create feedback entry in database
+        feedback_entry = Feedback(
+            id=uuid.uuid4(),
+            feedback_type="cmdb_analysis",
+            filename=request.filename,
+            original_analysis=request.originalAnalysis,
+            user_corrections=request.userCorrections,
+            asset_type_override=request.assetTypeOverride,
+            status="new"
+            # Note: client_account_id and engagement_id are nullable for general feedback
+        )
         
-        logger.info(f"CMDB feedback received for {request.filename}")
+        db.add(feedback_entry)
+        await db.commit()
+        await db.refresh(feedback_entry)
+        
+        logger.info(f"CMDB feedback stored in database for {request.filename}")
         
         return {
             "status": "success",
             "message": "Feedback submitted successfully",
-            "feedback_id": feedback_entry["id"]
+            "feedback_id": str(feedback_entry.id),
+            "storage_method": "database"
         }
         
     except Exception as e:
         logger.error(f"Failed to submit CMDB feedback: {e}")
+        await db.rollback()
         raise HTTPException(status_code=500, detail="Failed to submit feedback")
 
 @router.get("/cmdb-templates")

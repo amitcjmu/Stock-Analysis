@@ -1,72 +1,203 @@
 """
 Feedback System Endpoints.
-Handles user feedback collection and management.
+Handles user feedback collection and management using database storage.
+Updated for Vercel serverless compatibility (no file system writes).
 """
 
 import logging
 import uuid
-from typing import Dict, List, Any
-from fastapi import APIRouter, HTTPException
-import pandas as pd
+from typing import Dict, List, Any, Optional
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
+from sqlalchemy import desc, func, select
 
 from app.api.v1.discovery.models import PageFeedbackRequest
-from app.api.v1.discovery.persistence import save_to_file, load_from_file
+from app.core.database import get_db
+from app.models.feedback import Feedback, FeedbackSummary
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# Initialize feedback store
-feedback_store = load_from_file("feedback_store", [])
+# Mock data for development/testing when no real feedback exists
+MOCK_CLIENT_ACCOUNT_ID = "550e8400-e29b-41d4-a716-446655440000"
+MOCK_ENGAGEMENT_ID = "550e8400-e29b-41d4-a716-446655440001"
 
 @router.post("/feedback")
-async def submit_page_feedback(request: PageFeedbackRequest):
+async def submit_page_feedback(request: PageFeedbackRequest, db: Session = Depends(get_db)):
     """
-    Submit general page feedback.
+    Submit general page feedback - now stored in database.
     """
     try:
-        feedback_entry = {
-            "id": str(uuid.uuid4()),
-            "timestamp": pd.Timestamp.now().isoformat(),
-            "page": request.page,
-            "rating": request.rating,
-            "comment": request.comment,
-            "category": request.category,
-            "breadcrumb": request.breadcrumb,
-            "user_timestamp": request.timestamp,
-            "feedback_type": "page_feedback"
-        }
+        # Create feedback entry in database
+        feedback_entry = Feedback(
+            id=uuid.uuid4(),
+            feedback_type="page_feedback",
+            page=request.page,
+            rating=request.rating,
+            comment=request.comment,
+            category=request.category,
+            breadcrumb=request.breadcrumb,
+            user_timestamp=request.timestamp,
+            status="new"
+            # Note: client_account_id and engagement_id are nullable for general feedback
+        )
         
-        feedback_store.append(feedback_entry)
-        save_to_file("feedback_store", feedback_store)
+        db.add(feedback_entry)
+        await db.commit()
+        await db.refresh(feedback_entry)
         
-        logger.info(f"Page feedback received for {request.page}: {request.rating}/5")
+        logger.info(f"Page feedback stored in database for {request.page}: {request.rating}/5")
         
         return {
             "status": "success",
             "message": "Feedback submitted successfully",
-            "feedback_id": feedback_entry["id"]
+            "feedback_id": str(feedback_entry.id),
+            "storage_method": "database"
         }
         
     except Exception as e:
         logger.error(f"Failed to submit page feedback: {e}")
+        await db.rollback()
         raise HTTPException(status_code=500, detail="Failed to submit feedback")
 
 @router.get("/feedback")
-async def get_feedback():
+async def get_feedback(
+    feedback_type: Optional[str] = None,
+    page: Optional[str] = None,
+    status: Optional[str] = None,
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
     """
-    Get all feedback for analysis (admin endpoint).
+    Get feedback from database with optional filtering.
     """
     try:
-        # Return all feedback entries
+        # Build query using select for async compatibility
+        query = select(Feedback)
+        
+        # Apply filters
+        if feedback_type:
+            query = query.where(Feedback.feedback_type == feedback_type)
+        if page:
+            query = query.where(Feedback.page == page)
+        if status:
+            query = query.where(Feedback.status == status)
+        
+        # Order by most recent first
+        query = query.order_by(desc(Feedback.created_at))
+        
+        # Apply limit
+        query = query.limit(limit)
+        
+        # Execute query
+        result = await db.execute(query)
+        feedback_items = result.scalars().all()
+        
+        # Convert to dict format for API response
+        feedback_list = []
+        for item in feedback_items:
+            feedback_dict = {
+                "id": str(item.id),
+                "feedback_type": item.feedback_type,
+                "timestamp": item.created_at.isoformat() if item.created_at else None,
+                "status": item.status or "new"
+            }
+            
+            # Add fields based on feedback type
+            if item.is_page_feedback:
+                feedback_dict.update({
+                    "page": item.page,
+                    "rating": item.rating,
+                    "comment": item.comment,
+                    "category": item.category,
+                    "breadcrumb": item.breadcrumb,
+                    "user_timestamp": item.user_timestamp
+                })
+            elif item.is_cmdb_feedback:
+                feedback_dict.update({
+                    "filename": item.filename,
+                    "original_analysis": item.original_analysis,
+                    "user_corrections": item.user_corrections,
+                    "asset_type_override": item.asset_type_override
+                })
+            
+            feedback_list.append(feedback_dict)
+        
+        # Calculate summary statistics using async queries
+        total_count_result = await db.execute(select(func.count(Feedback.id)))
+        total_count = total_count_result.scalar()
+        
+        # Get summary by type
+        summary_by_type = {}
+        type_counts_result = await db.execute(
+            select(Feedback.feedback_type, func.count(Feedback.id))
+            .group_by(Feedback.feedback_type)
+        )
+        type_counts = type_counts_result.all()
+        
+        for feedback_type, count in type_counts:
+            summary_by_type[feedback_type] = count
+        
+        # Get summary by page (for page feedback only)
+        summary_by_page = {}
+        page_counts_result = await db.execute(
+            select(Feedback.page, func.count(Feedback.id))
+            .where(Feedback.feedback_type == "page_feedback")
+            .where(Feedback.page.isnot(None))
+            .group_by(Feedback.page)
+        )
+        page_counts = page_counts_result.all()
+        
+        for page, count in page_counts:
+            summary_by_page[page] = count
+        
+        # Get summary by rating
+        summary_by_rating = {}
+        rating_counts_result = await db.execute(
+            select(Feedback.rating, func.count(Feedback.id))
+            .where(Feedback.rating.isnot(None))
+            .group_by(Feedback.rating)
+        )
+        rating_counts = rating_counts_result.all()
+        
+        for rating, count in rating_counts:
+            summary_by_rating[f"{rating} stars"] = count
+        
+        # Get recent feedback (last 10)
+        recent_feedback_result = await db.execute(
+            select(Feedback)
+            .order_by(desc(Feedback.created_at))
+            .limit(10)
+        )
+        recent_feedback = recent_feedback_result.scalars().all()
+        
+        recent_list = []
+        for item in recent_feedback:
+            recent_dict = {
+                "id": str(item.id),
+                "page": item.page,
+                "rating": item.rating,
+                "comment": item.comment,
+                "timestamp": item.created_at.isoformat() if item.created_at else None
+            }
+            recent_list.append(recent_dict)
+        
         return {
-            "feedback": feedback_store,
-            "total_count": len(feedback_store),
+            "feedback": feedback_list,
+            "total_count": total_count,
             "summary": {
-                "by_type": _get_feedback_by_type(),
-                "by_page": _get_feedback_by_page(),
-                "by_rating": _get_feedback_by_rating(),
-                "recent_feedback": _get_recent_feedback(10)
+                "by_type": summary_by_type,
+                "by_page": summary_by_page,
+                "by_rating": summary_by_rating,
+                "recent_feedback": recent_list
+            },
+            "storage_method": "database",
+            "filters_applied": {
+                "feedback_type": feedback_type,
+                "page": page,
+                "status": status,
+                "limit": limit
             }
         }
         
@@ -74,39 +205,128 @@ async def get_feedback():
         logger.error(f"Failed to retrieve feedback: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve feedback")
 
-# Helper functions
-def _get_feedback_by_type() -> Dict[str, int]:
-    """Get feedback count by type."""
-    type_count = {}
-    for feedback in feedback_store:
-        feedback_type = feedback.get('feedback_type', 'unknown')
-        type_count[feedback_type] = type_count.get(feedback_type, 0) + 1
-    return type_count
+@router.post("/feedback/{feedback_id}/status")
+async def update_feedback_status(
+    feedback_id: str,
+    status: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Update feedback status (new -> reviewed -> resolved).
+    """
+    try:
+        result = await db.execute(select(Feedback).where(Feedback.id == feedback_id))
+        feedback = result.scalar_one_or_none()
+        
+        if not feedback:
+            raise HTTPException(status_code=404, detail="Feedback not found")
+        
+        # Validate status
+        valid_statuses = ["new", "reviewed", "resolved"]
+        if status not in valid_statuses:
+            raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {valid_statuses}")
+        
+        feedback.status = status
+        await db.commit()
+        
+        logger.info(f"Updated feedback {feedback_id} status to {status}")
+        
+        return {
+            "status": "success",
+            "message": f"Feedback status updated to {status}",
+            "feedback_id": feedback_id,
+            "new_status": status
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to update feedback status: {e}")
+        await db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to update feedback status")
 
-def _get_feedback_by_page() -> Dict[str, int]:
-    """Get feedback count by page."""
-    page_count = {}
-    for feedback in feedback_store:
-        page = feedback.get('page', 'unknown')
-        page_count[page] = page_count.get(page, 0) + 1
-    return page_count
+@router.delete("/feedback/{feedback_id}")
+async def delete_feedback(feedback_id: str, db: Session = Depends(get_db)):
+    """
+    Delete feedback entry.
+    """
+    try:
+        result = await db.execute(select(Feedback).where(Feedback.id == feedback_id))
+        feedback = result.scalar_one_or_none()
+        
+        if not feedback:
+            raise HTTPException(status_code=404, detail="Feedback not found")
+        
+        await db.delete(feedback)
+        await db.commit()
+        
+        logger.info(f"Deleted feedback {feedback_id}")
+        
+        return {
+            "status": "success",
+            "message": "Feedback deleted successfully",
+            "feedback_id": feedback_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to delete feedback: {e}")
+        await db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to delete feedback")
 
-def _get_feedback_by_rating() -> Dict[str, int]:
-    """Get feedback count by rating."""
-    rating_count = {}
-    for feedback in feedback_store:
-        rating = feedback.get('rating')
-        if rating is not None:
-            rating_key = f"{rating} stars"
-            rating_count[rating_key] = rating_count.get(rating_key, 0) + 1
-    return rating_count
-
-def _get_recent_feedback(limit: int = 10) -> List[Dict[str, Any]]:
-    """Get most recent feedback entries."""
-    # Sort by timestamp (most recent first)
-    sorted_feedback = sorted(
-        feedback_store, 
-        key=lambda x: x.get('timestamp', ''), 
-        reverse=True
-    )
-    return sorted_feedback[:limit] 
+@router.get("/feedback/stats")
+async def get_feedback_stats(db: Session = Depends(get_db)):
+    """
+    Get comprehensive feedback statistics.
+    """
+    try:
+        total_feedback_result = await db.execute(select(func.count(Feedback.id)))
+        total_feedback = total_feedback_result.scalar()
+        
+        # Average rating for page feedback
+        avg_rating_result = await db.execute(
+            select(func.avg(Feedback.rating))
+            .where(Feedback.feedback_type == "page_feedback")
+            .where(Feedback.rating.isnot(None))
+        )
+        avg_rating = avg_rating_result.scalar()
+        
+        # Status breakdown
+        status_stats_result = await db.execute(
+            select(Feedback.status, func.count(Feedback.id))
+            .group_by(Feedback.status)
+        )
+        status_stats = status_stats_result.all()
+        
+        status_breakdown = {}
+        for status, count in status_stats:
+            status_breakdown[status or "unknown"] = count
+        
+        # Page feedback breakdown
+        page_stats_result = await db.execute(
+            select(Feedback.page, func.count(Feedback.id), func.avg(Feedback.rating))
+            .where(Feedback.feedback_type == "page_feedback")
+            .where(Feedback.page.isnot(None))
+            .group_by(Feedback.page)
+        )
+        page_stats = page_stats_result.all()
+        
+        page_breakdown = {}
+        for page, count, avg_rating_for_page in page_stats:
+            page_breakdown[page] = {
+                "count": count,
+                "average_rating": float(avg_rating_for_page or 0)
+            }
+        
+        return {
+            "total_feedback": total_feedback,
+            "average_rating": float(avg_rating or 0),
+            "status_breakdown": status_breakdown,
+            "page_breakdown": page_breakdown,
+            "storage_method": "database"
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get feedback stats: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get feedback statistics") 
