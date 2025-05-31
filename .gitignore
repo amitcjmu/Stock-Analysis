@@ -79,7 +79,9 @@ backend/data/field_mappings.json
 
 # Model caches
 .cache/
-models/
+# Only ignore AI model caches, not application models
+**/models/cache/
+**/models/downloads/
 sentence_transformers_cache/
 
 # Testing
