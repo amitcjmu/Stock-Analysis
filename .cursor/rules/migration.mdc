@@ -1,7 +1,7 @@
 ---
-description:
-globs:
-alwaysApply: false
+description: 
+globs: 
+alwaysApply: true
 ---
 # AI Force Migration Platform - Cursor Development Rules
 
@@ -194,6 +194,103 @@ field_suggestions = field_mapper.suggest_mappings(
 - Rehost, Replatform, Refactor, Rearchitect, Retire, Retain
 - Let agents determine strategy, not hard-coded rules
 
+## 🔧 **CRITICAL TECHNICAL PATTERNS**
+
+### **Database Session Management (CRITICAL)**
+```python
+# ✅ ALWAYS use async patterns for database operations
+from sqlalchemy.ext.asyncio import AsyncSession, AsyncSessionLocal
+
+# ✅ Correct async session pattern
+async def get_data():
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(query)
+        return result
+
+# ❌ NEVER use sync sessions in async context
+def wrong_pattern():
+    session = SessionLocal()  # This will fail!
+    return session.query(Model).all()
+```
+
+#### **Background Task Database Sessions**
+```python
+# ✅ Use AsyncSessionLocal for background tasks
+async def background_task():
+    async with AsyncSessionLocal() as session:
+        # Proper async database operations
+        await process_data(session)
+```
+
+### **JSON Serialization Safety (CRITICAL)**
+```python
+# ✅ Always handle NaN/Infinity values in API responses
+import math
+import json
+
+def safe_json_serialize(data):
+    def convert_numeric(obj):
+        if isinstance(obj, float):
+            if math.isnan(obj) or math.isinf(obj):
+                return None  # or "null" or appropriate default
+        return obj
+    
+    return json.dumps(data, default=convert_numeric)
+
+# ✅ Use in API endpoints
+@router.get("/api/endpoint")
+async def endpoint():
+    result = {"score": float('nan')}  # Dangerous!
+    return safe_json_serialize(result)  # Safe!
+```
+
+### **CORS Configuration for Production (CRITICAL)**
+```python
+# ✅ NEVER use wildcard patterns - FastAPI doesn't support them
+WRONG_CORS = ["https://*.vercel.app"]  # ❌ Will fail!
+
+# ✅ Always use explicit domain lists
+CORRECT_CORS = [
+    "http://localhost:3000",
+    "http://localhost:8081", 
+    "https://your-app.vercel.app"  # Specific domain
+]
+
+# ✅ Environment variable pattern
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "").split(",")
+```
+
+### **Import Safety and Fallbacks (CRITICAL)**
+```python
+# ✅ Always use conditional imports for optional dependencies
+try:
+    from app.models.client_account import ClientAccount
+    CLIENT_ACCOUNT_AVAILABLE = True
+except ImportError:
+    CLIENT_ACCOUNT_AVAILABLE = False
+    ClientAccount = None
+
+# ✅ Service availability checks
+if CLIENT_ACCOUNT_AVAILABLE:
+    # Full functionality
+    result = process_with_client_account(data)
+else:
+    # Fallback functionality
+    result = process_basic(data)
+```
+
+### **File and Directory Management (CRITICAL)**
+```python
+# ✅ NEVER ignore application directories in .gitignore
+# Wrong in .gitignore:
+models/  # ❌ This blocks backend/app/models/
+
+# ✅ Correct in .gitignore:  
+**/models/cache/
+**/models/downloads/
+# Only ignore AI model caches, not application models
+```
+
 ## 🚀 **DEPLOYMENT CONSIDERATIONS**
 
 ### **Environment Configuration**
@@ -241,6 +338,16 @@ WebSocket: ws://localhost:8000/ws/agent-monitoring
 - Implement conditional imports with fallbacks
 - Use graceful degradation for missing dependencies
 
+#### **Database Session Errors**
+- Always use `AsyncSessionLocal()` in async functions
+- Never mix sync and async database patterns
+- Background tasks must use async sessions
+
+#### **JSON Serialization Errors**
+- Always handle NaN and Infinity values
+- Use safe JSON serialization in API responses
+- Test with edge case numeric values
+
 #### **CORS Issues**
 - Add Vercel domain to ALLOWED_ORIGINS in Railway
 - Don't use wildcard patterns in FastAPI CORS
@@ -250,6 +357,124 @@ WebSocket: ws://localhost:8000/ws/agent-monitoring
 - Check DEEPINFRA_API_KEY configuration
 - Monitor agent memory usage
 - Verify CrewAI service health
+
+## 📋 **AUTOMATIC CHANGELOG & GIT WORKFLOW**
+
+### **Required Workflow After Task Completion**
+
+#### **1. Update CHANGELOG.md (MANDATORY)**
+```bash
+# Always update changelog after completing tasks
+# Add new version entry at the top following this pattern:
+
+## [0.X.Y] - YYYY-MM-DD
+
+### 🎯 **[FEATURE_CATEGORY] - Brief Description**
+
+This release [brief_summary_of_changes].
+
+### 🚀 **[Primary Changes Category]**
+
+#### **[Specific Feature/Fix]**
+- **[Change Type]**: [Detailed description]
+- **[Impact]**: [What this enables/fixes]
+- **[Technical Details]**: [Implementation specifics]
+
+### 📊 **Business Impact**
+- **[Benefit 1]**: [Description]
+- **[Benefit 2]**: [Description]
+
+### 🎯 **Success Metrics**
+- **[Metric 1]**: [Achievement]
+- **[Metric 2]**: [Achievement]
+```
+
+#### **2. Git Commit and Push (MANDATORY)**
+```bash
+# Stage all changes
+git add .
+
+# Commit with descriptive message
+git commit -m "🎯 [Category]: [Brief description]
+
+✨ [Change type]:
+- [Change 1]
+- [Change 2]
+- [Change 3]
+
+🎪 [Additional context or impact]"
+
+# Push to main branch
+git push origin main
+```
+
+#### **3. Changelog Entry Template**
+```markdown
+## [0.X.Y] - 2025-MM-DD
+
+### 🎯 **[YOUR_FEATURE_CATEGORY]**
+
+Brief description of what was accomplished.
+
+### 🚀 **[Primary Category]**
+
+#### **[Specific Feature/Enhancement]**
+- **[Implementation]**: [What was built/fixed]
+- **[Technology]**: [Tools/frameworks used]
+- **[Integration]**: [How it fits with existing system]
+- **[Benefits]**: [Value provided]
+
+### 📊 **Technical Achievements**
+- **[Achievement 1]**: [Description]
+- **[Achievement 2]**: [Description]
+
+### 🎯 **Success Metrics**
+- **[Metric]**: [Quantifiable result]
+```
+
+#### **4. Required Information in Changelog**
+- **Version number** (increment appropriately)
+- **Date** of completion
+- **Category** (🚀 Enhancement, 🐛 Fix, 🆕 New Feature, 🔧 Technical, etc.)
+- **Detailed description** of changes
+- **Technical implementation** details
+- **Business impact** and benefits
+- **Success metrics** where applicable
+
+#### **5. Git Commit Message Standards**
+```bash
+# Use emoji prefixes for categorization:
+🎯 - Major feature/milestone
+🚀 - Enhancement/improvement  
+🐛 - Bug fix
+🆕 - New feature
+🔧 - Technical/infrastructure
+📚 - Documentation
+🧪 - Testing
+♻️  - Refactoring
+🔒 - Security
+⚡ - Performance
+
+# Example:
+git commit -m "🚀 Enhanced CrewAI agents with asset intelligence capabilities
+
+✨ Agent Features:
+- Added Asset Intelligence Agent for inventory management
+- Enhanced learning capabilities across 7 active agents  
+- Integrated field mapping intelligence with agent tools
+- Implemented real-time agent monitoring and health checks
+
+🎪 Platform now has full agentic asset management with AI learning"
+```
+
+### **MANDATORY POST-COMPLETION CHECKLIST**
+- [ ] CHANGELOG.md updated with new version entry
+- [ ] All changes committed with descriptive message
+- [ ] Code pushed to main branch
+- [ ] Version number incremented appropriately
+- [ ] Business impact documented
+- [ ] Technical achievements quantified
+- [ ] Success metrics included
 
 ## 📋 **CODE REVIEW CHECKLIST**
 
@@ -264,6 +489,8 @@ WebSocket: ws://localhost:8000/ws/agent-monitoring
 - [ ] Learning integration implemented
 - [ ] Proper error handling and logging
 - [ ] Documentation updated
+- [ ] **CHANGELOG.md updated**
+- [ ] **Git commit and push completed**
 
 ### **Agent Development Checklist**
 - [ ] Agent uses BaseTool pattern
@@ -273,9 +500,18 @@ WebSocket: ws://localhost:8000/ws/agent-monitoring
 - [ ] Feedback processing implemented
 - [ ] Real-time monitoring enabled
 
+### **Database Development Checklist**
+- [ ] Async sessions used (`AsyncSessionLocal`)
+- [ ] Multi-tenant scoping applied
+- [ ] No sync/async mixing
+- [ ] Proper session cleanup
+- [ ] Background task sessions handled correctly
+
 ### **API Development Checklist**
 - [ ] Client account scoping applied
 - [ ] Conditional service loading
+- [ ] JSON serialization safety
+- [ ] CORS configuration verified
 - [ ] Proper error responses
 - [ ] WebSocket integration where needed
 - [ ] OpenAPI documentation complete
@@ -300,6 +536,12 @@ WebSocket: ws://localhost:8000/ws/agent-monitoring
 - Fast iteration with agent improvements
 - Robust production deployment
 
+### **Documentation and Process**
+- CHANGELOG.md always up to date
+- Git history comprehensive and descriptive
+- Version increments logical and trackable
+- Business impact clearly documented
+
 ---
 
 ## 🌟 **REMEMBER: THIS IS AN AGENTIC PLATFORM**
@@ -311,3 +553,5 @@ WebSocket: ws://localhost:8000/ws/agent-monitoring
 **Multi-tenancy is fundamental. Every data access must be client account scoped. Enterprise deployment requires proper tenant isolation.**
 
 **Let the agents do the work. Your job is to provide them with tools, memory, and learning capabilities - not to replace them with static code.**
+
+**ALWAYS update the CHANGELOG.md and push to Git when completing tasks. This maintains project continuity and enables future agents to understand the platform's evolution.**
