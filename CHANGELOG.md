@@ -1097,74 +1097,71 @@ This hotfix release resolves three critical production issues identified in the 
 
 ---
 
-## [0.4.4] - 2025-05-31
+## [0.4.7] - 2025-05-31
 
-### 🎯 **CRITICAL PRODUCTION BUG FIXES**
+### 🎯 **DYNAMIC VERSION FOOTER WITH FEEDBACK NAVIGATION**
 
-This hotfix release resolves three critical production issues identified in the Vercel + Railway deployment.
+This release implements a dynamic version footer in the sidebar that links directly to the feedback view page, enabling better monitoring of navigation issues and providing easier access to feedback functionality.
 
-### 🐛 **Critical Bug Fixes**
+### 🔧 **Dynamic Version System**
 
-#### **De-dupe Functionality 500 Error Fix**
-- **Root Cause**: Recursive call bug in `cleanup_duplicates()` method causing infinite recursion
-- **Issue**: Line 270 in `asset_crud.py` was calling `self.cleanup_duplicates()` instead of the persistence function
-- **Resolution**: Fixed recursive call to properly invoke `cleanup_duplicates()` from persistence module
-- **Impact**: De-dupe button on inventory page now works correctly without 500 server errors
+#### **Version Utility Implementation**
+- **Dynamic Version Display**: Created `src/utils/version.ts` to manage version information dynamically
+- **Changelog Synchronization**: Version now automatically reflects the latest changelog entry (0.4.6)
+- **Package.json Update**: Synchronized package.json version with changelog for consistency
+- **Build Information**: Version utility includes build date and full version formatting
 
-#### **Chat Model Selection Fix (Gemma-3-4b Implementation)**
-- **Root Cause**: Chat interface was incorrectly using CrewAI service (Llama4) instead of multi-model service (Gemma-3-4b)
-- **Issue**: `chat_interface.py` was bypassing the intelligent model selection logic
-- **Resolution**: Updated chat endpoint to use `multi_model_service` with `task_type="chat"` ensuring Gemma-3-4b selection
-- **Impact**: Chat functionality now correctly uses cost-efficient Gemma-3-4b model for conversational tasks
+#### **Enhanced Sidebar Footer**
+- **Clickable Version**: "AI Force v2.1.0" static text replaced with dynamic `{versionInfo.fullVersion}`
+- **Navigation Integration**: Version footer now navigates to `/feedback-view` when clicked
+- **Visual Feedback**: Added hover effects, tooltips, and "Click for feedback" prompt
+- **Debug Logging**: Console logging added to track navigation attempts and help diagnose routing issues
 
-#### **Feedback-view Vercel Compatibility Enhancement**
-- **Root Cause**: Potential serverless/static generation issues with feedback page in Vercel
-- **Issue**: 404 errors on `/feedback-view` page despite other pages working correctly
-- **Resolution**: Enhanced error handling, added production fallback data, improved debugging capabilities
-- **Impact**: Feedback view page more resilient to deployment-specific issues
+#### **Network Debugging Enhancement**
+- **Console Monitoring**: Version click logs current location, version info, and navigation attempt
+- **Routing Diagnosis**: Helps identify whether navigation reaches the component or fails at routing level
+- **Production Testing**: Enables real-time monitoring of feedback page accessibility in Vercel
 
-### 🔧 **Technical Improvements**
+### 🛠️ **Technical Implementation**
 
-#### **Multi-Model Service Integration**
-- **Chat Endpoint**: Now properly routes through multi-model service for intelligent model selection
-- **Response Format**: Standardized response format with model information and timestamps
-- **Fallback Handling**: Graceful degradation when AI services unavailable
-- **Debug Logging**: Enhanced logging for model selection and API responses
+#### **React Router Integration**
+- **useNavigate Hook**: Proper React Router navigation using `navigate('/feedback-view')`
+- **Location Tracking**: Current pathname logged for debugging navigation context
+- **Import Updates**: Added `useNavigate` import and version utility integration
+- **Error Handling**: Console logging helps identify navigation failures vs component loading issues
 
-#### **Database Operations Reliability**
-- **Async/Sync Consistency**: Fixed recursive call preventing proper database operations
-- **Error Handling**: Improved error messages and fallback mechanisms
-- **Asset Management**: De-dupe functionality now works reliably in production
-- **Railway Compatibility**: Database operations optimized for Railway PostgreSQL
+#### **User Experience Enhancement**
+- **Accessibility**: Added title attribute with "Click to view feedback and reports"
+- **Visual Cues**: Hover state changes color and background for clear interaction feedback
+- **Responsive Design**: Maintained footer styling while adding interactive elements
+- **Consistent Branding**: Dynamic version ensures accurate version display across deployments
 
-#### **Frontend Resilience**
-- **Production Fallbacks**: Demo data fallback for better user experience
-- **Enhanced Debugging**: Additional logging for API configuration troubleshooting
-- **Error Reporting**: Improved error details and user feedback
-- **Vercel Compatibility**: Better handling of serverless deployment constraints
+### 📊 **Debugging Benefits**
 
-### 📊 **Fixed Issues Summary**
+#### **Vercel 404 Diagnosis**
+- **Pre-Component Failure Detection**: Can now identify if navigation fails before reaching FeedbackView component
+- **Browser Console Monitoring**: Clear logging helps distinguish routing vs component issues
+- **Incognito Testing**: Version click works consistently across browser modes for reliable testing
+- **Network Tab Analysis**: Navigation attempts visible in browser development tools
 
-| Issue | Component | Status | Impact |
-|-------|-----------|--------|---------|
-| De-dupe 500 Error | Asset Management | ✅ **Fixed** | Inventory page fully functional |
-| Wrong Chat Model | Chat Interface | ✅ **Fixed** | Proper Gemma-3-4b usage for chat |
-| Feedback-view 404 | Frontend Routing | ✅ **Enhanced** | Better error handling and fallbacks |
+#### **Production Troubleshooting**
+- **Real-time Navigation Testing**: Easy way to test feedback page routing in production environment
+- **Version Verification**: Ensures deployed version matches expected changelog version
+- **Sidebar Accessibility**: Always available navigation method regardless of current page state
+- **Debug Information**: Console logs provide immediate feedback on navigation attempts
 
 ### 🎯 **Success Metrics**
-- **De-dupe Operations**: 100% success rate, no more 500 errors
-- **Chat Model Selection**: Correct Gemma-3-4b usage for chat tasks (75% cost reduction)
-- **Feedback System**: Enhanced resilience with production fallbacks
-- **Multi-Model Architecture**: Proper task-based model routing implemented
+- **Dynamic Version**: Version automatically reflects changelog entries (currently 0.4.6)
+- **Navigation Integration**: Single-click access to feedback view from any page
+- **Debug Capability**: Enhanced troubleshooting for Vercel routing issues
+- **Version Consistency**: Package.json and changelog versions synchronized
 
-### 🚀 **Production Readiness**
-- **Railway Backend**: All critical functions working correctly
-- **Vercel Frontend**: Enhanced error handling and fallback mechanisms
-- **Database Operations**: Async operations working properly
-- **AI Services**: Intelligent model selection working as designed
-
-
+### 🚀 **Production Testing**
+- **Vercel Deployment**: Dynamic version footer available in production for testing
+- **Network Monitoring**: Browser console provides immediate feedback on navigation attempts  
+- **Feedback Access**: Always-available method to access feedback functionality
+- **Routing Diagnosis**: Clear identification of routing vs component loading failures
 
 ---
 
-## [0.4.5] - 2025-05-31
+## [0.4.6] - 2025-05-31

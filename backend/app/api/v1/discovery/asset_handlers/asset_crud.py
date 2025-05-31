@@ -268,8 +268,9 @@ class AssetCRUDHandler:
             if not self.persistence_available:
                 return self._fallback_cleanup_duplicates()
             
-            # Call the persistence method, not self.cleanup_duplicates()
-            removed_count = cleanup_duplicates()
+            # Import and call the persistence function directly to avoid recursion
+            from app.api.v1.discovery.persistence import cleanup_duplicates as persistence_cleanup
+            removed_count = persistence_cleanup()
             
             return {
                 "status": "success",

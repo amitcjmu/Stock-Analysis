@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, MessageCircle, X, Bot, User, Star, ThumbsUp } from 'lucide-react';
 import { apiCall } from '../../config/api';
+import { Markdown } from '../../utils/markdown';
 
 interface ChatMessage {
   id: string;
@@ -270,7 +271,11 @@ If a question is outside these bounds, respond: "I'm specialized in IT migration
                           <User className="h-4 w-4 mt-1 text-white" />
                         )}
                         <div className="flex-1">
-                          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                          {message.role === 'assistant' ? (
+                            <Markdown content={message.content} className="text-sm" />
+                          ) : (
+                            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                          )}
                           <p className={`text-xs mt-1 ${
                             message.role === 'user' ? 'text-blue-200' : 'text-gray-500'
                           }`}>
