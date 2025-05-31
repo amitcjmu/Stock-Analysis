@@ -165,24 +165,30 @@
 
 **Status**: **API endpoints and service logic completed**, but cannot test end-to-end due to Asset model issues
 
-### Task 2.2: Integration with Existing Workflow ⚠️ **DEPENDS ON PRIORITY TASKS**
-- [ ] **Data Import integration**
-  - [ ] Update data import to set discovery_status = 'completed'
-  - [ ] Trigger workflow advancement based on import success
-  - [ ] Preserve existing asset processing logic
-  - [ ] **Files**: Update `backend/app/services/data_import_service.py`
+### Task 2.2: Integration with Existing Workflow ✅ **COMPLETED**
+- [x] **Data Import integration**
+  - [x] Data import already well-integrated with workflow status updates
+  - [x] Automatic discovery_status = 'completed' on successful import
+  - [x] Existing asset processing logic preserved
+  - [x] **Files**: `backend/app/services/data_import_service.py` ✅
 
-- [ ] **Attribute Mapping integration**
-  - [ ] Update mapping completion to advance workflow
-  - [ ] Set mapping_status based on field completeness
-  - [ ] Integration with existing field mapping logic
-  - [ ] **Files**: Update existing mapping services
+- [x] **Attribute Mapping integration**
+  - [x] Enhanced field mapper service with workflow advancement
+  - [x] Automatic mapping_status updates based on field completeness
+  - [x] Integration with existing field mapping logic preserved
+  - [x] **Files**: `backend/app/services/field_mapper_modular.py` ✅
 
-- [ ] **Data Cleanup integration**
-  - [ ] Update cleanup completion to advance workflow
-  - [ ] Set cleanup_status based on data quality improvements
-  - [ ] Integration with existing cleanup processes
-  - [ ] **Files**: Update existing cleanup services
+- [x] **Data Cleanup integration**
+  - [x] New data cleanup service with comprehensive workflow integration
+  - [x] Automatic cleanup_status updates based on data quality improvements
+  - [x] Intelligent cleanup operations with quality scoring
+  - [x] **Files**: `backend/app/services/data_cleanup_service.py` ✅
+
+- [x] **Workflow Integration API**
+  - [x] Comprehensive API endpoints for workflow-integrated operations
+  - [x] Batch processing with automatic workflow advancement
+  - [x] Readiness assessment across all phases
+  - [x] **Files**: `backend/app/api/v1/endpoints/workflow_integration.py` ✅
 
 ## Sprint 3: Comprehensive Analysis Service Integration
 

@@ -134,6 +134,18 @@ if ASSET_INVENTORY_AVAILABLE:
         tags=["enhanced-asset-inventory"]
     )
 
+# Include workflow integration endpoints
+try:
+    from app.api.v1.endpoints import workflow_integration
+    api_router.include_router(
+        workflow_integration.router,
+        prefix="/workflow",
+        tags=["workflow-integration"]
+    )
+    print("✅ Workflow integration endpoints available")
+except ImportError as e:
+    print(f"⚠️ Workflow integration endpoints not available: {e}")
+
 # Include data import endpoints if available
 if DATA_IMPORT_AVAILABLE:
     api_router.include_router(
