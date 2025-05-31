@@ -269,8 +269,11 @@ class AssetCRUDHandler:
                 return self._fallback_cleanup_duplicates()
             
             # Import and call the persistence function directly to avoid recursion
+            # Run the synchronous function in a thread pool to avoid blocking
+            import asyncio
             from app.api.v1.discovery.persistence import cleanup_duplicates as persistence_cleanup
-            removed_count = persistence_cleanup()
+            loop = asyncio.get_event_loop()
+            removed_count = await loop.run_in_executor(None, persistence_cleanup)
             
             return {
                 "status": "success",

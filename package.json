@@ -1,7 +1,7 @@
 {
   "name": "ai-force-migration-platform",
   "private": true,
-  "version": "0.4.6",
+  "version": "0.4.8",
   "description": "AI-powered cloud migration management platform with intelligent automation and comprehensive workflow orchestration",
   "type": "module",
   "repository": {
