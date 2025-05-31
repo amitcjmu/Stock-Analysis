@@ -169,4 +169,16 @@ if WORKFLOW_AVAILABLE:
         asset_workflow.router,
         prefix="/workflow",
         tags=["asset-workflow"]
-    ) 
+    )
+
+# Include agentic discovery endpoints
+try:
+    from app.api.v1.endpoints import agent_discovery
+    api_router.include_router(
+        agent_discovery.router,
+        prefix="/discovery/agents",
+        tags=["agentic-discovery"]
+    )
+    print("✅ Agentic discovery endpoints available")
+except ImportError as e:
+    print(f"⚠️ Agentic discovery endpoints not available: {e}") 

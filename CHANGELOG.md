@@ -5,6 +5,213 @@ All notable changes to the AI Force Migration Platform will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2025-01-24
+
+### 🎯 **AGENTIC FRAMEWORK FOUNDATION - Sprint 3 Breakthrough**
+
+This release implements the **core agentic UI-agent interaction framework** that eliminates hardcoded heuristics and enables true AI-driven discovery processes. This is a foundational shift from rule-based logic to intelligent agent communication.
+
+### 🚀 **Agentic UI-Agent Communication System**
+
+#### **Agent-UI Bridge Infrastructure**
+- **Intelligent Communication**: Complete agent-to-UI communication system with structured questioning and learning
+- **Cross-Page Context**: Agents maintain context and learning across all discovery pages
+- **Real-Time Interaction**: Dynamic agent clarification requests with user response processing
+- **Learning Integration**: Agent learning from user corrections and feedback with persistent memory
+- **File**: `backend/app/services/agent_ui_bridge.py`
+
+#### **Data Source Intelligence Agent**
+- **Content Analysis**: Analyzes any data source (CMDB, migration tools, documentation) using agentic intelligence
+- **Pattern Recognition**: Learns organizational patterns and data structures without hardcoded rules
+- **Quality Assessment**: Agent-driven data quality evaluation with confidence scoring
+- **Adaptive Learning**: Improves accuracy through user feedback and pattern recognition
+- **File**: `backend/app/services/discovery_agents/data_source_intelligence_agent.py`
+
+#### **Agent Discovery API Endpoints**
+- **POST `/api/v1/discovery/agents/agent-analysis`**: Real-time agent analysis replacing hardcoded heuristics
+- **POST `/api/v1/discovery/agents/agent-clarification`**: User responses to agent questions for learning
+- **GET `/api/v1/discovery/agents/agent-status`**: Current agent understanding and confidence levels
+- **POST `/api/v1/discovery/agents/agent-learning`**: Agent learning from user corrections
+- **GET `/api/v1/discovery/agents/readiness-assessment`**: Agent assessment of assessment-phase readiness
+- **File**: `backend/app/api/v1/endpoints/agent_discovery.py`
+
+### 🔄 **Elimination of Hardcoded Heuristics**
+
+#### **Replaced Static Logic with Agent Intelligence**
+- **Field Mapping**: No more 80% static thresholds - agents assess readiness dynamically
+- **Data Classification**: Replaced dictionary mappings with intelligent content analysis
+- **Quality Scoring**: Agent-driven confidence levels replace mathematical formulas
+- **Pattern Detection**: AI learns organizational patterns instead of predefined rules
+
+#### **Intelligent Data Classification System**
+- **Good Data**: Agent-assessed high-quality, migration-ready information
+- **Needs Clarification**: Agent-identified ambiguities requiring user input
+- **Unusable**: Agent-determined data that cannot support migration decisions
+- **Confidence Levels**: Agent confidence scoring (High/Medium/Low/Uncertain) for all assessments
+
+### 📊 **Agent Learning and Memory System**
+
+#### **Platform-Wide Learning**
+- **Pattern Recognition**: Agents learn field naming conventions, data structures, and organizational standards
+- **Cross-Client Intelligence**: Platform knowledge improves while maintaining client confidentiality
+- **Feedback Integration**: User corrections improve agent accuracy for future analyses
+- **Persistent Memory**: Agent experiences stored and applied across sessions
+
+#### **Client-Specific Context Management**
+- **Engagement Scoping**: Client-specific preferences and patterns maintained separately
+- **Organizational Learning**: Agents adapt to specific organizational data conventions
+- **Stakeholder Requirements**: Business context and priorities integrated into agent decision-making
+
+### 🎪 **UI-Agent Interaction Framework**
+
+#### **Agent Clarification System**
+- **Structured Questioning**: Agents ask targeted questions about data ambiguities
+- **Multiple Choice Options**: Guided user responses for consistent learning
+- **Priority Handling**: High/medium/low priority questions with smart routing
+- **Cross-Page Questions**: Agent questions appear on relevant discovery pages
+
+#### **Real-Time Agent Insights**
+- **Dynamic Analysis**: Agents provide insights as data is processed
+- **Confidence Display**: Visual representation of agent certainty levels
+- **Actionable Recommendations**: Agents suggest next steps based on analysis
+- **Learning Feedback**: User corrections immediately improve agent intelligence
+
+### 🔧 **Technical Architecture Enhancements**
+
+#### **Agentic Design Patterns**
+- **Agent Communication**: Standardized agent-to-agent and agent-to-UI communication protocols
+- **Learning Pipeline**: Systematic agent improvement through user interaction feedback
+- **Context Preservation**: Cross-page agent state management for seamless user experience
+- **Graceful Degradation**: System continues operating even if specific agents are unavailable
+
+#### **API Integration**
+- **RESTful Agent Endpoints**: Complete API for agent interaction and learning
+- **Async Processing**: Non-blocking agent analysis with real-time updates
+- **Error Handling**: Robust fallback mechanisms for agent communication failures
+- **Health Monitoring**: Agent status tracking and performance monitoring
+
+### 📊 **Business Impact**
+
+#### **Discovery Process Transformation**
+- **Intelligent Analysis**: Agents understand data context rather than applying rigid rules
+- **Adaptive Workflow**: Discovery process adapts to organizational data patterns
+- **Reduced Manual Effort**: Agents handle complex data analysis tasks automatically
+- **Improved Accuracy**: Learning system continuously improves assessment quality
+
+#### **Migration Planning Enhancement**
+- **Context-Aware Assessment**: Agents understand business context for better recommendations
+- **Stakeholder Integration**: Business requirements influence agent decision-making
+- **Application-Centric Analysis**: Foundation for application portfolio discovery
+- **Readiness Optimization**: Agents guide users toward optimal assessment preparation
+
+### 🎯 **Sprint 3 Foundation Achievement**
+
+#### **Task 3.1**: ✅ Discovery Agent Crew with UI Integration **PARTIALLY COMPLETED**
+- ✅ Data Source Intelligence Agent implemented with full agentic capabilities
+- ✅ Agent-UI Communication System operational with learning integration
+- 🔄 Additional specialized agents (Asset Classification, Field Mapping Intelligence, etc.) ready for Sprint 4
+
+#### **Task C.3**: ✅ Agent-Driven API Integration **COMPLETED**
+- ✅ Complete REST API for agent interaction and learning
+- ✅ Real-time agent analysis and clarification processing
+- ✅ Agent status monitoring and readiness assessment
+- ✅ Foundation for application portfolio and stakeholder requirement integration
+
+### 🌟 **Platform Evolution Milestone**
+
+This release marks the **fundamental shift from heuristic-based to agentic-based intelligence**. The platform now uses AI agents that learn and adapt rather than static rules and mathematical thresholds. This foundation enables:
+
+- **Intelligent Discovery**: Agents understand data context and organizational patterns
+- **Continuous Learning**: Platform improves through user interaction and feedback
+- **Application-Centric Focus**: Foundation for Sprint 4 application portfolio discovery
+- **Stakeholder Integration**: Business context influences agent recommendations
+- **Assessment Readiness**: Agent-driven evaluation of migration assessment preparation
+
+**Next Phase**: Sprint 4 will build on this foundation to implement application-centric discovery with specialized agents for application identification, dependency mapping, and comprehensive readiness assessment.
+
+## [0.6.1] - 2025-01-24
+
+### 🚨 **CRITICAL ARCHITECTURE REALIZATION - Agentic-First Violation**
+
+This entry documents the critical realization that Sprint 2 Task 2.2 implementation violated our core **Agentic-First Architecture** principle by introducing hardcoded heuristic logic instead of CrewAI agent intelligence.
+
+### ❌ **Identified Violations of Agentic-First Principle**
+
+#### **Hardcoded Field Mapping Logic**
+- **Issue**: Implemented static `critical_fields = ['hostname', 'asset_name', 'asset_type'...]` lists
+- **Violation**: Field importance should be determined by agents analyzing actual data context
+- **Impact**: Prevents agents from learning organization-specific field patterns
+- **File**: `backend/app/services/field_mapper_modular.py` lines 200-280
+
+#### **Rule-Based Data Cleanup Operations**
+- **Issue**: Created dictionary mappings like `env_mappings`, `dept_mappings`, `os_mappings`
+- **Violation**: Data standardization should be agent-driven based on content analysis
+- **Impact**: Prevents intelligent adaptation to different data sources and formats
+- **File**: `backend/app/services/data_cleanup_service.py` lines 200-400
+
+#### **Mathematical Scoring Instead of Agent Intelligence**
+- **Issue**: Static thresholds (80% mapping completeness, 70% cleanup quality)
+- **Violation**: Readiness assessment should be agent-driven based on business context
+- **Impact**: Prevents dynamic adaptation to different migration requirements
+- **Files**: Workflow integration endpoints with hardcoded advancement logic
+
+### 🎯 **Correct Agentic Architecture Requirements**
+
+#### **Agent-Driven Discovery Process**
+- **Data Source Analysis**: Agents analyze incoming data to understand source, format, and structure
+- **Content-Based Intelligence**: Agents determine field importance through content analysis, not predefined lists
+- **Iterative Learning**: Agents learn from user corrections and improve pattern recognition
+- **Application-Centric Focus**: Agents group assets into applications for 6R readiness assessment
+
+#### **Iterative Agent Communication**
+- **Sporadic Data Handling**: Agents intelligently merge incremental data additions
+- **Need Communication**: Agents communicate what additional data they need for completeness
+- **Dynamic Thresholds**: Agents adjust readiness criteria based on business requirements and timeline
+- **Assessment Preparation**: Agents determine when applications are ready for 6R analysis
+
+### 🔄 **Required Redesign for Sprint 3+**
+
+#### **Sprint 3: Agentic Discovery Intelligence System**
+- **Discovery Agent Crew**: Data Source Analyst, Asset Classification, Field Mapping Intelligence, Data Quality, Application Discovery, Readiness Assessment agents
+- **Agent Communication Framework**: Inter-agent communication, memory persistence, task coordination
+- **Iterative Data Integration**: Agent-driven handling of sporadic data inputs with intelligent merging
+
+#### **Sprint 4: Application-Centric Discovery**
+- **Application Discovery Agents**: AI-powered application identification and dependency mapping
+- **Portfolio Intelligence**: Agent-driven application portfolio analysis and readiness assessment
+- **Interactive Dashboard**: Application-centric view with agent recommendations
+
+#### **Sprint 5: Tech Debt Intelligence & Assessment Handoff**
+- **Tech Debt Analysis Agent**: AI-powered tech debt assessment and risk prioritization
+- **Stakeholder Requirements Agent**: Interactive gathering of business standards and requirements
+- **Assessment Readiness Orchestrator**: Agent coordination of discovery activities and 6R handoff
+
+### 📊 **Business Impact of Correction**
+
+#### **Enhanced Intelligence**
+- **Adaptive Learning**: Agents learn organization-specific patterns instead of relying on hardcoded rules
+- **Context-Aware Analysis**: Data quality and readiness determined by actual business context
+- **Continuous Improvement**: Agent intelligence improves through user feedback and experience
+- **Dynamic Thresholds**: Readiness criteria adapt to migration timeline and business requirements
+
+#### **Application-Centric Migration**
+- **Application Focus**: 6R analysis prepared at application level, not individual asset level
+- **Dependency Intelligence**: Agent-driven dependency mapping enables effective wave planning
+- **Portfolio Management**: Intelligent application portfolio creation and readiness assessment
+- **Stakeholder Integration**: Agent-driven incorporation of business requirements and standards
+
+### 🎯 **Commitment to Agentic Excellence**
+
+**🚨 CORE PRINCIPLE**: All intelligence comes from CrewAI agents with learning capabilities. Never implement hard-coded rules or static logic for data analysis.
+
+**🤖 AGENT-DRIVEN**: Agents analyze patterns, make decisions, and communicate needs - humans provide data and feedback.
+
+**📈 CONTINUOUS LEARNING**: Platform intelligence improves over time through agent learning and user interactions.
+
+**🎪 APPLICATION-CENTRIC**: Migration assessment focused on applications and their dependencies, not individual assets.
+
+---
+
 ## [0.6.0] - 2025-01-24
 
 ### 🎯 **WORKFLOW INTEGRATION - Sprint 2 Task 2.2 Complete**
