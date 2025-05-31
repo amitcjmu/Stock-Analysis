@@ -84,6 +84,127 @@ This release resolves critical browser console errors and implements comprehensi
 - ✅ API integration standardized and functional
 - ✅ Development environment stable for advanced feature implementation
 
+## [0.9.0] - 2025-01-24
+
+### 🎯 **SPRINT 4 TASK 4.1 - AGENTIC DATA CLEANSING WITH QUALITY INTELLIGENCE**
+
+This release implements **Sprint 4 Task 4.1: Agentic Data Cleansing** with comprehensive AI-powered data quality assessment and intelligent cleanup recommendations.
+
+### 🚀 **Agentic Data Cleansing Implementation**
+
+#### **Enhanced DataCleansing Page** (910 → 398 lines)
+- **Agent-Driven Quality Analysis**: Real-time AI assessment using `/discovery/data-cleanup/agent-analyze` endpoint
+- **Quality Intelligence Dashboard**: Visual metrics showing clean data, needs attention, and critical issues
+- **Agent Recommendations**: AI-powered cleanup suggestions with confidence scoring and impact estimation
+- **Intelligent Issue Detection**: Agent identification of quality problems with suggested fixes
+- **Progressive Quality Improvement**: Real-time quality score updates as issues are resolved
+
+#### **Modular Component Architecture**
+- **QualityDashboard**: Comprehensive quality metrics display with progress tracking (139 lines)
+- **AgentQualityAnalysis**: Interactive quality issues and recommendations interface (318 lines)
+- **Main DataCleansing**: Core orchestration and agent integration logic (398 lines)
+- **Agent Sidebar Integration**: Consistent agent communication across all discovery pages
+
+### 🧠 **Agent Quality Intelligence Features**
+
+#### **AI-Powered Quality Assessment**
+- **Agent Analysis Integration**: Direct integration with backend `DataCleanupService.agent_analyze_data_quality()`
+- **Quality Buckets**: Intelligent categorization into "Clean Data"/"Needs Attention"/"Critical Issues"
+- **Confidence Scoring**: Agent confidence levels for all quality assessments and recommendations
+- **Fallback Mechanisms**: Graceful degradation to rule-based analysis when agents unavailable
+
+#### **Intelligent Cleanup Recommendations**
+- **Operation-Specific Suggestions**: Agent recommendations for standardization, normalization, and completion
+- **Impact Estimation**: Predicted quality improvement percentages for each recommendation
+- **Priority-Based Ordering**: High/medium/low priority recommendations based on migration impact
+- **One-Click Application**: Direct application of agent recommendations with real-time feedback
+
+#### **Quality Issue Management**
+- **Severity Classification**: Critical/high/medium/low severity levels with visual indicators
+- **Detailed Issue Analysis**: Expandable issue details with suggested fixes and impact assessment
+- **Individual Fix Application**: Targeted resolution of specific quality issues
+- **Progress Tracking**: Real-time updates to quality metrics as issues are resolved
+
+### 🔧 **Backend Integration**
+
+#### **Agent Service Integration**
+- **Quality Analysis Endpoint**: `/discovery/data-cleanup/agent-analyze` for AI-driven assessment
+- **Cleanup Processing**: `/discovery/data-cleanup/agent-process` for applying agent recommendations
+- **Learning Integration**: Agent feedback loops for continuous improvement
+- **Multi-Tenant Support**: Client account and engagement scoping for enterprise deployment
+
+#### **Fallback Architecture**
+- **Primary**: Full agent-driven analysis with CrewAI intelligence
+- **Secondary**: Rule-based analysis when agents temporarily unavailable
+- **Tertiary**: Basic quality metrics to ensure page functionality
+- **Error Handling**: Comprehensive error recovery with user-friendly messaging
+
+### 📊 **User Experience Enhancements**
+
+#### **Visual Quality Intelligence**
+- **Quality Score Visualization**: Color-coded progress bars and percentage indicators
+- **Issue Severity Indicators**: Visual distinction between critical and minor issues
+- **Confidence Displays**: Agent confidence levels shown for all recommendations
+- **Real-Time Updates**: Live quality metric updates as improvements are applied
+
+#### **Workflow Integration**
+- **Attribute Mapping Context**: Seamless transition from field mapping with context preservation
+- **Quality Threshold Gating**: 60% quality requirement to proceed to Asset Inventory
+- **Agent Learning**: Cross-page agent memory and learning from user interactions
+- **Navigation Flow**: Clear progression through discovery phases with quality validation
+
+### 🎯 **Business Impact**
+
+#### **Data Quality Assurance**
+- **Migration Readiness**: Ensures data quality meets migration requirements before proceeding
+- **Risk Mitigation**: Early identification and resolution of data quality issues
+- **Automated Intelligence**: Reduces manual data review effort through AI recommendations
+- **Quality Metrics**: Quantifiable data quality scores for stakeholder reporting
+
+#### **Operational Efficiency**
+- **Intelligent Prioritization**: Agent-driven focus on highest-impact quality issues
+- **Bulk Recommendations**: Efficient application of quality improvements across multiple assets
+- **Learning Optimization**: Agent improvement over time reduces future manual intervention
+- **Workflow Acceleration**: Automated quality assessment enables faster discovery completion
+
+### 🔧 **Technical Achievements**
+
+#### **Component Modularization**
+- **3 New Specialized Components**: QualityDashboard, AgentQualityAnalysis extracted from monolithic page
+- **398-Line Main Component**: Reduced from 910 lines while adding significant functionality
+- **Reusable Architecture**: Component patterns established for future Sprint 4 tasks
+- **Clean Separation**: Quality metrics, issue management, and recommendations properly isolated
+
+#### **Agent Architecture Integration**
+- **Backend Service Integration**: Direct connection to enhanced `DataCleanupService` with agent capabilities
+- **API Standardization**: Consistent request/response patterns for agent communication
+- **Error Recovery**: Robust fallback mechanisms ensure page functionality under all conditions
+- **Learning Infrastructure**: Agent feedback loops operational for continuous improvement
+
+### 📈 **Sprint 4 Progress**
+
+#### **Task 4.1 Completion**
+- ✅ **Agentic Data Cleansing**: Complete AI-powered quality assessment and cleanup
+- ✅ **Quality Intelligence**: Agent-driven issue detection and recommendation system
+- ✅ **Modular Architecture**: Component extraction meeting 300-400 line standards
+- ✅ **Backend Integration**: Full integration with enhanced agent cleanup service
+- ✅ **User Experience**: Professional UI with real-time quality feedback
+
+#### **Overall Platform Progress**
+- **60% Complete**: Database + Agentic Framework + Complete Discovery + Quality Intelligence
+- **Sprint 3**: 100% complete (All discovery pages with agent integration)
+- **Sprint 4**: 25% complete (Task 4.1 delivered, 3 tasks remaining)
+- **Agent Maturity**: 7 active agents with quality intelligence capabilities
+- **Discovery Workflow**: Complete end-to-end agent-driven discovery pipeline operational
+
+### 🚀 **Next Steps: Sprint 4 Task 4.2**
+
+#### **Ready for Application-Centric Discovery**
+- ✅ Quality-assured data ready for advanced dependency analysis
+- ✅ Agent learning data from quality assessment interactions
+- ✅ Modular component architecture for rapid feature development
+- ✅ Proven agent integration patterns for application discovery features
+
 ## [0.8.0] - 2025-01-24
 
 ### 🎯 **SPRINT 3 COMPLETION - Complete Agentic Discovery UI Integration**
