@@ -18,7 +18,16 @@ from app.models.data_import import (
     ImportFieldMapping, DataQualityIssue, ImportStatus, ImportType,
     CustomTargetField, MappingLearningPattern
 )
-from app.models.client_account import ClientAccount, Engagement
+
+# Make client_account import conditional to avoid deployment failures
+try:
+    from app.models.client_account import ClientAccount, Engagement
+    CLIENT_ACCOUNT_AVAILABLE = True
+except ImportError:
+    CLIENT_ACCOUNT_AVAILABLE = False
+    ClientAccount = None
+    Engagement = None
+
 from app.models.cmdb_asset import CMDBAsset
 from app.repositories.demo_repository import DemoRepository
 from app.schemas.demo import DemoAssetResponse
