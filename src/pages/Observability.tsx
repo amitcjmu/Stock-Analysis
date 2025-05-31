@@ -1,7 +1,6 @@
 
 import React from 'react';
 import Sidebar from '../components/Sidebar';
-import FeedbackWidget from '../components/FeedbackWidget';
 import AgentMonitor from '../components/AgentMonitor';
 import { Activity, Clock, AlertCircle, CheckCircle } from 'lucide-react';
 
@@ -270,7 +269,6 @@ const Observability = () => {
           </div>
         </main>
       </div>
-      <FeedbackWidget />
     </div>
   );
 };

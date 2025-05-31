@@ -1,7 +1,6 @@
 
 import React from 'react';
 import Sidebar from '../../components/Sidebar';
-import FeedbackWidget from '../../components/FeedbackWidget';
 import { TrendingUp, TrendingDown, Download, Sparkles, Calendar } from 'lucide-react';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, AreaChart, Area } from 'recharts';
@@ -228,7 +227,6 @@ const CostTrends = () => {
           </div>
         </main>
       </div>
-      <FeedbackWidget />
     </div>
   );
 };

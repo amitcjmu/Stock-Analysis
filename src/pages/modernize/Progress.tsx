@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import Sidebar from '../../components/Sidebar';
-import FeedbackWidget from '../../components/FeedbackWidget';
 import { Activity, Sparkles, TrendingUp, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
 
 const Progress = () => {
@@ -273,7 +272,6 @@ const Progress = () => {
           </div>
         </main>
       </div>
-      <FeedbackWidget />
     </div>
   );
 };

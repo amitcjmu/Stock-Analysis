@@ -1,6 +1,5 @@
 import React, { useState, useCallback } from 'react';
 import Sidebar from '../../components/Sidebar';
-import FeedbackWidget from '../../components/FeedbackWidget';
 import { Link, useNavigate } from 'react-router-dom';
 import { API_CONFIG } from '../../config/api';
 import { 
@@ -898,8 +897,6 @@ const DataImport = () => {
             </div>
           </main>
         </div>
-
-        <FeedbackWidget />
       </div>
     </>
   );

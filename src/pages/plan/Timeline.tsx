@@ -1,7 +1,6 @@
 
 import React from 'react';
 import Sidebar from '../../components/Sidebar';
-import FeedbackWidget from '../../components/FeedbackWidget';
 import { Calendar, CheckCircle, Clock, AlertCircle, Brain } from 'lucide-react';
 
 const Timeline = () => {
@@ -133,7 +132,6 @@ const Timeline = () => {
           </div>
         </main>
       </div>
-      <FeedbackWidget />
     </div>
   );
 };

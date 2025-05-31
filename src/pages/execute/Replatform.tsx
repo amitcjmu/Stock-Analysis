@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import Sidebar from '../../components/Sidebar';
-import FeedbackWidget from '../../components/FeedbackWidget';
 import { Cloud, Sparkles, Play, Clock, CheckCircle, Settings, ArrowRight } from 'lucide-react';
 
 const Replatform = () => {
@@ -328,7 +327,6 @@ const Replatform = () => {
           </div>
         </main>
       </div>
-      <FeedbackWidget />
     </div>
   );
 };

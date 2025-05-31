@@ -1,7 +1,6 @@
 
 import React from 'react';
 import Sidebar from '../../components/Sidebar';
-import FeedbackWidget from '../../components/FeedbackWidget';
 import { Calendar, Users, Target } from 'lucide-react';
 
 const WavePlanning = () => {
@@ -125,7 +124,6 @@ const WavePlanning = () => {
           </div>
         </main>
       </div>
-      <FeedbackWidget />
     </div>
   );
 };

@@ -1,7 +1,6 @@
 
 import React from 'react';
 import Sidebar from '../../components/Sidebar';
-import FeedbackWidget from '../../components/FeedbackWidget';
 import { DollarSign, TrendingDown, TrendingUp, AlertTriangle, Sparkles, Download } from 'lucide-react';
 
 const CostAnalysis = () => {
@@ -335,7 +334,6 @@ const CostAnalysis = () => {
           </div>
         </main>
       </div>
-      <FeedbackWidget />
     </div>
   );
 };

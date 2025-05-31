@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import Sidebar from '../../components/Sidebar';
-import FeedbackWidget from '../../components/FeedbackWidget';
 import { Server, Sparkles, Play, Clock, CheckCircle, AlertTriangle, ArrowRight } from 'lucide-react';
 
 const Rehost = () => {
@@ -312,7 +311,6 @@ const Rehost = () => {
           </div>
         </main>
       </div>
-      <FeedbackWidget />
     </div>
   );
 };

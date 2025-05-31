@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import Sidebar from '../../components/Sidebar';
-import FeedbackWidget from '../../components/FeedbackWidget';
 import { Database, Shield, Archive, Download, Calendar, AlertTriangle, CheckCircle, FileText, HardDrive } from 'lucide-react';
 
 const DataRetention = () => {
@@ -326,7 +325,6 @@ const DataRetention = () => {
           </div>
         </main>
       </div>
-      <FeedbackWidget />
     </div>
   );
 };

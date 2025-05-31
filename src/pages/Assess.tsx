@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import Sidebar from '../components/Sidebar';
-import FeedbackWidget from '../components/FeedbackWidget';
 import { Download, Filter, Calendar, BarChart3 } from 'lucide-react';
 
 const Assess = () => {
@@ -336,7 +335,6 @@ const Assess = () => {
           </div>
         </main>
       </div>
-      <FeedbackWidget />
     </div>
   );
 };

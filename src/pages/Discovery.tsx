@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import Sidebar from '../components/Sidebar';
-import FeedbackWidget from '../components/FeedbackWidget';
 import { Search, Database, Network, Server, Activity, Download, Filter } from 'lucide-react';
 
 const Discovery = () => {
@@ -183,7 +182,6 @@ const Discovery = () => {
           </div>
         </main>
       </div>
-      <FeedbackWidget />
     </div>
   );
 };

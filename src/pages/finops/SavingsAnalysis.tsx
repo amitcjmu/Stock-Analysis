@@ -1,7 +1,6 @@
 
 import React from 'react';
 import Sidebar from '../../components/Sidebar';
-import FeedbackWidget from '../../components/FeedbackWidget';
 import { TrendingUp, DollarSign, Sparkles, Download, Target } from 'lucide-react';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, AreaChart, Area } from 'recharts';
@@ -230,7 +229,6 @@ const SavingsAnalysis = () => {
           </div>
         </main>
       </div>
-      <FeedbackWidget />
     </div>
   );
 };

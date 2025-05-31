@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Sidebar from '../../components/Sidebar';
-import FeedbackWidget from '../../components/FeedbackWidget';
 import { Zap, Sparkles, Code, Rocket, AlertCircle, TrendingUp } from 'lucide-react';
 
 const Rewrite = () => {
@@ -351,7 +350,6 @@ const Rewrite = () => {
           </div>
         </main>
       </div>
-      <FeedbackWidget />
     </div>
   );
 };

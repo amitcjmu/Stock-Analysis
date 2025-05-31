@@ -1,7 +1,6 @@
 
 import React from 'react';
 import Sidebar from '../../components/Sidebar';
-import FeedbackWidget from '../../components/FeedbackWidget';
 import { Activity, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 
 const Scan = () => {
@@ -168,7 +167,6 @@ const Scan = () => {
           </div>
         </main>
       </div>
-      <FeedbackWidget />
     </div>
   );
 };

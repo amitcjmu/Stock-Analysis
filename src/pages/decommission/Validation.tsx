@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import Sidebar from '../../components/Sidebar';
-import FeedbackWidget from '../../components/FeedbackWidget';
 import { CheckCircle, AlertTriangle, X, FileText, Database, Shield, Clock, Search, Download } from 'lucide-react';
 
 const DecommissionValidation = () => {
@@ -404,7 +403,6 @@ const DecommissionValidation = () => {
           </div>
         </main>
       </div>
-      <FeedbackWidget />
     </div>
   );
 };

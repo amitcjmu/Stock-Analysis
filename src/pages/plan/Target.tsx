@@ -1,7 +1,6 @@
 
 import React from 'react';
 import Sidebar from '../../components/Sidebar';
-import FeedbackWidget from '../../components/FeedbackWidget';
 import { Target, Cloud, Layers, Zap, Shield, Globe, Brain } from 'lucide-react';
 
 const TargetArchitecture = () => {
@@ -177,7 +176,6 @@ const TargetArchitecture = () => {
           </div>
         </main>
       </div>
-      <FeedbackWidget />
     </div>
   );
 };

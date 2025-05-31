@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import Sidebar from '../../components/Sidebar';
-import FeedbackWidget from '../../components/FeedbackWidget';
 import { Calendar, Sparkles, Clock, CheckCircle, AlertTriangle, RefreshCw, ArrowRight } from 'lucide-react';
 
 const Cutovers = () => {
@@ -359,7 +358,6 @@ const Cutovers = () => {
           </div>
         </main>
       </div>
-      <FeedbackWidget />
     </div>
   );
 };

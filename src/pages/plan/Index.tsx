@@ -1,7 +1,6 @@
 
 import React from 'react';
 import Sidebar from '../../components/Sidebar';
-import FeedbackWidget from '../../components/FeedbackWidget';
 import { Brain, Calendar, Users, Target, TrendingUp, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -131,7 +130,6 @@ const PlanIndex = () => {
           </div>
         </main>
       </div>
-      <FeedbackWidget />
     </div>
   );
 };

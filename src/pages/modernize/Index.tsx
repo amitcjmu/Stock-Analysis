@@ -1,7 +1,6 @@
 
 import React from 'react';
 import Sidebar from '../../components/Sidebar';
-import FeedbackWidget from '../../components/FeedbackWidget';
 import { Sparkles, Code, Layers, Zap, Activity, TrendingUp, RefreshCw, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -157,7 +156,6 @@ const ModernizeIndex = () => {
           </div>
         </main>
       </div>
-      <FeedbackWidget />
     </div>
   );
 };

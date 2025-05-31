@@ -1,7 +1,6 @@
 
 import React from 'react';
 import Sidebar from '../../components/Sidebar';
-import FeedbackWidget from '../../components/FeedbackWidget';
 import { DollarSign, TrendingUp, Cloud, Sparkles, Download, CheckCircle } from 'lucide-react';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
@@ -248,7 +247,6 @@ const CloudComparison = () => {
           </div>
         </main>
       </div>
-      <FeedbackWidget />
     </div>
   );
 };

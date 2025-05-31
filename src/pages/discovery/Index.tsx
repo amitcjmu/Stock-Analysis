@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import Sidebar from '../../components/Sidebar';
-import FeedbackWidget from '../../components/FeedbackWidget';
 import { Database, Server, HardDrive, Activity, ArrowRight, Sparkles, BarChart3, LayoutDashboard, Settings } from 'lucide-react';
 
 const DiscoveryIndex = () => {

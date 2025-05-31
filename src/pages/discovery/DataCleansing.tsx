@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/Sidebar';
-import FeedbackWidget from '../../components/FeedbackWidget';
 import RawDataTable from '../../components/discovery/RawDataTable';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
@@ -1297,7 +1296,6 @@ const DataCleansing = () => {
           </div>
         </main>
       </div>
-      <FeedbackWidget />
     </div>
   );
 };

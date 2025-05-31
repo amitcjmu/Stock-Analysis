@@ -1,7 +1,6 @@
 
 import React from 'react';
 import Sidebar from '../../components/Sidebar';
-import FeedbackWidget from '../../components/FeedbackWidget';
 import { Calendar, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 
 const Roadmap = () => {
@@ -139,7 +138,6 @@ const Roadmap = () => {
           </div>
         </main>
       </div>
-      <FeedbackWidget />
     </div>
   );
 };

@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import Sidebar from '../../components/Sidebar';
-import FeedbackWidget from '../../components/FeedbackWidget';
 import { Save, User, Shield, Database, Settings } from 'lucide-react';
 
 const Editor = () => {
@@ -235,7 +234,6 @@ const Editor = () => {
           </div>
         </main>
       </div>
-      <FeedbackWidget />
     </div>
   );
 };

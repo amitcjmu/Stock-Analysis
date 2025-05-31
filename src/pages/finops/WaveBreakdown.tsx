@@ -1,7 +1,6 @@
 
 import React from 'react';
 import Sidebar from '../../components/Sidebar';
-import FeedbackWidget from '../../components/FeedbackWidget';
 import { BarChart3, Download, Sparkles, TrendingUp, DollarSign } from 'lucide-react';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
@@ -259,7 +258,6 @@ const WaveBreakdown = () => {
           </div>
         </main>
       </div>
-      <FeedbackWidget />
     </div>
   );
 };

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/Sidebar';
-import FeedbackWidget from '../../components/FeedbackWidget';
 import { 
   AlertTriangle, Bug, Shield, Clock, TrendingUp,
   Code, Database, Globe, Timeline, BarChart3, Settings,
@@ -384,7 +383,6 @@ const TechDebtAnalysis = () => {
           </div>
         </main>
       </div>
-      <FeedbackWidget />
     </div>
   );
 };

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/Sidebar';
-import FeedbackWidget from '../../components/FeedbackWidget';
 import { 
   ParameterSliders, 
   QualifyingQuestions, 
@@ -804,7 +803,6 @@ const Treatment = () => {
           </div>
         </main>
       </div>
-      <FeedbackWidget />
     </div>
   );
 };

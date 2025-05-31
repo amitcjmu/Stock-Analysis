@@ -13,9 +13,10 @@ interface ChatInterfaceProps {
   isOpen: boolean;
   onClose: () => void;
   currentPage?: string;
+  breadcrumbPath?: string;
 }
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ isOpen, onClose, currentPage = 'Asset Inventory' }) => {
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ isOpen, onClose, currentPage = 'Asset Inventory', breadcrumbPath }) => {
   const [activeTab, setActiveTab] = useState<'chat' | 'feedback'>('chat');
   
   // Chat state
@@ -160,7 +161,7 @@ If a question is outside these bounds, respond: "I'm specialized in IT migration
           rating: rating,
           comment: feedback,
           category: 'ui',
-          breadcrumb: window.location.pathname,
+          breadcrumb: breadcrumbPath || window.location.pathname,
           timestamp: new Date().toISOString()
         })
       });
@@ -338,7 +339,7 @@ If a question is outside these bounds, respond: "I'm specialized in IT migration
                   <div>
                     <h3 className="text-lg font-medium text-gray-900 mb-2">How was your experience?</h3>
                     <p className="text-sm text-gray-600 mb-4">
-                      Page: {currentPage} • Path: {window.location.pathname}
+                      Page: {currentPage} • Breadcrumb: {breadcrumbPath || window.location.pathname}
                     </p>
                     
                     {/* Rating */}

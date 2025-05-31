@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/Sidebar';
-import FeedbackWidget from '../../components/FeedbackWidget';
 import { 
   BarChart3, TrendingUp, Activity, AlertTriangle, CheckCircle,
   FileText, Database, Server, Network, Shield, Cloud,
@@ -818,7 +817,6 @@ const DiscoveryDashboard = () => {
           </div>
         </main>
       </div>
-      <FeedbackWidget />
     </div>
   );
 };

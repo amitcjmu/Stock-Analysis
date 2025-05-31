@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Sidebar from '../../components/Sidebar';
-import FeedbackWidget from '../../components/FeedbackWidget';
 import { AlertTriangle, CheckCircle, X, Bell, Settings, Download } from 'lucide-react';
 
 const BudgetAlerts = () => {
@@ -281,7 +280,6 @@ const BudgetAlerts = () => {
           </div>
         </main>
       </div>
-      <FeedbackWidget />
     </div>
   );
 };

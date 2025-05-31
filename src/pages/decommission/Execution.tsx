@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import Sidebar from '../../components/Sidebar';
-import FeedbackWidget from '../../components/FeedbackWidget';
 import { Trash2, AlertTriangle, CheckCircle, Clock, Pause, Play, Settings, Shield, Database, Server } from 'lucide-react';
 
 const DecommissionExecution = () => {
@@ -370,7 +369,6 @@ const DecommissionExecution = () => {
           </div>
         </main>
       </div>
-      <FeedbackWidget />
     </div>
   );
 };

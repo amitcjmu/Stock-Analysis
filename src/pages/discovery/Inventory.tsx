@@ -2,10 +2,9 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/Sidebar';
 import { 
   Download, Filter, Database, Server, HardDrive, RefreshCw, Router, Shield, Cpu, Cloud, Zap,
-  ChevronLeft, ChevronRight, Search, Plus, Trash2, Eye, ArrowUpDown, MessageCircle
+  ChevronLeft, ChevronRight, Search, Plus, Trash2, Eye, ArrowUpDown
 } from 'lucide-react';
 import { apiCall, API_CONFIG } from '../../config/api';
-import ChatInterface from '../../components/ui/ChatInterface';
 
 const Inventory = () => {
   // Filtering and pagination state
@@ -70,8 +69,7 @@ const Inventory = () => {
   const [selectedApp, setSelectedApp] = useState('');
   const [mappingLoading, setMappingLoading] = useState(false);
   
-  // Chat state
-  const [isChatOpen, setIsChatOpen] = useState(false);
+
 
   // Define filter interface
   interface FilterParams {
@@ -1118,22 +1116,7 @@ const Inventory = () => {
           </div>
         </main>
       </div>
-      
-      {/* Floating Chat/Feedback Button */}
-      <button
-        onClick={() => setIsChatOpen(true)}
-        className="fixed bottom-6 right-6 bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 transition-colors z-50"
-        title="Chat with AI Assistant or Submit Feedback"
-      >
-        <MessageCircle className="h-6 w-6" />
-      </button>
-      
-      {/* Chat Interface */}
-      <ChatInterface 
-        isOpen={isChatOpen} 
-        onClose={() => setIsChatOpen(false)}
-        currentPage="Asset Inventory"
-      />
+
 
       {/* Bulk Edit Dialog */}
       {showBulkEditDialog && (

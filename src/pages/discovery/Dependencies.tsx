@@ -1,7 +1,6 @@
 
 import React from 'react';
 import Sidebar from '../../components/Sidebar';
-import FeedbackWidget from '../../components/FeedbackWidget';
 import { Network, Database, Server, ArrowRight } from 'lucide-react';
 
 const Dependencies = () => {
@@ -157,7 +156,6 @@ const Dependencies = () => {
           </div>
         </main>
       </div>
-      <FeedbackWidget />
     </div>
   );
 };

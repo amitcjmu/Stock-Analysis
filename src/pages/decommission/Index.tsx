@@ -1,7 +1,6 @@
 
 import React from 'react';
 import Sidebar from '../../components/Sidebar';
-import FeedbackWidget from '../../components/FeedbackWidget';
 import { Archive, Shield, Trash2, Database, Clock, AlertTriangle, CheckCircle, FileText } from 'lucide-react';
 
 const DecommissionIndex = () => {
@@ -238,7 +237,6 @@ const DecommissionIndex = () => {
           </div>
         </main>
       </div>
-      <FeedbackWidget />
     </div>
   );
 };

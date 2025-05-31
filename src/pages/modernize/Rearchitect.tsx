@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import Sidebar from '../../components/Sidebar';
-import FeedbackWidget from '../../components/FeedbackWidget';
 import { Layers, Sparkles, Settings, Target, CheckCircle, ArrowRight } from 'lucide-react';
 
 const Rearchitect = () => {
@@ -287,7 +286,6 @@ const Rearchitect = () => {
           </div>
         </main>
       </div>
-      <FeedbackWidget />
     </div>
   );
 };

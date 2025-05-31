@@ -1,7 +1,6 @@
 
 import React from 'react';
 import Sidebar from '../../components/Sidebar';
-import FeedbackWidget from '../../components/FeedbackWidget';
 import { Users, Brain, AlertTriangle, CheckCircle } from 'lucide-react';
 
 const Resource = () => {
@@ -171,7 +170,6 @@ const Resource = () => {
           </div>
         </main>
       </div>
-      <FeedbackWidget />
     </div>
   );
 };

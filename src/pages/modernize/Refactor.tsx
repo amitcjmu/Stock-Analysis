@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import Sidebar from '../../components/Sidebar';
-import FeedbackWidget from '../../components/FeedbackWidget';
 import { Code, Sparkles, Play, Clock, CheckCircle, AlertTriangle, Filter } from 'lucide-react';
 
 const Refactor = () => {
@@ -287,7 +286,6 @@ const Refactor = () => {
           </div>
         </main>
       </div>
-      <FeedbackWidget />
     </div>
   );
 };

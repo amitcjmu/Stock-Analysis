@@ -2,7 +2,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Sidebar from '../../components/Sidebar';
-import FeedbackWidget from '../../components/FeedbackWidget';
 import { BarChart3, Calendar, Filter, Download, ClipboardList, Route, Edit, ArrowRight } from 'lucide-react';
 
 const AssessIndex = () => {
@@ -119,7 +118,6 @@ const AssessIndex = () => {
           </div>
         </main>
       </div>
-      <FeedbackWidget />
     </div>
   );
 };
