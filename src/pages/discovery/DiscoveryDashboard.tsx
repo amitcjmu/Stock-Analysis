@@ -115,29 +115,32 @@ const DiscoveryDashboard = () => {
 
   const fetchDiscoveryMetrics = async () => {
     try {
-      const response = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/discovery-metrics`);
+      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.DISCOVERY_METRICS);
       setMetrics(response.metrics || metrics);
     } catch (error) {
       console.error('Failed to fetch discovery metrics:', error);
+      // Keep existing demo data as fallback
     }
   };
 
   const fetchApplicationLandscape = async () => {
     try {
-      const response = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/application-landscape`);
+      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.APPLICATION_LANDSCAPE);
       setApplicationLandscape(response.landscape || applicationLandscape);
     } catch (error) {
       console.error('Failed to fetch application landscape:', error);
+      // Keep existing demo data as fallback
     }
   };
 
   const fetchInfrastructureLandscape = async () => {
     try {
       setIsLoading(true);
-      const response = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/infrastructure-landscape`);
+      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.INFRASTRUCTURE_LANDSCAPE);
       setInfrastructureLandscape(response.landscape || infrastructureLandscape);
     } catch (error) {
       console.error('Failed to fetch infrastructure landscape:', error);
+      // Keep existing demo data as fallback
     } finally {
       setIsLoading(false);
     }
