@@ -1,0 +1,313 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# AI Force Migration Platform - Cursor Development Rules
+
+## 🎯 **CORE PLATFORM PRINCIPLES**
+
+### **Agentic-First Architecture** 
+- This is an **AGENTIC-FIRST platform**, not a hard-coded heuristic system
+- ALL intelligence comes from **CrewAI agents** with learning capabilities
+- Never implement hard-coded rules or static logic for data analysis
+- Always leverage AI agents for pattern recognition, classification, and decision-making
+- Agents must learn from user feedback and improve over time
+
+### **Docker-First Development**
+- The platform runs **entirely in Docker containers** 
+- NEVER attempt to run Next.js, Python, or PostgreSQL servers locally
+- All debugging, testing, and development happens within containers
+- Use `docker exec` commands to interact with running containers
+- Container services: `migration_frontend`, `migration_backend`, `migration_db`
+
+### **Multi-Tenant Enterprise Architecture**
+- All data access must be **client account scoped**
+- Use `ContextAwareRepository` pattern for all repositories
+- Every model should have client_account_id and engagement_id where applicable
+- Implement proper data isolation between tenant accounts
+
+## 🏗️ **ARCHITECTURE PATTERNS**
+
+### **Modular Service Design**
+- Follow the **modular handler pattern**: Main service + specialized handlers
+- Structure: `service_modular.py` + `service_handlers/` directory
+- Each handler has a single responsibility (analysis, endpoints, background tasks)
+- Always implement graceful fallback mechanisms
+- Use conditional imports with try/catch for optional dependencies
+
+### **Multi-Tier Fallback System**
+- **Primary Tier**: Full-featured services with all dependencies
+- **Secondary Tier**: Reduced functionality for missing dependencies  
+- **Tertiary Tier**: Core API continues even if components fail
+- Never let component failures break the entire system
+
+### **CrewAI Agent Architecture**
+```python
+# Current Active Agents (7 total):
+# 1. Asset Intelligence Agent - Asset inventory management
+# 2. CMDB Data Analyst - Expert CMDB analysis
+# 3. Learning Specialist - Enhanced with asset learning
+# 4. Pattern Recognition - Field mapping intelligence
+# 5. Migration Strategy Expert - 6R strategy analysis
+# 6. Risk Assessment Specialist - Migration risk analysis  
+# 7. Wave Planning Coordinator - Migration sequencing
+```
+
+## 🛠️ **DEVELOPMENT GUIDELINES**
+
+### **Docker Container Development**
+
+#### **Starting Development Environment**
+```bash
+# Always use Docker for development
+docker-compose up -d --build
+
+# For real-time logs
+docker-compose logs -f backend frontend
+```
+
+#### **Container Debugging Commands**
+```bash
+# Backend debugging
+docker exec -it migration_backend python -c "your_test_code"
+docker exec -it migration_backend python -m pytest tests/
+
+# Database access  
+docker exec -it migration_db psql -U user -d migration_db
+
+# Frontend debugging
+docker exec -it migration_frontend npm run test
+docker exec -it migration_frontend npm run build
+```
+
+#### **NEVER Do This (Local Development)**
+```bash
+# ❌ DON'T run services locally
+python backend/main.py
+npm run dev
+pg_ctl start
+```
+
+#### **✅ Always Do This (Container Development)**
+```bash
+# ✅ Use containers for everything
+docker-compose exec backend python backend/main.py
+docker-compose exec frontend npm run dev
+docker-compose exec db psql -U user -d migration_db
+```
+
+### **Agentic Development Patterns**
+
+#### **Agent Tool Development**
+```python
+# Always use BaseTool for CrewAI integration
+from crewai_tools import BaseTool
+from pydantic import BaseModel, Field
+
+class YourAnalysisTool(BaseTool):
+    name: str = "your_analysis_tool"
+    description: str = "AI-powered analysis using learned patterns"
+    field_mapper: Optional[Any] = Field(default=None)
+    
+    def _run(self, task_input: str) -> str:
+        # Use AI intelligence, not hard-coded rules
+        return self._ai_analysis(task_input)
+```
+
+#### **Learning Integration**
+```python
+# Always integrate learning capabilities
+def process_user_feedback(self, feedback: Dict[str, Any]):
+    # Store patterns for future agent use
+    self.memory.add_experience('user_feedback', feedback)
+    
+    # Update agent models
+    self.update_agent_intelligence(feedback)
+```
+
+### **API Endpoint Development**
+
+#### **Discovery Phase Endpoints**
+```python
+# Follow the discovery endpoint pattern
+@router.post("/api/v1/discovery/analyze")
+async def analyze_with_agents(
+    data: AnalysisRequest,
+    db: Session = Depends(get_db)
+):
+    # Always use agents for analysis
+    result = await crewai_service.analyze_with_agents(data)
+    return result
+```
+
+#### **Multi-Tenant Data Access**
+```python
+# Always scope data by client account
+class YourRepository(ContextAwareRepository):
+    def __init__(self, db: Session, client_account_id: int):
+        super().__init__(db, client_account_id)
+    
+    async def get_data(self):
+        # Automatic client scoping applied
+        return await self.query_with_context(YourModel)
+```
+
+## 🧠 **AGENT INTELLIGENCE GUIDELINES**
+
+### **Agent Memory and Learning**
+- All agents must use persistent memory across sessions
+- Store user feedback patterns for continuous improvement
+- Learn field mapping variations and data patterns
+- Update classification models based on corrections
+
+### **Asset Intelligence Agent Usage**
+```python
+# Use for asset inventory management
+asset_result = await asset_intelligence_agent.analyze_assets({
+    "assets": asset_data,
+    "operation": "classification",
+    "use_learned_patterns": True
+})
+```
+
+### **Field Mapping Intelligence**
+```python
+# Always use learned patterns, not hard-coded mappings
+field_suggestions = field_mapper.suggest_mappings(
+    source_columns=columns,
+    use_ai_patterns=True,
+    confidence_threshold=0.8
+)
+```
+
+## 📊 **DATA PATTERNS**
+
+### **Critical Attributes Framework**
+- Use the 20+ critical attributes for migration analysis
+- Categories: identity, business, dependencies, complexity, technical, network, governance
+- Always map to critical attributes, never create ad-hoc fields
+- Support custom attributes through AI suggestion
+
+### **6R Strategy Integration**
+- All migration recommendations must use 6R framework
+- Rehost, Replatform, Refactor, Rearchitect, Retire, Retain
+- Let agents determine strategy, not hard-coded rules
+
+## 🚀 **DEPLOYMENT CONSIDERATIONS**
+
+### **Environment Configuration**
+```bash
+# Railway Backend Environment
+DATABASE_URL=postgresql://...
+DEEPINFRA_API_KEY=your_key
+CREWAI_ENABLED=true
+ALLOWED_ORIGINS=https://your-vercel-app.vercel.app
+
+# Vercel Frontend Environment  
+NEXT_PUBLIC_API_URL=https://your-railway-app.railway.app/api/v1
+```
+
+### **Production Patterns**
+- Always implement health check endpoints
+- Use environment variables for configuration
+- Implement proper CORS for Vercel + Railway
+- Include debug endpoints for troubleshooting
+
+## 🔧 **TROUBLESHOOTING GUIDELINES**
+
+### **Container Debugging Process**
+1. **Check container status**: `docker-compose ps`
+2. **View logs**: `docker-compose logs -f service_name`  
+3. **Execute in container**: `docker exec -it container_name bash`
+4. **Test APIs**: `docker exec -it migration_backend curl http://localhost:8000/health`
+
+### **Agent System Debugging**
+```python
+# Check agent status
+GET /api/v1/observability/agents/status
+
+# Debug agent intelligence
+GET /api/v1/discovery/assets/intelligence-status
+
+# Monitor agent tasks
+WebSocket: ws://localhost:8000/ws/agent-monitoring
+```
+
+### **Common Issues and Solutions**
+
+#### **Import Errors in Production**
+- Check `.gitignore` - ensure models/ directory not ignored
+- Implement conditional imports with fallbacks
+- Use graceful degradation for missing dependencies
+
+#### **CORS Issues**
+- Add Vercel domain to ALLOWED_ORIGINS in Railway
+- Don't use wildcard patterns in FastAPI CORS
+- Test with curl from Vercel domain
+
+#### **Agent Performance Issues**
+- Check DEEPINFRA_API_KEY configuration
+- Monitor agent memory usage
+- Verify CrewAI service health
+
+## 📋 **CODE REVIEW CHECKLIST**
+
+### **Before Submitting Code**
+- [ ] No hard-coded heuristics or static rules
+- [ ] All intelligence comes from CrewAI agents
+- [ ] Docker containers used for all testing
+- [ ] Multi-tenant data scoping implemented
+- [ ] Graceful fallback mechanisms included
+- [ ] Environment variables properly configured
+- [ ] Health check endpoints included
+- [ ] Learning integration implemented
+- [ ] Proper error handling and logging
+- [ ] Documentation updated
+
+### **Agent Development Checklist**
+- [ ] Agent uses BaseTool pattern
+- [ ] Memory and learning integrated
+- [ ] Confidence scoring included
+- [ ] Pattern recognition over hard-coded rules
+- [ ] Feedback processing implemented
+- [ ] Real-time monitoring enabled
+
+### **API Development Checklist**
+- [ ] Client account scoping applied
+- [ ] Conditional service loading
+- [ ] Proper error responses
+- [ ] WebSocket integration where needed
+- [ ] OpenAPI documentation complete
+
+## 🎯 **SUCCESS METRICS**
+
+### **Agentic Intelligence**
+- All analysis powered by AI agents (not rules)
+- Learning accuracy improves over time
+- User feedback integrated into agent behavior
+- Pattern recognition working effectively
+
+### **Architecture Quality**
+- Zero hard-coded migration logic
+- Modular services with clean separation
+- Graceful degradation working properly
+- Multi-tenant isolation verified
+
+### **Development Efficiency**
+- All development in Docker containers
+- Container debugging workflows effective
+- Fast iteration with agent improvements
+- Robust production deployment
+
+---
+
+## 🌟 **REMEMBER: THIS IS AN AGENTIC PLATFORM**
+
+**The core value proposition is AI agents that learn and adapt, not static rules or hard-coded logic. Every feature should enhance the agentic intelligence and learning capabilities of the platform.**
+
+**Always develop within Docker containers. Never run services locally. The platform is designed for containerized deployment and operation.**
+
+**Multi-tenancy is fundamental. Every data access must be client account scoped. Enterprise deployment requires proper tenant isolation.**
+
+**Let the agents do the work. Your job is to provide them with tools, memory, and learning capabilities - not to replace them with static code.**
