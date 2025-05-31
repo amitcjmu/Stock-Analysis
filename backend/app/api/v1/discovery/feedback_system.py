@@ -23,43 +23,86 @@ router = APIRouter()
 MOCK_CLIENT_ACCOUNT_ID = "550e8400-e29b-41d4-a716-446655440000"
 MOCK_ENGAGEMENT_ID = "550e8400-e29b-41d4-a716-446655440001"
 
+# Fallback storage for when database is unavailable
+FALLBACK_FEEDBACK_STORE = []
+
 @router.post("/feedback")
-async def submit_page_feedback(request: PageFeedbackRequest, db: AsyncSession = Depends(get_db)):
+async def submit_page_feedback(request: PageFeedbackRequest):
     """
-    Submit general page feedback - now stored in database.
+    Submit general page feedback with automatic fallback.
     """
+    # Try database storage first
     try:
-        # Create feedback entry in database
-        feedback_entry = Feedback(
-            id=uuid.uuid4(),
-            feedback_type="page_feedback",
-            page=request.page,
-            rating=request.rating,
-            comment=request.comment,
-            category=request.category,
-            breadcrumb=request.breadcrumb,
-            user_timestamp=request.timestamp,
-            status="new"
-            # Note: client_account_id and engagement_id are nullable for general feedback
-        )
+        from app.core.database import get_db, AsyncSessionLocal
         
-        db.add(feedback_entry)
-        await db.commit()
-        await db.refresh(feedback_entry)
+        async with AsyncSessionLocal() as db:
+            # Create feedback entry in database
+            feedback_entry = Feedback(
+                id=uuid.uuid4(),
+                feedback_type="page_feedback",
+                page=request.page,
+                rating=request.rating,
+                comment=request.comment,
+                category=request.category,
+                breadcrumb=request.breadcrumb,
+                user_timestamp=request.timestamp,
+                status="new"
+            )
+            
+            db.add(feedback_entry)
+            await db.commit()
+            await db.refresh(feedback_entry)
+            
+            logger.info(f"Page feedback stored in database for {request.page}: {request.rating}/5")
+            
+            return {
+                "status": "success",
+                "message": "Feedback submitted successfully",
+                "feedback_id": str(feedback_entry.id),
+                "storage_method": "database"
+            }
+    
+    except Exception as db_error:
+        logger.warning(f"Database storage failed: {db_error}. Trying fallback...")
         
-        logger.info(f"Page feedback stored in database for {request.page}: {request.rating}/5")
-        
-        return {
-            "status": "success",
-            "message": "Feedback submitted successfully",
-            "feedback_id": str(feedback_entry.id),
-            "storage_method": "database"
-        }
-        
-    except Exception as e:
-        logger.error(f"Failed to submit page feedback: {e}")
-        await db.rollback()
-        raise HTTPException(status_code=500, detail="Failed to submit feedback")
+        # Fall back to in-memory storage
+        try:
+            from datetime import datetime
+            
+            feedback_entry = {
+                "id": str(uuid.uuid4()),
+                "feedback_type": "page_feedback",
+                "page": request.page,
+                "rating": request.rating,
+                "comment": request.comment,
+                "category": request.category,
+                "breadcrumb": request.breadcrumb,
+                "user_timestamp": request.timestamp,
+                "created_at": datetime.utcnow().isoformat(),
+                "status": "new",
+                "storage_method": "fallback_memory"
+            }
+            
+            # Store in global fallback store
+            global FALLBACK_FEEDBACK_STORE
+            if 'FALLBACK_FEEDBACK_STORE' not in globals():
+                FALLBACK_FEEDBACK_STORE = []
+            
+            FALLBACK_FEEDBACK_STORE.append(feedback_entry)
+            
+            logger.info(f"Page feedback stored in fallback for {request.page}: {request.rating}/5")
+            
+            return {
+                "status": "success",
+                "message": "Feedback submitted successfully (fallback mode)",
+                "feedback_id": feedback_entry["id"],
+                "storage_method": "fallback_memory",
+                "warning": "Database unavailable - using temporary storage"
+            }
+            
+        except Exception as fallback_error:
+            logger.error(f"Both database and fallback failed: {fallback_error}")
+            raise HTTPException(status_code=500, detail="Failed to submit feedback - all storage methods failed")
 
 @router.get("/feedback")
 async def get_feedback(

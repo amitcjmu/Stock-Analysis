@@ -112,12 +112,25 @@ settings = Settings()
 
 def get_database_url() -> str:
     """Get the appropriate database URL for the current environment."""
-    # Railway.app provides DATABASE_URL automatically
-    if os.getenv("RAILWAY_ENVIRONMENT"):
-        return settings.database_url_async
+    database_url = os.getenv("DATABASE_URL")
     
-    # Local development
-    return settings.database_url_async
+    if not database_url:
+        # Fallback to settings default
+        database_url = settings.DATABASE_URL
+    
+    # Convert to async format if needed
+    if database_url.startswith("postgresql://"):
+        # Check if it's already async
+        if "+asyncpg" not in database_url:
+            database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    
+    # Railway.app specific adjustments
+    if os.getenv("RAILWAY_ENVIRONMENT") or "railway.app" in database_url:
+        # Ensure SSL is properly configured for Railway
+        if "sslmode" not in database_url:
+            database_url += "?sslmode=require"
+    
+    return database_url
 
 
 def is_production() -> bool:

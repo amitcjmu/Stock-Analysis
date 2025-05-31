@@ -100,6 +100,14 @@ try:
         print("✅ Demo data endpoints loaded successfully")
     except Exception as demo_e:
         print(f"⚠️  Demo data endpoints could not be loaded: {demo_e}")
+        
+    # Include fallback feedback system for Railway deployment issues
+    try:
+        from app.api.v1.discovery.feedback_fallback import router as fallback_router
+        app.include_router(fallback_router, prefix="/api/v1/discovery")
+        print("✅ Fallback feedback system loaded successfully")
+    except Exception as fallback_e:
+        print(f"⚠️  Fallback feedback system could not be loaded: {fallback_e}")
     
     # Test if discovery routes are available
     try:
