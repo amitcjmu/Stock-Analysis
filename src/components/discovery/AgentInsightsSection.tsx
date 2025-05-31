@@ -163,12 +163,15 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
 
   const handleInsightFeedback = async (insightId: string, helpful: boolean) => {
     try {
-      await apiCall('/discovery/agents/agent-learning', 'POST', {
-        learning_type: 'insight_feedback',
-        original_prediction: { insight_id: insightId },
-        user_correction: { helpful },
-        context: { page_context: pageContext },
-        page_context: pageContext
+      await apiCall('/discovery/agents/agent-learning', {
+        method: 'POST',
+        body: JSON.stringify({
+          learning_type: 'insight_feedback',
+          original_prediction: { insight_id: insightId },
+          user_correction: { helpful },
+          context: { page_context: pageContext },
+          page_context: pageContext
+        })
       });
       
       onInsightAction?.(insightId, helpful ? 'helpful' : 'not_helpful');

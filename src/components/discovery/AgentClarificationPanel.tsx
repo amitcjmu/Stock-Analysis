@@ -13,7 +13,8 @@ import {
   Loader2,
   ChevronDown,
   ChevronUp,
-  HelpCircle
+  HelpCircle,
+  RefreshCw
 } from 'lucide-react';
 import { apiCall } from '../../config/api';
 
@@ -62,7 +63,9 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
 
   const fetchQuestions = async () => {
     try {
-      const result = await apiCall(`/discovery/agents/agent-status?page_context=${pageContext}`, 'GET');
+      const result = await apiCall(`/discovery/agents/agent-status?page_context=${pageContext}`, {
+        method: 'GET'
+      });
       if (result.status === 'success' && result.page_data?.pending_questions) {
         setQuestions(result.page_data.pending_questions);
       }
@@ -82,11 +85,14 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
     setIsSubmitting(prev => ({ ...prev, [questionId]: true }));
 
     try {
-      const result = await apiCall('/discovery/agents/agent-clarification', 'POST', {
-        question_id: questionId,
-        response: response,
-        response_type: 'text',
-        page_context: pageContext
+      const result = await apiCall('/discovery/agents/agent-clarification', {
+        method: 'POST',
+        body: JSON.stringify({
+          question_id: questionId,
+          response: response,
+          response_type: 'text',
+          page_context: pageContext
+        })
       });
 
       if (result.status === 'success') {
@@ -115,11 +121,14 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
     setIsSubmitting(prev => ({ ...prev, [questionId]: true }));
 
     try {
-      const result = await apiCall('/discovery/agents/agent-clarification', 'POST', {
-        question_id: questionId,
-        response: selectedOption,
-        response_type: 'selection',
-        page_context: pageContext
+      const result = await apiCall('/discovery/agents/agent-clarification', {
+        method: 'POST',
+        body: JSON.stringify({
+          question_id: questionId,
+          response: selectedOption,
+          response_type: 'selection',
+          page_context: pageContext
+        })
       });
 
       if (result.status === 'success') {

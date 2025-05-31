@@ -78,12 +78,15 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
 
   const updateClassification = async (itemId: string, newClassification: 'good_data' | 'needs_clarification' | 'unusable') => {
     try {
-      const result = await apiCall('/discovery/agents/agent-learning', 'POST', {
-        learning_type: 'data_classification',
-        original_prediction: { item_id: itemId },
-        user_correction: { classification: newClassification },
-        context: { page_context: pageContext },
-        page_context: pageContext
+      const result = await apiCall('/discovery/agents/agent-learning', {
+        method: 'POST',
+        body: JSON.stringify({
+          learning_type: 'data_classification',
+          original_prediction: { item_id: itemId },
+          user_correction: { classification: newClassification },
+          context: { page_context: pageContext },
+          page_context: pageContext
+        })
       });
 
       if (result.status === 'success') {
