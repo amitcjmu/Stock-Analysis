@@ -48,59 +48,82 @@ const FeedbackView: React.FC = () => {
       setError(null);
 
       // Try to fetch from actual API first
-      try {
-        const response = await apiCall('/api/v1/discovery/feedback');
-        const feedbackData = response.feedback || [];
-        setFeedback(feedbackData);
-        
-        // Calculate summary from feedback data to ensure consistency
-        if (feedbackData.length > 0) {
-          const total = feedbackData.length;
-          const avgRating = feedbackData.reduce((sum: number, f: FeedbackItem) => sum + f.rating, 0) / total;
-          const byStatus = feedbackData.reduce((acc: any, f: FeedbackItem) => {
-            acc[f.status] = (acc[f.status] || 0) + 1;
-            return acc;
-          }, {} as Record<string, number>);
-          const byPage = feedbackData.reduce((acc: any, f: FeedbackItem) => {
-            acc[f.page] = (acc[f.page] || 0) + 1;
-            return acc;
-          }, {} as Record<string, number>);
-          const byRating = feedbackData.reduce((acc: any, f: FeedbackItem) => {
-            const rating = f.rating.toString();
-            acc[rating] = (acc[rating] || 0) + 1;
-            return acc;
-          }, {} as Record<string, number>);
+      const response = await apiCall('/api/v1/discovery/feedback');
+      console.log('API Response:', response); // Debug log
+      
+      const allFeedback = response.feedback || [];
+      
+      // Filter for page feedback only (exclude CMDB analysis feedback)
+      const pageFeedback = allFeedback.filter((item: any) => 
+        item.feedback_type === 'page_feedback' || 
+        (!item.feedback_type && item.page && item.rating && item.comment)
+      );
+      
+      // Transform the data to match our expected format
+      const transformedFeedback: FeedbackItem[] = pageFeedback.map((item: any) => ({
+        id: item.id || Math.random().toString(),
+        page: item.page || 'Unknown',
+        rating: item.rating || 0,
+        comment: item.comment || '',
+        timestamp: item.user_timestamp || item.timestamp || new Date().toISOString(),
+        userAgent: item.userAgent,
+        status: item.status || 'new',
+        category: item.category || 'general'
+      }));
+      
+      setFeedback(transformedFeedback);
+      
+      // Calculate summary from feedback data
+      if (transformedFeedback.length > 0) {
+        const total = transformedFeedback.length;
+        const avgRating = transformedFeedback.reduce((sum: number, f: FeedbackItem) => sum + f.rating, 0) / total;
+        const byStatus = transformedFeedback.reduce((acc: any, f: FeedbackItem) => {
+          acc[f.status] = (acc[f.status] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+        const byPage = transformedFeedback.reduce((acc: any, f: FeedbackItem) => {
+          acc[f.page] = (acc[f.page] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+        const byRating = transformedFeedback.reduce((acc: any, f: FeedbackItem) => {
+          const rating = f.rating.toString();
+          acc[rating] = (acc[rating] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
 
-          setSummary({ 
-            total, 
-            avgRating, 
-            byStatus: {
-              new: byStatus['new'] || 0,
-              reviewed: byStatus['reviewed'] || 0,
-              resolved: byStatus['resolved'] || 0
-            },
-            byPage,
-            byRating 
-          });
-        } else {
-          // Set empty summary if no feedback
-          setSummary({
-            total: 0,
-            avgRating: 0,
-            byStatus: { new: 0, reviewed: 0, resolved: 0 },
-            byPage: {},
-            byRating: {}
-          });
-        }
-      } catch (apiError) {
-        // If API fails, generate demo data
-        console.warn('API not available, using demo data:', apiError);
-        generateDemoFeedback();
+        setSummary({ 
+          total, 
+          avgRating, 
+          byStatus: {
+            new: byStatus['new'] || 0,
+            reviewed: byStatus['reviewed'] || 0,
+            resolved: byStatus['resolved'] || 0
+          },
+          byPage,
+          byRating 
+        });
+      } else {
+        // Set empty summary if no feedback
+        setSummary({
+          total: 0,
+          avgRating: 0,
+          byStatus: { new: 0, reviewed: 0, resolved: 0 },
+          byPage: {},
+          byRating: {}
+        });
       }
+      
+      console.log('Processed feedback:', transformedFeedback); // Debug log
+      
     } catch (error) {
       console.error('Failed to fetch feedback:', error);
-      setError('Failed to load feedback data');
-      generateDemoFeedback();
+      setError(`Failed to load feedback data: ${error}`);
+      
+      // Only fall back to demo data if explicitly requested for development
+      if (import.meta.env.DEV) {
+        console.warn('Development mode: Using demo data as fallback');
+        generateDemoFeedback();
+      }
     } finally {
       setIsLoading(false);
     }
