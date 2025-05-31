@@ -8,7 +8,7 @@ import logging
 import uuid
 from typing import Dict, List, Any, Optional
 from fastapi import APIRouter, HTTPException, Depends
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import desc, func, select
 
 from app.api.v1.discovery.models import PageFeedbackRequest
@@ -24,7 +24,7 @@ MOCK_CLIENT_ACCOUNT_ID = "550e8400-e29b-41d4-a716-446655440000"
 MOCK_ENGAGEMENT_ID = "550e8400-e29b-41d4-a716-446655440001"
 
 @router.post("/feedback")
-async def submit_page_feedback(request: PageFeedbackRequest, db: Session = Depends(get_db)):
+async def submit_page_feedback(request: PageFeedbackRequest, db: AsyncSession = Depends(get_db)):
     """
     Submit general page feedback - now stored in database.
     """
@@ -67,7 +67,7 @@ async def get_feedback(
     page: Optional[str] = None,
     status: Optional[str] = None,
     limit: int = 100,
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     """
     Get feedback from database with optional filtering.
@@ -209,7 +209,7 @@ async def get_feedback(
 async def update_feedback_status(
     feedback_id: str,
     status: str,
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     """
     Update feedback status (new -> reviewed -> resolved).
@@ -246,7 +246,7 @@ async def update_feedback_status(
         raise HTTPException(status_code=500, detail="Failed to update feedback status")
 
 @router.delete("/feedback/{feedback_id}")
-async def delete_feedback(feedback_id: str, db: Session = Depends(get_db)):
+async def delete_feedback(feedback_id: str, db: AsyncSession = Depends(get_db)):
     """
     Delete feedback entry.
     """
@@ -276,7 +276,7 @@ async def delete_feedback(feedback_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail="Failed to delete feedback")
 
 @router.get("/feedback/stats")
-async def get_feedback_stats(db: Session = Depends(get_db)):
+async def get_feedback_stats(db: AsyncSession = Depends(get_db)):
     """
     Get comprehensive feedback statistics.
     """

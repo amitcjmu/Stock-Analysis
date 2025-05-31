@@ -7,7 +7,7 @@ import logging
 import uuid
 from typing import Dict, List, Any, Optional
 from fastapi import APIRouter, HTTPException, Depends
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 import pandas as pd
 
 from app.services.agent_monitor import agent_monitor, TaskStatus
@@ -329,7 +329,7 @@ async def process_cmdb_data(request: CMDBProcessingRequest):
         raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}")
 
 @router.post("/cmdb-feedback")
-async def submit_cmdb_feedback(request: CMDBFeedbackRequest, db: Session = Depends(get_db)):
+async def submit_cmdb_feedback(request: CMDBFeedbackRequest, db: AsyncSession = Depends(get_db)):
     """
     Submit feedback on CMDB analysis results to improve AI accuracy.
     Now stored in database for Vercel compatibility.
