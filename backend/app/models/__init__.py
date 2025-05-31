@@ -28,6 +28,7 @@ from .data_import import (
     DataImport, RawImportRecord, ImportProcessingStep, ImportFieldMapping, 
     DataQualityIssue, ImportStatus, ImportType
 )
+from .feedback import Feedback, FeedbackSummary
 
 __all__ = [
     # Migration models
@@ -78,7 +79,11 @@ __all__ = [
     "ImportFieldMapping",
     "DataQualityIssue",
     "ImportStatus",
-    "ImportType"
+    "ImportType",
+    
+    # Feedback models
+    "Feedback",
+    "FeedbackSummary"
 ]
 
 # Add client account models only if available

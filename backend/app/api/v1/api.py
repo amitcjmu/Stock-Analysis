@@ -140,4 +140,21 @@ if DATA_IMPORT_AVAILABLE:
         data_import.router,
         prefix="/data_import",
         tags=["data-import"]
+    )
+
+# Import workflow endpoints
+try:
+    from app.api.v1.endpoints import asset_workflow
+    WORKFLOW_AVAILABLE = True
+    print("✅ Asset workflow endpoints available")
+except ImportError as e:
+    print(f"⚠️ Asset workflow endpoints not available: {e}")
+    WORKFLOW_AVAILABLE = False
+
+# Include workflow endpoints if available
+if WORKFLOW_AVAILABLE:
+    api_router.include_router(
+        asset_workflow.router,
+        prefix="/workflow",
+        tags=["asset-workflow"]
     ) 
