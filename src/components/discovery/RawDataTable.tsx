@@ -66,7 +66,14 @@ const RawDataTable: React.FC<RawDataTableProps> = ({
 
   // Get asset identifier for highlighting
   const getAssetIdentifier = (row: any) => {
-    return row.id || row.asset_name || row.hostname || row.name || 'unknown';
+    return row.id || row.ID || row.asset_name || row.hostname || row.name || row.NAME || 'unknown';
+  };
+
+  // Get unique row key that combines asset identifier with row index to prevent duplicates
+  const getRowKey = (row: any, index: number) => {
+    const assetId = getAssetIdentifier(row);
+    // Ensure uniqueness even if multiple rows have 'unknown' identifier
+    return assetId === 'unknown' ? `unknown-${index}` : assetId;
   };
 
   const totalPages = Math.ceil(data.length / pageSize);
@@ -129,7 +136,7 @@ const RawDataTable: React.FC<RawDataTableProps> = ({
               {getCurrentPageData().map((row, index) => {
                 const assetId = getAssetIdentifier(row);
                 return (
-                  <tr key={assetId} className="hover:bg-gray-50">
+                  <tr key={getRowKey(row, index)} className="hover:bg-gray-50">
                     {getAllColumns().map((column) => {
                       // Get highlighting for this specific cell
                       const highlightClass = getFieldHighlight ? getFieldHighlight(column, assetId) : '';
