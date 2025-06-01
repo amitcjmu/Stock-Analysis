@@ -1,7 +1,6 @@
 
 import React from 'react';
 import Sidebar from '../components/Sidebar';
-import AgentMonitor from '../components/AgentMonitor';
 import { Activity, Clock, AlertCircle, CheckCircle } from 'lucide-react';
 
 const Observability = () => {
@@ -214,10 +213,7 @@ const Observability = () => {
               </div>
             </div>
 
-            {/* Agent Monitoring */}
-            <div className="mb-8">
-              <AgentMonitor />
-            </div>
+
 
             {/* Performance Graphs */}
             <div className="bg-white rounded-lg shadow">

@@ -64,6 +64,9 @@ const Sidebar = () => {
   const [finopsExpanded, setFinopsExpanded] = useState(
     location.pathname.startsWith('/finops')
   );
+  const [observabilityExpanded, setObservabilityExpanded] = useState(
+    location.pathname.startsWith('/observability')
+  );
 
   const navigationItems = [
     { name: 'Dashboard', path: '/', icon: Home },
@@ -160,7 +163,16 @@ const Sidebar = () => {
         { name: 'Budget Alerts', path: '/finops/budget-alerts', icon: AlertTriangle }
       ]
     },
-    { name: 'Observability', path: '/observability', icon: Eye },
+    { 
+      name: 'Observability', 
+      path: '/observability', 
+      icon: Eye,
+      hasSubmenu: true,
+      submenu: [
+        { name: 'Overview', path: '/observability', icon: Eye },
+        { name: 'Agent Monitoring', path: '/observability/agent-monitoring', icon: Activity }
+      ]
+    },
   ];
 
   const handleDiscoveryToggle = () => {
@@ -189,6 +201,10 @@ const Sidebar = () => {
 
   const handleFinopsToggle = () => {
     setFinopsExpanded(!finopsExpanded);
+  };
+
+  const handleObservabilityToggle = () => {
+    setObservabilityExpanded(!observabilityExpanded);
   };
 
   const handleVersionClick = () => {
@@ -222,6 +238,7 @@ const Sidebar = () => {
             const isModernizeParent = item.name === 'Modernize' && location.pathname.startsWith('/modernize');
             const isDecommissionParent = item.name === 'Decommission' && location.pathname.startsWith('/decommission');
             const isFinopsParent = item.name === 'FinOps' && location.pathname.startsWith('/finops');
+            const isObservabilityParent = item.name === 'Observability' && location.pathname.startsWith('/observability');
             
             return (
               <li key={item.name}>
@@ -229,7 +246,7 @@ const Sidebar = () => {
                   <>
                     <div
                       className={`flex items-center justify-between px-3 py-2 rounded-lg transition-colors duration-200 cursor-pointer ${
-                        isDiscoveryParent || isAssessParent || isPlanParent || isExecuteParent || isModernizeParent || isDecommissionParent || isFinopsParent
+                        isDiscoveryParent || isAssessParent || isPlanParent || isExecuteParent || isModernizeParent || isDecommissionParent || isFinopsParent || isObservabilityParent
                           ? 'bg-blue-600 text-white'
                           : 'text-gray-300 hover:bg-gray-700 hover:text-white'
                       }`}
@@ -241,6 +258,7 @@ const Sidebar = () => {
                         item.name === 'Modernize' ? handleModernizeToggle :
                         item.name === 'Decommission' ? handleDecommissionToggle :
                         item.name === 'FinOps' ? handleFinopsToggle :
+                        item.name === 'Observability' ? handleObservabilityToggle :
                         undefined
                       }
                     >
@@ -255,7 +273,8 @@ const Sidebar = () => {
                         (item.name === 'Execute' && executeExpanded) ||
                         (item.name === 'Modernize' && modernizeExpanded) ||
                         (item.name === 'Decommission' && decommissionExpanded) ||
-                        (item.name === 'FinOps' && finopsExpanded)
+                        (item.name === 'FinOps' && finopsExpanded) ||
+                        (item.name === 'Observability' && observabilityExpanded)
                       ) ? (
                         <ChevronDown className="h-4 w-4" />
                       ) : (
@@ -268,7 +287,8 @@ const Sidebar = () => {
                       (item.name === 'Execute' && executeExpanded) ||
                       (item.name === 'Modernize' && modernizeExpanded) ||
                       (item.name === 'Decommission' && decommissionExpanded) ||
-                      (item.name === 'FinOps' && finopsExpanded)) && (
+                      (item.name === 'FinOps' && finopsExpanded) ||
+                      (item.name === 'Observability' && observabilityExpanded)) && (
                       <ul className="ml-6 mt-2 space-y-1">
                         {item.submenu?.map((subItem) => {
                           const SubIcon = subItem.icon;
