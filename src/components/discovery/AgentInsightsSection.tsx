@@ -37,12 +37,16 @@ interface AgentInsightsSectionProps {
   pageContext: string;
   onInsightAction?: (insightId: string, action: string) => void;
   className?: string;
+  refreshTrigger?: number; // Increment this to trigger a refresh
+  isProcessing?: boolean; // Set to true when background processing is happening
 }
 
 const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
   pageContext,
   onInsightAction,
-  className = ""
+  className = "",
+  refreshTrigger,
+  isProcessing = false
 }) => {
   const [insights, setInsights] = useState<AgentInsight[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -52,10 +56,27 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
 
   useEffect(() => {
     fetchInsights();
-    // Set up polling for new insights
-    const interval = setInterval(fetchInsights, 12000); // Poll every 12 seconds
-    return () => clearInterval(interval);
   }, [pageContext]);
+
+  // Refresh when refreshTrigger changes
+  useEffect(() => {
+    if (refreshTrigger !== undefined) {
+      fetchInsights();
+    }
+  }, [refreshTrigger]);
+
+  // Set up polling only when processing is active
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    
+    if (isProcessing) {
+      interval = setInterval(fetchInsights, 10000); // Poll every 10 seconds only when processing
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isProcessing]);
 
   const fetchInsights = async () => {
     try {

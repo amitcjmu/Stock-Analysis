@@ -97,6 +97,7 @@ const DataImport = () => {
   const [selectedUploadType, setSelectedUploadType] = useState<string>('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showUploadSuccess, setShowUploadSuccess] = useState(false);
+  const [agentRefreshTrigger, setAgentRefreshTrigger] = useState(0);
   
   const uploadAreas: UploadArea[] = [
     {
@@ -334,6 +335,9 @@ const DataImport = () => {
             processingMessages: [...processingMessages, '🎉 Intelligent analysis complete!']
           } : f)
         );
+        
+        // Trigger agent refresh after processing completion
+        setAgentRefreshTrigger(prev => prev + 1);
       } catch (error) {
         console.error('Intelligent analysis error for:', fileUpload.file.name, error);
         setUploadedFiles(prev => 
@@ -962,27 +966,36 @@ const DataImport = () => {
                   {/* Agent Clarification Panel */}
                   <AgentClarificationPanel 
                     pageContext="data-import"
+                    refreshTrigger={agentRefreshTrigger}
+                    isProcessing={isAnalyzing}
                     onQuestionAnswered={(questionId, response) => {
                       console.log('Question answered:', questionId, response);
-                      // Refresh any relevant data or show feedback
+                      // Trigger agent refresh after user interaction
+                      setAgentRefreshTrigger(prev => prev + 1);
                     }}
                   />
 
                   {/* Data Classification Display */}
                   <DataClassificationDisplay 
                     pageContext="data-import"
+                    refreshTrigger={agentRefreshTrigger}
+                    isProcessing={isAnalyzing}
                     onClassificationUpdate={(itemId, newClassification) => {
                       console.log('Classification updated:', itemId, newClassification);
-                      // Show success feedback or refresh data
+                      // Trigger agent refresh after user interaction
+                      setAgentRefreshTrigger(prev => prev + 1);
                     }}
                   />
 
                   {/* Agent Insights Section */}
                   <AgentInsightsSection 
                     pageContext="data-import"
+                    refreshTrigger={agentRefreshTrigger}
+                    isProcessing={isAnalyzing}
                     onInsightAction={(insightId, action) => {
                       console.log('Insight action:', insightId, action);
-                      // Handle insight feedback
+                      // Trigger agent refresh after user interaction
+                      setAgentRefreshTrigger(prev => prev + 1);
                     }}
                   />
                 </div>

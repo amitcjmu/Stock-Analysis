@@ -40,12 +40,16 @@ interface AgentClarificationPanelProps {
   pageContext: string;
   onQuestionAnswered?: (questionId: string, response: any) => void;
   className?: string;
+  refreshTrigger?: number; // Increment this to trigger a refresh
+  isProcessing?: boolean; // Set to true when background processing is happening
 }
 
 const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
   pageContext,
   onQuestionAnswered,
-  className = ""
+  className = "",
+  refreshTrigger,
+  isProcessing = false
 }) => {
   const [questions, setQuestions] = useState<AgentQuestion[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -56,10 +60,27 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
 
   useEffect(() => {
     fetchQuestions();
-    // Set up polling for new questions
-    const interval = setInterval(fetchQuestions, 10000); // Poll every 10 seconds
-    return () => clearInterval(interval);
   }, [pageContext]);
+
+  // Refresh when refreshTrigger changes
+  useEffect(() => {
+    if (refreshTrigger !== undefined) {
+      fetchQuestions();
+    }
+  }, [refreshTrigger]);
+
+  // Set up polling only when processing is active
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    
+    if (isProcessing) {
+      interval = setInterval(fetchQuestions, 5000); // Poll every 5 seconds only when processing
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isProcessing]);
 
   const fetchQuestions = async () => {
     try {

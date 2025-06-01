@@ -33,12 +33,16 @@ interface DataClassificationDisplayProps {
   pageContext: string;
   onClassificationUpdate?: (itemId: string, newClassification: string) => void;
   className?: string;
+  refreshTrigger?: number; // Increment this to trigger a refresh
+  isProcessing?: boolean; // Set to true when background processing is happening
 }
 
 const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
   pageContext,
   onClassificationUpdate,
-  className = ""
+  className = "",
+  refreshTrigger,
+  isProcessing = false
 }) => {
   const [classifications, setClassifications] = useState<{
     good_data: DataItem[];
@@ -56,10 +60,27 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
 
   useEffect(() => {
     fetchClassifications();
-    // Set up polling for classification updates
-    const interval = setInterval(fetchClassifications, 15000); // Poll every 15 seconds
-    return () => clearInterval(interval);
   }, [pageContext]);
+
+  // Refresh when refreshTrigger changes
+  useEffect(() => {
+    if (refreshTrigger !== undefined) {
+      fetchClassifications();
+    }
+  }, [refreshTrigger]);
+
+  // Set up polling only when processing is active
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    
+    if (isProcessing) {
+      interval = setInterval(fetchClassifications, 8000); // Poll every 8 seconds only when processing
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isProcessing]);
 
   const fetchClassifications = async () => {
     try {

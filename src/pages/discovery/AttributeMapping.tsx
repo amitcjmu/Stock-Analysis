@@ -66,6 +66,7 @@ const AttributeMapping = () => {
     critical_mapped: 0,
     accuracy: 0
   });
+  const [agentRefreshTrigger, setAgentRefreshTrigger] = useState(0);
 
   // Load data on component mount
   useEffect(() => {
@@ -251,6 +252,9 @@ const AttributeMapping = () => {
     
     setFieldMappings(updatedMappings);
     updateMappingProgress(updatedMappings);
+    
+    // Trigger agent refresh after user action
+    setAgentRefreshTrigger(prev => prev + 1);
   };
 
   // Update mapping progress
@@ -392,6 +396,8 @@ const AttributeMapping = () => {
               {/* Agent Clarification Panel */}
               <AgentClarificationPanel 
                 pageContext="attribute-mapping"
+                refreshTrigger={agentRefreshTrigger}
+                isProcessing={isAnalyzing}
                 onQuestionAnswered={(questionId, response) => {
                   console.log('Mapping question answered:', questionId, response);
                   // Trigger re-analysis of field mappings with agent learning
@@ -399,12 +405,16 @@ const AttributeMapping = () => {
                     const columns = Object.keys(importedData[0]);
                     generateFieldMappings(columns, importedData.slice(0, 5));
                   }
+                  // Trigger agent refresh after user interaction
+                  setAgentRefreshTrigger(prev => prev + 1);
                 }}
               />
 
               {/* Data Classification Display */}
               <DataClassificationDisplay 
                 pageContext="attribute-mapping"
+                refreshTrigger={agentRefreshTrigger}
+                isProcessing={isAnalyzing}
                 onClassificationUpdate={(itemId, newClassification) => {
                   console.log('Field classification updated:', itemId, newClassification);
                   // Update field mapping confidence based on classification
@@ -416,12 +426,16 @@ const AttributeMapping = () => {
                         }
                       : mapping
                   ));
+                  // Trigger agent refresh after user interaction
+                  setAgentRefreshTrigger(prev => prev + 1);
                 }}
               />
 
               {/* Agent Insights Section */}
               <AgentInsightsSection 
                 pageContext="attribute-mapping"
+                refreshTrigger={agentRefreshTrigger}
+                isProcessing={isAnalyzing}
                 onInsightAction={(insightId, action) => {
                   console.log('Mapping insight action:', insightId, action);
                   // Apply agent recommendations to field mappings
@@ -429,6 +443,8 @@ const AttributeMapping = () => {
                     // Boost confidence of related mappings
                     console.log('Applying agent recommendations for mapping improvement');
                   }
+                  // Trigger agent refresh after user interaction
+                  setAgentRefreshTrigger(prev => prev + 1);
                 }}
               />
             </div>
