@@ -13,6 +13,7 @@ from app.core.database import get_db
 from app.services.agent_ui_bridge import agent_ui_bridge, QuestionType, ConfidenceLevel, DataClassification
 from app.services.discovery_agents.data_source_intelligence_agent import data_source_intelligence_agent
 from app.services.discovery_agents.application_discovery_agent import application_discovery_agent
+from app.services.discovery_agents.dependency_intelligence_agent import dependency_intelligence_agent
 
 logger = logging.getLogger(__name__)
 
@@ -453,6 +454,106 @@ async def process_stakeholder_requirements(
     except Exception as e:
         logger.error(f"Error processing stakeholder requirements: {e}")
         raise HTTPException(status_code=500, detail=f"Stakeholder requirements processing failed: {str(e)}")
+
+@router.post("/dependency-analysis")
+async def analyze_dependencies(
+    dependency_request: Dict[str, Any],
+    db: AsyncSession = Depends(get_db)
+) -> Dict[str, Any]:
+    """
+    Comprehensive dependency analysis using Dependency Intelligence Agent.
+    
+    Request body:
+    {
+        "assets": [...],
+        "applications": [...],
+        "user_context": {...}
+    }
+    """
+    try:
+        assets = dependency_request.get("assets", [])
+        applications = dependency_request.get("applications", [])
+        user_context = dependency_request.get("user_context", {})
+        
+        if not assets:
+            # Try to get assets from the discovery system
+            from app.api.v1.discovery.asset_management import crud_handler
+            assets_result = await crud_handler.get_assets_paginated({'page': 1, 'page_size': 1000})
+            assets = assets_result.get('assets', [])
+        
+        if not assets:
+            return {
+                "status": "success",
+                "dependency_analysis": {
+                    "total_dependencies": 0,
+                    "message": "No assets available for dependency analysis"
+                },
+                "cross_application_mapping": {},
+                "impact_analysis": {},
+                "clarification_questions": []
+            }
+        
+        # Perform dependency intelligence analysis
+        dependency_intelligence = await dependency_intelligence_agent.analyze_dependencies(
+            assets, applications, user_context
+        )
+        
+        # Store clarification questions in the UI bridge for display
+        for question in dependency_intelligence.get("clarification_questions", []):
+            agent_ui_bridge.add_agent_question(
+                agent_id=dependency_intelligence_agent.agent_id,
+                agent_name=dependency_intelligence_agent.agent_name,
+                question_type=QuestionType.DEPENDENCY_VALIDATION,
+                page="dependencies",
+                title=question["title"],
+                question=question["question"],
+                context=question.get("dependency", {}),
+                options=question.get("options", []),
+                confidence=ConfidenceLevel.MEDIUM,
+                priority=question.get("priority", "medium")
+            )
+        
+        response = {
+            "status": "success",
+            "dependency_intelligence": dependency_intelligence,
+            "agent_analysis_complete": True
+        }
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error in dependency analysis: {e}")
+        raise HTTPException(status_code=500, detail=f"Dependency analysis failed: {str(e)}")
+
+@router.post("/dependency-feedback")
+async def process_dependency_feedback(
+    feedback_request: Dict[str, Any],
+    db: AsyncSession = Depends(get_db)
+) -> Dict[str, Any]:
+    """
+    Process user feedback on dependency analysis for agent learning.
+    
+    Request body:
+    {
+        "feedback_type": "dependency_validation|conflict_resolution|impact_assessment",
+        "dependency_id": "string",
+        "original_analysis": {...},
+        "user_correction": {...}
+    }
+    """
+    try:
+        # Process feedback through the Dependency Intelligence Agent
+        learning_result = await dependency_intelligence_agent.process_user_dependency_feedback(feedback_request)
+        
+        return {
+            "status": "success",
+            "message": "Dependency feedback processed successfully",
+            "learning_result": learning_result
+        }
+        
+    except Exception as e:
+        logger.error(f"Error processing dependency feedback: {e}")
+        raise HTTPException(status_code=500, detail=f"Dependency feedback processing failed: {str(e)}")
 
 @router.get("/health")
 async def agent_discovery_health():

@@ -5,6 +5,95 @@ All notable changes to the AI Force Migration Platform will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.5] - 2025-01-29
+
+### 🎯 **DEPENDENCY INTELLIGENCE WITH AGENT LEARNING**
+
+This release completes Sprint 4 Task 4.3, implementing comprehensive dependency intelligence capabilities with multi-source analysis, conflict resolution, and cross-application impact assessment.
+
+### 🚀 **Dependency Intelligence System**
+
+#### **Dependency Intelligence Agent**
+- **Multi-Source Analysis**: Extracts dependencies from CMDB data, network configurations, and application contexts
+- **Conflict Resolution**: Intelligent validation and resolution of conflicting dependency information
+- **Cross-Application Mapping**: Maps dependencies across applications for migration impact analysis
+- **Learning Integration**: Processes user feedback to improve dependency analysis accuracy
+- **Impact Assessment**: Analyzes dependency impact on migration planning with complexity scoring
+
+#### **Comprehensive Dependency Analysis**
+- **CMDB Integration**: Extracts database connections, network shares, and dependent services from CMDB data
+- **Network Analysis**: Infers dependencies from IP addresses, port configurations, and network topology
+- **Application Context**: Identifies application-specific dependencies based on software and technology stack
+- **User Input Processing**: Incorporates user-provided dependency information with validation
+- **Confidence Scoring**: Assigns confidence levels to all discovered dependencies
+
+#### **Intelligent Conflict Resolution**
+- **Conflict Detection**: Identifies contradictory dependency information from multiple sources
+- **Resolution Logic**: Uses highest confidence dependency with merged information from conflicting sources
+- **Validation Rules**: Applies intelligent validation to ensure dependency accuracy
+- **Quality Assessment**: Provides comprehensive quality scoring for dependency data
+- **Learning Patterns**: Stores conflict resolution patterns for future improvement
+
+### 🚀 **API Integration & Endpoints**
+
+#### **Dependency Analysis Endpoint**
+- **Endpoint**: `/api/v1/discovery/agents/dependency-analysis` for comprehensive dependency intelligence
+- **Multi-Source Processing**: Analyzes dependencies from assets, applications, and user context
+- **Cross-Application Mapping**: Maps dependencies across application boundaries for impact analysis
+- **Clarification Generation**: Automatically generates clarification questions for unclear dependencies
+- **UI Bridge Integration**: Stores agent insights and questions for frontend display
+
+#### **Dependency Feedback Processing**
+- **Endpoint**: `/api/v1/discovery/agents/dependency-feedback` for agent learning from user corrections
+- **Learning Types**: Supports dependency validation, conflict resolution, and impact assessment feedback
+- **Pattern Recognition**: Learns from user corrections to improve future dependency analysis
+- **Confidence Improvement**: Tracks confidence improvements from user feedback
+- **Experience Storage**: Stores learning experiences for continuous improvement
+
+### 📊 **Business Impact & Intelligence**
+
+#### **Migration Planning Enhancement**
+- **Dependency Mapping**: Clear visibility into application interdependencies for migration sequencing
+- **Impact Analysis**: Assessment of dependency impact on migration waves and planning
+- **Risk Identification**: Identification of dependency-related risks and migration blockers
+- **Sequence Recommendations**: Intelligent recommendations for migration wave sequencing
+
+#### **Quality Assurance & Validation**
+- **Automated Validation**: Intelligent validation of dependency information from multiple sources
+- **Conflict Resolution**: Automated resolution of contradictory dependency data
+- **Quality Scoring**: Comprehensive quality assessment with improvement recommendations
+- **Continuous Learning**: Improvement of dependency analysis accuracy through user feedback
+
+### 🎯 **Success Metrics**
+
+#### **Dependency Discovery**
+- **Multi-Source Extraction**: Dependencies extracted from CMDB, network, and application data
+- **Confidence Scoring**: All dependencies assigned confidence levels for validation
+- **Quality Assessment**: Comprehensive quality scoring with issue identification
+- **Cross-Application Mapping**: Dependencies mapped across application boundaries
+
+#### **Intelligence & Learning**
+- **Conflict Resolution**: Automated resolution of contradictory dependency information
+- **Impact Analysis**: Migration impact assessment with complexity scoring
+- **Learning Integration**: User feedback processing for continuous improvement
+- **Clarification Generation**: Automatic generation of clarification questions for unclear dependencies
+
+### 🔧 **Technical Implementation**
+
+#### **Modular Architecture**
+- **Agent Implementation**: 500+ line DependencyIntelligenceAgent with comprehensive analysis capabilities
+- **API Integration**: Full integration with agent discovery endpoints and UI bridge
+- **Error Handling**: Robust error handling with graceful fallback mechanisms
+- **Learning Framework**: Comprehensive learning framework for user feedback processing
+
+#### **Code Quality & Modularization**
+- **File Organization**: Properly modularized dependency intelligence agent within 500 lines
+- **Data Cleanup Service**: Modularized into 162-line main service with 4 specialized handlers
+- **Handler Architecture**: Clean separation of concerns with specialized handlers under 250 lines each
+- **API Endpoint Integration**: Seamless integration with existing agent discovery API structure
+
+This release significantly enhances the platform's dependency intelligence capabilities, providing comprehensive dependency analysis, conflict resolution, and cross-application impact assessment for strategic migration planning.
+
 ## [0.9.4] - 2025-01-29
 
 ### 🎯 **AGENTIC DATA CLEANSING & APPLICATION INTELLIGENCE SYSTEM**
