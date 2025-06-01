@@ -121,6 +121,133 @@ class DataCleanupService:
                 "error": str(e),
                 "total_assets": len(asset_data) if asset_data else 0
             }
+    
+    async def agent_process_data_cleanup(self, asset_data: List[Dict[str, Any]], 
+                                       agent_operations: List[Dict[str, Any]],
+                                       user_preferences: Dict[str, Any],
+                                       client_account_id: Optional[str] = None,
+                                       engagement_id: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Agent-driven data processing with intelligent cleanup operations.
+        
+        Args:
+            asset_data: List of asset data to clean
+            agent_operations: List of operations to perform
+            user_preferences: User preferences for cleanup
+            client_account_id: Client account for multi-tenant scoping
+            engagement_id: Engagement for project scoping
+            
+        Returns:
+            Cleanup results with improved data and quality metrics
+        """
+        try:
+            # Try agent-driven processing first
+            if self.agent_intelligence_available:
+                try:
+                    # Import agent communication service
+                    from app.services.agent_ui_bridge import AgentUIBridge
+                    
+                    agent_bridge = AgentUIBridge()
+                    
+                    # Prepare cleanup request for agents
+                    cleanup_request = {
+                        "data_source": {
+                            "assets": asset_data,
+                            "total_count": len(asset_data),
+                            "context": "data_cleanup_processing"
+                        },
+                        "operations": agent_operations,
+                        "user_preferences": user_preferences,
+                        "analysis_type": "data_cleanup_processing",
+                        "page_context": "data-cleansing",
+                        "client_context": {
+                            "client_account_id": client_account_id,
+                            "engagement_id": engagement_id
+                        }
+                    }
+                    
+                    # Get agent-driven cleanup
+                    agent_response = await agent_bridge.process_with_agents(cleanup_request)
+                    
+                    if agent_response.get("status") == "success":
+                        return {
+                            "status": "success",
+                            "processing_type": "agent_driven",
+                            "cleaned_assets": agent_response.get("processed_assets", asset_data),
+                            "quality_improvement": agent_response.get("quality_improvement", {}),
+                            "operations_applied": agent_response.get("operations_applied", []),
+                            "quality_metrics": agent_response.get("quality_metrics", {}),
+                            "agent_confidence": agent_response.get("confidence", 0.85),
+                            "processing_summary": agent_response.get("processing_summary", "Agent processing completed")
+                        }
+                    
+                except Exception as e:
+                    logger.warning(f"Agent processing failed, using fallback: {e}")
+                    self.agent_intelligence_available = False
+            
+            # Fallback to rule-based processing
+            return await self._fallback_data_processing(asset_data, agent_operations, user_preferences)
+            
+        except Exception as e:
+            logger.error(f"Error in agent_process_data_cleanup: {e}")
+            return {
+                "status": "error",
+                "error": str(e),
+                "processing_type": "error"
+            }
+
+    async def _fallback_data_processing(self, asset_data: List[Dict[str, Any]], 
+                                      agent_operations: List[Dict[str, Any]],
+                                      user_preferences: Dict[str, Any]) -> Dict[str, Any]:
+        """Fallback rule-based data processing when agents are unavailable."""
+        try:
+            cleaned_assets = []
+            total_improvements = 0
+            
+            for asset in asset_data:
+                original_quality = self._calculate_data_quality(asset)
+                cleaned_asset = asset.copy()
+                
+                # Apply each operation
+                for operation in agent_operations:
+                    op_type = operation.get("operation", "")
+                    if op_type == "standardize_asset_types":
+                        cleaned_asset = self._standardize_asset_type(cleaned_asset)
+                    elif op_type == "normalize_environments":
+                        cleaned_asset = self._normalize_environment(cleaned_asset)
+                    elif op_type == "fix_hostnames":
+                        cleaned_asset = self._fix_hostname_format(cleaned_asset)
+                    elif op_type == "complete_missing_fields":
+                        cleaned_asset = self._complete_missing_fields(cleaned_asset)
+                
+                new_quality = self._calculate_data_quality(cleaned_asset)
+                total_improvements += (new_quality - original_quality)
+                cleaned_assets.append(cleaned_asset)
+            
+            return {
+                "status": "success",
+                "processing_type": "fallback_rules",
+                "cleaned_assets": cleaned_assets,
+                "quality_improvement": {
+                    "average_improvement": total_improvements / len(asset_data) if asset_data else 0,
+                    "total_assets_processed": len(asset_data)
+                },
+                "operations_applied": [op.get("operation", "") for op in agent_operations],
+                "quality_metrics": {
+                    "original_average": sum(self._calculate_data_quality(asset) for asset in asset_data) / len(asset_data) if asset_data else 0,
+                    "improved_average": sum(self._calculate_data_quality(asset) for asset in cleaned_assets) / len(cleaned_assets) if cleaned_assets else 0
+                },
+                "agent_confidence": 0.65,  # Lower confidence for rule-based
+                "processing_summary": f"Processed {len(asset_data)} assets using rule-based cleanup"
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in fallback data processing: {e}")
+            return {
+                "status": "error",
+                "error": str(e),
+                "processing_type": "fallback_error"
+            }
 
     async def _fallback_quality_analysis(self, asset_data: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Fallback rule-based quality analysis when agents are unavailable."""

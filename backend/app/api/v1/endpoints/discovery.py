@@ -62,6 +62,22 @@ try:
 except ImportError as e:
     logger.warning(f"⚠️ Database test router not available: {e}")
 
+# Include data cleanup router for agentic data quality assessment
+try:
+    from app.api.v1.endpoints.data_cleanup import router as data_cleanup_router
+    router.include_router(data_cleanup_router, prefix="/data-cleanup", tags=["discovery-data-cleanup"])
+    logger.info("✅ Data cleanup router included in discovery")
+except ImportError as e:
+    logger.warning(f"⚠️ Data cleanup router not available: {e}")
+
+# Include agent discovery router for agent status and analysis
+try:
+    from app.api.v1.endpoints.agent_discovery import router as agent_discovery_router
+    router.include_router(agent_discovery_router, prefix="/agents", tags=["discovery-agents"])
+    logger.info("✅ Agent discovery router included in discovery")
+except ImportError as e:
+    logger.warning(f"⚠️ Agent discovery router not available: {e}")
+
 @router.get("/health")
 async def discovery_health_check():
     """Health check endpoint for the discovery module."""
@@ -89,7 +105,12 @@ async def discovery_health_check():
             "/assets/intelligence-status",
             "/chat-test",  # Chat interface
             "/database/test",  # Database connectivity test
-            "/database/health"  # Database health check
+            "/database/health",  # Database health check
+            "/data-cleanup/agent-analyze",  # Data cleanup analysis
+            "/data-cleanup/agent-process",  # Data cleanup processing
+            "/agents/agent-status",  # Agent status endpoint
+            "/agents/agent-analysis",  # Agent analysis endpoint
+            "/agents/application-portfolio"  # Application portfolio endpoint
         ]
     }
 

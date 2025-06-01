@@ -73,7 +73,10 @@ export const API_CONFIG = {
       AGENT_LEARNING: '/api/v1/discovery/agents/agent-learning',
       APPLICATION_PORTFOLIO: '/api/v1/discovery/agents/application-portfolio',
       APPLICATION_VALIDATION: '/api/v1/discovery/agents/application-validation',
-      READINESS_ASSESSMENT: '/api/v1/discovery/agents/readiness-assessment'
+      READINESS_ASSESSMENT: '/api/v1/discovery/agents/readiness-assessment',
+      // Data cleanup endpoints  
+      DATA_CLEANUP_ANALYZE: '/api/v1/discovery/data-cleanup/agent-analyze',
+      DATA_CLEANUP_PROCESS: '/api/v1/discovery/data-cleanup/agent-process'
     },
     MONITORING: {
       STATUS: '/api/v1/monitoring/status',

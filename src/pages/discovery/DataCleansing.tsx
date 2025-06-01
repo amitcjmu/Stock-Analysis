@@ -8,7 +8,7 @@ import DataClassificationDisplay from '../../components/discovery/DataClassifica
 import AgentInsightsSection from '../../components/discovery/AgentInsightsSection';
 import QualityDashboard from '../../components/discovery/data-cleansing/QualityDashboard';
 import AgentQualityAnalysis from '../../components/discovery/data-cleansing/AgentQualityAnalysis';
-import { apiCall } from '../../config/api';
+import { apiCall, API_CONFIG } from '../../config/api';
 
 // Interface definitions
 interface QualityMetrics {
@@ -122,7 +122,7 @@ const DataCleansing = () => {
       }
 
       // Fallback: try to get from backend
-      const assetsResponse = await apiCall('/discovery/assets?page=1&page_size=1000');
+      const assetsResponse = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}?page=1&page_size=1000`);
       if (assetsResponse.assets && assetsResponse.assets.length > 0) {
         setRawData(assetsResponse.assets);
         await performAgentQualityAnalysis(assetsResponse.assets);
@@ -142,7 +142,7 @@ const DataCleansing = () => {
       setIsAnalyzing(true);
       
       // Call agent quality analysis endpoint
-      const analysisResponse = await apiCall('/discovery/data-cleanup/agent-analyze', {
+      const analysisResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.DATA_CLEANUP_ANALYZE, {
         method: 'POST',
         body: JSON.stringify({
           asset_data: data.slice(0, 100), // Sample for analysis
@@ -277,7 +277,7 @@ const DataCleansing = () => {
       setIsAnalyzing(true);
 
       // Call agent-driven cleanup endpoint
-      const cleanupResponse = await apiCall('/discovery/data-cleanup/agent-process', {
+      const cleanupResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.DATA_CLEANUP_PROCESS, {
         method: 'POST',
         body: JSON.stringify({
           asset_data: rawData,

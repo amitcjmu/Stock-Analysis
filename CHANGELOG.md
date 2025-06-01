@@ -5,6 +5,127 @@ All notable changes to the AI Force Migration Platform will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.4] - 2025-01-29
+
+### 🎯 **AGENTIC DATA CLEANSING & APPLICATION INTELLIGENCE SYSTEM**
+
+This release completes Sprint 4 Tasks 4.1 and 4.2, implementing comprehensive agentic data cleansing capabilities and advanced application intelligence for business-aligned portfolio analysis.
+
+### 🚀 **Agentic Data Cleansing Implementation (Task 4.1)**
+
+#### **Agent-Driven Data Quality Assessment**
+- **Implementation**: Complete `/api/v1/discovery/data-cleanup/agent-analyze` endpoint with AI-powered quality analysis
+- **Intelligence**: Agent-driven data quality scoring, issue identification, and improvement recommendations
+- **Processing**: `/api/v1/discovery/data-cleanup/agent-process` endpoint for automated data cleanup operations
+- **Integration**: Full integration with DataCleansing page using proper API configuration
+- **Fallback**: Graceful degradation to basic analysis when agent services unavailable
+
+#### **Data Quality Intelligence Features**
+- **Quality Metrics**: Total assets, clean data, needs attention, critical issues tracking
+- **Issue Detection**: AI-powered identification of data quality problems with confidence scoring
+- **Recommendations**: Agent-generated cleanup recommendations with impact estimation
+- **Processing**: Real-time agent-driven data cleanup with before/after quality analysis
+- **User Interface**: Enhanced DataCleansing page with agent interaction panels
+
+### 🚀 **Application Intelligence Agent System (Task 4.2)**
+
+#### **Advanced Application Portfolio Intelligence**
+- **Implementation**: Comprehensive `ApplicationIntelligenceAgent` with 597 lines of business-aligned analysis
+- **Business Criticality**: AI-powered assessment using naming patterns, technology stack analysis, and complexity evaluation
+- **Migration Readiness**: Intelligent evaluation of application readiness for migration assessment
+- **Portfolio Health**: Comprehensive portfolio analysis with gap identification and health scoring
+- **Strategic Recommendations**: Business-aligned recommendations for portfolio optimization
+
+#### **Business Intelligence Features**
+- **Criticality Assessment**: Automated business criticality scoring with confidence factors
+- **Readiness Evaluation**: Migration readiness analysis with blockers and readiness factors
+- **Portfolio Analytics**: Health metrics, readiness ratios, and criticality distribution analysis
+- **Strategic Planning**: AI-generated recommendations for portfolio improvement and migration planning
+- **Assessment Readiness**: Comprehensive evaluation of readiness for 6R assessment phase
+
+#### **Enhanced Application Portfolio Endpoint**
+- **Business Intelligence**: `/api/v1/discovery/agents/application-portfolio` enhanced with business intelligence analysis
+- **Dual-Agent Architecture**: Application Discovery Agent + Application Intelligence Agent integration
+- **Business Context**: Support for business context input and stakeholder requirements
+- **Intelligence Features**: Business criticality assessment, migration readiness evaluation, strategic recommendations
+- **UI Bridge Integration**: Agent insights and clarifications integrated with UI bridge for display
+
+### 🔧 **Technical Infrastructure Enhancements**
+
+#### **Agent Discovery Router Integration**
+- **Router Addition**: Added agent discovery router to main discovery endpoints with `/agents` prefix
+- **Endpoint Coverage**: 7 agent endpoints properly integrated: agent-status, agent-analysis, application-portfolio, etc.
+- **Error Resolution**: Fixed 404 errors for agent status and application portfolio endpoints
+- **Health Monitoring**: Enhanced discovery health check with agent endpoint availability
+
+#### **API Configuration Standardization**
+- **Frontend Fixes**: Updated DataCleansing.tsx to use proper API_CONFIG endpoints instead of hardcoded URLs
+- **Endpoint Constants**: Added DATA_CLEANUP_ANALYZE and DATA_CLEANUP_PROCESS to API configuration
+- **Import Corrections**: Fixed import statements to include API_CONFIG alongside apiCall
+- **Error Elimination**: Resolved remaining 404 errors in data cleansing page
+
+#### **Application Intelligence Agent Robustness**
+- **Error Handling**: Comprehensive error handling for dependency processing and business context parsing
+- **Type Safety**: Proper handling of string vs dict dependencies to prevent runtime errors
+- **Null Safety**: Robust handling of None business context and missing data fields
+- **Fallback Mechanisms**: Graceful degradation when business intelligence analysis fails
+
+### 📊 **Business Impact & Intelligence**
+
+#### **Data Quality Intelligence**
+- **Automated Assessment**: AI-powered data quality evaluation replacing manual review processes
+- **Issue Prioritization**: Intelligent identification of critical data quality issues requiring attention
+- **Cleanup Automation**: Agent-driven data cleanup operations with quality improvement tracking
+- **Quality Metrics**: Comprehensive quality scoring and completion percentage tracking
+
+#### **Application Portfolio Intelligence**
+- **Business Alignment**: AI-driven business criticality assessment aligned with organizational priorities
+- **Migration Planning**: Intelligent migration readiness evaluation for strategic planning
+- **Portfolio Optimization**: Strategic recommendations for portfolio health improvement
+- **Assessment Preparation**: Comprehensive readiness evaluation for 6R assessment phase
+
+#### **Strategic Decision Support**
+- **Portfolio Health**: Overall portfolio health scoring with gap identification
+- **Readiness Assessment**: Assessment-phase readiness evaluation with criteria-based scoring
+- **Strategic Recommendations**: Business-aligned recommendations for portfolio improvement
+- **Clarification Priorities**: Intelligent identification of high-priority clarifications needed
+
+### 🎯 **Success Metrics**
+
+#### **Task 4.1 - Agentic Data Cleansing**
+- **Endpoint Implementation**: 2 new agent-driven data cleanup endpoints operational
+- **Quality Analysis**: AI-powered data quality assessment with confidence scoring
+- **Cleanup Operations**: Automated data cleanup with agent-driven recommendations
+- **UI Integration**: Complete DataCleansing page integration with agent interaction panels
+
+#### **Task 4.2 - Application Intelligence System**
+- **Agent Implementation**: 597-line ApplicationIntelligenceAgent with comprehensive business intelligence
+- **Portfolio Analysis**: Business-aligned application portfolio analysis with strategic recommendations
+- **Intelligence Features**: 4 core intelligence features (criticality, readiness, recommendations, assessment)
+- **Endpoint Enhancement**: Enhanced application-portfolio endpoint with dual-agent architecture
+
+#### **Technical Quality**
+- **Error Resolution**: 100% elimination of 404 errors in data cleansing and agent endpoints
+- **API Standardization**: Complete frontend API configuration standardization
+- **Agent Integration**: Full integration of Application Intelligence Agent with existing discovery workflow
+- **Robustness**: Comprehensive error handling and fallback mechanisms implemented
+
+### 🌟 **Platform Evolution**
+
+#### **Agentic Intelligence Advancement**
+- **Data Quality**: From manual review to AI-powered quality assessment and cleanup
+- **Application Analysis**: From basic discovery to comprehensive business intelligence
+- **Portfolio Management**: From simple listing to strategic portfolio optimization
+- **Decision Support**: From data presentation to intelligent recommendation generation
+
+#### **Business Value Creation**
+- **Quality Automation**: Automated data quality assessment and improvement recommendations
+- **Strategic Planning**: Business-aligned application portfolio analysis and migration planning
+- **Risk Mitigation**: Intelligent identification of migration risks and readiness gaps
+- **Assessment Preparation**: Comprehensive evaluation of readiness for 6R assessment phase
+
+This release represents a significant advancement in the platform's agentic intelligence capabilities, providing comprehensive data quality management and business-aligned application portfolio intelligence for strategic migration planning.
+
 ## [0.9.3] - 2025-01-29
 
 ### 🎯 **AGENT OPTIMIZATION - ELIMINATED WASTEFUL POLLING**

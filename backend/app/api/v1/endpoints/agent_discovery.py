@@ -194,10 +194,14 @@ async def process_agent_learning(
 @router.get("/application-portfolio")
 async def get_application_portfolio(
     include_confidence_levels: bool = True,
+    include_business_intelligence: bool = True,
+    business_context: Optional[str] = None,
     db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
     """
-    Agent-identified application portfolio with confidence assessments.
+    Comprehensive application portfolio analysis with business intelligence.
+    
+    Enhanced with Application Intelligence Agent for business-aligned analysis.
     """
     try:
         # Get assets from the discovery system
@@ -220,11 +224,45 @@ async def get_application_portfolio(
                         "analysis_timestamp": datetime.utcnow().isoformat()
                     }
                 },
+                "business_intelligence": None,
                 "message": "No assets available for application discovery"
             }
         
-        # Use Application Discovery Agent to analyze assets
+        # Step 1: Use Application Discovery Agent for basic application discovery
         discovery_result = await application_discovery_agent.discover_applications(assets)
+        applications = discovery_result.get("applications", [])
+        
+        # Step 2: If business intelligence is requested and applications found, use Application Intelligence Agent
+        business_intelligence = None
+        if include_business_intelligence and applications:
+            try:
+                from app.services.discovery_agents.application_intelligence_agent import application_intelligence_agent
+                
+                # Parse business context if provided
+                parsed_business_context = None
+                if business_context:
+                    try:
+                        import json
+                        parsed_business_context = json.loads(business_context)
+                    except:
+                        parsed_business_context = {"notes": business_context}
+                
+                # Perform comprehensive business intelligence analysis
+                business_intelligence = await application_intelligence_agent.analyze_application_portfolio(
+                    applications, parsed_business_context
+                )
+                
+                logger.info(f"Application Intelligence Agent analyzed {len(applications)} applications")
+                
+            except Exception as e:
+                logger.warning(f"Application Intelligence Agent error: {e}")
+                business_intelligence = {
+                    "portfolio_analysis": {"applications": applications, "portfolio_health": {}, "assessment_readiness": {}},
+                    "strategic_recommendations": [],
+                    "business_insights": [],
+                    "error": f"Application Intelligence Agent error: {str(e)}",
+                    "fallback_mode": True
+                }
         
         # Store clarification questions in the UI bridge for display
         for question in discovery_result.get("clarification_questions", []):
@@ -241,11 +279,37 @@ async def get_application_portfolio(
                 priority="medium"
             )
         
-        return {
+        # Add intelligence insights to UI bridge if available
+        if business_intelligence and not business_intelligence.get("error"):
+            for insight in business_intelligence.get("business_insights", []):
+                agent_ui_bridge.add_agent_insight(
+                    agent_id="application_intelligence",
+                    agent_name="Application Intelligence Agent",
+                    insight_type=insight.get("category", "business_insight"),
+                    title=insight.get("title", "Business Insight"),
+                    description=insight.get("description", ""),
+                    confidence=ConfidenceLevel.HIGH if insight.get("confidence", 0) >= 0.8 else ConfidenceLevel.MEDIUM,
+                    supporting_data=insight.get("details", {}),
+                    page="asset-inventory"
+                )
+        
+        # Construct comprehensive response
+        response = {
             "status": "success",
             "application_portfolio": discovery_result,
             "agent_analysis_complete": True
         }
+        
+        if include_business_intelligence:
+            response["business_intelligence"] = business_intelligence
+            response["intelligence_features"] = {
+                "business_criticality_assessment": business_intelligence is not None and not business_intelligence.get("error"),
+                "migration_readiness_evaluation": business_intelligence is not None and not business_intelligence.get("error"),
+                "strategic_recommendations": business_intelligence is not None and not business_intelligence.get("error"),
+                "assessment_readiness": business_intelligence is not None and not business_intelligence.get("error")
+            }
+        
+        return response
         
     except Exception as e:
         logger.error(f"Error getting application portfolio: {e}")
