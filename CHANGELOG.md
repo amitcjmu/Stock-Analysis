@@ -5,6 +5,58 @@ All notable changes to the AI Force Migration Platform will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.29] - 2025-01-21
+
+### 🎯 **ENHANCED ISSUE HIGHLIGHTING & AGENT PANELS**
+
+This release fixes table highlighting functionality and enhances the agent interaction experience with better debugging and analysis summaries.
+
+### 🚀 **Critical Improvements**
+
+#### **Fixed Table Highlighting for Quality Issues**
+- **Enhanced Issue Generation**: Uses exact field names from actual data structure
+- **Improved Asset Matching**: Matches table's identifier logic exactly
+- **Better Field Selection**: Skips empty fields, prioritizes meaningful data
+- **Comprehensive Debugging**: Detailed logging for field and asset matching
+
+#### **Enhanced Agent Panel Experience**
+- **Quality Analysis Summary**: Shows analysis type, confidence, and insights
+- **Agent Assistance Guide**: Explains what agents provide and when they activate
+- **Better Context Information**: Displays agent analysis results directly
+- **Improved Visual Design**: Clear status indicators and helpful messaging
+
+#### **Robust Data Structure Handling**
+- **Multi-Format Support**: Handles uppercase fields (ID, TYPE, NAME) and mixed case
+- **Asset Identifier Consistency**: Uses same logic as table rendering for perfect matching
+- **Field Name Preservation**: Maintains exact field names including spaces and special characters
+- **Enhanced Debugging**: Complete data structure analysis and matching verification
+
+### 🔧 **Technical Enhancements**
+
+#### **Issue Generation Improvements**
+- **Smart Field Selection**: Filters out empty fields and ID columns for meaningful issues
+- **Exact Asset Matching**: Uses identical logic to table's `getAssetIdentifier` function
+- **Enhanced Logging**: Comprehensive debugging output for troubleshooting
+- **Data Structure Analysis**: Shows available fields and asset identifiers
+
+#### **Agent Interface Enhancements**
+- **Analysis Summary Panel**: Displays agent confidence, type, and key insights
+- **Help Card**: Explains agent functionality and interaction patterns
+- **Visual Status Indicators**: Clear color coding for different states
+- **TypeScript Improvements**: Added missing interface properties
+
+### 📊 **Business Impact**
+- **Improved User Experience**: Quality issues now properly highlight in the data table
+- **Better Agent Visibility**: Users understand what agents are doing and how to interact
+- **Enhanced Debugging**: Developers can quickly identify and fix data structure issues
+- **Reduced Confusion**: Clear explanations when agent panels are empty
+
+### 🎯 **Success Metrics**
+- **Table Highlighting**: Quality issues now correctly highlight corresponding fields
+- **Field Matching**: Exact and normalized field matching working properly
+- **Asset Identification**: Perfect alignment between issues and table rows
+- **Agent Transparency**: Clear visibility into agent analysis and capabilities
+
 ## [0.9.28] - 2025-01-21
 
 ### 🐛 **CRITICAL BUG FIXES - React Key Errors & Data Structure**

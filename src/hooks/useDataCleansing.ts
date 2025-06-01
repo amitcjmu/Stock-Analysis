@@ -27,6 +27,7 @@ interface AgentAnalysisResult {
   agent_confidence: number;
   agent_insights: string[];
   suggested_operations: string[];
+  total_assets: number;
 }
 
 export const useDataCleansing = () => {
