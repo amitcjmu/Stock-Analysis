@@ -1,0 +1,277 @@
+[
+  {
+    "id": "b23540a3-5858-4047-a06a-560463538326",
+    "agent_id": "application_intelligence",
+    "agent_name": "Application Intelligence Agent",
+    "insight_type": "portfolio_composition",
+    "title": "Application Portfolio Composition",
+    "description": "Portfolio contains 19 applications across 7 asset types",
+    "confidence": "high",
+    "supporting_data": {
+      "Application": 6,
+      "Server": 8,
+      "Database": 1,
+      "Unknown": 1,
+      "Storage Device": 1,
+      "Security Device": 1,
+      "Infrastructure Device": 1
+    },
+    "actionable": true,
+    "page": "asset-inventory",
+    "created_at": "2025-06-01T01:49:15.042900"
+  },
+  {
+    "id": "7ac3c9d1-5320-4c9a-89a0-6c0c4d9105bf",
+    "agent_id": "application_intelligence",
+    "agent_name": "Application Intelligence Agent",
+    "insight_type": "business_criticality",
+    "title": "Business Criticality Distribution",
+    "description": "High: 0, Medium: 0, Low: 19",
+    "confidence": "high",
+    "supporting_data": {
+      "high": 0,
+      "medium": 0,
+      "low": 19
+    },
+    "actionable": true,
+    "page": "asset-inventory",
+    "created_at": "2025-06-01T01:49:15.043850"
+  },
+  {
+    "id": "5aa7463e-f274-40b4-b0d0-b0c074af195d",
+    "agent_id": "application_intelligence",
+    "agent_name": "Application Intelligence Agent",
+    "insight_type": "technology_diversity",
+    "title": "Technology Stack Diversity",
+    "description": "Portfolio spans 3 different technologies",
+    "confidence": "medium",
+    "supporting_data": [
+      "application",
+      "unknown",
+      "server"
+    ],
+    "actionable": true,
+    "page": "asset-inventory",
+    "created_at": "2025-06-01T01:49:15.044614"
+  },
+  {
+    "id": "f761149d-0145-475f-892a-3faf795743a3",
+    "agent_id": "application_intelligence",
+    "agent_name": "Application Intelligence Agent",
+    "insight_type": "portfolio_composition",
+    "title": "Application Portfolio Composition",
+    "description": "Portfolio contains 19 applications across 7 asset types",
+    "confidence": "high",
+    "supporting_data": {
+      "Application": 6,
+      "Server": 8,
+      "Database": 1,
+      "Unknown": 1,
+      "Storage Device": 1,
+      "Security Device": 1,
+      "Infrastructure Device": 1
+    },
+    "actionable": true,
+    "page": "asset-inventory",
+    "created_at": "2025-06-01T01:51:49.654846"
+  },
+  {
+    "id": "1f556391-27ae-4acb-8a91-106020ed1d94",
+    "agent_id": "application_intelligence",
+    "agent_name": "Application Intelligence Agent",
+    "insight_type": "business_criticality",
+    "title": "Business Criticality Distribution",
+    "description": "High: 0, Medium: 0, Low: 19",
+    "confidence": "high",
+    "supporting_data": {
+      "high": 0,
+      "medium": 0,
+      "low": 19
+    },
+    "actionable": true,
+    "page": "asset-inventory",
+    "created_at": "2025-06-01T01:51:49.655621"
+  },
+  {
+    "id": "25752715-b77b-4703-8a3b-9bdfbe7811a4",
+    "agent_id": "application_intelligence",
+    "agent_name": "Application Intelligence Agent",
+    "insight_type": "technology_diversity",
+    "title": "Technology Stack Diversity",
+    "description": "Portfolio spans 3 different technologies",
+    "confidence": "medium",
+    "supporting_data": [
+      "application",
+      "unknown",
+      "server"
+    ],
+    "actionable": true,
+    "page": "asset-inventory",
+    "created_at": "2025-06-01T01:51:49.656447"
+  },
+  {
+    "id": "69b8e647-5c36-4357-a636-12337041f7c5",
+    "agent_id": "application_intelligence",
+    "agent_name": "Application Intelligence Agent",
+    "insight_type": "portfolio_composition",
+    "title": "Application Portfolio Composition",
+    "description": "Portfolio contains 19 applications across 7 asset types",
+    "confidence": "high",
+    "supporting_data": {
+      "Application": 6,
+      "Server": 8,
+      "Database": 1,
+      "Unknown": 1,
+      "Storage Device": 1,
+      "Security Device": 1,
+      "Infrastructure Device": 1
+    },
+    "actionable": true,
+    "page": "asset-inventory",
+    "created_at": "2025-06-01T01:53:55.008432"
+  },
+  {
+    "id": "adf4230e-911b-45a1-9425-86e17b6cce6e",
+    "agent_id": "application_intelligence",
+    "agent_name": "Application Intelligence Agent",
+    "insight_type": "business_criticality",
+    "title": "Business Criticality Distribution",
+    "description": "High: 0, Medium: 0, Low: 19",
+    "confidence": "high",
+    "supporting_data": {
+      "high": 0,
+      "medium": 0,
+      "low": 19
+    },
+    "actionable": true,
+    "page": "asset-inventory",
+    "created_at": "2025-06-01T01:53:55.009493"
+  },
+  {
+    "id": "a556981b-2c0e-4dc6-b946-106d9fbbf54e",
+    "agent_id": "application_intelligence",
+    "agent_name": "Application Intelligence Agent",
+    "insight_type": "technology_diversity",
+    "title": "Technology Stack Diversity",
+    "description": "Portfolio spans 3 different technologies",
+    "confidence": "medium",
+    "supporting_data": [
+      "application",
+      "unknown",
+      "server"
+    ],
+    "actionable": true,
+    "page": "asset-inventory",
+    "created_at": "2025-06-01T01:53:55.010244"
+  },
+  {
+    "id": "d9dd6482-f36d-4e4b-a106-1bfd633bfbf9",
+    "agent_id": "application_intelligence",
+    "agent_name": "Application Intelligence Agent",
+    "insight_type": "portfolio_composition",
+    "title": "Application Portfolio Composition",
+    "description": "Portfolio contains 19 applications across 7 asset types",
+    "confidence": "high",
+    "supporting_data": {
+      "Application": 6,
+      "Server": 8,
+      "Database": 1,
+      "Unknown": 1,
+      "Storage Device": 1,
+      "Security Device": 1,
+      "Infrastructure Device": 1
+    },
+    "actionable": true,
+    "page": "asset-inventory",
+    "created_at": "2025-06-01T02:00:07.578121"
+  },
+  {
+    "id": "706b53e7-99e5-4a7e-abe1-b3ce9522315e",
+    "agent_id": "application_intelligence",
+    "agent_name": "Application Intelligence Agent",
+    "insight_type": "business_criticality",
+    "title": "Business Criticality Distribution",
+    "description": "High: 0, Medium: 0, Low: 19",
+    "confidence": "high",
+    "supporting_data": {
+      "high": 0,
+      "medium": 0,
+      "low": 19
+    },
+    "actionable": true,
+    "page": "asset-inventory",
+    "created_at": "2025-06-01T02:00:07.579322"
+  },
+  {
+    "id": "fca20f24-081a-4256-9fcb-568f33bccbbc",
+    "agent_id": "application_intelligence",
+    "agent_name": "Application Intelligence Agent",
+    "insight_type": "technology_diversity",
+    "title": "Technology Stack Diversity",
+    "description": "Portfolio spans 3 different technologies",
+    "confidence": "medium",
+    "supporting_data": [
+      "application",
+      "unknown",
+      "server"
+    ],
+    "actionable": true,
+    "page": "asset-inventory",
+    "created_at": "2025-06-01T02:00:07.580123"
+  },
+  {
+    "id": "a9d50fc5-bc52-4403-a9d1-39ec3faefa5d",
+    "agent_id": "application_intelligence",
+    "agent_name": "Application Intelligence Agent",
+    "insight_type": "portfolio_composition",
+    "title": "Application Portfolio Composition",
+    "description": "Portfolio contains 19 applications across 7 asset types",
+    "confidence": "high",
+    "supporting_data": {
+      "Application": 6,
+      "Server": 8,
+      "Database": 1,
+      "Unknown": 1,
+      "Storage Device": 1,
+      "Security Device": 1,
+      "Infrastructure Device": 1
+    },
+    "actionable": true,
+    "page": "asset-inventory",
+    "created_at": "2025-06-01T02:09:02.418176"
+  },
+  {
+    "id": "3d3eddfb-aa35-4638-9290-93863293f2a6",
+    "agent_id": "application_intelligence",
+    "agent_name": "Application Intelligence Agent",
+    "insight_type": "business_criticality",
+    "title": "Business Criticality Distribution",
+    "description": "High: 0, Medium: 0, Low: 19",
+    "confidence": "high",
+    "supporting_data": {
+      "high": 0,
+      "medium": 0,
+      "low": 19
+    },
+    "actionable": true,
+    "page": "asset-inventory",
+    "created_at": "2025-06-01T02:09:02.419385"
+  },
+  {
+    "id": "6fea1d4c-b226-4833-868c-d41d5daa0028",
+    "agent_id": "application_intelligence",
+    "agent_name": "Application Intelligence Agent",
+    "insight_type": "technology_diversity",
+    "title": "Technology Stack Diversity",
+    "description": "Portfolio spans 3 different technologies",
+    "confidence": "medium",
+    "supporting_data": [
+      "application",
+      "unknown",
+      "server"
+    ],
+    "actionable": true,
+    "page": "asset-inventory",
+    "created_at": "2025-06-01T02:09:02.420212"
+  }
+]

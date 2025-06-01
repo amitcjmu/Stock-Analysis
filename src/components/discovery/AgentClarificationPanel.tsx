@@ -14,7 +14,18 @@ import {
   ChevronDown,
   ChevronUp,
   HelpCircle,
-  RefreshCw
+  RefreshCw,
+  Server,
+  Database,
+  Globe,
+  MapPin,
+  User as UserIcon,
+  Building,
+  Shield,
+  Cpu,
+  HardDrive,
+  Monitor,
+  Info
 } from 'lucide-react';
 import { apiCall, API_CONFIG } from '../../config/api';
 
@@ -36,6 +47,26 @@ interface AgentQuestion {
   is_resolved: boolean;
 }
 
+interface AssetDetails {
+  id?: string;
+  name: string;
+  asset_type: string;
+  hostname?: string;
+  ip_address?: string;
+  operating_system?: string;
+  environment?: string;
+  business_criticality?: string;
+  department?: string;
+  business_owner?: string;
+  technical_owner?: string;
+  description?: string;
+  cpu_cores?: number;
+  memory_gb?: number;
+  storage_gb?: number;
+  location?: string;
+  datacenter?: string;
+}
+
 interface AgentClarificationPanelProps {
   pageContext: string;
   onQuestionAnswered?: (questionId: string, response: any) => void;
@@ -54,9 +85,11 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
   const [questions, setQuestions] = useState<AgentQuestion[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedQuestion, setExpandedQuestion] = useState<string | null>(null);
+  const [expandedAssetDetails, setExpandedAssetDetails] = useState<Set<string>>(new Set());
   const [responses, setResponses] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
+  const [assetDetails, setAssetDetails] = useState<Record<string, AssetDetails>>({});
 
   useEffect(() => {
     fetchQuestions();
@@ -88,7 +121,11 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
         method: 'GET'
       });
       if (result.status === 'success' && result.page_data?.pending_questions) {
-        setQuestions(result.page_data.pending_questions);
+        const questions = result.page_data.pending_questions;
+        setQuestions(questions);
+        
+        // Fetch asset details for application boundary questions
+        await fetchAssetDetailsForQuestions(questions);
       }
       setError(null);
     } catch (err) {
@@ -97,6 +134,64 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const fetchAssetDetailsForQuestions = async (questions: AgentQuestion[]) => {
+    const assetDetailsMap: Record<string, AssetDetails> = {};
+    
+    for (const question of questions) {
+      if (question.question_type === 'application_boundary' && question.context?.components) {
+        for (const componentName of question.context.components) {
+          if (!assetDetailsMap[componentName]) {
+            try {
+              // Try to fetch asset details by name
+              const assetResponse = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}?search=${encodeURIComponent(componentName)}&page_size=1`, {
+                method: 'GET'
+              });
+              
+              if (assetResponse.assets && assetResponse.assets.length > 0) {
+                const asset = assetResponse.assets[0];
+                assetDetailsMap[componentName] = {
+                  id: asset.id,
+                  name: asset.name || asset.asset_name || componentName,
+                  asset_type: asset.asset_type || asset.intelligent_asset_type || 'Unknown',
+                  hostname: asset.hostname,
+                  ip_address: asset.ip_address,
+                  operating_system: asset.operating_system,
+                  environment: asset.environment,
+                  business_criticality: asset.business_criticality,
+                  department: asset.department,
+                  business_owner: asset.business_owner,
+                  technical_owner: asset.technical_owner,
+                  description: asset.description,
+                  cpu_cores: asset.cpu_cores,
+                  memory_gb: asset.memory_gb,
+                  storage_gb: asset.storage_gb,
+                  location: asset.location || asset.datacenter,
+                  datacenter: asset.datacenter
+                };
+              } else {
+                // Create a placeholder with the component name
+                assetDetailsMap[componentName] = {
+                  name: componentName,
+                  asset_type: 'Unknown',
+                  description: 'Asset details not found in inventory'
+                };
+              }
+            } catch (err) {
+              console.warn(`Failed to fetch details for asset ${componentName}:`, err);
+              assetDetailsMap[componentName] = {
+                name: componentName,
+                asset_type: 'Unknown',
+                description: 'Unable to fetch asset details'
+              };
+            }
+          }
+        }
+      }
+    }
+    
+    setAssetDetails(assetDetailsMap);
   };
 
   const handleResponseSubmit = async (questionId: string) => {
@@ -167,6 +262,185 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
     } finally {
       setIsSubmitting(prev => ({ ...prev, [questionId]: false }));
     }
+  };
+
+  const toggleAssetDetails = (componentName: string) => {
+    setExpandedAssetDetails(prev => {
+      const next = new Set(prev);
+      if (next.has(componentName)) {
+        next.delete(componentName);
+      } else {
+        next.add(componentName);
+      }
+      return next;
+    });
+  };
+
+  const renderAssetCard = (componentName: string) => {
+    const asset = assetDetails[componentName];
+    if (!asset) return null;
+
+    const isExpanded = expandedAssetDetails.has(componentName);
+
+    return (
+      <div key={componentName} className="border rounded-lg bg-gray-50 overflow-hidden">
+        <div 
+          className="p-3 cursor-pointer hover:bg-gray-100 transition-colors"
+          onClick={() => toggleAssetDetails(componentName)}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2">
+                {asset.asset_type?.toLowerCase() === 'server' && <Server className="w-4 h-4 text-blue-600" />}
+                {asset.asset_type?.toLowerCase() === 'database' && <Database className="w-4 h-4 text-green-600" />}
+                {asset.asset_type?.toLowerCase() === 'application' && <Globe className="w-4 h-4 text-purple-600" />}
+                {!['server', 'database', 'application'].includes(asset.asset_type?.toLowerCase() || '') && <Monitor className="w-4 h-4 text-gray-600" />}
+                <span className="font-medium text-gray-900">{asset.name}</span>
+              </div>
+              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                {asset.asset_type}
+              </span>
+              {asset.environment && (
+                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                  {asset.environment}
+                </span>
+              )}
+            </div>
+            {isExpanded ? (
+              <ChevronUp className="w-4 h-4 text-gray-500" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-gray-500" />
+            )}
+          </div>
+          
+          {/* Brief summary when collapsed */}
+          {!isExpanded && (
+            <div className="mt-2 text-sm text-gray-600 space-y-1">
+              {asset.hostname && (
+                <div>🖥️ <span className="font-medium">Hostname:</span> {asset.hostname}</div>
+              )}
+              {asset.ip_address && (
+                <div>🌐 <span className="font-medium">IP:</span> {asset.ip_address}</div>
+              )}
+              {asset.operating_system && (
+                <div>💾 <span className="font-medium">OS:</span> {asset.operating_system}</div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Expanded details */}
+        {isExpanded && (
+          <div className="border-t bg-white p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Technical Details */}
+              <div>
+                <h5 className="font-medium text-gray-900 mb-3 flex items-center">
+                  <Cpu className="w-4 h-4 mr-2 text-blue-600" />
+                  Technical Details
+                </h5>
+                <div className="space-y-2 text-sm">
+                  {asset.hostname && (
+                    <div className="flex items-start">
+                      <span className="w-20 text-gray-600">Hostname:</span>
+                      <span className="font-medium">{asset.hostname}</span>
+                    </div>
+                  )}
+                  {asset.ip_address && (
+                    <div className="flex items-start">
+                      <span className="w-20 text-gray-600">IP Address:</span>
+                      <span className="font-medium">{asset.ip_address}</span>
+                    </div>
+                  )}
+                  {asset.operating_system && (
+                    <div className="flex items-start">
+                      <span className="w-20 text-gray-600">OS:</span>
+                      <span className="font-medium">{asset.operating_system}</span>
+                    </div>
+                  )}
+                  {asset.cpu_cores && (
+                    <div className="flex items-start">
+                      <span className="w-20 text-gray-600">CPU Cores:</span>
+                      <span className="font-medium">{asset.cpu_cores}</span>
+                    </div>
+                  )}
+                  {asset.memory_gb && (
+                    <div className="flex items-start">
+                      <span className="w-20 text-gray-600">Memory:</span>
+                      <span className="font-medium">{asset.memory_gb} GB</span>
+                    </div>
+                  )}
+                  {asset.storage_gb && (
+                    <div className="flex items-start">
+                      <span className="w-20 text-gray-600">Storage:</span>
+                      <span className="font-medium">{asset.storage_gb} GB</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Business Details */}
+              <div>
+                <h5 className="font-medium text-gray-900 mb-3 flex items-center">
+                  <Building className="w-4 h-4 mr-2 text-green-600" />
+                  Business Details
+                </h5>
+                <div className="space-y-2 text-sm">
+                  {asset.department && (
+                    <div className="flex items-start">
+                      <span className="w-24 text-gray-600">Department:</span>
+                      <span className="font-medium">{asset.department}</span>
+                    </div>
+                  )}
+                  {asset.business_criticality && (
+                    <div className="flex items-start">
+                      <span className="w-24 text-gray-600">Criticality:</span>
+                      <span className={`font-medium ${
+                        asset.business_criticality?.toLowerCase() === 'critical' ? 'text-red-600' :
+                        asset.business_criticality?.toLowerCase() === 'high' ? 'text-orange-600' :
+                        asset.business_criticality?.toLowerCase() === 'medium' ? 'text-yellow-600' :
+                        'text-green-600'
+                      }`}>
+                        {asset.business_criticality}
+                      </span>
+                    </div>
+                  )}
+                  {asset.business_owner && (
+                    <div className="flex items-start">
+                      <span className="w-24 text-gray-600">Bus. Owner:</span>
+                      <span className="font-medium">{asset.business_owner}</span>
+                    </div>
+                  )}
+                  {asset.technical_owner && (
+                    <div className="flex items-start">
+                      <span className="w-24 text-gray-600">Tech Owner:</span>
+                      <span className="font-medium">{asset.technical_owner}</span>
+                    </div>
+                  )}
+                  {asset.location && (
+                    <div className="flex items-start">
+                      <span className="w-24 text-gray-600">Location:</span>
+                      <span className="font-medium">{asset.location}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Description */}
+            {asset.description && (
+              <div className="mt-4 pt-4 border-t">
+                <h5 className="font-medium text-gray-900 mb-2 flex items-center">
+                  <Info className="w-4 h-4 mr-2 text-gray-600" />
+                  Description
+                </h5>
+                <p className="text-sm text-gray-600">{asset.description}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
   };
 
   const getPriorityColor = (priority: string) => {
@@ -277,6 +551,35 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
                 <h4 className="font-medium text-gray-900 mb-2">{question.title}</h4>
                 <p className="text-gray-700 mb-3">{question.question}</p>
 
+                {/* Enhanced Asset Context for Application Boundary Questions */}
+                {question.question_type === 'application_boundary' && question.context?.components && (
+                  <div className="mb-4">
+                    <h5 className="font-medium text-gray-900 mb-3 flex items-center">
+                      <Server className="w-4 h-4 mr-2 text-blue-600" />
+                      Asset Details ({question.context.components.length} component{question.context.components.length !== 1 ? 's' : ''})
+                    </h5>
+                    <div className="space-y-3">
+                      {question.context.components.map((componentName: string) => renderAssetCard(componentName))}
+                    </div>
+                    {question.context.reason && (
+                      <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <div className="flex items-start space-x-2">
+                          <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
+                          <div>
+                            <span className="font-medium text-yellow-800">Agent Analysis: </span>
+                            <span className="text-yellow-700">{question.context.reason}</span>
+                            {question.context.confidence && (
+                              <span className="block text-sm text-yellow-600 mt-1">
+                                Confidence: {Math.round(question.context.confidence * 100)}%
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Multiple Choice Options */}
                 {question.options && question.options.length > 0 && (
                   <div className="space-y-2 mb-3">
@@ -323,7 +626,7 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
                 )}
 
                 {/* Context Information */}
-                {question.context && Object.keys(question.context).length > 0 && (
+                {question.context && Object.keys(question.context).length > 0 && question.question_type !== 'application_boundary' && (
                   <button
                     onClick={() => setExpandedQuestion(
                       expandedQuestion === question.id ? null : question.id
@@ -339,7 +642,7 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
                   </button>
                 )}
 
-                {expandedQuestion === question.id && question.context && (
+                {expandedQuestion === question.id && question.context && question.question_type !== 'application_boundary' && (
                   <div className="mt-2 p-3 bg-gray-50 rounded-md">
                     <pre className="text-xs text-gray-600 whitespace-pre-wrap">
                       {JSON.stringify(question.context, null, 2)}

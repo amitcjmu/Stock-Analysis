@@ -1,0 +1,44 @@
+[
+  {
+    "question_type": "application_boundary",
+    "agent_id": "application_discovery",
+    "page": "asset-inventory",
+    "context": {
+      "components": [
+        "DevOps_Pipeline"
+      ],
+      "confidence": 0.39,
+      "reason": "Low confidence in application grouping"
+    },
+    "user_response": "Single application - grouping is correct",
+    "timestamp": "2025-06-01T01:52:57.676773"
+  },
+  {
+    "question_type": "application_boundary",
+    "agent_id": "application_discovery",
+    "page": "asset-inventory",
+    "context": {
+      "components": [
+        "Analytics_Platform"
+      ],
+      "confidence": 0.39,
+      "reason": "Low confidence in application grouping"
+    },
+    "user_response": "Single application - grouping is correct",
+    "timestamp": "2025-06-01T01:53:08.448109"
+  },
+  {
+    "question_type": "application_boundary",
+    "agent_id": "application_discovery",
+    "page": "asset-inventory",
+    "context": {
+      "components": [
+        "Inventory_Mgmt"
+      ],
+      "confidence": 0.39,
+      "reason": "Low confidence in application grouping"
+    },
+    "user_response": "Single application - grouping is correct",
+    "timestamp": "2025-06-01T01:53:25.616149"
+  }
+]

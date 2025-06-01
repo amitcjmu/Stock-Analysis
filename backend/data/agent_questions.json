@@ -5763,9 +5763,9 @@
     "confidence": "medium",
     "priority": "medium",
     "created_at": "2025-06-01T01:01:25.715529",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "answered_at": "2025-06-01T01:53:25.616149",
+    "user_response": "Single application - grouping is correct",
+    "is_resolved": true
   },
   {
     "id": "56873e7c-122a-4935-aef1-73c4e3640179",
@@ -5791,9 +5791,9 @@
     "confidence": "medium",
     "priority": "medium",
     "created_at": "2025-06-01T01:01:25.728323",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "answered_at": "2025-06-01T01:53:08.448109",
+    "user_response": "Single application - grouping is correct",
+    "is_resolved": true
   },
   {
     "id": "19ee0147-66c0-42b0-b58b-bec013bbb4c9",
@@ -5819,6 +5819,2246 @@
     "confidence": "medium",
     "priority": "medium",
     "created_at": "2025-06-01T01:01:25.744076",
+    "answered_at": "2025-06-01T01:52:57.676773",
+    "user_response": "Single application - grouping is correct",
+    "is_resolved": true
+  },
+  {
+    "id": "d373b955-a529-4cab-a789-5a14bbf2eb53",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "server-1"
+      ],
+      "confidence": 0.5700000000000001,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:49:14.849479",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "680135ab-297c-41d2-919f-9bf7fff712a5",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Backup Service",
+    "question": "Is 'Backup Service' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "Backup_Service"
+      ],
+      "confidence": 0.53,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:49:14.865250",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "65f7f586-dae9-450b-aa9c-12f92676bb02",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "server1"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:49:14.878722",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "690a3ee9-f6fb-48fe-b75e-6f017895c4a3",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "DBServ01"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:49:14.892328",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "4f145a37-cf0b-4103-b45d-8a73dfad9e99",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "FileServer01"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:49:14.906156",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "4ff605a7-84ec-4c2c-aeb4-fc90285e4621",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "CoreSwitch01"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:49:14.918641",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "971c2615-412f-485f-88ed-bb1d1e189e07",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "SAN01"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:49:14.930430",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "c10638a0-c607-49d6-b5fb-d84b2cfafb8b",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "DevTestVM01"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:49:14.940429",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "94116299-8dc9-4bd7-8b06-899c016535d7",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "ADController01"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:49:14.950859",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "3ad336d1-f7f2-4f33-804b-880b838fc0b4",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "Firewall01"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:49:14.962906",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "e3a681a0-a597-4419-88cb-559945245e66",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Web Portal Application",
+    "question": "Is 'Web Portal Application' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "Web_Portal"
+      ],
+      "confidence": 0.45000000000000007,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:49:14.973025",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "abda766f-f1bd-4b5f-9941-b06736087533",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "test-server"
+      ],
+      "confidence": 0.45000000000000007,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:49:14.984511",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "5a61d320-034d-463e-b714-3867da8eb805",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "UPS-Main"
+      ],
+      "confidence": 0.45000000000000007,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:49:14.997778",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "ff1909ec-9bc4-44a8-af50-84af8b60c5d7",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Inventory Mgmt Application",
+    "question": "Is 'Inventory Mgmt Application' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "Inventory_Mgmt"
+      ],
+      "confidence": 0.39,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:49:15.009253",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "32b412f4-3d74-40cf-b9fb-476f88c99a50",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Analytics Platform Application",
+    "question": "Is 'Analytics Platform Application' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "Analytics_Platform"
+      ],
+      "confidence": 0.39,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:49:15.019864",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "30485108-68c0-4ad9-85f0-fe03c762cccb",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Devops Pipeline Application",
+    "question": "Is 'Devops Pipeline Application' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "DevOps_Pipeline"
+      ],
+      "confidence": 0.39,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:49:15.031336",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "9adbcf13-c298-4556-8cdb-273a4491d45f",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "server-1"
+      ],
+      "confidence": 0.5700000000000001,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:51:49.424160",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "7608b9eb-b783-4b3a-9f9c-36bdc8fbc8b6",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Backup Service",
+    "question": "Is 'Backup Service' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "Backup_Service"
+      ],
+      "confidence": 0.53,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:51:49.441089",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "8703ad84-dd4e-43bb-afa2-9e020f5c1d3f",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "server1"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:51:49.455941",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "f1c3572e-63d6-46eb-bafb-6159c7b577db",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "DBServ01"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:51:49.469008",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "f5bc9633-84ab-47ed-a2c0-c78c6d9d9653",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "FileServer01"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:51:49.480747",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "ffeee1c5-e851-4405-9c4a-f2365d826413",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "CoreSwitch01"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:51:49.491498",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "d3012f24-c96d-4cce-945d-e3a3c637061e",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "SAN01"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:51:49.507036",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "8ef8c3b6-dcda-473c-aeba-ad614508d703",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "DevTestVM01"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:51:49.523413",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "65a17b27-5b6f-4575-9021-491b1e42452d",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "ADController01"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:51:49.538915",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "ba737773-d8c2-43bd-9d94-52cb1a98a5c9",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "Firewall01"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:51:49.553001",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "b5d7bbdc-8bd6-4d08-9f5f-d784724e7a07",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Web Portal Application",
+    "question": "Is 'Web Portal Application' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "Web_Portal"
+      ],
+      "confidence": 0.45000000000000007,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:51:49.568652",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "de030f70-8603-44a2-a35a-6bb3bdaea015",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "test-server"
+      ],
+      "confidence": 0.45000000000000007,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:51:49.585157",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "c57ca654-1d0f-496c-946b-f42818a2aaa0",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "UPS-Main"
+      ],
+      "confidence": 0.45000000000000007,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:51:49.600164",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "068b8cab-c193-4ff9-9962-a62e053af96c",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Inventory Mgmt Application",
+    "question": "Is 'Inventory Mgmt Application' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "Inventory_Mgmt"
+      ],
+      "confidence": 0.39,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:51:49.619678",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "78700de1-9638-4207-95ff-c2900d4575ec",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Analytics Platform Application",
+    "question": "Is 'Analytics Platform Application' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "Analytics_Platform"
+      ],
+      "confidence": 0.39,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:51:49.632132",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "c66df63c-b7fc-49d0-9c36-c6ea954fd6de",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Devops Pipeline Application",
+    "question": "Is 'Devops Pipeline Application' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "DevOps_Pipeline"
+      ],
+      "confidence": 0.39,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:51:49.644473",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "dcb1b5f8-0e64-423d-9c3c-0efaa837ada6",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "server-1"
+      ],
+      "confidence": 0.5700000000000001,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:53:54.789941",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "fb3a24bb-ab74-481e-9aef-0dc067e2710f",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Backup Service",
+    "question": "Is 'Backup Service' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "Backup_Service"
+      ],
+      "confidence": 0.53,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:53:54.810482",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "5ddf38ad-a233-4b93-86ca-734de8c39d09",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "server1"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:53:54.828829",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "101fb570-a9e0-42fb-b163-11576836234c",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "DBServ01"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:53:54.844162",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "e042fc81-cd3b-463b-96c5-b794d8500bd1",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "FileServer01"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:53:54.859252",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "26455129-b192-4378-9d6d-9320da08e953",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "CoreSwitch01"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:53:54.873354",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "fc7aa4d7-86bd-4716-89a2-78a06f017f96",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "SAN01"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:53:54.886012",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "352e9463-5d65-49cd-8869-0b458d45aa71",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "DevTestVM01"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:53:54.898639",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "58d7f81a-2db9-48d3-9192-b4726b6ee198",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "ADController01"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:53:54.909662",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "9e099655-3196-4de7-a282-718b60fcf6c1",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "Firewall01"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:53:54.922661",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "0467550c-bb00-4613-a0fe-08b75416980a",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Web Portal Application",
+    "question": "Is 'Web Portal Application' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "Web_Portal"
+      ],
+      "confidence": 0.45000000000000007,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:53:54.935562",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "abceb86c-e2ea-4024-8a7d-bb0a5e3edd14",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "test-server"
+      ],
+      "confidence": 0.45000000000000007,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:53:54.949328",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "93abccf9-66b9-423c-b3c7-6ac43b6cbbbc",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "UPS-Main"
+      ],
+      "confidence": 0.45000000000000007,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:53:54.961815",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "882a3ce0-2c50-40cf-8052-cf9cd0d3e6c0",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Inventory Mgmt Application",
+    "question": "Is 'Inventory Mgmt Application' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "Inventory_Mgmt"
+      ],
+      "confidence": 0.39,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:53:54.974023",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "d1777c49-7d7e-40e8-b77b-a9bb94751dab",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Analytics Platform Application",
+    "question": "Is 'Analytics Platform Application' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "Analytics_Platform"
+      ],
+      "confidence": 0.39,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:53:54.985645",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "fd4100cd-06fe-42b5-8e59-f26644a228a3",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Devops Pipeline Application",
+    "question": "Is 'Devops Pipeline Application' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "DevOps_Pipeline"
+      ],
+      "confidence": 0.39,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T01:53:54.997410",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "9c439ca9-feeb-4833-92e9-cb2c278e3401",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "server-1"
+      ],
+      "confidence": 0.5700000000000001,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T02:00:07.338053",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "86014d9d-64f0-4e73-af99-f50e35f62735",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Backup Service",
+    "question": "Is 'Backup Service' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "Backup_Service"
+      ],
+      "confidence": 0.53,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T02:00:07.364000",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "2ae47009-7038-4b09-8387-8588c88e4e87",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "server1"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T02:00:07.384941",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "28ccf34d-9aef-4fc6-b1fc-70399aa45529",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "DBServ01"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T02:00:07.402482",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "392c9d60-7a8a-4f54-ad1a-9d5c5072d4ca",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "FileServer01"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T02:00:07.418209",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "344853f2-03e4-4b8e-859c-5ffa4ee5e967",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "CoreSwitch01"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T02:00:07.432710",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "91703883-1814-405f-8463-3b8bea0b3eba",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "SAN01"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T02:00:07.446333",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "1b53611a-9eb2-4c34-bfed-931514e97ff3",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "DevTestVM01"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T02:00:07.460590",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "50148bd2-74aa-40a4-97f8-0be18e90350a",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "ADController01"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T02:00:07.473691",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "7fc6f86a-5071-4768-9576-15a949c09021",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "Firewall01"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T02:00:07.486759",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "d7770644-995a-40cc-b802-d7c802ffe084",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Web Portal Application",
+    "question": "Is 'Web Portal Application' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "Web_Portal"
+      ],
+      "confidence": 0.45000000000000007,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T02:00:07.499716",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "7237d732-c70c-4855-8cdf-54b61c36c42b",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "test-server"
+      ],
+      "confidence": 0.45000000000000007,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T02:00:07.512436",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "8a216fab-79cf-41f2-a88e-ef34a4aa8bf9",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "UPS-Main"
+      ],
+      "confidence": 0.45000000000000007,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T02:00:07.525471",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "1f516aa1-8782-47ae-95b4-554958cc9493",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Inventory Mgmt Application",
+    "question": "Is 'Inventory Mgmt Application' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "Inventory_Mgmt"
+      ],
+      "confidence": 0.39,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T02:00:07.538327",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "90509575-ec0a-4f44-a794-43169a91e26a",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Analytics Platform Application",
+    "question": "Is 'Analytics Platform Application' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "Analytics_Platform"
+      ],
+      "confidence": 0.39,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T02:00:07.551776",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "963d5553-33ad-4a57-becf-70ffeb57fbf6",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Devops Pipeline Application",
+    "question": "Is 'Devops Pipeline Application' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "DevOps_Pipeline"
+      ],
+      "confidence": 0.39,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T02:00:07.564798",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "2607bec5-c59f-4c22-92cb-76b0fa3bbe5e",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "server-1"
+      ],
+      "confidence": 0.5700000000000001,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T02:09:02.183942",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "abff741e-fd05-4a0f-98f4-1b296890e340",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Backup Service",
+    "question": "Is 'Backup Service' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "Backup_Service"
+      ],
+      "confidence": 0.53,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T02:09:02.198603",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "0dbcc95d-a539-4134-90a5-193c55f359bf",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "server1"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T02:09:02.215422",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "a28e368f-50af-40d3-82d5-e62a0b4a9d74",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "DBServ01"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T02:09:02.229378",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "4459c73b-84b9-4e4d-834c-ddf54f332c19",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "FileServer01"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T02:09:02.243960",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "87721fe9-0dc7-4330-a564-2da0b883c67f",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "CoreSwitch01"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T02:09:02.258224",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "10b96ca1-8965-443b-9a05-1ed62dc02820",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "SAN01"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T02:09:02.271228",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "d2547bc0-5009-4d10-9255-c885a96ae04a",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "DevTestVM01"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T02:09:02.285393",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "43843dcb-6cc2-412a-918a-e201b8642798",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "ADController01"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T02:09:02.301466",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "f5041265-c51f-4c2f-8ef1-1d3cd6acb5e4",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "Firewall01"
+      ],
+      "confidence": 0.49,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T02:09:02.315135",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "e10c4422-9822-4f70-8beb-dce46d685e7b",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Web Portal Application",
+    "question": "Is 'Web Portal Application' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "Web_Portal"
+      ],
+      "confidence": 0.45000000000000007,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T02:09:02.328212",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "0d67f22b-615b-4631-bdfa-3bdf4709fec0",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "test-server"
+      ],
+      "confidence": 0.45000000000000007,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T02:09:02.342839",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "d733fa20-257b-4d26-ad93-9fd984bec80c",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "UPS-Main"
+      ],
+      "confidence": 0.45000000000000007,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T02:09:02.356587",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "b1c55416-b3ed-4470-a9d4-0d9e46e7d6ff",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Inventory Mgmt Application",
+    "question": "Is 'Inventory Mgmt Application' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "Inventory_Mgmt"
+      ],
+      "confidence": 0.39,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T02:09:02.372418",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "5db606ce-bc59-4660-9172-02114843190b",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Analytics Platform Application",
+    "question": "Is 'Analytics Platform Application' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "Analytics_Platform"
+      ],
+      "confidence": 0.39,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T02:09:02.389074",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  {
+    "id": "e2119132-4b36-46d7-88dd-6744b56aa7c7",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Devops Pipeline Application",
+    "question": "Is 'Devops Pipeline Application' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "DevOps_Pipeline"
+      ],
+      "confidence": 0.39,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T02:09:02.404028",
     "answered_at": null,
     "user_response": null,
     "is_resolved": false

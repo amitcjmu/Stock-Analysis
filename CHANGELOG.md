@@ -5,115 +5,207 @@ All notable changes to the AI Force Migration Platform will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.9.7] - 2025-01-29
+## [0.9.8] - 2025-01-26
 
-### 🎯 **PRESENTATION REVIEWER AGENT - INSIGHT QUALITY CONTROL**
+### 🎯 **USER EXPERIENCE ENHANCEMENTS - Enhanced Asset Context & Application Filtering**
 
-This release implements a comprehensive Presentation Reviewer Agent that validates and improves agent insights before user presentation, addressing accuracy issues, eliminating duplicates, and ensuring actionability with agent learning integration.
+This release significantly improves user experience by providing comprehensive asset context in agent clarifications and advanced filtering capabilities for application discovery.
 
-### 🚀 **Presentation Quality Control System**
+### 🚀 **Asset Clarification Context Enhancement**
 
-#### **Presentation Reviewer Agent**
-- **Accuracy Validation**: Validates insights against supporting data to catch data mismatches and terminology errors
-- **Duplicate Detection**: Content-hash based duplicate detection and consolidation of identical insights
-- **Actionability Assessment**: Filters insights for business value and actionable recommendations
-- **Presentation Optimization**: Limits insights per page, enhances descriptions, and prioritizes by relevance
-- **Agent Feedback**: Provides structured feedback to source agents for continuous improvement
+#### **Comprehensive Asset Details Display**
+- **Enhanced Context**: Agent clarifications now show detailed asset information instead of just component names
+- **Asset Information Cards**: Interactive expandable cards showing technical and business details for each asset
+- **Visual Asset Indicators**: Asset type icons and environment badges for quick identification
+- **Technical Details Section**: CPU, memory, storage, hostname, IP address, and operating system information
+- **Business Details Section**: Department, criticality, ownership, and location information
+- **Description Display**: Full asset descriptions when available for complete context
 
-#### **Intelligent Validation Framework**
-- **Data Mismatch Detection**: Identifies when insight descriptions don't match supporting data (e.g., "19 applications" vs. 6 actual applications)
-- **Terminology Validation**: Corrects inappropriate terminology usage (e.g., asset types incorrectly called "technologies")
-- **Actionability Scoring**: Scores insights based on specific recommendations vs. basic data descriptions
-- **Content Enhancement**: Automatically improves insight descriptions for accuracy and clarity
-- **Quality Thresholds**: Configurable thresholds for accuracy, duplication, and actionability filtering
+#### **Intelligent Asset Data Retrieval**
+- **API Integration**: Automatic fetching of asset details for clarification questions
+- **Fallback Handling**: Graceful handling when asset details are not found in inventory
+- **Performance Optimization**: Efficient batching of asset detail requests
+- **Error Resilience**: Proper error handling with informative fallback messages
+
+### 🔍 **Application Discovery Filtering System**
+
+#### **Advanced Search & Filter Interface**
+- **Comprehensive Text Search**: Search across application names, technologies, environments, and components
+- **Multi-Attribute Filters**: Environment, criticality, validation status, and technology stack filters
+- **Numeric Range Filters**: Component count and confidence percentage filtering
+- **Interactive Filter Panel**: Collapsible advanced filter interface with clear controls
+- **Filter State Management**: Persistent filter state with clear all functionality
+
+#### **Pagination & Navigation**
+- **Flexible Pagination**: Configurable items per page (5, 10, 25, 50)
+- **Navigation Controls**: First, previous, next, last page buttons with page number display
+- **Result Counting**: Clear display of total results and current page range
+- **Performance Optimized**: Client-side filtering for responsive user experience
+
+#### **Filter Options Generation**
+- **Dynamic Option Lists**: Auto-generated filter options from actual data
+- **Unique Value Extraction**: Technology stack and attribute value deduplication
+- **Real-time Updates**: Filter options update as data changes
+- **Empty State Handling**: Informative messaging when no applications match filters
+
+### 📊 **Technical Implementation**
+
+#### **AgentClarificationPanel Enhancements**
+- **AssetDetails Interface**: Comprehensive asset properties definition
+- **Asset Card Rendering**: Interactive expandable asset information cards
+- **API Integration**: Asset detail fetching with search endpoint integration
+- **State Management**: Asset details caching and expansion state tracking
+- **Visual Design**: Improved layout with icons, badges, and structured information display
+
+#### **ApplicationDiscoveryPanel Filtering**
+- **Filter State Interface**: Comprehensive filter configuration management
+- **Search Logic**: Multi-field text search with case-insensitive matching
+- **Pagination Logic**: Client-side pagination with configurable page sizes
+- **Performance Features**: Efficient filtering algorithms and memoization
+- **Responsive Design**: Mobile-friendly filter panels and navigation controls
+
+### 🎯 **Business Impact**
+
+#### **Improved Decision Making**
+- **Context-Rich Clarifications**: Users can make informed decisions with complete asset information
+- **Efficient Application Navigation**: Quick filtering through hundreds of applications
+- **Enhanced User Confidence**: Detailed asset context reduces uncertainty in clarification responses
+- **Time Savings**: Faster navigation to specific applications through advanced filtering
+
+#### **User Experience Benefits**
+- **Reduced Cognitive Load**: Clear visual organization of asset information
+- **Improved Accessibility**: Expandable cards allow progressive disclosure of information
+- **Enhanced Productivity**: Efficient filtering reduces time spent searching for applications
+- **Better Understanding**: Comprehensive asset context improves migration planning decisions
+
+### 🛠️ **Technical Achievements**
+
+#### **Frontend Architecture**
+- **Component Enhancement**: Enhanced AgentClarificationPanel with asset detail integration
+- **API Integration**: Seamless asset detail fetching with proper error handling
+- **State Management**: Efficient filter and pagination state management
+- **Performance Optimization**: Client-side filtering for responsive filtering experience
+
+#### **User Interface Design**
+- **Progressive Disclosure**: Expandable asset cards for detail-on-demand
+- **Visual Hierarchy**: Clear organization of technical and business asset information
+- **Interactive Controls**: Intuitive filter interface with immediate feedback
+- **Responsive Layout**: Mobile-friendly design with adaptive layouts
+
+### 📋 **Files Modified**
+- `src/components/discovery/AgentClarificationPanel.tsx` - Enhanced with asset context display
+- `src/components/discovery/application-discovery/ApplicationDiscoveryPanel.tsx` - Added comprehensive filtering
+- `CHANGELOG.md` - Documentation of enhancements
+
+### 🎪 **Quality Improvements**
+- Enhanced user experience through comprehensive asset context in clarifications
+- Improved application discovery efficiency with advanced filtering capabilities
+- Better information architecture for complex migration planning scenarios
+- Reduced user confusion through detailed asset information display
+
+## [0.9.7] - 2025-01-26
+
+### 🎯 **AGENT INSIGHTS QUALITY CONTROL - Presentation Reviewer Implementation**
+
+This release implements a comprehensive quality control system for Agent Insights, addressing accuracy, duplication, and actionability issues through an intelligent Presentation Reviewer Agent.
+
+### 🚀 **Presentation Reviewer Agent System**
+
+#### **Multi-Stage Quality Control Process**
+- **Accuracy Validation**: Validates insights against supporting data to prevent incorrect claims (e.g., "19 applications" vs 6 actual)
+- **Terminology Correction**: Fixes inappropriate usage like referring to asset types as "technologies"
+- **Duplicate Detection**: Content-hash based system eliminating identical insights automatically
+- **Actionability Assessment**: Scores insights and filters basic counting statements without recommendations
+- **Content Enhancement**: Automatically improves descriptions for accuracy and clarity
+- **Agent Feedback Generation**: Provides structured feedback to source agents for continuous learning
 
 #### **Enhanced User Feedback System**
-- **Detailed Feedback Collection**: Users can explain why insights are unhelpful with specific accuracy issues
-- **Automatic Issue Detection**: Frontend automatically detects common accuracy problems in insights
-- **Learning Integration**: User feedback feeds both the Presentation Reviewer and source agents for improvement
-- **Feedback Processing**: Comprehensive feedback analysis with pattern recognition and learning storage
-
-### 🚀 **UI Integration & User Experience**
-
-#### **Enhanced Agent Insights Interface**
-- **Improved Feedback Mechanism**: Thumbs down button now requires explanation for better learning
-- **Accuracy Issue Detection**: Automatic detection of number mismatches and terminology problems
-- **Feedback Input Interface**: Modal input for detailed user explanations of insight problems
-- **Real-time Validation**: Frontend validates insight accuracy against supporting data
-- **Learning Confirmation**: Visual confirmation when agent learning is applied from user feedback
-
-#### **Quality Control Integration**
-- **Automatic Review**: All insights automatically reviewed before presentation to users
-- **Filtered Presentation**: Only accurate, non-duplicate, actionable insights shown to users
-- **Review Metrics**: Display of approval rates, accuracy improvements, and filtering statistics
-- **Agent Learning Feedback**: Automatic feedback to source agents when insights are rejected
-- **Cross-Page Context**: Maintains learning context across all discovery pages
-
-### 📊 **Quality Improvement & Intelligence**
-
-#### **Insight Quality Enhancement**
-- **Accuracy Enforcement**: Prevents inaccurate insights from reaching users (e.g., incorrect application counts)
-- **Duplicate Elimination**: Removes repeated insights that provide no additional value
-- **Actionability Focus**: Prioritizes insights that provide specific recommendations over basic descriptions
-- **Content Optimization**: Enhances insight descriptions for clarity and business relevance
-- **Confidence-Based Prioritization**: Orders insights by actionability score and agent confidence
-
-#### **Agent Learning & Improvement**
-- **Source Agent Feedback**: Structured feedback to generating agents about rejected insights
-- **Pattern Recognition**: Learning from common insight problems to improve future generation
-- **Quality Metrics**: Tracking of approval rates, accuracy improvements, and learning effectiveness
-- **Continuous Improvement**: Dynamic adjustment of review criteria based on user feedback patterns
-- **Learning Storage**: Persistent storage of learning experiences for platform-wide improvement
-
-### 🚀 **API Integration & Endpoints**
-
-#### **Enhanced Agent Learning Endpoint**
-- **Endpoint**: `/api/v1/discovery/agents/agent-learning` enhanced with insight feedback support
-- **Feedback Processing**: Comprehensive processing of user feedback with accuracy issue analysis
-- **Learning Types**: Support for insight feedback, field mapping, data classification, and pattern recognition
-- **Presentation Review Integration**: Automatic routing of insight feedback through Presentation Reviewer Agent
-- **Source Agent Notification**: Automatic feedback delivery to source agents for learning improvement
-
-#### **Test & Validation Endpoint**
-- **Endpoint**: `/api/v1/discovery/agents/test-presentation-reviewer` for testing review functionality
-- **Review Testing**: Direct testing of presentation review capabilities with sample insights
-- **Quality Metrics**: Detailed metrics on approval rates, rejections, and improvement suggestions
-- **Development Support**: Comprehensive testing support for review algorithm development and tuning
-
-### 🎯 **Problem Resolution**
-
-#### **Specific Issues Addressed**
-- **Application Count Mismatch**: Fixed insights claiming "19 applications" when only 6 exist in data
-- **Technology vs Asset Type Confusion**: Corrected inappropriate use of "technologies" for asset categories
-- **Duplicate Insight Elimination**: Removed identical insights repeated multiple times
-- **Non-Actionable Filtering**: Filtered out basic counting insights without recommendations
-- **Accuracy Validation**: Comprehensive validation of insights against supporting data
-
-#### **User Experience Improvements**
-- **Meaningful Feedback**: Users can now explain specific problems with insights for better learning
-- **Quality Assurance**: Only high-quality, accurate insights presented to users
-- **Learning Transparency**: Clear feedback when agents learn from user corrections
-- **Reduced Noise**: Elimination of duplicate and non-actionable insights
-- **Enhanced Trust**: Improved accuracy builds user trust in agent intelligence
+- **Detailed Feedback Collection**: Requires explanations for negative feedback instead of simple thumbs down
+- **Automatic Issue Detection**: Frontend automatically detects common accuracy issues
+- **Learning Integration**: User feedback processed through reviewer agent for source agent improvement
+- **Feedback Analytics**: Tracks feedback patterns for quality improvement insights
 
 ### 🔧 **Technical Implementation**
 
-#### **Modular Architecture**
-- **Agent Implementation**: 500+ line PresentationReviewerAgent with comprehensive validation capabilities
-- **UI Bridge Integration**: Seamless integration with existing agent communication framework
-- **Async Processing**: Full async support for review processing and learning integration
-- **Error Handling**: Robust error handling with graceful fallback to original insights
-- **Performance Optimization**: Efficient review processing with minimal impact on user experience
+#### **Presentation Reviewer Agent (`presentation_reviewer_agent.py`)**
+- **Review Orchestration**: `review_insights_for_presentation()` main review workflow
+- **Data Accuracy Validation**: `_validate_insight_accuracy()` with 20% variance threshold
+- **Duplicate Consolidation**: `_detect_and_consolidate_duplicates()` with 80% similarity detection
+- **Actionability Filtering**: `_assess_actionability()` with 30% business value minimum
+- **Content Improvement**: `_enhance_insight_description()` for clarity and accuracy
+- **Learning Feedback**: `_generate_agent_feedback()` for source agent improvement
 
-#### **Quality Control Framework**
-- **Multi-Stage Review**: Accuracy validation, duplicate detection, actionability assessment, and presentation optimization
-- **Learning Integration**: Comprehensive learning framework for both presentation review and source agent improvement
-- **Feedback Loop**: Complete feedback loop from user input to agent learning and improvement
-- **Metrics Tracking**: Detailed tracking of review effectiveness and learning progress
+#### **API Integration Enhancements**
+- **Quality Control Endpoint**: Enhanced `/api/v1/discovery/agents/agent-learning` for insight feedback
+- **Testing Interface**: New `/api/v1/discovery/agents/test-presentation-reviewer` for validation
+- **UI Bridge Integration**: Seamless integration with `get_insights_for_page()` method
+- **Graceful Fallback**: System continues with original insights if review fails
 
-This release significantly improves the quality and reliability of agent insights presented to users, ensuring accuracy, eliminating duplicates, and providing meaningful actionable recommendations while enabling continuous agent learning and improvement.
+#### **Frontend Improvements**
+- **Enhanced Feedback UI**: Textarea input for detailed user explanations in `AgentInsightsSection.tsx`
+- **Accuracy Issue Detection**: Automatic detection of data accuracy problems
+- **User Experience**: Improved feedback collection with better guidance for users
+- **Learning Integration**: Direct connection between user feedback and agent learning
 
-## [0.9.6] - 2025-01-29
+### 📊 **Quality Metrics & Validation**
+
+#### **Review Criteria Configuration**
+- **Accuracy Threshold**: 20% variance tolerance for data validation
+- **Duplication Threshold**: 80% content similarity for duplicate detection  
+- **Actionability Threshold**: 30% minimum business value score
+- **Review Success Rate**: Tracking of insights passing quality control
+
+#### **Problem Resolution Statistics**
+- **Data Accuracy**: Prevents insights with incorrect asset counts and claims
+- **Terminology Issues**: Corrects "technologies" to "asset categories/types"
+- **Duplication Elimination**: Removes repeated identical insights automatically
+- **Actionability Filtering**: Filters non-actionable basic descriptions
+
+### 🎯 **Business Impact**
+
+#### **User Trust & Confidence**
+- **Quality Assurance**: Only accurate, unique, actionable insights reach users
+- **Reduced Confusion**: Eliminates contradictory or nonsensical insights
+- **Improved Decision Making**: Higher quality insights support better migration planning
+- **Enhanced User Experience**: Fewer frustrating interactions with poor-quality insights
+
+#### **Agent Learning & Improvement**
+- **Continuous Improvement**: Agents learn from user feedback through reviewer system
+- **Quality Feedback Loop**: Structured feedback improves source agent accuracy over time
+- **Learning Analytics**: Tracks improvement patterns and learning effectiveness
+- **Knowledge Retention**: Persistent learning across agent sessions
+
+### 🛠️ **Architecture Enhancements**
+
+#### **Agentic Quality Control**
+- **Maintains Platform Principles**: Uses AI agents for quality control instead of hard-coded rules
+- **Learning Integration**: Quality control agent learns and improves filtering criteria
+- **Feedback Processing**: Structured feedback loop between users, reviewer, and source agents
+- **Scalable Architecture**: Supports multiple source agents with centralized quality control
+
+#### **Error Handling & Resilience**
+- **Graceful Degradation**: Falls back to original insights if review fails
+- **Error Logging**: Comprehensive logging for troubleshooting quality issues
+- **Performance Monitoring**: Tracks review performance and processing times
+- **Configuration Management**: Adjustable thresholds for different quality criteria
+
+### 📋 **Files Added/Modified**
+- `backend/app/services/discovery_agents/presentation_reviewer_agent.py` - New quality control agent
+- `backend/app/services/agent_ui_bridge.py` - Integrated reviewer into insight pipeline
+- `src/components/discovery/AgentInsightsSection.tsx` - Enhanced feedback UI
+- `backend/app/api/v1/endpoints/agent_discovery.py` - Enhanced feedback processing
+- `backend/data/agent_insights.json` - Removed problematic duplicate data
+
+### 🎪 **Quality Assurance Success**
+- Successfully prevents incorrect asset count claims in insights
+- Eliminates duplicate insights that previously cluttered the interface  
+- Filters out non-actionable insights that provided no business value
+- Provides users with explanation capability for negative feedback
+- Establishes foundation for continuous insight quality improvement
+
+---
+
+## [0.9.6] - 2025-01-25
 
 ### 🎯 **TECH DEBT INTELLIGENCE WITH STAKEHOLDER LEARNING**
 
