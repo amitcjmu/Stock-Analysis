@@ -1,193 +1,363 @@
-# Discovery Phase - Enhanced Architecture
+# Discovery Phase - Agentic Intelligence Architecture
 
 ## Overview
 
-The Discovery phase has been completely redesigned to provide a comprehensive, AI-powered approach to understanding your IT landscape for cloud modernization. This phase now includes sophisticated data quality management, human-in-the-loop learning, and detailed technical debt analysis.
+The Discovery phase has been revolutionized with an **agentic-first architecture** using CrewAI intelligent agents that learn, adapt, and improve over time. This phase eliminates hard-coded heuristics in favor of AI-powered analysis, pattern recognition, and continuous learning from user feedback. The system provides comprehensive IT landscape understanding through intelligent agents that collaborate to deliver migration-ready insights.
 
-## Architecture Components
+## Core Principles
 
-### 1. Discovery Dashboard (`/discovery/dashboard`)
-**Purpose**: Complete landscape view for cloud modernization planning
+### 🤖 **Agentic-First Intelligence**
+- All analysis powered by AI agents using CrewAI framework
+- No hard-coded rules or static heuristics
+- Continuous learning from user feedback and organizational patterns
+- Agent collaboration through specialized crews for complex analysis
 
-**Features**:
-- **Multi-view Dashboard**: Overview, Applications, Infrastructure, and Cloud Readiness tabs
-- **Discovery Metrics**: Asset counts, application mapping progress, data quality scores
-- **Application Landscape**: Portfolio view with tech stack analysis and cloud readiness scoring
-- **Infrastructure Analysis**: Server, database, and network device inventory with support status
-- **Readiness Assessment**: Cloud modernization readiness by environment and application
+### 🧠 **Memory and Learning System**
+- Platform-wide agent learning infrastructure (Task C.1)
+- Field mapping pattern recognition and improvement
+- Client/engagement-specific context management
+- Cross-page agent state coordination (Task C.2)
 
-**Key Insights**:
-- Application-to-server mapping completion percentage
-- Dependency mapping coverage
-- Tech debt distribution and risk assessment
-- Support timeline tracking for critical technologies
+### 🏗️ **Modular Agent Architecture**
+- Specialized agents with single responsibilities
+- Handler-based modular design for maintainability
+- Graceful fallback systems for robust operation
+- Real-time agent monitoring and health tracking
 
-### 2. Data Cleansing (`/discovery/data-cleansing`)
-**Purpose**: Human-in-the-loop data quality improvement
+## Discovery Agent Ecosystem
 
-**Features**:
-- **AI-Powered Issue Detection**: Identifies misclassifications, missing data, incorrect mappings, and duplicates
-- **Confidence Scoring**: AI provides confidence levels for suggestions with detailed reasoning
-- **Human Feedback Loop**: Approve, reject, or provide custom corrections
-- **Learning Progress Tracking**: Monitors AI improvement over time
-- **Category-based Filtering**: Focus on specific types of data quality issues
+### 1. **Data Source Intelligence Agent** 🔍
+**Role**: Analyzes incoming data sources to understand format, structure, and migration value
+**Status**: ✅ Active with Modular Handlers
+
+**Specialized Handlers**:
+- **Source Type Analyzer**: Identifies CMDB, migration tools, documentation patterns
+- **Data Structure Analyzer**: Analyzes relationships, content patterns, migration value
+- **Quality Analyzer**: Assesses data quality with intelligent classification
+- **Insight Generator**: Creates actionable insights from data analysis
+- **Question Generator**: Generates intelligent clarification questions
+
+**Key Capabilities**:
+- Learns from user corrections to improve source type detection
+- Adapts to organizational data patterns and naming conventions
+- Provides confidence-scored analysis with detailed reasoning
+- Generates contextual clarification questions for better understanding
+
+### 2. **Asset Intelligence Agent** 🎯
+**Role**: Asset inventory intelligence specialist with AI-powered management
+**Status**: ✅ Active with Discovery Integration
+
+**Core Features**:
+- AI-powered asset classification and categorization
+- Content-based analysis using field mapping intelligence
+- Intelligent bulk operations planning and optimization
+- Quality assessment with actionable recommendations
+- Continuous learning from user interactions
+
+**Integration Points**:
+- Enhanced `/api/v1/discovery/assets/*` endpoints
+- Field mapping intelligence integration
+- Real-time asset intelligence monitoring
+- Learning from user feedback and corrections
+
+### 3. **CMDB Data Analyst Agent** 📊
+**Role**: Senior CMDB analyst with 15+ years migration expertise
+**Status**: ✅ Active with Expert Analysis
+
+**Specializations**:
+- Asset type detection and classification
+- Migration readiness assessment
+- Data quality evaluation with migration focus
+- Dependency relationship mapping
+- Business criticality assessment
+
+### 4. **Field Mapping Specialist Agent** 🗺️
+**Role**: Intelligent field mapping to critical migration attributes
+**Status**: ✅ Active with Learning Integration
+
+**Enhanced Capabilities**:
+- Maps to 20+ critical migration attributes
+- Creates custom attributes based on data patterns
+- Learns organizational field naming conventions
+- Provides confidence-scored mapping suggestions
+- Filters irrelevant fields automatically
+
+### 5. **Learning Specialist Agent** 🎓
+**Role**: Cross-platform learning coordination and pattern recognition
+**Status**: ✅ Active with Enhanced Asset Management Learning
+
+**Learning Categories**:
+- Field mapping pattern recognition
+- Data source pattern learning
+- Quality assessment improvement
+- User preference adaptation
+- Performance tracking and optimization
+
+## Agent Learning Infrastructure (Task C.1)
+
+### 🧠 **Agent Learning System**
+**Purpose**: Platform-wide learning infrastructure for pattern recognition
+
+**Learning Categories**:
+```python
+{
+    "field_mapping_patterns": "Learn field naming conventions and mappings",
+    "data_source_patterns": "Recognize CMDB, tools, documentation patterns", 
+    "quality_assessment_patterns": "Improve data quality classification",
+    "user_preference_patterns": "Adapt to user and organizational preferences",
+    "accuracy_metrics": "Track agent performance and improvement",
+    "performance_tracking": "Monitor agent effectiveness over time"
+}
+```
+
+**Key Features**:
+- **Fuzzy Pattern Matching**: Intelligent field name similarity detection
+- **Confidence Scoring**: Advanced algorithms for mapping accuracy
+- **Threshold Learning**: Dynamic quality assessment threshold optimization
+- **Performance Monitoring**: Real-time agent accuracy and improvement tracking
+
+### 👥 **Client Context Manager**
+**Purpose**: Client/engagement-specific context management
+
+**Context Categories**:
+- **Organizational Patterns**: Client-specific naming conventions and structures
+- **Engagement Preferences**: Project-specific user preferences and decisions
+- **Clarification History**: Learning from user responses and feedback
+- **Agent Adaptations**: Behavioral adaptations for specific engagements
+- **Migration Preferences**: Client-specific migration approach preferences
+
+## Cross-Page Communication System (Task C.2)
+
+### 🔗 **Agent State Coordination**
+**Purpose**: Seamless agent context sharing across discovery pages
+
+**Coordination Features**:
+- **Cross-Page Context**: Shared context and insights across all discovery pages
+- **Agent State Persistence**: Maintain agent learning state during navigation
+- **Learning Experience Sharing**: Share patterns and improvements globally
+- **Context Dependencies**: Track relationships between page contexts
+- **Stale Context Cleanup**: Automatic cleanup of outdated coordination data
+
+**Integration Points**:
+- Enhanced Agent UI Bridge with cross-page capabilities
+- Context metadata tracking and health monitoring
+- Real-time WebSocket updates for agent coordination
+- Automatic context aging and cleanup
+
+## Discovery Workflow Architecture
+
+### Phase 1: Intelligent Data Ingestion
+**Tools**: Data Source Intelligence Agent, CMDB Import with AI Enhancement
+**Objective**: AI-powered data source analysis and understanding
 
 **Workflow**:
-1. AI analyzes imported data for quality issues
-2. Issues are categorized and ranked by confidence and impact
-3. Human reviewers approve/reject suggestions with feedback
-4. AI learns from human decisions to improve future suggestions
-5. Progress tracking shows data quality improvement over time
+1. **Data Source Analysis**: Data Source Intelligence Agent analyzes format and content
+2. **Pattern Recognition**: Identify organizational patterns and naming conventions  
+3. **Quality Assessment**: Intelligent classification of data quality and migration value
+4. **Clarification Generation**: Create contextual questions for better understanding
+5. **Learning Integration**: Store patterns for future data source recognition
 
-### 3. Attribute Mapping (`/discovery/attribute-mapping`)
-**Purpose**: Train AI crew on field mappings and attribute associations
+### Phase 2: Intelligent Field Mapping & Learning
+**Tools**: Field Mapping Specialist Agent, Learning System
+**Objective**: AI-enhanced field mapping with continuous learning
 
-**Features**:
-- **Intelligent Field Mapping**: AI suggests mappings between source fields and standardized attributes
-- **Context-Aware Suggestions**: Uses asset context (type, department) for better mapping accuracy
-- **Learning Metrics**: Tracks mapping accuracy, coverage, and AI improvement
-- **Field Definitions Management**: Maintains standardized field definitions and possible values
-- **Custom Value Support**: Allows manual override of AI suggestions
+**Workflow**:
+1. **Field Analysis**: Analyze source fields against 20+ critical migration attributes
+2. **Mapping Suggestions**: Provide confidence-scored mapping recommendations
+3. **Custom Attribute Creation**: Suggest new critical attributes based on patterns
+4. **User Feedback Learning**: Learn from user corrections and preferences
+5. **Pattern Storage**: Store organizational mapping patterns for reuse
 
-**Learning Process**:
-1. AI analyzes source data fields and values
-2. Suggests mappings to standardized attributes based on patterns
-3. Provides reasoning for each suggestion with examples
-4. Human experts approve, reject, or provide custom mappings
-5. AI incorporates feedback to improve future mapping accuracy
+### Phase 3: Intelligent Asset Management
+**Tools**: Asset Intelligence Agent, Enhanced Asset Inventory
+**Objective**: AI-powered asset classification and quality improvement
 
-### 4. Tech Debt Analysis (`/discovery/tech-debt-analysis`)
-**Purpose**: Comprehensive technology stack assessment
+**Workflow**:
+1. **Content-Based Classification**: Classify assets using learned patterns
+2. **Bulk Operation Planning**: Intelligent bulk update and operation planning
+3. **Quality Assessment**: Automated quality scoring with improvement recommendations
+4. **Dependency Analysis**: Discover and map asset relationships and dependencies
+5. **Continuous Learning**: Improve classification accuracy from user feedback
 
-**Features**:
-- **Component-Level Analysis**: Web, App, Database, OS, and Framework assessment
-- **Support Status Tracking**: Current vs. latest versions, EOL dates, extended support
-- **Risk Assessment**: Security risk levels with migration effort estimates
-- **Support Timeline**: Visual timeline of technology end-of-life dates
-- **Replacement Recommendations**: Suggested upgrade paths and modern alternatives
+### Phase 4: Cross-Page Intelligence Coordination
+**Tools**: Cross-Page Communication System, Context Manager
+**Objective**: Seamless agent coordination and context sharing
 
-**Analysis Dimensions**:
-- **Support Status**: Supported, Extended Support, Deprecated, End-of-Life
-- **Security Risk**: Low, Medium, High, Critical based on vulnerability exposure
-- **Migration Effort**: Complexity assessment for modernization planning
-- **Business Impact**: Criticality assessment for prioritization
+**Workflow**:
+1. **Context Sharing**: Share insights and patterns across all discovery pages
+2. **Agent State Coordination**: Maintain agent learning state during navigation
+3. **Learning Synchronization**: Sync improvements and patterns platform-wide
+4. **Health Monitoring**: Track agent coordination health and performance
+5. **Context Optimization**: Cleanup stale context and optimize sharing
 
-### 5. Enhanced Asset Inventory (`/discovery/inventory`)
-**Purpose**: Comprehensive asset catalog with improved data quality
+## Enhanced API Architecture
 
-**Improvements**:
-- **Better Field Mapping**: Uses learnings from Attribute Mapping
-- **Data Quality Indicators**: Shows confidence levels and validation status
-- **Bulk Operations**: Enhanced bulk update and delete capabilities
-- **Dependency Visualization**: Links to applications and server dependencies
-- **Export Capabilities**: Clean data export for downstream tools
+### 🔌 **Discovery Integration Endpoints**
+```
+GET  /api/v1/discovery/assets                    # Enhanced with agentic intelligence
+POST /api/v1/discovery/assets/analyze            # Asset Intelligence Agent analysis
+POST /api/v1/discovery/assets/auto-classify      # AI-powered classification
+GET  /api/v1/discovery/assets/intelligence-status # Intelligence system status
+```
 
-### 6. CMDB Import (`/discovery/cmdb-import`)
-**Purpose**: AI-enhanced data import and validation
+### 🎓 **Agent Learning Endpoints (Task C.1)**
+```
+POST /api/v1/agent-learning/learning/field-mapping           # Field mapping learning
+GET  /api/v1/agent-learning/learning/field-mapping/suggest   # Mapping suggestions
+POST /api/v1/agent-learning/learning/data-source-pattern     # Data source learning
+POST /api/v1/agent-learning/learning/quality-assessment      # Quality learning
+GET  /api/v1/agent-learning/learning/statistics              # Learning statistics
+```
 
-**Enhanced Features**:
-- **Dynamic Header Detection**: AI-powered field mapping during import
-- **Real-time Validation**: Immediate feedback on data quality issues
-- **Progressive Enhancement**: Continuous improvement of mapping accuracy
-- **Duplicate Detection**: Intelligent identification of duplicate assets
+### 🔗 **Cross-Page Communication Endpoints (Task C.2)**
+```
+POST /api/v1/agent-learning/communication/cross-page-context # Set shared context
+GET  /api/v1/agent-learning/communication/cross-page-context # Get shared context
+POST /api/v1/agent-learning/communication/agent-state        # Update agent state
+GET  /api/v1/agent-learning/communication/agent-states       # Get all agent states
+GET  /api/v1/agent-learning/communication/coordination-summary # Coordination health
+```
 
-## Discovery Journey Workflow
+### 👥 **Client Context Management Endpoints**
+```
+POST /api/v1/agent-learning/context/client/{client_id}             # Client context
+POST /api/v1/agent-learning/context/engagement/{engagement_id}     # Engagement context
+POST /api/v1/agent-learning/context/organizational-pattern         # Org patterns
+GET  /api/v1/agent-learning/context/combined/{engagement_id}       # Combined context
+```
 
-### Phase 1: Data Collection
-**Tools**: CMDB Import, Scanning Status
-**Objective**: Gather comprehensive data from all sources
-- Import CMDB data with AI-enhanced field mapping
-- Monitor ongoing discovery scans
-- Collect application documentation and monitoring logs
+## Real-Time Monitoring & Observability
 
-### Phase 2: Data Quality & Cleansing
-**Tools**: Data Cleansing, Attribute Mapping
-**Objective**: Ensure high-quality, consistent data
-- Review and approve AI-suggested data corrections
-- Train AI on proper field mappings and attribute associations
-- Establish data quality baselines and improvement targets
+### 📊 **Agent Health Monitoring**
+**WebSocket Connection**: `ws://localhost:8000/ws/agent-monitoring`
 
-### Phase 3: Analysis & Assessment
-**Tools**: Tech Debt Analysis, Dependency Map
-**Objective**: Understand technical landscape and risks
-- Analyze technology stack support status and end-of-life timelines
-- Map application dependencies and relationships
-- Assess security risks and modernization requirements
+**Real-Time Updates**:
+- Agent status changes and task completions
+- Learning progress and accuracy improvements
+- Asset intelligence updates and pattern recognition
+- Cross-page context coordination events
 
-### Phase 4: Landscape Overview
-**Tools**: Discovery Dashboard, Asset Inventory
-**Objective**: Prepare for assessment and planning phases
-- Review complete IT landscape with cloud readiness metrics
-- Validate asset inventory and dependency mappings
-- Generate reports for assessment phase input
-
-## AI Learning and Improvement
-
-### Human-in-the-Loop Learning
-- **Continuous Improvement**: AI learns from every human decision
-- **Context Awareness**: Considers organizational context in suggestions
-- **Accuracy Tracking**: Monitors and reports AI improvement over time
-- **Feedback Integration**: Incorporates expert domain knowledge
-
-### Data Quality Metrics
-- **Completeness**: Percentage of required fields populated
-- **Accuracy**: Validation against known good data sources
-- **Consistency**: Standardization of values across similar assets
-- **Timeliness**: Freshness of discovered information
+### 📈 **Performance Metrics**
+- **Agent Accuracy**: Real-time accuracy tracking per agent
+- **Learning Progress**: Pattern recognition improvement over time
+- **Context Health**: Cross-page coordination effectiveness
+- **User Satisfaction**: Feedback integration and response quality
 
 ## Integration with Assessment Phase
 
-### Prepared Outputs
-- **Clean Asset Inventory**: High-quality, validated asset data
-- **Dependency Maps**: Complete application and infrastructure relationships
-- **Tech Debt Assessment**: Detailed modernization requirements
-- **Risk Analysis**: Security and compliance risk factors
-- **Cloud Readiness Scores**: Application-level modernization readiness
+### 🎯 **Prepared Intelligence Outputs**
+- **Learned Patterns**: Organizational patterns and preferences for assessment agents
+- **High-Quality Data**: AI-validated and improved asset inventory
+- **Context Intelligence**: Client-specific context for tailored assessments
+- **Agent Coordination**: Seamless handoff to assessment phase agents
+- **Performance Baselines**: Agent accuracy and learning benchmarks
 
-### Transition Readiness Indicators
-- **Data Quality Score**: Minimum 85% for assessment phase
-- **Mapping Completeness**: 90%+ application-to-server mapping
-- **Dependency Coverage**: 80%+ critical dependency identification
-- **Risk Assessment**: Complete tech debt analysis for all applications
-
-## Best Practices
-
-### Data Quality Management
-1. **Start with CMDB Import**: Establish baseline data quality
-2. **Prioritize Critical Assets**: Focus quality efforts on business-critical applications
-3. **Iterative Improvement**: Use AI suggestions to continuously improve data quality
-4. **Validate Mappings**: Regular review of AI-learned field mappings
-
-### AI Training
-1. **Consistent Feedback**: Provide clear, consistent approval/rejection patterns
-2. **Document Reasoning**: Use feedback fields to explain decisions
-3. **Regular Review**: Monitor AI accuracy and adjust training as needed
-4. **Domain Expertise**: Leverage subject matter experts for complex decisions
-
-### Progress Monitoring
-1. **Weekly Reviews**: Regular assessment of discovery progress
-2. **Quality Gates**: Establish minimum quality thresholds for phase completion
-3. **Stakeholder Updates**: Regular communication on discovery findings
-4. **Issue Escalation**: Process for handling complex data quality issues
+### ✅ **Transition Readiness Indicators**
+- **Agent Learning Health**: All agents showing positive learning trends
+- **Context Completeness**: Client and engagement contexts established
+- **Cross-Page Coordination**: Healthy context sharing across all pages
+- **Data Quality Intelligence**: AI-validated data quality above 85%
+- **Pattern Recognition**: Successful organizational pattern learning
 
 ## Technical Architecture
 
-### Backend Services
-- **Data Validation Engine**: Rules-based and AI-powered validation
-- **Learning Pipeline**: Continuous model improvement from human feedback
-- **Integration Layer**: Connectors for CMDB, monitoring tools, and scanners
-- **Analytics Engine**: Progress tracking and quality metrics
+### 🏗️ **Modular Agent Design**
+```
+Data Source Intelligence Agent (230 lines)
+├── SourceTypeAnalyzer (Handler)
+├── DataStructureAnalyzer (Handler) 
+├── QualityAnalyzer (Handler)
+├── InsightGenerator (Handler)
+└── QuestionGenerator (Handler)
 
-### AI Components
-- **Field Mapping Model**: Learns organizational field naming conventions
-- **Data Quality Classifier**: Identifies various types of data quality issues
-- **Dependency Inference**: Discovers implicit relationships between assets
-- **Risk Assessment Model**: Evaluates technology stack risks and priorities
+Agent UI Bridge (840 → 230 lines)
+├── QuestionHandler (Handler)
+├── ClassificationHandler (Handler)
+├── InsightHandler (Handler)
+├── ContextHandler (Handler) [Enhanced with cross-page communication]
+├── AnalysisHandler (Handler)
+└── StorageManager (Handler)
+```
 
-### Data Storage
-- **Master Data Management**: Single source of truth for all discovered assets
-- **Audit Trail**: Complete history of data changes and AI learning
-- **Backup and Recovery**: Automated backup of validated data
-- **Performance Optimization**: Indexed and optimized for large-scale queries
+### 🧠 **Learning Infrastructure**
+```
+Agent Learning System (800+ lines)
+├── Field Mapping Pattern Learning
+├── Data Source Pattern Learning
+├── Quality Assessment Learning
+├── User Preference Learning
+├── Performance Tracking
+└── Accuracy Monitoring
 
-This enhanced Discovery phase provides a solid foundation for the entire cloud modernization journey, ensuring that subsequent assessment, planning, and execution phases have access to high-quality, comprehensive, and validated data about your IT landscape. 
+Client Context Manager (600+ lines)
+├── Organizational Pattern Learning
+├── Engagement-Specific Preferences
+├── Clarification Response Storage
+├── Agent Behavior Adaptation
+└── Migration Preference Learning
+```
+
+### 🔗 **Cross-Page Communication**
+```
+Enhanced Agent UI Bridge Context Handler
+├── Cross-Page Context Sharing
+├── Agent State Coordination  
+├── Learning Experience Storage
+├── Context Health Monitoring
+├── Coordination Summary Reporting
+└── Stale Context Cleanup
+```
+
+## Success Metrics
+
+### 🎯 **Agentic Intelligence**
+- ✅ All analysis powered by AI agents (not rules)
+- ✅ Learning accuracy improves over time
+- ✅ User feedback integrated into agent behavior
+- ✅ Pattern recognition working effectively
+
+### 🏗️ **Architecture Quality**
+- ✅ Zero hard-coded migration logic
+- ✅ Modular services with clean separation
+- ✅ Graceful degradation working properly
+- ✅ Multi-tenant isolation verified
+
+### 🎓 **Learning Effectiveness**
+- ✅ Field mapping accuracy improving with use
+- ✅ Client-specific patterns being learned
+- ✅ Cross-page coordination functioning smoothly
+- ✅ Agent performance metrics showing improvement
+
+### 🔗 **Cross-Page Coordination**
+- ✅ Context sharing across all discovery pages
+- ✅ Agent state persistence during navigation
+- ✅ Learning experiences shared globally
+- ✅ Health monitoring showing system coordination
+
+## Best Practices
+
+### 🤖 **Agent Training & Learning**
+1. **Consistent Feedback**: Provide clear, consistent responses to agent questions
+2. **Pattern Documentation**: Help agents learn organizational naming conventions
+3. **Regular Review**: Monitor agent learning progress and accuracy improvements
+4. **Context Building**: Build comprehensive client and engagement contexts
+
+### 🔗 **Cross-Page Experience**
+1. **Seamless Navigation**: Leverage cross-page context for consistent experience
+2. **Learning Continuity**: Allow agents to maintain learning state across pages
+3. **Context Optimization**: Regular cleanup of stale context for performance
+4. **Health Monitoring**: Monitor cross-page coordination health
+
+### 📊 **Performance Optimization**
+1. **Agent Monitoring**: Regular review of agent performance and accuracy
+2. **Learning Analytics**: Track learning progress and identify improvement opportunities
+3. **Context Efficiency**: Optimize context sharing for performance
+4. **System Health**: Monitor overall system health and agent coordination
+
+---
+
+## 🌟 **Revolutionary Discovery Experience**
+
+**The AI Force Discovery Phase represents a paradigm shift from static rule-based analysis to intelligent, learning-enabled agents that adapt to your organization and improve over time. Every interaction teaches the system, every correction improves accuracy, and every engagement builds organizational intelligence for better future outcomes.**
+
+**This agentic architecture ensures that the Discovery phase becomes more valuable and accurate with each use, providing unparalleled intelligence for your cloud modernization journey.** 

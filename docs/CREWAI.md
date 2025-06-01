@@ -94,14 +94,15 @@ graph TB
 
 | Phase | Primary Agents | Supporting Agents | Crew Teams | Status |
 |-------|---------------|-------------------|------------|---------|
-| **Discovery** | CMDB Analyst, Field Mapping Specialist, Data Quality Expert | Pattern Recognition, Learning Specialist | Analysis, Learning, Quality | ✅ Active |
+| **Discovery** | Data Source Intelligence Agent, CMDB Analyst, Field Mapping Specialist | Asset Intelligence Agent, Learning Specialist | Analysis, Learning, Intelligence | ✅ Active |
 | **Assessment** | 6R Strategy Expert, Risk Assessor, Complexity Analyzer | Compliance Checker, Performance Analyst | Strategy, Risk, Complexity | 🚧 In Development |
 | **Planning** | Wave Planner, Timeline Optimizer, Resource Estimator | Dependency Mapper, Change Manager | Planning, Timeline, Resource | 🚧 In Development |
 | **Migration** | Execution Coordinator, Monitoring Agent, Rollback Manager | Validation Agent, Communication Hub | Execution, Monitoring, Control | 📋 Planned |
 | **Modernization** | Refactoring Expert, Containerization Specialist, Cloud-Native Architect | Code Analyzer, Performance Optimizer | Modernization, Architecture | 📋 Planned |
 | **Decommission** | Cleanup Coordinator, Archive Manager, Compliance Validator | Data Retention, Security Auditor | Cleanup, Archive, Compliance | 📋 Planned |
 | **FinOps** | Cost Analyzer, ROI Calculator, Optimization Expert | Budget Tracker, Savings Detector | Cost, ROI, Optimization | 📋 Planned |
-| **Observability** | **Asset Intelligence Agent**, Agent Health Monitor, Performance Tracker | Alert Manager, Metrics Collector | Asset Management, Monitoring, Analytics | ✅ Active |
+| **Learning & Context** | Agent Learning System, Client Context Manager, Enhanced Agent UI Bridge | Cross-Page Coordinator, Context Analytics | Learning, Context, Coordination | ✅ Active |
+| **Observability** | Asset Intelligence Agent, Agent Health Monitor, Performance Analytics | Alert Manager, Metrics Collector | Asset Management, Monitoring, Analytics | ✅ Active |
 
 ### Agent Status Tracking (Current)
 
@@ -124,6 +125,19 @@ interface AgentStatus {
 
 #### 1. **Discovery Phase Agents** ✅
 
+**Data Source Intelligence Agent** 🆕
+- **Role**: Data Source Intelligence Specialist
+- **Status**: ✅ Active with Modular Handlers
+- **Agent ID**: `data_source_intelligence_001`
+- **Expertise**: Analyzes incoming data sources (CMDB, migration tools, documentation) for format, structure, and migration value
+- **Modular Handlers**:
+  - Source Type Analyzer (identifies CMDB, migration tools, documentation patterns)
+  - Data Structure Analyzer (analyzes relationships, content patterns, migration value)
+  - Quality Analyzer (assesses data quality with intelligent classification)
+  - Insight Generator (creates actionable insights from data analysis)
+  - Question Generator (generates intelligent clarification questions)
+- **Specialization**: Agentic intelligence without hard-coded heuristics, learns from user corrections
+
 **CMDB Data Analyst Agent**
 - **Role**: Senior CMDB Data Analyst  
 - **Status**: ✅ Active  
@@ -131,19 +145,19 @@ interface AgentStatus {
 - **Expertise**: 15+ years in enterprise asset management  
 - **Specialization**: Asset type detection, data quality assessment, migration readiness
 
-**Pattern Recognition Agent**
-- **Role**: Data Pattern Recognition Expert
-- **Status**: ✅ Active
-- **Agent ID**: `pattern_agent`
-- **Expertise**: CMDB structure analysis and field mapping intelligence
-- **Specialization**: Format detection, field mapping, relationship analysis
+**Field Mapping Specialist Agent**
+- **Role**: Field Mapping Specialist
+- **Status**: ✅ Active with Learning Integration
+- **Agent ID**: `field_mapping_specialist`
+- **Expertise**: Intelligent field mapping to 20+ critical migration attributes
+- **Specialization**: Learns organizational field naming conventions, creates custom attributes, provides confidence scoring
 
-**Learning Specialist Agent**
+**Learning Specialist Agent** 🔄
 - **Role**: AI Learning Specialist
-- **Status**: ✅ Active
+- **Status**: ✅ Active with Enhanced Asset Management Learning
 - **Agent ID**: `learning_agent`
-- **Expertise**: Feedback processing and continuous improvement (Enhanced with asset management learning)
-- **Specialization**: Pattern recognition, accuracy enhancement, field mapping learning
+- **Expertise**: Cross-platform learning coordination and pattern recognition (Enhanced with asset management learning)
+- **Specialization**: Field mapping learning, data source patterns, quality assessment improvement, user preference adaptation
 
 #### 2. **Assessment Phase Agents** 🚧
 
@@ -170,25 +184,76 @@ interface AgentStatus {
 - **Expertise**: Migration sequencing and dependency management
 - **Specialization**: Wave optimization, resource planning, timeline management
 
-#### 4. **Observability Phase Agents** ✅
+#### 4. **Learning & Context Management Agents** 🆕
+
+**Agent Learning System** 🆕
+- **Role**: Platform-Wide Learning Infrastructure
+- **Status**: ✅ Active (Task C.1)
+- **Agent ID**: `agent_learning_system`
+- **Expertise**: Pattern recognition, field mapping learning, performance tracking
+- **Specialization**: 
+  - Field mapping pattern learning with fuzzy matching
+  - Data source pattern learning from user corrections
+  - Quality assessment learning with threshold optimization
+  - User preference learning for client/engagement context
+  - Performance tracking with accuracy metrics and improvement trends
+- **Key Features**:
+  - JSON-based persistent learning data storage
+  - Confidence scoring for mapping accuracy
+  - Cross-system learning integration
+
+**Client Context Manager** 🆕
+- **Role**: Client/Engagement-Specific Context Management
+- **Status**: ✅ Active (Task C.1)
+- **Agent ID**: `client_context_manager`
+- **Expertise**: Organizational pattern learning, engagement-specific preferences
+- **Specialization**:
+  - Client-specific organizational pattern learning
+  - Engagement-specific preferences and clarification history
+  - Migration preference learning and agent behavior adaptation
+  - Multi-tenant context isolation with client account scoping
+- **Key Features**:
+  - Client/engagement context storage and retrieval
+  - Organizational pattern recognition and learning
+  - Agent behavior adaptation based on client preferences
+
+**Enhanced Agent UI Bridge** 🔄
+- **Role**: Cross-Page Agent Communication Coordinator
+- **Status**: ✅ Active with Enhanced Cross-Page Communication (Task C.2)
+- **Agent ID**: `agent_ui_bridge`
+- **Expertise**: Agent state coordination, cross-page context sharing
+- **Modular Handlers** (Refactored from 840 to 230 lines):
+  - Question Handler (agent question management)
+  - Classification Handler (data classification coordination)
+  - Insight Handler (agent insight management)
+  - Context Handler (enhanced with cross-page communication)
+  - Analysis Handler (analysis result coordination)
+  - Storage Manager (data persistence coordination)
+- **Cross-Page Features**:
+  - Agent state coordination across all discovery pages
+  - Context sharing and persistence with metadata tracking
+  - Learning experience storage and retrieval across page navigation
+  - Coordination health monitoring and summary reporting
+  - Automatic stale context cleanup with configurable aging
+
+#### 5. **Observability Phase Agents** ✅
 
 **Asset Intelligence Agent** 🆕
 - **Role**: Asset Inventory Intelligence Specialist
-- **Status**: ✅ Active
+- **Status**: ✅ Active with Discovery Integration
 - **Agent ID**: `asset_intelligence`
 - **Expertise**: Advanced asset inventory management with AI intelligence
 - **Specialization**: 
-  - Asset classification and categorization patterns
-  - Data quality assessment for inventory management
-  - Bulk operations optimization using learned patterns
+  - Asset classification and categorization patterns using AI
+  - Content-based asset analysis using field mapping intelligence
+  - Intelligent bulk operations planning and optimization
   - Asset lifecycle management and relationship mapping
-  - Field mapping intelligence integration
+  - Continuous learning from user interactions and feedback
 - **Key Features**:
   - AI-powered pattern recognition (not hard-coded heuristics)
-  - Content-based asset analysis using field mapping intelligence
-  - Intelligent bulk operations planning
-  - Continuous learning from user interactions
-  - Asset data quality assessment and optimization
+  - Integration with discovery endpoints for seamless experience
+  - Real-time asset intelligence monitoring and updates
+  - Quality assessment with actionable recommendations
 
 **Agent Health Monitor**
 - **Role**: Agent Health Monitor  
@@ -196,10 +261,11 @@ interface AgentStatus {
 - **Agent ID**: `agent_health_monitor`
 - **Expertise**: Real-time agent performance and health monitoring  
 - **Current Monitoring**:
-  - **Active Agents**: 7 agents currently running
+  - **Active Agents**: 10+ agents currently running (including new learning agents)
   - **Tasks Completed**: Real-time task completion tracking
   - **Performance Metrics**: Response times, accuracy rates, memory usage
   - **Health Status**: Agent availability and error rates
+  - **Learning Progress**: Agent accuracy improvement tracking
 
 **Performance Analytics Agent**
 - **Role**: Performance Analytics Specialist  
@@ -1238,6 +1304,108 @@ def learn_field_actions(self, field_actions: List[FieldAction]):
 }
 ```
 
+### Agent Learning & Context Management Endpoints 🆕
+
+#### **Agent Learning System (Task C.1)**
+```bash
+# Field Mapping Learning
+POST /api/v1/agent-learning/learning/field-mapping
+GET  /api/v1/agent-learning/learning/field-mapping/suggest/{field_name}
+
+# Data Source Pattern Learning  
+POST /api/v1/agent-learning/learning/data-source-pattern
+
+# Quality Assessment Learning
+POST /api/v1/agent-learning/learning/quality-assessment
+
+# User Preference Learning
+POST /api/v1/agent-learning/learning/user-preferences
+
+# Agent Performance Tracking
+POST /api/v1/agent-learning/learning/agent-performance
+GET  /api/v1/agent-learning/learning/agent-performance/{agent_id}
+
+# Learning Statistics
+GET  /api/v1/agent-learning/learning/statistics
+```
+
+#### **Client Context Management (Task C.1)**
+```bash
+# Client Context Management
+POST /api/v1/agent-learning/context/client/{client_account_id}
+GET  /api/v1/agent-learning/context/client/{client_account_id}
+
+# Engagement Context Management
+POST /api/v1/agent-learning/context/engagement/{engagement_id}
+GET  /api/v1/agent-learning/context/engagement/{engagement_id}
+
+# Organizational Pattern Learning
+POST /api/v1/agent-learning/context/organizational-pattern/{client_account_id}
+GET  /api/v1/agent-learning/context/organizational-patterns/{client_account_id}
+
+# Clarification Response Management
+POST /api/v1/agent-learning/context/clarification-response/{engagement_id}
+GET  /api/v1/agent-learning/context/clarification-history/{engagement_id}
+
+# Combined Context
+GET  /api/v1/agent-learning/context/combined/{engagement_id}
+```
+
+#### **Cross-Page Communication (Task C.2)**
+```bash
+# Cross-Page Context Sharing
+POST /api/v1/agent-learning/communication/cross-page-context
+GET  /api/v1/agent-learning/communication/cross-page-context
+DELETE /api/v1/agent-learning/communication/cross-page-context
+
+# Agent State Coordination
+POST /api/v1/agent-learning/communication/agent-state
+GET  /api/v1/agent-learning/communication/agent-state/{agent_id}
+GET  /api/v1/agent-learning/communication/agent-states
+
+# Coordination Health & Management
+GET  /api/v1/agent-learning/communication/coordination-summary
+GET  /api/v1/agent-learning/communication/context-dependencies
+POST /api/v1/agent-learning/communication/clear-stale-context
+
+# System Health
+GET  /api/v1/agent-learning/health
+```
+
+#### **Integrated Learning Endpoint**
+```bash
+# Cross-System Learning Integration
+POST /api/v1/agent-learning/integration/learn-from-user-response
+```
+
+**Example Request**:
+```json
+{
+    "response_type": "field_mapping",
+    "original_field": "srv_name",
+    "mapped_to": "hostname", 
+    "confidence_score": 0.95,
+    "context": {"asset_type": "server"},
+    "engagement_id": "eng_123",
+    "share_across_pages": true,
+    "page_source": "attribute-mapping"
+}
+```
+
+**Example Response**:
+```json
+{
+    "success": true,
+    "message": "User response processed across all learning systems",
+    "actions_taken": [
+        "field_mapping_learned",
+        "clarification_stored", 
+        "context_shared"
+    ],
+    "response_type": "field_mapping"
+}
+```
+
 ## Configuration
 
 ### Enhanced Environment Variables
@@ -1338,10 +1506,14 @@ CUSTOM_ATTRIBUTE_LEARNING_ENABLED=true
 
 | Agent | Status | Phase | Key Features | Endpoints |
 |-------|---------|-------|--------------|-----------|
-| **Asset Intelligence Agent** 🆕 | ✅ Active | Observability | AI-powered asset management, content-based classification, bulk operations intelligence | `/discovery/assets/analyze`, `/discovery/assets/auto-classify`, `/inventory/*` |
+| **Data Source Intelligence Agent** 🆕 | ✅ Active | Discovery | Modular handlers, agentic analysis without hard-coded heuristics, learns from corrections | Data source analysis, insight generation |
+| **Asset Intelligence Agent** 🆕 | ✅ Active | Observability | AI-powered asset management, content-based classification, discovery integration | `/discovery/assets/analyze`, `/discovery/assets/auto-classify`, `/inventory/*` |
+| **Agent Learning System** 🆕 | ✅ Active | Learning & Context | Platform-wide learning infrastructure, field mapping patterns, performance tracking | `/agent-learning/learning/*` endpoints |
+| **Client Context Manager** 🆕 | ✅ Active | Learning & Context | Client/engagement context, organizational patterns, clarification history | `/agent-learning/context/*` endpoints |
+| **Enhanced Agent UI Bridge** 🔄 | ✅ Active | Learning & Context | Cross-page communication, agent state coordination, modular handlers | `/agent-learning/communication/*` endpoints |
 | **CMDB Analyst Agent** | ✅ Active | Discovery | Expert CMDB analysis with 15+ years experience, migration readiness assessment | `/discovery/analyze-cmdb`, `/discovery/process-cmdb` |
-| **Learning Specialist Agent** | ✅ Active | Cross-Phase | Enhanced with asset management learning, field mapping intelligence, continuous improvement | `/discovery/cmdb-feedback`, feedback processing |
-| **Pattern Recognition Agent** | ✅ Active | Discovery | Field mapping intelligence, data structure analysis, format detection | Integrated with field mapping system |
+| **Field Mapping Specialist Agent** | ✅ Active | Discovery | Enhanced with learning integration, 20+ critical attributes, confidence scoring | Field mapping system, learning integration |
+| **Learning Specialist Agent** 🔄 | ✅ Active | Cross-Phase | Enhanced with asset management learning, cross-platform coordination | Learning coordination, feedback processing |
 | **Migration Strategy Expert** | ✅ Active | Assessment | 6R strategy analysis, migration planning | Assessment and planning endpoints |
 | **Risk Assessment Specialist** | ✅ Active | Assessment | Migration risk analysis, mitigation strategies | Risk assessment workflows |
 | **Wave Planning Coordinator** | ✅ Active | Planning | Migration sequencing, dependency management | Wave planning optimization |
@@ -1412,29 +1584,61 @@ CUSTOM_ATTRIBUTE_LEARNING_ENABLED=true
 
 ### 🚀 **Key Benefits Achieved**
 
-1. **Seamless Integration**: Asset Intelligence Agent works with existing discovery workflow
-2. **No Hard-Coded Heuristics**: All intelligence is AI-powered and learning-based
-3. **Dual Endpoint Strategy**: Both integrated discovery endpoints and enhanced standalone
-4. **Backward Compatibility**: Existing frontend continues to work with enhancements
-5. **Continuous Learning**: System improves from every user interaction
-6. **Real-time Intelligence**: Live asset intelligence monitoring and updates
+1. **Complete Modularization**: All large agent files modularized into maintainable handlers (< 200 lines each)
+2. **Agentic-First Architecture**: No hard-coded heuristics - all intelligence from AI agents with learning
+3. **Agent Learning Infrastructure**: Platform-wide learning system (Task C.1) with field mapping, context management
+4. **Cross-Page Communication**: Seamless agent coordination across all discovery pages (Task C.2)
+5. **Client Context Intelligence**: Client/engagement-specific learning and organizational pattern recognition
+6. **Seamless Integration**: Discovery, learning, and context systems work together seamlessly
+7. **Real-time Coordination**: Live agent monitoring, cross-page context sharing, and health tracking
+8. **Continuous Learning**: Every user interaction improves agent accuracy and organizational intelligence
 
 ### 🔮 **Next Steps**
 
-1. **Enable Advanced Features**: Configure CrewAI service with API keys for full intelligence
-2. **Training Phase**: Use the feedback endpoints to train the Asset Intelligence Agent
-3. **Frontend Enhancement**: Leverage the new intelligent capabilities in the UI
-4. **Assessment Integration**: Connect Asset Intelligence with 6R analysis workflows
-5. **Performance Monitoring**: Use observability endpoints to monitor agent performance
+1. **Frontend Integration**: Integrate new learning and context endpoints into UI components
+2. **Agent Training**: Use feedback endpoints to train agents with real organizational data
+3. **Assessment Phase Integration**: Connect learning system with 6R analysis workflows
+4. **Performance Optimization**: Monitor agent learning progress and optimize based on metrics
+5. **Advanced Context Features**: Implement advanced organizational pattern recognition
+6. **Testing & Validation**: Comprehensive testing of cross-page communication and learning systems
 
-The Asset Intelligence Agent represents a significant enhancement to the AI Force Migration Platform, providing truly intelligent asset inventory management that learns and adapts while maintaining seamless integration with existing workflows.
+The comprehensive agent ecosystem now provides a fully integrated, learning-enabled platform that revolutionizes cloud migration intelligence through agentic architecture, continuous learning, and seamless cross-page coordination.
 
 ---
 
 ## Conclusion
 
-The enhanced CrewAI Agentic Framework provides a comprehensive, learning-enabled AI ecosystem for the entire migration lifecycle. With platform-wide agent monitoring, custom attribute management, and cross-phase learning capabilities, it represents a significant advancement in migration automation and intelligence.
+The **AI Force Migration Platform's CrewAI Agentic Framework** now represents a complete paradigm shift in migration automation - from static rule-based systems to intelligent, learning-enabled agents that adapt and improve with every interaction.
 
-The framework's ability to learn from user feedback, adapt to organizational patterns, and provide real-time observability makes it an invaluable tool for enterprise migration projects. As additional phases are implemented, the platform will become increasingly intelligent and capable of handling complex migration scenarios with minimal human intervention.
+### 🎯 **Revolutionary Achievements**
 
-For technical support, feature requests, or contributions, please refer to the project's GitHub repository and documentation resources. 
+**Agentic Intelligence**: Complete elimination of hard-coded heuristics in favor of AI-powered analysis that learns organizational patterns and user preferences.
+
+**Modular Architecture**: All agents designed with maintainable, single-responsibility handlers that enable rapid development and robust operation.
+
+**Learning Infrastructure**: Platform-wide learning system (Task C.1) that captures field mapping patterns, organizational preferences, and user feedback to continuously improve accuracy.
+
+**Cross-Page Coordination**: Seamless agent communication system (Task C.2) that maintains context and learning state across all discovery pages.
+
+**Client Context Intelligence**: Client and engagement-specific context management that adapts agent behavior to organizational patterns and preferences.
+
+### 🌟 **Platform Intelligence Evolution**
+
+As users interact with the platform:
+- **Field mapping accuracy improves** through pattern recognition and learning
+- **Organizational intelligence grows** through client-specific context building  
+- **Agent coordination becomes seamless** across all discovery workflows
+- **User experience becomes personalized** to organizational patterns and preferences
+
+### 🚀 **Enterprise-Ready Foundation**
+
+The framework provides enterprise-grade capabilities including:
+- **Multi-tenant isolation** with client account scoping
+- **Real-time monitoring** and health tracking
+- **Graceful fallback systems** for robust operation
+- **Performance analytics** and continuous optimization
+- **Cross-phase learning** that benefits the entire migration lifecycle
+
+This agentic foundation ensures that every engagement teaches the platform, every correction improves accuracy, and every organizational pattern enhances future migration intelligence - creating a continuously evolving, enterprise-grade migration automation platform.
+
+**The AI Force Migration Platform is now powered by true artificial intelligence that learns, adapts, and evolves - delivering unprecedented value for enterprise cloud modernization initiatives.** 
