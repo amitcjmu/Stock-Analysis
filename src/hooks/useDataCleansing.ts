@@ -353,8 +353,18 @@ export const useDataCleansing = () => {
 
     // Debug logging to understand data structure
     console.log('Data structure analysis for fallback issues:');
-    console.log('First asset:', data[0]);
-    console.log('Available columns:', data.length > 0 ? Object.keys(data[0]) : 'No data');
+    if (data.length > 0) {
+      console.log('First asset:', data[0]);
+      console.log('Available columns:', Object.keys(data[0]));
+      console.log('Asset identifiers found:', data.slice(0, 3).map(asset => ({
+        ID: asset.ID,
+        id: asset.id,
+        NAME: asset.NAME,
+        name: asset.name,
+        asset_name: asset.asset_name,
+        hostname: asset.hostname
+      })));
+    }
 
     // Generate realistic sample issues based on actual data structure
     const sampleIssues: QualityIssue[] = data.slice(0, Math.min(5, data.length)).map((asset, index) => {
@@ -362,17 +372,31 @@ export const useDataCleansing = () => {
       const availableFields = Object.keys(asset);
       console.log(`Available fields for asset ${index}:`, availableFields);
       
-      // Use actual field names without any transformation - pick the second field to avoid ID
-      const fieldToCheck = availableFields.length > 1 ? availableFields[1] : availableFields[0] || 'TYPE';
+      // Pick interesting fields for quality issues - skip ID and use meaningful fields
+      const interestingFields = availableFields.filter(field => 
+        !['ID', 'id'].includes(field) && 
+        asset[field] !== null && 
+        asset[field] !== undefined &&
+        String(asset[field]).trim() !== ''
+      );
       
-      // Get asset identifier that matches what the table will use (including uppercase variants)
-      const assetIdentifier = asset.id || asset.ID || asset.asset_name || asset.hostname || asset.name || asset.NAME || `asset-${index}`;
-      const assetName = asset.asset_name || asset.hostname || asset.name || asset.NAME || asset.NAME || `Asset ${index}`;
+      // Use the first interesting field, or fall back to any field
+      const fieldToCheck = interestingFields[0] || availableFields[1] || availableFields[0] || 'TYPE';
+      
+      // Get asset identifier using the EXACT same logic as the table
+      const assetIdentifier = asset.id || asset.ID || asset.asset_name || asset.hostname || asset.name || asset.NAME || `unknown-${index}`;
+      const assetName = asset.asset_name || asset.hostname || asset.name || asset.NAME || asset.ID || asset.id || `Asset ${index}`;
       
       // Get current value for the field
       const currentValue = asset[fieldToCheck] || '';
 
-      console.log(`Generated issue ${index}: asset=${assetIdentifier}, field=${fieldToCheck}, value="${currentValue}"`);
+      console.log(`Generated issue ${index}:`, {
+        assetId: assetIdentifier,
+        assetName: assetName,
+        fieldName: fieldToCheck,
+        currentValue: currentValue,
+        assetData: asset
+      });
 
       return {
         id: `issue-${index}`,

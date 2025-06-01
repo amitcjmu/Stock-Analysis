@@ -158,27 +158,23 @@ const normalizeFieldName = (fieldName: string): string => {
 };
 
 /**
- * Find asset by various identifier formats
+ * Find asset by various identifier formats - MUST match table's getAssetIdentifier logic exactly
  */
 const findAssetByIdentifier = (rawData: any[], identifier: string): any | null => {
   if (!identifier || !rawData || rawData.length === 0) return null;
   
-  return rawData.find(asset => 
-    asset.id === identifier ||
-    asset.ID === identifier ||
-    asset.asset_name === identifier ||
-    asset.hostname === identifier ||
-    asset.name === identifier ||
-    asset.NAME === identifier ||
-    asset.HOSTNAME === identifier
-  ) || null;
+  return rawData.find(asset => {
+    // Use the EXACT same logic as table's getAssetIdentifier
+    const tableAssetId = asset.id || asset.ID || asset.asset_name || asset.hostname || asset.name || asset.NAME || 'unknown';
+    return tableAssetId === identifier;
+  }) || null;
 };
 
 /**
- * Get the asset identifier that the table is using for row identification
+ * Get the asset identifier that the table is using for row identification - MUST match RawDataTable exactly
  */
 const getAssetTableIdentifier = (asset: any): string => {
-  // Return the identifier in the same format the table uses
+  // EXACT same logic as RawDataTable's getAssetIdentifier
   return asset.id || asset.ID || asset.asset_name || asset.hostname || asset.name || asset.NAME || 'unknown';
 };
 
