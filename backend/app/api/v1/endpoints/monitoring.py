@@ -1,6 +1,7 @@
 """
 Agent Monitoring API Endpoints
 Provides real-time observability into CrewAI agent task execution for the frontend.
+Enhanced with comprehensive agent registry and phase organization.
 """
 
 from fastapi import APIRouter, HTTPException
@@ -10,6 +11,9 @@ import logging
 from app.services.agent_monitor import agent_monitor, TaskStatus
 from app.services.crewai_service import crewai_service
 
+# Import the new agent registry
+from app.services.agent_registry import agent_registry, AgentPhase, AgentStatus
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
@@ -18,28 +22,29 @@ router = APIRouter()
 @router.get("/status")
 async def get_agent_status():
     """
-    Get current agent monitoring status.
+    Get current agent monitoring status with comprehensive registry data.
     
     Returns real-time information about active agents, running tasks,
-    and system health for display in the frontend.
+    and system health organized by phases for display in the frontend.
     """
     try:
         # Get monitoring status
         status_report = agent_monitor.get_status_report()
         
-        # Get agent capabilities
-        agent_capabilities = {}
-        if crewai_service.agent_manager:
-            agent_capabilities = crewai_service.agent_manager.get_agent_capabilities()
+        # Get comprehensive registry data
+        registry_status = agent_registry.get_registry_status()
         
-        # Get system status
+        # Get agent capabilities from registry
+        agent_capabilities = agent_registry.get_agent_capabilities_formatted()
+        
+        # Get system status from CrewAI service (fallback)
         system_status = {}
         if crewai_service.agent_manager:
             system_status = crewai_service.agent_manager.get_system_status()
         
         return {
             "success": True,
-            "timestamp": "2025-01-27T12:00:00Z",
+            "timestamp": "2025-01-28T12:00:00Z",
             "monitoring": {
                 "active": status_report["monitoring_active"],
                 "active_tasks": status_report["active_tasks"],
@@ -47,14 +52,20 @@ async def get_agent_status():
                 "hanging_tasks": status_report["hanging_tasks"]
             },
             "agents": {
-                "available": len(crewai_service.agents) if crewai_service.agents else 0,
+                "total_registered": registry_status["total_agents"],
+                "active_agents": registry_status["active_agents"],
+                "learning_enabled": registry_status["learning_enabled_agents"],
+                "cross_page_communication": registry_status["cross_page_communication_agents"],
+                "modular_handlers": registry_status["modular_handler_agents"],
+                "phase_distribution": registry_status["phase_distribution"],
                 "capabilities": agent_capabilities,
                 "system_status": system_status
             },
             "tasks": {
                 "active": status_report["active_task_details"],
                 "hanging": status_report["hanging_task_details"]
-            }
+            },
+            "registry_status": registry_status
         }
         
     except Exception as e:
@@ -63,113 +74,195 @@ async def get_agent_status():
 
 
 @router.get("/tasks")
-async def get_active_tasks():
+async def get_task_history(agent_id: Optional[str] = None, limit: int = 10):
     """
-    Get detailed information about currently active tasks.
+    Get task execution history.
     
-    Returns comprehensive task execution details including:
-    - Task progress and status
-    - Agent assignments
-    - LLM call history
-    - Thinking phases
-    - Performance metrics
+    Args:
+        agent_id: Optional agent ID to filter tasks
+        limit: Maximum number of tasks to return
+    
+    Returns:
+        List of recent task executions with details
     """
     try:
         status_report = agent_monitor.get_status_report()
         
-        # Enhance task details with additional context
-        enhanced_tasks = []
-        for task in status_report["active_task_details"]:
-            enhanced_task = {
-                **task,
-                "progress_indicators": {
-                    "has_started": task["elapsed"] != "0.0s",
-                    "making_progress": task["since_activity"] != task["elapsed"],
-                    "llm_active": task["status"] in ["waiting_llm", "processing_response"],
-                    "thinking_active": task["status"] == "thinking"
-                },
-                "performance": {
-                    "avg_llm_response_time": "N/A",  # Could be calculated from history
-                    "task_complexity": "medium",     # Could be inferred from description
-                    "estimated_completion": "N/A"   # Could be predicted based on patterns
-                }
-            }
-            enhanced_tasks.append(enhanced_task)
+        # Filter by agent if specified
+        tasks = status_report["completed_task_details"] if "completed_task_details" in status_report else []
+        
+        if agent_id:
+            tasks = [task for task in tasks if task.get("agent") == agent_id]
+        
+        # Sort by completion time and limit
+        tasks = sorted(tasks, key=lambda x: x.get("end_time", ""), reverse=True)[:limit]
         
         return {
             "success": True,
-            "timestamp": "2025-01-27T12:00:00Z",
-            "active_tasks": enhanced_tasks,
-            "summary": {
-                "total_active": len(enhanced_tasks),
-                "healthy": len([t for t in enhanced_tasks if not t["is_hanging"]]),
-                "hanging": len([t for t in enhanced_tasks if t["is_hanging"]]),
-                "agents_busy": len(set(t["agent"] for t in enhanced_tasks))
-            }
+            "tasks": tasks,
+            "total_returned": len(tasks),
+            "filtered_by_agent": agent_id is not None
         }
         
     except Exception as e:
-        logger.error(f"Error getting active tasks: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to get active tasks: {str(e)}")
+        logger.error(f"Error getting task history: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get task history: {str(e)}")
 
 
 @router.get("/agents")
 async def get_agent_details():
     """
-    Get detailed information about available agents and their capabilities.
+    Get detailed information about available agents organized by phases.
     
     Returns comprehensive agent information including:
-    - Agent roles and expertise
+    - Agent roles and expertise organized by migration phases
     - Current availability status
     - Performance history
     - Specializations and skills
+    - Learning and cross-page communication capabilities
     """
     try:
-        agent_details = []
+        agent_details_by_phase = {}
         
-        if crewai_service.agent_manager:
-            capabilities = crewai_service.agent_manager.get_agent_capabilities()
-            system_status = crewai_service.agent_manager.get_system_status()
+        # Get agents organized by phase
+        for phase in AgentPhase:
+            phase_agents = agent_registry.get_agents_by_phase(phase)
             
-            # Get current task assignments
+            # Get current task assignments for status
             status_report = agent_monitor.get_status_report()
             active_agents = {task["agent"] for task in status_report["active_task_details"]}
             
-            for agent_name, capability in capabilities.items():
+            agents_list = []
+            for agent in phase_agents:
+                # Check if agent is currently working (simplified check)
+                is_working = any(agent.name.lower().replace(' ', '_') in active_agent.lower() 
+                               for active_agent in active_agents)
+                
                 agent_info = {
-                    "name": agent_name,
-                    "role": capability["role"],
-                    "expertise": capability["expertise"],
-                    "specialization": capability["specialization"],
-                    "key_skills": capability["key_skills"],
+                    "agent_id": agent.agent_id,
+                    "name": agent.name,
+                    "role": agent.role,
+                    "expertise": agent.expertise,
+                    "specialization": agent.specialization,
+                    "key_skills": agent.key_skills,
+                    "capabilities": agent.capabilities,
+                    "api_endpoints": agent.api_endpoints,
+                    "description": agent.description,
+                    "version": agent.version,
                     "status": {
-                        "available": agent_name not in active_agents,
-                        "currently_working": agent_name in active_agents,
-                        "health": "healthy"  # Could be determined from recent performance
+                        "current_status": agent.status.value,
+                        "available": agent.status == AgentStatus.ACTIVE and not is_working,
+                        "currently_working": is_working,
+                        "health": "healthy" if agent.status == AgentStatus.ACTIVE else "inactive"
+                    },
+                    "features": {
+                        "learning_enabled": agent.learning_enabled,
+                        "cross_page_communication": agent.cross_page_communication,
+                        "modular_handlers": agent.modular_handlers
                     },
                     "performance": {
-                        "tasks_completed": 0,  # Could be tracked from history
-                        "success_rate": "N/A", # Could be calculated from history
-                        "avg_execution_time": "N/A"  # Could be calculated from history
-                    }
+                        "tasks_completed": agent.tasks_completed,
+                        "success_rate": f"{agent.success_rate:.1%}" if agent.success_rate > 0 else "N/A",
+                        "avg_execution_time": f"{agent.avg_execution_time:.1f}s" if agent.avg_execution_time > 0 else "N/A"
+                    },
+                    "registration_time": agent.registration_time.isoformat() if agent.registration_time else None,
+                    "last_heartbeat": agent.last_heartbeat.isoformat() if agent.last_heartbeat else None
                 }
-                agent_details.append(agent_info)
+                agents_list.append(agent_info)
+            
+            # Only include phases that have agents
+            if agents_list:
+                agent_details_by_phase[phase.value] = {
+                    "phase_name": phase.value.replace('_', ' ').title(),
+                    "total_agents": len(agents_list),
+                    "active_agents": len([a for a in agents_list if a["status"]["current_status"] == "active"]),
+                    "agents": agents_list
+                }
+        
+        # Calculate summary statistics
+        all_agents = []
+        for phase_data in agent_details_by_phase.values():
+            all_agents.extend(phase_data["agents"])
+        
+        summary = {
+            "total_agents": len(all_agents),
+            "by_phase": {phase: data["total_agents"] for phase, data in agent_details_by_phase.items()},
+            "by_status": {
+                "active": len([a for a in all_agents if a["status"]["current_status"] == "active"]),
+                "planned": len([a for a in all_agents if a["status"]["current_status"] == "planned"]),
+                "in_development": len([a for a in all_agents if a["status"]["current_status"] == "in_development"])
+            },
+            "features": {
+                "learning_enabled": len([a for a in all_agents if a["features"]["learning_enabled"]]),
+                "cross_page_communication": len([a for a in all_agents if a["features"]["cross_page_communication"]]),
+                "modular_handlers": len([a for a in all_agents if a["features"]["modular_handlers"]])
+            }
+        }
         
         return {
             "success": True,
-            "timestamp": "2025-01-27T12:00:00Z",
-            "agents": agent_details,
-            "summary": {
-                "total_agents": len(agent_details),
-                "available": len([a for a in agent_details if a["status"]["available"]]),
-                "busy": len([a for a in agent_details if a["status"]["currently_working"]]),
-                "healthy": len([a for a in agent_details if a["status"]["health"] == "healthy"])
-            }
+            "timestamp": "2025-01-28T12:00:00Z",
+            "agents_by_phase": agent_details_by_phase,
+            "summary": summary
         }
         
     except Exception as e:
         logger.error(f"Error getting agent details: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get agent details: {str(e)}")
+
+
+@router.get("/agents/by-phase/{phase}")
+async def get_agents_by_phase(phase: str):
+    """
+    Get agents for a specific phase.
+    
+    Args:
+        phase: Migration phase (discovery, assessment, planning, etc.)
+    
+    Returns:
+        List of agents for the specified phase
+    """
+    try:
+        # Validate phase
+        try:
+            agent_phase = AgentPhase(phase.lower())
+        except ValueError:
+            valid_phases = [p.value for p in AgentPhase]
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid phase. Valid phases are: {', '.join(valid_phases)}"
+            )
+        
+        # Get agents for this phase
+        phase_agents = agent_registry.get_agents_by_phase(agent_phase)
+        
+        agents_list = []
+        for agent in phase_agents:
+            agent_info = {
+                "agent_id": agent.agent_id,
+                "name": agent.name,
+                "role": agent.role,
+                "status": agent.status.value,
+                "expertise": agent.expertise,
+                "specialization": agent.specialization,
+                "learning_enabled": agent.learning_enabled,
+                "cross_page_communication": agent.cross_page_communication,
+                "modular_handlers": agent.modular_handlers
+            }
+            agents_list.append(agent_info)
+        
+        return {
+            "success": True,
+            "phase": phase.title(),
+            "agents": agents_list,
+            "count": len(agents_list)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting agents by phase: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get agents by phase: {str(e)}")
 
 
 @router.get("/health")
@@ -179,12 +272,16 @@ async def get_system_health():
     
     Returns system-wide health indicators including:
     - CrewAI service status
+    - Agent registry health
     - LLM connectivity
     - Memory system health
     - Performance metrics
     """
     try:
-        # Get system status
+        # Get registry status
+        registry_status = agent_registry.get_registry_status()
+        
+        # Get system status from CrewAI service
         system_status = {}
         if crewai_service.agent_manager:
             system_status = crewai_service.agent_manager.get_system_status()
@@ -194,6 +291,7 @@ async def get_system_health():
         
         # Calculate health indicators
         health_indicators = {
+            "agent_registry": "healthy" if registry_status["registry_status"] == "healthy" else "degraded",
             "crewai_service": "healthy" if crewai_service.llm is not None else "degraded",
             "agent_manager": "healthy" if crewai_service.agent_manager is not None else "down",
             "monitoring_system": "healthy" if status_report["monitoring_active"] else "down",
@@ -209,57 +307,27 @@ async def get_system_health():
         
         return {
             "success": True,
-            "timestamp": "2025-01-27T12:00:00Z",
+            "timestamp": "2025-01-28T12:00:00Z",
             "overall_health": overall_health,
-            "components": health_indicators,
-            "system_status": system_status,
-            "performance": {
+            "health_indicators": health_indicators,
+            "agent_registry": {
+                "status": registry_status["registry_status"],
+                "total_agents": registry_status["total_agents"],
+                "active_agents": registry_status["active_agents"],
+                "phase_distribution": registry_status["phase_distribution"]
+            },
+            "system_metrics": {
+                "monitoring_active": status_report["monitoring_active"],
                 "active_tasks": status_report["active_tasks"],
                 "completed_tasks": status_report["completed_tasks"],
-                "hanging_tasks": status_report["hanging_tasks"],
-                "uptime": "N/A",  # Could track service uptime
-                "memory_usage": "N/A"  # Could track memory usage
+                "hanging_tasks": status_report["hanging_tasks"]
             },
-            "recommendations": [
-                "System is operating normally" if overall_health == "healthy" else "Check component health"
-            ]
+            "crewai_system": system_status
         }
         
     except Exception as e:
         logger.error(f"Error getting system health: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get system health: {str(e)}")
-
-
-@router.post("/tasks/{task_id}/cancel")
-async def cancel_task(task_id: str):
-    """
-    Cancel a specific running task.
-    
-    Attempts to gracefully cancel a task that may be hanging or no longer needed.
-    """
-    try:
-        # Check if task exists
-        status_report = agent_monitor.get_status_report()
-        task_exists = any(task["task_id"] == task_id for task in status_report["active_task_details"])
-        
-        if not task_exists:
-            raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
-        
-        # Mark task as cancelled (this would need implementation in agent_monitor)
-        # For now, we'll just mark it as failed
-        agent_monitor.fail_task(task_id, "Cancelled by user request")
-        
-        return {
-            "success": True,
-            "message": f"Task {task_id} has been cancelled",
-            "timestamp": "2025-01-27T12:00:00Z"
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error cancelling task {task_id}: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to cancel task: {str(e)}")
 
 
 @router.get("/metrics")
@@ -269,12 +337,13 @@ async def get_performance_metrics():
     
     Returns comprehensive performance data including:
     - Task execution statistics
-    - Agent performance metrics
+    - Agent performance metrics by phase
     - System resource usage
     - Trend analysis
     """
     try:
         status_report = agent_monitor.get_status_report()
+        registry_status = agent_registry.get_registry_status()
         
         # Calculate basic metrics
         metrics = {
@@ -286,10 +355,15 @@ async def get_performance_metrics():
                 "avg_execution_time": "N/A"  # Would need historical data
             },
             "agent_metrics": {
-                "total_agents": len(crewai_service.agents) if crewai_service.agents else 0,
+                "total_agents": registry_status["total_agents"],
+                "active_agents": registry_status["active_agents"],
+                "learning_enabled": registry_status["learning_enabled_agents"],
+                "cross_page_communication": registry_status["cross_page_communication_agents"],
+                "modular_handlers": registry_status["modular_handler_agents"],
                 "agents_busy": len(set(task["agent"] for task in status_report["active_task_details"])),
-                "agent_utilization": "N/A"  # Could calculate from active vs total
+                "agent_utilization": f"{(len(set(task['agent'] for task in status_report['active_task_details'])) / max(registry_status['active_agents'], 1)) * 100:.1f}%"
             },
+            "phase_metrics": registry_status["phase_distribution"],
             "system_metrics": {
                 "monitoring_uptime": "N/A",  # Could track monitoring uptime
                 "memory_usage": "N/A",      # Could track memory usage
@@ -305,14 +379,74 @@ async def get_performance_metrics():
         
         return {
             "success": True,
-            "timestamp": "2025-01-27T12:00:00Z",
-            "metrics": metrics,
-            "recommendations": [
-                "Consider implementing historical data tracking for better metrics",
-                "Add resource usage monitoring for system optimization"
-            ]
+            "timestamp": "2025-01-28T12:00:00Z",
+            "metrics": metrics
         }
         
     except Exception as e:
         logger.error(f"Error getting performance metrics: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to get performance metrics: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Failed to get performance metrics: {str(e)}")
+
+
+@router.post("/agents/{agent_id}/heartbeat")
+async def update_agent_heartbeat(agent_id: str, status: Optional[str] = None):
+    """
+    Update agent heartbeat and optionally status.
+    
+    Args:
+        agent_id: Agent identifier
+        status: Optional new status for the agent
+    
+    Returns:
+        Success confirmation
+    """
+    try:
+        # Update agent heartbeat in registry
+        kwargs = {}
+        if status:
+            try:
+                agent_status = AgentStatus(status.lower())
+                kwargs["status"] = agent_status
+            except ValueError:
+                valid_statuses = [s.value for s in AgentStatus]
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid status. Valid statuses are: {', '.join(valid_statuses)}"
+                )
+        
+        agent_registry.update_agent_status(agent_id, **kwargs)
+        
+        return {
+            "success": True,
+            "agent_id": agent_id,
+            "heartbeat_updated": True,
+            "status_updated": status is not None
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating agent heartbeat: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to update agent heartbeat: {str(e)}")
+
+
+@router.get("/registry/export")
+async def export_agent_registry():
+    """
+    Export the complete agent registry for backup or analysis.
+    
+    Returns:
+        Complete agent registry data
+    """
+    try:
+        registry_data = agent_registry.to_dict()
+        
+        return {
+            "success": True,
+            "timestamp": "2025-01-28T12:00:00Z",
+            "registry": registry_data
+        }
+        
+    except Exception as e:
+        logger.error(f"Error exporting agent registry: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to export agent registry: {str(e)}") 
