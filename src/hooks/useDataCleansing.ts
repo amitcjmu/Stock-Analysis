@@ -358,23 +358,13 @@ export const useDataCleansing = () => {
 
     // Generate realistic sample issues based on actual data structure
     const sampleIssues: QualityIssue[] = data.slice(0, Math.min(5, data.length)).map((asset, index) => {
-      // Get actual field names from the data
+      // Get actual field names from the data - use EXACT field names as they appear
       const availableFields = Object.keys(asset);
+      console.log(`Available fields for asset ${index}:`, availableFields);
       
-      // Prioritize common quality issue fields, checking both upper and lower case
-      const problemFields = [
-        'TYPE', 'type', 'asset_type', 'ASSET_TYPE',
-        'ENVIRONMENT', 'environment', 'ENV', 'env',
-        'OS', 'os', 'operating_system', 'OPERATING_SYSTEM',
-        'IP ADDRESS', 'IP_ADDRESS', 'ip_address', 'ipaddress', 'IPADDRESS',
-        'OWNER', 'owner', 'BUSINESS_OWNER', 'business_owner'
-      ];
+      // Use actual field names without any transformation - pick the second field to avoid ID
+      const fieldToCheck = availableFields.length > 1 ? availableFields[1] : availableFields[0] || 'TYPE';
       
-      // Find the first available field that exists in the data
-      const fieldToCheck = availableFields.find(field => 
-        problemFields.includes(field)
-      ) || availableFields[Math.min(1, availableFields.length - 1)] || 'TYPE';
-
       // Get asset identifier that matches what the table will use (including uppercase variants)
       const assetIdentifier = asset.id || asset.ID || asset.asset_name || asset.hostname || asset.name || asset.NAME || `asset-${index}`;
       const assetName = asset.asset_name || asset.hostname || asset.name || asset.NAME || asset.NAME || `Asset ${index}`;
@@ -395,7 +385,7 @@ export const useDataCleansing = () => {
         confidence: 0.7,
         impact: 'May affect migration planning accuracy',
         current_value: currentValue,
-        field_name: fieldToCheck
+        field_name: fieldToCheck  // Use exact field name as it appears in data
       };
     });
     

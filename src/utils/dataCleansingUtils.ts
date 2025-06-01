@@ -37,7 +37,21 @@ export const getFieldHighlight = (
       const normalizedIssueField = normalizeFieldName(issue.field_name);
       const normalizedTableField = normalizeFieldName(fieldName);
       
-      if (normalizedIssueField === normalizedTableField) {
+      if (isDebugMode) {
+        console.log('🔍 Field name comparison:', {
+          issueFieldName: issue.field_name,
+          tableFieldName: fieldName,
+          normalizedIssueField,
+          normalizedTableField,
+          exactMatch: issue.field_name === fieldName,
+          normalizedMatch: normalizedIssueField === normalizedTableField
+        });
+      }
+      
+      // Try exact match first, then normalized match
+      const fieldsMatch = issue.field_name === fieldName || normalizedIssueField === normalizedTableField;
+      
+      if (fieldsMatch) {
         // Find the asset in rawData by matching various identifier formats
         const currentAsset = findAssetByIdentifier(rawData, issue.asset_name || issue.asset_id);
         
@@ -74,8 +88,10 @@ export const getFieldHighlight = (
         }
       } else if (isDebugMode) {
         console.log('❌ Field names do not match:', {
-          normalized_issue_field: normalizedIssueField,
-          normalized_table_field: normalizedTableField
+          issueFieldName: issue.field_name,
+          tableFieldName: fieldName,
+          normalizedIssueField,
+          normalizedTableField
         });
       }
     }
@@ -108,14 +124,18 @@ export const getFieldHighlight = (
 const normalizeFieldName = (fieldName: string): string => {
   if (!fieldName) return '';
   
-  // Convert to lowercase and remove spaces/underscores for comparison
-  const normalized = fieldName.toLowerCase().replace(/[\s_-]/g, '');
+  // Convert to lowercase and remove spaces, underscores, parentheses, and other special chars for comparison
+  const normalized = fieldName.toLowerCase()
+    .replace(/[\s_\-\(\)]/g, '')  // Remove spaces, underscores, dashes, parentheses
+    .replace(/[^a-z0-9]/g, '');   // Remove any remaining special characters
   
-  // Handle common field name variations
+  // Handle common field name variations - return a standardized version
   const fieldMappings: { [key: string]: string } = {
-    'hostname': 'name',
-    'assetname': 'name',
+    'hostname': 'hostname',
+    'assetname': 'hostname',
+    'name': 'hostname',
     'assettype': 'type',
+    'type': 'type',
     'ipaddress': 'ipaddress',
     'ip': 'ipaddress',
     'os': 'os',
@@ -129,7 +149,9 @@ const normalizeFieldName = (fieldName: string): string => {
     'cpu': 'cpucores',
     'ramgb': 'ramgb',
     'ram': 'ramgb',
-    'memory': 'ramgb'
+    'memory': 'ramgb',
+    'relatedcmdbrecords': 'relatedcmdbrecords',
+    'related': 'relatedcmdbrecords'
   };
   
   return fieldMappings[normalized] || normalized;
