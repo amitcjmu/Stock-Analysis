@@ -323,9 +323,33 @@ class CrewAIService:
             elif cmdb_data.get('sample_data') and len(cmdb_data['sample_data']) > 0:
                 available_columns = list(cmdb_data['sample_data'][0].keys())
             
-            # Use field mapping tool to analyze columns
+            # Enhanced field mapping analysis with content intelligence
             field_analysis = self.field_mapping_tool.agent_analyze_columns(available_columns, "server")
             mapping_context = self.field_mapping_tool.agent_get_mapping_context()
+            
+            # Prepare sample data for content-based field mapping analysis
+            sample_data_for_analysis = None
+            if cmdb_data.get('sample_data') and len(cmdb_data['sample_data']) > 0:
+                try:
+                    sample_rows = []
+                    for record in cmdb_data['sample_data'][:5]:  # Use first 5 records
+                        row = [str(record.get(col, '')) for col in available_columns]
+                        sample_rows.append(row)
+                    sample_data_for_analysis = sample_rows
+                except Exception as e:
+                    logger.warning(f"Could not prepare sample data for agent content analysis: {e}")
+            
+            # Enhanced content-aware field mapping
+            if sample_data_for_analysis:
+                enhanced_field_analysis = self.field_mapping_tool.mapping_engine.analyze_columns(
+                    available_columns, "server", sample_data_for_analysis
+                )
+                # Merge enhanced analysis with original
+                field_analysis.update({
+                    "content_analysis": enhanced_field_analysis,
+                    "confidence_scores": enhanced_field_analysis.get("confidence_scores", {}),
+                    "enhanced_mappings": enhanced_field_analysis.get("mapped_fields", {})
+                })
             
             # Enhanced pattern analysis using data content
             pattern_analysis = {}
@@ -352,10 +376,23 @@ class CrewAIService:
                 Sample Records: {cmdb_data.get('sample_data', [])}
                 Available Columns: {available_columns}
                 
-                FIELD MAPPING INTELLIGENCE:
-                Field Analysis: {field_analysis}
+                ENHANCED FIELD MAPPING INTELLIGENCE:
+                Basic Field Analysis: {field_analysis}
                 Mapping Context: {mapping_context}
                 Pattern Analysis: {pattern_analysis}
+                
+                CRITICAL FIELD MAPPING INSTRUCTIONS:
+                1. USE ENHANCED MAPPINGS: If enhanced_mappings exist in field_analysis, prioritize these over basic patterns
+                2. CONTENT-BASED CONFIDENCE: Use confidence_scores to assess mapping reliability
+                3. SEMANTIC UNDERSTANDING: RAM, Memory, Mem all refer to the same concept - use content patterns to confirm
+                4. AVOID FALSE MISSING: Do not report fields as missing if they exist under different names with high confidence
+                5. LEARN FROM CONTENT: Use actual data values to validate field mappings (e.g., numeric RAM values, environment keywords)
+                
+                ENHANCED ANALYSIS PRIORITY:
+                - Enhanced mappings with confidence > 0.8 = CONFIRMED FIELD MAPPINGS
+                - Enhanced mappings with confidence 0.5-0.8 = LIKELY FIELD MAPPINGS (verify with content)
+                - Enhanced mappings with confidence < 0.5 = UNCERTAIN (apply content analysis)
+                - No mapping found = TRULY MISSING FIELD
                 
                 DATA CLEANSING FOCUS AREAS (PRIORITIZE THESE):
                 

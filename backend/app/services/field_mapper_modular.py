@@ -116,6 +116,91 @@ class FieldMapperService:
         """Extract and learn field mappings from user feedback text."""
         return self.agent_interface.learn_from_feedback_text(feedback_text, context)
     
+    def learn_content_patterns(self, field_name: str, canonical_field: str, sample_values: List[str]) -> Dict[str, Any]:
+        """Learn field mapping patterns from actual data content."""
+        try:
+            # Analyze content patterns to improve future mappings
+            content_patterns = self._analyze_content_patterns(field_name, sample_values)
+            
+            # Store content-based learning data  
+            content_learning = {
+                "field_name": field_name,
+                "canonical_field": canonical_field,
+                "content_patterns": content_patterns,
+                "sample_count": len(sample_values),
+                "learned_at": datetime.utcnow().isoformat()
+            }
+            
+            # Store in learned mappings with content context
+            if not hasattr(self, '_content_patterns'):
+                self._content_patterns = {}
+            
+            self._content_patterns[field_name] = content_learning
+            
+            logger.info(f"Learned content patterns for {field_name} -> {canonical_field}")
+            
+            return {
+                "success": True,
+                "content_patterns_learned": content_patterns,
+                "field_name": field_name,
+                "canonical_field": canonical_field
+            }
+            
+        except Exception as e:
+            logger.error(f"Error learning content patterns: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _analyze_content_patterns(self, field_name: str, sample_values: List[str]) -> Dict[str, Any]:
+        """Analyze content patterns to understand field semantics."""
+        try:
+            patterns = {
+                "data_types": [],
+                "value_patterns": [],
+                "semantic_hints": []
+            }
+            
+            for value in sample_values[:10]:  # Analyze first 10 values
+                value_str = str(value).strip().lower()
+                
+                # Detect data types
+                if value_str.replace('.', '').replace('-', '').isdigit():
+                    patterns["data_types"].append("numeric")
+                elif value_str in ['true', 'false', 'yes', 'no', '1', '0']:
+                    patterns["data_types"].append("boolean")
+                elif '@' in value_str:
+                    patterns["data_types"].append("email")
+                elif any(term in value_str for term in ['prod', 'dev', 'test', 'staging']):
+                    patterns["semantic_hints"].append("environment")
+                elif any(term in value_str for term in ['server', 'srv', 'host']):
+                    patterns["semantic_hints"].append("server_related")
+                elif any(term in value_str for term in ['app', 'application']):
+                    patterns["semantic_hints"].append("application_related")
+                else:
+                    patterns["data_types"].append("text")
+                
+                # Detect value patterns
+                if len(value_str) == 0:
+                    patterns["value_patterns"].append("empty")
+                elif len(value_str) < 5:
+                    patterns["value_patterns"].append("short")
+                elif len(value_str) > 50:
+                    patterns["value_patterns"].append("long")
+                else:
+                    patterns["value_patterns"].append("medium")
+            
+            # Summarize patterns
+            patterns["dominant_type"] = max(set(patterns["data_types"]), key=patterns["data_types"].count) if patterns["data_types"] else "unknown"
+            patterns["semantic_category"] = max(set(patterns["semantic_hints"]), key=patterns["semantic_hints"].count) if patterns["semantic_hints"] else "general"
+            
+            return patterns
+            
+        except Exception as e:
+            logger.error(f"Error analyzing content patterns: {e}")
+            return {"error": str(e)}
+    
     async def analyze_field_mappings(self, data_source: Dict[str, Any], page_context: str = "attribute-mapping") -> Dict[str, Any]:
         """
         Analyze field mappings for a data source.
@@ -151,21 +236,44 @@ class FieldMapperService:
             mapping_analysis = self.analyze_columns(columns)
             field_mappings = self.get_field_mappings()
             
-            # Generate mapping suggestions
+            # Prepare sample data for content analysis
+            sample_data_for_analysis = None
+            if 'file_data' in data_source and data_source['file_data']:
+                try:
+                    sample_rows = []
+                    sample_records = data_source['file_data'][:5] if isinstance(data_source['file_data'], list) else [data_source['file_data']]
+                    for record in sample_records:
+                        if isinstance(record, dict):
+                            row = [str(record.get(col, '')) for col in columns]
+                            sample_rows.append(row)
+                    sample_data_for_analysis = sample_rows
+                except Exception as e:
+                    logger.warning(f"Could not prepare sample data for content analysis: {e}")
+            
+            # Enhanced mapping analysis with content analysis
+            enhanced_analysis = self.mapping_engine.analyze_columns(columns, "server", sample_data_for_analysis)
+            
+            # Generate enhanced mapping suggestions
             suggestions = []
+            mapped_fields = enhanced_analysis.get("mapped_fields", {})
+            confidence_scores = enhanced_analysis.get("confidence_scores", {})
+            
             for column in columns:
-                matches = self.find_matching_fields(columns, column)
-                if matches:
+                if column in mapped_fields:
                     suggestions.append({
                         "source_field": column,
-                        "suggested_mappings": matches,
-                        "confidence": self._calculate_match_confidence(matches, column)
+                        "suggested_mappings": [mapped_fields[column]],
+                        "confidence": confidence_scores.get(column, 0.0),
+                        "mapping_type": "intelligent_analysis"
                     })
                 else:
+                    # Try to find partial matches for unmapped columns
+                    matches = self.find_matching_fields(columns, column)
                     suggestions.append({
                         "source_field": column,
-                        "suggested_mappings": ["unmapped"],
-                        "confidence": 0.0
+                        "suggested_mappings": matches if matches else ["unmapped"],
+                        "confidence": confidence_scores.get(column, 0.0),
+                        "mapping_type": "pattern_matching"
                     })
             
             return {

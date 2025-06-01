@@ -5,7 +5,9 @@
     "cpu (cores)",
     "memory (gb)",
     "network interfaces",
-    "ram_gb"
+    "ram_gb",
+    "ram_(gb)",
+    "memory_gb"
   ],
   "Business Owner": [
     "owner",

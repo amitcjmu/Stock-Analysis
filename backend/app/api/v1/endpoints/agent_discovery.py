@@ -924,8 +924,8 @@ async def _apply_agent_learning(learning_type: str, original_prediction: Dict[st
         # Learn from data classification corrections
         return await _learn_data_classification(original_prediction, user_correction, context)
     
-    elif learning_type == "field_mapping":
-        # Learn from field mapping corrections
+    elif learning_type in ["field_mapping", "field_mapping_correction", "field_mapping_feedback"]:
+        # Learn from field mapping corrections and feedback
         return await _learn_field_mapping(original_prediction, user_correction, context)
     
     elif learning_type == "pattern_recognition":
@@ -947,13 +947,65 @@ async def _learn_data_classification(original: Dict[str, Any], correction: Dict[
 
 async def _learn_field_mapping(original: Dict[str, Any], correction: Dict[str, Any],
                              context: Dict[str, Any]) -> Dict[str, Any]:
-    """Learn from field mapping corrections."""
-    # This will be implemented with Field Mapping Intelligence Agent
-    return {
-        "learning_applied": True,
-        "mapping_pattern_updated": True,
-        "confidence_improvement": 0.15
-    }
+    """Learn from field mapping corrections using actual field mapping service."""
+    try:
+        # Extract mapping information from the correction
+        source_field = original.get("source_field")
+        original_target = original.get("target_attribute")
+        corrected_target = correction.get("new_target_attribute")
+        
+        if not all([source_field, corrected_target]):
+            return {
+                "learning_applied": False,
+                "error": "Missing required field mapping information",
+                "confidence_improvement": 0.0
+            }
+        
+        logger.info(f"Learning field mapping correction: {source_field} -> {corrected_target} (was {original_target})")
+        
+        # Import field mapping service
+        from app.services.field_mapper_modular import field_mapper
+        
+        # Learn the corrected mapping
+        learning_result = field_mapper.agent_learn_field_mapping(
+            source_field=source_field,
+            target_field=corrected_target,
+            context=f"user_correction_from_{correction.get('feedback_type', 'manual_change')}"
+        )
+        
+        # Also learn sample values if available for content-based analysis
+        sample_values = context.get("sample_values", [])
+        if sample_values and learning_result.get("success"):
+            # Enhance learning with content patterns
+            try:
+                field_mapper.learn_content_patterns(
+                    field_name=source_field,
+                    canonical_field=corrected_target,
+                    sample_values=sample_values
+                )
+            except Exception as e:
+                logger.warning(f"Content pattern learning failed: {e}")
+        
+        # Calculate confidence improvement based on learning success
+        confidence_improvement = 0.15 if learning_result.get("success") else 0.0
+        
+        return {
+            "learning_applied": learning_result.get("success", False),
+            "mapping_pattern_updated": True,
+            "canonical_field": learning_result.get("canonical_field"),
+            "variations_learned": learning_result.get("learned_variations", []),
+            "confidence_improvement": confidence_improvement,
+            "learning_source": "user_field_mapping_correction",
+            "content_analysis_applied": bool(sample_values)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in field mapping learning: {e}")
+        return {
+            "learning_applied": False,
+            "error": str(e),
+            "confidence_improvement": 0.0
+        }
 
 async def _learn_pattern_recognition(original: Dict[str, Any], correction: Dict[str, Any],
                                    context: Dict[str, Any]) -> Dict[str, Any]:

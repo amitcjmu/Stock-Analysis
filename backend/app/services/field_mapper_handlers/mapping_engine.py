@@ -27,7 +27,7 @@ class MappingEngineHandler:
             'Environment': ['environment', 'env', 'stage', 'tier', 'deployment_stage'],
             'Operating System': ['os', 'operating_system', 'platform', 'os_version', 'os_type'],
             'CPU Cores': ['cpu', 'cores', 'cpu_cores', 'processors', 'vcpu', 'cpu_count'],
-            'Memory (GB)': ['memory', 'memory_gb', 'ram', 'ram_gb', 'mem', 'memory_size'],
+            'Memory (GB)': ['memory', 'memory_gb', 'ram', 'ram_gb', 'mem', 'memory_size', 'ram_(gb)', 'ram_gb', 'ram_in_gb', 'memory_in_gb'],
             'Storage (GB)': ['storage', 'storage_gb', 'disk', 'disk_gb', 'storage_size'],
             'IP Address': ['ip_address', 'ip', 'network_address', 'primary_ip', 'mgmt_ip'],
             'Business Owner': ['business_owner', 'owner', 'application_owner', 'responsible_party'],
@@ -150,11 +150,21 @@ class MappingEngineHandler:
             if not field_variations:
                 field_variations = [required_field.lower().replace(' ', '_')]
             
-            # Find matches in available columns
+            # Find matches in available columns with enhanced fuzzy matching
             for column in available_columns:
-                column_lower = column.lower().replace(' ', '_')
+                column_lower = column.lower().replace(' ', '_').replace('(', '').replace(')', '').replace('-', '_')
                 for variation in field_variations:
-                    if variation in column_lower or column_lower in variation:
+                    variation_clean = variation.lower().replace('(', '').replace(')', '').replace('-', '_')
+                    # Exact match
+                    if variation_clean == column_lower:
+                        matches.append(column)
+                        break
+                    # Contains match
+                    elif variation_clean in column_lower or column_lower in variation_clean:
+                        matches.append(column)
+                        break
+                    # Fuzzy match for similar terms (ram <-> memory)
+                    elif self._fuzzy_match_fields(column_lower, variation_clean):
                         matches.append(column)
                         break
             
@@ -164,31 +174,54 @@ class MappingEngineHandler:
             logger.error(f"Error finding matching fields: {e}")
             return []
     
-    def analyze_columns(self, columns: List[str], asset_type: str = "server") -> Dict[str, Any]:
-        """Analyze columns and provide mapping insights."""
+    def analyze_columns(self, columns: List[str], asset_type: str = "server", sample_data: Optional[List[List[str]]] = None) -> Dict[str, Any]:
+        """Analyze columns and provide mapping insights with optional content analysis."""
         try:
             all_mappings = self.get_field_mappings(asset_type)
             
             mapped_fields = {}
             unmapped_columns = []
+            confidence_scores = {}
             
             # Analyze each column
-            for column in columns:
+            for i, column in enumerate(columns):
                 found_mapping = False
-                column_lower = column.lower().replace(' ', '_')
+                column_lower = column.lower().replace(' ', '_').replace('(', '').replace(')', '').replace('-', '_')
+                best_match = None
+                best_confidence = 0.0
                 
-                # Check against all canonical fields
+                # Check against all canonical fields with enhanced matching
                 for canonical_field, variations in all_mappings.items():
                     for variation in variations:
-                        if variation == column_lower or variation in column_lower:
-                            mapped_fields[column] = canonical_field
-                            found_mapping = True
-                            break
-                    if found_mapping:
-                        break
+                        variation_clean = variation.lower().replace('(', '').replace(')', '').replace('-', '_')
+                        confidence = 0.0
+                        
+                        # Exact match - highest confidence
+                        if variation_clean == column_lower:
+                            confidence = 1.0
+                        # Contains match - high confidence  
+                        elif variation_clean in column_lower or column_lower in variation_clean:
+                            confidence = 0.8
+                        # Fuzzy match - medium confidence
+                        elif self._fuzzy_match_fields(column_lower, variation_clean):
+                            confidence = 0.6
+                        
+                        # Content-based analysis boost if sample data available
+                        if sample_data and confidence > 0 and i < len(sample_data[0]):
+                            content_boost = self._analyze_content_match(canonical_field, sample_data, i)
+                            confidence = min(1.0, confidence + content_boost)
+                        
+                        if confidence > best_confidence:
+                            best_confidence = confidence
+                            best_match = canonical_field
+                            found_mapping = confidence >= 0.5  # Confidence threshold
                 
-                if not found_mapping:
+                if found_mapping and best_match:
+                    mapped_fields[column] = best_match
+                    confidence_scores[column] = best_confidence
+                else:
                     unmapped_columns.append(column)
+                    confidence_scores[column] = 0.0
             
             # Calculate coverage
             mapping_coverage = len(mapped_fields) / len(columns) if columns else 0
@@ -198,7 +231,9 @@ class MappingEngineHandler:
                 "mapped_columns": len(mapped_fields),
                 "unmapped_columns": unmapped_columns,
                 "mapped_fields": mapped_fields,
+                "confidence_scores": confidence_scores,
                 "mapping_coverage": mapping_coverage,
+                "content_analysis_used": sample_data is not None,
                 "analysis_timestamp": datetime.utcnow().isoformat()
             }
             
@@ -238,6 +273,102 @@ class MappingEngineHandler:
                 "error": str(e)
             }
     
+    def _fuzzy_match_fields(self, field1: str, field2: str) -> bool:
+        """Enhanced fuzzy matching for field names with semantic awareness."""
+        try:
+            # Semantic equivalence mappings
+            semantic_groups = {
+                frozenset(['ram', 'memory', 'mem']): 'memory',
+                frozenset(['cpu', 'cores', 'processors', 'vcpu']): 'cpu',
+                frozenset(['disk', 'storage', 'hdd', 'ssd']): 'storage',
+                frozenset(['ip', 'address', 'network']): 'ip',
+                frozenset(['os', 'operating', 'system', 'platform']): 'os',
+                frozenset(['env', 'environment', 'stage', 'tier']): 'environment'
+            }
+            
+            # Extract key terms from both fields
+            field1_terms = set(field1.split('_'))
+            field2_terms = set(field2.split('_'))
+            
+            # Check if both fields belong to the same semantic group
+            for semantic_set, group_name in semantic_groups.items():
+                if (semantic_set & field1_terms) and (semantic_set & field2_terms):
+                    return True
+            
+            # Check for common suffixes/prefixes that indicate same type
+            suffixes = ['_gb', '_tb', '_mb', '_id', '_name', '_type', '_count']
+            for suffix in suffixes:
+                if field1.endswith(suffix) and field2.endswith(suffix):
+                    # Same suffix type - check base similarity
+                    base1 = field1.replace(suffix, '')
+                    base2 = field2.replace(suffix, '')
+                    if base1 in base2 or base2 in base1:
+                        return True
+            
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error in fuzzy field matching: {e}")
+            return False
+    
+    def _analyze_content_match(self, canonical_field: str, sample_data: List[List[str]], column_index: int) -> float:
+        """Analyze content to boost confidence for field matching."""
+        try:
+            if not sample_data or column_index >= len(sample_data[0]):
+                return 0.0
+            
+            # Extract sample values for this column
+            column_values = [row[column_index] for row in sample_data[:5] if len(row) > column_index]
+            
+            if not column_values:
+                return 0.0
+            
+            # Content-based heuristics for different field types
+            content_boost = 0.0
+            
+            # Memory/RAM analysis
+            if 'memory' in canonical_field.lower() or 'ram' in canonical_field.lower():
+                numeric_values = [v for v in column_values if str(v).replace('.', '').replace(',', '').isdigit()]
+                if len(numeric_values) > len(column_values) * 0.7:  # 70% numeric
+                    # Check if values are in typical memory ranges (GB)
+                    try:
+                        nums = [float(str(v).replace(',', '')) for v in numeric_values[:3]]
+                        if any(1 <= n <= 1024 for n in nums):  # Typical memory range 1GB-1TB
+                            content_boost = 0.2
+                    except (ValueError, TypeError):
+                        pass
+            
+            # CPU analysis  
+            elif 'cpu' in canonical_field.lower() or 'core' in canonical_field.lower():
+                numeric_values = [v for v in column_values if str(v).replace('.', '').isdigit()]
+                if len(numeric_values) > len(column_values) * 0.7:
+                    try:
+                        nums = [int(float(str(v))) for v in numeric_values[:3]]
+                        if any(1 <= n <= 128 for n in nums):  # Typical CPU core range
+                            content_boost = 0.2
+                    except (ValueError, TypeError):
+                        pass
+            
+            # Environment analysis
+            elif 'environment' in canonical_field.lower():
+                env_keywords = ['prod', 'dev', 'test', 'staging', 'production', 'development']
+                matching_values = [v for v in column_values if any(kw in str(v).lower() for kw in env_keywords)]
+                if len(matching_values) > len(column_values) * 0.5:
+                    content_boost = 0.3
+            
+            # Hostname/Asset Name analysis
+            elif 'hostname' in canonical_field.lower() or 'asset' in canonical_field.lower() or 'name' in canonical_field.lower():
+                # Check for server-like naming patterns
+                server_patterns = [v for v in column_values if any(pattern in str(v).lower() for pattern in ['srv', 'server', 'host', '-', '_'])]
+                if len(server_patterns) > len(column_values) * 0.5:
+                    content_boost = 0.2
+            
+            return content_boost
+            
+        except Exception as e:
+            logger.error(f"Error in content analysis: {e}")
+            return 0.0
+
     def export_mappings(self, export_path: str) -> bool:
         """Export all mappings to file."""
         try:
