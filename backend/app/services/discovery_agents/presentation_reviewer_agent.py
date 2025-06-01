@@ -214,45 +214,251 @@ class PresentationReviewerAgent:
     
     async def _validate_single_insight(self, insight: Dict[str, Any], 
                                      supporting_data_context: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-        """Validate a single insight for accuracy against its supporting data."""
-        validation = {
+        """Enhanced validation of a single insight with stronger quality controls."""
+        validation_result = {
             "is_accurate": True,
-            "issues": [],
-            "confidence_score": 1.0
+            "confidence_score": 1.0,
+            "validation_issues": [],
+            "requires_correction": False
         }
         
+        insight_description = insight.get("description", "")
         supporting_data = insight.get("supporting_data", {})
-        description = insight.get("description", "")
-        title = insight.get("title", "")
         
-        # Check for data mismatches in description vs supporting data
-        if "applications" in description.lower() and isinstance(supporting_data, dict):
-            # Validate application counts
-            stated_count = self._extract_number_from_text(description, "applications")
-            actual_app_count = supporting_data.get("Application", 0)
-            
-            if stated_count and abs(stated_count - actual_app_count) > 2:
-                validation["is_accurate"] = False
-                validation["issues"].append(f"Claims {stated_count} applications but supporting data shows {actual_app_count}")
-                validation["suggested_correction"] = f"Portfolio contains {actual_app_count} applications"
+        # Enhanced numerical validation - check for specific number claims
+        numerical_validation = await self._validate_numerical_claims(insight_description, supporting_data, supporting_data_context)
+        if not numerical_validation["is_valid"]:
+            validation_result["is_accurate"] = False
+            validation_result["validation_issues"].extend(numerical_validation["issues"])
+            validation_result["requires_correction"] = True
+            logger.warning(f"Numerical validation failed for insight: {numerical_validation['issues']}")
         
-        # Check for terminology accuracy
-        if "technologies" in description.lower() and isinstance(supporting_data, list):
-            # If supporting data is asset types, don't call them "technologies"
-            asset_type_terms = ["server", "database", "application", "storage", "network", "security", "infrastructure"]
-            if any(term in str(supporting_data).lower() for term in asset_type_terms):
-                validation["is_accurate"] = False
-                validation["issues"].append("Incorrectly refers to asset types as 'technologies'")
-                validation["suggested_correction"] = "Portfolio spans different asset types"
+        # Enhanced actionability validation - ensure insights provide specific value
+        actionability_validation = await self._validate_actionability_requirements(insight)
+        if not actionability_validation["is_actionable"]:
+            validation_result["is_accurate"] = False
+            validation_result["validation_issues"].extend(actionability_validation["issues"])
+            logger.warning(f"Actionability validation failed: {actionability_validation['issues']}")
         
-        # Check for meaningful thresholds
-        if "different" in description and isinstance(supporting_data, list):
-            if len(supporting_data) <= 2:
-                validation["is_accurate"] = False
-                validation["issues"].append("Claims diversity with insufficient variety")
-                validation["suggested_correction"] = f"Limited diversity with only {len(supporting_data)} categories"
+        # Generic statement detection - filter out vague or obvious insights
+        generic_check = await self._detect_generic_statements(insight_description)
+        if generic_check["is_generic"]:
+            validation_result["is_accurate"] = False
+            validation_result["validation_issues"].append(f"Generic insight: {generic_check['reason']}")
+            logger.info(f"Filtered generic insight: {insight_description[:50]}...")
         
-        return validation
+        # Data consistency validation
+        if supporting_data and supporting_data_context:
+            consistency_check = await self._validate_data_consistency(supporting_data, supporting_data_context)
+            if not consistency_check["is_consistent"]:
+                validation_result["confidence_score"] *= 0.7
+                validation_result["validation_issues"].extend(consistency_check["issues"])
+        
+        # Update confidence score based on validation issues
+        if validation_result["validation_issues"]:
+            penalty = min(len(validation_result["validation_issues"]) * 0.2, 0.8)
+            validation_result["confidence_score"] = max(0.1, validation_result["confidence_score"] - penalty)
+        
+        return validation_result
+    
+    async def _validate_numerical_claims(self, description: str, supporting_data: Dict[str, Any], 
+                                       context: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+        """Enhanced validation of numerical claims in insights against actual data."""
+        import re
+        
+        validation_result = {
+            "is_valid": True,
+            "issues": []
+        }
+        
+        # Extract numerical claims from the description
+        number_patterns = [
+            r'(\d+)\s+applications?',
+            r'(\d+)\s+servers?',
+            r'(\d+)\s+databases?',
+            r'(\d+)\s+assets?',
+            r'(\d+)\s+components?',
+            r'(\d+)\s+environments?',
+            r'(\d+)\s+departments?',
+            r'(\d+)%',
+            r'(\d+)\s+(?:total|discovered|identified)'
+        ]
+        
+        for pattern in number_patterns:
+            matches = re.finditer(pattern, description, re.IGNORECASE)
+            for match in matches:
+                claimed_number = int(match.group(1))
+                claim_type = match.group(0).lower()
+                
+                # Validate against supporting data
+                actual_number = await self._get_actual_count_from_data(claim_type, supporting_data, context)
+                
+                if actual_number is not None:
+                    # Allow for small variance but catch major discrepancies
+                    variance_threshold = max(1, actual_number * 0.1)  # 10% or minimum 1
+                    
+                    if abs(claimed_number - actual_number) > variance_threshold:
+                        validation_result["is_valid"] = False
+                        validation_result["issues"].append(
+                            f"Numerical claim mismatch: claimed {claimed_number} but data shows {actual_number} for '{claim_type}'"
+                        )
+        
+        return validation_result
+    
+    async def _get_actual_count_from_data(self, claim_type: str, supporting_data: Dict[str, Any], 
+                                        context: Optional[Dict[str, Any]]) -> Optional[int]:
+        """Extract actual counts from supporting data to validate claims."""
+        
+        # Check supporting data first
+        if supporting_data:
+            if 'applications' in claim_type and 'Application' in supporting_data:
+                return supporting_data['Application']
+            if 'servers' in claim_type and 'Server' in supporting_data:
+                return supporting_data['Server']
+            if 'databases' in claim_type and 'Database' in supporting_data:
+                return supporting_data['Database']
+            if 'assets' in claim_type:
+                # Sum all asset types
+                return sum(v for k, v in supporting_data.items() if isinstance(v, int))
+        
+        # Check context data
+        if context:
+            if claim_type == 'applications' and 'applications' in context:
+                return len(context['applications']) if isinstance(context['applications'], list) else context['applications']
+            if claim_type == 'assets' and 'assets' in context:
+                return len(context['assets']) if isinstance(context['assets'], list) else context['assets']
+        
+        return None
+    
+    async def _validate_actionability_requirements(self, insight: Dict[str, Any]) -> Dict[str, Any]:
+        """Enhanced validation to ensure insights are actionable and provide specific value."""
+        validation_result = {
+            "is_actionable": True,
+            "issues": []
+        }
+        
+        description = insight.get("description", "").lower()
+        insight_type = insight.get("insight_type", "")
+        
+        # Check for non-actionable patterns
+        non_actionable_patterns = [
+            r'portfolio contains \d+ \w+',  # Basic counting statements
+            r'total of \d+ \w+',
+            r'discovered \d+ \w+',
+            r'found \d+ \w+',
+            r'system has \d+ \w+',
+            r'there are \d+ \w+',
+            r'shows \d+ \w+'
+        ]
+        
+        import re
+        for pattern in non_actionable_patterns:
+            if re.search(pattern, description):
+                validation_result["is_actionable"] = False
+                validation_result["issues"].append(f"Non-actionable counting statement: '{pattern}'")
+        
+        # Require specific action words or recommendations
+        action_indicators = [
+            'recommend', 'should', 'consider', 'migrate', 'upgrade', 'consolidate', 
+            'modernize', 'prioritize', 'investigate', 'review', 'address', 'optimize',
+            'assess', 'evaluate', 'plan', 'prepare', 'schedule', 'implement'
+        ]
+        
+        has_action = any(action in description for action in action_indicators)
+        
+        # Check for business value indicators
+        value_indicators = [
+            'cost', 'risk', 'efficiency', 'performance', 'security', 'compliance',
+            'savings', 'improvement', 'reduction', 'optimization', 'modernization'
+        ]
+        
+        has_value = any(value in description for value in value_indicators)
+        
+        # Require either actionable language or clear business value
+        if not has_action and not has_value:
+            validation_result["is_actionable"] = False
+            validation_result["issues"].append("Insight lacks actionable recommendations or clear business value")
+        
+        # Check for migration-specific relevance
+        migration_relevance = [
+            'migration', '6r', 'rehost', 'replatform', 'refactor', 'rearchitect', 'retire', 'retain',
+            'cloud', 'aws', 'azure', 'moderniz', 'legacy', 'dependency', 'compatibility'
+        ]
+        
+        has_migration_relevance = any(rel in description for rel in migration_relevance)
+        
+        if not has_migration_relevance and insight_type not in ['portfolio_composition', 'data_quality']:
+            validation_result["is_actionable"] = False
+            validation_result["issues"].append("Insight not relevant to migration planning")
+        
+        return validation_result
+    
+    async def _detect_generic_statements(self, description: str) -> Dict[str, Any]:
+        """Detect and filter out generic or obvious statements."""
+        generic_result = {
+            "is_generic": False,
+            "reason": ""
+        }
+        
+        description_lower = description.lower()
+        
+        # Generic statement patterns
+        generic_patterns = [
+            (r'^portfolio contains', "Basic portfolio counting"),
+            (r'^system contains', "Basic system counting"),
+            (r'^discovered \d+ assets?$', "Simple discovery count"),
+            (r'^analysis shows \d+', "Basic analysis count"),
+            (r'^total of \d+ \w+ found', "Simple total count"),
+            (r'^inventory includes \d+', "Basic inventory listing"),
+            (r'^data shows \d+', "Generic data reference")
+        ]
+        
+        import re
+        for pattern, reason in generic_patterns:
+            if re.match(pattern, description_lower):
+                generic_result["is_generic"] = True
+                generic_result["reason"] = reason
+                break
+        
+        # Check for overly obvious statements
+        obvious_indicators = [
+            "data contains", "system includes", "inventory shows", "analysis reveals",
+            "discovered that", "found that", "shows that", "contains data"
+        ]
+        
+        if any(indicator in description_lower for indicator in obvious_indicators):
+            if len(description) < 50:  # Short and obvious
+                generic_result["is_generic"] = True
+                generic_result["reason"] = "Overly obvious or basic statement"
+        
+        return generic_result
+    
+    async def _validate_data_consistency(self, supporting_data: Dict[str, Any], 
+                                       context: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+        """Enhanced validation of data consistency between supporting data and context."""
+        consistency_result = {
+            "is_consistent": True,
+            "issues": []
+        }
+        
+        if not context:
+            return consistency_result
+        
+        # Validate numerical consistency
+        for key, value in supporting_data.items():
+            if isinstance(value, (int, float)):
+                context_value = context.get(key.lower())
+                if context_value is not None and isinstance(context_value, (int, float)):
+                    # Allow for reasonable variance
+                    variance_threshold = max(1, value * 0.15)  # 15% variance allowed
+                    
+                    if abs(value - context_value) > variance_threshold:
+                        consistency_result["is_consistent"] = False
+                        consistency_result["issues"].append(
+                            f"Data inconsistency: {key} shows {value} but context shows {context_value}"
+                        )
+        
+        return consistency_result
     
     async def _detect_and_consolidate_duplicates(self, insights: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Detect and consolidate duplicate insights."""
@@ -309,33 +515,68 @@ class PresentationReviewerAgent:
         return actionable_insights
     
     async def _calculate_actionability_score(self, insight: Dict[str, Any], page_context: str) -> float:
-        """Calculate actionability score for an insight."""
+        """Enhanced actionability scoring with stricter criteria for quality control."""
         score = 0.0
         description = insight.get("description", "").lower()
         title = insight.get("title", "").lower()
+        insight_type = insight.get("insight_type", "")
         
-        # Penalize basic counting insights
+        # Immediate penalties for non-actionable patterns
+        immediate_reject_patterns = [
+            "portfolio contains", "system contains", "total of", "discovered", 
+            "found", "analysis shows", "data shows", "inventory includes"
+        ]
+        
+        if any(pattern in description for pattern in immediate_reject_patterns):
+            # Check if it provides actionable context despite the pattern
+            if not any(action in description for action in ["recommend", "should", "consider", "migrate", "upgrade"]):
+                return 0.0  # Immediate rejection for basic counting without action
+        
+        # Enhanced penalty for basic counting insights
         if any(phrase in description for phrase in ["contains", "spans", "distribution", "total"]):
-            score -= 0.3
+            score -= 0.4  # Increased penalty
         
-        # Reward specific recommendations
-        if any(phrase in description for phrase in ["recommend", "suggest", "should", "action"]):
-            score += 0.4
+        # Strong reward for specific recommendations
+        action_words = ["recommend", "suggest", "should", "migrate", "upgrade", "modernize", "consolidate", "prioritize"]
+        if any(phrase in description for phrase in action_words):
+            score += 0.5  # Increased reward
         
-        # Reward business context
-        if any(phrase in description for phrase in ["critical", "risk", "opportunity", "improvement"]):
+        # Reward business value context
+        business_value_words = ["critical", "risk", "opportunity", "improvement", "cost", "savings", "efficiency", "security"]
+        if any(phrase in description for phrase in business_value_words):
             score += 0.3
         
-        # Penalize obvious statements
-        if any(phrase in description for phrase in ["detected", "found", "identified"]) and "recommend" not in description:
-            score -= 0.2
+        # Strong penalty for obvious statements without actionable content
+        obvious_words = ["detected", "found", "identified", "discovered", "shows", "contains"]
+        if any(phrase in description for phrase in obvious_words):
+            if not any(action in description for action in action_words):
+                score -= 0.4  # Strong penalty for obvious statements without action
         
-        # Context-specific adjustments
+        # Reward migration-specific relevance
+        migration_words = ["migration", "6r", "cloud", "legacy", "dependency", "assessment", "readiness"]
+        if any(phrase in description for phrase in migration_words):
+            score += 0.2
+        
+        # Context-specific adjustments with stricter criteria
         if page_context == "asset-inventory":
-            if "portfolio" in description and "action" not in description:
-                score -= 0.2  # Portfolio descriptions without actions are less useful
+            if "portfolio" in description:
+                if not any(action in description for action in action_words + ["analyze", "evaluate", "assess"]):
+                    score -= 0.3  # Stronger penalty for portfolio descriptions without actions
+            
+            # Penalize generic diversity statements
+            if "different" in description and "across" in description:
+                if not any(value in description for value in ["risk", "complexity", "strategy"]):
+                    score -= 0.3
         
-        return max(0.0, min(1.0, score + 0.5))  # Base score of 0.5, adjusted
+        # Quality thresholds - require minimum actionable content
+        if score <= 0.1 and len(description) < 100:  # Short and low-value insights
+            return 0.0
+        
+        # Bonus for comprehensive insights
+        if len(description) > 150 and score > 0.3:
+            score += 0.1
+        
+        return max(0.0, min(1.0, score + 0.3))  # Reduced base score, must earn points
     
     async def _optimize_for_presentation(self, insights: List[Dict[str, Any]], 
                                        page_context: str) -> List[Dict[str, Any]]:

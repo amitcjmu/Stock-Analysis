@@ -181,4 +181,16 @@ try:
     )
     print("✅ Agentic discovery endpoints available")
 except ImportError as e:
-    print(f"⚠️ Agentic discovery endpoints not available: {e}") 
+    print(f"⚠️ Agentic discovery endpoints not available: {e}")
+
+# Include agent learning endpoints (Tasks C.1 and C.2)
+try:
+    from app.api.v1.endpoints import agent_learning_endpoints
+    api_router.include_router(
+        agent_learning_endpoints.router,
+        prefix="/agent-learning",
+        tags=["agent-learning"]
+    )
+    print("✅ Agent learning endpoints available (Tasks C.1 and C.2)")
+except ImportError as e:
+    print(f"⚠️ Agent learning endpoints not available: {e}") 
