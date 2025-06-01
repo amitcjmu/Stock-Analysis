@@ -5,6 +5,95 @@ All notable changes to the AI Force Migration Platform will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.6] - 2025-01-29
+
+### 🎯 **TECH DEBT INTELLIGENCE WITH STAKEHOLDER LEARNING**
+
+This release completes Sprint 5 Task 5.1, implementing comprehensive tech debt intelligence capabilities with OS/application lifecycle analysis, business-aligned risk assessment, and stakeholder learning integration.
+
+### 🚀 **Tech Debt Intelligence System**
+
+#### **Tech Debt Analysis Agent**
+- **OS Lifecycle Analysis**: Comprehensive analysis of operating system versions and support lifecycle status
+- **Application Version Assessment**: Intelligent evaluation of application versions and support status
+- **Infrastructure Debt Analysis**: Hardware lifecycle, capacity constraints, and modernization opportunities
+- **Security Debt Assessment**: Vulnerability analysis, compliance gaps, and security control evaluation
+- **Business Risk Integration**: Tech debt assessment aligned with business context and stakeholder priorities
+
+#### **Stakeholder-Aligned Risk Assessment**
+- **Dynamic Prioritization**: Tech debt prioritization based on business context and migration timeline
+- **Risk Tolerance Learning**: Agent learning from stakeholder feedback on acceptable risk levels
+- **Business Priority Integration**: Alignment with organizational priorities and migration strategy
+- **Timeline Constraint Analysis**: Assessment of tech debt remediation within migration timelines
+- **Cost Implication Analysis**: Business cost assessment for tech debt remediation vs. migration impact
+
+#### **Intelligent Stakeholder Engagement**
+- **Risk Tolerance Questions**: Dynamic questionnaires about acceptable risk levels for specific tech debt items
+- **Business Priority Assessment**: Stakeholder input on organizational priorities and constraints
+- **Migration Timeline Integration**: Timeline constraint assessment for tech debt remediation planning
+- **Learning from Feedback**: Continuous improvement of risk assessment based on stakeholder input
+- **Business Justification**: Clear business justification for tech debt prioritization decisions
+
+### 🚀 **API Integration & Endpoints**
+
+#### **Tech Debt Analysis Endpoint**
+- **Endpoint**: `/api/v1/discovery/agents/tech-debt-analysis` for comprehensive tech debt intelligence
+- **Multi-Category Analysis**: OS, application, infrastructure, and security debt assessment
+- **Stakeholder Context Integration**: Business context and risk tolerance incorporation
+- **Migration Timeline Alignment**: Tech debt prioritization based on migration planning
+- **UI Bridge Integration**: Stakeholder questions and risk assessments stored for frontend display
+
+#### **Stakeholder Feedback Processing**
+- **Endpoint**: `/api/v1/discovery/agents/tech-debt-feedback` for stakeholder learning integration
+- **Risk Tolerance Learning**: Processing of stakeholder feedback on acceptable risk levels
+- **Business Priority Adjustment**: Learning from business priority feedback and adjustments
+- **Timeline Constraint Integration**: Incorporation of timeline constraint feedback into analysis
+- **Continuous Improvement**: Pattern recognition and learning from stakeholder input
+
+### 📊 **Business Impact & Intelligence**
+
+#### **Strategic Tech Debt Management**
+- **Risk-Based Prioritization**: Tech debt prioritization aligned with business risk tolerance
+- **Migration Impact Assessment**: Analysis of tech debt impact on migration success and timeline
+- **Cost-Benefit Analysis**: Business cost assessment for tech debt remediation vs. migration risks
+- **Stakeholder Alignment**: Clear alignment between technical debt assessment and business priorities
+
+#### **Comprehensive Risk Assessment**
+- **OS Modernization Planning**: Intelligent assessment of operating system upgrade requirements
+- **Application Lifecycle Management**: Support status analysis and upgrade prioritization
+- **Infrastructure Modernization**: Hardware lifecycle and modernization opportunity identification
+- **Security Risk Mitigation**: Vulnerability assessment and security control evaluation
+
+### 🎯 **Success Metrics**
+
+#### **Tech Debt Discovery & Analysis**
+- **Multi-Category Assessment**: OS, application, infrastructure, and security debt analysis
+- **Business Risk Alignment**: Tech debt assessment aligned with stakeholder priorities
+- **Dynamic Prioritization**: Risk-based prioritization with business context integration
+- **Stakeholder Engagement**: Interactive questionnaires and feedback processing
+
+#### **Intelligence & Learning**
+- **Risk Tolerance Learning**: Continuous improvement from stakeholder risk tolerance feedback
+- **Business Priority Integration**: Alignment with organizational priorities and constraints
+- **Timeline Constraint Analysis**: Migration timeline integration for tech debt planning
+- **Cost-Benefit Assessment**: Business impact analysis for tech debt remediation decisions
+
+### 🔧 **Technical Implementation**
+
+#### **Comprehensive Agent Architecture**
+- **Agent Implementation**: 600+ line TechDebtAnalysisAgent with comprehensive business-aligned analysis
+- **Multi-Category Analysis**: OS, application, infrastructure, and security debt assessment
+- **Stakeholder Learning Framework**: Comprehensive learning from risk tolerance and business feedback
+- **API Integration**: Full integration with agent discovery endpoints and UI bridge
+
+#### **Business Intelligence Integration**
+- **Risk Assessment Framework**: Comprehensive risk categorization and business impact analysis
+- **Stakeholder Context Processing**: Business context integration and priority alignment
+- **Learning Algorithm**: Continuous improvement from stakeholder feedback and corrections
+- **Migration Planning Integration**: Tech debt assessment aligned with migration timeline and strategy
+
+This release significantly enhances the platform's tech debt intelligence capabilities, providing comprehensive risk assessment, stakeholder alignment, and business-driven prioritization for strategic migration planning.
+
 ## [0.9.5] - 2025-01-29
 
 ### 🎯 **DEPENDENCY INTELLIGENCE WITH AGENT LEARNING**

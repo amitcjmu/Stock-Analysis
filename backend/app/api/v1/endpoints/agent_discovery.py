@@ -14,6 +14,7 @@ from app.services.agent_ui_bridge import agent_ui_bridge, QuestionType, Confiden
 from app.services.discovery_agents.data_source_intelligence_agent import data_source_intelligence_agent
 from app.services.discovery_agents.application_discovery_agent import application_discovery_agent
 from app.services.discovery_agents.dependency_intelligence_agent import dependency_intelligence_agent
+from app.services.tech_debt_analysis_agent import tech_debt_analysis_agent
 
 logger = logging.getLogger(__name__)
 
@@ -554,6 +555,106 @@ async def process_dependency_feedback(
     except Exception as e:
         logger.error(f"Error processing dependency feedback: {e}")
         raise HTTPException(status_code=500, detail=f"Dependency feedback processing failed: {str(e)}")
+
+@router.post("/tech-debt-analysis")
+async def analyze_tech_debt(
+    tech_debt_request: Dict[str, Any],
+    db: AsyncSession = Depends(get_db)
+) -> Dict[str, Any]:
+    """
+    Comprehensive tech debt analysis using Tech Debt Analysis Agent.
+    
+    Request body:
+    {
+        "assets": [...],
+        "stakeholder_context": {...},
+        "migration_timeline": "string"
+    }
+    """
+    try:
+        assets = tech_debt_request.get("assets", [])
+        stakeholder_context = tech_debt_request.get("stakeholder_context", {})
+        migration_timeline = tech_debt_request.get("migration_timeline")
+        
+        if not assets:
+            # Try to get assets from the discovery system
+            from app.api.v1.discovery.asset_management import crud_handler
+            assets_result = await crud_handler.get_assets_paginated({'page': 1, 'page_size': 1000})
+            assets = assets_result.get('assets', [])
+        
+        if not assets:
+            return {
+                "status": "success",
+                "tech_debt_analysis": {
+                    "total_assets_analyzed": 0,
+                    "message": "No assets available for tech debt analysis"
+                },
+                "business_risk_assessment": {},
+                "prioritized_tech_debt": [],
+                "stakeholder_questions": []
+            }
+        
+        # Perform tech debt intelligence analysis
+        tech_debt_intelligence = await tech_debt_analysis_agent.analyze_tech_debt(
+            assets, stakeholder_context, migration_timeline
+        )
+        
+        # Store stakeholder questions in the UI bridge for display
+        for question in tech_debt_intelligence.get("stakeholder_questions", []):
+            agent_ui_bridge.add_agent_question(
+                agent_id=tech_debt_analysis_agent.agent_id,
+                agent_name=tech_debt_analysis_agent.agent_name,
+                question_type=QuestionType.RISK_ASSESSMENT,
+                page="tech-debt",
+                title=question["title"],
+                question=question["question"],
+                context=question.get("risk_item", {}),
+                options=question.get("options", []),
+                confidence=ConfidenceLevel.MEDIUM,
+                priority=question.get("priority", "medium")
+            )
+        
+        response = {
+            "status": "success",
+            "tech_debt_intelligence": tech_debt_intelligence,
+            "agent_analysis_complete": True
+        }
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error in tech debt analysis: {e}")
+        raise HTTPException(status_code=500, detail=f"Tech debt analysis failed: {str(e)}")
+
+@router.post("/tech-debt-feedback")
+async def process_tech_debt_feedback(
+    feedback_request: Dict[str, Any],
+    db: AsyncSession = Depends(get_db)
+) -> Dict[str, Any]:
+    """
+    Process stakeholder feedback on tech debt risk tolerance and business requirements.
+    
+    Request body:
+    {
+        "feedback_type": "risk_tolerance|business_priority|migration_timeline",
+        "risk_item_id": "string",
+        "original_assessment": {...},
+        "stakeholder_input": {...}
+    }
+    """
+    try:
+        # Process feedback through the Tech Debt Analysis Agent
+        learning_result = await tech_debt_analysis_agent.process_stakeholder_risk_feedback(feedback_request)
+        
+        return {
+            "status": "success",
+            "message": "Tech debt feedback processed successfully",
+            "learning_result": learning_result
+        }
+        
+    except Exception as e:
+        logger.error(f"Error processing tech debt feedback: {e}")
+        raise HTTPException(status_code=500, detail=f"Tech debt feedback processing failed: {str(e)}")
 
 @router.get("/health")
 async def agent_discovery_health():
