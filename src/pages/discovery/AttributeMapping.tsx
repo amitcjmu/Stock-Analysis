@@ -121,21 +121,25 @@ const AttributeMapping = () => {
           return;
         }
       } catch (error) {
-        console.warn('Failed to load data from database, trying localStorage fallback:', error);
+        console.warn('Database import not available, checking localStorage for compatibility');
       }
       
-      // Priority 4: Fallback to localStorage for compatibility
-      console.log('Falling back to localStorage');
+      // Priority 4: Fallback to localStorage for compatibility (silent operation)
       const storedData = localStorage.getItem('imported_assets');
       if (storedData) {
-        const data = JSON.parse(storedData);
-        console.log(`Loaded ${data.length} records from localStorage fallback`);
-        setImportedData(data);
-        const columns = Object.keys(data[0] || {});
-        if (columns.length > 0) {
-          await generateFieldMappings(columns, data.slice(0, 10));
+        try {
+          const data = JSON.parse(storedData);
+          console.log(`✅ Found ${data.length} records in localStorage`);
+          setImportedData(data);
+          const columns = Object.keys(data[0] || {});
+          if (columns.length > 0) {
+            await generateFieldMappings(columns, data.slice(0, 10));
+          }
+          return;
+        } catch (parseError) {
+          console.warn('Invalid localStorage data, clearing and redirecting to import');
+          localStorage.removeItem('imported_assets');
         }
-        return;
       }
       
       // No data found anywhere
@@ -305,6 +309,57 @@ const AttributeMapping = () => {
     setAgentRefreshTrigger(prev => prev + 1);
   };
 
+  // Handle mapping target field changes from dropdown
+  const handleMappingChange = async (mappingId: string, newTarget: string) => {
+    const mapping = fieldMappings.find(m => m.id === mappingId);
+    if (!mapping) return;
+
+    try {
+      // Send learning feedback to agents about the manual change
+      await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_LEARNING, {
+        method: 'POST',
+        body: JSON.stringify({
+          learning_type: 'field_mapping_correction',
+          original_prediction: {
+            source_field: mapping.sourceField,
+            target_attribute: mapping.targetAttribute,
+            confidence: mapping.confidence
+          },
+          user_correction: {
+            new_target_attribute: newTarget,
+            feedback_type: 'manual_change',
+            reason: 'User selected different target field from dropdown'
+          },
+          context: {
+            sample_values: mapping.sample_values,
+            reasoning: mapping.ai_reasoning,
+            available_alternatives: 'dropdown_selection'
+          },
+          page_context: 'attribute-mapping'
+        })
+      });
+    } catch (error) {
+      console.log('Agent learning unavailable:', error);
+    }
+
+    // Update local state with new target
+    const updatedMappings = fieldMappings.map(m => 
+      m.id === mappingId ? { 
+        ...m, 
+        targetAttribute: newTarget,
+        status: 'pending' as const, // Reset to pending since user changed it
+        confidence: 0.9, // High confidence for user selections
+        ai_reasoning: `User selected '${newTarget}' from available options (originally suggested '${mapping.targetAttribute}')`
+      } : m
+    );
+    
+    setFieldMappings(updatedMappings);
+    updateMappingProgress(updatedMappings);
+    
+    // Trigger agent refresh after user action
+    setAgentRefreshTrigger(prev => prev + 1);
+  };
+
   // Update mapping progress
   const updateMappingProgress = (mappings: FieldMapping[]) => {
     const total = mappings.length;
@@ -375,6 +430,7 @@ const AttributeMapping = () => {
             fieldMappings={fieldMappings}
             isAnalyzing={isAnalyzing}
             onMappingAction={handleMappingAction}
+            onMappingChange={handleMappingChange}
           />
         );
       default:

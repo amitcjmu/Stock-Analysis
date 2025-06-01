@@ -5,6 +5,87 @@ All notable changes to the AI Force Migration Platform will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.22] - 2025-06-01
+
+### 🎯 **ATTRIBUTE MAPPING UI RESTORATION - Dropdown & Pagination Recovery**
+
+This release restores the missing dropdown functionality and pagination that was lost during previous modularization, returning the attribute mapping page to its full interactive capabilities with enhanced user experience.
+
+### 🚀 **Major UI Enhancement Recovery**
+
+#### **Dropdown Target Field Selection Restored**
+- **Problem**: Attribute mapping only showed Approve/Reject buttons, missing dropdown to change target field assignments
+- **Root Cause**: FieldMappingsTab component was simplified during refactoring, losing interactive dropdown functionality
+- **Solution**: Complete rebuild of FieldMappingsTab with dropdown integration and available field loading
+- **Features**: Interactive dropdowns with field descriptions, type indicators, and required/optional status
+
+#### **Pagination Implementation for Performance**
+- **Problem**: Attribute mapping displayed all field mappings in one long scrollable list
+- **User Request**: Display only 6 rows with pagination controls for better UX
+- **Implementation**: Added pagination with 6 items per page, navigation controls, and result summary
+- **Benefits**: Improved page performance and user navigation for large datasets
+
+#### **Available Target Fields Integration**
+- **API Integration**: Connected to `/api/v1/data-import/available-target-fields` endpoint
+- **Dynamic Loading**: Fetches standard + custom target fields on component mount
+- **Field Information**: Shows field type, description, required status, and custom field indicators
+- **Fallback Handling**: Provides basic field set if API unavailable
+
+### 🔧 **Technical Enhancements**
+
+#### **Interactive Dropdown System**
+- **Click-to-Change**: Users can click on any target field to see dropdown of alternatives
+- **Visual Feedback**: Hover states, disabled states for approved/rejected mappings
+- **Outside Click**: Closes dropdowns when clicking elsewhere for smooth UX
+- **State Management**: Tracks open/closed state of each dropdown independently
+
+#### **Enhanced Agent Learning Integration**
+- **Mapping Changes**: Sends `field_mapping_correction` learning data when user changes target field
+- **User Feedback**: High confidence scores (0.9) for user-selected mappings
+- **Context Preservation**: Maintains original AI suggestion data for future learning
+- **Status Reset**: Changed mappings return to 'pending' status for re-approval
+
+#### **Improved Error Handling**
+- **localStorage Messages**: Reduced verbose "fallback" messaging to improve user experience
+- **Silent Operations**: localStorage access now operates silently with success indicators
+- **Clean Parsing**: Added try/catch for localStorage data parsing with automatic cleanup
+- **User-Friendly Logs**: Replaced technical error messages with status updates
+
+### 📊 **User Experience Improvements**
+
+#### **Visual Design Enhancements**
+- **Field Type Indicators**: Color-coded required/optional field badges
+- **Custom Field Badges**: Purple indicators for organization-specific custom fields
+- **Confidence Visualization**: Maintained original confidence color coding (green/yellow/red)
+- **Status States**: Clear visual feedback for approved, rejected, and pending mappings
+
+#### **Navigation & Performance**
+- **Page Navigation**: First/Previous/Next/Last page controls with current page highlighting
+- **Results Summary**: "Showing X to Y of Z results" for user orientation
+- **Scrollable Container**: Fixed height container prevents page layout shifts
+- **Responsive Design**: Adapts to different screen sizes while maintaining functionality
+
+### 🎯 **Business Impact**
+- **User Productivity**: Restored ability to quickly change field mappings without reject/re-map workflow
+- **Data Quality**: Users can select more appropriate target fields improving mapping accuracy
+- **Performance**: Pagination reduces rendering load for large datasets
+- **Training Data**: Enhanced agent learning from user mapping corrections improves future suggestions
+
+### 📊 **Success Metrics**
+- **Dropdown Functionality**: 100% restored with all available target fields
+- **Pagination**: 6 items per page with full navigation controls
+- **User Experience**: Eliminated long scrolling lists and verbose error messages
+- **Agent Learning**: Enhanced feedback loop for AI improvement from user selections
+
+### 🔧 **Technical Specifications**
+- **Pagination**: 6 items per page (ITEMS_PER_PAGE constant)
+- **API Endpoint**: `/api/v1/data-import/available-target-fields` for dropdown options
+- **Dropdown State**: Per-mapping open/closed state tracking
+- **Learning Events**: `field_mapping_correction` event type for agent feedback
+- **Error Handling**: Graceful fallbacks with user-friendly messaging
+
+---
+
 ## [0.9.21] - 2025-06-01
 
 ### 🎯 **CRITICAL DATABASE SESSION FIX - Async/Sync Pattern Resolution**

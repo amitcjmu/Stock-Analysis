@@ -538,5 +538,113 @@
     "answered_at": null,
     "user_response": null,
     "is_resolved": false
+  },
+  "1676430f-be12-4cba-8233-07dcf2b51f8a": {
+    "id": "1676430f-be12-4cba-8233-07dcf2b51f8a",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "quality_validation",
+    "page": "data-import",
+    "title": "Data Format Inconsistencies",
+    "question": "Found format inconsistencies in: Dependency Notes, Recommended GCP Instance Type. Should we standardize these?",
+    "context": {
+      "format_issues": {
+        "Dependency Notes": [
+          "text",
+          "mixed_alphanumeric"
+        ],
+        "Recommended GCP Instance Type": [
+          "text",
+          "mixed_alphanumeric"
+        ]
+      },
+      "standardization_needed": true
+    },
+    "options": [
+      "Yes, standardize automatically",
+      "No, keep as-is",
+      "Manual review needed"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-01T07:42:13.142402",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "e1e5eed6-ffea-4251-9fd9-bee88f8a6f43": {
+    "id": "e1e5eed6-ffea-4251-9fd9-bee88f8a6f43",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "business_context",
+    "page": "data-import",
+    "title": "Asset Ownership Information",
+    "question": "No asset ownership information found. Is this available elsewhere or should migration proceed without owner details?",
+    "context": {
+      "missing_info": "ownership",
+      "migration_impact": "medium",
+      "suggestion": "may_need_additional_data"
+    },
+    "options": [
+      "Available in separate file",
+      "Not available",
+      "Will provide later"
+    ],
+    "confidence": "medium",
+    "priority": "low",
+    "created_at": "2025-06-01T07:42:13.147717",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "160e742b-cef8-4430-bc95-c8335481c724": {
+    "id": "160e742b-cef8-4430-bc95-c8335481c724",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "quality_validation",
+    "page": "data-import",
+    "title": "Network Information Validation",
+    "question": "Network information (IPs/hostnames) detected. Should we validate these are current and accessible?",
+    "context": {
+      "has_ip_addresses": true,
+      "has_hostnames": false,
+      "validation_type": "network_connectivity"
+    },
+    "options": [
+      "Yes, validate network info",
+      "Skip validation",
+      "Validate critical assets only"
+    ],
+    "confidence": "medium",
+    "priority": "low",
+    "created_at": "2025-06-01T07:42:13.151433",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "94480476-6c8c-4950-b1c5-6959d4b86f16": {
+    "id": "94480476-6c8c-4950-b1c5-6959d4b86f16",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "business_context",
+    "page": "data-import",
+    "title": "Department/Organization Information",
+    "question": "No department information found. Is organizational structure important for migration planning?",
+    "context": {
+      "missing_info": "department",
+      "planning_impact": "organizational_structure",
+      "suggestion": "helpful_but_not_critical"
+    },
+    "options": [
+      "Yes, very important",
+      "Somewhat important",
+      "Not needed"
+    ],
+    "confidence": "low",
+    "priority": "low",
+    "created_at": "2025-06-01T07:42:13.157151",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
   }
 }

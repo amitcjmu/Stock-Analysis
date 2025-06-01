@@ -85,7 +85,8 @@ export const API_CONFIG = {
       STORE_IMPORT: '/api/v1/data-import/store-import',
       LATEST_IMPORT: '/api/v1/data-import/latest-import',
       GET_IMPORT: '/api/v1/data-import/import',
-      LIST_IMPORTS: '/api/v1/data-import/imports'
+      LIST_IMPORTS: '/api/v1/data-import/imports',
+      AVAILABLE_TARGET_FIELDS: '/api/v1/data-import/available-target-fields'
     },
     MONITORING: {
       STATUS: '/api/v1/monitoring/status',

@@ -613,7 +613,7 @@ async def get_field_mapping_suggestions(
         print(f"Error in field mapping suggestions: {e}")
         return {"suggestions": [], "error": str(e)}
 
-async def get_all_available_fields(db: Session):
+async def get_all_available_fields(db: AsyncSession):
     """Get both standard and custom target fields."""
     # Standard fields (from your existing endpoint)
     standard_fields = [
@@ -657,7 +657,7 @@ async def get_all_available_fields(db: Session):
         print(f"Error getting custom fields: {e}")
         return standard_fields
 
-async def get_learned_patterns(client_account_id: str, db: Session):
+async def get_learned_patterns(client_account_id: str, db: AsyncSession):
     """Get AI-learned mapping patterns for this client."""
     try:
         query = select(MappingLearningPattern).where(
@@ -936,7 +936,7 @@ async def create_or_update_learning_pattern(
     sample_values: list, 
     was_correct: bool,
     mapping: ImportFieldMapping,
-    db: Session
+    db: AsyncSession
 ):
     """Create or update AI learning patterns based on user feedback."""
     try:
@@ -999,7 +999,7 @@ async def create_or_update_learning_pattern(
         print(f"Error creating/updating learning pattern: {e}")
         raise e
 
-async def update_custom_field_usage(field_name: str, was_successful: bool, db: Session):
+async def update_custom_field_usage(field_name: str, was_successful: bool, db: AsyncSession):
     """Update usage statistics for custom fields."""
     try:
         query = select(CustomTargetField).where(
