@@ -116,6 +116,80 @@ class FieldMapperService:
         """Extract and learn field mappings from user feedback text."""
         return self.agent_interface.learn_from_feedback_text(feedback_text, context)
     
+    async def analyze_field_mappings(self, data_source: Dict[str, Any], page_context: str = "attribute-mapping") -> Dict[str, Any]:
+        """
+        Analyze field mappings for a data source.
+        
+        Args:
+            data_source: Data source information containing columns or data
+            page_context: Page context for the analysis
+            
+        Returns:
+            Field mapping analysis results
+        """
+        try:
+            # Extract columns from data source
+            columns = []
+            if 'columns' in data_source:
+                columns = data_source['columns']
+            elif 'file_data' in data_source and data_source['file_data']:
+                # Extract columns from first data row
+                first_row = data_source['file_data'][0] if isinstance(data_source['file_data'], list) else data_source['file_data']
+                if isinstance(first_row, dict):
+                    columns = list(first_row.keys())
+            
+            if not columns:
+                return {
+                    "analysis_type": "field_mapping_analysis",
+                    "status": "no_columns_found",
+                    "message": "No columns found in data source",
+                    "suggestions": [],
+                    "confidence": 0.0
+                }
+            
+            # Perform field mapping analysis
+            mapping_analysis = self.analyze_columns(columns)
+            field_mappings = self.get_field_mappings()
+            
+            # Generate mapping suggestions
+            suggestions = []
+            for column in columns:
+                matches = self.find_matching_fields(columns, column)
+                if matches:
+                    suggestions.append({
+                        "source_field": column,
+                        "suggested_mappings": matches,
+                        "confidence": self._calculate_match_confidence(matches, column)
+                    })
+                else:
+                    suggestions.append({
+                        "source_field": column,
+                        "suggested_mappings": ["unmapped"],
+                        "confidence": 0.0
+                    })
+            
+            return {
+                "analysis_type": "field_mapping_analysis",
+                "status": "success",
+                "page_context": page_context,
+                "columns_analyzed": len(columns),
+                "mapping_analysis": mapping_analysis,
+                "field_mappings": field_mappings,
+                "suggestions": suggestions,
+                "confidence": mapping_analysis.get("overall_confidence", 0.5),
+                "timestamp": datetime.utcnow().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in analyze_field_mappings: {e}")
+            return {
+                "analysis_type": "field_mapping_analysis",
+                "status": "error",
+                "message": f"Analysis failed: {str(e)}",
+                "suggestions": [],
+                "confidence": 0.0
+            }
+    
     # === WORKFLOW INTEGRATION METHODS ===
     
     async def process_field_mapping_batch(self, asset_data: List[Dict[str, Any]], 

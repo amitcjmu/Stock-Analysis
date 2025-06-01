@@ -54,6 +54,22 @@ async def perform_agent_analysis(
             analysis_result = await data_source_intelligence_agent.analyze_data_source(
                 data_source, page_context
             )
+        elif analysis_type == "field_mapping_analysis":
+            # Import field mapping service for field mapping analysis
+            try:
+                from app.services.field_mapper_modular import field_mapper
+                analysis_result = await field_mapper.analyze_field_mappings(
+                    data_source, page_context
+                )
+            except ImportError:
+                # Fallback if field mapper service not available
+                analysis_result = {
+                    "analysis_type": "field_mapping_analysis",
+                    "status": "service_unavailable",
+                    "message": "Field mapping analysis service not available",
+                    "suggestions": [],
+                    "confidence": 0.0
+                }
         else:
             raise HTTPException(status_code=400, detail=f"Unknown analysis type: {analysis_type}")
         

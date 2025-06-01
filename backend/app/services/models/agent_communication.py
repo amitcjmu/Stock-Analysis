@@ -47,7 +47,7 @@ class AgentQuestion:
     created_at: datetime = field(default_factory=datetime.utcnow)
     answered_at: Optional[datetime] = None
     user_response: Optional[Any] = None
-    is_answered: bool = False
+    is_resolved: bool = False
 
 @dataclass
 class DataItem:
