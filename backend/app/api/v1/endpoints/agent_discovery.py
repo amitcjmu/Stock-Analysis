@@ -15,6 +15,7 @@ from app.services.discovery_agents.data_source_intelligence_agent import data_so
 from app.services.discovery_agents.application_discovery_agent import application_discovery_agent
 from app.services.discovery_agents.dependency_intelligence_agent import dependency_intelligence_agent
 from app.services.tech_debt_analysis_agent import tech_debt_analysis_agent
+from app.services.assessment_readiness_orchestrator import assessment_readiness_orchestrator
 
 logger = logging.getLogger(__name__)
 
@@ -662,6 +663,141 @@ async def process_tech_debt_feedback(
         logger.error(f"Error processing tech debt feedback: {e}")
         raise HTTPException(status_code=500, detail=f"Tech debt feedback processing failed: {str(e)}")
 
+@router.post("/assessment-readiness")
+async def assess_portfolio_readiness(
+    readiness_request: Dict[str, Any],
+    db: AsyncSession = Depends(get_db)
+) -> Dict[str, Any]:
+    """
+    Comprehensive assessment of portfolio readiness for 6R analysis.
+    
+    Request body:
+    {
+        "portfolio_data": {
+            "assets": [...],
+            "applications": [...],
+            "dependencies": [...]
+        },
+        "stakeholder_context": {...},
+        "assessment_type": "comprehensive"
+    }
+    """
+    try:
+        portfolio_data = readiness_request.get("portfolio_data", {})
+        stakeholder_context = readiness_request.get("stakeholder_context")
+        assessment_type = readiness_request.get("assessment_type", "comprehensive")
+        
+        if not portfolio_data:
+            raise HTTPException(status_code=400, detail="Portfolio data is required for readiness assessment")
+        
+        # Perform comprehensive readiness assessment
+        readiness_assessment = await assessment_readiness_orchestrator.assess_portfolio_readiness(
+            portfolio_data, stakeholder_context
+        )
+        
+        return {
+            "status": "success",
+            "assessment_type": assessment_type,
+            "readiness_assessment": readiness_assessment,
+            "orchestrator_metadata": {
+                "agent_id": assessment_readiness_orchestrator.agent_id,
+                "assessment_timestamp": datetime.utcnow().isoformat()
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in portfolio readiness assessment: {e}")
+        raise HTTPException(status_code=500, detail=f"Portfolio readiness assessment failed: {str(e)}")
+
+@router.post("/stakeholder-signoff-package")
+async def generate_stakeholder_signoff_package(
+    signoff_request: Dict[str, Any],
+    db: AsyncSession = Depends(get_db)
+) -> Dict[str, Any]:
+    """
+    Generate comprehensive stakeholder sign-off package for assessment phase.
+    
+    Request body:
+    {
+        "readiness_assessment": {...},
+        "stakeholder_context": {...},
+        "package_type": "comprehensive"
+    }
+    """
+    try:
+        readiness_assessment = signoff_request.get("readiness_assessment", {})
+        stakeholder_context = signoff_request.get("stakeholder_context")
+        package_type = signoff_request.get("package_type", "comprehensive")
+        
+        if not readiness_assessment:
+            raise HTTPException(status_code=400, detail="Readiness assessment is required for signoff package")
+        
+        # Generate stakeholder signoff package
+        signoff_package = await assessment_readiness_orchestrator.generate_stakeholder_signoff_package(
+            readiness_assessment, stakeholder_context
+        )
+        
+        return {
+            "status": "success",
+            "package_type": package_type,
+            "signoff_package": signoff_package,
+            "orchestrator_metadata": {
+                "agent_id": assessment_readiness_orchestrator.agent_id,
+                "package_generated": datetime.utcnow().isoformat()
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error generating stakeholder signoff package: {e}")
+        raise HTTPException(status_code=500, detail=f"Stakeholder signoff package generation failed: {str(e)}")
+
+@router.post("/stakeholder-signoff-feedback")
+async def process_stakeholder_signoff_feedback(
+    feedback_request: Dict[str, Any],
+    db: AsyncSession = Depends(get_db)
+) -> Dict[str, Any]:
+    """
+    Process stakeholder feedback on assessment readiness and signoff decisions.
+    
+    Request body:
+    {
+        "feedback_type": "readiness_validation",
+        "signoff_decision": "approve|conditional|reject",
+        "stakeholder_concerns": [...],
+        "additional_requirements": [...],
+        "signoff_metadata": {...}
+    }
+    """
+    try:
+        feedback_type = feedback_request.get("feedback_type", "readiness_validation")
+        signoff_decision = feedback_request.get("signoff_decision")
+        
+        if not signoff_decision:
+            raise HTTPException(status_code=400, detail="Signoff decision is required")
+        
+        if signoff_decision not in ["approve", "conditional", "reject"]:
+            raise HTTPException(status_code=400, detail="Signoff decision must be 'approve', 'conditional', or 'reject'")
+        
+        # Process stakeholder signoff feedback
+        learning_result = await assessment_readiness_orchestrator.process_stakeholder_signoff_feedback(
+            feedback_request
+        )
+        
+        return {
+            "status": "success",
+            "feedback_type": feedback_type,
+            "signoff_decision": signoff_decision,
+            "learning_result": learning_result,
+            "orchestrator_metadata": {
+                "agent_id": assessment_readiness_orchestrator.agent_id,
+                "feedback_processed": datetime.utcnow().isoformat()
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error processing stakeholder signoff feedback: {e}")
+        raise HTTPException(status_code=500, detail=f"Stakeholder signoff feedback processing failed: {str(e)}")
+
 @router.get("/health")
 async def agent_discovery_health():
     """Health check for agent discovery endpoints."""
@@ -671,7 +807,11 @@ async def agent_discovery_health():
         "version": "1.0.0",
         "agentic_framework": "active",
         "available_agents": [
-            "Data Source Intelligence Agent"
+            "Data Source Intelligence Agent",
+            "Application Discovery Agent", 
+            "Dependency Intelligence Agent",
+            "Tech Debt Analysis Agent",
+            "Assessment Readiness Orchestrator"
         ],
         "ui_bridge_status": agent_ui_bridge.get_agent_status_summary(),
         "available_endpoints": [
@@ -683,6 +823,13 @@ async def agent_discovery_health():
             "/application-validation",
             "/readiness-assessment",
             "/stakeholder-requirements",
+            "/dependency-analysis",
+            "/dependency-feedback",
+            "/tech-debt-analysis",
+            "/tech-debt-feedback",
+            "/assessment-readiness",
+            "/stakeholder-signoff-package",
+            "/stakeholder-signoff-feedback",
             "/health"
         ]
     }

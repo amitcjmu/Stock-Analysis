@@ -74,6 +74,10 @@ export const API_CONFIG = {
       APPLICATION_PORTFOLIO: '/api/v1/discovery/agents/application-portfolio',
       APPLICATION_VALIDATION: '/api/v1/discovery/agents/application-validation',
       READINESS_ASSESSMENT: '/api/v1/discovery/agents/readiness-assessment',
+      // Assessment Readiness Orchestrator endpoints
+      ASSESSMENT_READINESS: '/api/v1/discovery/agents/assessment-readiness',
+      STAKEHOLDER_SIGNOFF_PACKAGE: '/api/v1/discovery/agents/stakeholder-signoff-package',
+      STAKEHOLDER_SIGNOFF_FEEDBACK: '/api/v1/discovery/agents/stakeholder-signoff-feedback',
       // Data cleanup endpoints  
       DATA_CLEANUP_ANALYZE: '/api/v1/discovery/data-cleanup/agent-analyze',
       DATA_CLEANUP_PROCESS: '/api/v1/discovery/data-cleanup/agent-process'

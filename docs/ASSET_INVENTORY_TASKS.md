@@ -331,20 +331,26 @@
   - [x] **Business Context Learning**: Agent understanding of organizational risk tolerance ✅
   - [x] **Files**: Enhanced via agent discovery API endpoints (`/tech-debt-analysis`, `/tech-debt-feedback`) ✅
 
-### Task 5.2: Assessment Readiness Orchestration by Agents
-- [ ] **Assessment Readiness Agent System**
-  - [ ] Agents continuously assess application portfolio readiness for 6R analysis
-  - [ ] Dynamic readiness criteria based on stakeholder requirements and data quality
-  - [ ] Intelligent application prioritization for assessment phase
-  - [ ] Agent coordination across all discovery phases for comprehensive readiness evaluation
-  - [ ] **Files**: `backend/app/services/assessment_readiness_orchestrator.py`
+### Task 5.2: Assessment Readiness Orchestration by Agents ✅ **COMPLETED**
+- [x] **Assessment Readiness Agent System** ✅
+  - [x] Agents continuously assess application portfolio readiness for 6R analysis ✅
+  - [x] Dynamic readiness criteria based on stakeholder requirements and data quality ✅
+  - [x] Intelligent application prioritization for assessment phase ✅
+  - [x] Agent coordination across all discovery phases for comprehensive readiness evaluation ✅
+  - [x] **Files**: `backend/app/services/assessment_readiness_orchestrator.py` ✅
 
-- [ ] **Assessment Handoff Interface**
-  - [ ] **Readiness Dashboard**: Application portfolio with agent-assessed readiness levels
-  - [ ] **Outstanding Questions Panel**: Cross-page unresolved clarifications affecting readiness
-  - [ ] **Assessment Preparation**: Agent recommendations for optimizing assessment phase success
-  - [ ] **Stakeholder Sign-off**: Interactive validation of agent assessments before 6R analysis
-  - [ ] **Files**: `src/pages/discovery/AssessmentReadiness.tsx`
+- [x] **Assessment Handoff Interface** ✅
+  - [x] **Readiness Dashboard**: Application portfolio with agent-assessed readiness levels ✅
+  - [x] **Outstanding Questions Panel**: Cross-page unresolved clarifications affecting readiness ✅
+  - [x] **Assessment Preparation**: Agent recommendations for optimizing assessment phase success ✅
+  - [x] **Stakeholder Sign-off**: Interactive validation of agent assessments before 6R analysis ✅
+  - [x] **Files**: `src/pages/discovery/AssessmentReadiness.tsx` ✅
+
+- [x] **API Integration** ✅
+  - [x] **Assessment Readiness API**: `/api/v1/discovery/agents/assessment-readiness` - Comprehensive portfolio readiness assessment ✅
+  - [x] **Stakeholder Signoff Package API**: `/api/v1/discovery/agents/stakeholder-signoff-package` - Executive summary and validation package ✅
+  - [x] **Stakeholder Signoff Feedback API**: `/api/v1/discovery/agents/stakeholder-signoff-feedback` - Learning from stakeholder decisions ✅
+  - [x] **Files**: Enhanced `backend/app/api/v1/endpoints/agent_discovery.py` + `src/config/api.ts` ✅
 
 ## Core Infrastructure Tasks (Cross-Sprint)
 
@@ -441,6 +447,59 @@
 - [ ] Seamless handoff to assessment phase with complete application context and agent intelligence
 - [ ] Agent memory system demonstrates platform-wide learning while maintaining client-specific context
 
+## 🚨 **IMMEDIATE PRIORITY: CRITICAL UX IMPROVEMENTS NEEDED**
+
+**Critical UX Issues Identified**: Two major user experience problems affecting agent clarification effectiveness and application navigation efficiency.
+
+### Priority Task 6.1: Enhanced Asset Context in Agent Clarifications ⚠️ **HIGH PRIORITY**
+- [ ] **Asset Detail Enhancement for Clarifications**
+  - [ ] Enhance AgentClarificationPanel to show comprehensive asset details when agents ask questions about "Unknown" or unclear assets
+  - [ ] Display asset technical details (hostname, IP, OS, CPU, memory, storage) when available
+  - [ ] Show business context (department, criticality, ownership, location) for better user understanding
+  - [ ] Add expandable asset cards with full asset information to provide adequate context
+  - [ ] Implement automatic asset detail fetching when questions reference specific assets
+  - [ ] **Files**: `src/components/discovery/AgentClarificationPanel.tsx`
+
+- [ ] **Agent Question Context Improvement**
+  - [ ] Modify agent question generation to include more asset context in the question itself
+  - [ ] Ensure agents provide asset type, environment, and identifying characteristics in questions
+  - [ ] Add asset lookup functionality to retrieve full asset details for question context
+  - [ ] Implement progressive disclosure for asset details (summary vs full details)
+  - [ ] **Files**: Backend agent services to enhance question context generation
+
+### Priority Task 6.2: Application Filtering and Navigation Enhancement ⚠️ **HIGH PRIORITY**
+- [ ] **Advanced Application Filtering System**
+  - [ ] Add comprehensive text search across application names, technologies, environments, components
+  - [ ] Implement multi-attribute filters: validation status, environment, business criticality, technology stack
+  - [ ] Add numeric range filters for component count and confidence percentage
+  - [ ] Create collapsible filter panel with clear filter controls and active filter display
+  - [ ] Enable filter combinations and filter state persistence during navigation
+  - [ ] **Files**: `src/components/discovery/application-discovery/ApplicationDiscoveryPanel.tsx`
+
+- [ ] **Improved Application List Navigation**
+  - [ ] Add pagination controls with configurable items per page (10, 25, 50, 100)
+  - [ ] Implement efficient client-side filtering with performance optimization
+  - [ ] Add quick filter buttons for common scenarios (high confidence, needs clarification)
+  - [ ] Show filter result counts and filtering status indicators
+  - [ ] Add keyboard shortcuts for common filter operations
+  - [ ] **Files**: Enhanced `ApplicationDiscoveryPanel.tsx` with advanced navigation
+
+### Priority Task 6.3: Agent Insights Quality Control Enhancement ⚠️ **MEDIUM PRIORITY**
+- [ ] **Presentation Reviewer Agent Enhancement**
+  - [ ] Strengthen the presentation reviewer agent to catch non-actionable insights
+  - [ ] Add validation for numerical claims in insights (e.g., "19 applications" when only 6 exist)
+  - [ ] Implement insight accuracy scoring and validation before display
+  - [ ] Add user feedback mechanism for insight quality improvement
+  - [ ] Create insight quality metrics and monitoring dashboard
+  - [ ] **Files**: Backend agent services for presentation review enhancement
+
+- [ ] **Actionable Insight Generation**
+  - [ ] Ensure all agent insights include specific actionable recommendations
+  - [ ] Add context about why insights are relevant to migration planning
+  - [ ] Include confidence levels and supporting evidence for all insights
+  - [ ] Filter out generic or low-value insights before presentation
+  - [ ] **Files**: Agent insight generation services
+
 ## Current Status
 
 **🚨 CRITICAL ARCHITECTURE ISSUE: Sprint 2 Task 2.2 Violates Agentic-First Principle**
@@ -467,7 +526,7 @@
 - ✅ **AGENTIC FOUNDATION IMPLEMENTED**: Core agent-UI communication system operational
 - 🎯 **READY**: Clear path forward with proper agentic UI-agent interaction system
 
-**Overall Progress**: 70% complete (Database foundation solid + Agentic framework foundation implemented + Sprint 3 Task 3.2 UI integration completed + Sprint 4 Tasks 4.1, 4.2 & 4.3 completed with modularized architecture, Sprint 5 tasks ready for implementation)
+**Overall Progress**: 75% complete (Database foundation solid + Agentic framework foundation implemented + Sprint 3 Task 3.2 UI integration completed + Sprint 4 Tasks 4.1, 4.2 & 4.3 completed with modularized architecture + **Sprint 5 Task 5.2 Assessment Readiness Orchestrator completed** + **CRITICAL UX IMPROVEMENTS NEEDED for Priority Tasks 6.1, 6.2, 6.3**)
 
 **✅ Sprint 4 Tasks 4.1, 4.2 & 4.3 COMPLETED (2025-01-29)**:
 - **Task 4.1**: Agentic Data Cleansing system with modularized handlers (162 lines main service + 4 handlers under 250 lines each)
@@ -476,6 +535,14 @@
 - **API Integration**: Enhanced agent discovery endpoints with working data cleanup, application portfolio, and dependency analysis endpoints
 - **Code Quality**: All new files properly modularized and within 300-500 line targets
 - **Testing**: All endpoints tested and working correctly with agent-driven analysis
+
+**✅ Sprint 5 Task 5.2 Assessment Readiness Orchestrator COMPLETED (2025-01-29)**:
+- **Assessment Readiness Agent System**: Comprehensive agent system for portfolio readiness assessment with dynamic criteria based on stakeholder requirements and data quality (600+ lines)
+- **Assessment Handoff Interface**: Full-featured React page with readiness dashboard, application prioritization, outstanding questions panel, and stakeholder sign-off interface (700+ lines)
+- **API Integration**: 3 new endpoints for assessment readiness, stakeholder signoff package generation, and signoff feedback processing
+- **Agent Coordination**: Intelligent orchestration across all discovery phases for comprehensive readiness evaluation
+- **Stakeholder Learning**: Agent learning from stakeholder signoff decisions to improve future assessments
+- **Enterprise-Ready**: Executive summary generation, risk assessment, validation checkpoints, and decision tracking
 
 **🔧 File Modularization Status**:
 - ✅ `backend/app/services/data_cleanup_service.py`: 162 lines (modularized)
