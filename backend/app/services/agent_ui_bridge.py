@@ -101,7 +101,7 @@ class AgentInsight:
 class AgentUIBridge:
     """Manages communication between AI agents and the UI."""
     
-    def __init__(self, data_dir: str = "backend/data"):
+    def __init__(self, data_dir: str = "data"):
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(exist_ok=True)
         
