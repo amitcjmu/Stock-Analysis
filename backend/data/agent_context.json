@@ -1,0 +1,23 @@
+{
+  "cross_page_context": {
+    "discovered_assets": {
+      "value": {
+        "naming_conventions": [
+          "server",
+          "database"
+        ],
+        "environment_indicators": [
+          "prod",
+          "dev"
+        ],
+        "department_patterns": [
+          "IT",
+          "Finance"
+        ]
+      },
+      "page_source": "data-import",
+      "timestamp": "2025-06-01T05:46:13.413915"
+    }
+  },
+  "agent_states": {}
+}

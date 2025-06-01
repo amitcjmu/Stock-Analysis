@@ -29,6 +29,7 @@ services:
       - FRONTEND_URL=http://localhost:8081
       - ENVIRONMENT=development
       - DEBUG=true
+      - PYTHONPATH=/app
     ports:
       - "8000:8000"
     depends_on:
@@ -36,6 +37,8 @@ services:
         condition: service_healthy
     volumes:
       - ./backend:/app
+      - ./tests:/app/tests
+      - ./docs:/app/docs
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
   # Frontend (for development)
