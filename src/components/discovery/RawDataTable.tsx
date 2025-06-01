@@ -64,6 +64,11 @@ const RawDataTable: React.FC<RawDataTableProps> = ({
     return data.slice(startIndex, endIndex);
   };
 
+  // Get asset identifier for highlighting
+  const getAssetIdentifier = (row: any) => {
+    return row.id || row.asset_name || row.hostname || row.name || 'unknown';
+  };
+
   const totalPages = Math.ceil(data.length / pageSize);
 
   if (data.length === 0) {
@@ -121,15 +126,29 @@ const RawDataTable: React.FC<RawDataTableProps> = ({
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {getCurrentPageData().map((row, index) => (
-                <tr key={row.id || index} className="hover:bg-gray-50">
-                  {getAllColumns().map((column) => (
-                    <td key={column} className={`px-4 py-4 whitespace-nowrap text-sm text-gray-900 ${getFieldHighlight(column, row.id || index)}`}>
-                      {getCellValue(row, column)}
-                    </td>
-                  ))}
-                </tr>
-              ))}
+              {getCurrentPageData().map((row, index) => {
+                const assetId = getAssetIdentifier(row);
+                return (
+                  <tr key={assetId} className="hover:bg-gray-50">
+                    {getAllColumns().map((column) => {
+                      // Get highlighting for this specific cell
+                      const highlightClass = getFieldHighlight ? getFieldHighlight(column, assetId) : '';
+                      const cellValue = getCellValue(row, column);
+                      
+                      return (
+                        <td 
+                          key={column} 
+                          className={`px-4 py-4 whitespace-nowrap text-sm text-gray-900 ${highlightClass} ${
+                            cellValue === '<empty>' ? 'text-gray-400 italic' : ''
+                          }`}
+                        >
+                          {cellValue}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

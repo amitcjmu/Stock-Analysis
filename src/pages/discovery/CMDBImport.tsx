@@ -321,7 +321,10 @@ const DataImport = () => {
         }
         
         // Generate insights from intelligent AI analysis
-        const intelligentInsights = await generateIntelligentInsights(analysisResult, fileUpload.type);
+        const intelligentInsights = await generateIntelligentInsights(analysisResult, fileUpload.type, {
+          filename: fileUpload.file.name,
+          fileType: fileUpload.file.type
+        });
         
         console.log('Intelligent AI analysis complete for:', fileUpload.file.name);
         setUploadedFiles(prev => 
@@ -409,7 +412,7 @@ const DataImport = () => {
     return contextMap[uploadType] || 'User uploaded data for analysis';
   };
 
-  const generateIntelligentInsights = async (analysisResult: any, intendedType: string) => {
+  const generateIntelligentInsights = async (analysisResult: any, intendedType: string, fileInfo?: { filename: string; fileType: string }) => {
     // Extract real insights from the AI crew's intelligent analysis
     const dataQuality = analysisResult.dataQuality || {};
     const coverage = analysisResult.coverage || {};
@@ -563,9 +566,9 @@ const DataImport = () => {
         body: JSON.stringify({
           file_data: preview,
           metadata: {
-            filename: analysisRequest.filename,
+            filename: fileInfo?.filename || 'uploaded_file',
             size: preview.length * 1000, // Approximate size
-            type: analysisRequest.fileType
+            type: fileInfo?.fileType || 'unknown'
           },
           upload_context: {
             intended_type: intendedType,

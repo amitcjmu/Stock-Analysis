@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowRight, ArrowLeft, RefreshCw, Save, Zap } from 'lucide-react';
+import { ArrowRight, ArrowLeft, RefreshCw, Save, Zap, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import Sidebar from '../../components/Sidebar';
 import RawDataTable from '../../components/discovery/RawDataTable';
 import AgentClarificationPanel from '../../components/discovery/AgentClarificationPanel';
@@ -66,6 +66,12 @@ interface AgentAnalysisResult {
   suggested_operations: string[];
 }
 
+interface ActionFeedback {
+  type: 'success' | 'error' | 'info';
+  message: string;
+  details?: string;
+}
+
 const DataCleansing = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -87,39 +93,56 @@ const DataCleansing = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [fromAttributeMapping, setFromAttributeMapping] = useState(false);
   const [agentRefreshTrigger, setAgentRefreshTrigger] = useState(0);
+  
+  // New state for enhanced UX
+  const [selectedIssue, setSelectedIssue] = useState<string | null>(null);
+  const [selectedRecommendation, setSelectedRecommendation] = useState<string | null>(null);
+  const [actionFeedback, setActionFeedback] = useState<ActionFeedback | null>(null);
+
+  // Clear feedback after 5 seconds
+  useEffect(() => {
+    if (actionFeedback) {
+      const timer = setTimeout(() => setActionFeedback(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [actionFeedback]);
 
   // Load data on component mount
   useEffect(() => {
+    const initializeDataCleansing = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Check if we came from Attribute Mapping with context
+        const state = location.state as any;
+        if (state?.fromAttributeMapping && state?.importedData) {
+          setFromAttributeMapping(true);
+          setRawData(state.importedData);
+          console.log('Received data from Attribute Mapping:', state.importedData);
+          
+          // Perform agent-driven quality analysis
+          await performAgentQualityAnalysis(state.importedData);
+          
+          // Fix 2: Trigger agent analysis for panels with relatedCMDBrecords detection
+          await triggerAgentPanelAnalysis(state.importedData);
+        } else {
+          // Try to load from localStorage or backend
+          await loadDataFromStorage();
+        }
+      } catch (error) {
+        console.error('Failed to initialize data cleansing:', error);
+        setActionFeedback({
+          type: 'error',
+          message: 'Failed to load data',
+          details: error instanceof Error ? error.message : 'Unknown error occurred'
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     initializeDataCleansing();
   }, []);
-
-  // Initialize data cleansing with agent analysis
-  const initializeDataCleansing = async () => {
-    try {
-      setIsLoading(true);
-      
-      // Check if we came from Attribute Mapping with context
-      const state = location.state as any;
-      if (state?.fromAttributeMapping && state?.importedData) {
-        setFromAttributeMapping(true);
-        setRawData(state.importedData);
-        console.log('Received data from Attribute Mapping:', state.importedData);
-        
-        // Perform agent-driven quality analysis
-        await performAgentQualityAnalysis(state.importedData);
-        
-        // Fix 2: Trigger agent analysis for panels with relatedCMDBrecords detection
-        await triggerAgentPanelAnalysis(state.importedData);
-      } else {
-        // Try to load from localStorage or backend
-        await loadDataFromStorage();
-      }
-    } catch (error) {
-      console.error('Failed to initialize data cleansing:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   // Load data from database or backend
   const loadDataFromStorage = async () => {
@@ -408,8 +431,21 @@ const DataCleansing = () => {
           completion_percentage: newCompletionPercentage // Correct calculation
         };
       });
+
+      // Show success feedback
+      setActionFeedback({
+        type: 'success',
+        message: 'Quality issue resolved successfully',
+        details: `Fixed ${issue.issue_type} for ${issue.asset_name}`
+      });
+      
     } catch (error) {
       console.error('Failed to fix issue:', error);
+      setActionFeedback({
+        type: 'error',
+        message: 'Failed to fix quality issue',
+        details: error instanceof Error ? error.message : 'Unknown error occurred'
+      });
     }
   };
 
@@ -474,12 +510,27 @@ const DataCleansing = () => {
           // Remove the applied recommendation
           setAgentRecommendations(prev => prev.filter(r => r.id !== recommendationId));
           
-          alert(`Recommendation applied successfully! ${changesApplied} assets updated.`);
+          // Show success feedback
+          setActionFeedback({
+            type: 'success',
+            message: 'Recommendation applied successfully',
+            details: `${changesApplied} assets updated with ${recommendation.title}`
+          });
+        } else {
+          setActionFeedback({
+            type: 'info',
+            message: 'No changes were needed',
+            details: 'All assets already meet the recommendation criteria'
+          });
         }
       }
     } catch (error) {
       console.error('Failed to apply recommendation:', error);
-      alert('Failed to apply recommendation. Please try again.');
+      setActionFeedback({
+        type: 'error',
+        message: 'Failed to apply recommendation',
+        details: error instanceof Error ? error.message : 'Unknown error occurred'
+      });
     }
   };
 
@@ -585,6 +636,38 @@ const DataCleansing = () => {
     }
   };
 
+  // Get field highlighting for table integration
+  const getFieldHighlight = (fieldName: string, assetId: string) => {
+    let highlightClass = '';
+    
+    // Highlight based on selected issue
+    if (selectedIssue) {
+      const issue = qualityIssues.find(i => i.id === selectedIssue);
+      if (issue && issue.field_name === fieldName) {
+        const assetIdentifier = issue.asset_name || issue.asset_id;
+        const currentAsset = rawData.find(asset => 
+          asset.asset_name === assetIdentifier || 
+          asset.hostname === assetIdentifier ||
+          asset.id === assetIdentifier
+        );
+        
+        if (currentAsset && (currentAsset.id === assetId || currentAsset.asset_name === assetId || currentAsset.hostname === assetId)) {
+          highlightClass = 'bg-red-100 border border-red-300 ring-2 ring-red-200';
+        }
+      }
+    }
+    
+    // Highlight based on selected recommendation
+    if (selectedRecommendation) {
+      const recommendation = agentRecommendations.find(r => r.id === selectedRecommendation);
+      if (recommendation && recommendation.change_details?.fields_affected.includes(fieldName)) {
+        highlightClass = 'bg-blue-100 border border-blue-300 ring-2 ring-blue-200';
+      }
+    }
+    
+    return highlightClass;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <Sidebar />
@@ -618,37 +701,198 @@ const DataCleansing = () => {
                   </div>
                 </div>
 
+                {/* Action Feedback */}
+                {actionFeedback && (
+                  <div className={`mb-6 p-4 rounded-lg border ${
+                    actionFeedback.type === 'success' ? 'bg-green-50 border-green-200' :
+                    actionFeedback.type === 'error' ? 'bg-red-50 border-red-200' :
+                    'bg-blue-50 border-blue-200'
+                  }`}>
+                    <div className="flex items-start space-x-3">
+                      {actionFeedback.type === 'success' && <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />}
+                      {actionFeedback.type === 'error' && <XCircle className="h-5 w-5 text-red-600 mt-0.5" />}
+                      {actionFeedback.type === 'info' && <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />}
+                      <div>
+                        <p className={`font-medium ${
+                          actionFeedback.type === 'success' ? 'text-green-800' :
+                          actionFeedback.type === 'error' ? 'text-red-800' :
+                          'text-blue-800'
+                        }`}>
+                          {actionFeedback.message}
+                        </p>
+                        {actionFeedback.details && (
+                          <p className={`text-sm mt-1 ${
+                            actionFeedback.type === 'success' ? 'text-green-600' :
+                            actionFeedback.type === 'error' ? 'text-red-600' :
+                            'text-blue-600'
+                          }`}>
+                            {actionFeedback.details}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Quality Dashboard */}
                 <QualityDashboard 
                   metrics={qualityMetrics} 
                   isLoading={isLoading}
                 />
 
-                {/* Agent Quality Analysis */}
-                <AgentQualityAnalysis
-                  qualityIssues={qualityIssues}
-                  recommendations={agentRecommendations}
-                  agentConfidence={agentAnalysis?.agent_confidence || 0.7}
-                  analysisType={agentAnalysis?.analysis_type || 'fallback_rules'}
-                  onApplyRecommendation={handleApplyRecommendation}
-                  onFixIssue={handleFixIssue}
-                  isLoading={isAnalyzing}
-                />
+                {/* Compact Quality Summary & Recommendations */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                  {/* Quality Issues Summary */}
+                  <div className="bg-white rounded-lg shadow-md">
+                    <div className="p-4 border-b border-gray-200">
+                      <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                        <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
+                        Quality Issues ({qualityIssues.length})
+                      </h3>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto">
+                      {qualityIssues.length > 0 ? (
+                        <div className="space-y-2 p-4">
+                          {qualityIssues.map((issue) => (
+                            <div
+                              key={issue.id}
+                              onClick={() => setSelectedIssue(selectedIssue === issue.id ? null : issue.id)}
+                              className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                                selectedIssue === issue.id
+                                  ? 'border-red-300 bg-red-50'
+                                  : 'border-gray-200 hover:border-red-200 hover:bg-red-25'
+                              }`}
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium text-gray-900">{issue.asset_name}</p>
+                                  <p className="text-xs text-gray-600">{issue.issue_type}</p>
+                                  <p className="text-xs text-gray-500">{issue.field_name}</p>
+                                </div>
+                                <span className={`text-xs px-2 py-1 rounded-full ${
+                                  issue.severity === 'critical' ? 'bg-red-100 text-red-800' :
+                                  issue.severity === 'high' ? 'bg-orange-100 text-orange-800' :
+                                  issue.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-blue-100 text-blue-800'
+                                }`}>
+                                  {issue.severity}
+                                </span>
+                              </div>
+                              {selectedIssue === issue.id && (
+                                <div className="mt-2 pt-2 border-t border-red-200">
+                                  <p className="text-xs text-gray-600 mb-2">{issue.description}</p>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleFixIssue(issue.id);
+                                    }}
+                                    className="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700"
+                                  >
+                                    Apply Fix
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="p-4 text-center text-gray-500">
+                          <p className="text-sm">No quality issues found</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
 
-                {/* Raw Data Table */}
+                  {/* Recommendations Summary */}
+                  <div className="bg-white rounded-lg shadow-md">
+                    <div className="p-4 border-b border-gray-200">
+                      <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                        <Zap className="h-5 w-5 text-blue-500 mr-2" />
+                        Agent Recommendations ({agentRecommendations.length})
+                      </h3>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto">
+                      {agentRecommendations.length > 0 ? (
+                        <div className="space-y-2 p-4">
+                          {agentRecommendations.map((rec) => (
+                            <div
+                              key={rec.id}
+                              onClick={() => setSelectedRecommendation(selectedRecommendation === rec.id ? null : rec.id)}
+                              className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                                selectedRecommendation === rec.id
+                                  ? 'border-blue-300 bg-blue-50'
+                                  : 'border-gray-200 hover:border-blue-200 hover:bg-blue-25'
+                              }`}
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium text-gray-900">{rec.title}</p>
+                                  <p className="text-xs text-gray-600">{rec.affected_assets} assets</p>
+                                  <p className="text-xs text-gray-500">{rec.change_details.fields_affected.join(', ')}</p>
+                                </div>
+                                <span className={`text-xs px-2 py-1 rounded-full ${
+                                  rec.priority === 'high' ? 'bg-red-100 text-red-800' :
+                                  rec.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-green-100 text-green-800'
+                                }`}>
+                                  {rec.priority}
+                                </span>
+                              </div>
+                              {selectedRecommendation === rec.id && (
+                                <div className="mt-2 pt-2 border-t border-blue-200">
+                                  <p className="text-xs text-gray-600 mb-2">{rec.description}</p>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleApplyRecommendation(rec.id);
+                                    }}
+                                    className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700"
+                                  >
+                                    Apply Recommendation
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="p-4 text-center text-gray-500">
+                          <p className="text-sm">No recommendations available</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Enhanced Raw Data Table with Highlighting */}
                 {rawData.length > 0 && (
                   <div className="bg-white rounded-lg shadow-md p-6 mb-8">
                     <div className="flex items-center justify-between mb-6">
                       <h2 className="text-xl font-semibold text-gray-900">Data Preview</h2>
-                      <span className="text-sm text-gray-600">
-                        Showing {Math.min(rawData.length, 10)} of {rawData.length} assets
-                      </span>
+                      <div className="flex items-center space-x-4 text-sm">
+                        {selectedIssue && (
+                          <div className="flex items-center space-x-2">
+                            <div className="w-3 h-3 bg-red-100 border border-red-300 rounded"></div>
+                            <span>Selected Issue Field</span>
+                          </div>
+                        )}
+                        {selectedRecommendation && (
+                          <div className="flex items-center space-x-2">
+                            <div className="w-3 h-3 bg-blue-100 border border-blue-300 rounded"></div>
+                            <span>Recommendation Fields</span>
+                          </div>
+                        )}
+                        <span className="text-gray-600">
+                          Showing {Math.min(rawData.length, 10)} of {rawData.length} assets
+                        </span>
+                      </div>
                     </div>
                     <RawDataTable
                       data={rawData}
                       title="Asset Data for Quality Review"
                       pageSize={10}
                       showLegend={false}
+                      getFieldHighlight={getFieldHighlight}
                     />
                   </div>
                 )}
