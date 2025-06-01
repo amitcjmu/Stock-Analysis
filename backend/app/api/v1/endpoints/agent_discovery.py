@@ -5,12 +5,14 @@ Provides agentic intelligence for discovery processes, replacing hardcoded heuri
 
 import logging
 from typing import Dict, List, Any, Optional
+from datetime import datetime
 from fastapi import APIRouter, HTTPException, Depends, File, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.services.agent_ui_bridge import agent_ui_bridge, QuestionType, ConfidenceLevel, DataClassification
 from app.services.discovery_agents.data_source_intelligence_agent import data_source_intelligence_agent
+from app.services.discovery_agents.application_discovery_agent import application_discovery_agent
 
 logger = logging.getLogger(__name__)
 
@@ -198,19 +200,51 @@ async def get_application_portfolio(
     Agent-identified application portfolio with confidence assessments.
     """
     try:
-        # This will be implemented with Application Discovery Agent
-        # For now, return placeholder structure
-        portfolio = {
-            "applications": [],
-            "agent_confidence": "medium",
-            "discovery_status": "pending_agent_implementation",
-            "requires_clarification": True
-        }
+        # Get assets from the discovery system
+        from app.api.v1.discovery.asset_management import crud_handler
+        assets_result = await crud_handler.get_assets_paginated({'page': 1, 'page_size': 1000})
+        assets = assets_result.get('assets', [])
+        
+        if not assets:
+            return {
+                "status": "success",
+                "application_portfolio": {
+                    "applications": [],
+                    "discovery_confidence": 0.0,
+                    "clarification_questions": [],
+                    "discovery_metadata": {
+                        "total_assets_analyzed": 0,
+                        "applications_discovered": 0,
+                        "high_confidence_apps": 0,
+                        "needs_clarification": 0,
+                        "analysis_timestamp": datetime.utcnow().isoformat()
+                    }
+                },
+                "message": "No assets available for application discovery"
+            }
+        
+        # Use Application Discovery Agent to analyze assets
+        discovery_result = await application_discovery_agent.discover_applications(assets)
+        
+        # Store clarification questions in the UI bridge for display
+        for question in discovery_result.get("clarification_questions", []):
+            agent_ui_bridge.add_agent_question(
+                agent_id=application_discovery_agent.agent_id,
+                agent_name=application_discovery_agent.agent_name,
+                question_type=QuestionType.APPLICATION_BOUNDARY,
+                page="asset-inventory",
+                title=f"Application Validation: {question['application_name']}",
+                question=question["question"],
+                context=question["context"],
+                options=question["options"],
+                confidence=ConfidenceLevel.MEDIUM,
+                priority="medium"
+            )
         
         return {
             "status": "success",
-            "application_portfolio": portfolio,
-            "message": "Application Discovery Agent implementation pending - Sprint 4"
+            "application_portfolio": discovery_result,
+            "agent_analysis_complete": True
         }
         
     except Exception as e:
@@ -226,11 +260,44 @@ async def validate_application_groupings(
     User validation of agent application groupings for learning.
     """
     try:
-        # This will be implemented with Application Discovery Agent
+        application_id = validation_input.get("application_id")
+        validation_type = validation_input.get("validation_type")
+        user_feedback = validation_input.get("feedback", {})
+        
+        if not application_id or not validation_type:
+            raise HTTPException(status_code=400, detail="Application ID and validation type are required")
+        
+        # Process feedback through the Application Discovery Agent
+        feedback_data = {
+            "type": "application_validation",
+            "application_id": application_id,
+            "validation": validation_type,
+            "application_data": validation_input.get("application_data", {}),
+            "correction": user_feedback
+        }
+        
+        learning_result = await application_discovery_agent.process_user_feedback(feedback_data)
+        
+        # Store learning experience in the UI bridge
+        learning_context = {
+            "validation_type": validation_type,
+            "application_id": application_id,
+            "user_feedback": user_feedback,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+        agent_ui_bridge.set_cross_page_context(
+            f"application_validation_{application_id}",
+            learning_context,
+            "asset-inventory"
+        )
+        
         return {
             "status": "success",
-            "message": "Application validation will be implemented in Sprint 4",
-            "validation_stored": False
+            "message": "Application validation processed successfully",
+            "validation_stored": True,
+            "learning_applied": learning_result.get("learning_applied", False),
+            "agent_improvement": "Application Discovery Agent updated with user feedback"
         }
         
     except Exception as e:

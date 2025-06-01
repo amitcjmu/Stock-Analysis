@@ -10,7 +10,7 @@ import ProgressDashboard from '../../components/discovery/attribute-mapping/Prog
 import CrewAnalysisPanel from '../../components/discovery/attribute-mapping/CrewAnalysisPanel';
 import FieldMappingsTab from '../../components/discovery/attribute-mapping/FieldMappingsTab';
 import NavigationTabs from '../../components/discovery/attribute-mapping/NavigationTabs';
-import { apiCall } from '../../config/api';
+import { apiCall, API_CONFIG } from '../../config/api';
 
 // Interface definitions
 interface FieldMapping {
@@ -105,7 +105,7 @@ const AttributeMapping = () => {
       setIsAnalyzing(true);
       
       // Agent-driven field mapping analysis
-      const agentResponse = await apiCall('/discovery/agents/agent-analysis', {
+      const agentResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_ANALYSIS, {
         method: 'POST',
         body: JSON.stringify({
           data_source: {
@@ -219,7 +219,7 @@ const AttributeMapping = () => {
 
     try {
       // Send learning feedback to agents
-      await apiCall('/discovery/agents/agent-learning', {
+              await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_LEARNING, {
         method: 'POST',
         body: JSON.stringify({
           learning_type: 'field_mapping_feedback',

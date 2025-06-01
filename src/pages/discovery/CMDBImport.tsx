@@ -268,7 +268,7 @@ const DataImport = () => {
         console.log('Sending file to AI crew for intelligent analysis:', analysisRequest.filename);
         
         // Call new agent-driven analysis API
-        const agentResponse = await fetch(`${API_CONFIG.BASE_URL}/discovery/agents/agent-analysis`, {
+        const agentResponse = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_ANALYSIS}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'

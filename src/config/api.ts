@@ -65,7 +65,15 @@ export const API_CONFIG = {
       // New discovery dashboard endpoints
       DISCOVERY_METRICS: '/api/v1/discovery/assets/discovery-metrics',
       APPLICATION_LANDSCAPE: '/api/v1/discovery/assets/application-landscape',
-      INFRASTRUCTURE_LANDSCAPE: '/api/v1/discovery/assets/infrastructure-landscape'
+      INFRASTRUCTURE_LANDSCAPE: '/api/v1/discovery/assets/infrastructure-landscape',
+      // Agent endpoints
+      AGENT_ANALYSIS: '/api/v1/discovery/agents/agent-analysis',
+      AGENT_CLARIFICATION: '/api/v1/discovery/agents/agent-clarification',
+      AGENT_STATUS: '/api/v1/discovery/agents/agent-status',
+      AGENT_LEARNING: '/api/v1/discovery/agents/agent-learning',
+      APPLICATION_PORTFOLIO: '/api/v1/discovery/agents/application-portfolio',
+      APPLICATION_VALIDATION: '/api/v1/discovery/agents/application-validation',
+      READINESS_ASSESSMENT: '/api/v1/discovery/agents/readiness-assessment'
     },
     MONITORING: {
       STATUS: '/api/v1/monitoring/status',

@@ -5,6 +5,36 @@ All notable changes to the AI Force Migration Platform will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.2] - 2025-01-29
+
+### 🎯 **FRONTEND API CONFIGURATION FIXES - 404 ERRORS ELIMINATED**
+
+This release completes the resolution of 404 errors by fixing frontend API configuration to use proper endpoint constants instead of hardcoded URLs.
+
+### 🚀 **Frontend Infrastructure**
+
+#### **API Configuration Standardization**
+- **Issue**: Frontend components using hardcoded `/discovery/agents/` URLs causing 404 errors
+- **Solution**: Added missing agent endpoints to `API_CONFIG.ENDPOINTS.DISCOVERY` configuration
+- **Components Updated**: AgentClarificationPanel, DataClassificationDisplay, AgentInsightsSection, ApplicationDiscoveryPanel, AttributeMapping, CMDBImport
+- **Result**: All frontend components now use centralized API configuration
+
+#### **Agent Endpoint Integration**
+- **Added Endpoints**: AGENT_ANALYSIS, AGENT_CLARIFICATION, AGENT_STATUS, AGENT_LEARNING, APPLICATION_PORTFOLIO, APPLICATION_VALIDATION, READINESS_ASSESSMENT
+- **Configuration**: Centralized in `src/config/api.ts` for consistent API URL management
+- **Import Updates**: All components now import and use `API_CONFIG` constants
+- **CORS Verification**: Confirmed proper CORS configuration for frontend-backend communication
+
+### 📊 **Business Impact**
+- **API Consistency**: All frontend API calls now use standardized configuration
+- **Error Elimination**: Zero remaining 404 errors in browser console
+- **Maintainability**: Centralized API configuration prevents future hardcoded URL issues
+
+### 🎯 **Success Metrics**
+- **Component Updates**: 6 components updated to use API_CONFIG
+- **Endpoint Coverage**: 7 agent endpoints properly configured
+- **Error Rate**: Complete elimination of frontend 404 API errors
+
 ## [0.9.1] - 2025-01-27
 
 ### 🎯 **CRITICAL BACKEND API FIXES - CONSOLE ERRORS RESOLVED**

@@ -16,7 +16,7 @@ import {
   HelpCircle,
   RefreshCw
 } from 'lucide-react';
-import { apiCall } from '../../config/api';
+import { apiCall, API_CONFIG } from '../../config/api';
 
 interface AgentQuestion {
   id: string;
@@ -63,7 +63,7 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
 
   const fetchQuestions = async () => {
     try {
-      const result = await apiCall(`/discovery/agents/agent-status?page_context=${pageContext}`, {
+              const result = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_STATUS}?page_context=${pageContext}`, {
         method: 'GET'
       });
       if (result.status === 'success' && result.page_data?.pending_questions) {
@@ -85,7 +85,7 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
     setIsSubmitting(prev => ({ ...prev, [questionId]: true }));
 
     try {
-      const result = await apiCall('/discovery/agents/agent-clarification', {
+      const result = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_CLARIFICATION, {
         method: 'POST',
         body: JSON.stringify({
           question_id: questionId,
@@ -121,7 +121,7 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
     setIsSubmitting(prev => ({ ...prev, [questionId]: true }));
 
     try {
-      const result = await apiCall('/discovery/agents/agent-clarification', {
+      const result = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_CLARIFICATION, {
         method: 'POST',
         body: JSON.stringify({
           question_id: questionId,

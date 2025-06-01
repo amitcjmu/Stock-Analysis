@@ -17,7 +17,7 @@ import {
   ThumbsUp,
   ThumbsDown
 } from 'lucide-react';
-import { apiCall } from '../../config/api';
+import { apiCall, API_CONFIG } from '../../config/api';
 
 interface AgentInsight {
   id: string;
@@ -59,7 +59,7 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
 
   const fetchInsights = async () => {
     try {
-      const result = await apiCall(`/discovery/agents/agent-status?page_context=${pageContext}`, 'GET');
+              const result = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_STATUS}?page_context=${pageContext}`, { method: 'GET' });
       if (result.status === 'success' && result.page_data?.agent_insights) {
         setInsights(result.page_data.agent_insights);
       }
@@ -163,7 +163,7 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
 
   const handleInsightFeedback = async (insightId: string, helpful: boolean) => {
     try {
-      await apiCall('/discovery/agents/agent-learning', {
+      await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_LEARNING, {
         method: 'POST',
         body: JSON.stringify({
           learning_type: 'insight_feedback',

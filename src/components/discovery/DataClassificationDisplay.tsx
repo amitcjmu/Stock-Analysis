@@ -15,7 +15,7 @@ import {
   ThumbsDown,
   Edit3
 } from 'lucide-react';
-import { apiCall } from '../../config/api';
+import { apiCall, API_CONFIG } from '../../config/api';
 
 interface DataItem {
   id: string;
@@ -63,7 +63,7 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
 
   const fetchClassifications = async () => {
     try {
-      const result = await apiCall(`/discovery/agents/agent-status?page_context=${pageContext}`, 'GET');
+              const result = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_STATUS}?page_context=${pageContext}`, { method: 'GET' });
       if (result.status === 'success' && result.page_data?.data_classifications) {
         setClassifications(result.page_data.data_classifications);
       }
@@ -78,7 +78,7 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
 
   const updateClassification = async (itemId: string, newClassification: 'good_data' | 'needs_clarification' | 'unusable') => {
     try {
-      const result = await apiCall('/discovery/agents/agent-learning', {
+      const result = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_LEARNING, {
         method: 'POST',
         body: JSON.stringify({
           learning_type: 'data_classification',

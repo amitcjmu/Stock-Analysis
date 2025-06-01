@@ -3,9 +3,11 @@ import Sidebar from '../../components/Sidebar';
 import AgentClarificationPanel from '../../components/discovery/AgentClarificationPanel';
 import DataClassificationDisplay from '../../components/discovery/DataClassificationDisplay';
 import AgentInsightsSection from '../../components/discovery/AgentInsightsSection';
+import ApplicationDiscoveryPanel from '../../components/discovery/application-discovery/ApplicationDiscoveryPanel';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Download, Filter, Database, Server, HardDrive, RefreshCw, Router, Shield, Cpu, Cloud, Zap,
-  ChevronLeft, ChevronRight, Search, Plus, Trash2, Eye, ArrowUpDown
+  ChevronLeft, ChevronRight, Search, Plus, Trash2, Eye, ArrowUpDown, Users
 } from 'lucide-react';
 import { apiCall, API_CONFIG } from '../../config/api';
 
@@ -54,6 +56,7 @@ const Inventory = () => {
   const [error, setError] = useState(null);
   const [dataSource, setDataSource] = useState('test');
   const [suggestedHeaders, setSuggestedHeaders] = useState([]);
+  const [activeTab, setActiveTab] = useState('assets');
   
   // Bulk operations state
   const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
@@ -658,8 +661,22 @@ const Inventory = () => {
               </div>
             </div>
 
-            {/* Summary Cards */}
-            <div className="grid grid-cols-6 gap-6 mb-8">
+            {/* Tab Navigation */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-6">
+                <TabsTrigger value="assets" className="flex items-center gap-2">
+                  <Database className="h-4 w-4" />
+                  Asset Inventory
+                </TabsTrigger>
+                <TabsTrigger value="applications" className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Application Portfolio
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="assets" className="space-y-6">
+                {/* Summary Cards */}
+                <div className="grid grid-cols-6 gap-6 mb-8">
               {[
                 { key: 'applications', label: 'Applications', icon: Database, color: 'bg-blue-500' },
                 { key: 'servers', label: 'Servers', icon: Server, color: 'bg-green-500' },
@@ -1119,6 +1136,19 @@ const Inventory = () => {
                 </div>
               </div>
             )}
+              </TabsContent>
+
+              <TabsContent value="applications" className="space-y-6">
+                <ApplicationDiscoveryPanel 
+                  onApplicationSelect={(application) => {
+                    console.log('Application selected:', application);
+                  }}
+                  onValidationSubmit={(applicationId, validation) => {
+                    console.log('Application validation submitted:', applicationId, validation);
+                  }}
+                />
+              </TabsContent>
+            </Tabs>
               </div>
             </main>
           </div>
