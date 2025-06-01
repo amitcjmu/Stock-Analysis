@@ -18,7 +18,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'app'))
 
 try:
     from app.core.config import settings
-    from app.services.crewai_service import CrewAIService
+    from app.services.crewai_service_modular import CrewAIService
     print("✅ Successfully imported configuration and services")
 except ImportError as e:
     print(f"❌ Import error: {e}")

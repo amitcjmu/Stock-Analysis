@@ -33,7 +33,7 @@ from app.schemas.migration import (
     MigrationResponse,
     MigrationListResponse
 )
-from app.services.crewai_service import crewai_service
+from app.services.crewai_service_modular import crewai_service
 from app.websocket.manager import ConnectionManager
 
 router = APIRouter()

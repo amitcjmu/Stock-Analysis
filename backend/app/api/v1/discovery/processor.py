@@ -11,7 +11,7 @@ import io
 from datetime import datetime
 import re
 
-from app.services.crewai_service import CrewAIService
+from app.services.crewai_service_modular import CrewAIService
 from .models import AssetCoverage
 
 logger = logging.getLogger(__name__)

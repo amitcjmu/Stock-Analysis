@@ -44,7 +44,7 @@ class AssetFeedbackRequest(BaseModel):
 async def get_crewai_service():
     """Get the CrewAI service instance."""
     try:
-        from app.services.crewai_service import crewai_service
+        from app.services.crewai_service_modular import crewai_service
         return crewai_service
     except ImportError as e:
         logger.error(f"CrewAI service not available: {e}")

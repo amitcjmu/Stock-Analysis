@@ -1,6 +1,6 @@
 import asyncio
 import time
-from app.services.crewai_service import crewai_service
+from app.services.crewai_service_modular import crewai_service
 
 async def test_cmdb_analysis_with_timeout():
     """Test CMDB analysis with a timeout to detect hanging issues."""

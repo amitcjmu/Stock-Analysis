@@ -19,7 +19,7 @@ def standardize_asset_type(asset_type: str, asset_name: str = "", asset_data: Di
     
     # Use agentic intelligence if available
     try:
-        from app.services.crewai_service import crewai_service
+        from app.services.crewai_service_modular import crewai_service
         if asset_data and crewai_service.agents:
             # Create minimal analysis data for asset type detection
             analysis_data = {

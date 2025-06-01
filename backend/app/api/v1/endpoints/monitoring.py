@@ -9,7 +9,7 @@ from typing import Dict, List, Any, Optional
 import logging
 
 from app.services.agent_monitor import agent_monitor, TaskStatus
-from app.services.crewai_service import crewai_service
+from app.services.crewai_service_modular import crewai_service
 
 # Import the new agent registry
 from app.services.agent_registry import agent_registry, AgentPhase, AgentStatus

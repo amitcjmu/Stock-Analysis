@@ -82,7 +82,7 @@ async def get_processed_assets_paginated(
         
         # Enhance with agentic intelligence if available
         try:
-            from app.services.crewai_service import crewai_service
+            from app.services.crewai_service_modular import crewai_service
             if crewai_service.is_available() and result.get("assets"):
                 # Add agentic enhancement metadata
                 result["enhanced_capabilities"] = {
@@ -312,7 +312,7 @@ async def analyze_assets_with_intelligence(request: Request):
     Integrates with the existing discovery workflow.
     """
     try:
-        from app.services.crewai_service import crewai_service
+        from app.services.crewai_service_modular import crewai_service
         
         if not crewai_service.is_available():
             # Fallback to traditional analysis
@@ -372,7 +372,7 @@ async def auto_classify_assets_with_intelligence(request: Request):
     Use Asset Intelligence Agent for automatic asset classification.
     """
     try:
-        from app.services.crewai_service import crewai_service
+        from app.services.crewai_service_modular import crewai_service
         
         if not crewai_service.is_available():
             return {"status": "ai_not_available", "message": "AI classification not available"}
@@ -431,7 +431,7 @@ async def get_asset_intelligence_status():
         }
         
         try:
-            from app.services.crewai_service import crewai_service
+            from app.services.crewai_service_modular import crewai_service
             if crewai_service.is_available():
                 intelligence_status["crewai_available"] = True
                 intelligence_status["asset_intelligence_agent"] = "asset_intelligence" in (crewai_service.agents or {})

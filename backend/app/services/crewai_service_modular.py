@@ -1,6 +1,7 @@
 """
 CrewAI Service - Modular & Robust
 Provides AI-powered migration analysis with clean modular architecture.
+Enhanced with field mapping intelligence and content-based analysis.
 """
 
 import logging
@@ -14,7 +15,7 @@ from .crewai_handlers.analysis_engine import AnalysisEngine
 logger = logging.getLogger(__name__)
 
 class CrewAIService:
-    """Modular CrewAI service with graceful fallbacks."""
+    """Modular CrewAI service with graceful fallbacks and enhanced field mapping intelligence."""
     
     def __init__(self):
         # Initialize handlers
@@ -28,7 +29,19 @@ class CrewAIService:
         if llm:
             self.agent_coordinator.initialize_agent_manager(llm)
         
-        logger.info("CrewAI service initialized with modular architecture")
+        # Initialize field mapping tool for enhanced AI analysis
+        try:
+            from app.services.field_mapper_modular import field_mapper
+            self.field_mapping_tool = field_mapper
+            # Pass field mapping tool to handlers that need it
+            self.task_processor.set_field_mapping_tool(field_mapper)
+            self.analysis_engine.set_field_mapping_tool(field_mapper)
+            logger.info("Field mapping tool initialized for enhanced AI analysis")
+        except ImportError as e:
+            logger.warning(f"Field mapping tool not available: {e}")
+            self.field_mapping_tool = None
+        
+        logger.info("CrewAI service initialized with modular architecture and enhanced intelligence")
     
     def is_available(self) -> bool:
         """Check if the service is available."""
@@ -127,4 +140,33 @@ class CrewAIService:
             "status": "available",
             "parsing_methods": ["json.loads", "regex_extraction", "fallback_parsing"],
             "test_passed": True
-        } 
+        }
+    
+    # Enhanced asset inventory management methods
+    async def analyze_asset_inventory(self, inventory_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Agentic asset inventory analysis using Asset Intelligence Agent.
+        Leverages learned field mappings and intelligent pattern recognition.
+        """
+        return await self.analysis_engine.analyze_asset_inventory(inventory_data)
+    
+    async def plan_asset_bulk_operation(self, operation_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        AI-powered bulk operation planning using Asset Intelligence Agent.
+        """
+        return await self.analysis_engine.plan_asset_bulk_operation(operation_data)
+    
+    async def classify_assets(self, classification_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        AI-powered asset classification using learned patterns and field mapping intelligence.
+        """
+        return await self.analysis_engine.classify_assets(classification_data)
+    
+    async def process_asset_feedback(self, feedback_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Process user feedback from asset management operations to improve AI intelligence.
+        """
+        return await self.task_processor.process_asset_feedback(feedback_data)
+
+# Global service instance for backward compatibility
+crewai_service = CrewAIService() 

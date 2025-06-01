@@ -8,7 +8,7 @@ from typing import Dict, Any
 from fastapi import APIRouter, HTTPException
 
 from app.api.v1.discovery.persistence import get_processed_assets
-from app.services.crewai_service import CrewAIService
+from app.services.crewai_service_modular import CrewAIService
 
 logger = logging.getLogger(__name__)
 

@@ -12,7 +12,7 @@ import gc
 # Add the backend directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'backend'))
 
-from app.services.crewai_service import CrewAIService
+from app.services.crewai_service_modular import CrewAIService
 
 async def test_updated_crewai_service():
     """Test the updated CrewAI service with LiteLLM."""

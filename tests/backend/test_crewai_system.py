@@ -15,7 +15,7 @@ from pathlib import Path
 backend_path = Path(__file__).parent.parent.parent / "backend"
 sys.path.insert(0, str(backend_path))
 
-from app.services.crewai_service import CrewAIService
+from app.services.crewai_service_modular import CrewAIService
 from app.services.memory import AgentMemory
 from app.services.agents import AgentManager
 from app.services.analysis import IntelligentAnalyzer, PlaceholderAnalyzer

@@ -12,7 +12,7 @@ import json
 # Add the backend directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'backend'))
 
-from app.services.crewai_service import CrewAIService
+from app.services.crewai_service_modular import CrewAIService
 
 async def test_production_cmdb_analysis():
     """Test CMDB analysis for production readiness."""

@@ -13,7 +13,9 @@
   ],
   "Memory (GB)": [
     "ram (gb)",
-    "memory (gb)"
+    "memory (gb)",
+    "ram_(gb)",
+    "memory_gb"
   ],
   "Dependencies": [
     "dependencies",

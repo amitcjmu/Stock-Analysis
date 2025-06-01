@@ -25,7 +25,7 @@ class AssetIntelligenceService:
     def _initialize_services(self):
         """Initialize CrewAI and other AI services"""
         try:
-            from app.services.crewai_service import crewai_service
+            from app.services.crewai_service_modular import crewai_service
             self.crewai_service = crewai_service
             self.crewai_available = crewai_service.is_available()
             logger.info("Asset Intelligence Service initialized with CrewAI support")

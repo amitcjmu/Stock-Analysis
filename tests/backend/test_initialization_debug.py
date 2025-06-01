@@ -73,18 +73,18 @@ def step8_agents_init():
 
 def step9_crewai_service_import():
     """Test CrewAI service import (this is where it likely hangs)."""
-    from app.services.crewai_service import CrewAIService
+    from app.services.crewai_service_modular import CrewAIService
     return "CrewAI service class imported"
 
 def step10_crewai_service_init():
     """Test CrewAI service initialization."""
-    from app.services.crewai_service import CrewAIService
+    from app.services.crewai_service_modular import CrewAIService
     service = CrewAIService()
     return f"CrewAI service initialized"
 
 def step11_crewai_global_import():
     """Test importing the global crewai_service instance."""
-    from app.services.crewai_service import crewai_service
+    from app.services.crewai_service_modular import crewai_service
     return f"Global CrewAI service imported: {type(crewai_service).__name__}"
 
 if __name__ == "__main__":
