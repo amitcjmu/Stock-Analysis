@@ -8,7 +8,7 @@ import json
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import and_, or_, desc, select
 import re
 import pandas as pd
@@ -45,7 +45,7 @@ async def upload_data_file(
     import_type: str = Form(...),
     import_name: Optional[str] = Form(None),
     description: Optional[str] = Form(None),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     """Upload and create a new data import session."""
     try:
@@ -80,8 +80,8 @@ async def upload_data_file(
         )
         
         db.add(data_import)
-        db.commit()
-        db.refresh(data_import)
+        await db.commit()
+        await db.refresh(data_import)
         
         # Process the file content
         await process_uploaded_file(data_import, content, db)
@@ -95,15 +95,15 @@ async def upload_data_file(
         }
         
     except Exception as e:
-        db.rollback()
+        await db.rollback()
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
-async def process_uploaded_file(data_import: DataImport, content: bytes, db: Session):
+async def process_uploaded_file(data_import: DataImport, content: bytes, db: AsyncSession):
     """Process uploaded file and create raw import records."""
     try:
         # Update status to processing
         data_import.status = ImportStatus.PROCESSING
-        db.commit()
+        await db.commit()
         
         # Parse file content (assuming CSV for demo)
         import csv
@@ -136,17 +136,17 @@ async def process_uploaded_file(data_import: DataImport, content: bytes, db: Ses
         data_import.status = ImportStatus.PROCESSED
         data_import.completed_at = datetime.utcnow()
         
-        db.commit()
+        await db.commit()
         
         # Analyze data quality issues
         await analyze_data_quality(data_import, raw_records, db)
         
     except Exception as e:
         data_import.status = ImportStatus.FAILED
-        db.commit()
+        await db.commit()
         raise e
 
-async def analyze_data_quality(data_import: DataImport, raw_records: List[RawImportRecord], db: Session):
+async def analyze_data_quality(data_import: DataImport, raw_records: List[RawImportRecord], db: AsyncSession):
     """Analyze data quality and create issue records."""
     issues = []
     
@@ -251,7 +251,7 @@ async def analyze_data_quality(data_import: DataImport, raw_records: List[RawImp
     # Bulk insert issues
     if issues:
         db.add_all(issues)
-        db.commit()
+        await db.commit()
         print(f"Created {len(issues)} data quality issues")
     else:
         print("No data quality issues detected")
@@ -290,7 +290,7 @@ def is_valid_ip(ip: str) -> bool:
 async def get_data_imports(
     limit: int = 10,
     offset: int = 0,
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     """Get list of data imports."""
     demo_repo = DemoRepository(db)
@@ -310,7 +310,7 @@ async def get_raw_import_records(
     import_id: str,
     limit: int = 100,
     offset: int = 0,
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     """Get raw import records for a specific import."""
     query = select(RawImportRecord).where(
@@ -340,7 +340,7 @@ async def get_data_quality_issues(
     import_id: str,
     issue_type: Optional[str] = None,
     status: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     """Get data quality issues for a specific import."""
     query = select(DataQualityIssue).where(DataQualityIssue.data_import_id == import_id)
@@ -373,7 +373,7 @@ async def get_data_quality_issues(
     return {"issues": issues_list}
 
 @router.get("/imports/latest")
-async def get_latest_import(db: Session = Depends(get_db)):
+async def get_latest_import(db: AsyncSession = Depends(get_db)):
     """Get the latest data import for the current context."""
     demo_repo = DemoRepository(db)
     
@@ -393,7 +393,7 @@ async def get_latest_import(db: Session = Depends(get_db)):
 @router.get("/imports/{import_id}/field-mappings")
 async def get_field_mappings(
     import_id: str,
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     """Get field mappings for a specific import."""
     query = select(ImportFieldMapping).where(ImportFieldMapping.data_import_id == import_id)
@@ -420,7 +420,7 @@ async def get_field_mappings(
 async def create_field_mapping(
     import_id: str,
     mapping_data: dict,
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     """Create a new field mapping."""
     mapping = ImportFieldMapping(
@@ -481,7 +481,7 @@ async def get_available_target_fields():
 @router.post("/custom-fields")
 async def create_custom_field(
     field_data: dict,
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     """Create a custom target field dynamically that becomes available for all future mappings."""
     try:
@@ -547,7 +547,7 @@ async def resolve_quality_issue(
     import_id: str,
     issue_id: str,
     resolution_data: dict,
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     """Resolve a data quality issue."""
     query = select(DataQualityIssue).where(
@@ -567,14 +567,14 @@ async def resolve_quality_issue(
     issue.resolved_value = resolution_data.get("resolved_value")
     issue.resolution_notes = resolution_data.get("notes")
     
-    db.commit()
+    await db.commit()
     
     return {"status": "resolved"}
 
 @router.get("/imports/{import_id}/field-mapping-suggestions")
 async def get_field_mapping_suggestions(
     import_id: str,
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     """Get AI-learned field mapping suggestions based on historical patterns."""
     try:
@@ -883,7 +883,7 @@ def import_to_dict(data_import: DataImport) -> dict:
 async def learn_from_user_mapping(
     import_id: str,
     learning_data: dict,
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     """Store user corrections for AI learning - this is how the system gets smarter."""
     try:
@@ -1066,7 +1066,7 @@ def generate_matching_rules(source_field: str, sample_values: list) -> dict:
     return rules
 
 @router.get("/learning-statistics")
-async def get_learning_statistics(db: Session = Depends(get_db)):
+async def get_learning_statistics(db: AsyncSession = Depends(get_db)):
     """Get statistics on how much the AI has learned."""
     try:
         # Get custom fields count
@@ -1130,7 +1130,7 @@ async def store_import_data(
     file_data: List[Dict[str, Any]],
     metadata: Dict[str, Any],
     upload_context: Dict[str, Any],
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     """
     Store imported data in database for persistent access across pages.
@@ -1164,7 +1164,7 @@ async def store_import_data(
         )
         
         db.add(import_session)
-        db.flush()  # Get the ID
+        await db.flush()  # Get the ID using async flush
         
         # Store raw import records
         for index, record in enumerate(file_data):
@@ -1179,7 +1179,7 @@ async def store_import_data(
             )
             db.add(raw_record)
         
-        db.commit()
+        await db.commit()
         
         logger.info(f"Successfully stored import session {import_session.id} with {len(file_data)} records")
         
@@ -1192,20 +1192,23 @@ async def store_import_data(
         
     except Exception as e:
         logger.error(f"Failed to store import data: {e}")
-        db.rollback()
+        await db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to store import data: {str(e)}")
 
 @router.get("/latest-import")
-async def get_latest_import(db: Session = Depends(get_db)):
+async def get_latest_import(db: AsyncSession = Depends(get_db)):
     """
     Get the most recent import data for attribute mapping.
     Replaces localStorage dependency with database persistence.
     """
     try:
-        # Find the most recent completed import
-        latest_import = db.query(DataImport).filter(
+        # Find the most recent completed import using async session pattern
+        latest_query = select(DataImport).where(
             DataImport.status == ImportStatus.PROCESSED
-        ).order_by(desc(DataImport.completed_at)).first()
+        ).order_by(desc(DataImport.completed_at)).limit(1)
+        
+        result = await db.execute(latest_query)
+        latest_import = result.scalar_one_or_none()
         
         if not latest_import:
             return {
@@ -1214,10 +1217,13 @@ async def get_latest_import(db: Session = Depends(get_db)):
                 "data": []
             }
         
-        # Get the raw records
-        raw_records = db.query(RawImportRecord).filter(
+        # Get the raw records using async session pattern
+        records_query = select(RawImportRecord).where(
             RawImportRecord.data_import_id == latest_import.id
-        ).order_by(RawImportRecord.row_number).all()
+        ).order_by(RawImportRecord.row_number)
+        
+        records_result = await db.execute(records_query)
+        raw_records = records_result.scalars().all()
         
         # Extract the data
         imported_data = [record.raw_data for record in raw_records]
@@ -1230,7 +1236,7 @@ async def get_latest_import(db: Session = Depends(get_db)):
             "import_metadata": {
                 "filename": latest_import.source_filename,
                 "import_type": latest_import.import_type,
-                "imported_at": latest_import.completed_at.isoformat(),
+                "imported_at": latest_import.completed_at.isoformat() if latest_import.completed_at else None,
                 "total_records": latest_import.total_records
             },
             "data": imported_data,
@@ -1244,25 +1250,31 @@ async def get_latest_import(db: Session = Depends(get_db)):
 @router.get("/import/{import_session_id}")
 async def get_import_by_id(
     import_session_id: str,
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     """
     Get specific import data by session ID.
     Enables linking and retrieving specific import sessions.
     """
     try:
-        # Find the import session
-        import_session = db.query(DataImport).filter(
+        # Find the import session using async session pattern
+        session_query = select(DataImport).where(
             DataImport.id == import_session_id
-        ).first()
+        )
+        
+        result = await db.execute(session_query)
+        import_session = result.scalar_one_or_none()
         
         if not import_session:
             raise HTTPException(status_code=404, detail="Import session not found")
         
-        # Get the raw records
-        raw_records = db.query(RawImportRecord).filter(
+        # Get the raw records using async session pattern
+        records_query = select(RawImportRecord).where(
             RawImportRecord.data_import_id == import_session.id
-        ).order_by(RawImportRecord.row_number).all()
+        ).order_by(RawImportRecord.row_number)
+        
+        records_result = await db.execute(records_query)
+        raw_records = records_result.scalars().all()
         
         # Extract the data
         imported_data = [record.raw_data for record in raw_records]
@@ -1289,15 +1301,19 @@ async def get_import_by_id(
 @router.get("/imports")
 async def list_imports(
     limit: int = 10,
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     """
     List recent import sessions for traceability and audit.
     """
     try:
-        imports = db.query(DataImport).order_by(
+        # Use async session pattern for querying imports
+        imports_query = select(DataImport).order_by(
             desc(DataImport.created_at)
-        ).limit(limit).all()
+        ).limit(limit)
+        
+        result = await db.execute(imports_query)
+        imports = result.scalars().all()
         
         import_list = []
         for imp in imports:
@@ -1307,7 +1323,7 @@ async def list_imports(
                 "import_type": imp.import_type,
                 "status": imp.status,
                 "total_records": imp.total_records,
-                "imported_at": imp.created_at.isoformat(),
+                "imported_at": imp.created_at.isoformat() if imp.created_at else None,
                 "completed_at": imp.completed_at.isoformat() if imp.completed_at else None
             })
         
