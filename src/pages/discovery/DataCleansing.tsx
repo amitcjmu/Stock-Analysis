@@ -115,10 +115,10 @@ const DataCleansing = () => {
         
         // Check if we came from Attribute Mapping with context
         const state = location.state as any;
-        if (state?.fromAttributeMapping && state?.importedData) {
+        if (state?.fromAttributeMapping && state?.importedData && Array.isArray(state.importedData) && state.importedData.length > 0) {
           setFromAttributeMapping(true);
           setRawData(state.importedData);
-          console.log('Received data from Attribute Mapping:', state.importedData);
+          console.log('Received data from Attribute Mapping:', state.importedData.length, 'records');
           
           // Perform agent-driven quality analysis
           await performAgentQualityAnalysis(state.importedData);
@@ -127,6 +127,7 @@ const DataCleansing = () => {
           await triggerAgentPanelAnalysis(state.importedData);
         } else {
           // Try to load from localStorage or backend
+          console.log('No data from attribute mapping, loading from storage');
           await loadDataFromStorage();
         }
       } catch (error) {
@@ -136,6 +137,8 @@ const DataCleansing = () => {
           message: 'Failed to load data',
           details: error instanceof Error ? error.message : 'Unknown error occurred'
         });
+        // Still set empty state to prevent infinite loading
+        setEmptyState();
       } finally {
         setIsLoading(false);
       }
@@ -151,41 +154,69 @@ const DataCleansing = () => {
       console.log('Loading latest import from database for data cleansing');
       try {
         const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.LATEST_IMPORT);
-        if (response.success && response.data.length > 0) {
+        if (response && response.success && response.data && Array.isArray(response.data) && response.data.length > 0) {
           console.log(`Loaded ${response.data.length} records from latest import session ${response.import_session_id}`);
           setRawData(response.data);
           await performAgentQualityAnalysis(response.data);
           return;
+        } else {
+          console.log('No data in latest import response');
         }
       } catch (error) {
         console.warn('Failed to load data from database, trying backend assets:', error);
       }
 
       // Priority 2: Fallback to existing assets in backend
-      const assetsResponse = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}?page=1&page_size=1000`);
-      if (assetsResponse.assets && assetsResponse.assets.length > 0) {
-        console.log(`Loaded ${assetsResponse.assets.length} assets from backend inventory`);
-        setRawData(assetsResponse.assets);
-        await performAgentQualityAnalysis(assetsResponse.assets);
-        return;
+      try {
+        const assetsResponse = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}?page=1&page_size=1000`);
+        if (assetsResponse && assetsResponse.assets && Array.isArray(assetsResponse.assets) && assetsResponse.assets.length > 0) {
+          console.log(`Loaded ${assetsResponse.assets.length} assets from backend inventory`);
+          setRawData(assetsResponse.assets);
+          await performAgentQualityAnalysis(assetsResponse.assets);
+          return;
+        } else {
+          console.log('No assets in backend inventory response');
+        }
+      } catch (error) {
+        console.warn('Failed to load assets from backend, trying localStorage:', error);
       }
 
       // Priority 3: Fallback to localStorage for compatibility (temporary)
-      console.log('Falling back to localStorage for data cleansing');
-      const storedData = localStorage.getItem('imported_assets');
-      if (storedData) {
-        const data = JSON.parse(storedData);
-        console.log(`Loaded ${data.length} records from localStorage fallback`);
-        setRawData(data);
-        await performAgentQualityAnalysis(data);
-        return;
+      try {
+        console.log('Falling back to localStorage for data cleansing');
+        const storedData = localStorage.getItem('imported_assets');
+        if (storedData) {
+          const data = JSON.parse(storedData);
+          if (Array.isArray(data) && data.length > 0) {
+            console.log(`Loaded ${data.length} records from localStorage fallback`);
+            setRawData(data);
+            await performAgentQualityAnalysis(data);
+            return;
+          } else {
+            console.log('Invalid data in localStorage');
+          }
+        } else {
+          console.log('No data in localStorage');
+        }
+      } catch (error) {
+        console.warn('Failed to load from localStorage:', error);
       }
 
       // No data available
-      console.warn('No data found for data cleansing');
+      console.warn('No data found for data cleansing from any source');
+      setActionFeedback({
+        type: 'info',
+        message: 'No data available',
+        details: 'Please import data from the CMDB Import page or go through Attribute Mapping first'
+      });
       setEmptyState();
     } catch (error) {
       console.error('Failed to load data from all sources:', error);
+      setActionFeedback({
+        type: 'error',
+        message: 'Failed to load data',
+        details: error instanceof Error ? error.message : 'Unknown error occurred'
+      });
       setEmptyState();
     }
   };
@@ -206,15 +237,26 @@ const DataCleansing = () => {
         })
       });
 
-      if (analysisResponse.analysis_type) {
+      if (analysisResponse && analysisResponse.analysis_type) {
         setAgentAnalysis(analysisResponse);
         processAgentAnalysisResults(analysisResponse, data);
+        
+        setActionFeedback({
+          type: 'success',
+          message: 'Agent analysis completed successfully',
+          details: `Analyzed ${data.length} assets with ${analysisResponse.analysis_type} approach`
+        });
       } else {
-        // Fallback to basic analysis
+        console.warn('Invalid agent analysis response, using fallback');
         performBasicQualityAnalysis(data);
       }
     } catch (error) {
       console.error('Agent analysis failed, using fallback:', error);
+      setActionFeedback({
+        type: 'info',
+        message: 'Using fallback analysis',
+        details: 'Agent analysis unavailable, using rule-based quality assessment'
+      });
       performBasicQualityAnalysis(data);
     } finally {
       setIsAnalyzing(false);
@@ -602,33 +644,22 @@ const DataCleansing = () => {
         };
 
         // Call agent clarification endpoint
-        const clarificationResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_CLARIFICATION, {
-          method: 'POST',
-          body: JSON.stringify(clarificationRequest)
-        });
+        try {
+          const clarificationResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_CLARIFICATION, {
+            method: 'POST',
+            body: JSON.stringify(clarificationRequest)
+          });
 
-        if (clarificationResponse.status === 'success') {
-          console.log('Agent clarifications generated for dependency mapping');
+          if (clarificationResponse.status === 'success') {
+            console.log('Agent clarifications generated for dependency mapping');
+          }
+        } catch (error) {
+          console.warn('Agent clarification endpoint failed:', error);
         }
       }
 
-      // Generate data classifications for quality review
-      const classificationRequest = {
-        page_context: 'data-cleansing',
-        data_items: data.slice(0, 20), // Sample for classification
-        classification_focus: 'quality_assessment'
-      };
-
-      const classificationResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_STATUS, {
-        method: 'POST',
-        body: JSON.stringify(classificationRequest)
-      });
-
-      if (classificationResponse.status === 'success') {
-        console.log('Data classifications generated for quality review');
-      }
-
-      // Trigger agent refresh to populate panels
+      // Just trigger agent refresh to populate panels - let the panels handle their own data fetching
+      // The agent panels will automatically fetch their data using GET requests to appropriate endpoints
       setAgentRefreshTrigger(prev => prev + 1);
       
     } catch (error) {
