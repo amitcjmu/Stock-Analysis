@@ -80,7 +80,12 @@ export const API_CONFIG = {
       STAKEHOLDER_SIGNOFF_FEEDBACK: '/api/v1/discovery/agents/stakeholder-signoff-feedback',
       // Data cleanup endpoints  
       DATA_CLEANUP_ANALYZE: '/api/v1/discovery/data-cleanup/agent-analyze',
-      DATA_CLEANUP_PROCESS: '/api/v1/discovery/data-cleanup/agent-process'
+      DATA_CLEANUP_PROCESS: '/api/v1/discovery/data-cleanup/agent-process',
+      // Data import persistence endpoints
+      STORE_IMPORT: '/api/v1/data-import/store-import',
+      LATEST_IMPORT: '/api/v1/data-import/latest-import',
+      GET_IMPORT: '/api/v1/data-import/import',
+      LIST_IMPORTS: '/api/v1/data-import/imports'
     },
     MONITORING: {
       STATUS: '/api/v1/monitoring/status',

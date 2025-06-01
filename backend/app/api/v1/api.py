@@ -150,7 +150,7 @@ except ImportError as e:
 if DATA_IMPORT_AVAILABLE:
     api_router.include_router(
         data_import.router,
-        prefix="/data_import",
+        prefix="/data-import",
         tags=["data-import"]
     )
 

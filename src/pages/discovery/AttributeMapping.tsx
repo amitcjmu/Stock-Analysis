@@ -73,30 +73,78 @@ const AttributeMapping = () => {
     fetchImportedData();
   }, []);
 
-  // Fetch imported data from previous step
+  // Fetch imported data from database or previous step
   const fetchImportedData = async () => {
     try {
       const state = location.state as any;
-      if (state?.importedData) {
+      
+      // Priority 1: Direct data from navigation state
+      if (state?.importedData && state.importedData.length > 0) {
+        console.log('Using imported data from navigation state');
         setImportedData(state.importedData);
         const columns = Object.keys(state.importedData[0] || {});
         if (columns.length > 0) {
           await generateFieldMappings(columns, state.importedData.slice(0, 10));
         }
-      } else {
-        // Try to load from localStorage as fallback
-        const storedData = localStorage.getItem('imported_assets');
-        if (storedData) {
-          const data = JSON.parse(storedData);
-          setImportedData(data);
-          const columns = Object.keys(data[0] || {});
-          if (columns.length > 0) {
-            await generateFieldMappings(columns, data.slice(0, 10));
+        return;
+      }
+      
+      // Priority 2: Load from database using session ID
+      if (state?.import_session_id) {
+        console.log('Loading data from database using session ID:', state.import_session_id);
+        try {
+          const response = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.GET_IMPORT}/${state.import_session_id}`);
+          if (response.success && response.data.length > 0) {
+            setImportedData(response.data);
+            const columns = Object.keys(response.data[0] || {});
+            if (columns.length > 0) {
+              await generateFieldMappings(columns, response.data.slice(0, 10));
+            }
+            return;
           }
+        } catch (error) {
+          console.warn('Failed to load data from specific session, trying latest import:', error);
         }
       }
+      
+      // Priority 3: Load latest import from database
+      console.log('Loading latest import from database');
+      try {
+        const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.LATEST_IMPORT);
+        if (response.success && response.data.length > 0) {
+          console.log(`Loaded ${response.data.length} records from latest import session ${response.import_session_id}`);
+          setImportedData(response.data);
+          const columns = Object.keys(response.data[0] || {});
+          if (columns.length > 0) {
+            await generateFieldMappings(columns, response.data.slice(0, 10));
+          }
+          return;
+        }
+      } catch (error) {
+        console.warn('Failed to load data from database, trying localStorage fallback:', error);
+      }
+      
+      // Priority 4: Fallback to localStorage for compatibility
+      console.log('Falling back to localStorage');
+      const storedData = localStorage.getItem('imported_assets');
+      if (storedData) {
+        const data = JSON.parse(storedData);
+        console.log(`Loaded ${data.length} records from localStorage fallback`);
+        setImportedData(data);
+        const columns = Object.keys(data[0] || {});
+        if (columns.length > 0) {
+          await generateFieldMappings(columns, data.slice(0, 10));
+        }
+        return;
+      }
+      
+      // No data found anywhere
+      console.warn('No imported data found in any location');
+      setImportedData([]);
+      
     } catch (error) {
       console.error('Failed to fetch imported data:', error);
+      setImportedData([]);
     }
   };
 

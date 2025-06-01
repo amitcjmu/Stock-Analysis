@@ -553,12 +553,51 @@ const DataImport = () => {
       }
     ];
     
-    // Store imported data to localStorage for attribute mapping page
+    // Store imported data to database for proper persistence and traceability
     try {
-      localStorage.setItem('imported_assets', JSON.stringify(preview));
-      console.log(`Stored ${preview.length} assets to localStorage for attribute mapping`);
+      const storeResponse = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.DISCOVERY.STORE_IMPORT}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          file_data: preview,
+          metadata: {
+            filename: analysisRequest.filename,
+            size: preview.length * 1000, // Approximate size
+            type: analysisRequest.fileType
+          },
+          upload_context: {
+            intended_type: intendedType,
+            user_context: getUploadAreaInfo(intendedType),
+            analysis_timestamp: new Date().toISOString()
+          }
+        })
+      });
+      
+      if (storeResponse.ok) {
+        const storeResult = await storeResponse.json();
+        console.log(`Stored ${preview.length} assets to database with session ID: ${storeResult.import_session_id}`);
+        
+        // Add import session ID to next steps for traceability
+        nextSteps.forEach(step => {
+          if (step.route === '/discovery/attribute-mapping') {
+            step.import_session_id = storeResult.import_session_id;
+          }
+        });
+      } else {
+        console.warn('Failed to store data to database, falling back to localStorage');
+        // Fallback to localStorage for compatibility
+        localStorage.setItem('imported_assets', JSON.stringify(preview));
+      }
     } catch (error) {
-      console.warn('Failed to store data to localStorage:', error);
+      console.warn('Failed to store data to database, falling back to localStorage:', error);
+      // Fallback to localStorage for compatibility
+      try {
+        localStorage.setItem('imported_assets', JSON.stringify(preview));
+      } catch (storageError) {
+        console.error('Both database and localStorage storage failed:', storageError);
+      }
     }
     
     return {
@@ -838,10 +877,11 @@ const DataImport = () => {
                                               fromDataImport: true
                                             }
                                           });
-                                        } else if (step.route === '/discovery/attribute-mapping' && step.importedData) {
+                                        } else if (step.route === '/discovery/attribute-mapping' && (step.importedData || step.import_session_id)) {
                                           navigate(step.route, {
                                             state: {
                                               importedData: step.importedData,
+                                              import_session_id: step.import_session_id,
                                               fromDataImport: true
                                             }
                                           });

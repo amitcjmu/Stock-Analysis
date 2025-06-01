@@ -109,29 +109,48 @@ const DataCleansing = () => {
     }
   };
 
-  // Load data from storage or backend
+  // Load data from database or backend
   const loadDataFromStorage = async () => {
     try {
-      // Try localStorage first
+      // Priority 1: Try to get latest import from database
+      console.log('Loading latest import from database for data cleansing');
+      try {
+        const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.LATEST_IMPORT);
+        if (response.success && response.data.length > 0) {
+          console.log(`Loaded ${response.data.length} records from latest import session ${response.import_session_id}`);
+          setRawData(response.data);
+          await performAgentQualityAnalysis(response.data);
+          return;
+        }
+      } catch (error) {
+        console.warn('Failed to load data from database, trying backend assets:', error);
+      }
+
+      // Priority 2: Fallback to existing assets in backend
+      const assetsResponse = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}?page=1&page_size=1000`);
+      if (assetsResponse.assets && assetsResponse.assets.length > 0) {
+        console.log(`Loaded ${assetsResponse.assets.length} assets from backend inventory`);
+        setRawData(assetsResponse.assets);
+        await performAgentQualityAnalysis(assetsResponse.assets);
+        return;
+      }
+
+      // Priority 3: Fallback to localStorage for compatibility (temporary)
+      console.log('Falling back to localStorage for data cleansing');
       const storedData = localStorage.getItem('imported_assets');
       if (storedData) {
         const data = JSON.parse(storedData);
+        console.log(`Loaded ${data.length} records from localStorage fallback`);
         setRawData(data);
         await performAgentQualityAnalysis(data);
         return;
       }
 
-      // Fallback: try to get from backend
-      const assetsResponse = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}?page=1&page_size=1000`);
-      if (assetsResponse.assets && assetsResponse.assets.length > 0) {
-        setRawData(assetsResponse.assets);
-        await performAgentQualityAnalysis(assetsResponse.assets);
-      } else {
-        // No data available
-        setEmptyState();
-      }
+      // No data available
+      console.warn('No data found for data cleansing');
+      setEmptyState();
     } catch (error) {
-      console.error('Failed to load data from storage:', error);
+      console.error('Failed to load data from all sources:', error);
       setEmptyState();
     }
   };

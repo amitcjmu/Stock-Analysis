@@ -11,6 +11,9 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, desc, select
 import re
+import pandas as pd
+from io import StringIO
+import logging
 
 from app.core.database import get_db
 from app.models.data_import import (
@@ -33,6 +36,8 @@ from app.repositories.demo_repository import DemoRepository
 from app.schemas.demo import DemoAssetResponse
 
 router = APIRouter()
+
+logger = logging.getLogger(__name__)
 
 @router.post("/upload")
 async def upload_data_file(
@@ -1118,4 +1123,200 @@ async def get_learning_statistics(db: Session = Depends(get_db)):
         }
     except Exception as e:
         print(f"Error getting learning statistics: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to get learning statistics: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Failed to get learning statistics: {str(e)}")
+
+@router.post("/store-import")
+async def store_import_data(
+    file_data: List[Dict[str, Any]],
+    metadata: Dict[str, Any],
+    upload_context: Dict[str, Any],
+    db: Session = Depends(get_db)
+):
+    """
+    Store imported data in database for persistent access across pages.
+    Replaces localStorage with proper database persistence and audit trail.
+    """
+    try:
+        logger.info(f"Storing import data: {len(file_data)} records")
+        
+        # Create import session record
+        import_session = DataImport(
+            import_name=metadata.get("filename", "Unknown Import"),
+            import_type=upload_context.get("intended_type", "unknown"),
+            description=f"Data import session from {metadata.get('filename')}",
+            source_filename=metadata.get("filename", "unknown.csv"),
+            file_size_bytes=metadata.get("size", 0),
+            file_type=metadata.get("type", "text/csv"),
+            file_hash=hashlib.sha256(str(file_data).encode()).hexdigest()[:32],
+            status=ImportStatus.PROCESSED,
+            total_records=len(file_data),
+            processed_records=len(file_data),
+            failed_records=0,
+            import_config={
+                "upload_context": upload_context,
+                "analysis_timestamp": datetime.utcnow().isoformat()
+            },
+            # Note: In production, get these from auth context
+            client_account_id=None,  # TODO: Add from auth
+            engagement_id=None,  # TODO: Add from auth  
+            imported_by=None,  # TODO: Add from auth
+            completed_at=datetime.utcnow()
+        )
+        
+        db.add(import_session)
+        db.flush()  # Get the ID
+        
+        # Store raw import records
+        for index, record in enumerate(file_data):
+            raw_record = RawImportRecord(
+                data_import_id=import_session.id,
+                row_number=index + 1,
+                record_id=record.get("hostname") or record.get("asset_name") or f"row_{index + 1}",
+                raw_data=record,
+                is_processed=True,
+                is_valid=True,
+                created_at=datetime.utcnow()
+            )
+            db.add(raw_record)
+        
+        db.commit()
+        
+        logger.info(f"Successfully stored import session {import_session.id} with {len(file_data)} records")
+        
+        return {
+            "success": True,
+            "import_session_id": str(import_session.id),
+            "records_stored": len(file_data),
+            "message": f"Successfully stored {len(file_data)} records with full audit trail"
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to store import data: {e}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to store import data: {str(e)}")
+
+@router.get("/latest-import")
+async def get_latest_import(db: Session = Depends(get_db)):
+    """
+    Get the most recent import data for attribute mapping.
+    Replaces localStorage dependency with database persistence.
+    """
+    try:
+        # Find the most recent completed import
+        latest_import = db.query(DataImport).filter(
+            DataImport.status == ImportStatus.PROCESSED
+        ).order_by(desc(DataImport.completed_at)).first()
+        
+        if not latest_import:
+            return {
+                "success": False,
+                "message": "No import data found",
+                "data": []
+            }
+        
+        # Get the raw records
+        raw_records = db.query(RawImportRecord).filter(
+            RawImportRecord.data_import_id == latest_import.id
+        ).order_by(RawImportRecord.row_number).all()
+        
+        # Extract the data
+        imported_data = [record.raw_data for record in raw_records]
+        
+        logger.info(f"Retrieved {len(imported_data)} records from import session {latest_import.id}")
+        
+        return {
+            "success": True,
+            "import_session_id": str(latest_import.id),
+            "import_metadata": {
+                "filename": latest_import.source_filename,
+                "import_type": latest_import.import_type,
+                "imported_at": latest_import.completed_at.isoformat(),
+                "total_records": latest_import.total_records
+            },
+            "data": imported_data,
+            "message": f"Retrieved {len(imported_data)} records from latest import"
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to retrieve import data: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve import data: {str(e)}")
+
+@router.get("/import/{import_session_id}")
+async def get_import_by_id(
+    import_session_id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Get specific import data by session ID.
+    Enables linking and retrieving specific import sessions.
+    """
+    try:
+        # Find the import session
+        import_session = db.query(DataImport).filter(
+            DataImport.id == import_session_id
+        ).first()
+        
+        if not import_session:
+            raise HTTPException(status_code=404, detail="Import session not found")
+        
+        # Get the raw records
+        raw_records = db.query(RawImportRecord).filter(
+            RawImportRecord.data_import_id == import_session.id
+        ).order_by(RawImportRecord.row_number).all()
+        
+        # Extract the data
+        imported_data = [record.raw_data for record in raw_records]
+        
+        return {
+            "success": True,
+            "import_session_id": str(import_session.id),
+            "import_metadata": {
+                "filename": import_session.source_filename,
+                "import_type": import_session.import_type,
+                "imported_at": import_session.completed_at.isoformat() if import_session.completed_at else None,
+                "total_records": import_session.total_records,
+                "status": import_session.status
+            },
+            "data": imported_data
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to retrieve import {import_session_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve import: {str(e)}")
+
+@router.get("/imports")
+async def list_imports(
+    limit: int = 10,
+    db: Session = Depends(get_db)
+):
+    """
+    List recent import sessions for traceability and audit.
+    """
+    try:
+        imports = db.query(DataImport).order_by(
+            desc(DataImport.created_at)
+        ).limit(limit).all()
+        
+        import_list = []
+        for imp in imports:
+            import_list.append({
+                "id": str(imp.id),
+                "filename": imp.source_filename,
+                "import_type": imp.import_type,
+                "status": imp.status,
+                "total_records": imp.total_records,
+                "imported_at": imp.created_at.isoformat(),
+                "completed_at": imp.completed_at.isoformat() if imp.completed_at else None
+            })
+        
+        return {
+            "success": True,
+            "imports": import_list,
+            "total": len(import_list)
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to list imports: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to list imports: {str(e)}") 

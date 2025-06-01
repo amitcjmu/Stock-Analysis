@@ -36,5 +36,43 @@
     "created_at": "2025-06-01T07:11:12.992216",
     "user_feedback": null,
     "is_validated": false
+  },
+  "b907bbce-a599-4434-8e10-0353cc45a4c9": {
+    "id": "b907bbce-a599-4434-8e10-0353cc45a4c9",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "insight_type": "optimization_opportunity",
+    "title": "Legacy Operating Systems Detected",
+    "description": "Found 3 assets (30.0%) running legacy operating systems requiring modernization",
+    "confidence": "high",
+    "supporting_data": {
+      "legacy_count": 3,
+      "total_assets": 10,
+      "legacy_percentage": 30.0
+    },
+    "page": "data-import",
+    "actionable": true,
+    "created_at": "2025-06-01T07:21:47.876542",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "608bc863-64fa-4d90-a132-bb527b92ddd4": {
+    "id": "608bc863-64fa-4d90-a132-bb527b92ddd4",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "insight_type": "optimization_opportunity",
+    "title": "Legacy Operating Systems Detected",
+    "description": "Found 3 assets (30.0%) running legacy operating systems requiring modernization",
+    "confidence": "high",
+    "supporting_data": {
+      "legacy_count": 3,
+      "total_assets": 10,
+      "legacy_percentage": 30.0
+    },
+    "page": "data-import",
+    "actionable": true,
+    "created_at": "2025-06-01T07:26:52.713963",
+    "user_feedback": null,
+    "is_validated": false
   }
 }
