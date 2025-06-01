@@ -1,563 +1,547 @@
 """
-Agent Learning System
-Platform-wide learning infrastructure for agent pattern recognition and field mapping learning.
-Implements Task C.1: Agent Memory and Learning System.
+Agent Learning System - Platform-wide learning infrastructure for AI agents
+
+This system manages learning patterns, memory, and performance improvement across all agents
+while maintaining strict client-specific context isolation for enterprise deployment.
 """
 
 import logging
 import json
-from typing import Dict, List, Any, Optional
-from datetime import datetime, timedelta
-from pathlib import Path
 import asyncio
+from typing import Dict, List, Any, Optional, Tuple
+from datetime import datetime, timedelta
+from dataclasses import dataclass, asdict
+from enum import Enum
+import hashlib
+import statistics
+from collections import defaultdict, deque
+
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, update, delete, and_, func
+from backend.app.core.database import AsyncSessionLocal
+from backend.app.models.asset import Asset
 
 logger = logging.getLogger(__name__)
 
+class LearningDomain(Enum):
+    """Learning domains for different types of agent intelligence"""
+    FIELD_MAPPING = "field_mapping"
+    ASSET_CLASSIFICATION = "asset_classification"
+    DATA_QUALITY = "data_quality"
+    APPLICATION_DISCOVERY = "application_discovery"
+    DEPENDENCY_ANALYSIS = "dependency_analysis"
+    TECH_DEBT_ASSESSMENT = "tech_debt_assessment"
+    USER_PREFERENCES = "user_preferences"
+
+@dataclass
+class LearningPattern:
+    """Represents a learned pattern that can be applied across agents"""
+    pattern_id: str
+    domain: LearningDomain
+    pattern_type: str
+    confidence: float
+    evidence_count: int
+    pattern_data: Dict[str, Any]
+    created_at: datetime
+    last_reinforced: datetime
+    success_rate: float
+    organizational_context: Optional[str] = None
+
+@dataclass
+class UserFeedback:
+    """User feedback that improves agent accuracy"""
+    feedback_id: str
+    agent_name: str
+    domain: LearningDomain
+    original_prediction: Any
+    corrected_value: Any
+    feedback_type: str  # correction, confirmation, clarification
+    context: Dict[str, Any]
+    timestamp: datetime
+    confidence_delta: float
+
+@dataclass
+class AgentPerformanceMetric:
+    """Performance tracking for individual agents"""
+    agent_name: str
+    domain: LearningDomain
+    accuracy_score: float
+    confidence_score: float
+    response_time: float
+    task_count: int
+    success_rate: float
+    learning_velocity: float
+    last_updated: datetime
+
 class AgentLearningSystem:
     """
-    Platform-wide learning infrastructure for AI agents.
-    Manages pattern recognition, field mapping learning, and performance tracking.
+    Comprehensive learning system for AI agents with enterprise-grade
+    pattern recognition, memory management, and performance optimization.
     """
     
-    def __init__(self, learning_data_path: str = "data/learning"):
-        self.learning_data_path = Path(learning_data_path)
-        self.learning_data_path.mkdir(parents=True, exist_ok=True)
+    def __init__(self):
+        self.learning_patterns: Dict[str, LearningPattern] = {}
+        self.user_feedback_history: deque = deque(maxlen=10000)
+        self.agent_performance: Dict[str, AgentPerformanceMetric] = {}
+        self.pattern_cache: Dict[str, Any] = {}
+        self.learning_session_id = self._generate_session_id()
         
-        # Learning categories
-        self.learning_categories = {
-            "field_mapping_patterns": {},
-            "data_source_patterns": {},
-            "quality_assessment_patterns": {},
-            "user_preference_patterns": {},
-            "accuracy_metrics": {},
-            "performance_tracking": {}
-        }
-        
-        # Load existing learning data
-        self._load_learning_data()
-        
-        logger.info("Agent Learning System initialized")
+    def _generate_session_id(self) -> str:
+        """Generate unique session ID for learning tracking"""
+        return hashlib.md5(f"{datetime.now().isoformat()}".encode()).hexdigest()[:12]
     
-    # === PATTERN RECOGNITION LEARNING ===
-    
-    async def learn_field_mapping_pattern(self, learning_data: Dict[str, Any]) -> None:
-        """Learn from field mapping corrections and successes."""
-        
-        original_field = learning_data.get("original_field", "").lower()
-        mapped_to = learning_data.get("mapped_to", "")
-        confidence_score = learning_data.get("confidence_score", 0.5)
-        context = learning_data.get("context", {})
-        
-        # Store the learning pattern
-        pattern_key = self._generate_pattern_key(original_field)
-        
-        if pattern_key not in self.learning_categories["field_mapping_patterns"]:
-            self.learning_categories["field_mapping_patterns"][pattern_key] = {
-                "variations": [],
-                "most_common_mapping": None,
-                "confidence_scores": [],
-                "context_patterns": [],
-                "learning_count": 0
-            }
-        
-        pattern = self.learning_categories["field_mapping_patterns"][pattern_key]
-        pattern["variations"].append({
-            "original": original_field,
-            "mapped_to": mapped_to,
-            "confidence": confidence_score,
-            "context": context,
-            "learned_at": datetime.utcnow().isoformat()
-        })
-        pattern["confidence_scores"].append(confidence_score)
-        pattern["learning_count"] += 1
-        
-        # Update most common mapping
-        mapping_counts = {}
-        for variation in pattern["variations"]:
-            mapped_to = variation["mapped_to"]
-            mapping_counts[mapped_to] = mapping_counts.get(mapped_to, 0) + 1
-        
-        pattern["most_common_mapping"] = max(mapping_counts.items(), key=lambda x: x[1])[0]
-        
-        # Store context patterns
-        if context:
-            pattern["context_patterns"].append(context)
-        
-        await self._save_learning_data()
-        
-        logger.info(f"Learned field mapping pattern: {original_field} -> {mapped_to}")
-    
-    async def suggest_field_mapping(self, field_name: str, context: Dict[str, Any] = None) -> Dict[str, Any]:
-        """Suggest field mapping based on learned patterns."""
-        
-        field_lower = field_name.lower()
-        pattern_key = self._generate_pattern_key(field_lower)
-        
-        # Direct pattern match
-        if pattern_key in self.learning_categories["field_mapping_patterns"]:
-            pattern = self.learning_categories["field_mapping_patterns"][pattern_key]
-            
-            # Calculate confidence based on learning history
-            avg_confidence = sum(pattern["confidence_scores"]) / len(pattern["confidence_scores"])
-            learning_confidence = min(pattern["learning_count"] / 10, 1.0)  # More learning = higher confidence
-            overall_confidence = (avg_confidence + learning_confidence) / 2
-            
-            return {
-                "suggested_mapping": pattern["most_common_mapping"],
-                "confidence": overall_confidence,
-                "learning_count": pattern["learning_count"],
-                "reasoning": f"Based on {pattern['learning_count']} previous mappings",
-                "pattern_match": "direct"
-            }
-        
-        # Fuzzy pattern matching
-        best_match = await self._find_fuzzy_field_match(field_lower)
-        if best_match:
-            return best_match
-        
-        # No learned pattern found
-        return {
-            "suggested_mapping": None,
-            "confidence": 0.0,
-            "learning_count": 0,
-            "reasoning": "No learned patterns found for this field",
-            "pattern_match": "none"
-        }
-    
-    # === DATA SOURCE PATTERN LEARNING ===
-    
-    async def learn_data_source_pattern(self, source_data: Dict[str, Any]) -> None:
-        """Learn patterns from data source analysis corrections."""
-        
-        source_type = source_data.get("source_type", "unknown")
-        columns = source_data.get("columns", [])
-        content_indicators = source_data.get("content_indicators", [])
-        user_correction = source_data.get("user_correction")
-        
-        if source_type not in self.learning_categories["data_source_patterns"]:
-            self.learning_categories["data_source_patterns"][source_type] = {
-                "column_patterns": [],
-                "content_patterns": [],
-                "confidence_scores": [],
-                "learning_count": 0
-            }
-        
-        pattern = self.learning_categories["data_source_patterns"][source_type]
-        
-        # Learn column patterns
-        for column in columns:
-            if column.lower() not in pattern["column_patterns"]:
-                pattern["column_patterns"].append(column.lower())
-        
-        # Learn content patterns
-        for indicator in content_indicators:
-            if indicator not in pattern["content_patterns"]:
-                pattern["content_patterns"].append(indicator)
-        
-        pattern["learning_count"] += 1
-        
-        # If there was a user correction, update patterns
-        if user_correction:
-            corrected_type = user_correction.get("corrected_type")
-            if corrected_type and corrected_type != source_type:
-                # Move patterns to correct type
-                await self._transfer_pattern_learning(source_type, corrected_type, columns, content_indicators)
-        
-        await self._save_learning_data()
-        
-        logger.info(f"Learned data source pattern for {source_type}")
-    
-    # === QUALITY ASSESSMENT LEARNING ===
-    
-    async def learn_quality_assessment(self, quality_data: Dict[str, Any]) -> None:
-        """Learn from quality assessment corrections and validations."""
-        
-        original_classification = quality_data.get("original_classification")
-        corrected_classification = quality_data.get("corrected_classification")
-        quality_metrics = quality_data.get("quality_metrics", {})
-        data_characteristics = quality_data.get("data_characteristics", {})
-        
-        learning_key = f"{original_classification}_to_{corrected_classification}"
-        
-        if learning_key not in self.learning_categories["quality_assessment_patterns"]:
-            self.learning_categories["quality_assessment_patterns"][learning_key] = {
-                "correction_patterns": [],
-                "metric_thresholds": {},
-                "characteristic_indicators": [],
-                "learning_count": 0
-            }
-        
-        pattern = self.learning_categories["quality_assessment_patterns"][learning_key]
-        pattern["correction_patterns"].append({
-            "original": original_classification,
-            "corrected": corrected_classification,
-            "metrics": quality_metrics,
-            "characteristics": data_characteristics,
-            "learned_at": datetime.utcnow().isoformat()
-        })
-        pattern["learning_count"] += 1
-        
-        # Update metric thresholds based on corrections
-        await self._update_quality_thresholds(pattern, quality_metrics, corrected_classification)
-        
-        await self._save_learning_data()
-        
-        logger.info(f"Learned quality assessment pattern: {learning_key}")
-    
-    # === USER PREFERENCE LEARNING ===
-    
-    async def learn_user_preferences(self, preference_data: Dict[str, Any], 
-                                   engagement_id: Optional[str] = None) -> None:
-        """Learn user preferences for client/engagement-specific context."""
-        
-        preference_type = preference_data.get("type")
-        preference_value = preference_data.get("value")
-        context = preference_data.get("context", {})
-        
-        # Store at platform level (general preferences)
-        platform_key = f"platform_{preference_type}"
-        if platform_key not in self.learning_categories["user_preference_patterns"]:
-            self.learning_categories["user_preference_patterns"][platform_key] = {
-                "preferences": [],
-                "most_common": None,
-                "confidence": 0.0
-            }
-        
-        self.learning_categories["user_preference_patterns"][platform_key]["preferences"].append({
-            "value": preference_value,
-            "context": context,
-            "learned_at": datetime.utcnow().isoformat()
-        })
-        
-        # Update most common preference
-        await self._update_most_common_preference(platform_key)
-        
-        # Store at engagement level if provided
-        if engagement_id:
-            engagement_key = f"engagement_{engagement_id}_{preference_type}"
-            if engagement_key not in self.learning_categories["user_preference_patterns"]:
-                self.learning_categories["user_preference_patterns"][engagement_key] = {
-                    "preferences": [],
-                    "most_common": None,
-                    "confidence": 0.0
-                }
-            
-            self.learning_categories["user_preference_patterns"][engagement_key]["preferences"].append({
-                "value": preference_value,
-                "context": context,
-                "learned_at": datetime.utcnow().isoformat()
-            })
-            
-            await self._update_most_common_preference(engagement_key)
-        
-        await self._save_learning_data()
-        
-        logger.info(f"Learned user preference: {preference_type} = {preference_value}")
-    
-    # === PERFORMANCE TRACKING ===
-    
-    async def track_agent_performance(self, agent_id: str, performance_data: Dict[str, Any]) -> None:
-        """Track agent performance for accuracy improvement."""
-        
-        if agent_id not in self.learning_categories["performance_tracking"]:
-            self.learning_categories["performance_tracking"][agent_id] = {
-                "accuracy_scores": [],
-                "performance_metrics": [],
-                "improvement_trends": [],
-                "last_updated": None
-            }
-        
-        agent_performance = self.learning_categories["performance_tracking"][agent_id]
-        
-        # Track accuracy metrics
-        accuracy_score = performance_data.get("accuracy_score", 0.0)
-        agent_performance["accuracy_scores"].append({
-            "score": accuracy_score,
-            "timestamp": datetime.utcnow().isoformat(),
-            "context": performance_data.get("context", {})
-        })
-        
-        # Track performance metrics
-        metrics = performance_data.get("metrics", {})
-        agent_performance["performance_metrics"].append({
-            "metrics": metrics,
-            "timestamp": datetime.utcnow().isoformat()
-        })
-        
-        # Calculate improvement trends
-        await self._calculate_improvement_trends(agent_id)
-        
-        agent_performance["last_updated"] = datetime.utcnow().isoformat()
-        
-        await self._save_learning_data()
-        
-        logger.info(f"Tracked performance for agent {agent_id}: {accuracy_score}")
-    
-    # === ACCURACY MONITORING ===
-    
-    async def get_agent_accuracy_metrics(self, agent_id: str) -> Dict[str, Any]:
-        """Get accuracy metrics and improvement tracking for an agent."""
-        
-        if agent_id not in self.learning_categories["performance_tracking"]:
-            return {
-                "overall_accuracy": 0.0,
-                "recent_accuracy": 0.0,
-                "improvement_trend": "no_data",
-                "total_interactions": 0
-            }
-        
-        agent_performance = self.learning_categories["performance_tracking"][agent_id]
-        accuracy_scores = agent_performance["accuracy_scores"]
-        
-        if not accuracy_scores:
-            return {
-                "overall_accuracy": 0.0,
-                "recent_accuracy": 0.0,
-                "improvement_trend": "no_data",
-                "total_interactions": 0
-            }
-        
-        # Calculate overall accuracy
-        all_scores = [score["score"] for score in accuracy_scores]
-        overall_accuracy = sum(all_scores) / len(all_scores)
-        
-        # Calculate recent accuracy (last 10 interactions)
-        recent_scores = all_scores[-10:] if len(all_scores) >= 10 else all_scores
-        recent_accuracy = sum(recent_scores) / len(recent_scores)
-        
-        # Get improvement trend
-        improvement_trend = agent_performance.get("improvement_trends", [])
-        latest_trend = improvement_trend[-1] if improvement_trend else "stable"
-        
-        return {
-            "overall_accuracy": overall_accuracy,
-            "recent_accuracy": recent_accuracy,
-            "improvement_trend": latest_trend,
-            "total_interactions": len(accuracy_scores),
-            "accuracy_history": all_scores[-20:]  # Last 20 scores
-        }
-    
-    # === UTILITY METHODS ===
-    
-    def _generate_pattern_key(self, field_name: str) -> str:
-        """Generate a consistent pattern key for field names."""
-        
-        # Clean and normalize field name
-        clean_name = field_name.lower().strip()
-        
-        # Remove common separators and replace with underscores
-        clean_name = clean_name.replace('-', '_').replace(' ', '_').replace('.', '_')
-        
-        # Extract key terms
-        key_terms = []
-        common_terms = ['hostname', 'asset', 'server', 'ip', 'address', 'environment', 
-                       'owner', 'department', 'location', 'operating', 'system', 'memory', 'cpu']
-        
-        for term in common_terms:
-            if term in clean_name:
-                key_terms.append(term)
-        
-        return '_'.join(key_terms) if key_terms else clean_name
-    
-    async def _find_fuzzy_field_match(self, field_name: str) -> Optional[Dict[str, Any]]:
-        """Find fuzzy matches for field names based on learned patterns."""
-        
-        best_match = None
-        best_score = 0.0
-        
-        for pattern_key, pattern in self.learning_categories["field_mapping_patterns"].items():
-            # Simple fuzzy matching based on common terms
-            score = await self._calculate_field_similarity(field_name, pattern_key)
-            
-            if score > best_score and score > 0.6:  # Minimum threshold
-                best_score = score
-                best_match = {
-                    "suggested_mapping": pattern["most_common_mapping"],
-                    "confidence": score * 0.8,  # Reduce confidence for fuzzy matches
-                    "learning_count": pattern["learning_count"],
-                    "reasoning": f"Fuzzy match with {pattern_key} (similarity: {score:.2f})",
-                    "pattern_match": "fuzzy"
-                }
-        
-        return best_match
-    
-    async def _calculate_field_similarity(self, field1: str, field2: str) -> float:
-        """Calculate similarity between two field names."""
-        
-        # Simple word-based similarity
-        words1 = set(field1.lower().split('_'))
-        words2 = set(field2.lower().split('_'))
-        
-        if not words1 or not words2:
-            return 0.0
-        
-        intersection = words1.intersection(words2)
-        union = words1.union(words2)
-        
-        return len(intersection) / len(union) if union else 0.0
-    
-    async def _transfer_pattern_learning(self, from_type: str, to_type: str, 
-                                       columns: List[str], content_indicators: List[str]) -> None:
-        """Transfer learning patterns when user corrects source type."""
-        
-        if to_type not in self.learning_categories["data_source_patterns"]:
-            self.learning_categories["data_source_patterns"][to_type] = {
-                "column_patterns": [],
-                "content_patterns": [],
-                "confidence_scores": [],
-                "learning_count": 0
-            }
-        
-        to_pattern = self.learning_categories["data_source_patterns"][to_type]
-        
-        # Transfer column patterns
-        for column in columns:
-            if column.lower() not in to_pattern["column_patterns"]:
-                to_pattern["column_patterns"].append(column.lower())
-        
-        # Transfer content patterns
-        for indicator in content_indicators:
-            if indicator not in to_pattern["content_patterns"]:
-                to_pattern["content_patterns"].append(indicator)
-        
-        to_pattern["learning_count"] += 1
-    
-    async def _update_quality_thresholds(self, pattern: Dict[str, Any], 
-                                       quality_metrics: Dict[str, Any], 
-                                       correct_classification: str) -> None:
-        """Update quality assessment thresholds based on corrections."""
-        
-        # Update metric thresholds for better classification
-        for metric_name, metric_value in quality_metrics.items():
-            if metric_name not in pattern["metric_thresholds"]:
-                pattern["metric_thresholds"][metric_name] = {
-                    "values_for_classification": {},
-                    "learned_threshold": None
-                }
-            
-            threshold_data = pattern["metric_thresholds"][metric_name]
-            
-            if correct_classification not in threshold_data["values_for_classification"]:
-                threshold_data["values_for_classification"][correct_classification] = []
-            
-            threshold_data["values_for_classification"][correct_classification].append(metric_value)
-            
-            # Calculate learned threshold
-            if len(threshold_data["values_for_classification"]) > 1:
-                await self._calculate_learned_threshold(threshold_data)
-    
-    async def _calculate_learned_threshold(self, threshold_data: Dict[str, Any]) -> None:
-        """Calculate learned threshold for quality metrics."""
-        
-        # Simple threshold calculation based on classification values
-        classification_values = threshold_data["values_for_classification"]
-        
-        if len(classification_values) >= 2:
-            # Find the value that best separates classifications
-            all_values = []
-            for classification, values in classification_values.items():
-                for value in values:
-                    all_values.append((value, classification))
-            
-            all_values.sort()
-            
-            # Simple threshold: midpoint between classifications
-            if len(all_values) >= 4:
-                mid_point = len(all_values) // 2
-                threshold_data["learned_threshold"] = all_values[mid_point][0]
-    
-    async def _update_most_common_preference(self, preference_key: str) -> None:
-        """Update the most common preference for a given key."""
-        
-        pattern = self.learning_categories["user_preference_patterns"][preference_key]
-        preferences = pattern["preferences"]
-        
-        if not preferences:
-            return
-        
-        # Count preference values
-        value_counts = {}
-        for pref in preferences:
-            value = pref["value"]
-            value_counts[value] = value_counts.get(value, 0) + 1
-        
-        # Find most common
-        most_common_value = max(value_counts.items(), key=lambda x: x[1])[0]
-        pattern["most_common"] = most_common_value
-        
-        # Calculate confidence based on consensus
-        total_prefs = len(preferences)
-        most_common_count = value_counts[most_common_value]
-        pattern["confidence"] = most_common_count / total_prefs
-    
-    async def _calculate_improvement_trends(self, agent_id: str) -> None:
-        """Calculate improvement trends for an agent."""
-        
-        agent_performance = self.learning_categories["performance_tracking"][agent_id]
-        accuracy_scores = agent_performance["accuracy_scores"]
-        
-        if len(accuracy_scores) < 5:  # Need minimum data points
-            return
-        
-        # Calculate trend over last 10 scores
-        recent_scores = [score["score"] for score in accuracy_scores[-10:]]
-        
-        # Simple trend calculation
-        if len(recent_scores) >= 5:
-            first_half = recent_scores[:len(recent_scores)//2]
-            second_half = recent_scores[len(recent_scores)//2:]
-            
-            first_avg = sum(first_half) / len(first_half)
-            second_avg = sum(second_half) / len(second_half)
-            
-            if second_avg > first_avg + 0.05:
-                trend = "improving"
-            elif second_avg < first_avg - 0.05:
-                trend = "declining"
-            else:
-                trend = "stable"
-            
-            agent_performance["improvement_trends"].append(trend)
-    
-    # === DATA PERSISTENCE ===
-    
-    def _load_learning_data(self) -> None:
-        """Load existing learning data from storage."""
-        
+    async def record_user_feedback(
+        self,
+        agent_name: str,
+        domain: LearningDomain,
+        original_prediction: Any,
+        corrected_value: Any,
+        feedback_type: str,
+        context: Dict[str, Any],
+        client_account_id: Optional[int] = None
+    ) -> UserFeedback:
+        """Record user feedback for agent learning improvement"""
         try:
-            learning_file = self.learning_data_path / "agent_learning.json"
-            if learning_file.exists():
-                with open(learning_file, 'r') as f:
-                    loaded_data = json.load(f)
-                    self.learning_categories.update(loaded_data)
-                
-                logger.info("Loaded existing learning data")
-        except Exception as e:
-            logger.error(f"Error loading learning data: {e}")
-    
-    async def _save_learning_data(self) -> None:
-        """Save learning data to storage."""
-        
-        try:
-            learning_file = self.learning_data_path / "agent_learning.json"
-            with open(learning_file, 'w') as f:
-                json.dump(self.learning_categories, f, indent=2)
-        except Exception as e:
-            logger.error(f"Error saving learning data: {e}")
-    
-    def get_learning_statistics(self) -> Dict[str, Any]:
-        """Get statistics about the learning system."""
-        
-        return {
-            "field_mapping_patterns": len(self.learning_categories["field_mapping_patterns"]),
-            "data_source_patterns": len(self.learning_categories["data_source_patterns"]),
-            "quality_patterns": len(self.learning_categories["quality_assessment_patterns"]),
-            "user_preferences": len(self.learning_categories["user_preference_patterns"]),
-            "agents_tracked": len(self.learning_categories["performance_tracking"]),
-            "total_learning_events": sum(
-                len(category) for category in self.learning_categories.values()
+            feedback_id = self._generate_feedback_id(agent_name, domain, context)
+            
+            # Calculate confidence delta based on feedback type
+            confidence_delta = self._calculate_confidence_delta(
+                feedback_type, original_prediction, corrected_value
             )
+            
+            feedback = UserFeedback(
+                feedback_id=feedback_id,
+                agent_name=agent_name,
+                domain=domain,
+                original_prediction=original_prediction,
+                corrected_value=corrected_value,
+                feedback_type=feedback_type,
+                context=context,
+                timestamp=datetime.now(),
+                confidence_delta=confidence_delta
+            )
+            
+            # Store feedback in history
+            self.user_feedback_history.append(feedback)
+            
+            # Extract learning patterns from feedback
+            await self._extract_patterns_from_feedback(feedback, client_account_id)
+            
+            # Update agent performance metrics
+            await self._update_agent_performance(feedback)
+            
+            logger.info(f"Recorded user feedback for {agent_name} in {domain.value}: {feedback_type}")
+            return feedback
+            
+        except Exception as e:
+            logger.error(f"Error recording user feedback: {str(e)}")
+            raise
+    
+    async def get_learning_patterns(
+        self,
+        domain: LearningDomain,
+        confidence_threshold: float = 0.7,
+        context_filter: Optional[str] = None,
+        client_account_id: Optional[int] = None
+    ) -> List[LearningPattern]:
+        """Retrieve learning patterns for specific domain with confidence filtering"""
+        try:
+            patterns = []
+            
+            for pattern in self.learning_patterns.values():
+                if pattern.domain != domain:
+                    continue
+                    
+                if pattern.confidence < confidence_threshold:
+                    continue
+                    
+                # Apply context filtering if specified
+                if context_filter and pattern.organizational_context != context_filter:
+                    continue
+                    
+                # Client-specific patterns only if client_account_id provided
+                if client_account_id and pattern.organizational_context:
+                    if f"client_{client_account_id}" not in pattern.organizational_context:
+                        continue
+                
+                patterns.append(pattern)
+            
+            # Sort by confidence and evidence count
+            patterns.sort(key=lambda p: (p.confidence, p.evidence_count), reverse=True)
+            
+            logger.info(f"Retrieved {len(patterns)} learning patterns for {domain.value}")
+            return patterns
+            
+        except Exception as e:
+            logger.error(f"Error retrieving learning patterns: {str(e)}")
+            return []
+    
+    async def suggest_field_mappings(
+        self,
+        source_columns: List[str],
+        target_schema: Dict[str, Any],
+        organizational_context: Optional[str] = None,
+        confidence_threshold: float = 0.8
+    ) -> List[Dict[str, Any]]:
+        """Suggest field mappings based on learned patterns"""
+        try:
+            suggestions = []
+            
+            # Get field mapping patterns
+            patterns = await self.get_learning_patterns(
+                LearningDomain.FIELD_MAPPING,
+                confidence_threshold,
+                organizational_context
+            )
+            
+            for column in source_columns:
+                best_match = None
+                best_confidence = 0.0
+                
+                for pattern in patterns:
+                    if pattern.pattern_type != "field_mapping":
+                        continue
+                        
+                    # Check if pattern matches this column
+                    match_confidence = self._calculate_field_match_confidence(
+                        column, pattern.pattern_data
+                    )
+                    
+                    if match_confidence > best_confidence and match_confidence >= confidence_threshold:
+                        best_confidence = match_confidence
+                        best_match = pattern
+                
+                if best_match:
+                    suggestions.append({
+                        "source_column": column,
+                        "suggested_mapping": best_match.pattern_data.get("target_field"),
+                        "confidence": best_confidence,
+                        "reasoning": best_match.pattern_data.get("reasoning", ""),
+                        "pattern_id": best_match.pattern_id,
+                        "evidence_count": best_match.evidence_count
+                    })
+            
+            logger.info(f"Generated {len(suggestions)} field mapping suggestions")
+            return suggestions
+            
+        except Exception as e:
+            logger.error(f"Error suggesting field mappings: {str(e)}")
+            return []
+    
+    async def update_agent_accuracy(
+        self,
+        agent_name: str,
+        domain: LearningDomain,
+        task_result: Dict[str, Any],
+        execution_time: float
+    ) -> None:
+        """Update agent accuracy and performance metrics"""
+        try:
+            # Get or create performance metric
+            metric_key = f"{agent_name}_{domain.value}"
+            
+            if metric_key not in self.agent_performance:
+                self.agent_performance[metric_key] = AgentPerformanceMetric(
+                    agent_name=agent_name,
+                    domain=domain,
+                    accuracy_score=0.0,
+                    confidence_score=0.0,
+                    response_time=0.0,
+                    task_count=0,
+                    success_rate=0.0,
+                    learning_velocity=0.0,
+                    last_updated=datetime.now()
+                )
+            
+            metric = self.agent_performance[metric_key]
+            
+            # Update metrics based on task result
+            task_success = task_result.get("success", False)
+            task_confidence = task_result.get("confidence", 0.0)
+            
+            # Calculate new metrics
+            metric.task_count += 1
+            metric.response_time = (metric.response_time + execution_time) / 2
+            metric.confidence_score = (metric.confidence_score + task_confidence) / 2
+            
+            # Update success rate
+            if task_success:
+                metric.success_rate = (metric.success_rate * (metric.task_count - 1) + 1.0) / metric.task_count
+            else:
+                metric.success_rate = (metric.success_rate * (metric.task_count - 1)) / metric.task_count
+            
+            # Calculate learning velocity (improvement rate)
+            recent_feedback = [f for f in self.user_feedback_history 
+                             if f.agent_name == agent_name and f.domain == domain
+                             and f.timestamp > datetime.now() - timedelta(hours=24)]
+            
+            if recent_feedback:
+                positive_feedback = sum(1 for f in recent_feedback if f.confidence_delta > 0)
+                metric.learning_velocity = positive_feedback / len(recent_feedback)
+            
+            metric.last_updated = datetime.now()
+            
+            logger.info(f"Updated performance metrics for {agent_name} in {domain.value}")
+            
+        except Exception as e:
+            logger.error(f"Error updating agent accuracy: {str(e)}")
+    
+    async def get_agent_intelligence_summary(
+        self,
+        agent_name: str,
+        domains: Optional[List[LearningDomain]] = None
+    ) -> Dict[str, Any]:
+        """Get comprehensive intelligence summary for an agent"""
+        try:
+            if domains is None:
+                domains = list(LearningDomain)
+            
+            summary = {
+                "agent_name": agent_name,
+                "overall_performance": {},
+                "domain_performance": {},
+                "learning_trends": {},
+                "recommendations": []
+            }
+            
+            # Aggregate performance across domains
+            total_tasks = 0
+            avg_accuracy = 0.0
+            avg_success_rate = 0.0
+            avg_response_time = 0.0
+            
+            for domain in domains:
+                metric_key = f"{agent_name}_{domain.value}"
+                if metric_key in self.agent_performance:
+                    metric = self.agent_performance[metric_key]
+                    
+                    summary["domain_performance"][domain.value] = {
+                        "accuracy_score": metric.accuracy_score,
+                        "success_rate": metric.success_rate,
+                        "confidence_score": metric.confidence_score,
+                        "response_time": metric.response_time,
+                        "task_count": metric.task_count,
+                        "learning_velocity": metric.learning_velocity,
+                        "last_updated": metric.last_updated.isoformat()
+                    }
+                    
+                    total_tasks += metric.task_count
+                    avg_accuracy += metric.accuracy_score * metric.task_count
+                    avg_success_rate += metric.success_rate * metric.task_count
+                    avg_response_time += metric.response_time * metric.task_count
+            
+            if total_tasks > 0:
+                summary["overall_performance"] = {
+                    "average_accuracy": avg_accuracy / total_tasks,
+                    "average_success_rate": avg_success_rate / total_tasks,
+                    "average_response_time": avg_response_time / total_tasks,
+                    "total_tasks_completed": total_tasks
+                }
+            
+            # Generate learning trends
+            summary["learning_trends"] = await self._calculate_learning_trends(agent_name)
+            
+            # Generate recommendations
+            summary["recommendations"] = await self._generate_improvement_recommendations(agent_name)
+            
+            return summary
+            
+        except Exception as e:
+            logger.error(f"Error generating agent intelligence summary: {str(e)}")
+            return {"error": str(e)}
+    
+    # Private helper methods
+    
+    def _generate_feedback_id(self, agent_name: str, domain: LearningDomain, context: Dict[str, Any]) -> str:
+        """Generate unique feedback ID"""
+        content = f"{agent_name}_{domain.value}_{datetime.now().isoformat()}_{str(context)}"
+        return hashlib.md5(content.encode()).hexdigest()[:16]
+    
+    def _calculate_confidence_delta(
+        self,
+        feedback_type: str,
+        original_prediction: Any,
+        corrected_value: Any
+    ) -> float:
+        """Calculate confidence change based on feedback"""
+        if feedback_type == "confirmation":
+            return 0.1  # Positive reinforcement
+        elif feedback_type == "correction":
+            return -0.2  # Negative feedback
+        elif feedback_type == "clarification":
+            return 0.05  # Slight improvement
+        else:
+            return 0.0
+    
+    async def _extract_patterns_from_feedback(
+        self,
+        feedback: UserFeedback,
+        client_account_id: Optional[int] = None
+    ) -> None:
+        """Extract and store learning patterns from user feedback"""
+        try:
+            if feedback.feedback_type == "correction":
+                # Create new pattern from correction
+                pattern_id = self._generate_pattern_id(feedback)
+                
+                organizational_context = None
+                if client_account_id:
+                    organizational_context = f"client_{client_account_id}"
+                
+                pattern = LearningPattern(
+                    pattern_id=pattern_id,
+                    domain=feedback.domain,
+                    pattern_type=self._determine_pattern_type(feedback),
+                    confidence=0.6,  # Initial confidence for new pattern
+                    evidence_count=1,
+                    pattern_data={
+                        "original": feedback.original_prediction,
+                        "corrected": feedback.corrected_value,
+                        "context": feedback.context,
+                        "reasoning": f"User correction from {feedback.agent_name}"
+                    },
+                    created_at=datetime.now(),
+                    last_reinforced=datetime.now(),
+                    success_rate=0.0,
+                    organizational_context=organizational_context
+                )
+                
+                self.learning_patterns[pattern_id] = pattern
+                
+            elif feedback.feedback_type == "confirmation":
+                # Reinforce existing patterns
+                await self._reinforce_patterns(feedback)
+        
+        except Exception as e:
+            logger.error(f"Error extracting patterns from feedback: {str(e)}")
+    
+    def _generate_pattern_id(self, feedback: UserFeedback) -> str:
+        """Generate unique pattern ID"""
+        content = f"{feedback.domain.value}_{feedback.original_prediction}_{feedback.corrected_value}"
+        return hashlib.md5(content.encode()).hexdigest()[:12]
+    
+    def _determine_pattern_type(self, feedback: UserFeedback) -> str:
+        """Determine pattern type based on feedback domain"""
+        type_mapping = {
+            LearningDomain.FIELD_MAPPING: "field_mapping",
+            LearningDomain.ASSET_CLASSIFICATION: "classification",
+            LearningDomain.DATA_QUALITY: "quality_assessment",
+            LearningDomain.APPLICATION_DISCOVERY: "application_grouping",
+            LearningDomain.DEPENDENCY_ANALYSIS: "dependency_mapping",
+            LearningDomain.TECH_DEBT_ASSESSMENT: "risk_scoring",
+            LearningDomain.USER_PREFERENCES: "preference_setting"
         }
+        return type_mapping.get(feedback.domain, "general")
+    
+    async def _reinforce_patterns(self, feedback: UserFeedback) -> None:
+        """Reinforce existing patterns with positive feedback"""
+        try:
+            for pattern_id, pattern in self.learning_patterns.items():
+                if (pattern.domain == feedback.domain and 
+                    self._pattern_matches_feedback(pattern, feedback)):
+                    
+                    pattern.evidence_count += 1
+                    pattern.confidence = min(0.95, pattern.confidence + 0.05)
+                    pattern.last_reinforced = datetime.now()
+                    
+                    logger.info(f"Reinforced pattern {pattern_id} with new evidence")
+        
+        except Exception as e:
+            logger.error(f"Error reinforcing patterns: {str(e)}")
+    
+    def _pattern_matches_feedback(self, pattern: LearningPattern, feedback: UserFeedback) -> bool:
+        """Check if pattern matches the feedback context"""
+        # Simple matching logic - can be enhanced with more sophisticated comparison
+        pattern_data = pattern.pattern_data
+        return (str(pattern_data.get("corrected")) == str(feedback.original_prediction))
+    
+    def _calculate_field_match_confidence(
+        self,
+        column_name: str,
+        pattern_data: Dict[str, Any]
+    ) -> float:
+        """Calculate confidence of field mapping match"""
+        # Simple string similarity for now - can be enhanced with ML
+        pattern_source = pattern_data.get("original", "")
+        if isinstance(pattern_source, str):
+            similarity = len(set(column_name.lower().split()) & 
+                            set(pattern_source.lower().split())) / max(1, len(set(column_name.lower().split())))
+            return similarity
+        return 0.0
+    
+    async def _update_agent_performance(self, feedback: UserFeedback) -> None:
+        """Update agent performance based on feedback"""
+        try:
+            metric_key = f"{feedback.agent_name}_{feedback.domain.value}"
+            
+            if metric_key in self.agent_performance:
+                metric = self.agent_performance[metric_key]
+                
+                # Adjust accuracy based on feedback
+                if feedback.feedback_type == "correction":
+                    # Decrease accuracy slightly
+                    metric.accuracy_score = max(0.0, metric.accuracy_score - 0.05)
+                elif feedback.feedback_type == "confirmation":
+                    # Increase accuracy slightly
+                    metric.accuracy_score = min(1.0, metric.accuracy_score + 0.02)
+                
+                metric.last_updated = datetime.now()
+        
+        except Exception as e:
+            logger.error(f"Error updating agent performance from feedback: {str(e)}")
+    
+    async def _calculate_learning_trends(self, agent_name: str) -> Dict[str, Any]:
+        """Calculate learning trends for an agent"""
+        try:
+            recent_feedback = [f for f in self.user_feedback_history 
+                             if f.agent_name == agent_name
+                             and f.timestamp > datetime.now() - timedelta(days=7)]
+            
+            if not recent_feedback:
+                return {"trend": "stable", "improvement_rate": 0.0}
+            
+            # Calculate improvement rate
+            positive_feedback = sum(1 for f in recent_feedback if f.confidence_delta > 0)
+            improvement_rate = positive_feedback / len(recent_feedback)
+            
+            trend = "improving" if improvement_rate > 0.6 else "stable" if improvement_rate > 0.3 else "declining"
+            
+            return {
+                "trend": trend,
+                "improvement_rate": improvement_rate,
+                "feedback_count": len(recent_feedback),
+                "avg_confidence_delta": statistics.mean([f.confidence_delta for f in recent_feedback])
+            }
+        
+        except Exception as e:
+            logger.error(f"Error calculating learning trends: {str(e)}")
+            return {"trend": "unknown", "improvement_rate": 0.0}
+    
+    async def _generate_improvement_recommendations(self, agent_name: str) -> List[str]:
+        """Generate improvement recommendations for an agent"""
+        try:
+            recommendations = []
+            
+            # Analyze performance across domains
+            for domain in LearningDomain:
+                metric_key = f"{agent_name}_{domain.value}"
+                if metric_key in self.agent_performance:
+                    metric = self.agent_performance[metric_key]
+                    
+                    if metric.success_rate < 0.7:
+                        recommendations.append(f"Improve accuracy in {domain.value} - current success rate: {metric.success_rate:.2%}")
+                    
+                    if metric.response_time > 10.0:
+                        recommendations.append(f"Optimize response time in {domain.value} - currently averaging {metric.response_time:.1f}s")
+                    
+                    if metric.learning_velocity < 0.3:
+                        recommendations.append(f"Increase learning velocity in {domain.value} - consider more training data")
+            
+            return recommendations[:5]  # Limit to top 5 recommendations
+        
+        except Exception as e:
+            logger.error(f"Error generating improvement recommendations: {str(e)}")
+            return []
 
 # Global instance for platform-wide learning
-agent_learning_system = AgentLearningSystem() 
+learning_system = AgentLearningSystem() 

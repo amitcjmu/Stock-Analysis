@@ -1,576 +1,730 @@
 """
-Client Context Manager
-Client/engagement-specific context management for agent behavior adaptation.
-Implements Task C.1: Client/Engagement-Specific Context Management.
+Client Context Manager - Enterprise-grade client-specific context management
+
+Manages user preferences, organizational patterns, and engagement-scoped agent behavior
+while maintaining strict data isolation between client accounts for enterprise deployment.
 """
 
 import logging
 import json
-from typing import Dict, List, Any, Optional
+import asyncio
+from typing import Dict, List, Any, Optional, Tuple, Set
 from datetime import datetime, timedelta
-from pathlib import Path
+from dataclasses import dataclass, asdict
+from enum import Enum
+import hashlib
+from collections import defaultdict, deque
+
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, update, delete, and_, func
+from backend.app.core.database import AsyncSessionLocal
 
 logger = logging.getLogger(__name__)
 
+class ContextType(Enum):
+    """Types of client context data"""
+    USER_PREFERENCES = "user_preferences"
+    ORGANIZATIONAL_PATTERNS = "organizational_patterns"
+    CLARIFICATION_HISTORY = "clarification_history"
+    AGENT_BEHAVIOR = "agent_behavior"
+    FIELD_MAPPINGS = "field_mappings"
+    DATA_QUALITY_RULES = "data_quality_rules"
+    BUSINESS_CONTEXT = "business_context"
+
+class PreferenceCategory(Enum):
+    """Categories of user preferences"""
+    WORKFLOW = "workflow"
+    COMMUNICATION = "communication"
+    ANALYSIS_DEPTH = "analysis_depth"
+    RISK_TOLERANCE = "risk_tolerance"
+    AUTOMATION_LEVEL = "automation_level"
+    REPORTING = "reporting"
+
+@dataclass
+class ClientContext:
+    """Client-specific context data"""
+    client_account_id: int
+    engagement_id: str
+    context_type: ContextType
+    context_key: str
+    context_data: Dict[str, Any]
+    created_at: datetime
+    updated_at: datetime
+    created_by: str
+    version: int = 1
+    active: bool = True
+
+@dataclass
+class UserPreference:
+    """User preference within a client context"""
+    preference_id: str
+    user_id: str
+    client_account_id: int
+    engagement_id: str
+    category: PreferenceCategory
+    preference_key: str
+    preference_value: Any
+    confidence: float
+    learned_from: str  # user_input, agent_observation, pattern_analysis
+    created_at: datetime
+    last_reinforced: datetime
+
+@dataclass
+class OrganizationalPattern:
+    """Organizational pattern specific to a client"""
+    pattern_id: str
+    client_account_id: int
+    engagement_id: str
+    pattern_type: str
+    pattern_category: str
+    pattern_data: Dict[str, Any]
+    confidence: float
+    evidence_count: int
+    business_impact: str
+    created_at: datetime
+    last_observed: datetime
+
+@dataclass
+class ClarificationSession:
+    """Session tracking for agent clarifications"""
+    session_id: str
+    client_account_id: int
+    engagement_id: str
+    agent_name: str
+    page_context: str
+    questions_asked: List[Dict[str, Any]]
+    user_responses: List[Dict[str, Any]]
+    resolution_status: str
+    created_at: datetime
+    completed_at: Optional[datetime] = None
+
 class ClientContextManager:
     """
-    Manages client and engagement-specific context for agent behavior adaptation.
-    Handles user preferences, organizational patterns, and clarification history.
+    Enterprise-grade client context management system for maintaining
+    client-specific agent behavior, preferences, and organizational patterns.
     """
     
-    def __init__(self, context_data_path: str = "data/client_context"):
-        self.context_data_path = Path(context_data_path)
-        self.context_data_path.mkdir(parents=True, exist_ok=True)
-        
-        # Client context storage
-        self.client_contexts = {}
-        self.engagement_contexts = {}
-        
-        # Load existing context data
-        self._load_context_data()
-        
-        logger.info("Client Context Manager initialized")
+    def __init__(self):
+        self.context_cache: Dict[str, Dict[str, Any]] = defaultdict(dict)
+        self.preference_cache: Dict[str, Dict[str, UserPreference]] = defaultdict(dict)
+        self.pattern_cache: Dict[str, List[OrganizationalPattern]] = defaultdict(list)
+        self.clarification_sessions: Dict[str, ClarificationSession] = {}
+        self.cache_ttl = timedelta(hours=1)
+        self.last_cache_refresh = datetime.now()
     
-    # === CLIENT CONTEXT MANAGEMENT ===
-    
-    async def create_client_context(self, client_account_id: int, 
-                                  client_data: Dict[str, Any]) -> None:
-        """Create or update client-specific context."""
-        
-        if client_account_id not in self.client_contexts:
-            self.client_contexts[client_account_id] = {
-                "client_id": client_account_id,
-                "organizational_patterns": {},
-                "user_preferences": {},
-                "industry_context": {},
-                "technology_patterns": {},
-                "clarification_history": [],
-                "agent_adaptations": {},
-                "created_at": datetime.utcnow().isoformat(),
-                "last_updated": None
-            }
-        
-        context = self.client_contexts[client_account_id]
-        
-        # Update client data
-        context.update({
-            "client_name": client_data.get("client_name"),
-            "industry": client_data.get("industry"),
-            "organization_size": client_data.get("organization_size"),
-            "technology_profile": client_data.get("technology_profile", {}),
-            "last_updated": datetime.utcnow().isoformat()
-        })
-        
-        await self._save_context_data()
-        
-        logger.info(f"Created/updated client context for client {client_account_id}")
-    
-    async def create_engagement_context(self, engagement_id: str, 
-                                      client_account_id: int,
-                                      engagement_data: Dict[str, Any]) -> None:
-        """Create or update engagement-specific context."""
-        
-        if engagement_id not in self.engagement_contexts:
-            self.engagement_contexts[engagement_id] = {
-                "engagement_id": engagement_id,
-                "client_account_id": client_account_id,
-                "engagement_preferences": {},
-                "project_specific_patterns": {},
-                "stakeholder_preferences": {},
-                "asset_classification_patterns": {},
-                "clarification_responses": {},
-                "agent_learning_adaptations": {},
-                "migration_preferences": {},
-                "created_at": datetime.utcnow().isoformat(),
-                "last_updated": None
-            }
-        
-        context = self.engagement_contexts[engagement_id]
-        
-        # Update engagement data
-        context.update({
-            "engagement_name": engagement_data.get("engagement_name"),
-            "project_type": engagement_data.get("project_type"),
-            "scope": engagement_data.get("scope", {}),
-            "stakeholders": engagement_data.get("stakeholders", []),
-            "timeline": engagement_data.get("timeline", {}),
-            "last_updated": datetime.utcnow().isoformat()
-        })
-        
-        await self._save_context_data()
-        
-        logger.info(f"Created/updated engagement context for engagement {engagement_id}")
-    
-    # === ORGANIZATIONAL PATTERN LEARNING ===
-    
-    async def learn_organizational_pattern(self, client_account_id: int, 
-                                         pattern_data: Dict[str, Any]) -> None:
-        """Learn organizational patterns specific to the client."""
-        
-        if client_account_id not in self.client_contexts:
-            await self.create_client_context(client_account_id, {})
-        
-        context = self.client_contexts[client_account_id]
-        pattern_type = pattern_data.get("pattern_type")
-        pattern_details = pattern_data.get("pattern_details", {})
-        
-        if pattern_type not in context["organizational_patterns"]:
-            context["organizational_patterns"][pattern_type] = {
-                "patterns": [],
-                "confidence": 0.0,
-                "examples": [],
-                "learning_count": 0
-            }
-        
-        org_pattern = context["organizational_patterns"][pattern_type]
-        org_pattern["patterns"].append({
-            "details": pattern_details,
-            "learned_at": datetime.utcnow().isoformat(),
-            "source": pattern_data.get("source", "unknown")
-        })
-        org_pattern["examples"].extend(pattern_data.get("examples", []))
-        org_pattern["learning_count"] += 1
-        
-        # Update confidence based on consistency
-        await self._update_pattern_confidence(org_pattern)
-        
-        context["last_updated"] = datetime.utcnow().isoformat()
-        await self._save_context_data()
-        
-        logger.info(f"Learned organizational pattern {pattern_type} for client {client_account_id}")
-    
-    async def get_organizational_patterns(self, client_account_id: int) -> Dict[str, Any]:
-        """Get organizational patterns for a client."""
-        
-        if client_account_id not in self.client_contexts:
-            return {}
-        
-        return self.client_contexts[client_account_id].get("organizational_patterns", {})
-    
-    # === USER PREFERENCE MANAGEMENT ===
-    
-    async def learn_user_preference(self, engagement_id: str, 
-                                  preference_data: Dict[str, Any]) -> None:
-        """Learn user preferences for the engagement."""
-        
-        if engagement_id not in self.engagement_contexts:
-            # Need to create engagement context - requires client_account_id
-            logger.warning(f"Engagement context not found for {engagement_id}")
-            return
-        
-        context = self.engagement_contexts[engagement_id]
-        preference_type = preference_data.get("preference_type")
-        preference_value = preference_data.get("preference_value")
-        user_context = preference_data.get("user_context", {})
-        
-        if preference_type not in context["engagement_preferences"]:
-            context["engagement_preferences"][preference_type] = {
-                "values": [],
-                "most_preferred": None,
-                "confidence": 0.0,
-                "user_contexts": []
-            }
-        
-        pref_pattern = context["engagement_preferences"][preference_type]
-        pref_pattern["values"].append({
-            "value": preference_value,
-            "context": user_context,
-            "learned_at": datetime.utcnow().isoformat()
-        })
-        pref_pattern["user_contexts"].append(user_context)
-        
-        # Update most preferred based on frequency
-        await self._update_most_preferred(pref_pattern)
-        
-        context["last_updated"] = datetime.utcnow().isoformat()
-        await self._save_context_data()
-        
-        logger.info(f"Learned user preference {preference_type} for engagement {engagement_id}")
-    
-    async def get_user_preferences(self, engagement_id: str) -> Dict[str, Any]:
-        """Get user preferences for an engagement."""
-        
-        if engagement_id not in self.engagement_contexts:
-            return {}
-        
-        return self.engagement_contexts[engagement_id].get("engagement_preferences", {})
-    
-    # === CLARIFICATION HISTORY MANAGEMENT ===
-    
-    async def store_clarification_response(self, engagement_id: str, 
-                                         clarification_data: Dict[str, Any]) -> None:
-        """Store clarification responses for learning."""
-        
-        if engagement_id not in self.engagement_contexts:
-            logger.warning(f"Engagement context not found for {engagement_id}")
-            return
-        
-        context = self.engagement_contexts[engagement_id]
-        
-        clarification_entry = {
-            "question_id": clarification_data.get("question_id"),
-            "question_type": clarification_data.get("question_type"),
-            "question": clarification_data.get("question"),
-            "user_response": clarification_data.get("user_response"),
-            "context": clarification_data.get("context", {}),
-            "agent_id": clarification_data.get("agent_id"),
-            "timestamp": datetime.utcnow().isoformat()
-        }
-        
-        question_type = clarification_data.get("question_type", "general")
-        if question_type not in context["clarification_responses"]:
-            context["clarification_responses"][question_type] = []
-        
-        context["clarification_responses"][question_type].append(clarification_entry)
-        
-        # Learn from the response
-        await self._learn_from_clarification(engagement_id, clarification_entry)
-        
-        context["last_updated"] = datetime.utcnow().isoformat()
-        await self._save_context_data()
-        
-        logger.info(f"Stored clarification response for engagement {engagement_id}")
-    
-    async def get_clarification_history(self, engagement_id: str, 
-                                      question_type: Optional[str] = None) -> List[Dict[str, Any]]:
-        """Get clarification history for an engagement."""
-        
-        if engagement_id not in self.engagement_contexts:
-            return []
-        
-        context = self.engagement_contexts[engagement_id]
-        clarifications = context.get("clarification_responses", {})
-        
-        if question_type:
-            return clarifications.get(question_type, [])
-        
-        # Return all clarifications
-        all_clarifications = []
-        for q_type, responses in clarifications.items():
-            all_clarifications.extend(responses)
-        
-        return sorted(all_clarifications, key=lambda x: x["timestamp"])
-    
-    # === AGENT BEHAVIOR ADAPTATION ===
-    
-    async def adapt_agent_behavior(self, engagement_id: str, agent_id: str, 
-                                 adaptation_data: Dict[str, Any]) -> None:
-        """Store agent behavior adaptations for the engagement."""
-        
-        if engagement_id not in self.engagement_contexts:
-            logger.warning(f"Engagement context not found for {engagement_id}")
-            return
-        
-        context = self.engagement_contexts[engagement_id]
-        
-        if agent_id not in context["agent_learning_adaptations"]:
-            context["agent_learning_adaptations"][agent_id] = {
-                "adaptations": [],
-                "behavior_patterns": {},
-                "confidence_adjustments": {},
-                "question_preferences": {}
-            }
-        
-        agent_adaptations = context["agent_learning_adaptations"][agent_id]
-        
-        adaptation_entry = {
-            "adaptation_type": adaptation_data.get("adaptation_type"),
-            "adaptation_details": adaptation_data.get("adaptation_details", {}),
-            "trigger_context": adaptation_data.get("trigger_context", {}),
-            "expected_improvement": adaptation_data.get("expected_improvement"),
-            "adapted_at": datetime.utcnow().isoformat()
-        }
-        
-        agent_adaptations["adaptations"].append(adaptation_entry)
-        
-        # Update behavior patterns
-        adaptation_type = adaptation_data.get("adaptation_type")
-        if adaptation_type:
-            if adaptation_type not in agent_adaptations["behavior_patterns"]:
-                agent_adaptations["behavior_patterns"][adaptation_type] = []
+    async def initialize_client_context(
+        self,
+        client_account_id: int,
+        engagement_id: str,
+        user_id: str,
+        initial_preferences: Optional[Dict[str, Any]] = None
+    ) -> bool:
+        """Initialize context for a new client engagement"""
+        try:
+            context_key = f"{client_account_id}_{engagement_id}"
             
-            agent_adaptations["behavior_patterns"][adaptation_type].append(
-                adaptation_data.get("adaptation_details", {})
+            # Initialize default preferences
+            default_preferences = {
+                "workflow_automation_level": 0.7,
+                "risk_tolerance": "medium",
+                "communication_frequency": "normal",
+                "analysis_depth": "standard",
+                "reporting_detail": "summary"
+            }
+            
+            if initial_preferences:
+                default_preferences.update(initial_preferences)
+            
+            # Store initial context
+            await self._store_client_context(
+                client_account_id,
+                engagement_id,
+                ContextType.USER_PREFERENCES,
+                "initial_setup",
+                default_preferences,
+                user_id
             )
-        
-        context["last_updated"] = datetime.utcnow().isoformat()
-        await self._save_context_data()
-        
-        logger.info(f"Stored agent adaptation for {agent_id} in engagement {engagement_id}")
+            
+            # Initialize organizational pattern detection
+            await self._initialize_pattern_detection(client_account_id, engagement_id)
+            
+            logger.info(f"Initialized client context for {context_key}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error initializing client context: {str(e)}")
+            return False
     
-    async def get_agent_adaptations(self, engagement_id: str, 
-                                  agent_id: str) -> Dict[str, Any]:
-        """Get agent behavior adaptations for an engagement."""
-        
-        if engagement_id not in self.engagement_contexts:
+    async def get_user_preferences(
+        self,
+        client_account_id: int,
+        engagement_id: str,
+        user_id: str,
+        category: Optional[PreferenceCategory] = None
+    ) -> Dict[str, Any]:
+        """Get user preferences for specific client context"""
+        try:
+            context_key = f"{client_account_id}_{engagement_id}_{user_id}"
+            
+            # Check cache first
+            if context_key in self.preference_cache and self._is_cache_valid():
+                cached_prefs = self.preference_cache[context_key]
+                if category:
+                    return {k: v.preference_value for k, v in cached_prefs.items() 
+                           if v.category == category}
+                else:
+                    return {k: v.preference_value for k, v in cached_prefs.items()}
+            
+            # Load from persistent storage (simulated)
+            preferences = await self._load_user_preferences(
+                client_account_id, engagement_id, user_id, category
+            )
+            
+            # Update cache
+            self.preference_cache[context_key] = preferences
+            
+            if category:
+                return {k: v.preference_value for k, v in preferences.items() 
+                       if v.category == category}
+            else:
+                return {k: v.preference_value for k, v in preferences.items()}
+            
+        except Exception as e:
+            logger.error(f"Error getting user preferences: {str(e)}")
             return {}
-        
-        context = self.engagement_contexts[engagement_id]
-        return context.get("agent_learning_adaptations", {}).get(agent_id, {})
     
-    # === MIGRATION PREFERENCE MANAGEMENT ===
+    async def update_user_preference(
+        self,
+        client_account_id: int,
+        engagement_id: str,
+        user_id: str,
+        category: PreferenceCategory,
+        preference_key: str,
+        preference_value: Any,
+        learned_from: str = "user_input",
+        confidence: float = 1.0
+    ) -> bool:
+        """Update or create user preference"""
+        try:
+            preference_id = self._generate_preference_id(
+                client_account_id, engagement_id, user_id, preference_key
+            )
+            
+            preference = UserPreference(
+                preference_id=preference_id,
+                user_id=user_id,
+                client_account_id=client_account_id,
+                engagement_id=engagement_id,
+                category=category,
+                preference_key=preference_key,
+                preference_value=preference_value,
+                confidence=confidence,
+                learned_from=learned_from,
+                created_at=datetime.now(),
+                last_reinforced=datetime.now()
+            )
+            
+            # Update cache
+            context_key = f"{client_account_id}_{engagement_id}_{user_id}"
+            self.preference_cache[context_key][preference_key] = preference
+            
+            # Store in persistent storage
+            await self._store_user_preference(preference)
+            
+            logger.info(f"Updated preference {preference_key} for {context_key}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error updating user preference: {str(e)}")
+            return False
     
-    async def learn_migration_preferences(self, engagement_id: str, 
-                                        migration_data: Dict[str, Any]) -> None:
-        """Learn migration-specific preferences for the engagement."""
-        
-        if engagement_id not in self.engagement_contexts:
-            logger.warning(f"Engagement context not found for {engagement_id}")
-            return
-        
-        context = self.engagement_contexts[engagement_id]
-        
-        migration_type = migration_data.get("migration_type")
-        preference_details = migration_data.get("preference_details", {})
-        
-        if migration_type not in context["migration_preferences"]:
-            context["migration_preferences"][migration_type] = {
-                "preferences": [],
-                "patterns": {},
-                "constraints": [],
-                "priorities": []
+    async def learn_organizational_pattern(
+        self,
+        client_account_id: int,
+        engagement_id: str,
+        pattern_type: str,
+        pattern_category: str,
+        pattern_data: Dict[str, Any],
+        business_impact: str,
+        confidence: float = 0.8
+    ) -> str:
+        """Learn and store organizational pattern"""
+        try:
+            pattern_id = self._generate_pattern_id(
+                client_account_id, pattern_type, pattern_data
+            )
+            
+            pattern = OrganizationalPattern(
+                pattern_id=pattern_id,
+                client_account_id=client_account_id,
+                engagement_id=engagement_id,
+                pattern_type=pattern_type,
+                pattern_category=pattern_category,
+                pattern_data=pattern_data,
+                confidence=confidence,
+                evidence_count=1,
+                business_impact=business_impact,
+                created_at=datetime.now(),
+                last_observed=datetime.now()
+            )
+            
+            # Update cache
+            context_key = f"{client_account_id}_{engagement_id}"
+            self.pattern_cache[context_key].append(pattern)
+            
+            # Store in persistent storage
+            await self._store_organizational_pattern(pattern)
+            
+            logger.info(f"Learned organizational pattern {pattern_id} for client {client_account_id}")
+            return pattern_id
+            
+        except Exception as e:
+            logger.error(f"Error learning organizational pattern: {str(e)}")
+            return ""
+    
+    async def get_organizational_patterns(
+        self,
+        client_account_id: int,
+        engagement_id: str,
+        pattern_type: Optional[str] = None,
+        pattern_category: Optional[str] = None,
+        min_confidence: float = 0.7
+    ) -> List[OrganizationalPattern]:
+        """Get organizational patterns for client"""
+        try:
+            context_key = f"{client_account_id}_{engagement_id}"
+            
+            # Check cache first
+            if context_key in self.pattern_cache and self._is_cache_valid():
+                patterns = self.pattern_cache[context_key]
+            else:
+                # Load from persistent storage
+                patterns = await self._load_organizational_patterns(
+                    client_account_id, engagement_id
+                )
+                self.pattern_cache[context_key] = patterns
+            
+            # Filter patterns
+            filtered_patterns = []
+            for pattern in patterns:
+                if pattern.confidence < min_confidence:
+                    continue
+                    
+                if pattern_type and pattern.pattern_type != pattern_type:
+                    continue
+                    
+                if pattern_category and pattern.pattern_category != pattern_category:
+                    continue
+                
+                filtered_patterns.append(pattern)
+            
+            # Sort by confidence and recency
+            filtered_patterns.sort(key=lambda p: (p.confidence, p.last_observed), reverse=True)
+            
+            return filtered_patterns
+            
+        except Exception as e:
+            logger.error(f"Error getting organizational patterns: {str(e)}")
+            return []
+    
+    async def start_clarification_session(
+        self,
+        client_account_id: int,
+        engagement_id: str,
+        agent_name: str,
+        page_context: str,
+        initial_questions: List[Dict[str, Any]]
+    ) -> str:
+        """Start a new clarification session"""
+        try:
+            session_id = self._generate_session_id(
+                client_account_id, engagement_id, agent_name, page_context
+            )
+            
+            session = ClarificationSession(
+                session_id=session_id,
+                client_account_id=client_account_id,
+                engagement_id=engagement_id,
+                agent_name=agent_name,
+                page_context=page_context,
+                questions_asked=initial_questions,
+                user_responses=[],
+                resolution_status="active",
+                created_at=datetime.now()
+            )
+            
+            self.clarification_sessions[session_id] = session
+            
+            logger.info(f"Started clarification session {session_id}")
+            return session_id
+            
+        except Exception as e:
+            logger.error(f"Error starting clarification session: {str(e)}")
+            return ""
+    
+    async def add_clarification_response(
+        self,
+        session_id: str,
+        question_id: str,
+        user_response: Dict[str, Any]
+    ) -> bool:
+        """Add user response to clarification session"""
+        try:
+            if session_id not in self.clarification_sessions:
+                logger.error(f"Clarification session {session_id} not found")
+                return False
+            
+            session = self.clarification_sessions[session_id]
+            
+            response_data = {
+                "question_id": question_id,
+                "response": user_response,
+                "timestamp": datetime.now().isoformat(),
+                "page_context": session.page_context
             }
-        
-        migration_prefs = context["migration_preferences"][migration_type]
-        migration_prefs["preferences"].append({
-            "details": preference_details,
-            "context": migration_data.get("context", {}),
-            "learned_at": datetime.utcnow().isoformat()
-        })
-        
-        # Extract patterns from preferences
-        await self._extract_migration_patterns(migration_prefs, preference_details)
-        
-        context["last_updated"] = datetime.utcnow().isoformat()
-        await self._save_context_data()
-        
-        logger.info(f"Learned migration preferences for engagement {engagement_id}")
-    
-    # === CONTEXT RETRIEVAL METHODS ===
-    
-    async def get_client_context(self, client_account_id: int) -> Dict[str, Any]:
-        """Get complete client context."""
-        
-        return self.client_contexts.get(client_account_id, {})
-    
-    async def get_engagement_context(self, engagement_id: str) -> Dict[str, Any]:
-        """Get complete engagement context."""
-        
-        return self.engagement_contexts.get(engagement_id, {})
-    
-    async def get_combined_context(self, engagement_id: str) -> Dict[str, Any]:
-        """Get combined client and engagement context."""
-        
-        engagement_context = self.engagement_contexts.get(engagement_id, {})
-        client_account_id = engagement_context.get("client_account_id")
-        
-        if not client_account_id:
-            return engagement_context
-        
-        client_context = self.client_contexts.get(client_account_id, {})
-        
-        return {
-            "client_context": client_context,
-            "engagement_context": engagement_context,
-            "combined_at": datetime.utcnow().isoformat()
-        }
-    
-    # === UTILITY METHODS ===
-    
-    async def _update_pattern_confidence(self, pattern: Dict[str, Any]) -> None:
-        """Update confidence based on pattern consistency."""
-        
-        patterns = pattern.get("patterns", [])
-        if len(patterns) < 2:
-            pattern["confidence"] = 0.5
-            return
-        
-        # Simple confidence calculation based on consistency
-        # This would be enhanced with more sophisticated pattern matching
-        pattern["confidence"] = min(0.9, 0.3 + (len(patterns) * 0.1))
-    
-    async def _update_most_preferred(self, preference_pattern: Dict[str, Any]) -> None:
-        """Update most preferred value based on frequency."""
-        
-        values = preference_pattern.get("values", [])
-        if not values:
-            return
-        
-        # Count preference frequencies
-        value_counts = {}
-        for pref in values:
-            value = pref["value"]
-            value_counts[value] = value_counts.get(value, 0) + 1
-        
-        # Find most frequent
-        most_preferred = max(value_counts.items(), key=lambda x: x[1])[0]
-        preference_pattern["most_preferred"] = most_preferred
-        
-        # Calculate confidence
-        total_count = len(values)
-        max_count = value_counts[most_preferred]
-        preference_pattern["confidence"] = max_count / total_count
-    
-    async def _learn_from_clarification(self, engagement_id: str, 
-                                      clarification_entry: Dict[str, Any]) -> None:
-        """Learn patterns from clarification responses."""
-        
-        question_type = clarification_entry.get("question_type")
-        user_response = clarification_entry.get("user_response")
-        
-        # Extract learning patterns from the response
-        if question_type == "field_mapping":
-            await self._learn_field_mapping_from_clarification(engagement_id, clarification_entry)
-        elif question_type == "data_classification":
-            await self._learn_classification_from_clarification(engagement_id, clarification_entry)
-        elif question_type == "business_context":
-            await self._learn_business_context_from_clarification(engagement_id, clarification_entry)
-    
-    async def _learn_field_mapping_from_clarification(self, engagement_id: str, 
-                                                    entry: Dict[str, Any]) -> None:
-        """Learn field mapping patterns from clarification responses."""
-        
-        context = self.engagement_contexts[engagement_id]
-        
-        # Extract field mapping information
-        user_response = entry.get("user_response")
-        question_context = entry.get("context", {})
-        
-        if isinstance(user_response, dict) and "field_mappings" in user_response:
-            field_mappings = user_response["field_mappings"]
             
-            if "asset_classification_patterns" not in context:
-                context["asset_classification_patterns"] = {}
+            session.user_responses.append(response_data)
             
-            for original_field, mapped_field in field_mappings.items():
-                if original_field not in context["asset_classification_patterns"]:
-                    context["asset_classification_patterns"][original_field] = {
-                        "mappings": [],
-                        "most_common": None,
-                        "confidence": 0.0
-                    }
-                
-                pattern = context["asset_classification_patterns"][original_field]
-                pattern["mappings"].append({
-                    "mapped_to": mapped_field,
-                    "context": question_context,
-                    "learned_at": datetime.utcnow().isoformat()
-                })
-                
-                # Update most common mapping
-                await self._update_most_common_mapping(pattern)
-    
-    async def _learn_classification_from_clarification(self, engagement_id: str, 
-                                                     entry: Dict[str, Any]) -> None:
-        """Learn data classification patterns from clarification responses."""
-        
-        # This would extract classification patterns from user responses
-        # and store them for future use
-        pass
-    
-    async def _learn_business_context_from_clarification(self, engagement_id: str, 
-                                                       entry: Dict[str, Any]) -> None:
-        """Learn business context patterns from clarification responses."""
-        
-        # This would extract business context information from user responses
-        # and store organizational patterns
-        pass
-    
-    async def _update_most_common_mapping(self, pattern: Dict[str, Any]) -> None:
-        """Update most common mapping for a field pattern."""
-        
-        mappings = pattern.get("mappings", [])
-        if not mappings:
-            return
-        
-        # Count mapping frequencies
-        mapping_counts = {}
-        for mapping in mappings:
-            mapped_to = mapping["mapped_to"]
-            mapping_counts[mapped_to] = mapping_counts.get(mapped_to, 0) + 1
-        
-        # Find most common
-        most_common = max(mapping_counts.items(), key=lambda x: x[1])[0]
-        pattern["most_common"] = most_common
-        
-        # Calculate confidence
-        total_count = len(mappings)
-        max_count = mapping_counts[most_common]
-        pattern["confidence"] = max_count / total_count
-    
-    async def _extract_migration_patterns(self, migration_prefs: Dict[str, Any], 
-                                        preference_details: Dict[str, Any]) -> None:
-        """Extract patterns from migration preferences."""
-        
-        # Extract common patterns from migration preferences
-        for key, value in preference_details.items():
-            if key not in migration_prefs["patterns"]:
-                migration_prefs["patterns"][key] = []
+            # Learn from response
+            await self._learn_from_clarification_response(session, response_data)
             
-            migration_prefs["patterns"][key].append(value)
-    
-    # === DATA PERSISTENCE ===
-    
-    def _load_context_data(self) -> None:
-        """Load existing context data from storage."""
-        
-        try:
-            # Load client contexts
-            client_file = self.context_data_path / "client_contexts.json"
-            if client_file.exists():
-                with open(client_file, 'r') as f:
-                    self.client_contexts = json.load(f)
+            logger.info(f"Added response to clarification session {session_id}")
+            return True
             
-            # Load engagement contexts
-            engagement_file = self.context_data_path / "engagement_contexts.json"
-            if engagement_file.exists():
-                with open(engagement_file, 'r') as f:
-                    self.engagement_contexts = json.load(f)
-            
-            logger.info("Loaded existing context data")
         except Exception as e:
-            logger.error(f"Error loading context data: {e}")
+            logger.error(f"Error adding clarification response: {str(e)}")
+            return False
     
-    async def _save_context_data(self) -> None:
-        """Save context data to storage."""
-        
+    async def complete_clarification_session(
+        self,
+        session_id: str,
+        resolution_status: str = "completed"
+    ) -> bool:
+        """Complete a clarification session"""
         try:
-            # Save client contexts
-            client_file = self.context_data_path / "client_contexts.json"
-            with open(client_file, 'w') as f:
-                json.dump(self.client_contexts, f, indent=2)
+            if session_id not in self.clarification_sessions:
+                logger.error(f"Clarification session {session_id} not found")
+                return False
             
-            # Save engagement contexts
-            engagement_file = self.context_data_path / "engagement_contexts.json"
-            with open(engagement_file, 'w') as f:
-                json.dump(self.engagement_contexts, f, indent=2)
+            session = self.clarification_sessions[session_id]
+            session.resolution_status = resolution_status
+            session.completed_at = datetime.now()
+            
+            # Extract learning patterns from session
+            await self._extract_session_patterns(session)
+            
+            # Store session history
+            await self._store_clarification_session(session)
+            
+            logger.info(f"Completed clarification session {session_id}")
+            return True
+            
         except Exception as e:
-            logger.error(f"Error saving context data: {e}")
+            logger.error(f"Error completing clarification session: {str(e)}")
+            return False
     
-    def get_context_statistics(self) -> Dict[str, Any]:
-        """Get statistics about context management."""
+    async def get_agent_behavior_config(
+        self,
+        client_account_id: int,
+        engagement_id: str,
+        agent_name: str
+    ) -> Dict[str, Any]:
+        """Get agent behavior configuration for client context"""
+        try:
+            # Get user preferences
+            preferences = await self.get_user_preferences(
+                client_account_id, engagement_id, "default"
+            )
+            
+            # Get organizational patterns
+            patterns = await self.get_organizational_patterns(
+                client_account_id, engagement_id
+            )
+            
+            # Build agent behavior config
+            config = {
+                "communication_style": preferences.get("communication_frequency", "normal"),
+                "analysis_depth": preferences.get("analysis_depth", "standard"),
+                "automation_level": preferences.get("workflow_automation_level", 0.7),
+                "risk_tolerance": preferences.get("risk_tolerance", "medium"),
+                "organizational_patterns": [
+                    {
+                        "pattern_type": p.pattern_type,
+                        "pattern_data": p.pattern_data,
+                        "confidence": p.confidence
+                    } for p in patterns[:10]  # Top 10 patterns
+                ]
+            }
+            
+            return config
+            
+        except Exception as e:
+            logger.error(f"Error getting agent behavior config: {str(e)}")
+            return {}
+    
+    async def invalidate_cache(
+        self,
+        client_account_id: Optional[int] = None,
+        engagement_id: Optional[str] = None
+    ) -> None:
+        """Invalidate cache for specific client or all clients"""
+        try:
+            if client_account_id and engagement_id:
+                # Invalidate specific client cache
+                context_key = f"{client_account_id}_{engagement_id}"
+                self.context_cache.pop(context_key, None)
+                
+                # Clear related preference and pattern caches
+                keys_to_remove = [k for k in self.preference_cache.keys() 
+                                 if k.startswith(context_key)]
+                for key in keys_to_remove:
+                    self.preference_cache.pop(key, None)
+                
+                self.pattern_cache.pop(context_key, None)
+                
+            else:
+                # Clear all caches
+                self.context_cache.clear()
+                self.preference_cache.clear()
+                self.pattern_cache.clear()
+            
+            self.last_cache_refresh = datetime.now()
+            logger.info("Invalidated client context cache")
+            
+        except Exception as e:
+            logger.error(f"Error invalidating cache: {str(e)}")
+    
+    # Private helper methods
+    
+    def _is_cache_valid(self) -> bool:
+        """Check if cache is still valid"""
+        return datetime.now() - self.last_cache_refresh < self.cache_ttl
+    
+    def _generate_preference_id(
+        self,
+        client_account_id: int,
+        engagement_id: str,
+        user_id: str,
+        preference_key: str
+    ) -> str:
+        """Generate unique preference ID"""
+        content = f"{client_account_id}_{engagement_id}_{user_id}_{preference_key}"
+        return hashlib.md5(content.encode()).hexdigest()[:16]
+    
+    def _generate_pattern_id(
+        self,
+        client_account_id: int,
+        pattern_type: str,
+        pattern_data: Dict[str, Any]
+    ) -> str:
+        """Generate unique pattern ID"""
+        content = f"{client_account_id}_{pattern_type}_{str(pattern_data)}"
+        return hashlib.md5(content.encode()).hexdigest()[:16]
+    
+    def _generate_session_id(
+        self,
+        client_account_id: int,
+        engagement_id: str,
+        agent_name: str,
+        page_context: str
+    ) -> str:
+        """Generate unique session ID"""
+        content = f"{client_account_id}_{engagement_id}_{agent_name}_{page_context}_{datetime.now().isoformat()}"
+        return hashlib.md5(content.encode()).hexdigest()[:16]
+    
+    async def _store_client_context(
+        self,
+        client_account_id: int,
+        engagement_id: str,
+        context_type: ContextType,
+        context_key: str,
+        context_data: Dict[str, Any],
+        created_by: str
+    ) -> None:
+        """Store client context in persistent storage"""
+        # Simulated storage - in real implementation, would use database
+        cache_key = f"{client_account_id}_{engagement_id}"
+        self.context_cache[cache_key][context_key] = context_data
+        logger.info(f"Stored client context {context_key} for {cache_key}")
+    
+    async def _load_user_preferences(
+        self,
+        client_account_id: int,
+        engagement_id: str,
+        user_id: str,
+        category: Optional[PreferenceCategory] = None
+    ) -> Dict[str, UserPreference]:
+        """Load user preferences from persistent storage"""
+        # Simulated loading - in real implementation, would query database
+        preferences = {}
         
-        total_clients = len(self.client_contexts)
-        total_engagements = len(self.engagement_contexts)
+        # Default preferences for demo
+        default_prefs = [
+            ("workflow_automation_level", PreferenceCategory.AUTOMATION_LEVEL, 0.7),
+            ("risk_tolerance", PreferenceCategory.RISK_TOLERANCE, "medium"),
+            ("communication_frequency", PreferenceCategory.COMMUNICATION, "normal"),
+            ("analysis_depth", PreferenceCategory.ANALYSIS_DEPTH, "standard"),
+            ("reporting_detail", PreferenceCategory.REPORTING, "summary")
+        ]
         
-        # Count patterns across all contexts
-        total_org_patterns = 0
-        total_clarifications = 0
+        for pref_key, pref_category, pref_value in default_prefs:
+            if category is None or pref_category == category:
+                preference_id = self._generate_preference_id(
+                    client_account_id, engagement_id, user_id, pref_key
+                )
+                
+                preferences[pref_key] = UserPreference(
+                    preference_id=preference_id,
+                    user_id=user_id,
+                    client_account_id=client_account_id,
+                    engagement_id=engagement_id,
+                    category=pref_category,
+                    preference_key=pref_key,
+                    preference_value=pref_value,
+                    confidence=1.0,
+                    learned_from="default",
+                    created_at=datetime.now(),
+                    last_reinforced=datetime.now()
+                )
         
-        for context in self.client_contexts.values():
-            total_org_patterns += len(context.get("organizational_patterns", {}))
+        return preferences
+    
+    async def _store_user_preference(self, preference: UserPreference) -> None:
+        """Store user preference in persistent storage"""
+        # Simulated storage - in real implementation, would use database
+        logger.info(f"Stored user preference {preference.preference_key}")
+    
+    async def _load_organizational_patterns(
+        self,
+        client_account_id: int,
+        engagement_id: str
+    ) -> List[OrganizationalPattern]:
+        """Load organizational patterns from persistent storage"""
+        # Simulated loading - in real implementation, would query database
+        patterns = []
         
-        for context in self.engagement_contexts.values():
-            clarifications = context.get("clarification_responses", {})
-            for responses in clarifications.values():
-                total_clarifications += len(responses)
+        # Sample patterns for demo
+        sample_patterns = [
+            {
+                "pattern_type": "naming_convention",
+                "pattern_category": "infrastructure",
+                "pattern_data": {"prefix_pattern": "srv-", "environment_suffix": True},
+                "business_impact": "Standardized server naming improves asset tracking",
+                "confidence": 0.9
+            },
+            {
+                "pattern_type": "application_grouping",
+                "pattern_category": "business",
+                "pattern_data": {"department_based": True, "function_based": False},
+                "business_impact": "Applications organized by department ownership",
+                "confidence": 0.8
+            }
+        ]
         
-        return {
-            "total_clients": total_clients,
-            "total_engagements": total_engagements,
-            "organizational_patterns": total_org_patterns,
-            "clarification_responses": total_clarifications
-        }
+        for i, pattern_data in enumerate(sample_patterns):
+            pattern_id = self._generate_pattern_id(
+                client_account_id, pattern_data["pattern_type"], pattern_data["pattern_data"]
+            )
+            
+            pattern = OrganizationalPattern(
+                pattern_id=pattern_id,
+                client_account_id=client_account_id,
+                engagement_id=engagement_id,
+                pattern_type=pattern_data["pattern_type"],
+                pattern_category=pattern_data["pattern_category"],
+                pattern_data=pattern_data["pattern_data"],
+                confidence=pattern_data["confidence"],
+                evidence_count=5 + i,
+                business_impact=pattern_data["business_impact"],
+                created_at=datetime.now() - timedelta(days=i),
+                last_observed=datetime.now()
+            )
+            
+            patterns.append(pattern)
+        
+        return patterns
+    
+    async def _store_organizational_pattern(self, pattern: OrganizationalPattern) -> None:
+        """Store organizational pattern in persistent storage"""
+        # Simulated storage - in real implementation, would use database
+        logger.info(f"Stored organizational pattern {pattern.pattern_id}")
+    
+    async def _initialize_pattern_detection(
+        self,
+        client_account_id: int,
+        engagement_id: str
+    ) -> None:
+        """Initialize pattern detection for new client"""
+        # Set up pattern detection algorithms
+        logger.info(f"Initialized pattern detection for client {client_account_id}")
+    
+    async def _learn_from_clarification_response(
+        self,
+        session: ClarificationSession,
+        response_data: Dict[str, Any]
+    ) -> None:
+        """Learn from user clarification response"""
+        try:
+            # Extract learning signals from response
+            response = response_data["response"]
+            
+            # Update user preferences based on response patterns
+            if "preference" in response:
+                await self.update_user_preference(
+                    session.client_account_id,
+                    session.engagement_id,
+                    "default",  # Use default user for session-level preferences
+                    PreferenceCategory.COMMUNICATION,
+                    "clarification_style",
+                    response.get("style", "detailed"),
+                    "agent_observation",
+                    0.8
+                )
+            
+            logger.info(f"Learned from clarification response in session {session.session_id}")
+            
+        except Exception as e:
+            logger.error(f"Error learning from clarification response: {str(e)}")
+    
+    async def _extract_session_patterns(self, session: ClarificationSession) -> None:
+        """Extract patterns from completed clarification session"""
+        try:
+            # Analyze session for organizational patterns
+            if len(session.user_responses) >= 3:
+                # Pattern: User response style
+                response_style = self._analyze_response_style(session.user_responses)
+                
+                await self.learn_organizational_pattern(
+                    session.client_account_id,
+                    session.engagement_id,
+                    "communication_pattern",
+                    "user_interaction",
+                    {"response_style": response_style, "page_context": session.page_context},
+                    "Improved agent communication effectiveness",
+                    0.7
+                )
+            
+            logger.info(f"Extracted patterns from session {session.session_id}")
+            
+        except Exception as e:
+            logger.error(f"Error extracting session patterns: {str(e)}")
+    
+    def _analyze_response_style(self, responses: List[Dict[str, Any]]) -> str:
+        """Analyze user response style from session"""
+        # Simple analysis - can be enhanced with NLP
+        avg_length = sum(len(str(r.get("response", ""))) for r in responses) / len(responses)
+        
+        if avg_length > 100:
+            return "detailed"
+        elif avg_length > 50:
+            return "moderate"
+        else:
+            return "concise"
+    
+    async def _store_clarification_session(self, session: ClarificationSession) -> None:
+        """Store clarification session in persistent storage"""
+        # Simulated storage - in real implementation, would use database
+        logger.info(f"Stored clarification session {session.session_id}")
 
 # Global instance for client context management
 client_context_manager = ClientContextManager() 
