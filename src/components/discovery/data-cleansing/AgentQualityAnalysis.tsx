@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Brain, Lightbulb, Target, TrendingUp, ChevronDown, ChevronUp, Zap, AlertCircle } from 'lucide-react';
+import { Brain, Lightbulb, Target, TrendingUp, ChevronDown, ChevronUp, Zap, AlertCircle, Edit3, Check, X } from 'lucide-react';
 
 interface QualityIssue {
   id: string;
@@ -11,6 +11,8 @@ interface QualityIssue {
   suggested_fix: string;
   confidence: number;
   impact: string;
+  current_value?: string;
+  field_name?: string;
 }
 
 interface AgentRecommendation {
@@ -18,10 +20,16 @@ interface AgentRecommendation {
   operation: string;
   title: string;
   description: string;
+  examples: string[];
   affected_assets: number;
   confidence: number;
   priority: 'high' | 'medium' | 'low';
   estimated_improvement: number;
+  change_details: {
+    operation_type: string;
+    fields_affected: string[];
+    sample_changes: string[];
+  };
 }
 
 interface AgentQualityAnalysisProps {
@@ -30,7 +38,7 @@ interface AgentQualityAnalysisProps {
   agentConfidence: number;
   analysisType: 'agent_driven' | 'fallback_rules' | 'error';
   onApplyRecommendation: (recommendationId: string) => void;
-  onFixIssue: (issueId: string) => void;
+  onFixIssue: (issueId: string, customValue?: string) => void;
   isLoading?: boolean;
 }
 
@@ -45,6 +53,8 @@ const AgentQualityAnalysis: React.FC<AgentQualityAnalysisProps> = ({
 }) => {
   const [expandedIssues, setExpandedIssues] = useState<Set<string>>(new Set());
   const [expandedRecommendations, setExpandedRecommendations] = useState<Set<string>>(new Set());
+  const [editingIssue, setEditingIssue] = useState<string | null>(null);
+  const [editValues, setEditValues] = useState<Record<string, string>>({});
 
   const toggleIssueExpansion = (issueId: string) => {
     const newExpanded = new Set(expandedIssues);
@@ -64,6 +74,25 @@ const AgentQualityAnalysis: React.FC<AgentQualityAnalysisProps> = ({
       newExpanded.add(recId);
     }
     setExpandedRecommendations(newExpanded);
+  };
+
+  const startEditing = (issueId: string, currentValue: string) => {
+    setEditingIssue(issueId);
+    setEditValues({ ...editValues, [issueId]: currentValue });
+  };
+
+  const cancelEditing = () => {
+    setEditingIssue(null);
+    setEditValues({});
+  };
+
+  const saveEdit = (issueId: string) => {
+    const newValue = editValues[issueId];
+    if (newValue !== undefined) {
+      onFixIssue(issueId, newValue);
+      setEditingIssue(null);
+      setEditValues({});
+    }
   };
 
   const getSeverityColor = (severity: string) => {
@@ -91,50 +120,30 @@ const AgentQualityAnalysis: React.FC<AgentQualityAnalysisProps> = ({
     return 'text-red-600 bg-red-100';
   };
 
-  const getAnalysisTypeDisplay = () => {
-    switch (analysisType) {
-      case 'agent_driven':
-        return {
-          icon: Brain,
-          text: 'AI Agent Analysis',
-          color: 'text-blue-600 bg-blue-100'
-        };
-      case 'fallback_rules':
-        return {
-          icon: AlertCircle,
-          text: 'Rule-Based Analysis',
-          color: 'text-yellow-600 bg-yellow-100'
-        };
-      case 'error':
-        return {
-          icon: AlertCircle,
-          text: 'Analysis Error',
-          color: 'text-red-600 bg-red-100'
-        };
-      default:
-        return {
-          icon: Brain,
-          text: 'Analysis',
-          color: 'text-gray-600 bg-gray-100'
-        };
-    }
-  };
-
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="bg-white rounded-lg shadow-md p-6 animate-pulse">
+      <div className="space-y-6 animate-pulse">
+        <div className="bg-white rounded-lg shadow-md p-6">
           <div className="h-6 bg-gray-200 rounded mb-4"></div>
-          <div className="space-y-3">
-            <div className="h-4 bg-gray-200 rounded"></div>
-            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-          </div>
+          <div className="h-16 bg-gray-200 rounded"></div>
         </div>
       </div>
     );
   }
 
-  const analysisDisplay = getAnalysisTypeDisplay();
+  const analysisDisplay = (() => {
+    switch (analysisType) {
+      case 'agent_driven':
+        return { text: 'Agent Intelligence Active', color: 'text-green-600 bg-green-100', icon: Brain };
+      case 'fallback_rules':
+        return { text: 'Rule-Based Analysis', color: 'text-yellow-600 bg-yellow-100', icon: Target };
+      case 'error':
+        return { text: 'Analysis Error', color: 'text-red-600 bg-red-100', icon: AlertCircle };
+      default:
+        return { text: 'Unknown', color: 'text-gray-600 bg-gray-100', icon: AlertCircle };
+    }
+  })();
+
   const AnalysisIcon = analysisDisplay.icon;
 
   return (
@@ -168,7 +177,7 @@ const AgentQualityAnalysis: React.FC<AgentQualityAnalysisProps> = ({
         </div>
       </div>
 
-      {/* Quality Issues */}
+      {/* Quality Issues with Inline Editing */}
       {qualityIssues.length > 0 && (
         <div className="bg-white rounded-lg shadow-md">
           <div className="p-6 border-b border-gray-200">
@@ -198,11 +207,54 @@ const AgentQualityAnalysis: React.FC<AgentQualityAnalysisProps> = ({
                     <h4 className="font-medium text-gray-900 mb-1">{issue.issue_type}</h4>
                     <p className="text-sm text-gray-600 mb-2">{issue.description}</p>
                     
+                    {issue.current_value !== undefined && (
+                      <div className="mb-2 p-2 bg-gray-50 rounded-md">
+                        <div className="text-xs font-medium text-gray-700 mb-1">Current Value:</div>
+                        {editingIssue === issue.id ? (
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="text"
+                              value={editValues[issue.id] || issue.current_value}
+                              onChange={(e) => setEditValues({ ...editValues, [issue.id]: e.target.value })}
+                              className="flex-1 text-sm border border-gray-300 rounded px-2 py-1"
+                              placeholder="Enter corrected value"
+                            />
+                            <button
+                              onClick={() => saveEdit(issue.id)}
+                              className="p-1 text-green-600 hover:bg-green-100 rounded"
+                            >
+                              <Check className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={cancelEditing}
+                              className="p-1 text-red-600 hover:bg-red-100 rounded"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm text-gray-800 font-mono">"{issue.current_value || 'Empty'}"</span>
+                            <button
+                              onClick={() => startEditing(issue.id, issue.current_value || '')}
+                              className="p-1 text-blue-600 hover:bg-blue-100 rounded"
+                              title="Edit value"
+                            >
+                              <Edit3 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
                     {expandedIssues.has(issue.id) && (
                       <div className="mt-3 p-3 bg-gray-50 rounded-md">
                         <h5 className="text-sm font-medium text-gray-700 mb-1">Suggested Fix:</h5>
                         <p className="text-sm text-gray-600 mb-2">{issue.suggested_fix}</p>
                         <p className="text-xs text-gray-500">Impact: {issue.impact}</p>
+                        {issue.field_name && (
+                          <p className="text-xs text-gray-500">Field: {issue.field_name}</p>
+                        )}
                       </div>
                     )}
                     
@@ -223,7 +275,7 @@ const AgentQualityAnalysis: React.FC<AgentQualityAnalysisProps> = ({
                         onClick={() => onFixIssue(issue.id)}
                         className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
                       >
-                        Apply Fix
+                        Apply Suggested Fix
                       </button>
                     </div>
                   </div>
@@ -234,7 +286,7 @@ const AgentQualityAnalysis: React.FC<AgentQualityAnalysisProps> = ({
         </div>
       )}
 
-      {/* Agent Recommendations */}
+      {/* Enhanced Agent Recommendations */}
       {recommendations.length > 0 && (
         <div className="bg-white rounded-lg shadow-md">
           <div className="p-6 border-b border-gray-200">
@@ -265,11 +317,29 @@ const AgentQualityAnalysis: React.FC<AgentQualityAnalysisProps> = ({
                     <p className="text-xs text-gray-500 mb-2">
                       Affects {rec.affected_assets} assets • {rec.estimated_improvement}% improvement expected
                     </p>
+
+                    {rec.examples && rec.examples.length > 0 && (
+                      <div className="mb-3 p-2 bg-blue-100 rounded-md">
+                        <h5 className="text-xs font-medium text-blue-800 mb-1">Examples of Changes:</h5>
+                        <ul className="text-xs text-blue-700 space-y-1">
+                          {rec.examples.slice(0, 3).map((example, idx) => (
+                            <li key={idx} className="flex items-center">
+                              <span className="w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
+                              {example}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                     
                     {expandedRecommendations.has(rec.id) && (
                       <div className="mt-3 p-3 bg-white rounded-md border">
-                        <h5 className="text-sm font-medium text-gray-700 mb-1">Operation Details:</h5>
-                        <p className="text-sm text-gray-600">Operation: {rec.operation}</p>
+                        <h5 className="text-sm font-medium text-gray-700 mb-2">Technical Details</h5>
+                        <div className="text-xs space-y-1">
+                          <p><span className="font-medium">Operation:</span> {rec.change_details.operation_type}</p>
+                          <p><span className="font-medium">Fields Affected:</span> {rec.change_details.fields_affected.join(', ')}</p>
+                          <p><span className="font-medium">Assets to Change:</span> {rec.affected_assets}</p>
+                        </div>
                       </div>
                     )}
                     
@@ -288,9 +358,9 @@ const AgentQualityAnalysis: React.FC<AgentQualityAnalysisProps> = ({
                       
                       <button
                         onClick={() => onApplyRecommendation(rec.id)}
-                        className="flex items-center space-x-1 px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+                        className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
                       >
-                        <Zap className="w-3 h-3" />
+                        <Zap className="w-4 h-4" />
                         <span>Apply Recommendation</span>
                       </button>
                     </div>
@@ -302,14 +372,12 @@ const AgentQualityAnalysis: React.FC<AgentQualityAnalysisProps> = ({
         </div>
       )}
 
-      {/* Empty State */}
+      {/* Empty States */}
       {qualityIssues.length === 0 && recommendations.length === 0 && (
         <div className="bg-white rounded-lg shadow-md p-8 text-center">
-          <Brain className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No Quality Issues Detected</h3>
-          <p className="text-gray-600">
-            Your data appears to be in excellent condition for migration analysis.
-          </p>
+          <TrendingUp className="w-12 h-12 text-green-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Excellent Data Quality!</h3>
+          <p className="text-gray-600">No quality issues or recommendations found. Your data is ready for migration.</p>
         </div>
       )}
     </div>

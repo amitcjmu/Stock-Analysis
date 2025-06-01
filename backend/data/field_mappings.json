@@ -47,7 +47,8 @@
   ],
   "CPU Cores": [
     "cpu cores",
-    "cpu_cores"
+    "cpu_cores",
+    "cpu_(cores)"
   ],
   "Storage (GB)": [
     "storage_gb",
@@ -81,5 +82,9 @@
   "Dependencies": [
     "application_mapped",
     "dependencies"
+  ],
+  "Hostname": [
+    "id",
+    "hostname"
   ]
 }

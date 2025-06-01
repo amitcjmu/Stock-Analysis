@@ -119,7 +119,10 @@ class AgentAnalysisHandler:
                     "asset_name": asset.get("asset_name") or asset.get("hostname", f"Unknown Asset {i}"),
                     "issue": issue,
                     "severity": "medium",
-                    "confidence": 0.7
+                    "confidence": 0.7,
+                    "current_value": self._get_current_value_for_issue(asset, issue),
+                    "field_name": self._get_field_name_for_issue(issue),
+                    "suggested_fix": self._get_suggested_fix_for_issue(asset, issue)
                 })
         
         # Calculate quality buckets
@@ -156,6 +159,64 @@ class AgentAnalysisHandler:
                 "fix_hostname_format"
             ]
         }
+    
+    def _get_current_value_for_issue(self, asset: Dict[str, Any], issue: str) -> str:
+        """Get the current value for a specific issue."""
+        if "Missing asset_name" in issue:
+            return asset.get("asset_name", "")
+        elif "Missing hostname" in issue:
+            return asset.get("hostname", "")
+        elif "Missing asset_type" in issue:
+            return asset.get("asset_type", "")
+        elif "Missing environment" in issue:
+            return asset.get("environment", "")
+        elif "Invalid IP address" in issue:
+            return asset.get("ip_address", "")
+        elif "Non-standard hostname" in issue:
+            return asset.get("hostname", "")
+        elif "Related CMDB records" in issue:
+            return asset.get("relatedCMDBrecords", asset.get("related_cmdb_records", ""))
+        return ""
+    
+    def _get_field_name_for_issue(self, issue: str) -> str:
+        """Get the field name for a specific issue."""
+        if "Missing asset_name" in issue:
+            return "asset_name"
+        elif "Missing hostname" in issue:
+            return "hostname"
+        elif "Missing asset_type" in issue:
+            return "asset_type"
+        elif "Missing environment" in issue:
+            return "environment"
+        elif "Invalid IP address" in issue:
+            return "ip_address"
+        elif "Non-standard hostname" in issue:
+            return "hostname"
+        elif "Related CMDB records" in issue:
+            return "dependencies"
+        return "unknown_field"
+    
+    def _get_suggested_fix_for_issue(self, asset: Dict[str, Any], issue: str) -> str:
+        """Get a suggested fix for a specific issue."""
+        if "Missing asset_name" in issue:
+            return asset.get("hostname", "Unknown Asset")
+        elif "Missing hostname" in issue:
+            return asset.get("asset_name", "unknown-host")
+        elif "Missing asset_type" in issue:
+            return "Server"  # Default assumption
+        elif "Missing environment" in issue:
+            return "Production"  # Default assumption
+        elif "Invalid IP address" in issue:
+            return "192.168.1.100"  # Example IP
+        elif "Non-standard hostname" in issue:
+            hostname = asset.get("hostname", "")
+            return hostname.lower().replace("_", "-") if hostname else "standardized-hostname"
+        elif "Related CMDB records" in issue:
+            related = asset.get("relatedCMDBrecords", asset.get("related_cmdb_records", ""))
+            if related:
+                return f"Map as dependencies: {related}"
+            return "Review and map related records as dependencies"
+        return "Review and correct manually"
     
     def _calculate_asset_quality(self, asset: Dict[str, Any]) -> float:
         """Calculate quality score for a single asset."""
@@ -203,6 +264,11 @@ class AgentAnalysisHandler:
             hostname = str(asset['hostname'])
             if not hostname.replace('-', '').replace('_', '').isalnum():
                 issues.append("Non-standard hostname format")
+        
+        # Fix 5: Check for relatedCMDBrecords that should be mapped as dependencies
+        if asset.get('relatedCMDBrecords') or asset.get('related_cmdb_records'):
+            if not asset.get('dependencies'):
+                issues.append("Related CMDB records found but not mapped as dependencies")
         
         return issues
     

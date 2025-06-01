@@ -5,6 +5,83 @@ All notable changes to the AI Force Migration Platform will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.24] - 2025-06-01
+
+### 🎯 **DATA CLEANSING PAGE CRITICAL FIXES - Enhanced UX & Agent Intelligence**
+
+This release addresses critical user experience issues in the data cleansing page, implementing proper percentage calculations, inline editing capabilities, detailed agent recommendations, and automatic agent panel population with intelligent dependency detection.
+
+### 🚀 **Major UX Improvements**
+
+#### **Data Quality Progress Calculation Fix**
+- **Issue**: Progress percentage was incorrectly calculated based on number of issues rather than assets with issues
+- **Fix**: Corrected calculation to show percentage of clean assets vs total assets (assets without issues / total assets * 100)
+- **Impact**: Users now see accurate data quality progress reflecting actual asset health status
+- **Technical**: Fixed QualityMetrics calculation in DataCleansing.tsx and backend handlers
+
+#### **Inline Editing for Quality Issues**
+- **Feature**: Added inline editing capability for quality issue fixes with real-time data updates
+- **Implementation**: Edit button allows users to modify current values directly in the Priority Quality Issues section
+- **UX Enhancement**: Save/Cancel buttons with visual feedback for immediate issue resolution
+- **Data Integration**: Edits automatically update underlying raw data and refresh quality metrics
+
+#### **Enhanced Agent Recommendations with Examples**
+- **Issue**: Recommendations were too vague (e.g., just "standardize_asset_types")
+- **Enhancement**: Added detailed descriptions and specific change examples for each recommendation
+- **Examples Added**: 
+  - "Change 'srv' → 'Server'" for asset type standardization
+  - "Change 'prod' → 'Production'" for environment normalization
+  - "Change 'server01.local' → 'server01'" for hostname formatting
+- **Technical Details**: Show operation type, affected fields, and sample changes in expandable details
+
+#### **Automatic Agent Panel Population**
+- **Issue**: Agent Clarifications, Data Classifications, and AI Insights panels were empty
+- **Fix**: Implemented automatic trigger system when data is loaded and analyzed
+- **Intelligence**: Detects relatedCMDBrecords fields and generates dependency mapping clarifications
+- **Auto-Population**: Panels now populate with relevant agent analysis without manual trigger events
+
+#### **Related CMDB Records Dependency Detection**
+- **Issue**: Assets with relatedCMDBrecords field were not being mapped as dependencies in attribute mapping
+- **Fix**: Enhanced quality analysis to detect and flag unmapped dependency relationships
+- **Agent Intelligence**: Generates clarifications asking users to confirm dependency mappings
+- **Data Integration**: Automatic conversion of relatedCMDBrecords to proper dependencies field when confirmed
+
+### 🔧 **Technical Enhancements**
+
+#### **Enhanced Quality Analysis Backend**
+- **Agent Analysis Handler**: Added detection for relatedCMDBrecords → dependencies mapping issues
+- **Detailed Issue Context**: Quality issues now include current_value, field_name, and specific suggested fixes
+- **Intelligent Suggestions**: Context-aware recommendations based on actual asset data patterns
+- **Files**: Enhanced `agent_analysis_handler.py` and `data_cleanup_service.py`
+
+#### **Improved Frontend State Management**
+- **Agent Refresh Triggers**: Implemented automatic refresh system for agent panels
+- **Quality Metrics Updates**: Real-time updates when issues are fixed or recommendations applied
+- **Data Synchronization**: Consistent state management between raw data and quality metrics
+- **Files**: Enhanced `DataCleansing.tsx` and `AgentQualityAnalysis.tsx`
+
+#### **Enhanced UI Components**
+- **Inline Editing**: Added edit controls with save/cancel functionality in AgentQualityAnalysis
+- **Example Display**: Rich recommendation cards showing specific change examples
+- **Progress Indicators**: Accurate quality progress bars and completion percentages
+- **Interactive Elements**: Expandable details and actionable buttons for all recommendations
+
+### 📊 **Business Impact**
+
+- **User Experience**: Eliminated confusion around data quality progress calculations
+- **Productivity**: Inline editing reduces time spent switching between pages for corrections
+- **Accuracy**: Detailed examples ensure users understand exactly what changes will be made
+- **Intelligence**: Automatic dependency detection prevents missed migration dependencies
+- **Confidence**: Clear progress indicators and detailed recommendations improve user confidence
+
+### 🎯 **Success Metrics**
+
+- **Calculation Accuracy**: Data quality progress now correctly reflects asset health (0-100% based on clean assets)
+- **Issue Resolution**: Inline editing enables immediate quality issue fixes without page navigation
+- **Recommendation Clarity**: Detailed examples eliminate ambiguity in agent recommendations
+- **Agent Intelligence**: Automatic detection of relatedCMDBrecords → dependencies mapping requirements
+- **Panel Population**: Agent panels now auto-populate with relevant analysis and clarifications
+
 ## [0.9.23] - 2025-06-01
 
 ### 🎯 **CREWAI SERVICE MODULARIZATION - Architecture Cleanup & Enhancement**
