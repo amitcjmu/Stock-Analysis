@@ -227,32 +227,32 @@ class PresentationReviewerAgent:
         
         # Enhanced numerical validation - check for specific number claims
         numerical_validation = await self._validate_numerical_claims(insight_description, supporting_data, supporting_data_context)
-        if not numerical_validation["is_valid"]:
+        if not numerical_validation.get("is_valid", True):
             validation_result["is_accurate"] = False
-            validation_result["validation_issues"].extend(numerical_validation["issues"])
+            validation_result["validation_issues"].extend(numerical_validation.get("issues", []))
             validation_result["requires_correction"] = True
-            logger.warning(f"Numerical validation failed for insight: {numerical_validation['issues']}")
+            logger.warning(f"Numerical validation failed for insight: {numerical_validation.get('issues', [])}")
         
         # Enhanced actionability validation - ensure insights provide specific value
         actionability_validation = await self._validate_actionability_requirements(insight)
-        if not actionability_validation["is_actionable"]:
+        if not actionability_validation.get("is_actionable", True):
             validation_result["is_accurate"] = False
-            validation_result["validation_issues"].extend(actionability_validation["issues"])
-            logger.warning(f"Actionability validation failed: {actionability_validation['issues']}")
+            validation_result["validation_issues"].extend(actionability_validation.get("issues", []))
+            logger.warning(f"Actionability validation failed: {actionability_validation.get('issues', [])}")
         
         # Generic statement detection - filter out vague or obvious insights
         generic_check = await self._detect_generic_statements(insight_description)
-        if generic_check["is_generic"]:
+        if generic_check.get("is_generic", False):
             validation_result["is_accurate"] = False
-            validation_result["validation_issues"].append(f"Generic insight: {generic_check['reason']}")
+            validation_result["validation_issues"].append(f"Generic insight: {generic_check.get('reason', 'Unspecified')}")
             logger.info(f"Filtered generic insight: {insight_description[:50]}...")
         
         # Data consistency validation
         if supporting_data and supporting_data_context:
             consistency_check = await self._validate_data_consistency(supporting_data, supporting_data_context)
-            if not consistency_check["is_consistent"]:
+            if not consistency_check.get("is_consistent", True):
                 validation_result["confidence_score"] *= 0.7
-                validation_result["validation_issues"].extend(consistency_check["issues"])
+                validation_result["validation_issues"].extend(consistency_check.get("issues", []))
         
         # Update confidence score based on validation issues
         if validation_result["validation_issues"]:

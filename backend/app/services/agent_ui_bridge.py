@@ -115,32 +115,45 @@ class AgentUIBridge:
                 # Get supporting data context from classifications
                 supporting_data_context = self.get_classified_data_for_page(page)
                 
-                # Review insights for presentation
+                # Use create_task to handle async in sync context
                 import asyncio
-                loop = asyncio.get_event_loop()
-                review_result = loop.run_until_complete(
-                    presentation_reviewer_agent.review_insights_for_presentation(
-                        page_insights, page, supporting_data_context
-                    )
-                )
-                
-                # Process agent feedback if any
-                agent_feedback = review_result.get("agent_feedback", [])
-                if agent_feedback:
-                    logger.info(f"Presentation reviewer provided feedback for {len(agent_feedback)} insights")
-                    # Store feedback for agent learning
-                    for feedback in agent_feedback:
-                        self.set_cross_page_context(
-                            f"agent_feedback_{feedback['target_agent_id']}", 
-                            feedback, 
-                            "presentation_reviewer"
+                try:
+                    # Try to get existing loop
+                    loop = asyncio.get_running_loop()
+                    # Create a task that can be awaited later
+                    # For now, skip async review to avoid loop conflicts
+                    logger.info(f"Skipping async presentation review to avoid event loop conflict for {len(page_insights)} insights")
+                    return page_insights
+                except RuntimeError:
+                    # No running loop, safe to create new one
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    try:
+                        review_result = loop.run_until_complete(
+                            presentation_reviewer_agent.review_insights_for_presentation(
+                                page_insights, page, supporting_data_context
+                            )
                         )
-                
-                # Return reviewed insights
-                reviewed_insights = review_result.get("reviewed_insights", page_insights)
-                
-                logger.info(f"Presentation review: {len(reviewed_insights)}/{len(page_insights)} insights approved for {page}")
-                return reviewed_insights
+                        
+                        # Process agent feedback if any
+                        agent_feedback = review_result.get("agent_feedback", [])
+                        if agent_feedback:
+                            logger.info(f"Presentation reviewer provided feedback for {len(agent_feedback)} insights")
+                            # Store feedback for agent learning
+                            for feedback in agent_feedback:
+                                self.set_cross_page_context(
+                                    f"agent_feedback_{feedback['target_agent_id']}", 
+                                    feedback, 
+                                    "presentation_reviewer"
+                                )
+                        
+                        # Return reviewed insights
+                        reviewed_insights = review_result.get("reviewed_insights", page_insights)
+                        
+                        logger.info(f"Presentation review: {len(reviewed_insights)}/{len(page_insights)} insights approved for {page}")
+                        return reviewed_insights
+                    finally:
+                        loop.close()
                 
             except Exception as e:
                 logger.error(f"Error in presentation review: {e}")

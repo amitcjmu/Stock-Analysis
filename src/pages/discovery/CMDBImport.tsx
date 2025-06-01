@@ -553,6 +553,14 @@ const DataImport = () => {
       }
     ];
     
+    // Store imported data to localStorage for attribute mapping page
+    try {
+      localStorage.setItem('imported_assets', JSON.stringify(preview));
+      console.log(`Stored ${preview.length} assets to localStorage for attribute mapping`);
+    } catch (error) {
+      console.warn('Failed to store data to localStorage:', error);
+    }
+    
     return {
       suggestions,
       nextSteps,
