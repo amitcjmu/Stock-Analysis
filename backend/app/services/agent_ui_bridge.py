@@ -20,9 +20,11 @@ class QuestionType(Enum):
     DATA_CLASSIFICATION = "data_classification"
     APPLICATION_BOUNDARY = "application_boundary"
     DEPENDENCY_CLARIFICATION = "dependency_clarification"
+    DEPENDENCY_VALIDATION = "dependency_validation"
     BUSINESS_CONTEXT = "business_context"
     QUALITY_VALIDATION = "quality_validation"
     STAKEHOLDER_PREFERENCE = "stakeholder_preference"
+    RISK_ASSESSMENT = "risk_assessment"
 
 class ConfidenceLevel(Enum):
     """Agent confidence levels."""
@@ -272,7 +274,7 @@ class AgentUIBridge:
                          title: str, description: str, confidence: ConfidenceLevel,
                          supporting_data: Dict[str, Any], page: str = "discovery",
                          actionable: bool = True) -> str:
-        """Add a new insight from an agent."""
+        """Add a new insight from an agent (will be reviewed before presentation)."""
         insight_id = str(uuid.uuid4())
         
         insight = AgentInsight(
@@ -288,20 +290,77 @@ class AgentUIBridge:
             page=page
         )
         
+        # Store the raw insight (before review)
         self.agent_insights[insight_id] = insight
         self._save_insights()
         
-        logger.info(f"Agent {agent_name} added insight: {title}")
+        logger.info(f"Agent {agent_name} added insight: {title} (pending review)")
         return insight_id
     
     def get_insights_for_page(self, page: str) -> List[Dict[str, Any]]:
-        """Get all insights for a specific page."""
+        """Get all insights for a specific page (reviewed and validated)."""
         page_insights = [
             asdict(insight) for insight in self.agent_insights.values()
             if insight.page == page
         ]
         
-        # Sort by confidence and creation time
+        # Apply presentation review to filter and improve insights
+        if page_insights:
+            try:
+                # Import here to avoid circular dependency
+                from app.services.discovery_agents.presentation_reviewer_agent import presentation_reviewer_agent
+                
+                # Convert to format expected by reviewer
+                insight_dicts = []
+                for insight_dict in page_insights:
+                    insight_dicts.append({
+                        "id": insight_dict["id"],
+                        "agent_id": insight_dict["agent_id"],
+                        "title": insight_dict["title"],
+                        "description": insight_dict["description"],
+                        "supporting_data": insight_dict["supporting_data"],
+                        "insight_type": insight_dict["insight_type"],
+                        "confidence": insight_dict["confidence"],
+                        "actionable": insight_dict.get("actionable", True),
+                        "created_at": insight_dict["created_at"]
+                    })
+                
+                # Get supporting data context from classifications
+                supporting_data_context = self.get_classified_data_for_page(page)
+                
+                # Review insights for presentation
+                import asyncio
+                loop = asyncio.get_event_loop()
+                review_result = loop.run_until_complete(
+                    presentation_reviewer_agent.review_insights_for_presentation(
+                        insight_dicts, page, supporting_data_context
+                    )
+                )
+                
+                # Process agent feedback if any
+                agent_feedback = review_result.get("agent_feedback", [])
+                if agent_feedback:
+                    logger.info(f"Presentation reviewer provided feedback for {len(agent_feedback)} insights")
+                    # Store feedback for agent learning
+                    for feedback in agent_feedback:
+                        self.set_cross_page_context(
+                            f"agent_feedback_{feedback['target_agent_id']}", 
+                            feedback, 
+                            "presentation_reviewer"
+                        )
+                
+                # Return reviewed insights
+                reviewed_insights = review_result.get("reviewed_insights", page_insights)
+                
+                logger.info(f"Presentation review: {len(reviewed_insights)}/{len(page_insights)} insights approved for {page}")
+                return reviewed_insights
+                
+            except Exception as e:
+                logger.error(f"Error in presentation review: {e}")
+                # Fall back to original insights if review fails
+                pass
+        
+        # Sort by confidence and creation time (fallback behavior)
         confidence_order = {"high": 4, "medium": 3, "low": 2, "uncertain": 1}
         page_insights.sort(
             key=lambda x: (confidence_order.get(x['confidence'], 0), x['created_at']),

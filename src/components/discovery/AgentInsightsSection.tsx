@@ -182,23 +182,105 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
     }
   };
 
-  const handleInsightFeedback = async (insightId: string, helpful: boolean) => {
+  const [feedbackExplanations, setFeedbackExplanations] = useState<Map<string, string>>(new Map());
+  const [showFeedbackInput, setShowFeedbackInput] = useState<Set<string>>(new Set());
+
+  const handleInsightFeedback = async (insightId: string, helpful: boolean, explanation?: string) => {
     try {
+      const insight = insights.find(i => i.id === insightId);
+      
+      // Enhanced feedback with explanation and accuracy validation
+      const feedbackData = {
+        learning_type: 'insight_feedback',
+        original_prediction: { 
+          insight_id: insightId,
+          title: insight?.title,
+          description: insight?.description,
+          supporting_data: insight?.supporting_data
+        },
+        user_correction: { 
+          helpful,
+          explanation: explanation || feedbackExplanations.get(insightId) || '',
+          accuracy_issues: helpful ? [] : await analyzeAccuracyIssues(insight)
+        },
+        context: { page_context: pageContext },
+        page_context: pageContext
+      };
+
       await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_LEARNING, {
         method: 'POST',
-        body: JSON.stringify({
-          learning_type: 'insight_feedback',
-          original_prediction: { insight_id: insightId },
-          user_correction: { helpful },
-          context: { page_context: pageContext },
-          page_context: pageContext
-        })
+        body: JSON.stringify(feedbackData)
       });
       
       onInsightAction?.(insightId, helpful ? 'helpful' : 'not_helpful');
+      
+      // Clear feedback input after submission
+      setShowFeedbackInput(prev => {
+        const next = new Set(prev);
+        next.delete(insightId);
+        return next;
+      });
+      setFeedbackExplanations(prev => {
+        const next = new Map(prev);
+        next.delete(insightId);
+        return next;
+      });
+      
     } catch (err) {
       console.error('Error submitting insight feedback:', err);
     }
+  };
+
+  const analyzeAccuracyIssues = async (insight: any): Promise<string[]> => {
+    const issues: string[] = [];
+    
+    if (!insight) return issues;
+    
+    const description = insight.description || '';
+    const supportingData = insight.supporting_data || {};
+    
+    // Check for number mismatches
+    const applicationMatch = description.match(/(\d+)\s+applications/i);
+    if (applicationMatch && typeof supportingData === 'object') {
+      const statedCount = parseInt(applicationMatch[1]);
+      const actualCount = supportingData.Application || 0;
+      if (Math.abs(statedCount - actualCount) > 2) {
+        issues.push(`Claims ${statedCount} applications but data shows ${actualCount}`);
+      }
+    }
+    
+    // Check for terminology issues
+    if (description.toLowerCase().includes('technologies') && Array.isArray(supportingData)) {
+      const hasAssetTypes = supportingData.some(item => 
+        typeof item === 'string' && 
+        ['server', 'database', 'application', 'storage', 'network'].includes(item.toLowerCase())
+      );
+      if (hasAssetTypes) {
+        issues.push('Incorrectly refers to asset types as "technologies"');
+      }
+    }
+    
+    return issues;
+  };
+
+  const toggleFeedbackInput = (insightId: string) => {
+    setShowFeedbackInput(prev => {
+      const next = new Set(prev);
+      if (next.has(insightId)) {
+        next.delete(insightId);
+      } else {
+        next.add(insightId);
+      }
+      return next;
+    });
+  };
+
+  const updateFeedbackExplanation = (insightId: string, explanation: string) => {
+    setFeedbackExplanations(prev => {
+      const next = new Map(prev);
+      next.set(insightId, explanation);
+      return next;
+    });
   };
 
   if (isLoading) {
@@ -346,31 +428,67 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
                   )}
 
                   {/* Action Buttons */}
-                  <div className="flex items-center space-x-3 mt-3">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs text-gray-500">Was this helpful?</span>
-                      <button
-                        onClick={() => handleInsightFeedback(insight.id, true)}
-                        className="p-1 hover:bg-green-100 rounded-full transition-colors"
-                        title="Mark as helpful"
-                      >
-                        <ThumbsUp className="w-4 h-4 text-green-600" />
-                      </button>
-                      <button
-                        onClick={() => handleInsightFeedback(insight.id, false)}
-                        className="p-1 hover:bg-red-100 rounded-full transition-colors"
-                        title="Mark as not helpful"
-                      >
-                        <ThumbsDown className="w-4 h-4 text-red-600" />
-                      </button>
+                  <div className="space-y-3 mt-3">
+                    <div className="flex items-center space-x-3">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs text-gray-500">Was this helpful?</span>
+                        <button
+                          onClick={() => handleInsightFeedback(insight.id, true)}
+                          className="p-1 hover:bg-green-100 rounded-full transition-colors"
+                          title="Mark as helpful"
+                        >
+                          <ThumbsUp className="w-4 h-4 text-green-600" />
+                        </button>
+                        <button
+                          onClick={() => toggleFeedbackInput(insight.id)}
+                          className="p-1 hover:bg-red-100 rounded-full transition-colors"
+                          title="Mark as not helpful and explain"
+                        >
+                          <ThumbsDown className="w-4 h-4 text-red-600" />
+                        </button>
+                      </div>
+
+                      {insight.actionable && (
+                        <div className="flex items-center space-x-2">
+                          <ArrowRight className="w-4 h-4 text-blue-500" />
+                          <span className="text-sm text-blue-600 font-medium">
+                            Consider for next steps
+                          </span>
+                        </div>
+                      )}
                     </div>
 
-                    {insight.actionable && (
-                      <div className="flex items-center space-x-2">
-                        <ArrowRight className="w-4 h-4 text-blue-500" />
-                        <span className="text-sm text-blue-600 font-medium">
-                          Consider for next steps
-                        </span>
+                    {/* Feedback Input */}
+                    {showFeedbackInput.has(insight.id) && (
+                      <div className="bg-gray-50 p-3 rounded border">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          What was incorrect or unhelpful about this insight?
+                        </label>
+                        <textarea
+                          value={feedbackExplanations.get(insight.id) || ''}
+                          onChange={(e) => updateFeedbackExplanation(insight.id, e.target.value)}
+                          placeholder="e.g., The numbers don't match the data, terminology is wrong, not actionable..."
+                          className="w-full p-2 border border-gray-300 rounded text-sm"
+                          rows={3}
+                        />
+                        <div className="flex items-center space-x-2 mt-2">
+                          <button
+                            onClick={() => handleInsightFeedback(
+                              insight.id, 
+                              false, 
+                              feedbackExplanations.get(insight.id)
+                            )}
+                            className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
+                          >
+                            Submit Feedback
+                          </button>
+                          <button
+                            onClick={() => toggleFeedbackInput(insight.id)}
+                            className="px-3 py-1 bg-gray-300 text-gray-700 text-sm rounded hover:bg-gray-400"
+                          >
+                            Cancel
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>

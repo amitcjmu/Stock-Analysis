@@ -156,7 +156,7 @@ async def process_agent_learning(
     
     Request body:
     {
-        "learning_type": "field_mapping|data_classification|pattern_recognition",
+        "learning_type": "field_mapping|data_classification|pattern_recognition|insight_feedback",
         "original_prediction": {...},
         "user_correction": {...},
         "context": {...},
@@ -176,10 +176,16 @@ async def process_agent_learning(
                 detail="Learning type, original prediction, and user correction are required"
             )
         
-        # Process learning based on type
-        learning_result = await _apply_agent_learning(
-            learning_type, original_prediction, user_correction, context, page_context
-        )
+        # Special handling for insight feedback with Presentation Reviewer Agent
+        if learning_type == "insight_feedback":
+            learning_result = await _process_insight_feedback_learning(
+                original_prediction, user_correction, context, page_context
+            )
+        else:
+            # Process learning based on type
+            learning_result = await _apply_agent_learning(
+                learning_type, original_prediction, user_correction, context, page_context
+            )
         
         return {
             "status": "success",
@@ -681,6 +687,52 @@ async def agent_discovery_health():
         ]
     }
 
+@router.post("/test-presentation-reviewer")
+async def test_presentation_reviewer(
+    test_insights: List[Dict[str, Any]],
+    page_context: str = "asset-inventory",
+    db: AsyncSession = Depends(get_db)
+) -> Dict[str, Any]:
+    """
+    Test endpoint for the Presentation Reviewer Agent.
+    
+    Request body:
+    [
+        {
+            "id": "test1",
+            "agent_id": "test_agent",
+            "title": "Test Insight",
+            "description": "Portfolio contains 19 applications across 7 asset types",
+            "supporting_data": {"Application": 6, "Server": 8, "Database": 1},
+            "insight_type": "portfolio_composition",
+            "confidence": "high",
+            "actionable": true,
+            "created_at": "2025-01-29T12:00:00"
+        }
+    ]
+    """
+    try:
+        # Import the Presentation Reviewer Agent
+        from app.services.discovery_agents.presentation_reviewer_agent import presentation_reviewer_agent
+        
+        # Review the test insights
+        review_result = await presentation_reviewer_agent.review_insights_for_presentation(
+            test_insights, page_context, {}
+        )
+        
+        return {
+            "status": "success",
+            "original_insights_count": len(test_insights),
+            "reviewed_insights_count": len(review_result.get("reviewed_insights", [])),
+            "rejected_insights_count": len(review_result.get("rejected_insights", [])),
+            "review_result": review_result,
+            "message": "Presentation review completed successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error testing presentation reviewer: {e}")
+        raise HTTPException(status_code=500, detail=f"Presentation reviewer test failed: {str(e)}")
+
 # Helper functions
 
 async def _process_agent_learning(question_id: str, response: Any, 
@@ -844,4 +896,53 @@ def _generate_agent_recommendations(assessment: Dict[str, Any]) -> List[str]:
         recommendations.append("Insufficient data quality for reliable migration assessment")
         recommendations.append("Focus on fundamental data collection and quality improvement")
     
-    return recommendations 
+    return recommendations
+
+async def _process_insight_feedback_learning(original_prediction: Dict[str, Any], 
+                                           user_correction: Dict[str, Any],
+                                           context: Dict[str, Any], 
+                                           page_context: str) -> Dict[str, Any]:
+    """Process user feedback on insights through the Presentation Reviewer Agent."""
+    try:
+        # Import here to avoid circular dependency
+        from app.services.discovery_agents.presentation_reviewer_agent import presentation_reviewer_agent
+        
+        # Prepare feedback for the Presentation Reviewer Agent
+        feedback_data = {
+            "insight_id": original_prediction.get("insight_id"),
+            "helpful": user_correction.get("helpful", True),
+            "explanation": user_correction.get("explanation", ""),
+            "accuracy_issues": user_correction.get("accuracy_issues", []),
+            "page_context": page_context,
+            "original_insight": {
+                "title": original_prediction.get("title", ""),
+                "description": original_prediction.get("description", ""),
+                "supporting_data": original_prediction.get("supporting_data", {})
+            }
+        }
+        
+        # Process feedback through Presentation Reviewer Agent
+        review_learning_result = await presentation_reviewer_agent.process_user_insight_feedback(feedback_data)
+        
+        # The Presentation Reviewer Agent will also provide feedback to the source agent
+        source_agent_feedback = review_learning_result.get("source_agent_feedback", {})
+        
+        return {
+            "learning_applied": review_learning_result.get("review_learning_applied", False),
+            "presentation_review_improved": True,
+            "source_agent_notified": review_learning_result.get("agent_learning_triggered", False),
+            "accuracy_improvement": review_learning_result.get("accuracy_improvement", 0.0),
+            "feedback_details": {
+                "helpful": user_correction.get("helpful", True),
+                "explanation": user_correction.get("explanation", ""),
+                "accuracy_issues_count": len(user_correction.get("accuracy_issues", [])),
+                "source_agent_feedback": source_agent_feedback
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error processing insight feedback learning: {e}")
+        return {
+            "learning_applied": False,
+            "error": str(e)
+        } 
