@@ -86,6 +86,9 @@ class CMDBAsset(Base):
     client_account_id = Column(PostgresUUID(as_uuid=True), ForeignKey('client_accounts.id', ondelete='CASCADE'), nullable=False, index=True)
     engagement_id = Column(PostgresUUID(as_uuid=True), ForeignKey('engagements.id', ondelete='CASCADE'), nullable=False, index=True)
     
+    # Session tracking (Task 1.1.5)
+    session_id = Column(PostgresUUID(as_uuid=True), ForeignKey('data_import_sessions.id', ondelete='CASCADE'), nullable=True, index=True)
+    
     # Basic asset information (based on Azure Migrate metadata)
     name = Column(String(255), nullable=False, index=True)
     hostname = Column(String(255), index=True)

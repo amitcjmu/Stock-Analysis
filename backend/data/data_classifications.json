@@ -1,22 +1,19 @@
 {
-  "data_row_0_analysis_20250602_053655": {
-    "id": "data_row_0_analysis_20250602_053655",
+  "data_row_0_analysis_20250602_130124": {
+    "id": "data_row_0_analysis_20250602_130124",
     "data_type": "asset_record",
     "content": {
-      "id": "os_risk_unknown_3.2.5",
-      "assetId": "APP0004",
-      "assetName": "unknown",
-      "component": "os",
-      "technology": "unknown",
-      "currentVersion": "3.2.5",
-      "latestVersion": "Latest Available",
-      "supportStatus": "deprecated",
-      "endOfLifeDate": null,
-      "securityRisk": "high",
-      "migrationEffort": "low",
-      "businessImpact": "low",
-      "recommendedAction": "Monitor for updates and plan future upgrade",
-      "dependencies": []
+      "ID": "SRV001",
+      "TYPE": "Application",
+      "CPU (CORES)": "4",
+      "ENVIRONMENT": "Production",
+      "IP ADDRESS": "192.168.1.10",
+      "LOCATION": "DC1",
+      "NAME": "Web_Server_01",
+      "OS": "Windows Server 2019",
+      "OWNER": "John Smith",
+      "RAM (GB)": "16",
+      "RELATED CMDB RECORDS": ""
     },
     "classification": "good_data",
     "agent_analysis": {

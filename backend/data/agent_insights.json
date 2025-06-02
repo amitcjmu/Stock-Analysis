@@ -401,5 +401,87 @@
     "created_at": "2025-06-02T05:41:48.435260",
     "user_feedback": null,
     "is_validated": false
+  },
+  "f1323a18-9e5c-4b66-ad77-cf34479e8b2d": {
+    "id": "f1323a18-9e5c-4b66-ad77-cf34479e8b2d",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "insight_type": "data_overview",
+    "title": "Dataset Analysis Summary",
+    "description": "Analyzed 5 records with 14 fields. Ready for migration attribute mapping and quality assessment",
+    "confidence": "high",
+    "supporting_data": {
+      "total_records": 5,
+      "total_fields": 14,
+      "analysis_scope": "complete"
+    },
+    "page": "data-import",
+    "actionable": false,
+    "created_at": "2025-06-02T14:11:31.907247",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "2d9de57b-83ab-4838-84cd-e69e72c6eb41": {
+    "id": "2d9de57b-83ab-4838-84cd-e69e72c6eb41",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "insight_type": "data_quality",
+    "title": "Asset Identification Fields Present",
+    "description": "Found 3 critical fields (CPU (Cores), RAM (GB), Version/Hostname), providing foundation for migration planning",
+    "confidence": "high",
+    "supporting_data": {
+      "critical_fields": 3,
+      "identified_fields": [
+        "CPU (Cores)",
+        "RAM (GB)",
+        "Version/Hostname"
+      ],
+      "total_columns": 14,
+      "analysis_confidence": "high"
+    },
+    "page": "data-import",
+    "actionable": false,
+    "created_at": "2025-06-02T14:11:31.912912",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "5001e0ee-1a30-483f-8c1a-ee420a8f680d": {
+    "id": "5001e0ee-1a30-483f-8c1a-ee420a8f680d",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "insight_type": "migration_readiness",
+    "title": "Sample Migration Dataset",
+    "description": "Dataset contains 5 assets, perfect for testing migration workflows and field mapping validation",
+    "confidence": "medium",
+    "supporting_data": {
+      "asset_count": 5,
+      "scale_category": "sample_testing"
+    },
+    "page": "data-import",
+    "actionable": false,
+    "created_at": "2025-06-02T14:11:31.919999",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "15754f86-088c-40be-b658-f7556a66d604": {
+    "id": "15754f86-088c-40be-b658-f7556a66d604",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "insight_type": "migration_readiness",
+    "title": "Environment Distribution Analysis",
+    "description": "Identified 2 distinct environments. Major distributions: production: 80.0% (4 assets)",
+    "confidence": "medium",
+    "supporting_data": {
+      "environments": {
+        "production": 4,
+        "test": 1
+      },
+      "total_assets": 5
+    },
+    "page": "data-import",
+    "actionable": false,
+    "created_at": "2025-06-02T14:11:31.930124",
+    "user_feedback": null,
+    "is_validated": false
   }
 }

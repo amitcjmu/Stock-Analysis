@@ -46,6 +46,49 @@ class ClientAccount(Base):
     settings = Column(JSON, default=lambda: {})
     branding = Column(JSON, default=lambda: {})
     
+    # Enhanced Business Context (Task 1.1.1)
+    business_objectives = Column(JSON, default=lambda: {
+        "primary_goals": [],
+        "timeframe": "",
+        "success_metrics": [],
+        "budget_constraints": "",
+        "compliance_requirements": []
+    })
+    
+    it_guidelines = Column(JSON, default=lambda: {
+        "architecture_patterns": [],
+        "security_requirements": [],
+        "compliance_standards": [],
+        "technology_preferences": [],
+        "cloud_strategy": "",
+        "data_governance": {}
+    })
+    
+    decision_criteria = Column(JSON, default=lambda: {
+        "risk_tolerance": "medium",  # low, medium, high
+        "cost_sensitivity": "medium",  # low, medium, high
+        "innovation_appetite": "moderate",  # conservative, moderate, aggressive
+        "timeline_pressure": "medium",  # low, medium, high
+        "quality_vs_speed": "balanced",  # quality, balanced, speed
+        "technical_debt_tolerance": "low"  # low, medium, high
+    })
+    
+    agent_preferences = Column(JSON, default=lambda: {
+        "confidence_thresholds": {
+            "field_mapping": 0.8,
+            "data_classification": 0.75,
+            "risk_assessment": 0.85,
+            "migration_strategy": 0.9
+        },
+        "learning_preferences": ["conservative", "accuracy_focused"],
+        "custom_prompts": {},
+        "notification_preferences": {
+            "confidence_alerts": True,
+            "learning_updates": False,
+            "error_notifications": True
+        }
+    })
+    
     # Mock data flag
     is_mock = Column(Boolean, default=False, nullable=False, index=True)
     
@@ -96,6 +139,31 @@ class Engagement(Base):
     # Settings
     settings = Column(JSON, default=lambda: {})
     
+    # Enhanced Engagement Context (Task 1.1.2)
+    migration_scope = Column(JSON, default=lambda: {
+        "target_clouds": [],  # ["AWS", "Azure", "GCP"]
+        "migration_strategies": [],  # 6R strategies preferred for this engagement
+        "excluded_systems": [],
+        "included_environments": [],  # ["Production", "Development", "Staging"]
+        "business_units": [],
+        "geographic_scope": [],
+        "timeline_constraints": {}
+    })
+    
+    team_preferences = Column(JSON, default=lambda: {
+        "stakeholders": [],  # [{"name": "", "role": "", "email": "", "decision_authority": ""}]
+        "decision_makers": [],
+        "technical_leads": [],
+        "communication_style": "formal",  # formal, informal, technical
+        "reporting_frequency": "weekly",  # daily, weekly, monthly
+        "preferred_meeting_times": [],
+        "escalation_contacts": [],
+        "project_methodology": "agile"  # agile, waterfall, hybrid
+    })
+    
+    # Current Session Reference
+    current_session_id = Column(PostgresUUID(as_uuid=True), ForeignKey('data_import_sessions.id'), nullable=True)
+    
     # Mock data flag
     is_mock = Column(Boolean, default=False, nullable=False, index=True)
     
@@ -112,6 +180,10 @@ class Engagement(Base):
     cmdb_assets = relationship("CMDBAsset", back_populates="engagement", cascade="all, delete-orphan")
     data_imports = relationship("DataImport", back_populates="engagement", cascade="all, delete-orphan")
     feedback = relationship("Feedback", back_populates="engagement", cascade="all, delete-orphan")
+    
+    # Session relationships (Task 1.1.3)
+    sessions = relationship("DataImportSession", back_populates="engagement", cascade="all, delete-orphan")
+    current_session_ref = relationship("DataImportSession", foreign_keys=[current_session_id], post_update=True)
     
     def __repr__(self):
         return f"<Engagement(id={self.id}, name='{self.name}', client_account_id={self.client_account_id}, is_mock={self.is_mock})>"

@@ -49,9 +49,9 @@
     "confidence": "medium",
     "priority": "low",
     "created_at": "2025-06-02T03:49:41.416057",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "answered_at": "2025-06-02T13:09:04.475898",
+    "user_response": "Will provide later",
+    "is_resolved": true
   },
   "ce9091c1-aaf4-4aab-b785-9878acc8b77d": {
     "id": "ce9091c1-aaf4-4aab-b785-9878acc8b77d",
@@ -74,9 +74,9 @@
     "confidence": "medium",
     "priority": "low",
     "created_at": "2025-06-02T03:49:41.416527",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "answered_at": "2025-06-02T13:08:41.191350",
+    "user_response": "Skip validation",
+    "is_resolved": true
   },
   "cfd471b4-6581-4fae-82d3-a2652083f851": {
     "id": "cfd471b4-6581-4fae-82d3-a2652083f851",
@@ -99,9 +99,9 @@
     "confidence": "low",
     "priority": "low",
     "created_at": "2025-06-02T03:49:41.417306",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "answered_at": "2025-06-02T13:08:14.460241",
+    "user_response": "Somewhat important",
+    "is_resolved": true
   },
   "f8fb99fa-3a45-4d83-9334-79ea0710a6ff": {
     "id": "f8fb99fa-3a45-4d83-9334-79ea0710a6ff",
@@ -422,9 +422,9 @@
     "confidence": "medium",
     "priority": "medium",
     "created_at": "2025-06-02T04:26:01.290426",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "answered_at": "2025-06-02T13:07:35.592473",
+    "user_response": "Asset identifier",
+    "is_resolved": true
   },
   "65e90950-163f-416a-899d-974997daa661": {
     "id": "65e90950-163f-416a-899d-974997daa661",
@@ -533,9 +533,9 @@
     "confidence": "medium",
     "priority": "medium",
     "created_at": "2025-06-02T04:27:48.804006",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "answered_at": "2025-06-02T13:06:26.266711",
+    "user_response": "Manual review needed",
+    "is_resolved": true
   },
   "476bcf01-fd07-475e-aeb4-a5e6306ca095": {
     "id": "476bcf01-fd07-475e-aeb4-a5e6306ca095",
@@ -1139,6 +1139,465 @@
     "confidence": "medium",
     "priority": "medium",
     "created_at": "2025-06-02T05:41:48.431324",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "d4632783-57c9-4053-953e-b07475a03187": {
+    "id": "d4632783-57c9-4053-953e-b07475a03187",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "field_mapping",
+    "page": "asset-inventory",
+    "title": "Missing Critical Fields",
+    "question": "This data appears to be missing server_name. Are these available in other columns?",
+    "context": {
+      "missing_fields": [
+        "server_name"
+      ],
+      "available_columns": [
+        "storage_gb",
+        "environment",
+        "type",
+        "memory_gb",
+        "intelligent_asset_type",
+        "version/hostname",
+        "location",
+        "name",
+        "asset_name",
+        "ip_address"
+      ],
+      "suggestion": "field_mapping_needed"
+    },
+    "options": null,
+    "confidence": "high",
+    "priority": "high",
+    "created_at": "2025-06-02T13:12:03.908136",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "5b238c6c-cb86-43fa-b1f3-6b9452d572d2": {
+    "id": "5b238c6c-cb86-43fa-b1f3-6b9452d572d2",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "field_mapping",
+    "page": "asset-inventory",
+    "title": "Field Mapping Clarification",
+    "question": "Could you clarify what these columns represent: id?",
+    "context": {
+      "unclear_columns": [
+        "id"
+      ],
+      "sample_data": {
+        "asset_name": "Inventory_Mgmt",
+        "ci_type": "Application",
+        "ci_id": "APP0004",
+        "version/hostname": "3.2.5",
+        "ip_address": "",
+        "operating_system": "",
+        "memory_gb": "4",
+        "ram_(gb)": "16",
+        "storage_gb": "500",
+        "location": "DC1",
+        "business_owner": "Sarah Lee",
+        "environment": "Production",
+        "status": "Installed",
+        "related_ci": "SRV0006",
+        "intelligent_asset_type": "Unknown",
+        "asset_type": "Application",
+        "sixr_ready": "Type Classification Needed",
+        "migration_complexity": "Medium",
+        "id": "APP0004",
+        "name": "Inventory_Mgmt",
+        "type": "Application"
+      },
+      "total_unclear": 1
+    },
+    "options": [
+      "Asset identifier",
+      "Environment info",
+      "Technical spec",
+      "Business info",
+      "Other"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-02T13:12:03.914617",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "144c7340-9b57-4a12-85d2-ef37a04ed71f": {
+    "id": "144c7340-9b57-4a12-85d2-ef37a04ed71f",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "quality_validation",
+    "page": "asset-inventory",
+    "title": "Data Format Inconsistencies",
+    "question": "Found format inconsistencies in: version/hostname, name, asset_name. Should we standardize these?",
+    "context": {
+      "format_issues": {
+        "version/hostname": [
+          "ip_address",
+          "mixed_alphanumeric"
+        ],
+        "name": [
+          "mixed_alphanumeric",
+          "text"
+        ],
+        "asset_name": [
+          "mixed_alphanumeric",
+          "text"
+        ]
+      },
+      "standardization_needed": true
+    },
+    "options": [
+      "Yes, standardize automatically",
+      "No, keep as-is",
+      "Manual review needed"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-02T13:12:03.917659",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "3da860c3-c5c4-44fa-b94d-65f63cbb8b4d": {
+    "id": "3da860c3-c5c4-44fa-b94d-65f63cbb8b4d",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "quality_validation",
+    "page": "asset-inventory",
+    "title": "Network Information Validation",
+    "question": "Network information (IPs/hostnames) detected. Should we validate these are current and accessible?",
+    "context": {
+      "has_ip_addresses": true,
+      "has_hostnames": true,
+      "validation_type": "network_connectivity"
+    },
+    "options": [
+      "Yes, validate network info",
+      "Skip validation",
+      "Validate critical assets only"
+    ],
+    "confidence": "medium",
+    "priority": "low",
+    "created_at": "2025-06-02T13:12:03.922884",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "124d7f4a-9083-43a3-9118-3a99cc404ad9": {
+    "id": "124d7f4a-9083-43a3-9118-3a99cc404ad9",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "business_context",
+    "page": "asset-inventory",
+    "title": "Department/Organization Information",
+    "question": "No department information found. Is organizational structure important for migration planning?",
+    "context": {
+      "missing_info": "department",
+      "planning_impact": "organizational_structure",
+      "suggestion": "helpful_but_not_critical"
+    },
+    "options": [
+      "Yes, very important",
+      "Somewhat important",
+      "Not needed"
+    ],
+    "confidence": "low",
+    "priority": "low",
+    "created_at": "2025-06-02T13:12:03.927237",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "08df935a-9b6a-4b1b-9352-200f885b221e": {
+    "id": "08df935a-9b6a-4b1b-9352-200f885b221e",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "field_mapping",
+    "page": "data-import",
+    "title": "Missing Critical Fields",
+    "question": "This data appears to be missing asset_name, server_name, ip_address. Are these available in other columns?",
+    "context": {
+      "missing_fields": [
+        "asset_name",
+        "server_name",
+        "ip_address"
+      ],
+      "available_columns": [
+        "Related CI",
+        "Owner",
+        "CI ID",
+        "CPU (Cores)",
+        "RAM (GB)",
+        "Environment",
+        "Name",
+        "CI Type",
+        "Location",
+        "Status"
+      ],
+      "suggestion": "field_mapping_needed"
+    },
+    "options": null,
+    "confidence": "high",
+    "priority": "high",
+    "created_at": "2025-06-02T14:11:31.935747",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "48970f1c-52f6-4fc0-a1ad-58d1dba639d7": {
+    "id": "48970f1c-52f6-4fc0-a1ad-58d1dba639d7",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "data_classification",
+    "page": "data-import",
+    "title": "Data Completeness Issue",
+    "question": "Columns IP Address, OS appear to be mostly empty. Should these be excluded from analysis?",
+    "context": {
+      "empty_columns": [
+        "IP Address",
+        "OS"
+      ],
+      "sample_size": 5,
+      "analysis_suggestion": "exclude_or_clarify"
+    },
+    "options": [
+      "Exclude from analysis",
+      "Include (data may be elsewhere)",
+      "Request additional data"
+    ],
+    "confidence": "high",
+    "priority": "medium",
+    "created_at": "2025-06-02T14:11:31.942069",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "d8283201-fea3-4534-9654-d10f956944a8": {
+    "id": "d8283201-fea3-4534-9654-d10f956944a8",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "field_mapping",
+    "page": "data-import",
+    "title": "Field Mapping Clarification",
+    "question": "Could you clarify what these columns represent: OS?",
+    "context": {
+      "unclear_columns": [
+        "OS"
+      ],
+      "sample_data": {
+        "Name": "HR_Payroll",
+        "CI Type": "Application",
+        "CI ID": "APP0001",
+        "Version/Hostname": "2.3.1",
+        "IP Address": "",
+        "OS": "",
+        "CPU (Cores)": "4",
+        "RAM (GB)": "16",
+        "Storage (GB)": "500",
+        "Location": "DC1",
+        "Owner": "John Smith",
+        "Environment": "Production",
+        "Status": "Installed",
+        "Related CI": "SRV0001;SRV0002"
+      },
+      "total_unclear": 1
+    },
+    "options": [
+      "Asset identifier",
+      "Environment info",
+      "Technical spec",
+      "Business info",
+      "Other"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-02T14:11:31.948304",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "de18232a-e4d3-41d0-a486-f42809bde8b1": {
+    "id": "de18232a-e4d3-41d0-a486-f42809bde8b1",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "quality_validation",
+    "page": "data-import",
+    "title": "Network Information Validation",
+    "question": "Network information (IPs/hostnames) detected. Should we validate these are current and accessible?",
+    "context": {
+      "has_ip_addresses": false,
+      "has_hostnames": true,
+      "validation_type": "network_connectivity"
+    },
+    "options": [
+      "Yes, validate network info",
+      "Skip validation",
+      "Validate critical assets only"
+    ],
+    "confidence": "medium",
+    "priority": "low",
+    "created_at": "2025-06-02T14:11:31.952254",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "af9965af-7fd7-4558-a91d-a44e6afd53a6": {
+    "id": "af9965af-7fd7-4558-a91d-a44e6afd53a6",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "business_context",
+    "page": "data-import",
+    "title": "Department/Organization Information",
+    "question": "No department information found. Is organizational structure important for migration planning?",
+    "context": {
+      "missing_info": "department",
+      "planning_impact": "organizational_structure",
+      "suggestion": "helpful_but_not_critical"
+    },
+    "options": [
+      "Yes, very important",
+      "Somewhat important",
+      "Not needed"
+    ],
+    "confidence": "low",
+    "priority": "low",
+    "created_at": "2025-06-02T14:11:31.956053",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "29e8a519-975b-447b-b466-b5e7d978a51b": {
+    "id": "29e8a519-975b-447b-b466-b5e7d978a51b",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "field_mapping",
+    "page": "attribute-mapping",
+    "title": "Field Mapping Clarification",
+    "question": "Could you clarify what these columns represent: ID, OS?",
+    "context": {
+      "unclear_columns": [
+        "ID",
+        "OS"
+      ],
+      "sample_data": {
+        "ID": "SRV001",
+        "TYPE": "Application",
+        "CPU (CORES)": "4",
+        "ENVIRONMENT": "Production",
+        "IP ADDRESS": "192.168.1.10",
+        "LOCATION": "DC1",
+        "NAME": "Web_Server_01",
+        "OS": "Windows Server 2019",
+        "OWNER": "John Smith",
+        "RAM (GB)": "16",
+        "RELATED CMDB RECORDS": ""
+      },
+      "total_unclear": 2
+    },
+    "options": [
+      "Asset identifier",
+      "Environment info",
+      "Technical spec",
+      "Business info",
+      "Other"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-02T14:12:09.411600",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "82a2565c-13f6-4bca-9eee-451d2a3900ed": {
+    "id": "82a2565c-13f6-4bca-9eee-451d2a3900ed",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "quality_validation",
+    "page": "attribute-mapping",
+    "title": "Data Format Inconsistencies",
+    "question": "Found format inconsistencies in: IP ADDRESS, NAME, OS. Should we standardize these?",
+    "context": {
+      "format_issues": {
+        "IP ADDRESS": [
+          "ip_address",
+          "text"
+        ],
+        "NAME": [
+          "mixed_alphanumeric",
+          "text"
+        ],
+        "OS": [
+          "mixed_alphanumeric",
+          "text"
+        ]
+      },
+      "standardization_needed": true
+    },
+    "options": [
+      "Yes, standardize automatically",
+      "No, keep as-is",
+      "Manual review needed"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-02T14:12:09.416425",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "f6a348e6-414e-49f8-aa60-e9cc5ada0a90": {
+    "id": "f6a348e6-414e-49f8-aa60-e9cc5ada0a90",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "quality_validation",
+    "page": "attribute-mapping",
+    "title": "Network Information Validation",
+    "question": "Network information (IPs/hostnames) detected. Should we validate these are current and accessible?",
+    "context": {
+      "has_ip_addresses": true,
+      "has_hostnames": false,
+      "validation_type": "network_connectivity"
+    },
+    "options": [
+      "Yes, validate network info",
+      "Skip validation",
+      "Validate critical assets only"
+    ],
+    "confidence": "medium",
+    "priority": "low",
+    "created_at": "2025-06-02T14:12:09.426971",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "d658ad0c-4fa3-4b84-8f0f-114da6ba6568": {
+    "id": "d658ad0c-4fa3-4b84-8f0f-114da6ba6568",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "business_context",
+    "page": "attribute-mapping",
+    "title": "Department/Organization Information",
+    "question": "No department information found. Is organizational structure important for migration planning?",
+    "context": {
+      "missing_info": "department",
+      "planning_impact": "organizational_structure",
+      "suggestion": "helpful_but_not_critical"
+    },
+    "options": [
+      "Yes, very important",
+      "Somewhat important",
+      "Not needed"
+    ],
+    "confidence": "low",
+    "priority": "low",
+    "created_at": "2025-06-02T14:12:09.431899",
     "answered_at": null,
     "user_response": null,
     "is_resolved": false

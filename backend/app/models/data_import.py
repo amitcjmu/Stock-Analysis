@@ -43,6 +43,9 @@ class DataImport(Base):
     client_account_id = Column(UUID(as_uuid=True), ForeignKey("client_accounts.id", ondelete="CASCADE"), nullable=False)
     engagement_id = Column(UUID(as_uuid=True), ForeignKey("engagements.id", ondelete="CASCADE"), nullable=False)
     
+    # Session reference (Task 1.1.4) 
+    session_id = Column(UUID(as_uuid=True), ForeignKey("data_import_sessions.id", ondelete="CASCADE"), nullable=False, index=True)
+    
     # Import metadata
     import_name = Column(String(255), nullable=False)
     import_type = Column(String(50), nullable=False)  # ImportType enum
@@ -79,6 +82,7 @@ class DataImport(Base):
     # Relationships
     client_account = relationship("ClientAccount", back_populates="data_imports")
     engagement = relationship("Engagement", back_populates="data_imports") 
+    session = relationship("DataImportSession", back_populates="data_imports")  # Task 1.1.4
     imported_by_user = relationship("User")
     raw_records = relationship("RawImportRecord", back_populates="data_import", cascade="all, delete-orphan")
     processing_steps = relationship("ImportProcessingStep", back_populates="data_import", cascade="all, delete-orphan")
