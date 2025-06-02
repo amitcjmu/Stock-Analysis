@@ -182,8 +182,17 @@ class Engagement(Base):
     feedback = relationship("Feedback", back_populates="engagement", cascade="all, delete-orphan")
     
     # Session relationships (Task 1.1.3)
-    sessions = relationship("DataImportSession", back_populates="engagement", cascade="all, delete-orphan")
-    current_session_ref = relationship("DataImportSession", foreign_keys=[current_session_id], post_update=True)
+    sessions = relationship(
+        "DataImportSession", 
+        back_populates="engagement", 
+        foreign_keys="DataImportSession.engagement_id",
+        cascade="all, delete-orphan"
+    )
+    current_session_ref = relationship(
+        "DataImportSession", 
+        foreign_keys=[current_session_id], 
+        post_update=True
+    )
     
     def __repr__(self):
         return f"<Engagement(id={self.id}, name='{self.name}', client_account_id={self.client_account_id}, is_mock={self.is_mock})>"

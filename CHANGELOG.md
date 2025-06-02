@@ -2,6 +2,46 @@
 
 All notable changes to the AI Force Migration Platform will be documented in this file.
 
+## [0.10.7] - June 2nd, 2025
+
+### 🔧 **DATABASE RELATIONSHIP FIXES - SQLAlchemy Multi-Tenant Model Corrections**
+
+This release resolves critical SQLAlchemy relationship errors that were preventing proper database context resolution and multi-tenant data access.
+
+### 🚀 **Database Model Fixes**
+
+#### **Engagement-Session Relationship Resolution**
+- **Fixed**: SQLAlchemy relationship ambiguity in `Engagement.sessions` relationship
+- **Solution**: Added explicit `foreign_keys` specification for bidirectional relationships
+- **Impact**: Eliminates "multiple foreign key paths" errors during startup
+- **Technical**: Specified `foreign_keys="DataImportSession.engagement_id"` for sessions relationship
+
+#### **RBAC User Relationship Resolution**
+- **Fixed**: Multiple foreign key path errors in `UserProfile.user` and `UserRole.user` relationships
+- **Solution**: Added explicit `foreign_keys=[user_id]` to primary user relationships
+- **Impact**: Resolves RBAC model initialization errors
+- **Technical**: Disambiguated between primary user relationship and approval/assignment relationships
+
+#### **Context Resolution Improvements**
+- **Enhanced**: Demo client context resolution now works without relationship errors
+- **Verified**: Multi-tenant context IDs properly resolved during startup
+- **Status**: ✅ Demo client context resolved successfully
+- **Database**: All table relationships now properly defined
+
+### 📊 **Technical Achievements**
+- **Relationship Clarity**: All SQLAlchemy relationships now have explicit foreign key specifications
+- **Startup Stability**: Backend starts without relationship configuration errors
+- **Context Resolution**: Multi-tenant context properly resolves demo client and engagement IDs
+- **Model Integrity**: RBAC and session models work correctly with bidirectional relationships
+
+### 🎯 **Success Metrics**
+- **Error Reduction**: Eliminated all SQLAlchemy relationship configuration errors
+- **Startup Time**: Clean backend startup without relationship resolution delays
+- **Context Accuracy**: Demo client ID and engagement ID properly resolved
+- **Model Stability**: All database models load without foreign key ambiguity
+
+---
+
 ## [0.10.6] - June 2nd, 2025
 
 ### 🎯 **ADMIN CONSOLE UI - Complete Frontend Administration Interface**

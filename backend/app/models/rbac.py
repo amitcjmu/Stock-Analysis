@@ -99,7 +99,7 @@ class UserProfile(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     # Relationships
-    user = relationship("User")
+    user = relationship("User", foreign_keys=[user_id])
     approved_by_user = relationship("User", foreign_keys=[approved_by])
     client_access = relationship("ClientAccess", back_populates="user_profile", cascade="all, delete-orphan")
     engagement_access = relationship("EngagementAccess", back_populates="user_profile", cascade="all, delete-orphan")
@@ -183,7 +183,7 @@ class UserRole(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     # Relationships
-    user = relationship("User")
+    user = relationship("User", foreign_keys=[user_id])
     assigned_by_user = relationship("User", foreign_keys=[assigned_by])
     scope_client = relationship("ClientAccount")
     scope_engagement = relationship("Engagement")

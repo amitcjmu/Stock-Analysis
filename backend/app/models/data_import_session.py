@@ -130,7 +130,11 @@ class DataImportSession(Base):
     
     # Relationships
     client_account = relationship("ClientAccount")
-    engagement = relationship("Engagement")
+    engagement = relationship(
+        "Engagement", 
+        back_populates="sessions",
+        foreign_keys=[engagement_id]
+    )
     created_by_user = relationship("User")
     data_imports = relationship("DataImport", back_populates="session", cascade="all, delete-orphan")
     
