@@ -24,12 +24,10 @@ router = APIRouter()
 @router.post("/agent-analysis")
 async def perform_agent_analysis(
     analysis_request: Dict[str, Any],
-    page_context: str = "data-import",
     db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
     """
-    Real-time agent analysis of any data input.
-    Replaces hardcoded heuristics with agent intelligence.
+    Multi-agent data analysis for different page contexts and analysis types.
     
     Request body:
     {
@@ -45,6 +43,7 @@ async def perform_agent_analysis(
     try:
         data_source = analysis_request.get("data_source", {})
         analysis_type = analysis_request.get("analysis_type", "data_source_analysis")
+        page_context = analysis_request.get("page_context", "data-import")  # Extract from body
         
         if not data_source:
             raise HTTPException(status_code=400, detail="Data source is required for analysis")

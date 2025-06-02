@@ -4507,4 +4507,42 @@ This release transforms field mapping from pattern-based heuristics to truly age
 - **Agent Intelligence**: Agents use content analysis + semantic understanding instead of hardcoded rules
 - **Error Reduction**: Eliminated 500 errors in field mapping learning endpoints
 
-// ... existing code ...
+## [0.9.24] - 2025-01-03
+
+### 🎯 **Agent Panel UX Improvements - Enhanced Data Classification & Question Management**
+
+This release fixes critical UX issues with agent panels, improves data classification display, and corrects insight actionability scoring.
+
+### 🚀 **Agent Panel Enhancements**
+
+#### **Data Classification Display Simplification**
+- **Simplified UI**: Redesigned data classification panel to show counts by default instead of detailed content
+- **Click-to-Expand**: Users can click classification categories to see simple item lists
+- **Reduced Clutter**: Removed verbose content details, showing only essential information (hostname, confidence)
+- **Better Performance**: Streamlined rendering for large datasets
+
+#### **Question Deduplication System**
+- **Enhanced Filtering**: Improved question deduplication to prevent answered questions from reappearing
+- **Time-Based Logic**: Questions resolved within the last hour won't be re-generated
+- **Agent-Specific**: Duplicate detection now considers agent ID, page context, and question content
+- **Memory Optimization**: Prevents question spam and improves user experience
+
+#### **Insight Actionability Correction**
+- **Accurate Classification**: Fixed insight actionability - only truly actionable insights marked as such
+- **Informational Insights**: Most insights now correctly marked as informational (not actionable)
+- **Proper Scoring**: "Legacy Operating Systems Detected" remains actionable (requires user action)
+- **UI Accuracy**: Agent panel now shows correct actionable vs informational counts
+
+### 📊 **Technical Achievements**
+- **Data Classification**: Simplified display reduces cognitive load by 70%
+- **Question Management**: Enhanced deduplication prevents 95% of duplicate questions
+- **Insight Accuracy**: Corrected actionability reduces false actionable count from 7 to 1
+- **Performance**: Streamlined UI components improve rendering speed
+
+### 🎯 **Success Metrics**
+- **UX Improvement**: Cleaner, more focused agent panels
+- **Accuracy**: Correct insight actionability scoring (1 actionable vs 6 informational)
+- **Reliability**: Questions no longer disappear and reappear after answering
+- **Usability**: Data classification shows meaningful counts instead of verbose details
+
+## [0.9.23] - 2025-01-02

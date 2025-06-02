@@ -34,6 +34,7 @@ class InsightGenerator:
                 "title": "No Data Available",
                 "description": "No data was provided for analysis",
                 "confidence": ConfidenceLevel.HIGH.value,
+                "actionable": True,  # This is actionable - user should upload data
                 "supporting_data": {"row_count": 0}
             }]
         
@@ -57,36 +58,67 @@ class InsightGenerator:
         for row in data:
             all_columns.update(row.keys())
         
-        # Critical fields analysis
+        # Always generate basic dataset insights for any size
+        insights.append({
+            "type": "data_overview",
+            "title": "Dataset Analysis Summary",
+            "description": f"Analyzed {total_rows} records with {len(all_columns)} fields. Ready for migration attribute mapping and quality assessment",
+            "confidence": ConfidenceLevel.HIGH.value,
+            "actionable": False,  # This is informational
+            "supporting_data": {
+                "total_records": total_rows,
+                "total_fields": len(all_columns),
+                "analysis_scope": "complete"
+            }
+        })
+        
+        # Critical fields analysis (lowered threshold)
         critical_fields_found = 0
+        critical_fields = []
         for column in all_columns:
             if any(keyword in column.lower() for keyword in 
-                  ['hostname', 'asset_name', 'server', 'ip_address']):
+                  ['hostname', 'asset_name', 'server', 'ip_address', 'cpu', 'memory', 'ram']):
                 critical_fields_found += 1
+                critical_fields.append(column)
         
-        if critical_fields_found >= 3:
+        if critical_fields_found >= 1:  # Lowered from 3 to 1
             insights.append({
                 "type": "data_quality",
-                "title": "Strong Data Foundation Detected",
-                "description": f"Found {critical_fields_found} critical asset identification fields, providing solid foundation for migration planning",
+                "title": "Asset Identification Fields Present",
+                "description": f"Found {critical_fields_found} critical fields ({', '.join(critical_fields[:3])}), providing foundation for migration planning",
                 "confidence": ConfidenceLevel.HIGH.value,
+                "actionable": False,  # This is informational
                 "supporting_data": {
                     "critical_fields": critical_fields_found,
+                    "identified_fields": critical_fields,
                     "total_columns": len(all_columns),
                     "analysis_confidence": "high"
                 }
             })
         
-        # Volume analysis
-        if total_rows > 500:
+        # Volume analysis (lowered threshold)
+        if total_rows >= 50:  # Lowered from 500 to 50
             insights.append({
                 "type": "migration_readiness",
-                "title": "Large-Scale Migration Dataset",
-                "description": f"Dataset contains {total_rows} assets, suggesting enterprise-scale migration requiring structured approach",
+                "title": "Migration-Scale Dataset",
+                "description": f"Dataset contains {total_rows} assets, suitable for structured migration approach with proper planning",
                 "confidence": ConfidenceLevel.MEDIUM.value,
+                "actionable": False,  # This is informational
                 "supporting_data": {
                     "asset_count": total_rows,
-                    "scale_category": "enterprise"
+                    "scale_category": "structured_migration" if total_rows < 500 else "enterprise"
+                }
+            })
+        elif total_rows >= 2:  # Add insight for small datasets too
+            insights.append({
+                "type": "migration_readiness",
+                "title": "Sample Migration Dataset",
+                "description": f"Dataset contains {total_rows} assets, perfect for testing migration workflows and field mapping validation",
+                "confidence": ConfidenceLevel.MEDIUM.value,
+                "actionable": False,  # This is informational
+                "supporting_data": {
+                    "asset_count": total_rows,
+                    "scale_category": "sample_testing"
                 }
             })
         
@@ -121,6 +153,7 @@ class InsightGenerator:
                     "title": "Environment Distribution Analysis",
                     "description": f"Identified {len(environments)} distinct environments. Major distributions: {', '.join(env_insights)}",
                     "confidence": ConfidenceLevel.MEDIUM.value,
+                    "actionable": False,  # This is informational
                     "supporting_data": {
                         "environments": environments,
                         "total_assets": total_envs
@@ -157,6 +190,7 @@ class InsightGenerator:
                 "title": "Multi-Department Asset Distribution",
                 "description": f"Assets span {len(departments)} departments. Largest: {largest_dept[0]} with {largest_dept[1]} assets ({(largest_dept[1]/total_assets)*100:.1f}%)",
                 "confidence": ConfidenceLevel.MEDIUM.value,
+                "actionable": False,  # This is informational
                 "supporting_data": {
                     "departments": departments,
                     "department_count": len(departments)
@@ -201,6 +235,7 @@ class InsightGenerator:
                 "title": "Legacy Operating Systems Detected",
                 "description": f"Found {legacy_count} assets ({legacy_percentage:.1f}%) running legacy operating systems requiring modernization",
                 "confidence": ConfidenceLevel.HIGH.value,
+                "actionable": True,  # This is actionable - user should modernize
                 "supporting_data": {
                     "legacy_count": legacy_count,
                     "total_assets": total_os_assets,

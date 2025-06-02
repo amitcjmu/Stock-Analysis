@@ -390,13 +390,44 @@ export const useDataCleansing = () => {
   // Trigger agent panel analysis for auto-population
   const triggerAgentPanelAnalysis = async (data: any[]) => {
     try {
-      // Check for relatedCMDBrecords that should be mapped as dependencies
+      console.log('Triggering agent panel analysis for data-cleansing context');
+      
+      // Trigger standard agent analysis for data-cleansing context
+      // This will populate all agent panels: clarifications, classifications, and insights
+      const agentAnalysisRequest = {
+        data_source: {
+          columns: data.length > 0 ? Object.keys(data[0]) : [],
+          sample_data: data.slice(0, 10),
+          metadata: {
+            source: "data-cleansing-page",
+            total_records: data.length,
+            context: "quality_analysis_and_cleansing"
+          }
+        },
+        analysis_type: "data_source_analysis",
+        page_context: "data-cleansing"
+      };
+
+      try {
+        const agentResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_ANALYSIS, {
+          method: 'POST',
+          body: JSON.stringify(agentAnalysisRequest)
+        });
+
+        if (agentResponse) {
+          console.log('✅ Agent analysis completed for data-cleansing context');
+        }
+      } catch (error) {
+        console.warn('Standard agent analysis failed:', error);
+      }
+      
+      // Also check for relatedCMDBrecords that should be mapped as dependencies
       const assetsWithRelatedRecords = data.filter(asset => 
         asset.relatedCMDBrecords || asset.related_cmdb_records || asset.dependencies
       );
 
       if (assetsWithRelatedRecords.length > 0) {
-        // Generate agent clarifications for unmapped dependencies
+        // Generate specific clarifications for unmapped dependencies  
         const clarificationRequest = {
           page_context: 'data-cleansing',
           analysis_type: 'dependency_mapping_review',
@@ -407,7 +438,6 @@ export const useDataCleansing = () => {
           }
         };
 
-        // Call agent clarification endpoint
         try {
           const clarificationResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_CLARIFICATION, {
             method: 'POST',
@@ -415,15 +445,14 @@ export const useDataCleansing = () => {
           });
 
           if (clarificationResponse.status === 'success') {
-            console.log('Agent clarifications generated for dependency mapping');
+            console.log('✅ Agent clarifications generated for dependency mapping');
           }
         } catch (error) {
           console.warn('Agent clarification endpoint failed:', error);
         }
       }
 
-      // Just trigger agent refresh to populate panels - let the panels handle their own data fetching
-      // The agent panels will automatically fetch their data using GET requests to appropriate endpoints
+      // Trigger agent panel refresh
       setAgentRefreshTrigger(prev => prev + 1);
       
     } catch (error) {

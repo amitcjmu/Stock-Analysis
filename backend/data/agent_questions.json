@@ -1,734 +1,10 @@
 {
-  "4fd2ffe4-0272-4358-9414-20cc10d0926d": {
-    "id": "4fd2ffe4-0272-4358-9414-20cc10d0926d",
-    "agent_id": "data_source_intelligence_001",
-    "agent_name": "Data Source Intelligence Agent",
-    "question_type": "quality_validation",
-    "page": "data-import",
-    "title": "Data Format Inconsistencies",
-    "question": "Found format inconsistencies in: Dependency Notes, Recommended GCP Instance Type. Should we standardize these?",
-    "context": {
-      "format_issues": {
-        "Dependency Notes": [
-          "text",
-          "mixed_alphanumeric"
-        ],
-        "Recommended GCP Instance Type": [
-          "text",
-          "mixed_alphanumeric"
-        ]
-      },
-      "standardization_needed": true
-    },
-    "options": [
-      "Yes, standardize automatically",
-      "No, keep as-is",
-      "Manual review needed"
-    ],
-    "confidence": "medium",
-    "priority": "medium",
-    "created_at": "2025-06-01T07:07:26.521824",
-    "answered_at": "2025-06-01T07:09:18.626483",
-    "user_response": "Manual review needed",
-    "is_resolved": true
-  },
-  "897a3922-4ddb-48e0-87af-55c4070ca915": {
-    "id": "897a3922-4ddb-48e0-87af-55c4070ca915",
-    "agent_id": "data_source_intelligence_001",
-    "agent_name": "Data Source Intelligence Agent",
-    "question_type": "business_context",
-    "page": "data-import",
-    "title": "Asset Ownership Information",
-    "question": "No asset ownership information found. Is this available elsewhere or should migration proceed without owner details?",
-    "context": {
-      "missing_info": "ownership",
-      "migration_impact": "medium",
-      "suggestion": "may_need_additional_data"
-    },
-    "options": [
-      "Available in separate file",
-      "Not available",
-      "Will provide later"
-    ],
-    "confidence": "medium",
-    "priority": "low",
-    "created_at": "2025-06-01T07:07:26.528148",
-    "answered_at": "2025-06-01T07:10:36.655883",
-    "user_response": "Will provide later",
-    "is_resolved": true
-  },
-  "1f873f6d-b131-4c32-9b8c-d075b55bf581": {
-    "id": "1f873f6d-b131-4c32-9b8c-d075b55bf581",
-    "agent_id": "data_source_intelligence_001",
-    "agent_name": "Data Source Intelligence Agent",
-    "question_type": "quality_validation",
-    "page": "data-import",
-    "title": "Network Information Validation",
-    "question": "Network information (IPs/hostnames) detected. Should we validate these are current and accessible?",
-    "context": {
-      "has_ip_addresses": true,
-      "has_hostnames": false,
-      "validation_type": "network_connectivity"
-    },
-    "options": [
-      "Yes, validate network info",
-      "Skip validation",
-      "Validate critical assets only"
-    ],
-    "confidence": "medium",
-    "priority": "low",
-    "created_at": "2025-06-01T07:07:26.532670",
-    "answered_at": "2025-06-01T07:10:28.081159",
-    "user_response": "Skip validation",
-    "is_resolved": true
-  },
-  "de5f1961-53c3-443d-981e-1329953f4cf0": {
-    "id": "de5f1961-53c3-443d-981e-1329953f4cf0",
-    "agent_id": "data_source_intelligence_001",
-    "agent_name": "Data Source Intelligence Agent",
-    "question_type": "business_context",
-    "page": "data-import",
-    "title": "Department/Organization Information",
-    "question": "No department information found. Is organizational structure important for migration planning?",
-    "context": {
-      "missing_info": "department",
-      "planning_impact": "organizational_structure",
-      "suggestion": "helpful_but_not_critical"
-    },
-    "options": [
-      "Yes, very important",
-      "Somewhat important",
-      "Not needed"
-    ],
-    "confidence": "low",
-    "priority": "low",
-    "created_at": "2025-06-01T07:07:26.535268",
-    "answered_at": "2025-06-01T07:10:17.082584",
-    "user_response": "Somewhat important",
-    "is_resolved": true
-  },
-  "83ea9ff2-2a18-4a0e-bee2-26ed32c2a9ad": {
-    "id": "83ea9ff2-2a18-4a0e-bee2-26ed32c2a9ad",
-    "agent_id": "data_source_intelligence_001",
-    "agent_name": "Data Source Intelligence Agent",
-    "question_type": "quality_validation",
-    "page": "data-import",
-    "title": "Data Format Inconsistencies",
-    "question": "Found format inconsistencies in: Dependency Notes, Recommended GCP Instance Type. Should we standardize these?",
-    "context": {
-      "format_issues": {
-        "Dependency Notes": [
-          "text",
-          "mixed_alphanumeric"
-        ],
-        "Recommended GCP Instance Type": [
-          "text",
-          "mixed_alphanumeric"
-        ]
-      },
-      "standardization_needed": true
-    },
-    "options": [
-      "Yes, standardize automatically",
-      "No, keep as-is",
-      "Manual review needed"
-    ],
-    "confidence": "medium",
-    "priority": "medium",
-    "created_at": "2025-06-01T07:11:12.996166",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
-  },
-  "c289ff4e-61f9-49c5-af02-950b93d52125": {
-    "id": "c289ff4e-61f9-49c5-af02-950b93d52125",
-    "agent_id": "data_source_intelligence_001",
-    "agent_name": "Data Source Intelligence Agent",
-    "question_type": "business_context",
-    "page": "data-import",
-    "title": "Asset Ownership Information",
-    "question": "No asset ownership information found. Is this available elsewhere or should migration proceed without owner details?",
-    "context": {
-      "missing_info": "ownership",
-      "migration_impact": "medium",
-      "suggestion": "may_need_additional_data"
-    },
-    "options": [
-      "Available in separate file",
-      "Not available",
-      "Will provide later"
-    ],
-    "confidence": "medium",
-    "priority": "low",
-    "created_at": "2025-06-01T07:11:12.999242",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
-  },
-  "e41eb03f-3c69-4776-8e89-ef18517b287f": {
-    "id": "e41eb03f-3c69-4776-8e89-ef18517b287f",
-    "agent_id": "data_source_intelligence_001",
-    "agent_name": "Data Source Intelligence Agent",
-    "question_type": "quality_validation",
-    "page": "data-import",
-    "title": "Network Information Validation",
-    "question": "Network information (IPs/hostnames) detected. Should we validate these are current and accessible?",
-    "context": {
-      "has_ip_addresses": true,
-      "has_hostnames": false,
-      "validation_type": "network_connectivity"
-    },
-    "options": [
-      "Yes, validate network info",
-      "Skip validation",
-      "Validate critical assets only"
-    ],
-    "confidence": "medium",
-    "priority": "low",
-    "created_at": "2025-06-01T07:11:13.001494",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
-  },
-  "1999d4fb-a5e2-48cc-a0a2-46babb63a5b7": {
-    "id": "1999d4fb-a5e2-48cc-a0a2-46babb63a5b7",
-    "agent_id": "data_source_intelligence_001",
-    "agent_name": "Data Source Intelligence Agent",
-    "question_type": "business_context",
-    "page": "data-import",
-    "title": "Department/Organization Information",
-    "question": "No department information found. Is organizational structure important for migration planning?",
-    "context": {
-      "missing_info": "department",
-      "planning_impact": "organizational_structure",
-      "suggestion": "helpful_but_not_critical"
-    },
-    "options": [
-      "Yes, very important",
-      "Somewhat important",
-      "Not needed"
-    ],
-    "confidence": "low",
-    "priority": "low",
-    "created_at": "2025-06-01T07:11:13.004254",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
-  },
-  "c722b500-8734-46d8-b087-301ee8f56971": {
-    "id": "c722b500-8734-46d8-b087-301ee8f56971",
-    "agent_id": "data_source_intelligence_001",
-    "agent_name": "Data Source Intelligence Agent",
-    "question_type": "quality_validation",
-    "page": "data-import",
-    "title": "Data Format Inconsistencies",
-    "question": "Found format inconsistencies in: Dependency Notes, Recommended GCP Instance Type. Should we standardize these?",
-    "context": {
-      "format_issues": {
-        "Dependency Notes": [
-          "text",
-          "mixed_alphanumeric"
-        ],
-        "Recommended GCP Instance Type": [
-          "text",
-          "mixed_alphanumeric"
-        ]
-      },
-      "standardization_needed": true
-    },
-    "options": [
-      "Yes, standardize automatically",
-      "No, keep as-is",
-      "Manual review needed"
-    ],
-    "confidence": "medium",
-    "priority": "medium",
-    "created_at": "2025-06-01T07:21:47.878669",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
-  },
-  "5e849d37-d783-4172-8ddd-4ea353520ecf": {
-    "id": "5e849d37-d783-4172-8ddd-4ea353520ecf",
-    "agent_id": "data_source_intelligence_001",
-    "agent_name": "Data Source Intelligence Agent",
-    "question_type": "business_context",
-    "page": "data-import",
-    "title": "Asset Ownership Information",
-    "question": "No asset ownership information found. Is this available elsewhere or should migration proceed without owner details?",
-    "context": {
-      "missing_info": "ownership",
-      "migration_impact": "medium",
-      "suggestion": "may_need_additional_data"
-    },
-    "options": [
-      "Available in separate file",
-      "Not available",
-      "Will provide later"
-    ],
-    "confidence": "medium",
-    "priority": "low",
-    "created_at": "2025-06-01T07:21:47.883569",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
-  },
-  "1faf2d8e-f3bf-4494-bd83-450f874c06df": {
-    "id": "1faf2d8e-f3bf-4494-bd83-450f874c06df",
-    "agent_id": "data_source_intelligence_001",
-    "agent_name": "Data Source Intelligence Agent",
-    "question_type": "quality_validation",
-    "page": "data-import",
-    "title": "Network Information Validation",
-    "question": "Network information (IPs/hostnames) detected. Should we validate these are current and accessible?",
-    "context": {
-      "has_ip_addresses": true,
-      "has_hostnames": false,
-      "validation_type": "network_connectivity"
-    },
-    "options": [
-      "Yes, validate network info",
-      "Skip validation",
-      "Validate critical assets only"
-    ],
-    "confidence": "medium",
-    "priority": "low",
-    "created_at": "2025-06-01T07:21:47.887343",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
-  },
-  "47733ec1-aa09-43e4-9b0c-5b72138ff011": {
-    "id": "47733ec1-aa09-43e4-9b0c-5b72138ff011",
-    "agent_id": "data_source_intelligence_001",
-    "agent_name": "Data Source Intelligence Agent",
-    "question_type": "business_context",
-    "page": "data-import",
-    "title": "Department/Organization Information",
-    "question": "No department information found. Is organizational structure important for migration planning?",
-    "context": {
-      "missing_info": "department",
-      "planning_impact": "organizational_structure",
-      "suggestion": "helpful_but_not_critical"
-    },
-    "options": [
-      "Yes, very important",
-      "Somewhat important",
-      "Not needed"
-    ],
-    "confidence": "low",
-    "priority": "low",
-    "created_at": "2025-06-01T07:21:47.889992",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
-  },
-  "7d58b77d-c305-477e-83fa-cdc3dbe69719": {
-    "id": "7d58b77d-c305-477e-83fa-cdc3dbe69719",
-    "agent_id": "data_source_intelligence_001",
-    "agent_name": "Data Source Intelligence Agent",
-    "question_type": "quality_validation",
-    "page": "data-import",
-    "title": "Data Format Inconsistencies",
-    "question": "Found format inconsistencies in: Dependency Notes, Recommended GCP Instance Type. Should we standardize these?",
-    "context": {
-      "format_issues": {
-        "Dependency Notes": [
-          "text",
-          "mixed_alphanumeric"
-        ],
-        "Recommended GCP Instance Type": [
-          "text",
-          "mixed_alphanumeric"
-        ]
-      },
-      "standardization_needed": true
-    },
-    "options": [
-      "Yes, standardize automatically",
-      "No, keep as-is",
-      "Manual review needed"
-    ],
-    "confidence": "medium",
-    "priority": "medium",
-    "created_at": "2025-06-01T07:26:52.719814",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
-  },
-  "bfb4c7dd-ae1e-49df-8cab-c3482694770e": {
-    "id": "bfb4c7dd-ae1e-49df-8cab-c3482694770e",
-    "agent_id": "data_source_intelligence_001",
-    "agent_name": "Data Source Intelligence Agent",
-    "question_type": "business_context",
-    "page": "data-import",
-    "title": "Asset Ownership Information",
-    "question": "No asset ownership information found. Is this available elsewhere or should migration proceed without owner details?",
-    "context": {
-      "missing_info": "ownership",
-      "migration_impact": "medium",
-      "suggestion": "may_need_additional_data"
-    },
-    "options": [
-      "Available in separate file",
-      "Not available",
-      "Will provide later"
-    ],
-    "confidence": "medium",
-    "priority": "low",
-    "created_at": "2025-06-01T07:26:52.723744",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
-  },
-  "27bb2343-3d0d-47ef-9903-dc4340a70a77": {
-    "id": "27bb2343-3d0d-47ef-9903-dc4340a70a77",
-    "agent_id": "data_source_intelligence_001",
-    "agent_name": "Data Source Intelligence Agent",
-    "question_type": "quality_validation",
-    "page": "data-import",
-    "title": "Network Information Validation",
-    "question": "Network information (IPs/hostnames) detected. Should we validate these are current and accessible?",
-    "context": {
-      "has_ip_addresses": true,
-      "has_hostnames": false,
-      "validation_type": "network_connectivity"
-    },
-    "options": [
-      "Yes, validate network info",
-      "Skip validation",
-      "Validate critical assets only"
-    ],
-    "confidence": "medium",
-    "priority": "low",
-    "created_at": "2025-06-01T07:26:52.726268",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
-  },
-  "13cbb84e-4c9f-4531-a3d4-feb2929213ae": {
-    "id": "13cbb84e-4c9f-4531-a3d4-feb2929213ae",
-    "agent_id": "data_source_intelligence_001",
-    "agent_name": "Data Source Intelligence Agent",
-    "question_type": "business_context",
-    "page": "data-import",
-    "title": "Department/Organization Information",
-    "question": "No department information found. Is organizational structure important for migration planning?",
-    "context": {
-      "missing_info": "department",
-      "planning_impact": "organizational_structure",
-      "suggestion": "helpful_but_not_critical"
-    },
-    "options": [
-      "Yes, very important",
-      "Somewhat important",
-      "Not needed"
-    ],
-    "confidence": "low",
-    "priority": "low",
-    "created_at": "2025-06-01T07:26:52.730933",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
-  },
-  "d6895279-8043-478f-a6eb-9a86ab023c7b": {
-    "id": "d6895279-8043-478f-a6eb-9a86ab023c7b",
-    "agent_id": "data_source_intelligence_001",
-    "agent_name": "Data Source Intelligence Agent",
-    "question_type": "quality_validation",
-    "page": "data-import",
-    "title": "Data Format Inconsistencies",
-    "question": "Found format inconsistencies in: Recommended GCP Instance Type, Dependency Notes. Should we standardize these?",
-    "context": {
-      "format_issues": {
-        "Recommended GCP Instance Type": [
-          "mixed_alphanumeric",
-          "text"
-        ],
-        "Dependency Notes": [
-          "mixed_alphanumeric",
-          "text"
-        ]
-      },
-      "standardization_needed": true
-    },
-    "options": [
-      "Yes, standardize automatically",
-      "No, keep as-is",
-      "Manual review needed"
-    ],
-    "confidence": "medium",
-    "priority": "medium",
-    "created_at": "2025-06-01T07:27:27.486272",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
-  },
-  "925427db-f2c0-4198-9bde-9ff72a05e6a6": {
-    "id": "925427db-f2c0-4198-9bde-9ff72a05e6a6",
-    "agent_id": "data_source_intelligence_001",
-    "agent_name": "Data Source Intelligence Agent",
-    "question_type": "business_context",
-    "page": "data-import",
-    "title": "Asset Ownership Information",
-    "question": "No asset ownership information found. Is this available elsewhere or should migration proceed without owner details?",
-    "context": {
-      "missing_info": "ownership",
-      "migration_impact": "medium",
-      "suggestion": "may_need_additional_data"
-    },
-    "options": [
-      "Available in separate file",
-      "Not available",
-      "Will provide later"
-    ],
-    "confidence": "medium",
-    "priority": "low",
-    "created_at": "2025-06-01T07:27:27.492913",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
-  },
-  "5931f2a7-b4fd-45d8-95b9-71faebbb8efb": {
-    "id": "5931f2a7-b4fd-45d8-95b9-71faebbb8efb",
-    "agent_id": "data_source_intelligence_001",
-    "agent_name": "Data Source Intelligence Agent",
-    "question_type": "quality_validation",
-    "page": "data-import",
-    "title": "Network Information Validation",
-    "question": "Network information (IPs/hostnames) detected. Should we validate these are current and accessible?",
-    "context": {
-      "has_ip_addresses": true,
-      "has_hostnames": false,
-      "validation_type": "network_connectivity"
-    },
-    "options": [
-      "Yes, validate network info",
-      "Skip validation",
-      "Validate critical assets only"
-    ],
-    "confidence": "medium",
-    "priority": "low",
-    "created_at": "2025-06-01T07:27:27.499747",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
-  },
-  "eb42b19a-3b96-4b63-9b2d-06ee2db6e348": {
-    "id": "eb42b19a-3b96-4b63-9b2d-06ee2db6e348",
-    "agent_id": "data_source_intelligence_001",
-    "agent_name": "Data Source Intelligence Agent",
-    "question_type": "business_context",
-    "page": "data-import",
-    "title": "Department/Organization Information",
-    "question": "No department information found. Is organizational structure important for migration planning?",
-    "context": {
-      "missing_info": "department",
-      "planning_impact": "organizational_structure",
-      "suggestion": "helpful_but_not_critical"
-    },
-    "options": [
-      "Yes, very important",
-      "Somewhat important",
-      "Not needed"
-    ],
-    "confidence": "low",
-    "priority": "low",
-    "created_at": "2025-06-01T07:27:27.503249",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
-  },
-  "1676430f-be12-4cba-8233-07dcf2b51f8a": {
-    "id": "1676430f-be12-4cba-8233-07dcf2b51f8a",
-    "agent_id": "data_source_intelligence_001",
-    "agent_name": "Data Source Intelligence Agent",
-    "question_type": "quality_validation",
-    "page": "data-import",
-    "title": "Data Format Inconsistencies",
-    "question": "Found format inconsistencies in: Dependency Notes, Recommended GCP Instance Type. Should we standardize these?",
-    "context": {
-      "format_issues": {
-        "Dependency Notes": [
-          "text",
-          "mixed_alphanumeric"
-        ],
-        "Recommended GCP Instance Type": [
-          "text",
-          "mixed_alphanumeric"
-        ]
-      },
-      "standardization_needed": true
-    },
-    "options": [
-      "Yes, standardize automatically",
-      "No, keep as-is",
-      "Manual review needed"
-    ],
-    "confidence": "medium",
-    "priority": "medium",
-    "created_at": "2025-06-01T07:42:13.142402",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
-  },
-  "e1e5eed6-ffea-4251-9fd9-bee88f8a6f43": {
-    "id": "e1e5eed6-ffea-4251-9fd9-bee88f8a6f43",
-    "agent_id": "data_source_intelligence_001",
-    "agent_name": "Data Source Intelligence Agent",
-    "question_type": "business_context",
-    "page": "data-import",
-    "title": "Asset Ownership Information",
-    "question": "No asset ownership information found. Is this available elsewhere or should migration proceed without owner details?",
-    "context": {
-      "missing_info": "ownership",
-      "migration_impact": "medium",
-      "suggestion": "may_need_additional_data"
-    },
-    "options": [
-      "Available in separate file",
-      "Not available",
-      "Will provide later"
-    ],
-    "confidence": "medium",
-    "priority": "low",
-    "created_at": "2025-06-01T07:42:13.147717",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
-  },
-  "160e742b-cef8-4430-bc95-c8335481c724": {
-    "id": "160e742b-cef8-4430-bc95-c8335481c724",
-    "agent_id": "data_source_intelligence_001",
-    "agent_name": "Data Source Intelligence Agent",
-    "question_type": "quality_validation",
-    "page": "data-import",
-    "title": "Network Information Validation",
-    "question": "Network information (IPs/hostnames) detected. Should we validate these are current and accessible?",
-    "context": {
-      "has_ip_addresses": true,
-      "has_hostnames": false,
-      "validation_type": "network_connectivity"
-    },
-    "options": [
-      "Yes, validate network info",
-      "Skip validation",
-      "Validate critical assets only"
-    ],
-    "confidence": "medium",
-    "priority": "low",
-    "created_at": "2025-06-01T07:42:13.151433",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
-  },
-  "94480476-6c8c-4950-b1c5-6959d4b86f16": {
-    "id": "94480476-6c8c-4950-b1c5-6959d4b86f16",
-    "agent_id": "data_source_intelligence_001",
-    "agent_name": "Data Source Intelligence Agent",
-    "question_type": "business_context",
-    "page": "data-import",
-    "title": "Department/Organization Information",
-    "question": "No department information found. Is organizational structure important for migration planning?",
-    "context": {
-      "missing_info": "department",
-      "planning_impact": "organizational_structure",
-      "suggestion": "helpful_but_not_critical"
-    },
-    "options": [
-      "Yes, very important",
-      "Somewhat important",
-      "Not needed"
-    ],
-    "confidence": "low",
-    "priority": "low",
-    "created_at": "2025-06-01T07:42:13.157151",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
-  },
-  "332928e4-810e-4c1c-ad89-531949db64a5": {
-    "id": "332928e4-810e-4c1c-ad89-531949db64a5",
-    "agent_id": "data_source_intelligence_001",
-    "agent_name": "Data Source Intelligence Agent",
-    "question_type": "data_classification",
-    "page": "data-import",
-    "title": "No Data Provided",
-    "question": "No data was uploaded for analysis. Would you like to upload a different file?",
-    "context": {
-      "issue": "no_data"
-    },
-    "options": null,
-    "confidence": "high",
-    "priority": "high",
-    "created_at": "2025-06-02T03:22:09.648153",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
-  },
-  "521ee04f-32f7-47c1-a37b-fb1dec3ebca5": {
-    "id": "521ee04f-32f7-47c1-a37b-fb1dec3ebca5",
-    "agent_id": "data_source_intelligence_001",
-    "agent_name": "Data Source Intelligence Agent",
-    "question_type": "data_classification",
-    "page": "data-import",
-    "title": "No Data Provided",
-    "question": "No data was uploaded for analysis. Would you like to upload a different file?",
-    "context": {
-      "issue": "no_data"
-    },
-    "options": null,
-    "confidence": "high",
-    "priority": "high",
-    "created_at": "2025-06-02T03:22:40.013108",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
-  },
-  "607f605d-16ed-4369-afbe-91634721442c": {
-    "id": "607f605d-16ed-4369-afbe-91634721442c",
-    "agent_id": "data_source_intelligence_001",
-    "agent_name": "Data Source Intelligence Agent",
-    "question_type": "data_classification",
-    "page": "data-import",
-    "title": "No Data Provided",
-    "question": "No data was uploaded for analysis. Would you like to upload a different file?",
-    "context": {
-      "issue": "no_data"
-    },
-    "options": null,
-    "confidence": "high",
-    "priority": "high",
-    "created_at": "2025-06-02T03:26:27.605311",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
-  },
-  "ce03d12f-958f-434a-ae6d-e2537dae4c09": {
-    "id": "ce03d12f-958f-434a-ae6d-e2537dae4c09",
-    "agent_id": "data_source_intelligence_001",
-    "agent_name": "Data Source Intelligence Agent",
-    "question_type": "data_classification",
-    "page": "data-import",
-    "title": "No Data Provided",
-    "question": "No data was uploaded for analysis. Would you like to upload a different file?",
-    "context": {
-      "issue": "no_data"
-    },
-    "options": null,
-    "confidence": "high",
-    "priority": "high",
-    "created_at": "2025-06-02T03:29:51.382679",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
-  },
-  "466c97df-4cb8-47ad-87eb-0aad0ae0d030": {
-    "id": "466c97df-4cb8-47ad-87eb-0aad0ae0d030",
+  "8885bb09-84d3-4db2-a98c-80927fd9d72b": {
+    "id": "8885bb09-84d3-4db2-a98c-80927fd9d72b",
     "agent_id": "data_source_intelligence_001",
     "agent_name": "Data Source Intelligence Agent",
     "question_type": "field_mapping",
-    "page": "data-import",
+    "page": "attribute-mapping",
     "title": "Missing Critical Fields",
     "question": "This data appears to be missing asset_name, server_name, ip_address. Are these available in other columns?",
     "context": {
@@ -747,17 +23,17 @@
     "options": null,
     "confidence": "high",
     "priority": "high",
-    "created_at": "2025-06-02T03:30:16.096120",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "created_at": "2025-06-02T03:49:41.415194",
+    "answered_at": "2025-06-02T04:27:21.959840",
+    "user_response": "no",
+    "is_resolved": true
   },
-  "bf59d0bc-c62c-45ef-8e5a-ca2a26743edf": {
-    "id": "bf59d0bc-c62c-45ef-8e5a-ca2a26743edf",
+  "b3714eeb-199d-4b2b-9739-e1f89d8ec85a": {
+    "id": "b3714eeb-199d-4b2b-9739-e1f89d8ec85a",
     "agent_id": "data_source_intelligence_001",
     "agent_name": "Data Source Intelligence Agent",
     "question_type": "business_context",
-    "page": "data-import",
+    "page": "attribute-mapping",
     "title": "Asset Ownership Information",
     "question": "No asset ownership information found. Is this available elsewhere or should migration proceed without owner details?",
     "context": {
@@ -772,17 +48,17 @@
     ],
     "confidence": "medium",
     "priority": "low",
-    "created_at": "2025-06-02T03:30:16.098877",
+    "created_at": "2025-06-02T03:49:41.416057",
     "answered_at": null,
     "user_response": null,
     "is_resolved": false
   },
-  "3e54305d-b998-4434-81be-f5c5bcc39b6b": {
-    "id": "3e54305d-b998-4434-81be-f5c5bcc39b6b",
+  "ce9091c1-aaf4-4aab-b785-9878acc8b77d": {
+    "id": "ce9091c1-aaf4-4aab-b785-9878acc8b77d",
     "agent_id": "data_source_intelligence_001",
     "agent_name": "Data Source Intelligence Agent",
     "question_type": "quality_validation",
-    "page": "data-import",
+    "page": "attribute-mapping",
     "title": "Network Information Validation",
     "question": "Network information (IPs/hostnames) detected. Should we validate these are current and accessible?",
     "context": {
@@ -797,17 +73,17 @@
     ],
     "confidence": "medium",
     "priority": "low",
-    "created_at": "2025-06-02T03:30:16.100645",
+    "created_at": "2025-06-02T03:49:41.416527",
     "answered_at": null,
     "user_response": null,
     "is_resolved": false
   },
-  "91d13ba5-d37c-4d8f-b43b-0d445e3686da": {
-    "id": "91d13ba5-d37c-4d8f-b43b-0d445e3686da",
+  "cfd471b4-6581-4fae-82d3-a2652083f851": {
+    "id": "cfd471b4-6581-4fae-82d3-a2652083f851",
     "agent_id": "data_source_intelligence_001",
     "agent_name": "Data Source Intelligence Agent",
     "question_type": "business_context",
-    "page": "data-import",
+    "page": "attribute-mapping",
     "title": "Department/Organization Information",
     "question": "No department information found. Is organizational structure important for migration planning?",
     "context": {
@@ -822,17 +98,17 @@
     ],
     "confidence": "low",
     "priority": "low",
-    "created_at": "2025-06-02T03:30:16.102332",
+    "created_at": "2025-06-02T03:49:41.417306",
     "answered_at": null,
     "user_response": null,
     "is_resolved": false
   },
-  "3f67a5fb-3ae1-4ec5-982d-64a7e289a54c": {
-    "id": "3f67a5fb-3ae1-4ec5-982d-64a7e289a54c",
+  "f8fb99fa-3a45-4d83-9334-79ea0710a6ff": {
+    "id": "f8fb99fa-3a45-4d83-9334-79ea0710a6ff",
     "agent_id": "data_source_intelligence_001",
     "agent_name": "Data Source Intelligence Agent",
     "question_type": "field_mapping",
-    "page": "attribute-mapping",
+    "page": "data-cleansing",
     "title": "Missing Critical Fields",
     "question": "This data appears to be missing asset_name, server_name, ip_address. Are these available in other columns?",
     "context": {
@@ -843,25 +119,25 @@
       ],
       "available_columns": [
         "Hostname",
-        "RAM (GB)",
-        "CPU (Cores)"
+        "CPU (Cores)",
+        "RAM (GB)"
       ],
       "suggestion": "field_mapping_needed"
     },
     "options": null,
     "confidence": "high",
     "priority": "high",
-    "created_at": "2025-06-02T03:31:34.654994",
+    "created_at": "2025-06-02T03:51:38.749963",
     "answered_at": null,
     "user_response": null,
     "is_resolved": false
   },
-  "ef7cec07-d9f4-4b59-b7b1-ac8629197648": {
-    "id": "ef7cec07-d9f4-4b59-b7b1-ac8629197648",
+  "bfef8ebe-b9d8-45b4-84d0-14ca13829fa7": {
+    "id": "bfef8ebe-b9d8-45b4-84d0-14ca13829fa7",
     "agent_id": "data_source_intelligence_001",
     "agent_name": "Data Source Intelligence Agent",
     "question_type": "business_context",
-    "page": "attribute-mapping",
+    "page": "data-cleansing",
     "title": "Asset Ownership Information",
     "question": "No asset ownership information found. Is this available elsewhere or should migration proceed without owner details?",
     "context": {
@@ -876,17 +152,17 @@
     ],
     "confidence": "medium",
     "priority": "low",
-    "created_at": "2025-06-02T03:31:34.657099",
+    "created_at": "2025-06-02T03:51:38.752866",
     "answered_at": null,
     "user_response": null,
     "is_resolved": false
   },
-  "36062aad-37ab-42a3-8f3a-9ce62975f6a5": {
-    "id": "36062aad-37ab-42a3-8f3a-9ce62975f6a5",
+  "daeaec3f-ee07-4f24-921e-5318ad7fec6b": {
+    "id": "daeaec3f-ee07-4f24-921e-5318ad7fec6b",
     "agent_id": "data_source_intelligence_001",
     "agent_name": "Data Source Intelligence Agent",
     "question_type": "quality_validation",
-    "page": "attribute-mapping",
+    "page": "data-cleansing",
     "title": "Network Information Validation",
     "question": "Network information (IPs/hostnames) detected. Should we validate these are current and accessible?",
     "context": {
@@ -901,17 +177,17 @@
     ],
     "confidence": "medium",
     "priority": "low",
-    "created_at": "2025-06-02T03:31:34.658996",
+    "created_at": "2025-06-02T03:51:38.754244",
     "answered_at": null,
     "user_response": null,
     "is_resolved": false
   },
-  "09eca1bc-308c-400e-be36-af3d419efc2e": {
-    "id": "09eca1bc-308c-400e-be36-af3d419efc2e",
+  "eb228e3f-9497-4fce-93ff-30b8484dc141": {
+    "id": "eb228e3f-9497-4fce-93ff-30b8484dc141",
     "agent_id": "data_source_intelligence_001",
     "agent_name": "Data Source Intelligence Agent",
     "question_type": "business_context",
-    "page": "attribute-mapping",
+    "page": "data-cleansing",
     "title": "Department/Organization Information",
     "question": "No department information found. Is organizational structure important for migration planning?",
     "context": {
@@ -926,7 +202,337 @@
     ],
     "confidence": "low",
     "priority": "low",
-    "created_at": "2025-06-02T03:31:34.660048",
+    "created_at": "2025-06-02T03:51:38.755117",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "af50b27e-c1f6-4519-9342-92f82c48b172": {
+    "id": "af50b27e-c1f6-4519-9342-92f82c48b172",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "data_classification",
+    "page": "attribute-mapping",
+    "title": "No Data Provided",
+    "question": "No data was uploaded for analysis. Would you like to upload a different file?",
+    "context": {
+      "issue": "no_data"
+    },
+    "options": null,
+    "confidence": "high",
+    "priority": "high",
+    "created_at": "2025-06-02T04:08:38.120991",
+    "answered_at": "2025-06-02T04:27:37.278517",
+    "user_response": "no",
+    "is_resolved": true
+  },
+  "9283f7bb-60a1-4b59-a39e-5bfa5c8d955f": {
+    "id": "9283f7bb-60a1-4b59-a39e-5bfa5c8d955f",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "field_mapping",
+    "page": "attribute-mapping",
+    "title": "Field Mapping Clarification",
+    "question": "Could you clarify what these columns represent: ID, OS?",
+    "context": {
+      "unclear_columns": [
+        "ID",
+        "OS"
+      ],
+      "sample_data": {
+        "ID": "SRV001",
+        "TYPE": "Application",
+        "CPU (CORES)": "4",
+        "ENVIRONMENT": "Production",
+        "IP ADDRESS": "192.168.1.10",
+        "LOCATION": "DC1",
+        "NAME": "Web_Server_01",
+        "OS": "Windows Server 2019",
+        "OWNER": "John Smith",
+        "RAM (GB)": "16",
+        "RELATED CMDB RECORDS": ""
+      },
+      "total_unclear": 2
+    },
+    "options": [
+      "Asset identifier",
+      "Environment info",
+      "Technical spec",
+      "Business info",
+      "Other"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-02T04:13:25.711529",
+    "answered_at": "2025-06-02T04:25:04.624332",
+    "user_response": "Asset identifier",
+    "is_resolved": true
+  },
+  "6dff4dc6-630c-44fd-981d-e2afe1416783": {
+    "id": "6dff4dc6-630c-44fd-981d-e2afe1416783",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "quality_validation",
+    "page": "attribute-mapping",
+    "title": "Data Format Inconsistencies",
+    "question": "Found format inconsistencies in: NAME, IP ADDRESS, OS. Should we standardize these?",
+    "context": {
+      "format_issues": {
+        "NAME": [
+          "text",
+          "mixed_alphanumeric"
+        ],
+        "IP ADDRESS": [
+          "text",
+          "ip_address"
+        ],
+        "OS": [
+          "text",
+          "mixed_alphanumeric"
+        ]
+      },
+      "standardization_needed": true
+    },
+    "options": [
+      "Yes, standardize automatically",
+      "No, keep as-is",
+      "Manual review needed"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-02T04:13:25.712605",
+    "answered_at": "2025-06-02T04:25:38.504866",
+    "user_response": "Manual review needed",
+    "is_resolved": true
+  },
+  "59362459-42cf-4dd0-babd-8d0d9d22979f": {
+    "id": "59362459-42cf-4dd0-babd-8d0d9d22979f",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "field_mapping",
+    "page": "attribute-mapping",
+    "title": "Field Mapping Clarification",
+    "question": "Could you clarify what these columns represent: ID, OS?",
+    "context": {
+      "unclear_columns": [
+        "ID",
+        "OS"
+      ],
+      "sample_data": {
+        "ID": "SRV001",
+        "TYPE": "Application",
+        "CPU (CORES)": "4",
+        "ENVIRONMENT": "Production",
+        "IP ADDRESS": "192.168.1.10",
+        "LOCATION": "DC1",
+        "NAME": "Web_Server_01",
+        "OS": "Windows Server 2019",
+        "OWNER": "John Smith",
+        "RAM (GB)": "16",
+        "RELATED CMDB RECORDS": ""
+      },
+      "total_unclear": 2
+    },
+    "options": [
+      "Asset identifier",
+      "Environment info",
+      "Technical spec",
+      "Business info",
+      "Other"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-02T04:25:04.702815",
+    "answered_at": "2025-06-02T04:26:01.156339",
+    "user_response": "Environment info",
+    "is_resolved": true
+  },
+  "c3883966-ff62-49e5-96f3-daed040b7849": {
+    "id": "c3883966-ff62-49e5-96f3-daed040b7849",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "quality_validation",
+    "page": "attribute-mapping",
+    "title": "Data Format Inconsistencies",
+    "question": "Found format inconsistencies in: NAME, IP ADDRESS, OS. Should we standardize these?",
+    "context": {
+      "format_issues": {
+        "NAME": [
+          "text",
+          "mixed_alphanumeric"
+        ],
+        "IP ADDRESS": [
+          "text",
+          "ip_address"
+        ],
+        "OS": [
+          "text",
+          "mixed_alphanumeric"
+        ]
+      },
+      "standardization_needed": true
+    },
+    "options": [
+      "Yes, standardize automatically",
+      "No, keep as-is",
+      "Manual review needed"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-02T04:25:38.570746",
+    "answered_at": "2025-06-02T04:26:10.107377",
+    "user_response": "Manual review needed",
+    "is_resolved": true
+  },
+  "7d7ed396-f1b2-4e4c-a566-5d682f1ce6b7": {
+    "id": "7d7ed396-f1b2-4e4c-a566-5d682f1ce6b7",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "field_mapping",
+    "page": "attribute-mapping",
+    "title": "Field Mapping Clarification",
+    "question": "Could you clarify what these columns represent: ID, OS?",
+    "context": {
+      "unclear_columns": [
+        "ID",
+        "OS"
+      ],
+      "sample_data": {
+        "ID": "SRV001",
+        "TYPE": "Application",
+        "CPU (CORES)": "4",
+        "ENVIRONMENT": "Production",
+        "IP ADDRESS": "192.168.1.10",
+        "LOCATION": "DC1",
+        "NAME": "Web_Server_01",
+        "OS": "Windows Server 2019",
+        "OWNER": "John Smith",
+        "RAM (GB)": "16",
+        "RELATED CMDB RECORDS": ""
+      },
+      "total_unclear": 2
+    },
+    "options": [
+      "Asset identifier",
+      "Environment info",
+      "Technical spec",
+      "Business info",
+      "Other"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-02T04:26:01.290426",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "65e90950-163f-416a-899d-974997daa661": {
+    "id": "65e90950-163f-416a-899d-974997daa661",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "quality_validation",
+    "page": "attribute-mapping",
+    "title": "Data Format Inconsistencies",
+    "question": "Found format inconsistencies in: NAME, IP ADDRESS, OS. Should we standardize these?",
+    "context": {
+      "format_issues": {
+        "NAME": [
+          "text",
+          "mixed_alphanumeric"
+        ],
+        "IP ADDRESS": [
+          "text",
+          "ip_address"
+        ],
+        "OS": [
+          "text",
+          "mixed_alphanumeric"
+        ]
+      },
+      "standardization_needed": true
+    },
+    "options": [
+      "Yes, standardize automatically",
+      "No, keep as-is",
+      "Manual review needed"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-02T04:26:10.175497",
+    "answered_at": "2025-06-02T04:26:44.797565",
+    "user_response": "Manual review needed",
+    "is_resolved": true
+  },
+  "463358c2-a05e-4786-a359-95708ed925e7": {
+    "id": "463358c2-a05e-4786-a359-95708ed925e7",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "quality_validation",
+    "page": "attribute-mapping",
+    "title": "Data Format Inconsistencies",
+    "question": "Found format inconsistencies in: NAME, IP ADDRESS, OS. Should we standardize these?",
+    "context": {
+      "format_issues": {
+        "NAME": [
+          "text",
+          "mixed_alphanumeric"
+        ],
+        "IP ADDRESS": [
+          "text",
+          "ip_address"
+        ],
+        "OS": [
+          "text",
+          "mixed_alphanumeric"
+        ]
+      },
+      "standardization_needed": true
+    },
+    "options": [
+      "Yes, standardize automatically",
+      "No, keep as-is",
+      "Manual review needed"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-02T04:26:44.867392",
+    "answered_at": "2025-06-02T04:27:48.719420",
+    "user_response": "No, keep as-is",
+    "is_resolved": true
+  },
+  "0dc460a4-04b2-4f3e-96ef-f3a81d63e366": {
+    "id": "0dc460a4-04b2-4f3e-96ef-f3a81d63e366",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "quality_validation",
+    "page": "attribute-mapping",
+    "title": "Data Format Inconsistencies",
+    "question": "Found format inconsistencies in: NAME, IP ADDRESS, OS. Should we standardize these?",
+    "context": {
+      "format_issues": {
+        "NAME": [
+          "text",
+          "mixed_alphanumeric"
+        ],
+        "IP ADDRESS": [
+          "text",
+          "ip_address"
+        ],
+        "OS": [
+          "text",
+          "mixed_alphanumeric"
+        ]
+      },
+      "standardization_needed": true
+    },
+    "options": [
+      "Yes, standardize automatically",
+      "No, keep as-is",
+      "Manual review needed"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-02T04:27:48.804006",
     "answered_at": null,
     "user_response": null,
     "is_resolved": false

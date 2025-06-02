@@ -238,16 +238,11 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
             <h3 className="font-medium text-gray-900">Data Classification</h3>
             <span className="text-sm text-gray-500">by AI Agents</span>
           </div>
-          <button
-            onClick={fetchClassifications}
-            className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-            title="Refresh classifications"
-          >
-            <RefreshCw className="w-4 h-4 text-gray-500" />
-          </button>
+          {isProcessing && (
+            <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+          )}
         </div>
 
-        {/* Progress Summary */}
         {getTotalCount() > 0 && (
           <div className="mb-4">
             <div className="flex items-center justify-between text-sm mb-2">
@@ -263,8 +258,8 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
           </div>
         )}
 
-        {/* Classification Tabs */}
-        <div className="flex space-x-2">
+        {/* Classification Tabs - Simplified to show just counts */}
+        <div className="space-y-2">
           {(['good_data', 'needs_clarification', 'unusable'] as const).map((classification) => {
             const config = getClassificationConfig(classification);
             const count = classifications[classification].length;
@@ -274,15 +269,17 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
               <button
                 key={classification}
                 onClick={() => setSelectedTab(classification)}
-                className={`flex items-center space-x-2 px-3 py-2 rounded-md border transition-colors ${
+                className={`w-full flex items-center justify-between p-3 rounded-md border transition-colors ${
                   selectedTab === classification
                     ? `${config.bgColor} ${config.borderColor} ${config.color}`
                     : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
                 }`}
               >
-                <Icon className="w-4 h-4" />
-                <span className="text-sm font-medium">{config.title}</span>
-                <span className="text-xs bg-white px-2 py-1 rounded-full">
+                <div className="flex items-center space-x-2">
+                  <Icon className="w-4 h-4" />
+                  <span className="text-sm font-medium">{config.title}</span>
+                </div>
+                <span className="text-lg font-bold">
                   {count}
                 </span>
               </button>
@@ -291,133 +288,84 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
         </div>
       </div>
 
-      <div className="max-h-96 overflow-y-auto">
-        {error && (
-          <div className="p-4 bg-red-50 border-l-4 border-red-500">
-            <div className="flex items-center">
-              <XCircle className="w-5 h-5 text-red-500 mr-2" />
-              <span className="text-red-700">{error}</span>
-            </div>
+      {/* Selected Classification Details - Simplified List */}
+      {currentItems.length > 0 && (
+        <div className="p-4">
+          <div className="flex items-center space-x-2 mb-3">
+            <currentClassificationConfig.icon className={`w-4 h-4 ${currentClassificationConfig.color}`} />
+            <h4 className="font-medium text-gray-900">{currentClassificationConfig.title}</h4>
+            <span className="text-sm text-gray-500">({currentItems.length} items)</span>
           </div>
-        )}
-
-        {getTotalCount() === 0 && !error && (
-          <div className="p-6 text-center text-gray-500">
-            <Brain className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-            <p>No data classifications yet</p>
-            <p className="text-sm mt-1">Agents will classify data as it's processed</p>
-          </div>
-        )}
-
-        {currentItems.length === 0 && getTotalCount() > 0 && (
-          <div className="p-6 text-center text-gray-500">
-            <currentClassificationConfig.icon className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-            <p>No {currentClassificationConfig.title.toLowerCase()} items</p>
-            <p className="text-sm mt-1">{currentClassificationConfig.description}</p>
-          </div>
-        )}
-
-        {/* Current Classification Items */}
-        {currentItems.map((item) => (
-          <div
-            key={item.id}
-            className={`border-l-4 p-4 border-b border-gray-100 ${currentClassificationConfig.borderColor}`}
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center space-x-2 mb-2">
-                  <span className="font-medium text-gray-900">{item.data_type}</span>
-                  <span className={`text-sm ${getConfidenceColor(item.confidence)}`}>
-                    {item.confidence} confidence
-                  </span>
-                  <button
-                    onClick={() => toggleItemExpansion(item.id)}
-                    className="p-1 hover:bg-gray-100 rounded"
-                  >
-                    {expandedItems.has(item.id) ? (
-                      <ChevronUp className="w-4 h-4 text-gray-500" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4 text-gray-500" />
-                    )}
-                  </button>
+          
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {currentItems.map((item, index) => (
+              <div key={item.id} className="border rounded p-2 hover:bg-gray-50">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="text-sm font-medium text-gray-900">
+                      {item.content?.Hostname || item.content?.hostname || 
+                       item.content?.Name || item.content?.name || 
+                       item.content?.['Asset Name'] || `Item ${index + 1}`}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {item.data_type} • {item.confidence} confidence
+                    </div>
+                  </div>
+                  
+                  {/* Classification Actions */}
+                  <div className="flex space-x-1">
+                    {(['good_data', 'needs_clarification', 'unusable'] as const)
+                      .filter(c => c !== item.classification)
+                      .map((newClassification) => {
+                        const actionConfig = getClassificationConfig(newClassification);
+                        return (
+                          <button
+                            key={newClassification}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateClassification(item.id, newClassification);
+                            }}
+                            className={`p-1 rounded hover:${actionConfig.bgColor} ${actionConfig.color}`}
+                            title={`Mark as ${actionConfig.title}`}
+                          >
+                            <actionConfig.icon className="w-3 h-3" />
+                          </button>
+                        );
+                      })}
+                  </div>
                 </div>
-
-                {/* Agent Analysis Summary */}
-                {item.agent_analysis && (
-                  <p className="text-sm text-gray-600 mb-2">
-                    {item.agent_analysis.reasoning || item.agent_analysis.summary || 'Analyzed by AI agent'}
-                  </p>
-                )}
-
-                {/* Issues */}
-                {item.issues && item.issues.length > 0 && (
-                  <div className="mb-2">
-                    <span className="text-xs font-medium text-red-600">Issues:</span>
-                    <ul className="text-xs text-gray-600 ml-2">
-                      {item.issues.map((issue, index) => (
-                        <li key={index} className="list-disc list-inside">{issue}</li>
-                      ))}
-                    </ul>
+                
+                {/* Show issues if any for needs_clarification or unusable */}
+                {(item.classification === 'needs_clarification' || item.classification === 'unusable') && 
+                 item.issues && item.issues.length > 0 && (
+                  <div className="mt-2 text-xs text-gray-600">
+                    <strong>Issues:</strong> {item.issues.slice(0, 2).join(', ')}
+                    {item.issues.length > 2 && '...'}
                   </div>
                 )}
-
-                {/* Recommendations */}
-                {item.recommendations && item.recommendations.length > 0 && (
-                  <div className="mb-2">
-                    <span className="text-xs font-medium text-blue-600">Recommendations:</span>
-                    <ul className="text-xs text-gray-600 ml-2">
-                      {item.recommendations.map((rec, index) => (
-                        <li key={index} className="list-disc list-inside">{rec}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Expanded Details */}
-                {expandedItems.has(item.id) && (
-                  <div className="mt-3 p-3 bg-gray-50 rounded-md">
-                    <h5 className="text-sm font-medium text-gray-700 mb-2">Agent Analysis Details</h5>
-                    <pre className="text-xs text-gray-600 whitespace-pre-wrap">
-                      {JSON.stringify(item.agent_analysis, null, 2)}
-                    </pre>
-                    
-                    {item.content && (
-                      <>
-                        <h5 className="text-sm font-medium text-gray-700 mb-2 mt-3">Content Sample</h5>
-                        <pre className="text-xs text-gray-600 whitespace-pre-wrap">
-                          {JSON.stringify(item.content, null, 2)}
-                        </pre>
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {/* Classification Update Actions */}
-                <div className="flex items-center space-x-2 mt-3">
-                  <span className="text-xs text-gray-500">Correct classification:</span>
-                  {(['good_data', 'needs_clarification', 'unusable'] as const)
-                    .filter(classification => classification !== item.classification)
-                    .map((classification) => {
-                      const config = getClassificationConfig(classification);
-                      const Icon = config.icon;
-                      return (
-                        <button
-                          key={classification}
-                          onClick={() => updateClassification(item.id, classification)}
-                          className={`flex items-center space-x-1 px-2 py-1 text-xs rounded ${config.bgColor} ${config.color} hover:opacity-80 transition-opacity`}
-                          title={`Mark as ${config.title}`}
-                        >
-                          <Icon className="w-3 h-3" />
-                          <span>{config.title}</span>
-                        </button>
-                      );
-                    })}
-                </div>
               </div>
-            </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {getTotalCount() === 0 && (
+        <div className="p-6 text-center text-gray-500">
+          <BarChart3 className="w-8 h-8 mx-auto mb-2 opacity-50" />
+          <p className="text-sm">No data classifications yet</p>
+          <p className="text-xs">Agents will classify data as it's processed</p>
+        </div>
+      )}
+
+      {error && (
+        <div className="p-4 border-t">
+          <div className="text-sm text-red-600 flex items-center space-x-2">
+            <AlertTriangle className="w-4 h-4" />
+            <span>{error}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

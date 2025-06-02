@@ -24,9 +24,10 @@ class InsightHandler:
                          title: str, description: str, confidence: ConfidenceLevel,
                          supporting_data: Dict[str, Any], page: str = "discovery",
                          actionable: bool = True) -> str:
-        """Add a new insight from an agent."""
+        """Add a new insight from an agent (with presentation review filtering)."""
         insight_id = str(uuid.uuid4())
         
+        # Create preliminary insight
         insight = AgentInsight(
             id=insight_id,
             agent_id=agent_id,
@@ -40,10 +41,21 @@ class InsightHandler:
             page=page
         )
         
+        # Check for duplicates before adding - simple duplicate detection
+        existing_insights = [
+            existing for existing in self.agent_insights.values()
+            if existing.page == page and existing.title == title and existing.agent_id == agent_id
+        ]
+        
+        if existing_insights:
+            logger.info(f"Duplicate insight detected and filtered out: {title} from {agent_name}")
+            return existing_insights[0].id  # Return existing insight ID
+        
+        # Add to storage
         self.agent_insights[insight_id] = insight
         self.storage_manager.save_insights(self.agent_insights)
         
-        logger.info(f"Agent {agent_name} added insight: {title}")
+        logger.info(f"Agent {agent_name} added insight: {title} (page: {page})")
         return insight_id
     
     def get_insights_for_page(self, page: str) -> List[Dict[str, Any]]:

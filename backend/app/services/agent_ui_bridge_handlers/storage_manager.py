@@ -96,6 +96,11 @@ class StorageManager:
                 if hasattr(item, '__dict__'):
                     # Convert dataclass to dict
                     item_dict = item.__dict__.copy()
+                    # Convert datetime objects to ISO strings
+                    if item_dict.get('created_at'):
+                        item_dict['created_at'] = item_dict['created_at'].isoformat()
+                    if item_dict.get('updated_at'):
+                        item_dict['updated_at'] = item_dict['updated_at'].isoformat()
                     # Convert enums to strings
                     if hasattr(item_dict.get('classification'), 'value'):
                         item_dict['classification'] = item_dict['classification'].value

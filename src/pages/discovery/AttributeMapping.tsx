@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, CheckCircle, XCircle, Target, Brain } from 'lucide-react';
 import Sidebar from '../../components/Sidebar';
 import RawDataTable from '../../components/discovery/RawDataTable';
 import AgentClarificationPanel from '../../components/discovery/AgentClarificationPanel';
@@ -250,37 +250,39 @@ const AttributeMapping = () => {
     }
   };
 
-  // Trigger agent panel analysis for clarifications, classifications, and insights
+  // Trigger agent panel analysis after field mappings are generated
   const triggerAgentPanelAnalysis = async (mappings: FieldMapping[], sampleData: any[]) => {
     try {
-      // Trigger data source analysis specifically for attribute mapping context
-      // This will generate agent questions, classifications, and insights for the current data
+      // Trigger comprehensive agent analysis for attribute mapping page
       await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_ANALYSIS, {
         method: 'POST',
         body: JSON.stringify({
           data_source: {
+            file_data: sampleData.slice(0, 20), // Send sample data for classification
             columns: mappings.map(m => m.sourceField),
-            sample_data: sampleData.slice(0, 10),
-            field_mappings: mappings.map(m => ({
-              source_field: m.sourceField,
-              target_attribute: m.targetAttribute,
-              confidence: m.confidence,
-              status: m.status
-            })),
-            unmapped_fields: mappings.filter(m => m.targetAttribute === 'unmapped').map(m => m.sourceField),
-            low_confidence_mappings: mappings.filter(m => m.confidence < 0.7)
+            metadata: {
+              file_name: "attribute_mapping_data.csv",
+              mapping_context: "attribute-mapping",
+              field_mappings: mappings.map(m => ({
+                source: m.sourceField,
+                target: m.targetAttribute,
+                confidence: m.confidence,
+                status: m.status
+              }))
+            }
           },
           analysis_type: 'data_source_analysis',
           page_context: 'attribute-mapping'
         })
       });
       
-      // Trigger agent panel refresh to pick up new analysis
-      setAgentRefreshTrigger(prev => prev + 1);
+      // Trigger refresh after agent analysis
+      setTimeout(() => {
+        setAgentRefreshTrigger(prev => prev + 1);
+      }, 2000); // Give agents time to process
       
-      console.log('Agent panel analysis triggered for attribute mapping context');
     } catch (error) {
-      console.warn('Agent panel analysis failed:', error);
+      console.error('Agent panel analysis failed:', error);
     }
   };
 
@@ -472,6 +474,246 @@ const AttributeMapping = () => {
             onMappingAction={handleMappingAction}
             onMappingChange={handleMappingChange}
           />
+        );
+      case 'critical':
+        return (
+          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Critical Attributes Analysis</h2>
+                <p className="text-gray-600 mt-1">
+                  Review and validate critical attributes mapped for migration assessment
+                </p>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-indigo-600">
+                  {Math.round(mappingProgress.accuracy * 100)}%
+                </div>
+                <div className="text-sm text-gray-600">Mapping Accuracy</div>
+              </div>
+            </div>
+            
+            {/* Critical Attributes Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Object.entries(CRITICAL_ATTRIBUTES).map(([key, attr]) => {
+                const mappedField = fieldMappings.find(m => 
+                  m.targetAttribute === key && m.status === 'approved'
+                );
+                const isMapped = !!mappedField;
+                
+                return (
+                  <div key={key} className={`border rounded-lg p-4 ${
+                    isMapped ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'
+                  }`}>
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-900">{attr.field}</h3>
+                        <p className="text-sm text-gray-600 capitalize">{attr.category}</p>
+                      </div>
+                      {isMapped ? (
+                        <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
+                      ) : (
+                        <XCircle className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                      )}
+                    </div>
+                    
+                    {isMapped ? (
+                      <div className="space-y-2">
+                        <div className="text-sm">
+                          <span className="text-gray-600">Mapped to: </span>
+                          <span className="font-medium text-gray-900">{mappedField.sourceField}</span>
+                        </div>
+                        <div className="text-sm">
+                          <span className="text-gray-600">Confidence: </span>
+                          <span className={`font-medium ${
+                            mappedField.confidence >= 0.8 ? 'text-green-600' :
+                            mappedField.confidence >= 0.6 ? 'text-yellow-600' : 'text-red-600'
+                          }`}>
+                            {Math.round(mappedField.confidence * 100)}%
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          Sample values: {mappedField.sample_values.slice(0, 2).join(', ')}
+                          {mappedField.sample_values.length > 2 && '...'}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-sm text-gray-500">
+                        Not mapped yet. Required for migration assessment.
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            
+            {/* Critical Mapping Requirements */}
+            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-start space-x-3">
+                <Target className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h4 className="font-medium text-blue-900 mb-2">Migration Assessment Requirements</h4>
+                  <p className="text-sm text-blue-800 mb-3">
+                    Map at least 3 critical attributes to proceed to the assessment phase. 
+                    Currently mapped: <span className="font-medium">{mappingProgress.critical_mapped}</span>
+                  </p>
+                  {mappingProgress.critical_mapped < 3 && (
+                    <div className="text-sm text-blue-700">
+                      <strong>Priority fields to map:</strong>
+                      <ul className="list-disc list-inside mt-1 space-y-1">
+                        <li>Asset Name or Hostname (for identification)</li>
+                        <li>Asset Type (for 6R strategy selection)</li>
+                        <li>Environment or Department (for wave planning)</li>
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      case 'progress':
+        return (
+          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">AI Training Progress</h2>
+                <p className="text-gray-600 mt-1">
+                  Monitor AI learning and field mapping intelligence development
+                </p>
+              </div>
+            </div>
+            
+            {/* Learning Progress Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              {/* Field Mapping Intelligence */}
+              <div className="border rounded-lg p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-medium text-gray-900">Field Mapping Intelligence</h3>
+                  <Brain className="h-5 w-5 text-indigo-500" />
+                </div>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Pattern Recognition</span>
+                    <span className="text-sm font-medium text-green-600">
+                      {Math.round(mappingProgress.accuracy * 100)}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${mappingProgress.accuracy * 100}%` }}
+                    />
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Fields Learned</span>
+                    <span className="text-sm font-medium text-blue-600">
+                      {fieldMappings.filter(m => m.status === 'approved').length}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${(fieldMappings.filter(m => m.status === 'approved').length / Math.max(fieldMappings.length, 1)) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              {/* Data Quality Intelligence */}
+              <div className="border rounded-lg p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-medium text-gray-900">Data Quality Intelligence</h3>
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                </div>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Classification Accuracy</span>
+                    <span className="text-sm font-medium text-green-600">
+                      {fieldMappings.length > 0 ? Math.round((fieldMappings.filter(m => m.confidence >= 0.7).length / fieldMappings.length) * 100) : 0}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${fieldMappings.length > 0 ? (fieldMappings.filter(m => m.confidence >= 0.7).length / fieldMappings.length) * 100 : 0}%` }}
+                    />
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Learning Examples</span>
+                    <span className="text-sm font-medium text-purple-600">
+                      {fieldMappings.filter(m => m.status !== 'pending').length}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-purple-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${fieldMappings.length > 0 ? (fieldMappings.filter(m => m.status !== 'pending').length / fieldMappings.length) * 100 : 0}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Training History */}
+            <div className="border rounded-lg p-4">
+              <h3 className="font-medium text-gray-900 mb-4">Recent Training Activity</h3>
+              <div className="space-y-3">
+                {fieldMappings.filter(m => m.status !== 'pending').slice(-5).map((mapping, index) => (
+                  <div key={mapping.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-900">
+                        Learned: {mapping.sourceField} → {mapping.targetAttribute}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {mapping.ai_reasoning || 'Pattern-based mapping'}
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className={`px-2 py-1 text-xs rounded-full ${
+                        mapping.status === 'approved' ? 'bg-green-100 text-green-700' :
+                        mapping.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                        'bg-gray-100 text-gray-700'
+                      }`}>
+                        {mapping.status}
+                      </span>
+                      <span className={`text-xs font-medium ${
+                        mapping.confidence >= 0.8 ? 'text-green-600' :
+                        mapping.confidence >= 0.6 ? 'text-yellow-600' : 'text-red-600'
+                      }`}>
+                        {Math.round(mapping.confidence * 100)}%
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                
+                {fieldMappings.filter(m => m.status !== 'pending').length === 0 && (
+                  <div className="text-center py-6 text-gray-500">
+                    <Brain className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No training examples yet. Start approving field mappings to train the AI.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* AI Learning Tips */}
+            <div className="mt-6 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+              <div className="flex items-start space-x-3">
+                <Brain className="h-5 w-5 text-indigo-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h4 className="font-medium text-indigo-900 mb-2">Improve AI Learning</h4>
+                  <ul className="text-sm text-indigo-800 space-y-1">
+                    <li>• Approve accurate field mappings to teach the AI your data patterns</li>
+                    <li>• Reject incorrect mappings to prevent the AI from learning bad patterns</li>
+                    <li>• Manually adjust mappings when needed - the AI will learn from your corrections</li>
+                    <li>• The more examples you provide, the better the AI becomes at future mappings</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
         );
       default:
         return null;

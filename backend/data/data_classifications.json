@@ -1,0 +1,14 @@
+{
+  "data_row_0_analysis_20250602_044111": {
+    "id": "data_row_0_analysis_20250602_044111",
+    "data_type": "asset_record",
+    "content": {
+      "CPU (Cores)": "8",
+      "RAM (GB)": "16",
+      "Hostname": "server-01",
+      "Environment": "Production",
+      "Department": "Finance"
+    },
+    "classification": "good_data",
+    "agent_analysis": {
+      "overall_classification": 

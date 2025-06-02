@@ -89,8 +89,38 @@ class DataSourceIntelligenceAgent:
             # Store analysis for learning
             self.analysis_history.append(analysis_result)
             
+            # Add data classification to UI bridge
+            if analysis_result.get("data_classification"):
+                classification_data = analysis_result["data_classification"]
+                
+                # Map classification string to enum properly
+                classification_str = classification_data.get("overall_classification", "good_data")
+                if classification_str == "good_data":
+                    classification_type = DataClassification.GOOD_DATA
+                elif classification_str == "needs_clarification":
+                    classification_type = DataClassification.NEEDS_CLARIFICATION
+                elif classification_str == "unusable":
+                    classification_type = DataClassification.UNUSABLE
+                else:
+                    classification_type = DataClassification.GOOD_DATA  # Default fallback
+                
+                # Store each data item with classification
+                for i, row in enumerate(file_data[:10]):  # Sample first 10 rows for classification
+                    agent_ui_bridge.classify_data_item(
+                        item_id=f"data_row_{i}_{analysis_id}",
+                        data_type="asset_record",
+                        content=row,
+                        classification=classification_type,  # Pass enum, not .value
+                        agent_analysis=classification_data,
+                        confidence=ConfidenceLevel.MEDIUM,  # Pass enum, not .value
+                        page=page_context,
+                        issues=classification_data.get("issues", []),
+                        recommendations=classification_data.get("recommendations", [])
+                    )
+            
             # Add insights to UI bridge
             for insight in analysis_result["agent_insights"]:
+                logger.info(f"Adding insight with page_context: {page_context}")
                 agent_ui_bridge.add_agent_insight(
                     agent_id=self.agent_id,
                     agent_name=self.agent_name,
@@ -99,11 +129,13 @@ class DataSourceIntelligenceAgent:
                     description=insight["description"],
                     confidence=ConfidenceLevel(insight["confidence"]),
                     supporting_data=insight["supporting_data"],
-                    page=page_context
+                    page=page_context,
+                    actionable=insight.get("actionable", True)
                 )
             
             # Add clarification questions to UI bridge
             for question in analysis_result["clarification_questions"]:
+                logger.info(f"Adding question with page_context: {page_context}")
                 agent_ui_bridge.add_agent_question(
                     agent_id=self.agent_id,
                     agent_name=self.agent_name,

@@ -1,183 +1,124 @@
 {
-  "f886945b-b082-4757-9fe2-dada6dc8bcaa": {
-    "id": "f886945b-b082-4757-9fe2-dada6dc8bcaa",
+  "f768bf18-a268-4fe5-b284-2e4ff1f203e4": {
+    "id": "f768bf18-a268-4fe5-b284-2e4ff1f203e4",
     "agent_id": "data_source_intelligence_001",
     "agent_name": "Data Source Intelligence Agent",
-    "insight_type": "optimization_opportunity",
-    "title": "Legacy Operating Systems Detected",
-    "description": "Found 3 assets (30.0%) running legacy operating systems requiring modernization",
+    "insight_type": "data_overview",
+    "title": "Dataset Analysis Summary",
+    "description": "Analyzed 3 records with 6 fields. Ready for migration attribute mapping and quality assessment",
     "confidence": "high",
     "supporting_data": {
-      "legacy_count": 3,
-      "total_assets": 10,
-      "legacy_percentage": 30.0
+      "total_records": 3,
+      "total_fields": 6,
+      "analysis_scope": "complete"
     },
-    "page": "data-import",
-    "actionable": true,
-    "created_at": "2025-06-01T07:07:26.518343",
+    "page": "attribute-mapping",
+    "actionable": false,
+    "created_at": "2025-06-02T04:41:11.538783",
     "user_feedback": null,
     "is_validated": false
   },
-  "0cbbdf05-0d31-4928-81d0-7e4ebef21d93": {
-    "id": "0cbbdf05-0d31-4928-81d0-7e4ebef21d93",
-    "agent_id": "data_source_intelligence_001",
-    "agent_name": "Data Source Intelligence Agent",
-    "insight_type": "optimization_opportunity",
-    "title": "Legacy Operating Systems Detected",
-    "description": "Found 3 assets (30.0%) running legacy operating systems requiring modernization",
-    "confidence": "high",
-    "supporting_data": {
-      "legacy_count": 3,
-      "total_assets": 10,
-      "legacy_percentage": 30.0
-    },
-    "page": "data-import",
-    "actionable": true,
-    "created_at": "2025-06-01T07:11:12.992216",
-    "user_feedback": null,
-    "is_validated": false
-  },
-  "b907bbce-a599-4434-8e10-0353cc45a4c9": {
-    "id": "b907bbce-a599-4434-8e10-0353cc45a4c9",
-    "agent_id": "data_source_intelligence_001",
-    "agent_name": "Data Source Intelligence Agent",
-    "insight_type": "optimization_opportunity",
-    "title": "Legacy Operating Systems Detected",
-    "description": "Found 3 assets (30.0%) running legacy operating systems requiring modernization",
-    "confidence": "high",
-    "supporting_data": {
-      "legacy_count": 3,
-      "total_assets": 10,
-      "legacy_percentage": 30.0
-    },
-    "page": "data-import",
-    "actionable": true,
-    "created_at": "2025-06-01T07:21:47.876542",
-    "user_feedback": null,
-    "is_validated": false
-  },
-  "608bc863-64fa-4d90-a132-bb527b92ddd4": {
-    "id": "608bc863-64fa-4d90-a132-bb527b92ddd4",
-    "agent_id": "data_source_intelligence_001",
-    "agent_name": "Data Source Intelligence Agent",
-    "insight_type": "optimization_opportunity",
-    "title": "Legacy Operating Systems Detected",
-    "description": "Found 3 assets (30.0%) running legacy operating systems requiring modernization",
-    "confidence": "high",
-    "supporting_data": {
-      "legacy_count": 3,
-      "total_assets": 10,
-      "legacy_percentage": 30.0
-    },
-    "page": "data-import",
-    "actionable": true,
-    "created_at": "2025-06-01T07:26:52.713963",
-    "user_feedback": null,
-    "is_validated": false
-  },
-  "848a1bb5-8f73-4641-b3f8-d05a85822f49": {
-    "id": "848a1bb5-8f73-4641-b3f8-d05a85822f49",
-    "agent_id": "data_source_intelligence_001",
-    "agent_name": "Data Source Intelligence Agent",
-    "insight_type": "optimization_opportunity",
-    "title": "Legacy Operating Systems Detected",
-    "description": "Found 3 assets (30.0%) running legacy operating systems requiring modernization",
-    "confidence": "high",
-    "supporting_data": {
-      "legacy_count": 3,
-      "total_assets": 10,
-      "legacy_percentage": 30.0
-    },
-    "page": "data-import",
-    "actionable": true,
-    "created_at": "2025-06-01T07:27:27.483040",
-    "user_feedback": null,
-    "is_validated": false
-  },
-  "a9324b03-ef67-49e0-bd3a-10c1b64fc496": {
-    "id": "a9324b03-ef67-49e0-bd3a-10c1b64fc496",
-    "agent_id": "data_source_intelligence_001",
-    "agent_name": "Data Source Intelligence Agent",
-    "insight_type": "optimization_opportunity",
-    "title": "Legacy Operating Systems Detected",
-    "description": "Found 3 assets (30.0%) running legacy operating systems requiring modernization",
-    "confidence": "high",
-    "supporting_data": {
-      "legacy_count": 3,
-      "total_assets": 10,
-      "legacy_percentage": 30.0
-    },
-    "page": "data-import",
-    "actionable": true,
-    "created_at": "2025-06-01T07:42:13.137312",
-    "user_feedback": null,
-    "is_validated": false
-  },
-  "9d31f5d7-539f-4eac-b88b-0600d5aea38c": {
-    "id": "9d31f5d7-539f-4eac-b88b-0600d5aea38c",
+  "ac5ecd74-c162-4e56-b0fd-94c1a642e943": {
+    "id": "ac5ecd74-c162-4e56-b0fd-94c1a642e943",
     "agent_id": "data_source_intelligence_001",
     "agent_name": "Data Source Intelligence Agent",
     "insight_type": "data_quality",
-    "title": "No Data Available",
-    "description": "No data was provided for analysis",
+    "title": "Asset Identification Fields Present",
+    "description": "Found 3 critical fields (CPU (Cores), RAM (GB), Hostname), providing foundation for migration planning",
     "confidence": "high",
     "supporting_data": {
-      "row_count": 0
+      "critical_fields": 3,
+      "identified_fields": [
+        "CPU (Cores)",
+        "RAM (GB)",
+        "Hostname"
+      ],
+      "total_columns": 6,
+      "analysis_confidence": "high"
     },
-    "page": "data-import",
-    "actionable": true,
-    "created_at": "2025-06-02T03:22:09.646205",
+    "page": "attribute-mapping",
+    "actionable": false,
+    "created_at": "2025-06-02T04:41:11.539792",
     "user_feedback": null,
     "is_validated": false
   },
-  "f73f4c8b-99a0-477e-b538-8758543004a8": {
-    "id": "f73f4c8b-99a0-477e-b538-8758543004a8",
+  "1cc01184-d2b3-427e-ac90-94a4b8a57f9a": {
+    "id": "1cc01184-d2b3-427e-ac90-94a4b8a57f9a",
     "agent_id": "data_source_intelligence_001",
     "agent_name": "Data Source Intelligence Agent",
-    "insight_type": "data_quality",
-    "title": "No Data Available",
-    "description": "No data was provided for analysis",
-    "confidence": "high",
+    "insight_type": "migration_readiness",
+    "title": "Sample Migration Dataset",
+    "description": "Dataset contains 3 assets, perfect for testing migration workflows and field mapping validation",
+    "confidence": "medium",
     "supporting_data": {
-      "row_count": 0
+      "asset_count": 3,
+      "scale_category": "sample_testing"
     },
-    "page": "data-import",
-    "actionable": true,
-    "created_at": "2025-06-02T03:22:40.010889",
+    "page": "attribute-mapping",
+    "actionable": false,
+    "created_at": "2025-06-02T04:41:11.540425",
     "user_feedback": null,
     "is_validated": false
   },
-  "6832e5c6-a330-4a22-949b-fb20805f9a50": {
-    "id": "6832e5c6-a330-4a22-949b-fb20805f9a50",
+  "684c5de1-536c-4c91-bb96-0382d134c367": {
+    "id": "684c5de1-536c-4c91-bb96-0382d134c367",
     "agent_id": "data_source_intelligence_001",
     "agent_name": "Data Source Intelligence Agent",
-    "insight_type": "data_quality",
-    "title": "No Data Available",
-    "description": "No data was provided for analysis",
-    "confidence": "high",
+    "insight_type": "migration_readiness",
+    "title": "Environment Distribution Analysis",
+    "description": "Identified 2 distinct environments. Major distributions: production: 66.7% (2 assets)",
+    "confidence": "medium",
     "supporting_data": {
-      "row_count": 0
+      "environments": {
+        "production": 2,
+        "test": 1
+      },
+      "total_assets": 3
     },
-    "page": "data-import",
-    "actionable": true,
-    "created_at": "2025-06-02T03:26:27.598101",
+    "page": "attribute-mapping",
+    "actionable": false,
+    "created_at": "2025-06-02T04:41:11.541203",
     "user_feedback": null,
     "is_validated": false
   },
-  "384f5e20-1c41-4a6b-b6fb-cab4e1f4a107": {
-    "id": "384f5e20-1c41-4a6b-b6fb-cab4e1f4a107",
+  "9cbca4d2-34e3-4eed-b1a1-4bb50b894e2a": {
+    "id": "9cbca4d2-34e3-4eed-b1a1-4bb50b894e2a",
     "agent_id": "data_source_intelligence_001",
     "agent_name": "Data Source Intelligence Agent",
-    "insight_type": "data_quality",
-    "title": "No Data Available",
-    "description": "No data was provided for analysis",
+    "insight_type": "organizational_pattern",
+    "title": "Multi-Department Asset Distribution",
+    "description": "Assets span 3 departments. Largest: Finance with 1 assets (33.3%)",
+    "confidence": "medium",
+    "supporting_data": {
+      "departments": {
+        "Finance": 1,
+        "HR": 1,
+        "Sales": 1
+      },
+      "department_count": 3
+    },
+    "page": "attribute-mapping",
+    "actionable": false,
+    "created_at": "2025-06-02T04:41:11.541946",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "d86b4c31-14ec-4169-97dd-6ac58822f848": {
+    "id": "d86b4c31-14ec-4169-97dd-6ac58822f848",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "insight_type": "optimization_opportunity",
+    "title": "Legacy Operating Systems Detected",
+    "description": "Found 1 assets (25.0%) running legacy operating systems requiring modernization",
     "confidence": "high",
     "supporting_data": {
-      "row_count": 0
+      "legacy_count": 1,
+      "total_assets": 4,
+      "legacy_percentage": 25.0
     },
-    "page": "data-import",
+    "page": "attribute-mapping",
     "actionable": true,
-    "created_at": "2025-06-02T03:29:51.378995",
+    "created_at": "2025-06-02T04:41:11.542947",
     "user_feedback": null,
     "is_validated": false
   }
