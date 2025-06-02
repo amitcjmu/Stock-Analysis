@@ -164,7 +164,7 @@ const findAssetByIdentifier = (rawData: any[], identifier: string): any | null =
   if (!identifier || !rawData || rawData.length === 0) return null;
   
   return rawData.find(asset => {
-    // Use the EXACT same logic as table's getAssetIdentifier
+    // Use the EXACT same logic as table's getAssetIdentifier: row.id || row.ID || row.asset_name || row.hostname || row.name || row.NAME || 'unknown'
     const tableAssetId = asset.id || asset.ID || asset.asset_name || asset.hostname || asset.name || asset.NAME || 'unknown';
     return tableAssetId === identifier;
   }) || null;
@@ -174,7 +174,7 @@ const findAssetByIdentifier = (rawData: any[], identifier: string): any | null =
  * Get the asset identifier that the table is using for row identification - MUST match RawDataTable exactly
  */
 const getAssetTableIdentifier = (asset: any): string => {
-  // EXACT same logic as RawDataTable's getAssetIdentifier
+  // EXACT same logic as RawDataTable's getAssetIdentifier: row.id || row.ID || row.asset_name || row.hostname || row.name || row.NAME || 'unknown'
   return asset.id || asset.ID || asset.asset_name || asset.hostname || asset.name || asset.NAME || 'unknown';
 };
 

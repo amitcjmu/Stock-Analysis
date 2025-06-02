@@ -368,53 +368,93 @@ export const useDataCleansing = () => {
     }
 
     // Generate realistic sample issues based on actual data structure
-    const sampleIssues: QualityIssue[] = data.slice(0, Math.min(5, data.length)).map((asset, index) => {
-      // Get actual field names from the data - use EXACT field names as they appear
-      const availableFields = Object.keys(asset);
-      console.log(`Available fields for asset ${index}:`, availableFields);
-      
-      // Pick interesting fields for quality issues - skip ID and use meaningful fields
-      const interestingFields = availableFields.filter(field => 
-        !['ID', 'id'].includes(field) && 
-        asset[field] !== null && 
-        asset[field] !== undefined &&
-        String(asset[field]).trim() !== ''
-      );
-      
-      // Use the first interesting field, or fall back to any field
-      const fieldToCheck = interestingFields[0] || availableFields[1] || availableFields[0] || 'TYPE';
-      
+    const sampleIssues: QualityIssue[] = [];
+    
+    // Create specific issues based on the actual data problems visible in the logs
+    const assetsToProcess = data.slice(0, Math.min(5, data.length));
+    
+    assetsToProcess.forEach((asset, index) => {
       // Get asset identifier using the EXACT same logic as the table
       const assetIdentifier = asset.id || asset.ID || asset.asset_name || asset.hostname || asset.name || asset.NAME || `unknown-${index}`;
-      const assetName = asset.asset_name || asset.hostname || asset.name || asset.NAME || asset.ID || asset.id || `Asset ${index}`;
+      const assetName = asset.NAME || asset.name || asset.asset_name || asset.hostname || asset.ID || asset.id || `Asset ${index}`;
       
-      // Get current value for the field
-      const currentValue = asset[fieldToCheck] || '';
-
-      console.log(`Generated issue ${index}:`, {
+      console.log(`Processing asset ${index}:`, {
         assetId: assetIdentifier,
         assetName: assetName,
-        fieldName: fieldToCheck,
-        currentValue: currentValue,
         assetData: asset
       });
-
-      return {
-        id: `issue-${index}`,
-        asset_id: assetIdentifier,
-        asset_name: assetName,
-        issue_type: 'Data Quality Issue',
-        severity: 'medium' as const,
-        description: `Field "${fieldToCheck}" requires review and standardization`,
-        suggested_fix: currentValue ? `Standardize "${currentValue}"` : 'Add missing value',
-        confidence: 0.7,
-        impact: 'May affect migration planning accuracy',
-        current_value: currentValue,
-        field_name: fieldToCheck  // Use exact field name as it appears in data
-      };
+      
+      // Generate issues for specific field problems we can see in the data
+      // Issue 1: Empty OS values
+      if (asset['OS'] === '<empty>' || !asset['OS'] || asset['OS'].trim() === '') {
+        sampleIssues.push({
+          id: `issue-${sampleIssues.length}`,
+          asset_id: assetIdentifier,
+          asset_name: assetName,
+          issue_type: 'Missing Data',
+          severity: 'medium' as const,
+          description: 'Operating System field is empty or missing',
+          suggested_fix: 'Identify and populate OS information',
+          confidence: 0.9,
+          impact: 'Migration planning may be incomplete',
+          current_value: asset['OS'] || '',
+          field_name: 'OS'  // Exact field name from data
+        });
+      }
+      
+      // Issue 2: Invalid IP addresses
+      if (asset['IP ADDRESS'] && (asset['IP ADDRESS'] === '<empty>' || asset['IP ADDRESS'].includes('invalid'))) {
+        sampleIssues.push({
+          id: `issue-${sampleIssues.length}`,
+          asset_id: assetIdentifier,
+          asset_name: assetName,
+          issue_type: 'Invalid Data',
+          severity: 'high' as const,
+          description: 'IP Address field contains invalid or empty value',
+          suggested_fix: 'Verify and correct IP address',
+          confidence: 0.95,
+          impact: 'Network configuration planning affected',
+          current_value: asset['IP ADDRESS'] || '',
+          field_name: 'IP ADDRESS'  // Exact field name from data
+        });
+      }
+      
+      // Issue 3: Generic TYPE standardization
+      if (asset['TYPE'] && index < 2) { // Only for first 2 assets to avoid too many issues
+        sampleIssues.push({
+          id: `issue-${sampleIssues.length}`,
+          asset_id: assetIdentifier,
+          asset_name: assetName,
+          issue_type: 'Data Quality',
+          severity: 'low' as const,
+          description: 'Asset type may need standardization',
+          suggested_fix: `Standardize "${asset['TYPE']}"`,
+          confidence: 0.7,
+          impact: 'Consistent categorization needed',
+          current_value: asset['TYPE'] || '',
+          field_name: 'TYPE'  // Exact field name from data
+        });
+      }
+      
+      // Issue 4: Related CMDB Records mapping (if present)
+      if (asset['RELATED CMDB RECORDS'] && asset['RELATED CMDB RECORDS'].trim() !== '' && index === 1) {
+        sampleIssues.push({
+          id: `issue-${sampleIssues.length}`,
+          asset_id: assetIdentifier,
+          asset_name: assetName,
+          issue_type: 'Dependency Mapping',
+          severity: 'medium' as const,
+          description: 'Related CMDB records should be mapped as dependencies',
+          suggested_fix: `Map "${asset['RELATED CMDB RECORDS']}" to dependencies`,
+          confidence: 0.85,
+          impact: 'Dependency tracking incomplete',
+          current_value: asset['RELATED CMDB RECORDS'] || '',
+          field_name: 'RELATED CMDB RECORDS'  // Exact field name from data
+        });
+      }
     });
     
-    console.log('Generated sample issues:', sampleIssues);
+    console.log('Generated sample issues with exact field names:', sampleIssues);
     setQualityIssues(sampleIssues);
 
     // Generate sample recommendations with actual field names
