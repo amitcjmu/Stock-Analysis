@@ -279,58 +279,26 @@ const DataCleansing = () => {
                 onInsightAction={handleInsightAction}
               />
 
-              {/* Quality Analysis Summary */}
-              {agentAnalysis && (
-                <div className="bg-white rounded-lg border shadow-sm p-4">
-                  <h3 className="font-medium text-gray-900 mb-3 flex items-center">
-                    <span className="w-2 h-2 bg-green-400 rounded-full mr-2"></span>
-                    Quality Analysis Summary
+              {/* Help Card for Agent Panels - Only show if no quality issues */}
+              {qualityIssues.length === 0 && agentRecommendations.length === 0 && (
+                <div className="bg-blue-50 rounded-lg border border-blue-200 p-4">
+                  <h3 className="font-medium text-blue-900 mb-2 flex items-center">
+                    <span className="w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
+                    Agent Assistance
                   </h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Analysis Type:</span>
-                      <span className="font-medium">{agentAnalysis.analysis_type}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Agent Confidence:</span>
-                      <span className="font-medium">{Math.round(agentAnalysis.agent_confidence * 100)}%</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Total Assets:</span>
-                      <span className="font-medium">{agentAnalysis.total_assets}</span>
-                    </div>
-                    {agentAnalysis.agent_insights && agentAnalysis.agent_insights.length > 0 && (
-                      <div className="mt-3 pt-3 border-t">
-                        <p className="font-medium text-gray-900 mb-2">Key Insights:</p>
-                        <ul className="space-y-1">
-                          {agentAnalysis.agent_insights.slice(0, 3).map((insight, index) => (
-                            <li key={index} className="text-gray-600 text-xs">• {insight}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
+                  <div className="text-sm text-blue-800 space-y-2">
+                    <p>AI agents are analyzing your data quality and will provide:</p>
+                    <ul className="space-y-1 ml-4">
+                      <li>• <strong>Clarifications</strong> for ambiguous data</li>
+                      <li>• <strong>Classifications</strong> for data quality</li>
+                      <li>• <strong>Insights</strong> for improvement opportunities</li>
+                    </ul>
+                    <p className="text-xs mt-2 text-blue-600">
+                      Refresh analysis or interact with quality issues to trigger more agent activity.
+                    </p>
                   </div>
                 </div>
               )}
-
-              {/* Help Card for Agent Panels */}
-              <div className="bg-blue-50 rounded-lg border border-blue-200 p-4">
-                <h3 className="font-medium text-blue-900 mb-2 flex items-center">
-                  <span className="w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
-                  Agent Assistance
-                </h3>
-                <div className="text-sm text-blue-800 space-y-2">
-                  <p>AI agents are analyzing your data quality and will provide:</p>
-                  <ul className="space-y-1 ml-4">
-                    <li>• <strong>Clarifications</strong> for ambiguous data</li>
-                    <li>• <strong>Classifications</strong> for data quality</li>
-                    <li>• <strong>Insights</strong> for improvement opportunities</li>
-                  </ul>
-                  <p className="text-xs mt-2 text-blue-600">
-                    Refresh analysis or interact with quality issues to trigger more agent activity.
-                  </p>
-                </div>
-              </div>
             </div>
           </div>
         </div>

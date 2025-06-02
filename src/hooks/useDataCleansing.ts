@@ -259,38 +259,55 @@ export const useDataCleansing = () => {
 
   // Process agent analysis results
   const processAgentAnalysisResults = (analysis: AgentAnalysisResult, data: any[]) => {
-    // Calculate correct completion percentage
-    const assetsWithIssues = analysis.quality_buckets.critical_issues + analysis.quality_buckets.needs_attention;
-    const cleanAssets = analysis.quality_buckets.clean_data;
+    // Calculate correct completion percentage based on actual issues found
     const totalAssets = data.length;
-    
+    const totalIssues = analysis.priority_issues ? analysis.priority_issues.length : 0;
+    const assetsWithIssues = new Set(analysis.priority_issues?.map(issue => issue.asset_id) || []).size;
+    const cleanAssets = Math.max(0, totalAssets - assetsWithIssues);
     const correctCompletionPercentage = totalAssets > 0 ? Math.round((cleanAssets / totalAssets) * 100) : 0;
     
-    // Update quality metrics with corrected calculation
+    // Debug the incoming data structure
+    console.log('🔍 Processing backend analysis:', {
+      analysisType: analysis.analysis_type,
+      totalAssets,
+      issuesFound: totalIssues,
+      assetsWithIssues,
+      cleanAssets,
+      completionPercentage: correctCompletionPercentage,
+      sampleIssue: analysis.priority_issues?.[0]
+    });
+    
+    // Update quality metrics with corrected calculation  
     const metrics: QualityMetrics = {
       total_assets: totalAssets,
-      clean_data: analysis.quality_buckets.clean_data,
-      needs_attention: analysis.quality_buckets.needs_attention,
-      critical_issues: analysis.quality_buckets.critical_issues,
+      clean_data: cleanAssets,
+      needs_attention: Math.min(assetsWithIssues, totalAssets - cleanAssets),
+      critical_issues: Math.max(0, totalAssets - cleanAssets - assetsWithIssues),
       completion_percentage: correctCompletionPercentage,
       average_quality: analysis.quality_assessment?.average_quality || 0
     };
     setQualityMetrics(metrics);
 
     // Transform priority issues to quality issues with enhanced details
-    const issues: QualityIssue[] = analysis.priority_issues.map((issue, index) => ({
-      id: `issue-${index}`,
-      asset_id: issue.asset_id || `asset-${index}`,
-      asset_name: issue.asset_name || `Asset ${index}`,
-      issue_type: issue.issue || issue.issue_type || 'Quality Issue',
-      severity: issue.severity || 'medium',
-      description: issue.description || issue.issue || 'Quality issue detected',
-      suggested_fix: issue.suggested_fix || 'Review and correct manually',
-      confidence: issue.confidence || 0.8,
-      impact: issue.impact || 'Data quality improvement',
-      current_value: issue.current_value || '',
-      field_name: issue.field_name || 'unknown_field'
-    }));
+    const issues: QualityIssue[] = analysis.priority_issues.map((issue, index) => {
+      console.log(`🔍 Processing issue ${index}:`, issue);
+      
+      return {
+        id: `backend-issue-${index}`,
+        asset_id: issue.asset_id || `asset-${index}`, 
+        asset_name: issue.asset_name || `Asset ${index}`,
+        issue_type: issue.issue || issue.issue_type || 'Quality Issue',
+        severity: issue.severity || 'medium',
+        description: issue.issue || issue.description || 'Quality issue detected',
+        suggested_fix: issue.suggested_fix || 'Review and correct manually', 
+        confidence: issue.confidence || 0.8,
+        impact: issue.impact || 'Data quality improvement',
+        current_value: issue.current_value || '',
+        field_name: issue.field_name || 'unknown_field'
+      };
+    });
+    
+    console.log('✅ Generated quality issues from backend:', issues);
     setQualityIssues(issues);
 
     // Enhanced agent recommendations with detailed explanations
