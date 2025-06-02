@@ -4,11 +4,14 @@
 try:
     from . import client_management
     from . import engagement_management
+    from . import session_comparison
     CLIENT_MANAGEMENT_AVAILABLE = True
     ENGAGEMENT_MANAGEMENT_AVAILABLE = True
+    SESSION_COMPARISON_AVAILABLE = True
 except ImportError as e:
     CLIENT_MANAGEMENT_AVAILABLE = False
     ENGAGEMENT_MANAGEMENT_AVAILABLE = False
+    SESSION_COMPARISON_AVAILABLE = False
     print(f"⚠️ Admin management modules not fully available: {e}")
 
-__all__ = ["client_management", "engagement_management"] 
+__all__ = ["client_management", "engagement_management", "session_comparison"] 

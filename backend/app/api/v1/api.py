@@ -209,7 +209,7 @@ except ImportError as e:
 
 # Include Admin Management endpoints (Task 3.2)
 try:
-    from app.api.v1.admin import client_management, engagement_management
+    from app.api.v1.admin import client_management, engagement_management, session_comparison
     api_router.include_router(
         client_management.router,
         prefix="",  # No prefix since router already has /admin/clients
@@ -220,6 +220,12 @@ try:
         prefix="",  # No prefix since router already has /admin/engagements
         tags=["engagement-management"]
     )
+    api_router.include_router(
+        session_comparison.router,
+        prefix="/admin",  # Prefix for session comparison endpoints
+        tags=["session-comparison"]
+    )
     print("✅ Admin management endpoints available (Task 3.2)")
+    print("✅ Session comparison endpoints available (Task 6.1)")
 except ImportError as e:
     print(f"⚠️ Admin management endpoints not available: {e}") 
