@@ -240,5 +240,68 @@
     "created_at": "2025-06-02T05:00:10.521752",
     "user_feedback": null,
     "is_validated": false
+  },
+  "886b0c63-85f4-4fa1-b438-9d8457b9952b": {
+    "id": "886b0c63-85f4-4fa1-b438-9d8457b9952b",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "insight_type": "data_overview",
+    "title": "Dataset Analysis Summary",
+    "description": "Analyzed 10 records with 21 fields. Ready for migration attribute mapping and quality assessment",
+    "confidence": "high",
+    "supporting_data": {
+      "total_records": 10,
+      "total_fields": 21,
+      "analysis_scope": "complete"
+    },
+    "page": "asset-inventory",
+    "actionable": false,
+    "created_at": "2025-06-02T05:10:27.774845",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "de6b0570-7b13-48d3-8ba2-a5d178cabd78": {
+    "id": "de6b0570-7b13-48d3-8ba2-a5d178cabd78",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "insight_type": "data_quality",
+    "title": "Asset Identification Fields Present",
+    "description": "Found 5 critical fields (asset_name, ip_address, memory_gb), providing foundation for migration planning",
+    "confidence": "high",
+    "supporting_data": {
+      "critical_fields": 5,
+      "identified_fields": [
+        "asset_name",
+        "ip_address",
+        "memory_gb",
+        "version/hostname",
+        "ram_(gb)"
+      ],
+      "total_columns": 21,
+      "analysis_confidence": "high"
+    },
+    "page": "asset-inventory",
+    "actionable": false,
+    "created_at": "2025-06-02T05:10:27.778515",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "01d4486c-cdeb-4bb1-917a-16563f4f2048": {
+    "id": "01d4486c-cdeb-4bb1-917a-16563f4f2048",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "insight_type": "migration_readiness",
+    "title": "Sample Migration Dataset",
+    "description": "Dataset contains 10 assets, perfect for testing migration workflows and field mapping validation",
+    "confidence": "medium",
+    "supporting_data": {
+      "asset_count": 10,
+      "scale_category": "sample_testing"
+    },
+    "page": "asset-inventory",
+    "actionable": false,
+    "created_at": "2025-06-02T05:10:27.780653",
+    "user_feedback": null,
+    "is_validated": false
   }
 }

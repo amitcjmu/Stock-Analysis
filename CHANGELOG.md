@@ -5,6 +5,75 @@ All notable changes to the AI Force Migration Platform will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.33] - 2025-01-28
+
+### 🎯 **ASSET INVENTORY AGENT PANELS FIX - Complete Agent Integration**
+
+This release fixes the empty agent panels issue on the Asset Inventory page by implementing the same agent analysis triggering and refresh mechanisms that were successfully applied to Attribute Mapping and Data Cleansing pages.
+
+### 🐛 **Asset Inventory Agent Integration Fix**
+
+#### **Agent Panel Activation**
+- **Problem**: Asset Inventory page showing empty agent panels despite having agent data available in backend
+- **Root Cause**: Missing agent analysis triggering when assets are loaded and no refresh trigger mechanism
+- **Solution**: Added complete agent integration pattern matching other discovery pages
+- **Result**: Agent panels now populate with relevant clarifications, classifications, and insights
+
+#### **Agent Analysis Triggering**
+- **Added**: `triggerAgentAnalysis` function to analyze asset inventory data when assets are fetched
+- **Enhanced**: Agent analysis triggered on first page load with sample asset data for context
+- **Improved**: Proper page context (`asset-inventory`) passed to agent analysis system
+- **Result**: Agents now analyze asset inventory and generate relevant insights and questions
+
+#### **Agent Panel Refresh System**
+- **Added**: `agentRefreshTrigger` state management for coordinating agent panel updates
+- **Enhanced**: All three agent panels now receive `refreshTrigger` prop for synchronized updates
+- **Improved**: Initial mount refresh trigger ensures panels load data when page first opens
+- **Result**: Agent panels refresh properly when new analysis is available
+
+### 🚀 **Complete Agent Panel Integration**
+
+#### **Agent Clarification Panel**
+- **Integration**: Now receives asset inventory context and displays relevant questions
+- **Functionality**: Questions about asset classification, migration readiness, and data quality
+- **Refresh**: Synchronized with asset loading and analysis completion
+
+#### **Data Classification Display**
+- **Integration**: Shows asset data quality classifications with detailed analysis
+- **Functionality**: Displays good data, needs clarification, and unusable asset records
+- **Context**: Asset-specific classification criteria and quality metrics
+
+#### **Agent Insights Section**
+- **Integration**: Provides asset inventory insights and migration recommendations
+- **Functionality**: Asset portfolio analysis, migration complexity assessment, readiness insights
+- **Actionability**: Distinguishes between informational and actionable insights
+
+### 📊 **Technical Implementation**
+
+#### **Agent Analysis Flow**
+- **Data Preparation**: Asset inventory data formatted for agent analysis with proper metadata
+- **Context Setting**: Page context set to "asset-inventory" for relevant agent responses
+- **Analysis Triggering**: Automatic analysis when assets are loaded (page 1 only to avoid redundancy)
+- **Panel Refresh**: Coordinated refresh of all agent panels when analysis completes
+
+#### **State Management Enhancement**
+- **Refresh Trigger**: Added `agentRefreshTrigger` state for panel coordination
+- **Initial Load**: 1-second delay on mount to ensure components are ready before triggering refresh
+- **Asset Integration**: Agent analysis integrated into existing asset fetching workflow
+- **Error Handling**: Non-critical agent analysis failures don't break asset loading
+
+### 🎯 **User Experience Improvements**
+- **Consistent Experience**: Asset Inventory page now has same agent panel functionality as other discovery pages
+- **Contextual Insights**: Agents provide asset-specific recommendations and analysis
+- **Real-Time Updates**: Agent panels update when asset data changes or filters are applied
+- **Progressive Enhancement**: Asset inventory works even if agent analysis fails
+
+### 🔧 **Platform Consistency**
+- **Unified Pattern**: All discovery pages now follow same agent integration pattern
+- **Agentic Intelligence**: Asset inventory analysis powered by AI agents, not hardcoded rules
+- **Learning Integration**: Agent responses improve based on user feedback and corrections
+- **Context Awareness**: Agents understand asset inventory context and provide relevant analysis
+
 ## [0.9.32] - 2025-01-28
 
 ### 🎯 **AGENT PANEL DATA PERSISTENCE FIX - Cross-Page Context Restoration**

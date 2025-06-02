@@ -57,6 +57,7 @@ const Inventory = () => {
   const [dataSource, setDataSource] = useState('test');
   const [suggestedHeaders, setSuggestedHeaders] = useState([]);
   const [activeTab, setActiveTab] = useState('assets');
+  const [agentRefreshTrigger, setAgentRefreshTrigger] = useState(0);
   
   // Bulk operations state
   const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
@@ -132,6 +133,16 @@ const Inventory = () => {
       setDataSource(responseData.dataSource);
       setSuggestedHeaders(responseData.suggestedHeaders);
       
+      // Trigger agent analysis for asset inventory context
+      if (responseData.assets && responseData.assets.length > 0 && page === 1) {
+        try {
+          await triggerAgentAnalysis(responseData.assets);
+        } catch (agentError) {
+          console.warn('Agent analysis failed for asset inventory:', agentError);
+          // Non-critical, continue without agent analysis
+        }
+      }
+      
       // Cache the successful response
       const cacheKey = getCacheKey(page, filters);
       saveToCache(cacheKey, responseData);
@@ -198,6 +209,46 @@ const Inventory = () => {
     }
   };
 
+  // Trigger agent analysis for asset inventory context
+  const triggerAgentAnalysis = async (assetsData: any[]) => {
+    try {
+      console.log('Triggering agent analysis for asset-inventory context');
+      
+      // Prepare data for agent analysis
+      const agentAnalysisRequest = {
+        data_source: {
+          file_data: assetsData.slice(0, 20), // Send sample of assets for analysis
+          columns: assetsData.length > 0 ? Object.keys(assetsData[0]) : [],
+          sample_data: assetsData.slice(0, 10), // Keep for backward compatibility
+          metadata: {
+            source: "asset-inventory-page",
+            file_name: "asset_inventory_analysis.csv",
+            total_records: assetsData.length,
+            context: "asset_inventory_analysis",
+            mapping_context: "asset-inventory"
+          }
+        },
+        analysis_type: "data_source_analysis",
+        page_context: "asset-inventory"
+      };
+
+      // Trigger agent analysis
+      const agentResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_ANALYSIS, {
+        method: 'POST',
+        body: JSON.stringify(agentAnalysisRequest)
+      });
+
+      if (agentResponse) {
+        console.log('✅ Agent analysis completed for asset-inventory context');
+        // Trigger agent panel refresh
+        setAgentRefreshTrigger(prev => prev + 1);
+      }
+      
+    } catch (error) {
+      console.error('Failed to trigger agent analysis for asset inventory:', error);
+    }
+  };
+
   // Load assets on component mount and when filters change
   useEffect(() => {
     const filters = {
@@ -211,6 +262,16 @@ const Inventory = () => {
     // Try to load from cache first, then fetch from API
     loadAssetsWithCache(currentPage, filters);
   }, [currentPage, pageSize, selectedFilter, selectedEnv, selectedDept, selectedCriticality, searchTerm]);
+
+  // Trigger initial agent panel refresh on component mount
+  useEffect(() => {
+    // Small delay to ensure components are mounted before triggering refresh
+    const timer = setTimeout(() => {
+      setAgentRefreshTrigger(prev => prev + 1);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, []); // Only run once on mount
 
   // Load app mappings when app mapping view is shown
   useEffect(() => {
@@ -1159,6 +1220,7 @@ const Inventory = () => {
               {/* Agent Clarification Panel */}
               <AgentClarificationPanel 
                 pageContext="asset-inventory"
+                refreshTrigger={agentRefreshTrigger}
                 onQuestionAnswered={(questionId, response) => {
                   console.log('Inventory question answered:', questionId, response);
                   // Trigger asset re-analysis or asset updates based on agent learning
@@ -1176,6 +1238,7 @@ const Inventory = () => {
               {/* Data Classification Display */}
               <DataClassificationDisplay 
                 pageContext="asset-inventory"
+                refreshTrigger={agentRefreshTrigger}
                 onClassificationUpdate={(itemId, newClassification) => {
                   console.log('Asset classification updated:', itemId, newClassification);
                   // Update local asset data quality classification
@@ -1190,6 +1253,7 @@ const Inventory = () => {
               {/* Agent Insights Section */}
               <AgentInsightsSection 
                 pageContext="asset-inventory"
+                refreshTrigger={agentRefreshTrigger}
                 onInsightAction={(insightId, action) => {
                   console.log('Inventory insight action:', insightId, action);
                   // Apply agent insights for inventory optimization
