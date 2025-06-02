@@ -50,9 +50,15 @@ interface DependencyAnalysisData {
     total_dependencies: number;
     dependency_categories: Record<string, number>;
     dependency_quality: {
-      validated_dependencies: number;
-      needs_review: number;
-      confidence_distribution: Record<string, number>;
+      quality_score: number;
+      high_confidence_count: number;
+      medium_confidence_count: number;
+      low_confidence_count: number;
+      quality_issues: string[];
+    };
+    conflict_resolution: {
+      conflicts_resolved: number;
+      total_dependencies: number;
     };
   };
   cross_application_mapping: {
@@ -72,9 +78,21 @@ interface DependencyAnalysisData {
     };
     migration_recommendations: string[];
     dependency_risks: any[];
+    impact_categories: {
+      critical: any[];
+      high: any[];
+      medium: any[];
+      low: any[];
+    };
   };
   clarification_questions: any[];
   dependency_recommendations: any[];
+  intelligence_metadata: {
+    analysis_confidence: number;
+    learning_opportunities: number;
+    validation_score: number;
+    analysis_timestamp: string;
+  };
 }
 
 const Dependencies = () => {
@@ -127,10 +145,17 @@ const Dependencies = () => {
       });
 
       if (dependencyAnalysis?.dependency_intelligence) {
+        console.log('🔍 Dependency Analysis Response:', dependencyAnalysis.dependency_intelligence);
+        console.log('📊 Cross-app deps count:', dependencyAnalysis.dependency_intelligence.cross_application_mapping?.cross_app_dependencies?.length);
+        console.log('🏗️ Application clusters count:', dependencyAnalysis.dependency_intelligence.cross_application_mapping?.application_clusters?.length);
+        console.log('📈 Graph nodes count:', dependencyAnalysis.dependency_intelligence.cross_application_mapping?.dependency_graph?.nodes?.length);
+        
         setDependencyData(dependencyAnalysis.dependency_intelligence);
         
         // Trigger agent analysis with dependency context
         await triggerAgentAnalysis(dependencyAnalysis.dependency_intelligence);
+      } else {
+        console.error('❌ No dependency_intelligence in response:', dependencyAnalysis);
       }
     } catch (error) {
       console.error('Failed to fetch dependency analysis:', error);
@@ -198,6 +223,19 @@ const Dependencies = () => {
   const filteredDependencies = dependencyData?.cross_application_mapping?.cross_app_dependencies || [];
   const dependencyGraph = dependencyData?.cross_application_mapping?.dependency_graph;
   const applicationClusters = dependencyData?.cross_application_mapping?.application_clusters || [];
+
+  // Debug logging
+  React.useEffect(() => {
+    if (dependencyData) {
+      console.log('🎯 Component Render - Dependency Data:', {
+        total_dependencies: dependencyData.dependency_analysis?.total_dependencies,
+        cross_app_deps_count: filteredDependencies.length,
+        application_clusters_count: applicationClusters.length,
+        graph_nodes_count: dependencyGraph?.nodes?.length || 0,
+        graph_edges_count: dependencyGraph?.edges?.length || 0,
+      });
+    }
+  }, [dependencyData, filteredDependencies.length, applicationClusters.length]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
