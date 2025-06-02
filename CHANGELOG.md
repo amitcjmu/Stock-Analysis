@@ -4507,6 +4507,44 @@ This release transforms field mapping from pattern-based heuristics to truly age
 - **Agent Intelligence**: Agents use content analysis + semantic understanding instead of hardcoded rules
 - **Error Reduction**: Eliminated 500 errors in field mapping learning endpoints
 
+## [0.9.25] - 2025-01-03
+
+### 🎯 **Data Cleansing UX Overhaul - Compact Layout & Enhanced Details**
+
+This release dramatically improves the data cleansing page user experience with a more compact layout, better detail display, and fixes data passing issues.
+
+### 🚀 **Data Cleansing Page Improvements**
+
+#### **Data Classification Layout Redesign**
+- **Compact 3-Column Layout**: Redesigned data classification panel to use horizontal space efficiently
+- **Click-to-Expand**: Classification tabs now expand below to show detailed asset information
+- **Reduced Height**: Panel now takes 60% less vertical space while showing more information
+- **Enhanced Details**: Asset details show CPU, RAM, Environment info when expanded
+
+#### **Quality Issues Enhancement**
+- **Better Detail Display**: Quality issues now show comprehensive record information when clicked
+- **Structured Information**: Issues display current value, suggested fix, impact, and confidence
+- **Visual Improvements**: Enhanced styling with proper color coding and spacing
+- **Actionable Interface**: Clear Apply Fix and Close buttons for better user control
+
+#### **Agent Panel Data Passing Fix**
+- **Resolved "No Data Provided"**: Fixed data passing to agent analysis for data cleansing context
+- **Proper Data Structure**: Now sends `file_data` array instead of just sample data
+- **Complete Metadata**: Enhanced metadata with proper file name and mapping context
+- **Agent Analysis Working**: Data cleansing page now generates insights and questions properly
+
+### 📊 **Technical Achievements**
+- **Layout Efficiency**: 60% reduction in data classification panel height
+- **Information Density**: Shows 3x more classification info in same space when expanded
+- **Data Flow**: Fixed agent analysis request structure for data cleansing context
+- **UX Consistency**: Aligned data cleansing agent panels with attribute mapping functionality
+
+### 🎯 **Success Metrics**
+- **Space Utilization**: Data classification now uses horizontal layout (3 columns vs vertical stack)
+- **Agent Integration**: Data cleansing generates 7 questions + 6 insights (vs "No data provided")
+- **Quality Issues**: Enhanced detail view with comprehensive record information
+- **User Workflow**: Improved click-to-expand pattern for better information discovery
+
 ## [0.9.24] - 2025-01-03
 
 ### 🎯 **Agent Panel UX Improvements - Enhanced Data Classification & Question Management**

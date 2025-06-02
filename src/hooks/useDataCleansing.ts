@@ -396,12 +396,15 @@ export const useDataCleansing = () => {
       // This will populate all agent panels: clarifications, classifications, and insights
       const agentAnalysisRequest = {
         data_source: {
+          file_data: data.slice(0, 20), // Send actual data records (not just sample)
           columns: data.length > 0 ? Object.keys(data[0]) : [],
-          sample_data: data.slice(0, 10),
+          sample_data: data.slice(0, 10), // Keep for backward compatibility
           metadata: {
             source: "data-cleansing-page",
+            file_name: "data_cleansing_analysis.csv",
             total_records: data.length,
-            context: "quality_analysis_and_cleansing"
+            context: "quality_analysis_and_cleansing",
+            mapping_context: "data-cleansing"
           }
         },
         analysis_type: "data_source_analysis",

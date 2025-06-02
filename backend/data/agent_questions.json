@@ -536,5 +536,103 @@
     "answered_at": null,
     "user_response": null,
     "is_resolved": false
+  },
+  "476bcf01-fd07-475e-aeb4-a5e6306ca095": {
+    "id": "476bcf01-fd07-475e-aeb4-a5e6306ca095",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "data_classification",
+    "page": "data-cleansing",
+    "title": "No Data Provided",
+    "question": "No data was uploaded for analysis. Would you like to upload a different file?",
+    "context": {
+      "issue": "no_data"
+    },
+    "options": null,
+    "confidence": "high",
+    "priority": "high",
+    "created_at": "2025-06-02T04:47:11.465387",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "2affaa36-a5f3-45c9-a979-c03630290fa5": {
+    "id": "2affaa36-a5f3-45c9-a979-c03630290fa5",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "field_mapping",
+    "page": "data-cleansing",
+    "title": "Field Mapping Clarification",
+    "question": "Could you clarify what these columns represent: ID, OS?",
+    "context": {
+      "unclear_columns": [
+        "ID",
+        "OS"
+      ],
+      "sample_data": {
+        "ID": "SRV001",
+        "TYPE": "Application",
+        "CPU (CORES)": "4",
+        "ENVIRONMENT": "Production",
+        "IP ADDRESS": "192.168.1.10",
+        "LOCATION": "DC1",
+        "NAME": "Web_Server_01",
+        "OS": "Windows Server 2019",
+        "OWNER": "John Smith",
+        "RAM (GB)": "16",
+        "RELATED CMDB RECORDS": ""
+      },
+      "total_unclear": 2
+    },
+    "options": [
+      "Asset identifier",
+      "Environment info",
+      "Technical spec",
+      "Business info",
+      "Other"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-02T04:59:10.381406",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "33446604-dec1-4f84-b670-963ae2bdd85e": {
+    "id": "33446604-dec1-4f84-b670-963ae2bdd85e",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "quality_validation",
+    "page": "data-cleansing",
+    "title": "Data Format Inconsistencies",
+    "question": "Found format inconsistencies in: OS, IP ADDRESS, NAME. Should we standardize these?",
+    "context": {
+      "format_issues": {
+        "OS": [
+          "text",
+          "mixed_alphanumeric"
+        ],
+        "IP ADDRESS": [
+          "text",
+          "ip_address"
+        ],
+        "NAME": [
+          "text",
+          "mixed_alphanumeric"
+        ]
+      },
+      "standardization_needed": true
+    },
+    "options": [
+      "Yes, standardize automatically",
+      "No, keep as-is",
+      "Manual review needed"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-02T04:59:10.385457",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
   }
 }

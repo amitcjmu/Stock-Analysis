@@ -121,5 +121,124 @@
     "created_at": "2025-06-02T04:41:11.542947",
     "user_feedback": null,
     "is_validated": false
+  },
+  "1378e594-4ab2-429e-8ee6-6122d0c0633c": {
+    "id": "1378e594-4ab2-429e-8ee6-6122d0c0633c",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "insight_type": "data_quality",
+    "title": "No Data Available",
+    "description": "No data was provided for analysis",
+    "confidence": "high",
+    "supporting_data": {
+      "row_count": 0
+    },
+    "page": "data-cleansing",
+    "actionable": true,
+    "created_at": "2025-06-02T04:47:11.462369",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "afbae130-68d3-481c-a3a4-11271d0e2e33": {
+    "id": "afbae130-68d3-481c-a3a4-11271d0e2e33",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "insight_type": "data_overview",
+    "title": "Dataset Analysis Summary",
+    "description": "Analyzed 5 records with 11 fields. Ready for migration attribute mapping and quality assessment",
+    "confidence": "high",
+    "supporting_data": {
+      "total_records": 5,
+      "total_fields": 11,
+      "analysis_scope": "complete"
+    },
+    "page": "data-cleansing",
+    "actionable": false,
+    "created_at": "2025-06-02T04:59:10.372211",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "47499704-994e-4be6-a44a-d264b6bde626": {
+    "id": "47499704-994e-4be6-a44a-d264b6bde626",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "insight_type": "data_quality",
+    "title": "Asset Identification Fields Present",
+    "description": "Found 2 critical fields (CPU (CORES), RAM (GB)), providing foundation for migration planning",
+    "confidence": "high",
+    "supporting_data": {
+      "critical_fields": 2,
+      "identified_fields": [
+        "CPU (CORES)",
+        "RAM (GB)"
+      ],
+      "total_columns": 11,
+      "analysis_confidence": "high"
+    },
+    "page": "data-cleansing",
+    "actionable": false,
+    "created_at": "2025-06-02T04:59:10.377365",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "60a4576a-7aa2-4d0c-b72e-cc48beebda8b": {
+    "id": "60a4576a-7aa2-4d0c-b72e-cc48beebda8b",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "insight_type": "migration_readiness",
+    "title": "Sample Migration Dataset",
+    "description": "Dataset contains 5 assets, perfect for testing migration workflows and field mapping validation",
+    "confidence": "medium",
+    "supporting_data": {
+      "asset_count": 5,
+      "scale_category": "sample_testing"
+    },
+    "page": "data-cleansing",
+    "actionable": false,
+    "created_at": "2025-06-02T04:59:10.379332",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "e56b4dab-12a5-4c30-8459-41527de2799c": {
+    "id": "e56b4dab-12a5-4c30-8459-41527de2799c",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "insight_type": "migration_readiness",
+    "title": "Environment Distribution Analysis",
+    "description": "Identified 2 distinct environments. Major distributions: production: 80.0% (4 assets)",
+    "confidence": "medium",
+    "supporting_data": {
+      "environments": {
+        "production": 4,
+        "test": 1
+      },
+      "total_assets": 5
+    },
+    "page": "data-cleansing",
+    "actionable": false,
+    "created_at": "2025-06-02T04:59:10.380612",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "51b04b4a-974e-4f13-8360-91a2784a1fbf": {
+    "id": "51b04b4a-974e-4f13-8360-91a2784a1fbf",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "insight_type": "organizational_pattern",
+    "title": "Multi-Department Asset Distribution",
+    "description": "Assets span 2 departments. Largest: Finance with 1 assets (50.0%)",
+    "confidence": "medium",
+    "supporting_data": {
+      "departments": {
+        "Finance": 1,
+        "HR": 1
+      },
+      "department_count": 2
+    },
+    "page": "data-cleansing",
+    "actionable": false,
+    "created_at": "2025-06-02T05:00:10.521752",
+    "user_feedback": null,
+    "is_validated": false
   }
 }
