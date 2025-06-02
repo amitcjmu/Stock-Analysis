@@ -806,5 +806,173 @@
     "answered_at": "2025-06-02T05:13:19.291201",
     "user_response": "Somewhat important",
     "is_resolved": true
+  },
+  "e1663c9f-8006-48b3-b3ca-dd3763f53a9a": {
+    "id": "e1663c9f-8006-48b3-b3ca-dd3763f53a9a",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "data_classification",
+    "page": "tech-debt",
+    "title": "Data Completeness Issue",
+    "question": "Columns dependencies, endOfLifeDate appear to be mostly empty. Should these be excluded from analysis?",
+    "context": {
+      "empty_columns": [
+        "dependencies",
+        "endOfLifeDate"
+      ],
+      "sample_size": 10,
+      "analysis_suggestion": "exclude_or_clarify"
+    },
+    "options": [
+      "Exclude from analysis",
+      "Include (data may be elsewhere)",
+      "Request additional data"
+    ],
+    "confidence": "high",
+    "priority": "medium",
+    "created_at": "2025-06-02T05:36:55.899796",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "8789bedd-e5cc-4065-a568-089cd0374e37": {
+    "id": "8789bedd-e5cc-4065-a568-089cd0374e37",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "field_mapping",
+    "page": "tech-debt",
+    "title": "Field Mapping Clarification",
+    "question": "Could you clarify what these columns represent: id?",
+    "context": {
+      "unclear_columns": [
+        "id"
+      ],
+      "sample_data": {
+        "id": "os_risk_unknown_3.2.5",
+        "assetId": "APP0004",
+        "assetName": "unknown",
+        "component": "os",
+        "technology": "unknown",
+        "currentVersion": "3.2.5",
+        "latestVersion": "Latest Available",
+        "supportStatus": "deprecated",
+        "endOfLifeDate": null,
+        "securityRisk": "high",
+        "migrationEffort": "low",
+        "businessImpact": "low",
+        "recommendedAction": "Monitor for updates and plan future upgrade",
+        "dependencies": []
+      },
+      "total_unclear": 1
+    },
+    "options": [
+      "Asset identifier",
+      "Environment info",
+      "Technical spec",
+      "Business info",
+      "Other"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-02T05:36:55.902291",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "f2e65918-bc14-45a4-a0a1-4d75bc8a0310": {
+    "id": "f2e65918-bc14-45a4-a0a1-4d75bc8a0310",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "quality_validation",
+    "page": "tech-debt",
+    "title": "Data Format Inconsistencies",
+    "question": "Found format inconsistencies in: id, latestVersion, currentVersion, assetName, technology. Should we standardize these?",
+    "context": {
+      "format_issues": {
+        "id": [
+          "mixed_alphanumeric",
+          "text"
+        ],
+        "latestVersion": [
+          "mixed_alphanumeric",
+          "text"
+        ],
+        "currentVersion": [
+          "mixed_alphanumeric",
+          "ip_address",
+          "text"
+        ],
+        "assetName": [
+          "mixed_alphanumeric",
+          "text"
+        ],
+        "technology": [
+          "mixed_alphanumeric",
+          "text"
+        ]
+      },
+      "standardization_needed": true
+    },
+    "options": [
+      "Yes, standardize automatically",
+      "No, keep as-is",
+      "Manual review needed"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-02T05:36:55.903842",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "85932585-876f-4c33-a064-b55d7a69cbcf": {
+    "id": "85932585-876f-4c33-a064-b55d7a69cbcf",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "business_context",
+    "page": "tech-debt",
+    "title": "Asset Ownership Information",
+    "question": "No asset ownership information found. Is this available elsewhere or should migration proceed without owner details?",
+    "context": {
+      "missing_info": "ownership",
+      "migration_impact": "medium",
+      "suggestion": "may_need_additional_data"
+    },
+    "options": [
+      "Available in separate file",
+      "Not available",
+      "Will provide later"
+    ],
+    "confidence": "medium",
+    "priority": "low",
+    "created_at": "2025-06-02T05:36:55.905632",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "e8249e36-e47a-4c6b-9d20-371c27b27ea1": {
+    "id": "e8249e36-e47a-4c6b-9d20-371c27b27ea1",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "business_context",
+    "page": "tech-debt",
+    "title": "Department/Organization Information",
+    "question": "No department information found. Is organizational structure important for migration planning?",
+    "context": {
+      "missing_info": "department",
+      "planning_impact": "organizational_structure",
+      "suggestion": "helpful_but_not_critical"
+    },
+    "options": [
+      "Yes, very important",
+      "Somewhat important",
+      "Not needed"
+    ],
+    "confidence": "low",
+    "priority": "low",
+    "created_at": "2025-06-02T05:36:55.908394",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
   }
 }

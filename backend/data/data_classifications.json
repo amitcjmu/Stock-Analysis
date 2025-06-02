@@ -1,13 +1,22 @@
 {
-  "data_row_0_analysis_20250602_050010": {
-    "id": "data_row_0_analysis_20250602_050010",
+  "data_row_0_analysis_20250602_053655": {
+    "id": "data_row_0_analysis_20250602_053655",
     "data_type": "asset_record",
     "content": {
-      "CPU (Cores)": "8",
-      "RAM (GB)": "16",
-      "Hostname": "server-01",
-      "Environment": "Production",
-      "Department": "Finance"
+      "id": "os_risk_unknown_3.2.5",
+      "assetId": "APP0004",
+      "assetName": "unknown",
+      "component": "os",
+      "technology": "unknown",
+      "currentVersion": "3.2.5",
+      "latestVersion": "Latest Available",
+      "supportStatus": "deprecated",
+      "endOfLifeDate": null,
+      "securityRisk": "high",
+      "migrationEffort": "low",
+      "businessImpact": "low",
+      "recommendedAction": "Monitor for updates and plan future upgrade",
+      "dependencies": []
     },
     "classification": "good_data",
     "agent_analysis": {

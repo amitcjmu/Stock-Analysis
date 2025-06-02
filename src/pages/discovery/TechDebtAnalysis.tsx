@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/Sidebar';
+import AgentClarificationPanel from '../../components/discovery/AgentClarificationPanel';
+import DataClassificationDisplay from '../../components/discovery/DataClassificationDisplay';
+import AgentInsightsSection from '../../components/discovery/AgentInsightsSection';
 import { 
   AlertTriangle, Bug, Shield, Clock, TrendingUp,
   Code, Database, Globe, Timeline, BarChart3, Settings,
@@ -47,10 +50,20 @@ const TechDebtAnalysis = () => {
     endOfLife: 0,
     deprecated: 0
   });
+  const [agentRefreshTrigger, setAgentRefreshTrigger] = useState(0);
 
   useEffect(() => {
     fetchTechDebtAnalysis();
     fetchSupportTimelines();
+  }, []);
+
+  // Trigger initial agent panel refresh on component mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setAgentRefreshTrigger(prev => prev + 1);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
   }, []);
 
   const fetchTechDebtAnalysis = async () => {
@@ -59,10 +72,54 @@ const TechDebtAnalysis = () => {
       const response = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/tech-debt-analysis`);
       setTechDebtItems(response.items || []);
       setSummary(response.summary || summary);
+      
+      // Trigger agent analysis for tech debt context
+      if (response.items && response.items.length > 0) {
+        await triggerAgentAnalysis(response.items);
+      }
     } catch (error) {
       console.error('Failed to fetch tech debt analysis:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Trigger agent analysis for tech debt context
+  const triggerAgentAnalysis = async (techDebtData: TechDebtItem[]) => {
+    try {
+      console.log('Triggering agent analysis for tech-debt context');
+      
+      // Prepare data for agent analysis
+      const agentAnalysisRequest = {
+        data_source: {
+          file_data: techDebtData.slice(0, 20), // Send sample of tech debt items
+          columns: techDebtData.length > 0 ? Object.keys(techDebtData[0]) : [],
+          sample_data: techDebtData.slice(0, 10),
+          metadata: {
+            source: "tech-debt-analysis-page",
+            file_name: "tech_debt_analysis.csv",
+            total_records: techDebtData.length,
+            context: "tech_debt_analysis",
+            mapping_context: "tech-debt"
+          }
+        },
+        analysis_type: "data_source_analysis",
+        page_context: "tech-debt"
+      };
+
+      // Trigger agent analysis
+      const agentResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_ANALYSIS, {
+        method: 'POST',
+        body: JSON.stringify(agentAnalysisRequest)
+      });
+
+      if (agentResponse) {
+        console.log('✅ Agent analysis completed for tech-debt context');
+        setAgentRefreshTrigger(prev => prev + 1);
+      }
+      
+    } catch (error) {
+      console.error('Failed to trigger agent analysis for tech debt:', error);
     }
   };
 
@@ -134,8 +191,11 @@ const TechDebtAnalysis = () => {
     <div className="min-h-screen bg-gray-50 flex">
       <Sidebar />
       <div className="flex-1 ml-64">
-        <main className="p-8">
-          <div className="max-w-7xl mx-auto">
+        <div className="flex h-full">
+          {/* Main Content Area */}
+          <div className="flex-1 overflow-y-auto">
+            <main className="p-8">
+              <div className="max-w-5xl mx-auto">
             {/* Header */}
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-gray-900 mb-2">Technical Debt Analysis</h1>
@@ -380,8 +440,48 @@ const TechDebtAnalysis = () => {
                 )}
               </div>
             </div>
+              </div>
+            </main>
           </div>
-        </main>
+
+          {/* Agent Interaction Sidebar */}
+          <div className="w-96 border-l border-gray-200 bg-gray-50 overflow-y-auto">
+            <div className="p-4 space-y-4">
+              {/* Agent Clarification Panel */}
+              <AgentClarificationPanel 
+                pageContext="tech-debt"
+                refreshTrigger={agentRefreshTrigger}
+                onQuestionAnswered={(questionId, response) => {
+                  console.log('Tech debt question answered:', questionId, response);
+                  // Refresh tech debt analysis after agent learning
+                  fetchTechDebtAnalysis();
+                }}
+              />
+
+              {/* Data Classification Display */}
+              <DataClassificationDisplay 
+                pageContext="tech-debt"
+                refreshTrigger={agentRefreshTrigger}
+                onClassificationUpdate={(itemId, newClassification) => {
+                  console.log('Tech debt classification updated:', itemId, newClassification);
+                }}
+              />
+
+              {/* Agent Insights Section */}
+              <AgentInsightsSection 
+                pageContext="tech-debt"
+                refreshTrigger={agentRefreshTrigger}
+                onInsightAction={(insightId, action) => {
+                  console.log('Tech debt insight action:', insightId, action);
+                  if (action === 'apply_insight') {
+                    // Apply tech debt recommendations
+                    console.log('Applying tech debt insights');
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

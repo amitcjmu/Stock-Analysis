@@ -113,7 +113,7 @@ class TechDebtAnalysisAgent:
             
             # Step 7: Generate stakeholder questions
             stakeholder_questions = await self._generate_stakeholder_questions(
-                prioritized_debt, stakeholder_context
+                prioritized_debt, stakeholder_context, migration_timeline
             )
             
             tech_debt_intelligence = {
@@ -423,7 +423,8 @@ class TechDebtAnalysisAgent:
         return prioritized_items
     
     async def _generate_stakeholder_questions(self, prioritized_debt: List[Dict[str, Any]],
-                                            stakeholder_context: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+                                            stakeholder_context: Optional[Dict[str, Any]],
+                                            migration_timeline: Optional[str] = None) -> List[Dict[str, Any]]:
         """Generate questions for stakeholder input on risk tolerance."""
         questions = []
         
@@ -517,10 +518,22 @@ class TechDebtAnalysisAgent:
         elif asset.get("os"):
             os_info["os_name"] = asset["os"]
         
+        # Check for version information in various fields
         if asset.get("os_version"):
             os_info["os_version"] = asset["os_version"]
         elif asset.get("version"):
             os_info["os_version"] = asset["version"]
+        elif asset.get("version/hostname"):
+            # Extract version from version/hostname field if it contains version info
+            version_hostname = asset["version/hostname"]
+            if version_hostname and any(char.isdigit() for char in str(version_hostname)):
+                os_info["os_version"] = str(version_hostname)
+        
+        # Add asset metadata
+        if os_info:
+            os_info["asset_id"] = asset.get("id", "unknown")
+            os_info["asset_name"] = asset.get("name", asset.get("asset_name", "unknown"))
+            os_info["asset_type"] = asset.get("asset_type", asset.get("type", "unknown"))
         
         return os_info if os_info else None
     
@@ -548,7 +561,7 @@ class TechDebtAnalysisAgent:
     
     def _assess_os_lifecycle(self, os_name: str, os_version: str) -> Dict[str, Any]:
         """Assess OS lifecycle status."""
-        # Simplified lifecycle assessment
+        # Default lifecycle assessment
         lifecycle_status = {
             "status": "supported",
             "end_of_life_date": None,
@@ -556,20 +569,115 @@ class TechDebtAnalysisAgent:
             "risk_level": "low"
         }
         
-        # Basic patterns for common OS
-        if "windows" in os_name.lower():
-            if "2008" in os_version or "2003" in os_version:
+        os_name_lower = os_name.lower()
+        
+        # Windows Server lifecycle assessment
+        if "windows server" in os_name_lower:
+            if "2008" in os_name_lower or "2003" in os_name_lower:
                 lifecycle_status.update({
                     "status": "end_of_life",
+                    "end_of_life_date": "2020-01-14",
                     "support_level": "none",
                     "risk_level": "critical"
                 })
-            elif "2012" in os_version:
+            elif "2012" in os_name_lower:
+                lifecycle_status.update({
+                    "status": "end_of_life",
+                    "end_of_life_date": "2023-10-10",
+                    "support_level": "none",
+                    "risk_level": "critical"
+                })
+            elif "2016" in os_name_lower:
                 lifecycle_status.update({
                     "status": "extended_support",
+                    "end_of_life_date": "2027-01-12",
                     "support_level": "security_only",
                     "risk_level": "high"
                 })
+            elif "2019" in os_name_lower:
+                lifecycle_status.update({
+                    "status": "supported",
+                    "end_of_life_date": "2029-01-09",
+                    "support_level": "full",
+                    "risk_level": "low"
+                })
+            elif "windows server" in os_name_lower and not any(year in os_name_lower for year in ["2016", "2019", "2022"]):
+                # Generic Windows Server without version - assume legacy
+                lifecycle_status.update({
+                    "status": "unknown_version",
+                    "support_level": "unknown",
+                    "risk_level": "high"
+                })
+        
+        # Red Hat Enterprise Linux lifecycle assessment
+        elif "red hat" in os_name_lower or "rhel" in os_name_lower:
+            if "6" in os_name_lower:
+                lifecycle_status.update({
+                    "status": "end_of_life",
+                    "end_of_life_date": "2020-11-30",
+                    "support_level": "none",
+                    "risk_level": "critical"
+                })
+            elif "7" in os_name_lower:
+                lifecycle_status.update({
+                    "status": "extended_support",
+                    "end_of_life_date": "2024-06-30",
+                    "support_level": "security_only",
+                    "risk_level": "medium"
+                })
+            elif "8" in os_name_lower:
+                lifecycle_status.update({
+                    "status": "supported",
+                    "end_of_life_date": "2029-05-31",
+                    "support_level": "full",
+                    "risk_level": "low"
+                })
+            elif "red hat" in os_name_lower and not any(ver in os_name_lower for ver in ["7", "8", "9"]):
+                # Generic RHEL without version - assume legacy
+                lifecycle_status.update({
+                    "status": "unknown_version",
+                    "support_level": "unknown",
+                    "risk_level": "high"
+                })
+        
+        # Ubuntu Server lifecycle assessment
+        elif "ubuntu" in os_name_lower:
+            if "16.04" in os_name_lower:
+                lifecycle_status.update({
+                    "status": "end_of_life",
+                    "end_of_life_date": "2024-04-30",
+                    "support_level": "none",
+                    "risk_level": "medium"
+                })
+            elif "18.04" in os_name_lower:
+                lifecycle_status.update({
+                    "status": "supported",
+                    "end_of_life_date": "2028-04-30",
+                    "support_level": "full",
+                    "risk_level": "low"
+                })
+            elif "20.04" in os_name_lower or "22.04" in os_name_lower:
+                lifecycle_status.update({
+                    "status": "supported",
+                    "support_level": "full",
+                    "risk_level": "low"
+                })
+        
+        # Cisco IOS lifecycle assessment
+        elif "cisco ios" in os_name_lower or "ios" in os_name_lower:
+            lifecycle_status.update({
+                "status": "version_check_needed",
+                "support_level": "unknown",
+                "risk_level": "medium"
+            })
+        
+        # Unknown OS
+        elif "unknown" in os_name_lower:
+            lifecycle_status.update({
+                "status": "unknown_os",
+                "support_level": "unknown",
+                "risk_level": "high"
+            })
         
         return lifecycle_status
     
@@ -688,7 +796,69 @@ class TechDebtAnalysisAgent:
 
     def _categorize_business_risk(self, analysis: Dict, stakeholder_context: Optional[Dict]) -> Dict[str, Any]:
         """Categorize business risk."""
-        return {"items": [], "average_risk": 0.5}
+        risk_items = []
+        risk_scores = []
+        
+        # Process OS analysis results
+        if "os_inventory" in analysis:
+            for os_key, os_data in analysis["os_inventory"].items():
+                lifecycle_status = analysis.get("lifecycle_status", {}).get(os_key, {})
+                risk_score = analysis.get("risk_assessment", {}).get(os_key, 0.5)
+                
+                if lifecycle_status.get("risk_level") in ["high", "critical"]:
+                    risk_items.append({
+                        "id": f"os_risk_{os_key}",
+                        "asset_id": os_data.get("assets", ["unknown"])[0],
+                        "asset_name": os_data.get("os_name", "Unknown OS"),
+                        "category": "operating_system",
+                        "technology": os_data.get("os_name", "Unknown"),
+                        "current_version": os_data.get("os_version", "Unknown"),
+                        "latest_version": self._get_latest_os_version(os_data.get("os_name", "")),
+                        "support_status": lifecycle_status.get("status", "unknown"),
+                        "end_of_life_date": lifecycle_status.get("end_of_life_date"),
+                        "risk_level": lifecycle_status.get("risk_level", "medium"),
+                        "migration_effort": self._assess_migration_effort(lifecycle_status),
+                        "business_impact": self._assess_business_impact_level(risk_score),
+                        "recommended_action": self._generate_os_recommendation(lifecycle_status),
+                        "dependencies": [],
+                        "description": f"{os_data.get('os_name', 'Unknown OS')} requires attention due to {lifecycle_status.get('status', 'unknown status')}",
+                        "confidence": 0.8
+                    })
+                    risk_scores.append(risk_score)
+        
+        # Process application analysis results
+        if "application_inventory" in analysis:
+            for app_key, app_data in analysis["application_inventory"].items():
+                support_status = analysis.get("support_status", {}).get(app_key, {})
+                version_risk = analysis.get("version_risks", {}).get(app_key, 0.3)
+                
+                if support_status.get("risk_level") in ["high", "critical"]:
+                    risk_items.append({
+                        "id": f"app_risk_{app_key}",
+                        "asset_id": app_data.get("assets", ["unknown"])[0],
+                        "asset_name": app_data.get("name", "Unknown App"),
+                        "category": "application_versions",
+                        "technology": app_data.get("name", "Unknown"),
+                        "current_version": app_data.get("version", "Unknown"),
+                        "latest_version": "Latest Available",
+                        "support_status": support_status.get("status", "unknown"),
+                        "risk_level": support_status.get("risk_level", "medium"),
+                        "migration_effort": "medium",
+                        "business_impact": "medium",
+                        "recommended_action": f"Upgrade {app_data.get('name', 'application')} to supported version",
+                        "dependencies": [],
+                        "description": f"{app_data.get('name', 'Application')} version {app_data.get('version', 'unknown')} needs updating",
+                        "confidence": 0.7
+                    })
+                    risk_scores.append(version_risk)
+        
+        average_risk = sum(risk_scores) / len(risk_scores) if risk_scores else 0.0
+        
+        return {
+            "items": risk_items,
+            "average_risk": average_risk,
+            "total_items": len(risk_items)
+        }
 
     def _assess_business_impact(self, technical_analysis: Dict, stakeholder_context: Optional[Dict]) -> Dict[str, Any]:
         """Assess business impact."""
@@ -725,6 +895,61 @@ class TechDebtAnalysisAgent:
     async def _learn_timeline_constraints(self, risk_item_id: str, original: Dict, stakeholder_input: Dict) -> Dict[str, Any]:
         """Learn from timeline constraint feedback."""
         return {"learning_applied": True, "timeline_constraints_updated": True}
+
+    def _get_latest_os_version(self, os_name: str) -> str:
+        """Get the latest version for a given OS."""
+        os_name_lower = os_name.lower()
+        if "windows server" in os_name_lower:
+            return "Windows Server 2022"
+        elif "red hat" in os_name_lower or "rhel" in os_name_lower:
+            return "RHEL 9"
+        elif "ubuntu" in os_name_lower:
+            return "Ubuntu 22.04 LTS"
+        elif "cisco ios" in os_name_lower:
+            return "Latest IOS Version"
+        else:
+            return "Latest Available"
+
+    def _assess_migration_effort(self, lifecycle_status: Dict) -> str:
+        """Assess migration effort based on lifecycle status."""
+        risk_level = lifecycle_status.get("risk_level", "low")
+        status = lifecycle_status.get("status", "supported")
+        
+        if status == "end_of_life":
+            return "high"
+        elif status in ["extended_support", "unknown_version"]:
+            return "medium"
+        elif risk_level == "critical":
+            return "high"
+        else:
+            return "low"
+
+    def _assess_business_impact_level(self, risk_score: float) -> str:
+        """Assess business impact level based on risk score."""
+        if risk_score >= 0.8:
+            return "critical"
+        elif risk_score >= 0.6:
+            return "high"
+        elif risk_score >= 0.4:
+            return "medium"
+        else:
+            return "low"
+
+    def _generate_os_recommendation(self, lifecycle_status: Dict) -> str:
+        """Generate OS-specific recommendation."""
+        status = lifecycle_status.get("status", "supported")
+        risk_level = lifecycle_status.get("risk_level", "low")
+        
+        if status == "end_of_life":
+            return "Immediate upgrade required - OS is no longer supported"
+        elif status == "extended_support":
+            return "Plan upgrade to current supported version"
+        elif status == "unknown_version":
+            return "Verify OS version and plan upgrade if legacy"
+        elif risk_level == "critical":
+            return "Critical security update required"
+        else:
+            return "Monitor for updates and plan future upgrade"
 
 # Global instance for the application
 tech_debt_analysis_agent = TechDebtAnalysisAgent() 

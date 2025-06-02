@@ -78,6 +78,9 @@ export const API_CONFIG = {
       ASSESSMENT_READINESS: '/api/v1/discovery/agents/assessment-readiness',
       STAKEHOLDER_SIGNOFF_PACKAGE: '/api/v1/discovery/agents/stakeholder-signoff-package',
       STAKEHOLDER_SIGNOFF_FEEDBACK: '/api/v1/discovery/agents/stakeholder-signoff-feedback',
+      // Tech Debt Analysis endpoints
+      TECH_DEBT_ANALYSIS: '/api/v1/discovery/agents/tech-debt-analysis',
+      TECH_DEBT_FEEDBACK: '/api/v1/discovery/agents/tech-debt-feedback',
       // Data cleanup endpoints  
       DATA_CLEANUP_ANALYZE: '/api/v1/discovery/data-cleanup/agent-analyze',
       DATA_CLEANUP_PROCESS: '/api/v1/discovery/data-cleanup/agent-process',

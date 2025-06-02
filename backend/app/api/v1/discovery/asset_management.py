@@ -714,3 +714,267 @@ async def get_infrastructure_landscape():
                 }
             }
         } 
+
+@router.get("/assets/tech-debt-analysis")
+async def get_tech_debt_analysis():
+    """Get tech debt analysis using the Tech Debt Analysis Agent."""
+    try:
+        # Import the tech debt analysis agent
+        from app.services.tech_debt_analysis_agent import tech_debt_analysis_agent
+        
+        # Get all assets for analysis
+        assets_result = await crud_handler.get_assets_paginated({'page_size': 1000})
+        assets = assets_result.get('assets', [])
+        
+        if not assets:
+            return {
+                "status": "success",
+                "items": [],
+                "summary": {
+                    "totalItems": 0,
+                    "critical": 0,
+                    "high": 0,
+                    "medium": 0,
+                    "low": 0,
+                    "endOfLife": 0,
+                    "deprecated": 0
+                }
+            }
+        
+        # Perform tech debt analysis
+        tech_debt_intelligence = await tech_debt_analysis_agent.analyze_tech_debt(
+            assets, 
+            stakeholder_context={}, 
+            migration_timeline="6-12 months"
+        )
+        
+        # Extract and transform the tech debt items for frontend
+        prioritized_debt = tech_debt_intelligence.get("prioritized_tech_debt", [])
+        tech_debt_items = []
+        summary = {
+            "totalItems": 0,
+            "critical": 0,
+            "high": 0,
+            "medium": 0,
+            "low": 0,
+            "endOfLife": 0,
+            "deprecated": 0
+        }
+        
+        for debt_item in prioritized_debt:
+            # Extract risk item from prioritized debt structure
+            risk_item = debt_item.get("risk_item", debt_item)  # Fallback to debt_item if no risk_item
+            
+            # Transform agent analysis to frontend format
+            tech_debt_item = {
+                "id": risk_item.get("id", f"debt_{len(tech_debt_items)}"),
+                "assetId": risk_item.get("asset_id", ""),
+                "assetName": risk_item.get("asset_name", "Unknown Asset"),
+                "component": _map_component_type(risk_item.get("category", "os")),
+                "technology": risk_item.get("technology", "Unknown"),
+                "currentVersion": risk_item.get("current_version", "Unknown"),
+                "latestVersion": risk_item.get("latest_version", "Unknown"),
+                "supportStatus": _map_support_status(risk_item.get("support_status", "unknown")),
+                "endOfLifeDate": risk_item.get("end_of_life_date"),
+                "securityRisk": risk_item.get("risk_level", "medium"),
+                "migrationEffort": risk_item.get("migration_effort", "medium"),
+                "businessImpact": risk_item.get("business_impact", "medium"),
+                "recommendedAction": risk_item.get("recommended_action", "Review and plan upgrade"),
+                "dependencies": risk_item.get("dependencies", [])
+            }
+            
+            tech_debt_items.append(tech_debt_item)
+            
+            # Update summary counts
+            summary["totalItems"] += 1
+            risk_level = tech_debt_item["securityRisk"]
+            if risk_level in summary:
+                summary[risk_level] += 1
+            
+            if tech_debt_item["supportStatus"] == "end_of_life":
+                summary["endOfLife"] += 1
+            elif tech_debt_item["supportStatus"] == "deprecated":
+                summary["deprecated"] += 1
+        
+        return {
+            "status": "success",
+            "items": tech_debt_items,
+            "summary": summary
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in tech debt analysis: {e}")
+        return {
+            "status": "error",
+            "items": [],
+            "summary": {
+                "totalItems": 0,
+                "critical": 0,
+                "high": 0,
+                "medium": 0,
+                "low": 0,
+                "endOfLife": 0,
+                "deprecated": 0
+            },
+            "error": str(e)
+        }
+
+@router.get("/assets/support-timelines")
+async def get_support_timelines():
+    """Get technology support timelines."""
+    try:
+        # Import the tech debt analysis agent
+        from app.services.tech_debt_analysis_agent import tech_debt_analysis_agent
+        
+        # Get all assets for analysis
+        assets_result = await crud_handler.get_assets_paginated({'page_size': 1000})
+        assets = assets_result.get('assets', [])
+        
+        if not assets:
+            return {
+                "status": "success",
+                "timelines": []
+            }
+        
+        # Perform tech debt analysis to get support timelines
+        tech_debt_intelligence = await tech_debt_analysis_agent.analyze_tech_debt(
+            assets, 
+            stakeholder_context={}, 
+            migration_timeline="6-12 months"
+        )
+        
+        # Extract support timeline information
+        os_analysis = tech_debt_intelligence.get("tech_debt_analysis", {}).get("os_analysis", {})
+        app_analysis = tech_debt_intelligence.get("tech_debt_analysis", {}).get("application_analysis", {})
+        
+        support_timelines = []
+        
+        # Process OS timelines
+        for os_info in os_analysis.get("os_inventory", {}).values():
+            timeline = {
+                "technology": f"{os_info.get('name', 'Unknown OS')}",
+                "currentVersion": os_info.get("version", "Unknown"),
+                "supportEnd": _calculate_support_end_date(os_info),
+                "extendedSupportEnd": _calculate_extended_support_date(os_info),
+                "replacementOptions": _get_os_replacement_options(os_info)
+            }
+            support_timelines.append(timeline)
+        
+        # Process Application timelines
+        for app_info in app_analysis.get("application_inventory", {}).values():
+            timeline = {
+                "technology": f"{app_info.get('name', 'Unknown App')}",
+                "currentVersion": app_info.get("version", "Unknown"),
+                "supportEnd": _calculate_app_support_end_date(app_info),
+                "replacementOptions": _get_app_replacement_options(app_info)
+            }
+            support_timelines.append(timeline)
+        
+        return {
+            "status": "success",
+            "timelines": support_timelines[:10]  # Limit to top 10 most critical
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting support timelines: {e}")
+        return {
+            "status": "error",
+            "timelines": [],
+            "error": str(e)
+        }
+
+def _map_component_type(category: str) -> str:
+    """Map agent category to frontend component type."""
+    mapping = {
+        "operating_system": "os",
+        "application_versions": "app",
+        "infrastructure": "framework",
+        "security": "framework",
+        "database": "database",
+        "web": "web"
+    }
+    return mapping.get(category, "os")
+
+def _map_support_status(status: str) -> str:
+    """Map agent support status to frontend format."""
+    mapping = {
+        "mainstream_support": "supported",
+        "extended_support": "extended",
+        "end_of_support": "deprecated",
+        "end_of_life": "end_of_life"
+    }
+    return mapping.get(status, "deprecated")
+
+def _calculate_support_end_date(os_info: dict) -> str:
+    """Calculate OS support end date."""
+    # This would typically use real OS lifecycle data
+    # For now, provide reasonable estimates based on OS name and version
+    os_name = os_info.get("name", "").lower()
+    version = os_info.get("version", "")
+    
+    if "windows server 2012" in os_name or "2012" in version:
+        return "2023-10-10"  # Already EOL
+    elif "windows server 2016" in os_name or "2016" in version:
+        return "2027-01-12"
+    elif "windows server 2019" in os_name or "2019" in version:
+        return "2029-01-09"
+    elif "centos 7" in os_name:
+        return "2024-06-30"
+    elif "rhel 7" in os_name:
+        return "2024-06-30"
+    elif "rhel 8" in os_name:
+        return "2029-05-31"
+    else:
+        return "2025-12-31"  # Default estimate
+
+def _calculate_extended_support_date(os_info: dict) -> str:
+    """Calculate extended support end date."""
+    # Extended support typically 3-5 years after mainstream
+    from datetime import datetime, timedelta
+    try:
+        support_end = datetime.strptime(_calculate_support_end_date(os_info), "%Y-%m-%d")
+        extended_end = support_end + timedelta(days=1095)  # 3 years
+        return extended_end.strftime("%Y-%m-%d")
+    except:
+        return "2028-12-31"
+
+def _calculate_app_support_end_date(app_info: dict) -> str:
+    """Calculate application support end date."""
+    # This would use real application lifecycle data
+    app_name = app_info.get("name", "").lower()
+    version = app_info.get("version", "")
+    
+    if "java" in app_name and "8" in version:
+        return "2025-03-31"  # Oracle Java 8 commercial support
+    elif "java" in app_name and "11" in version:
+        return "2026-09-30"
+    elif ".net" in app_name and any(v in version for v in ["4.6", "4.7", "4.8"]):
+        return "2025-04-26"
+    else:
+        return "2026-12-31"
+
+def _get_os_replacement_options(os_info: dict) -> list:
+    """Get OS replacement options."""
+    os_name = os_info.get("name", "").lower()
+    
+    if "windows" in os_name:
+        return ["Windows Server 2022", "Windows Server 2019", "Azure Windows VM"]
+    elif "centos" in os_name or "rhel" in os_name:
+        return ["RHEL 9", "Ubuntu 22.04 LTS", "Azure Linux"]
+    elif "ubuntu" in os_name:
+        return ["Ubuntu 22.04 LTS", "Ubuntu 20.04 LTS"]
+    else:
+        return ["Modern Linux Distribution", "Cloud-native OS"]
+
+def _get_app_replacement_options(app_info: dict) -> list:
+    """Get application replacement options."""
+    app_name = app_info.get("name", "").lower()
+    
+    if "java" in app_name:
+        return ["OpenJDK 17", "OpenJDK 21", "Azure Spring Apps"]
+    elif ".net" in app_name:
+        return [".NET 6", ".NET 8", "Azure App Service"]
+    elif "database" in app_name:
+        return ["PostgreSQL 15", "Azure SQL Database", "AWS RDS"]
+    else:
+        return ["Modern Alternative", "Cloud Service"]
