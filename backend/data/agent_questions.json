@@ -684,5 +684,251 @@
     "answered_at": null,
     "user_response": null,
     "is_resolved": false
+  },
+  "607f605d-16ed-4369-afbe-91634721442c": {
+    "id": "607f605d-16ed-4369-afbe-91634721442c",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "data_classification",
+    "page": "data-import",
+    "title": "No Data Provided",
+    "question": "No data was uploaded for analysis. Would you like to upload a different file?",
+    "context": {
+      "issue": "no_data"
+    },
+    "options": null,
+    "confidence": "high",
+    "priority": "high",
+    "created_at": "2025-06-02T03:26:27.605311",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "ce03d12f-958f-434a-ae6d-e2537dae4c09": {
+    "id": "ce03d12f-958f-434a-ae6d-e2537dae4c09",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "data_classification",
+    "page": "data-import",
+    "title": "No Data Provided",
+    "question": "No data was uploaded for analysis. Would you like to upload a different file?",
+    "context": {
+      "issue": "no_data"
+    },
+    "options": null,
+    "confidence": "high",
+    "priority": "high",
+    "created_at": "2025-06-02T03:29:51.382679",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "466c97df-4cb8-47ad-87eb-0aad0ae0d030": {
+    "id": "466c97df-4cb8-47ad-87eb-0aad0ae0d030",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "field_mapping",
+    "page": "data-import",
+    "title": "Missing Critical Fields",
+    "question": "This data appears to be missing asset_name, server_name, ip_address. Are these available in other columns?",
+    "context": {
+      "missing_fields": [
+        "asset_name",
+        "server_name",
+        "ip_address"
+      ],
+      "available_columns": [
+        "Hostname",
+        "CPU (Cores)",
+        "RAM (GB)"
+      ],
+      "suggestion": "field_mapping_needed"
+    },
+    "options": null,
+    "confidence": "high",
+    "priority": "high",
+    "created_at": "2025-06-02T03:30:16.096120",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "bf59d0bc-c62c-45ef-8e5a-ca2a26743edf": {
+    "id": "bf59d0bc-c62c-45ef-8e5a-ca2a26743edf",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "business_context",
+    "page": "data-import",
+    "title": "Asset Ownership Information",
+    "question": "No asset ownership information found. Is this available elsewhere or should migration proceed without owner details?",
+    "context": {
+      "missing_info": "ownership",
+      "migration_impact": "medium",
+      "suggestion": "may_need_additional_data"
+    },
+    "options": [
+      "Available in separate file",
+      "Not available",
+      "Will provide later"
+    ],
+    "confidence": "medium",
+    "priority": "low",
+    "created_at": "2025-06-02T03:30:16.098877",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "3e54305d-b998-4434-81be-f5c5bcc39b6b": {
+    "id": "3e54305d-b998-4434-81be-f5c5bcc39b6b",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "quality_validation",
+    "page": "data-import",
+    "title": "Network Information Validation",
+    "question": "Network information (IPs/hostnames) detected. Should we validate these are current and accessible?",
+    "context": {
+      "has_ip_addresses": false,
+      "has_hostnames": true,
+      "validation_type": "network_connectivity"
+    },
+    "options": [
+      "Yes, validate network info",
+      "Skip validation",
+      "Validate critical assets only"
+    ],
+    "confidence": "medium",
+    "priority": "low",
+    "created_at": "2025-06-02T03:30:16.100645",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "91d13ba5-d37c-4d8f-b43b-0d445e3686da": {
+    "id": "91d13ba5-d37c-4d8f-b43b-0d445e3686da",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "business_context",
+    "page": "data-import",
+    "title": "Department/Organization Information",
+    "question": "No department information found. Is organizational structure important for migration planning?",
+    "context": {
+      "missing_info": "department",
+      "planning_impact": "organizational_structure",
+      "suggestion": "helpful_but_not_critical"
+    },
+    "options": [
+      "Yes, very important",
+      "Somewhat important",
+      "Not needed"
+    ],
+    "confidence": "low",
+    "priority": "low",
+    "created_at": "2025-06-02T03:30:16.102332",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "3f67a5fb-3ae1-4ec5-982d-64a7e289a54c": {
+    "id": "3f67a5fb-3ae1-4ec5-982d-64a7e289a54c",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "field_mapping",
+    "page": "attribute-mapping",
+    "title": "Missing Critical Fields",
+    "question": "This data appears to be missing asset_name, server_name, ip_address. Are these available in other columns?",
+    "context": {
+      "missing_fields": [
+        "asset_name",
+        "server_name",
+        "ip_address"
+      ],
+      "available_columns": [
+        "Hostname",
+        "RAM (GB)",
+        "CPU (Cores)"
+      ],
+      "suggestion": "field_mapping_needed"
+    },
+    "options": null,
+    "confidence": "high",
+    "priority": "high",
+    "created_at": "2025-06-02T03:31:34.654994",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "ef7cec07-d9f4-4b59-b7b1-ac8629197648": {
+    "id": "ef7cec07-d9f4-4b59-b7b1-ac8629197648",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "business_context",
+    "page": "attribute-mapping",
+    "title": "Asset Ownership Information",
+    "question": "No asset ownership information found. Is this available elsewhere or should migration proceed without owner details?",
+    "context": {
+      "missing_info": "ownership",
+      "migration_impact": "medium",
+      "suggestion": "may_need_additional_data"
+    },
+    "options": [
+      "Available in separate file",
+      "Not available",
+      "Will provide later"
+    ],
+    "confidence": "medium",
+    "priority": "low",
+    "created_at": "2025-06-02T03:31:34.657099",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "36062aad-37ab-42a3-8f3a-9ce62975f6a5": {
+    "id": "36062aad-37ab-42a3-8f3a-9ce62975f6a5",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "quality_validation",
+    "page": "attribute-mapping",
+    "title": "Network Information Validation",
+    "question": "Network information (IPs/hostnames) detected. Should we validate these are current and accessible?",
+    "context": {
+      "has_ip_addresses": false,
+      "has_hostnames": true,
+      "validation_type": "network_connectivity"
+    },
+    "options": [
+      "Yes, validate network info",
+      "Skip validation",
+      "Validate critical assets only"
+    ],
+    "confidence": "medium",
+    "priority": "low",
+    "created_at": "2025-06-02T03:31:34.658996",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "09eca1bc-308c-400e-be36-af3d419efc2e": {
+    "id": "09eca1bc-308c-400e-be36-af3d419efc2e",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "business_context",
+    "page": "attribute-mapping",
+    "title": "Department/Organization Information",
+    "question": "No department information found. Is organizational structure important for migration planning?",
+    "context": {
+      "missing_info": "department",
+      "planning_impact": "organizational_structure",
+      "suggestion": "helpful_but_not_critical"
+    },
+    "options": [
+      "Yes, very important",
+      "Somewhat important",
+      "Not needed"
+    ],
+    "confidence": "low",
+    "priority": "low",
+    "created_at": "2025-06-02T03:31:34.660048",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
   }
 }
