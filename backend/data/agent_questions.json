@@ -1601,5 +1601,62 @@
     "answered_at": null,
     "user_response": null,
     "is_resolved": false
+  },
+  "9290abf7-92c5-45a4-9223-ffe617ed9cce": {
+    "id": "9290abf7-92c5-45a4-9223-ffe617ed9cce",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "quality_validation",
+    "page": "data-import",
+    "title": "Data Format Inconsistencies",
+    "question": "Found format inconsistencies in: Migration_Notes, RAM_GB, Cloud_Migration_Readiness_Score, MAC_Address, Maintenance_Window, CPU_Cores, OS_Version, Storage_GB. Should we standardize these?",
+    "context": {
+      "format_issues": {
+        "Migration_Notes": [
+          "text",
+          "mixed_alphanumeric"
+        ],
+        "RAM_GB": [
+          "text",
+          "numeric"
+        ],
+        "Cloud_Migration_Readiness_Score": [
+          "text",
+          "numeric"
+        ],
+        "MAC_Address": [
+          "text",
+          "mixed_alphanumeric"
+        ],
+        "Maintenance_Window": [
+          "text",
+          "mixed_alphanumeric"
+        ],
+        "CPU_Cores": [
+          "text",
+          "numeric"
+        ],
+        "OS_Version": [
+          "ip_address",
+          "mixed_alphanumeric"
+        ],
+        "Storage_GB": [
+          "text",
+          "numeric"
+        ]
+      },
+      "standardization_needed": true
+    },
+    "options": [
+      "Yes, standardize automatically",
+      "No, keep as-is",
+      "Manual review needed"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-02T20:19:23.483136",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
   }
 }

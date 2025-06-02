@@ -36,7 +36,9 @@ import {
   DollarSign,
   AlertTriangle,
   Upload,
-  LayoutDashboard
+  LayoutDashboard,
+  UserCheck,
+  UserClock
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -66,6 +68,9 @@ const Sidebar = () => {
   );
   const [observabilityExpanded, setObservabilityExpanded] = useState(
     location.pathname.startsWith('/observability')
+  );
+  const [adminExpanded, setAdminExpanded] = useState(
+    location.pathname.startsWith('/admin')
   );
 
   const navigationItems = [
@@ -173,6 +178,18 @@ const Sidebar = () => {
         { name: 'Agent Monitoring', path: '/observability/agent-monitoring', icon: Activity }
       ]
     },
+    { 
+      name: 'Admin', 
+      path: '/admin', 
+      icon: Settings,
+      hasSubmenu: true,
+      submenu: [
+        { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+        { name: 'Client Management', path: '/admin/clients', icon: Building2 },
+        { name: 'Engagement Management', path: '/admin/engagements', icon: Calendar },
+        { name: 'User Approvals', path: '/admin/users/approvals', icon: UserClock }
+      ]
+    },
   ];
 
   const handleDiscoveryToggle = () => {
@@ -207,6 +224,10 @@ const Sidebar = () => {
     setObservabilityExpanded(!observabilityExpanded);
   };
 
+  const handleAdminToggle = () => {
+    setAdminExpanded(!adminExpanded);
+  };
+
   const handleVersionClick = () => {
     console.log('🔍 Version clicked - navigating to feedback-view');
     console.log('Current location:', location.pathname);
@@ -239,6 +260,7 @@ const Sidebar = () => {
             const isDecommissionParent = item.name === 'Decommission' && location.pathname.startsWith('/decommission');
             const isFinopsParent = item.name === 'FinOps' && location.pathname.startsWith('/finops');
             const isObservabilityParent = item.name === 'Observability' && location.pathname.startsWith('/observability');
+            const isAdminParent = item.name === 'Admin' && location.pathname.startsWith('/admin');
             
             return (
               <li key={item.name}>
@@ -246,7 +268,7 @@ const Sidebar = () => {
                   <>
                     <div
                       className={`flex items-center justify-between px-3 py-2 rounded-lg transition-colors duration-200 cursor-pointer ${
-                        isDiscoveryParent || isAssessParent || isPlanParent || isExecuteParent || isModernizeParent || isDecommissionParent || isFinopsParent || isObservabilityParent
+                        isDiscoveryParent || isAssessParent || isPlanParent || isExecuteParent || isModernizeParent || isDecommissionParent || isFinopsParent || isObservabilityParent || isAdminParent
                           ? 'bg-blue-600 text-white'
                           : 'text-gray-300 hover:bg-gray-700 hover:text-white'
                       }`}
@@ -259,6 +281,7 @@ const Sidebar = () => {
                         item.name === 'Decommission' ? handleDecommissionToggle :
                         item.name === 'FinOps' ? handleFinopsToggle :
                         item.name === 'Observability' ? handleObservabilityToggle :
+                        item.name === 'Admin' ? handleAdminToggle :
                         undefined
                       }
                     >
@@ -274,7 +297,8 @@ const Sidebar = () => {
                         (item.name === 'Modernize' && modernizeExpanded) ||
                         (item.name === 'Decommission' && decommissionExpanded) ||
                         (item.name === 'FinOps' && finopsExpanded) ||
-                        (item.name === 'Observability' && observabilityExpanded)
+                        (item.name === 'Observability' && observabilityExpanded) ||
+                        (item.name === 'Admin' && adminExpanded)
                       ) ? (
                         <ChevronDown className="h-4 w-4" />
                       ) : (
@@ -288,7 +312,8 @@ const Sidebar = () => {
                       (item.name === 'Modernize' && modernizeExpanded) ||
                       (item.name === 'Decommission' && decommissionExpanded) ||
                       (item.name === 'FinOps' && finopsExpanded) ||
-                      (item.name === 'Observability' && observabilityExpanded)) && (
+                      (item.name === 'Observability' && observabilityExpanded) ||
+                      (item.name === 'Admin' && adminExpanded)) && (
                       <ul className="ml-6 mt-2 space-y-1">
                         {item.submenu?.map((subItem) => {
                           const SubIcon = subItem.icon;

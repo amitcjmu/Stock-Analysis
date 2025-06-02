@@ -55,6 +55,10 @@ import Observability from "./pages/Observability";
 import AgentMonitoring from "./pages/AgentMonitoring";
 import FeedbackView from "./pages/FeedbackView";
 import NotFound from "./pages/NotFound";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import ClientManagement from "./pages/admin/ClientManagement";
+import EngagementManagement from "./pages/admin/EngagementManagement";
+import UserApprovals from "./pages/admin/UserApprovals";
 
 const queryClient = new QueryClient();
 
@@ -115,6 +119,12 @@ const App = () => (
           <Route path="/observability" element={<Observability />} />
           <Route path="/observability/agent-monitoring" element={<AgentMonitoring />} />
           <Route path="/feedback-view" element={<FeedbackView />} />
+          {/* Admin Routes */}
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/admin/clients" element={<ClientManagement />} />
+          <Route path="/admin/engagements" element={<EngagementManagement />} />
+          <Route path="/admin/users/approvals" element={<UserApprovals />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -193,4 +193,33 @@ try:
     )
     print("✅ Agent learning endpoints available (Tasks C.1 and C.2)")
 except ImportError as e:
-    print(f"⚠️ Agent learning endpoints not available: {e}") 
+    print(f"⚠️ Agent learning endpoints not available: {e}")
+
+# Include RBAC authentication endpoints (Task 3.1)
+try:
+    from app.api.v1.auth import rbac
+    api_router.include_router(
+        rbac.router,
+        prefix="",  # No prefix since router already has /auth
+        tags=["rbac-authentication"]
+    )
+    print("✅ RBAC authentication endpoints available (Task 3.1)")
+except ImportError as e:
+    print(f"⚠️ RBAC authentication endpoints not available: {e}")
+
+# Include Admin Management endpoints (Task 3.2)
+try:
+    from app.api.v1.admin import client_management, engagement_management
+    api_router.include_router(
+        client_management.router,
+        prefix="",  # No prefix since router already has /admin/clients
+        tags=["client-management"]
+    )
+    api_router.include_router(
+        engagement_management.router,
+        prefix="",  # No prefix since router already has /admin/engagements
+        tags=["engagement-management"]
+    )
+    print("✅ Admin management endpoints available (Task 3.2)")
+except ImportError as e:
+    print(f"⚠️ Admin management endpoints not available: {e}") 
