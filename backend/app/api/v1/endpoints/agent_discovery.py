@@ -553,6 +553,14 @@ async def analyze_dependencies(
             assets, applications, user_context
         )
         
+        # Debug: Log what the agent returned
+        logger.info(f"🔍 Agent returned dependency intelligence with keys: {list(dependency_intelligence.keys())}")
+        cross_mapping = dependency_intelligence.get('cross_application_mapping', {})
+        cross_deps = cross_mapping.get('cross_app_dependencies', [])
+        logger.info(f"🔍 Cross-app dependencies before serialization: {len(cross_deps)}")
+        if cross_deps:
+            logger.info(f"🔍 Sample cross-app dependency: {cross_deps[0]}")
+        
         # Store clarification questions in the UI bridge for display
         for question in dependency_intelligence.get("clarification_questions", []):
             agent_ui_bridge.add_agent_question(
@@ -568,9 +576,18 @@ async def analyze_dependencies(
                 priority=question.get("priority", "medium")
             )
         
+        # Ensure proper JSON serialization
+        from app.api.v1.discovery.serialization import clean_for_json_serialization
+        clean_dependency_intelligence = clean_for_json_serialization(dependency_intelligence)
+        
+        # Debug: Log what's being serialized
+        clean_cross_mapping = clean_dependency_intelligence.get('cross_application_mapping', {})
+        clean_cross_deps = clean_cross_mapping.get('cross_app_dependencies', [])
+        logger.info(f"🔍 Cross-app dependencies after serialization: {len(clean_cross_deps)}")
+        
         response = {
             "status": "success",
-            "dependency_intelligence": dependency_intelligence,
+            "dependency_intelligence": clean_dependency_intelligence,
             "agent_analysis_complete": True
         }
         

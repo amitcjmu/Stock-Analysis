@@ -400,50 +400,84 @@ class DependencyIntelligenceAgent:
     async def _map_cross_application_dependencies(self, dependencies: List[Dict[str, Any]], 
                                                 applications: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Map dependencies across applications for impact analysis."""
+        # Debug: Log what we're processing
+        logger.info(f"🔍 Cross-app mapping: Processing {len(dependencies)} dependencies, {len(applications)} applications")
+        if dependencies:
+            sample_dep = dependencies[0]
+            logger.info(f"🔍 Sample dependency structure: {list(sample_dep.keys())}")
+            logger.info(f"🔍 Sample dependency: {sample_dep.get('source_asset')} -> {sample_dep.get('target')} (type: {sample_dep.get('dependency_type')})")
+        
         # Even without formal applications, we can group by asset relationships
         cross_app_deps = []
         
         if applications:
             # Create application mapping if applications are provided
+            logger.info(f"🔍 Creating app mapping from {len(applications)} applications")
             asset_to_app_map = {}
-            for app in applications:
+            for i, app in enumerate(applications):
                 app_id = app.get("id") or app.get("name", "unknown_app")
+                logger.info(f"🔍 App {i+1}: {app_id} with components: {app.get('components', [])}")
                 for component in app.get("components", []):
                     asset_id = component.get("id") or component.get("asset_id")
                     if asset_id:
                         asset_to_app_map[asset_id] = app_id
+                        logger.info(f"🔍 Mapped asset {asset_id} to app {app_id}")
             
-            # Map dependencies to applications
-            for dep in dependencies:
-                source_asset = dep.get("source_asset")
-                target_asset = dep.get("target")
+            logger.info(f"🔍 Asset-to-app mapping: {asset_to_app_map}")
+            
+            # Check if we have any useful mappings
+            if not asset_to_app_map:
+                logger.info(f"🔍 No asset-to-app mappings found - falling back to virtual application groupings")
+                # Fall back to virtual application groupings since no components are mapped
+                applications = []  # This will trigger the else branch below
+            else:
+                # Map dependencies to applications
+                for i, dep in enumerate(dependencies):
+                    source_asset = dep.get("source_asset")
+                    target_asset = dep.get("target")
+                    
+                    source_app = asset_to_app_map.get(source_asset)
+                    target_app = asset_to_app_map.get(target_asset)
+                    
+                    logger.info(f"🔍 Dep {i+1}: {source_asset} -> {target_asset}, mapped to apps: {source_app} -> {target_app}")
+                    
+                    if source_app and target_app and source_app != target_app:
+                        cross_app_dep = {
+                            "source_application": source_app,
+                            "target_application": target_app,
+                            "dependency": dep,
+                            "impact_level": self._assess_cross_app_impact(dep, applications)
+                        }
+                        cross_app_deps.append(cross_app_dep)
+                        logger.info(f"🔍 Added cross-app dep: {source_app} -> {target_app}")
+                    else:
+                        logger.info(f"🔍 Skipped dep: source_app={source_app}, target_app={target_app}, same_app={source_app == target_app}")
                 
-                source_app = asset_to_app_map.get(source_asset)
-                target_app = asset_to_app_map.get(target_asset)
-                
-                if source_app and target_app and source_app != target_app:
-                    cross_app_deps.append({
-                        "source_application": source_app,
-                        "target_application": target_app,
-                        "dependency": dep,
-                        "impact_level": self._assess_cross_app_impact(dep, applications)
-                    })
-        else:
+                logger.info(f"🔍 Total cross-app deps from app mapping: {len(cross_app_deps)}")
+        
+        if not applications:
             # Create virtual application groupings based on dependencies
-            for dep in dependencies:
+            logger.info(f"🔍 Creating virtual app groupings for {len(dependencies)} dependencies")
+            for i, dep in enumerate(dependencies):
                 source_asset = dep.get("source_asset")
                 source_name = dep.get("source_asset_name", source_asset)
                 target_asset = dep.get("target")
                 
+                logger.info(f"🔍 Processing dep {i+1}: {source_asset} ({source_name}) -> {target_asset}")
+                
                 # Create cross-application dependencies based on asset relationships
-                cross_app_deps.append({
+                cross_app_dep = {
                     "source_application": source_name,
                     "target_application": target_asset,
                     "dependency": dep,
                     "impact_level": self._assess_cross_app_impact(dep, applications),
                     "dependency_type": dep.get("dependency_type", "unknown"),
                     "confidence": dep.get("confidence", 0.0)
-                })
+                }
+                cross_app_deps.append(cross_app_dep)
+                logger.info(f"🔍 Created cross-app dep: {cross_app_dep.get('source_application')} -> {cross_app_dep.get('target_application')}")
+            
+            logger.info(f"🔍 Total cross-app dependencies created: {len(cross_app_deps)}")
         
         # Identify application clusters
         app_clusters = self._identify_application_clusters(cross_app_deps)
