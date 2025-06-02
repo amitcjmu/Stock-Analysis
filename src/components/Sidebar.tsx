@@ -38,7 +38,7 @@ import {
   Upload,
   LayoutDashboard,
   UserCheck,
-  UserClock
+  User
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -187,7 +187,7 @@ const Sidebar = () => {
         { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
         { name: 'Client Management', path: '/admin/clients', icon: Building2 },
         { name: 'Engagement Management', path: '/admin/engagements', icon: Calendar },
-        { name: 'User Approvals', path: '/admin/users/approvals', icon: UserClock }
+        { name: 'User Approvals', path: '/admin/users/approvals', icon: User }
       ]
     },
   ];
