@@ -2,6 +2,64 @@
 
 All notable changes to the AI Force Migration Platform will be documented in this file.
 
+## [0.8.1] - December 19, 2024
+
+### 🎯 **MULTI-TENANCY MIDDLEWARE & SESSION REPOSITORIES**
+
+This release completes the foundational middleware and repository layers for enterprise multi-tenancy, enabling automatic context injection and intelligent session-aware data access.
+
+### 🚀 **Context Middleware & Request Processing**
+
+#### **Context Extraction & Injection System**
+- **Implementation**: Complete FastAPI middleware for automatic context extraction from request headers
+- **Technology**: BaseHTTPMiddleware with contextvars for request-scoped data
+- **Integration**: Seamless integration with existing FastAPI application stack
+- **Benefits**: Zero-code context access in all endpoints, automatic demo client fallback
+
+#### **Request Context Management**
+- **Context Variables**: Client account, engagement, session, and user context available globally
+- **Demo Client Support**: Automatic fallback to "Pujyam Corp" demo client when no context provided
+- **Header Extraction**: Supports X-Client-Account-Id, X-Engagement-Id, X-Session-Id, X-User-Id headers
+- **Validation**: Configurable context requirements with exempt paths for health checks
+
+#### **Request Logging & Debugging**
+- **Middleware Logging**: Comprehensive request/response logging with context information
+- **Performance Tracking**: Request timing and processing metrics
+- **Debug Headers**: Response headers include context information for debugging
+- **Error Handling**: Graceful fallback for context extraction failures
+
+### 🏗️ **Session-Aware Repository Architecture**
+
+#### **SessionAwareRepository Implementation**
+- **Extension**: Extends ContextAwareRepository with session-level filtering capabilities
+- **View Modes**: Supports both session_view (current session) and engagement_view (deduplicated)
+- **Smart Filtering**: Automatic session context application with configurable view modes
+- **Factory Pattern**: create_session_aware_repository() function uses current request context
+
+#### **Intelligent Deduplication Service**
+- **Multiple Strategies**: latest_session, hostname_priority, data_quality, agent_assisted
+- **Smart Matching**: Automatic deduplication field detection (hostname, name, asset_name, identifier)
+- **Quality Scoring**: Data quality-based deduplication with non-null field counting
+- **Statistics**: Comprehensive deduplication metrics and duplicate group analysis
+
+#### **Engagement-Level Data Views**
+- **Cross-Session Deduplication**: Intelligent merging of data across multiple import sessions
+- **Priority Logic**: Latest session wins with quality-based tiebreakers
+- **Performance Optimization**: Efficient SQL queries with window functions and subqueries
+- **CrewAI Integration**: Ready for AI agent-assisted deduplication decisions
+
+### 📊 **Technical Achievements**
+- **Zero-Configuration Context**: All endpoints automatically have multi-tenant context
+- **Flexible Repository Pattern**: Switch between session-specific and engagement-wide views
+- **Enterprise-Grade Middleware**: Production-ready request processing with comprehensive logging
+- **Intelligent Data Merging**: Smart deduplication across multiple data import sessions
+
+### 🎯 **Success Metrics**
+- **Context Middleware**: 100% request coverage with automatic fallback to demo client
+- **Repository Flexibility**: Seamless switching between session_view and engagement_view modes
+- **Deduplication Intelligence**: 4 different strategies for various use cases
+- **Performance**: Efficient SQL-based deduplication with minimal memory footprint
+
 ## [0.8.0] - 2025-01-28
 
 ### 🎯 **MULTI-TENANCY FOUNDATION - Database Schema & RBAC Implementation**

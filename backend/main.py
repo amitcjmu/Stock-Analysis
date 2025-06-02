@@ -175,6 +175,33 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Add context middleware (Task 1.2.3)
+try:
+    from app.core.middleware import ContextMiddleware, RequestLoggingMiddleware
+    
+    # Add request logging middleware
+    app.add_middleware(RequestLoggingMiddleware)
+    
+    # Add context middleware with demo client fallback
+    app.add_middleware(
+        ContextMiddleware,
+        require_client=True,   # Require client context for all API calls
+        require_engagement=False,  # Engagement context optional for now
+        exempt_paths=[
+            "/health",
+            "/",
+            "/docs", 
+            "/redoc",
+            "/openapi.json",
+            "/debug",
+            "/static"
+        ]
+    )
+    print("✅ Context middleware loaded successfully")
+except Exception as e:
+    print(f"⚠️  Context middleware could not be loaded: {e}")
+    print(f"📋 Traceback: {traceback.format_exc()}")
+
 @app.get("/debug/routes")
 async def debug_routes():
     """Debug endpoint to see what routes are loaded."""
@@ -223,6 +250,18 @@ async def startup_event():
             async with engine.begin() as conn:
                 await conn.run_sync(Base.metadata.create_all)
             print("✅ Database tables created successfully!")
+            
+            # Resolve demo client context (Task 1.2.4)
+            try:
+                from app.core.database import AsyncSessionLocal
+                from app.core.context import resolve_demo_client_ids
+                
+                async with AsyncSessionLocal() as session:
+                    await resolve_demo_client_ids(session)
+                print("✅ Demo client context resolved")
+            except Exception as context_e:
+                print(f"⚠️  Demo client context resolution failed: {context_e}")
+                
         except Exception as e:
             print(f"⚠️  Database initialization failed: {e}")
             # Don't fail startup, just log the error
