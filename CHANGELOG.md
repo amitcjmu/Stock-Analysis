@@ -5,6 +5,37 @@ All notable changes to the AI Force Migration Platform will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.35] - 2025-01-28
+
+### 🎯 **APPLICATION PORTFOLIO FIX - Asset Inventory Application Discovery**
+
+This release fixes the "Application Discovery Error" on the Asset Inventory page by resolving the missing QuestionType enum value for application boundary questions.
+
+### 🐛 **Asset Inventory Application Portfolio Fix**
+
+#### **QuestionType Enum Fix**
+- **Missing Enum**: Added `APPLICATION_BOUNDARY = "application_boundary"` to QuestionType enum
+- **Error Resolution**: Fixed "APPLICATION_BOUNDARY" error that was breaking application portfolio discovery
+- **API Integration**: Application portfolio endpoint now works correctly with frontend
+
+#### **Application Discovery Results**
+- **Portfolio Analysis**: Successfully discovering 19 applications from 24 assets
+- **Discovery Confidence**: 50.26% overall confidence with intelligent application grouping
+- **Agent Intelligence**: Application Discovery Agent + Application Intelligence Agent working together
+- **Business Intelligence**: Strategic recommendations and portfolio health assessment
+
+### 📊 **Technical Results**
+- **Applications Discovered**: 19 applications identified from asset inventory
+- **High Confidence Apps**: Intelligent application boundary detection
+- **Clarification Questions**: 16 applications flagged for stakeholder input
+- **Discovery Metadata**: Complete analysis timestamp and confidence tracking
+
+### 🎯 **Success Metrics**
+- **Application Portfolio Tab**: Now loads without errors
+- **Agent Integration**: Complete application discovery workflow functional
+- **Business Intelligence**: Portfolio analysis with strategic recommendations
+- **Frontend-Backend**: Seamless integration between Asset Inventory page and application discovery
+
 ## [0.9.34] - 2025-01-28
 
 ### 🎯 **TECH DEBT ANALYSIS - Complete AI-Powered Tech Debt Intelligence**

@@ -16,6 +16,7 @@ class QuestionType(Enum):
     QUALITY_VALIDATION = "quality_validation"
     DEPENDENCY_CLARIFICATION = "dependency_clarification"
     MIGRATION_PREFERENCE = "migration_preference"
+    APPLICATION_BOUNDARY = "application_boundary"
 
 class ConfidenceLevel(Enum):
     """Confidence levels for agent analysis and insights."""

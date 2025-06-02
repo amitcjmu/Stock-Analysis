@@ -340,5 +340,66 @@
     "created_at": "2025-06-02T05:36:55.897894",
     "user_feedback": null,
     "is_validated": false
+  },
+  "41e5d8bd-ccdb-4932-bfab-e0f043695f49": {
+    "id": "41e5d8bd-ccdb-4932-bfab-e0f043695f49",
+    "agent_id": "application_intelligence",
+    "agent_name": "Application Intelligence Agent",
+    "insight_type": "portfolio_composition",
+    "title": "Application Portfolio Composition",
+    "description": "Portfolio contains 19 applications across 7 asset types",
+    "confidence": "high",
+    "supporting_data": {
+      "Application": 6,
+      "Server": 8,
+      "Database": 1,
+      "Unknown": 1,
+      "Storage Device": 1,
+      "Security Device": 1,
+      "Infrastructure Device": 1
+    },
+    "page": "asset-inventory",
+    "actionable": true,
+    "created_at": "2025-06-02T05:41:48.432628",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "7433a5be-70bc-464f-9035-586c64ac3c6f": {
+    "id": "7433a5be-70bc-464f-9035-586c64ac3c6f",
+    "agent_id": "application_intelligence",
+    "agent_name": "Application Intelligence Agent",
+    "insight_type": "business_criticality",
+    "title": "Business Criticality Distribution",
+    "description": "High: 0, Medium: 0, Low: 19",
+    "confidence": "high",
+    "supporting_data": {
+      "high": 0,
+      "medium": 0,
+      "low": 19
+    },
+    "page": "asset-inventory",
+    "actionable": true,
+    "created_at": "2025-06-02T05:41:48.433909",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "a05ae594-8a37-4ad6-8c42-413fa3b020c0": {
+    "id": "a05ae594-8a37-4ad6-8c42-413fa3b020c0",
+    "agent_id": "application_intelligence",
+    "agent_name": "Application Intelligence Agent",
+    "insight_type": "technology_diversity",
+    "title": "Technology Stack Diversity",
+    "description": "Portfolio spans 3 different technologies",
+    "confidence": "medium",
+    "supporting_data": [
+      "server",
+      "unknown",
+      "application"
+    ],
+    "page": "asset-inventory",
+    "actionable": true,
+    "created_at": "2025-06-02T05:41:48.435260",
+    "user_feedback": null,
+    "is_validated": false
   }
 }

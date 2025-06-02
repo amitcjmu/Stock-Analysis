@@ -974,5 +974,173 @@
     "answered_at": null,
     "user_response": null,
     "is_resolved": false
+  },
+  "1c4ac452-0cf9-46dc-902f-8bc1f6b8d2c3": {
+    "id": "1c4ac452-0cf9-46dc-902f-8bc1f6b8d2c3",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Unknown",
+    "question": "Is 'Unknown' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "server-1"
+      ],
+      "confidence": 0.5700000000000001,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-02T05:41:48.421366",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "30f76a24-3f19-42bb-a319-5115da174214": {
+    "id": "30f76a24-3f19-42bb-a319-5115da174214",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Backup Service",
+    "question": "Is 'Backup Service' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "Backup_Service"
+      ],
+      "confidence": 0.53,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-02T05:41:48.424057",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "b0c4f2a0-1a2e-465a-84f3-3ded720e2938": {
+    "id": "b0c4f2a0-1a2e-465a-84f3-3ded720e2938",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Web Portal Application",
+    "question": "Is 'Web Portal Application' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "Web_Portal"
+      ],
+      "confidence": 0.45000000000000007,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-02T05:41:48.426786",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "25eacb71-4911-4bbe-91e1-05df8b147b98": {
+    "id": "25eacb71-4911-4bbe-91e1-05df8b147b98",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Inventory Mgmt Application",
+    "question": "Is 'Inventory Mgmt Application' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "Inventory_Mgmt"
+      ],
+      "confidence": 0.39,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-02T05:41:48.428467",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "f6b36dd4-d18f-45b7-9485-c0f42d598e41": {
+    "id": "f6b36dd4-d18f-45b7-9485-c0f42d598e41",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Analytics Platform Application",
+    "question": "Is 'Analytics Platform Application' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "Analytics_Platform"
+      ],
+      "confidence": 0.39,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-02T05:41:48.429798",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "e72077d4-bde9-4354-b4fa-9581355674d1": {
+    "id": "e72077d4-bde9-4354-b4fa-9581355674d1",
+    "agent_id": "application_discovery",
+    "agent_name": "Application Discovery Agent",
+    "question_type": "application_boundary",
+    "page": "asset-inventory",
+    "title": "Application Validation: Devops Pipeline Application",
+    "question": "Is 'Devops Pipeline Application' a single application or should it be split into multiple applications?",
+    "context": {
+      "components": [
+        "DevOps_Pipeline"
+      ],
+      "confidence": 0.39,
+      "reason": "Low confidence in application grouping"
+    },
+    "options": [
+      "Single application - grouping is correct",
+      "Split into multiple applications",
+      "Merge with another application",
+      "Not an application - infrastructure only"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-02T05:41:48.431324",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
   }
 }
