@@ -112,5 +112,39 @@
     "created_at": "2025-06-01T07:42:13.137312",
     "user_feedback": null,
     "is_validated": false
+  },
+  "9d31f5d7-539f-4eac-b88b-0600d5aea38c": {
+    "id": "9d31f5d7-539f-4eac-b88b-0600d5aea38c",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "insight_type": "data_quality",
+    "title": "No Data Available",
+    "description": "No data was provided for analysis",
+    "confidence": "high",
+    "supporting_data": {
+      "row_count": 0
+    },
+    "page": "data-import",
+    "actionable": true,
+    "created_at": "2025-06-02T03:22:09.646205",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "f73f4c8b-99a0-477e-b538-8758543004a8": {
+    "id": "f73f4c8b-99a0-477e-b538-8758543004a8",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "insight_type": "data_quality",
+    "title": "No Data Available",
+    "description": "No data was provided for analysis",
+    "confidence": "high",
+    "supporting_data": {
+      "row_count": 0
+    },
+    "page": "data-import",
+    "actionable": true,
+    "created_at": "2025-06-02T03:22:40.010889",
+    "user_feedback": null,
+    "is_validated": false
   }
 }

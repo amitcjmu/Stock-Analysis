@@ -220,6 +220,9 @@ const AttributeMapping = () => {
       setFieldMappings(mappings);
       updateMappingProgress(mappings);
       
+      // Trigger agent panel analysis after field mappings are generated
+      await triggerAgentPanelAnalysis(mappings, sampleData);
+      
     } catch (error) {
       console.error('Agent analysis failed, using fallback:', error);
       // Fallback mapping logic
@@ -239,8 +242,45 @@ const AttributeMapping = () => {
       
       setFieldMappings(mappings);
       updateMappingProgress(mappings);
+      
+      // Trigger agent panel analysis even in fallback mode
+      await triggerAgentPanelAnalysis(mappings, sampleData);
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  // Trigger agent panel analysis for clarifications, classifications, and insights
+  const triggerAgentPanelAnalysis = async (mappings: FieldMapping[], sampleData: any[]) => {
+    try {
+      // Trigger data source analysis specifically for attribute mapping context
+      // This will generate agent questions, classifications, and insights for the current data
+      await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_ANALYSIS, {
+        method: 'POST',
+        body: JSON.stringify({
+          data_source: {
+            columns: mappings.map(m => m.sourceField),
+            sample_data: sampleData.slice(0, 10),
+            field_mappings: mappings.map(m => ({
+              source_field: m.sourceField,
+              target_attribute: m.targetAttribute,
+              confidence: m.confidence,
+              status: m.status
+            })),
+            unmapped_fields: mappings.filter(m => m.targetAttribute === 'unmapped').map(m => m.sourceField),
+            low_confidence_mappings: mappings.filter(m => m.confidence < 0.7)
+          },
+          analysis_type: 'data_source_analysis',
+          page_context: 'attribute-mapping'
+        })
+      });
+      
+      // Trigger agent panel refresh to pick up new analysis
+      setAgentRefreshTrigger(prev => prev + 1);
+      
+      console.log('Agent panel analysis triggered for attribute mapping context');
+    } catch (error) {
+      console.warn('Agent panel analysis failed:', error);
     }
   };
 

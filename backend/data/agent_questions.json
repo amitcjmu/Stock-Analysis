@@ -646,5 +646,43 @@
     "answered_at": null,
     "user_response": null,
     "is_resolved": false
+  },
+  "332928e4-810e-4c1c-ad89-531949db64a5": {
+    "id": "332928e4-810e-4c1c-ad89-531949db64a5",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "data_classification",
+    "page": "data-import",
+    "title": "No Data Provided",
+    "question": "No data was uploaded for analysis. Would you like to upload a different file?",
+    "context": {
+      "issue": "no_data"
+    },
+    "options": null,
+    "confidence": "high",
+    "priority": "high",
+    "created_at": "2025-06-02T03:22:09.648153",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "521ee04f-32f7-47c1-a37b-fb1dec3ebca5": {
+    "id": "521ee04f-32f7-47c1-a37b-fb1dec3ebca5",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "data_classification",
+    "page": "data-import",
+    "title": "No Data Provided",
+    "question": "No data was uploaded for analysis. Would you like to upload a different file?",
+    "context": {
+      "issue": "no_data"
+    },
+    "options": null,
+    "confidence": "high",
+    "priority": "high",
+    "created_at": "2025-06-02T03:22:40.013108",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
   }
 }

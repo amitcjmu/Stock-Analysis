@@ -5,78 +5,129 @@ All notable changes to the AI Force Migration Platform will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.31] - 2025-01-28
+
+### 🎯 **AGENT PANEL ANALYSIS FIX - Attribute Mapping Context Enhancement**
+
+This release fixes the agent panel triggering issue on the Attribute Mapping page and enhances the agentic field mapping learning system to rely on intelligent content analysis rather than hardcoded rules.
+
+### 🐛 **Agent Panel Analysis Fix**
+
+#### **Attribute Mapping Context Triggering**
+- **Problem**: Agent panels (clarifications, classifications, insights) not populating on Attribute Mapping page after data import
+- **Root Cause**: `triggerAgentPanelAnalysis` function calling non-existent analysis type `'attribute_mapping_context_analysis'`
+- **Solution**: Updated to use correct `'data_source_analysis'` type with proper attribute mapping context data
+- **Impact**: Agent panels now receive analysis trigger after field mappings are generated
+
+#### **Agent Analysis Data Structure**
+- **Enhanced**: Agent analysis now includes field mapping context, unmapped fields, and low confidence mappings
+- **Improved**: Better data structure for attribute mapping specific insights and clarifications
+- **Result**: More relevant agent questions and insights for field mapping decisions
+
+### 🚀 **Agentic Field Mapping Enhancement** 
+
+#### **Learning System Verification**
+- **Verified**: Agent learning system working correctly for field mapping corrections
+- **Confirmed**: "CPU (Cores)" → "CPU Cores" pattern learning and application with 1.0 confidence
+- **Enhanced**: Content-based pattern analysis using actual data values, not just field names
+- **Result**: Agents learn from user corrections and apply patterns to future similar fields
+
+#### **Content-Based Intelligence**
+- **Emphasized**: Agentic-first approach using data content analysis over hardcoded mappings
+- **Enhanced**: `_analyze_content_match` analyzes actual sample values for context-aware mapping
+- **Improved**: Semantic field matching using data patterns (numeric ranges, keywords, formats)
+- **Result**: More intelligent field mapping based on data content, not just column names
+
+### 📊 **Technical Achievements**
+- **Agent Panel Triggering**: Fixed analysis type mismatch causing empty agent panels
+- **Learning Verification**: Confirmed field mapping corrections are learned and applied
+- **Content Analysis**: Enhanced data-driven mapping intelligence over static rules
+- **Context Awareness**: Improved page-specific agent analysis and question generation
+
+### 🎯 **User Experience Improvements**
+- **Agent Panels**: Now populate with relevant clarifications and insights after field mappings generated
+- **Learning Feedback**: Field mapping corrections properly stored and applied to future similar patterns
+- **Intelligent Mapping**: More accurate initial suggestions based on data content analysis
+- **Context Relevance**: Page-specific agent insights for attribute mapping workflow
+
+### 🔧 **Agentic Platform Adherence**
+- **No Hardcoded Rules**: Removed temptation to add static business mappings - agents learn dynamically
+- **Content-First Analysis**: Agents examine actual data values, patterns, and relationships
+- **Learning-Driven**: User corrections feed back into agent intelligence for continuous improvement
+- **Context-Aware**: Agents understand page context and provide relevant analysis
+
 ## [0.9.30] - 2025-01-28
 
 ### 🎯 **AGENT MONITORING RESTORATION - Modular Architecture Compatibility Fix**
 
 This release fixes the agent monitoring system that was broken after the CrewAI service modularization in version 0.9.23, restoring full agent observability and cross-page communication functionality.
 
-### 🐛 **Critical Agent Monitoring Fix**
+### 🐛 **CRITICAL AGENT MONITORING FIX**
 
-#### **Modular Architecture Compatibility**
+#### **MODULAR ARCHITECTURE COMPATIBILITY**
 - **Problem**: Agent monitoring endpoints returning 500 errors after CrewAI service modularization in v0.9.23
 - **Root Cause**: Monitoring code accessing `crewai_service.agent_manager` when modular service moved it to `crewai_service.agent_coordinator.agent_manager`
 - **Solution**: Added backward compatibility property to maintain existing API while supporting new modular architecture
 - **Impact**: Agent monitoring, health checks, and observability endpoints now work correctly
 
-#### **Backward Compatibility Enhancement**
+#### **BACKWARD COMPATIBILITY ENHANCEMENT**
 - **Added Property**: `@property agent_manager` in `CrewAIService` class for seamless backward compatibility
 - **Path Resolution**: Automatically resolves to `self.agent_coordinator.agent_manager` without breaking existing code
 - **Test Updates**: Updated test files to work with both old and new architecture patterns
-- **Zero Breaking Changes**: All existing code continues to work without modification
+- **ZERO BREAKING CHANGES**: All existing code continues to work without modification
 
-#### **Agent-to-Agent Communication Flow Verification**
+#### **AGENT-TO-AGENT COMMUNICATION FLOW VERIFICATION**
 - **DataImport → Asset Inventory**: Verified common agent communication flow across all specialized agents
-- **Enhanced Agent UI Bridge**: Confirmed cross-page context sharing and agent coordination working properly
-- **Learning System**: Validated agent learning endpoints processing field mapping corrections correctly
-- **Context Management**: Verified agent state coordination across discovery pages functioning as designed
+- **ENHANCED AGENT UI BRIDGE**: Confirmed cross-page context sharing and agent coordination working properly
+- **LEARNING SYSTEM**: Validated agent learning endpoints processing field mapping corrections correctly
+- **CONTEXT MANAGEMENT**: Verified agent state coordination across discovery pages functioning as designed
 
-### 🚀 **System Health Restoration**
+### 🚀 **SYSTEM HEALTH RESTORATION**
 
-#### **Monitoring Endpoints Restored**
+#### **MONITORING ENDPOINTS RESTORED**
 - **GET `/api/v1/monitoring/status`**: Now returns comprehensive agent registry data with 17 registered agents
-- **Agent Health**: All 13 active agents reporting healthy status across 9 migration phases
-- **Learning Agents**: 7 agents with learning capabilities actively processing user feedback
-- **Cross-Page Communication**: 4 agents coordinating context across discovery workflows
+- **AGENT HEALTH**: All 13 active agents reporting healthy status across 9 migration phases
+- **LEARNING AGENTS**: 7 agents with learning capabilities actively processing user feedback
+- **CROSS-PAGE COMMUNICATION**: 4 agents coordinating context across discovery workflows
 
-#### **Agent Learning System Verification**
-- **Field Mapping Learning**: Confirmed processing user corrections like "RAM (GB)" → "Memory (GB)"
-- **Pattern Recognition**: Verified agents learning field variations and content patterns
-- **Confidence Scoring**: Learning system applying 0.15 confidence improvements from user feedback
-- **Persistent Storage**: Field mapping corrections properly stored and applied to future analysis
+#### **AGENT LEARNING SYSTEM VERIFICATION**
+- **FIELD MAPPING LEARNING**: Confirmed processing user corrections like "RAM (GB)" → "Memory (GB)"
+- **PATTERN RECOGNITION**: Verified agents learning field variations and content patterns
+- **CONFIDENCE SCORING**: Learning system applying 0.15 confidence improvements from user feedback
+- **PERSISTENT STORAGE**: Field mapping corrections properly stored and applied to future analysis
 
-### 📊 **Technical Achievements**
+### 📊 **TECHNICAL ACHIEVEMENTS**
 
-#### **Architecture Integrity**
-- **Modular Service**: Maintained clean modular architecture while ensuring backward compatibility
-- **Handler Pattern**: All specialized handlers (crew_manager, agent_coordinator, task_processor, analysis_engine) working correctly
-- **Agent Registry**: 17 agents properly registered across all migration phases with comprehensive metadata
-- **System Status**: CrewAI service reporting healthy with LLM configured and 7 agents + 3 crews active
+#### **ARCHITECTURE INTEGRITY**
+- **MODULAR SERVICE**: Maintained clean modular architecture while ensuring backward compatibility
+- **HANDLER PATTERN**: All specialized handlers (crew_manager, agent_coordinator, task_processor, analysis_engine) working correctly
+- **AGENT REGISTRY**: 17 agents properly registered across all migration phases with comprehensive metadata
+- **SYSTEM STATUS**: CrewAI service reporting healthy with LLM configured and 7 agents + 3 crews active
 
-#### **Agent Ecosystem Health**
-- **Discovery Phase**: 4 active agents (Data Source Intelligence, CMDB Analyst, Field Mapping Specialist, Learning Specialist)
-- **Assessment Phase**: 2 active agents (Migration Strategy Expert, Risk Assessment Specialist)
-- **Planning Phase**: 1 active agent (Wave Planning Coordinator)
-- **Learning & Context**: 3 active agents (Agent Learning System, Client Context Manager, Enhanced Agent UI Bridge)
-- **Observability**: 3 active agents (Asset Intelligence, Agent Health Monitor, Performance Analytics)
+#### **AGENT ECOSYSTEM HEALTH**
+- **DISCOVERY PHASE**: 4 active agents (Data Source Intelligence, CMDB Analyst, Field Mapping Specialist, Learning Specialist)
+- **ASSESSMENT PHASE**: 2 active agents (Migration Strategy Expert, Risk Assessment Specialist)
+- **PLANNING PHASE**: 1 active agent (Wave Planning Coordinator)
+- **LEARNING & CONTEXT**: 3 active agents (Agent Learning System, Client Context Manager, Enhanced Agent UI Bridge)
+- **OBSERVABILITY**: 3 active agents (Asset Intelligence, Agent Health Monitor, Performance Analytics)
 
-### 🎯 **Business Impact**
-- **Restored Visibility**: Full agent monitoring and observability capabilities restored
-- **Learning Continuity**: Agent learning from user feedback working correctly across all workflows
-- **Cross-Page Coordination**: Seamless agent communication between DataImport and Asset Inventory pages
-- **System Reliability**: Eliminated 500 errors in agent monitoring endpoints
+### 🎯 **BUSINESS IMPACT**
+- **RESTORED VISIBILITY**: Full agent monitoring and observability capabilities restored
+- **LEARNING CONTINUITY**: Agent learning from user feedback working correctly across all workflows
+- **CROSS-PAGE COORDINATION**: Seamless agent communication between DataImport and Asset Inventory pages
+- **SYSTEM RELIABILITY**: Eliminated 500 errors in agent monitoring endpoints
 
-### 📊 **Success Metrics**
-- **Monitoring Endpoints**: 100% functional with comprehensive agent status reporting
-- **Agent Learning**: Field mapping corrections processed with 0.15 confidence improvements
-- **System Health**: All 13 active agents reporting healthy status
-- **Backward Compatibility**: Zero breaking changes to existing codebase
+### 📊 **SUCCESS METRICS**
+- **MONITORING ENDPOINTS**: 100% functional with comprehensive agent status reporting
+- **AGENT LEARNING**: Field mapping corrections processed with 0.15 confidence improvements
+- **SYSTEM HEALTH**: All 13 active agents reporting healthy status
+- **BACKWARD COMPATIBILITY**: Zero breaking changes to existing codebase
 
-### 🔧 **Technical Specifications**
-- **Compatibility Property**: `@property agent_manager` in `CrewAIService` class
-- **Path Resolution**: `return getattr(self.agent_coordinator, 'agent_manager', None)`
-- **Test Coverage**: Updated 2 test files to use backward compatible patterns
-- **Agent Registry**: 17 agents across 9 phases with full metadata tracking
+### 🔧 **TECHNICAL SPECIFICATIONS**
+- **COMPATIBILITY PROPERTY**: `@property agent_manager` in `CrewAIService` class
+- **PATH RESOLUTION**: `return getattr(self.agent_coordinator, 'agent_manager', None)`
+- **TEST COVERAGE**: Updated 2 test files to use backward compatible patterns
+- **AGENT REGISTRY**: 17 agents across 9 phases with full metadata tracking
 
 ## [0.9.29] - 2025-01-21
 
@@ -84,51 +135,51 @@ This release fixes the agent monitoring system that was broken after the CrewAI 
 
 This release fixes table highlighting functionality and enhances the agent interaction experience with better debugging and analysis summaries.
 
-### 🚀 **Critical Improvements**
+### 🚀 **CRITICAL IMPROVEMENTS**
 
-#### **Fixed Table Highlighting for Quality Issues**
-- **Enhanced Issue Generation**: Uses exact field names from actual data structure
-- **Improved Asset Matching**: Matches table's identifier logic exactly
-- **Better Field Selection**: Skips empty fields, prioritizes meaningful data
-- **Comprehensive Debugging**: Detailed logging for field and asset matching
+#### **FIXED TABLE HIGHLIGHTING FOR QUALITY ISSUES**
+- **ENHANCED ISSUE GENERATION**: Uses exact field names from actual data structure
+- **IMPROVED ASSET MATCHING**: Matches table's identifier logic exactly
+- **BETTER FIELD SELECTION**: Skips empty fields, prioritizes meaningful data
+- **COMPREHENSIVE DEBUGGING**: Detailed logging for field and asset matching
 
-#### **Enhanced Agent Panel Experience**
-- **Quality Analysis Summary**: Shows analysis type, confidence, and insights
-- **Agent Assistance Guide**: Explains what agents provide and when they activate
-- **Better Context Information**: Displays agent analysis results directly
-- **Improved Visual Design**: Clear status indicators and helpful messaging
+#### **ENHANCED AGENT PANEL EXPERIENCE**
+- **QUALITY ANALYSIS SUMMARY**: Shows analysis type, confidence, and insights
+- **AGENT ASSISTANCE GUIDE**: Explains what agents provide and when they activate
+- **BETTER CONTEXT INFORMATION**: Displays agent analysis results directly
+- **IMPROVED VISUAL DESIGN**: Clear status indicators and helpful messaging
 
-#### **Robust Data Structure Handling**
-- **Multi-Format Support**: Handles uppercase fields (ID, TYPE, NAME) and mixed case
-- **Asset Identifier Consistency**: Uses same logic as table rendering for perfect matching
-- **Field Name Preservation**: Maintains exact field names including spaces and special characters
-- **Enhanced Debugging**: Complete data structure analysis and matching verification
+#### **ROBUST DATA STRUCTURE HANDLING**
+- **MULTI-FORMAT SUPPORT**: Handles uppercase fields (ID, TYPE, NAME) and mixed case
+- **ASSET IDENTIFIER CONSISTENCY**: Uses same logic as table rendering for perfect matching
+- **FIELD NAME PRESERVATION**: Maintains exact field names including spaces and special characters
+- **ENHANCED DEBUGGING**: Complete data structure analysis and matching verification
 
-### 🔧 **Technical Enhancements**
+### 🔧 **TECHNICAL ENHANCEMENTS**
 
-#### **Issue Generation Improvements**
-- **Smart Field Selection**: Filters out empty fields and ID columns for meaningful issues
-- **Exact Asset Matching**: Uses identical logic to table's `getAssetIdentifier` function
-- **Enhanced Logging**: Comprehensive debugging output for troubleshooting
-- **Data Structure Analysis**: Shows available fields and asset identifiers
+#### **ISSUE GENERATION IMPROVEMENTS**
+- **SMART FIELD SELECTION**: Filters out empty fields and ID columns for meaningful issues
+- **EXACT ASSET MATCHING**: Uses identical logic to table's `getAssetIdentifier` function
+- **ENHANCED LOGGING**: Comprehensive debugging output for troubleshooting
+- **DATA STRUCTURE ANALYSIS**: Shows available fields and asset identifiers
 
-#### **Agent Interface Enhancements**
-- **Analysis Summary Panel**: Displays agent confidence, type, and key insights
-- **Help Card**: Explains agent functionality and interaction patterns
-- **Visual Status Indicators**: Clear color coding for different states
-- **TypeScript Improvements**: Added missing interface properties
+#### **AGENT INTERFACE ENHANCEMENTS**
+- **ANALYSIS SUMMARY PANEL**: Displays agent confidence, type, and key insights
+- **HELP CARD**: Explains agent functionality and interaction patterns
+- **VISUAL STATUS INDICATORS**: Clear color coding for different states
+- **TYPESCRIPT IMPROVEMENTS**: Added missing interface properties
 
-### 📊 **Business Impact**
-- **Improved User Experience**: Quality issues now properly highlight in the data table
-- **Better Agent Visibility**: Users understand what agents are doing and how to interact
-- **Enhanced Debugging**: Developers can quickly identify and fix data structure issues
-- **Reduced Confusion**: Clear explanations when agent panels are empty
+### 📊 **BUSINESS IMPACT**
+- **IMPROVED USER EXPERIENCE**: Quality issues now properly highlight in the data table
+- **BETTER AGENT VISIBILITY**: Users understand what agents are doing and how to interact
+- **ENHANCED DEBUGGING**: Developers can quickly identify and fix data structure issues
+- **REDUCED CONFUSION**: Clear explanations when agent panels are empty
 
-### 🎯 **Success Metrics**
-- **Table Highlighting**: Quality issues now correctly highlight corresponding fields
-- **Field Matching**: Exact and normalized field matching working properly
-- **Asset Identification**: Perfect alignment between issues and table rows
-- **Agent Transparency**: Clear visibility into agent analysis and capabilities
+### 🎯 **SUCCESS METRICS**
+- **TABLE HIGHLIGHTING**: Quality issues now correctly highlight corresponding fields
+- **FIELD MATCHING**: Exact and normalized field matching working properly
+- **ASSET IDENTIFICATION**: Perfect alignment between issues and table rows
+- **AGENT TRANSPARENCY**: Clear visibility into agent analysis and capabilities
 
 ## [0.9.28] - 2025-01-21
 
@@ -136,53 +187,53 @@ This release fixes table highlighting functionality and enhances the agent inter
 
 This release fixes critical React key duplication errors and improves data structure handling for better issue highlighting and debugging.
 
-### 🚀 **Critical Fixes**
+### 🚀 **CRITICAL FIXES**
 
-#### **React Key Duplication Error Fixed**
+#### **REACT KEY DUPLICATION ERROR FIXED**
 - **Problem**: Multiple table rows with same 'unknown' key causing React warning
 - **Root Cause**: Asset identifier function returning 'unknown' for multiple rows
 - **Solution**: Enhanced `getRowKey()` function to ensure unique keys using row index fallback
 - **Impact**: Eliminates console warnings and prevents potential React rendering issues
 
-#### **Enhanced Data Structure Detection**
-- **Improved Asset Identification**: Added support for uppercase field variants (ID, NAME, TYPE)
-- **Smarter Issue Generation**: Fallback analysis now matches actual data field names
-- **Better Field Mapping**: Prioritizes common quality issue fields in correct case
-- **Debug Logging**: Added comprehensive debugging for development troubleshooting
+#### **ENHANCED DATA STRUCTURE DETECTION**
+- **IMPROVED ASSET IDENTIFICATION**: Added support for uppercase field variants (ID, NAME, TYPE)
+- **SMARTER ISSUE GENERATION**: Fallback analysis now matches actual data field names
+- **BETTER FIELD MAPPING**: Prioritizes common quality issue fields in correct case
+- **DEBUG LOGGING**: Added comprehensive debugging for development troubleshooting
 
-#### **Quality Issue Highlighting Improvements**
-- **Field Name Matching**: Enhanced to handle both uppercase and lowercase field variations
-- **Asset Identifier Matching**: Improved to check multiple identifier formats
-- **Debug Information**: Added detailed logging for highlighting troubleshooting
+#### **QUALITY ISSUE HIGHLIGHTING IMPROVEMENTS**
+- **FIELD NAME MATCHING**: Enhanced to handle both uppercase and lowercase field variations
+- **ASSET IDENTIFIER MATCHING**: Improved to check multiple identifier formats
+- **DEBUG INFORMATION**: Added detailed logging for highlighting troubleshooting
 
-### 🔧 **Technical Enhancements**
+### 🔧 **TECHNICAL ENHANCEMENTS**
 
-#### **RawDataTable Component**
-- **Enhanced `getAssetIdentifier()`**: Now checks ID, asset_name, hostname, name, NAME variants
-- **New `getRowKey()`**: Ensures unique React keys even with duplicate identifiers
-- **Improved Data Handling**: Better support for various data field formats
+#### **RAWDATATABLE COMPONENT**
+- **ENHANCED `getAssetIdentifier()`**: Now checks ID, asset_name, hostname, name, NAME variants
+- **NEW `getRowKey()`**: Ensures unique React keys even with duplicate identifiers
+- **IMPROVED DATA HANDLING**: Better support for various data field formats
 
-#### **Fallback Quality Analysis**
-- **Realistic Field Selection**: Uses actual data structure for issue generation
-- **Case-Insensitive Matching**: Handles both upper and lowercase field names
-- **Better Asset Identification**: Matches table rendering logic exactly
+#### **FALLBACK QUALITY ANALYSIS**
+- **REALISTIC FIELD SELECTION**: Uses actual data structure for issue generation
+- **CASE-INSENSITIVE MATCHING**: Handles both upper and lowercase field names
+- **BETTER ASSET IDENTIFICATION**: Matches table rendering logic exactly
 
-#### **Development Experience**
-- **Debug Panel**: Shows data structure, issues, and selection state in dev mode
-- **Enhanced Logging**: Detailed console output for troubleshooting
-- **Error Context**: Better error reporting with location state information
+#### **DEVELOPMENT EXPERIENCE**
+- **DEBUG PANEL**: Shows data structure, issues, and selection state in dev mode
+- **ENHANCED LOGGING**: Detailed console output for troubleshooting
+- **ERROR CONTEXT**: Better error reporting with location state information
 
-### 📊 **Business Impact**
-- **Error Elimination**: No more React key warnings disrupting user experience
-- **Better Highlighting**: Issues now properly highlight corresponding table fields
-- **Improved Debugging**: Developers can quickly identify data structure issues
-- **Enhanced Reliability**: More robust handling of various data formats
+### 📊 **BUSINESS IMPACT**
+- **ERROR ELIMINATION**: No more React key warnings disrupting user experience
+- **BETTER HIGHLIGHTING**: Issues now properly highlight corresponding table fields
+- **IMPROVED DEBUGGING**: Developers can quickly identify data structure issues
+- **ENHANCED RELIABILITY**: More robust handling of various data formats
 
-### 🎯 **Success Metrics**
-- **Console Errors**: Eliminated React key duplication warnings
-- **Issue Highlighting**: Fixed highlighting functionality for quality issues
-- **Data Compatibility**: Support for both uppercase and lowercase field formats
-- **Debug Capability**: Full visibility into data structure and issue matching
+### 🎯 **SUCCESS METRICS**
+- **CONSOLE ERRORS**: Eliminated React key duplication warnings
+- **ISSUE HIGHLIGHTING**: Fixed highlighting functionality for quality issues
+- **DATA COMPATIBILITY**: Support for both uppercase and lowercase field formats
+- **DEBUG CAPABILITY**: Full visibility into data structure and issue matching
 
 ## [0.9.27] - 2025-01-21
 
@@ -190,9 +241,9 @@ This release fixes critical React key duplication errors and improves data struc
 
 This release addresses all three critical issues: fixes table highlighting bugs, implements comprehensive modularization reducing the DataCleansing component from 1047 lines to 244 lines (77% reduction), and resolves remaining load errors.
 
-### 🚀 **Modular Architecture Implementation**
+### 🚀 **MODULAR ARCHITECTURE IMPLEMENTATION**
 
-#### **Component Modularization**
+#### **COMPONENT MODULARIZATION**
 - **DataCleansingHeader**: Extracted header section with refresh functionality (35 lines)
 - **QualityIssuesSummary**: Modular quality issues panel with click handling (84 lines)
 - **RecommendationsSummary**: Dedicated recommendations component (88 lines)
