@@ -78,6 +78,14 @@ try:
 except ImportError as e:
     logger.warning(f"⚠️ Agent discovery router not available: {e}")
 
+# Include app-server mappings router for dependency analysis
+try:
+    from app.api.v1.discovery.app_server_mappings import router as app_server_mappings_router
+    router.include_router(app_server_mappings_router, tags=["discovery-mappings"])
+    logger.info("✅ App-server mappings router included in discovery")
+except ImportError as e:
+    logger.warning(f"⚠️ App-server mappings router not available: {e}")
+
 @router.get("/health")
 async def discovery_health_check():
     """Health check endpoint for the discovery module."""

@@ -39,17 +39,46 @@ async def perform_agent_analysis(
         "analysis_type": "data_source_analysis",
         "page_context": "data-import"
     }
+    OR for dependency context:
+    {
+        "data_context": {
+            "dependency_analysis": {...},
+            "cross_app_dependencies": [...],
+            "impact_summary": {...}
+        },
+        "analysis_type": "dependency_mapping",
+        "page_context": "dependencies"
+    }
     """
     try:
         data_source = analysis_request.get("data_source", {})
+        data_context = analysis_request.get("data_context", {})
         analysis_type = analysis_request.get("analysis_type", "data_source_analysis")
         page_context = analysis_request.get("page_context", "data-import")  # Extract from body
         
-        if not data_source:
-            raise HTTPException(status_code=400, detail="Data source is required for analysis")
+        # For dependency analysis, data_context is expected
+        if analysis_type == "dependency_mapping" and data_context:
+            # Process dependency context analysis
+            analysis_result = {
+                "analysis_type": "dependency_mapping",
+                "status": "success",
+                "page_context": page_context,
+                "dependency_analysis_available": True,
+                "total_dependencies": data_context.get("dependency_analysis", {}).get("total_dependencies", 0),
+                "cross_app_dependencies": len(data_context.get("cross_app_dependencies", [])),
+                "impact_summary": data_context.get("impact_summary", {}),
+                "validation_needs": data_context.get("validation_needs", {}),
+                "recommendations": [
+                    "Review cross-application dependencies for migration planning",
+                    "Validate dependency relationships with business stakeholders",
+                    "Consider dependency complexity in migration sequencing"
+                ]
+            }
+        elif not data_source and not data_context:
+            raise HTTPException(status_code=400, detail="Data source or data context is required for analysis")
         
         # Route to appropriate agent based on analysis type
-        if analysis_type == "data_source_analysis":
+        elif analysis_type == "data_source_analysis":
             analysis_result = await data_source_intelligence_agent.analyze_data_source(
                 data_source, page_context
             )
@@ -69,6 +98,9 @@ async def perform_agent_analysis(
                     "suggestions": [],
                     "confidence": 0.0
                 }
+        elif analysis_type == "dependency_mapping":
+            # Already processed above in the dependency context block
+            pass
         else:
             raise HTTPException(status_code=400, detail=f"Unknown analysis type: {analysis_type}")
         

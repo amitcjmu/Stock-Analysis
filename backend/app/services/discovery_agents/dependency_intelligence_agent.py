@@ -204,6 +204,38 @@ class DependencyIntelligenceAgent:
         """Extract dependencies from CMDB data fields."""
         dependencies = []
         
+        # Primary dependency extraction from related_ci field (CMDB standard)
+        related_ci = asset.get("related_ci")
+        if related_ci:
+            # Handle both string and list formats
+            related_assets = []
+            if isinstance(related_ci, str):
+                # Split by semicolon or comma
+                related_assets = [ci.strip() for ci in related_ci.replace(';', ',').split(',') if ci.strip()]
+            elif isinstance(related_ci, list):
+                related_assets = [str(ci).strip() for ci in related_ci if str(ci).strip()]
+            
+            for target_ci in related_assets:
+                # Determine dependency type based on asset types
+                dependency_type = self._infer_dependency_type(asset, target_ci)
+                
+                dependencies.append({
+                    "id": f"dep_{asset_id}_ci_{len(dependencies)}",
+                    "source_asset": asset_id,
+                    "source_asset_name": asset.get("asset_name") or asset.get("name", asset_id),
+                    "target": target_ci,
+                    "dependency_type": dependency_type,
+                    "confidence": 0.9,  # High confidence for CMDB relationships
+                    "source": "cmdb_related_ci",
+                    "discovered_from": "related_ci field",
+                    "bidirectional": True,  # CMDB relationships are typically bidirectional
+                    "asset_context": {
+                        "source_type": asset.get("ci_type") or asset.get("asset_type"),
+                        "source_environment": asset.get("environment"),
+                        "source_location": asset.get("location")
+                    }
+                })
+        
         # Check for database connections
         if asset.get("database_connections"):
             db_connections = asset.get("database_connections", [])
@@ -214,6 +246,7 @@ class DependencyIntelligenceAgent:
                 dependencies.append({
                     "id": f"dep_{asset_id}_db_{len(dependencies)}",
                     "source_asset": asset_id,
+                    "source_asset_name": asset.get("asset_name") or asset.get("name", asset_id),
                     "target": db_conn,
                     "dependency_type": "database_connection",
                     "confidence": 0.8,
@@ -236,6 +269,7 @@ class DependencyIntelligenceAgent:
                 dependencies.append({
                     "id": f"dep_{asset_id}_net_{len(dependencies)}",
                     "source_asset": asset_id,
+                    "source_asset_name": asset.get("asset_name") or asset.get("name", asset_id),
                     "target": network_ref.strip(),
                     "dependency_type": "network_dependency",
                     "confidence": 0.7,
@@ -366,33 +400,49 @@ class DependencyIntelligenceAgent:
     async def _map_cross_application_dependencies(self, dependencies: List[Dict[str, Any]], 
                                                 applications: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Map dependencies across applications for impact analysis."""
-        if not applications:
-            return {"cross_app_dependencies": [], "application_clusters": []}
-        
-        # Create application mapping
-        asset_to_app_map = {}
-        for app in applications:
-            app_id = app.get("id") or app.get("name", "unknown_app")
-            for component in app.get("components", []):
-                asset_id = component.get("id") or component.get("asset_id")
-                if asset_id:
-                    asset_to_app_map[asset_id] = app_id
-        
-        # Map dependencies to applications
+        # Even without formal applications, we can group by asset relationships
         cross_app_deps = []
-        for dep in dependencies:
-            source_asset = dep.get("source_asset")
-            target_asset = dep.get("target")
+        
+        if applications:
+            # Create application mapping if applications are provided
+            asset_to_app_map = {}
+            for app in applications:
+                app_id = app.get("id") or app.get("name", "unknown_app")
+                for component in app.get("components", []):
+                    asset_id = component.get("id") or component.get("asset_id")
+                    if asset_id:
+                        asset_to_app_map[asset_id] = app_id
             
-            source_app = asset_to_app_map.get(source_asset)
-            target_app = asset_to_app_map.get(target_asset)
-            
-            if source_app and target_app and source_app != target_app:
+            # Map dependencies to applications
+            for dep in dependencies:
+                source_asset = dep.get("source_asset")
+                target_asset = dep.get("target")
+                
+                source_app = asset_to_app_map.get(source_asset)
+                target_app = asset_to_app_map.get(target_asset)
+                
+                if source_app and target_app and source_app != target_app:
+                    cross_app_deps.append({
+                        "source_application": source_app,
+                        "target_application": target_app,
+                        "dependency": dep,
+                        "impact_level": self._assess_cross_app_impact(dep, applications)
+                    })
+        else:
+            # Create virtual application groupings based on dependencies
+            for dep in dependencies:
+                source_asset = dep.get("source_asset")
+                source_name = dep.get("source_asset_name", source_asset)
+                target_asset = dep.get("target")
+                
+                # Create cross-application dependencies based on asset relationships
                 cross_app_deps.append({
-                    "source_application": source_app,
-                    "target_application": target_app,
+                    "source_application": source_name,
+                    "target_application": target_asset,
                     "dependency": dep,
-                    "impact_level": self._assess_cross_app_impact(dep, applications)
+                    "impact_level": self._assess_cross_app_impact(dep, applications),
+                    "dependency_type": dep.get("dependency_type", "unknown"),
+                    "confidence": dep.get("confidence", 0.0)
                 })
         
         # Identify application clusters
@@ -602,7 +652,62 @@ class DependencyIntelligenceAgent:
 
     def _identify_application_clusters(self, cross_app_deps: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Identify clusters of tightly coupled applications."""
-        return []  # Simplified
+        if not cross_app_deps:
+            return []
+        
+        # Create application nodes and connections
+        app_connections = {}
+        all_apps = set()
+        
+        for dep in cross_app_deps:
+            source_app = dep.get("source_application")
+            target_app = dep.get("target_application")
+            
+            if source_app and target_app:
+                all_apps.add(source_app)
+                all_apps.add(target_app)
+                
+                if source_app not in app_connections:
+                    app_connections[source_app] = set()
+                app_connections[source_app].add(target_app)
+        
+        # Create clusters based on connection density
+        clusters = []
+        processed_apps = set()
+        
+        for app in all_apps:
+            if app in processed_apps:
+                continue
+                
+            # Find connected applications
+            cluster_apps = {app}
+            to_process = [app]
+            
+            while to_process:
+                current_app = to_process.pop()
+                connected_apps = app_connections.get(current_app, set())
+                
+                for connected_app in connected_apps:
+                    if connected_app not in cluster_apps:
+                        cluster_apps.add(connected_app)
+                        to_process.append(connected_app)
+            
+            # Create cluster if it has multiple applications
+            if len(cluster_apps) > 1:
+                cluster_deps = [dep for dep in cross_app_deps 
+                              if dep.get("source_application") in cluster_apps 
+                              and dep.get("target_application") in cluster_apps]
+                
+                clusters.append({
+                    "cluster_id": f"cluster_{len(clusters) + 1}",
+                    "applications": list(cluster_apps),
+                    "dependency_count": len(cluster_deps),
+                    "complexity": "high" if len(cluster_deps) > 5 else "medium" if len(cluster_deps) > 2 else "low"
+                })
+                
+                processed_apps.update(cluster_apps)
+        
+        return clusters
 
     def _build_dependency_graph(self, cross_app_deps: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Build dependency graph for visualization."""
@@ -631,6 +736,41 @@ class DependencyIntelligenceAgent:
     async def _learn_from_impact_feedback(self, dependency_id: str, original: Dict[str, Any], correction: Dict[str, Any]) -> Dict[str, Any]:
         """Learn from impact assessment feedback."""
         return {"learning_applied": True, "confidence_improvement": 0.05}
+    
+    def _infer_dependency_type(self, source_asset: Dict[str, Any], target_ci: str) -> str:
+        """Infer dependency type based on asset types and naming patterns."""
+        source_type = source_asset.get("ci_type") or source_asset.get("asset_type", "").lower()
+        target_prefix = target_ci[:3].upper() if len(target_ci) >= 3 else target_ci.upper()
+        
+        # Pattern-based inference using CI ID prefixes
+        if target_prefix == "SRV":
+            if source_type.lower() in ["application", "app"]:
+                return "application_to_server"
+            else:
+                return "server_dependency"
+        elif target_prefix == "DB":
+            return "database_connection"
+        elif target_prefix == "APP":
+            return "application_dependency"
+        elif target_prefix == "NET":
+            return "network_dependency"
+        elif target_prefix == "STR" or target_prefix == "STO":
+            return "storage_dependency"
+        
+        # Type-based inference
+        if source_type.lower() == "application":
+            if "server" in target_ci.lower() or "srv" in target_ci.lower():
+                return "application_to_server"
+            elif "database" in target_ci.lower() or "db" in target_ci.lower():
+                return "database_connection"
+            else:
+                return "application_dependency"
+        elif source_type.lower() == "server":
+            return "server_dependency"
+        elif source_type.lower() == "database":
+            return "database_connection"
+        else:
+            return "infrastructure_dependency"
 
 # Global instance for the application
 dependency_intelligence_agent = DependencyIntelligenceAgent() 
