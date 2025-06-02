@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import { apiCall, API_CONFIG } from '../config/api';
 
 export interface ClientContext {
   id: string;
@@ -43,7 +44,7 @@ const DEFAULT_DEMO_ENGAGEMENT: EngagementContext = {
   client_account_id: 'cc92315a-4bae-469d-9550-46d1c6e5ab68'
 };
 
-export const useContext = () => {
+export const useAppContext = () => {
   const location = useLocation();
   const [context, setContext] = useState<AppContext>({
     client: DEFAULT_DEMO_CLIENT,
@@ -85,9 +86,8 @@ export const useContext = () => {
     setError(null);
     
     try {
-      const response = await fetch('/api/v1/admin/clients/?page_size=100', {
+      const response = await apiCall(`${API_CONFIG.ENDPOINTS.ADMIN.CLIENTS}/?page_size=100`, {
         headers: {
-          'Content-Type': 'application/json',
           // Add current context headers
           ...(context.client && { 'X-Client-ID': context.client.id }),
           ...(context.engagement && { 'X-Engagement-ID': context.engagement.id }),
@@ -95,13 +95,7 @@ export const useContext = () => {
         }
       });
       
-      if (!response.ok) {
-        // If API fails, return demo client
-        return [DEFAULT_DEMO_CLIENT];
-      }
-      
-      const data = await response.json();
-      const clients = data.items?.map((client: any) => ({
+      const clients = response.items?.map((client: any) => ({
         id: client.id,
         name: client.name,
         slug: client.slug
@@ -129,25 +123,15 @@ export const useContext = () => {
     setError(null);
     
     try {
-      const response = await fetch(`/api/v1/admin/engagements/?client_account_id=${clientId}&page_size=100`, {
+      const response = await apiCall(`${API_CONFIG.ENDPOINTS.ADMIN.ENGAGEMENTS}/?client_account_id=${clientId}&page_size=100`, {
         headers: {
-          'Content-Type': 'application/json',
           'X-Client-ID': clientId,
           ...(context.engagement && { 'X-Engagement-ID': context.engagement.id }),
           ...(context.session && { 'X-Session-ID': context.session.id })
         }
       });
       
-      if (!response.ok) {
-        // If API fails and it's demo client, return demo engagement
-        if (clientId === DEFAULT_DEMO_CLIENT.id) {
-          return [DEFAULT_DEMO_ENGAGEMENT];
-        }
-        return [];
-      }
-      
-      const data = await response.json();
-      const engagements = data.items?.map((engagement: any) => ({
+      const engagements = response.items?.map((engagement: any) => ({
         id: engagement.id,
         name: engagement.name,
         slug: engagement.slug,
@@ -179,21 +163,15 @@ export const useContext = () => {
     setError(null);
     
     try {
-      const response = await fetch(`/api/v1/admin/engagements/${engagementId}/sessions`, {
+      const response = await apiCall(`${API_CONFIG.ENDPOINTS.ADMIN.ENGAGEMENTS}/${engagementId}/sessions`, {
         headers: {
-          'Content-Type': 'application/json',
           ...(context.client && { 'X-Client-ID': context.client.id }),
           'X-Engagement-ID': engagementId,
           ...(context.session && { 'X-Session-ID': context.session.id })
         }
       });
       
-      if (!response.ok) {
-        return [];
-      }
-      
-      const data = await response.json();
-      return data.items?.map((session: any) => ({
+      return response.items?.map((session: any) => ({
         id: session.id,
         session_name: session.session_name,
         session_display_name: session.session_display_name,

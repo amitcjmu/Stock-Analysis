@@ -2,7 +2,7 @@ import React from 'react';
 import { ChevronRight, Building2, Calendar, Database, Home, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useContext } from '@/hooks/useContext';
+import { useAppContext } from '@/hooks/useContext';
 
 interface ContextBreadcrumbsProps {
   className?: string;
@@ -15,7 +15,7 @@ const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
   showHome = true,
   maxLength = 60
 }) => {
-  const { context, getBreadcrumbs, setClient, setEngagement, setSession, setViewMode } = useContext();
+  const { context, getBreadcrumbs, setClient, setEngagement, setSession, setViewMode } = useAppContext();
   const breadcrumbs = getBreadcrumbs();
 
   const getIcon = (type: string) => {
@@ -88,8 +88,8 @@ const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
         </>
       )}
       
-      {breadcrumbs.map((breadcrumb, index) => (
-        <React.Fragment key={index}>
+              {breadcrumbs.map((breadcrumb, index) => (
+          <div key={`breadcrumb-${index}`} className="flex items-center">
           <Button
             variant="ghost"
             size="sm"
@@ -109,10 +109,10 @@ const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
             )}
           </Button>
           
-          {index < breadcrumbs.length - 1 && (
-            <ChevronRight className="h-3 w-3 text-gray-400 mx-1" />
-          )}
-        </React.Fragment>
+            {index < breadcrumbs.length - 1 && (
+              <ChevronRight className="h-3 w-3 text-gray-400 mx-1" />
+            )}
+          </div>
       ))}
       
       {/* View Mode Indicator */}

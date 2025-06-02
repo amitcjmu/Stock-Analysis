@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { useContext, ClientContext, EngagementContext, SessionContext } from '@/hooks/useContext';
+import { useAppContext, ClientContext, EngagementContext, SessionContext } from '@/hooks/useContext';
 import { useToast } from '@/hooks/use-toast';
 
 interface ContextSelectorProps {
@@ -32,7 +32,7 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
     setViewMode,
     resetToDemo,
     clearError
-  } = useContext();
+  } = useAppContext();
 
   const { toast } = useToast();
   

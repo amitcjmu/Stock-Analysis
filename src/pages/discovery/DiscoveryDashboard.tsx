@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { apiCall, API_CONFIG } from '../../config/api';
 import { Link } from 'react-router-dom';
-import { useContext } from '../../hooks/useContext';
+import { useAppContext } from '../../hooks/useContext';
 
 interface DiscoveryMetrics {
   totalAssets: number;
@@ -65,7 +65,7 @@ interface InfrastructureLandscape {
 }
 
 const DiscoveryDashboard = () => {
-  const { context, getContextHeaders } = useContext();
+  const { context, getContextHeaders } = useAppContext();
   
   const [metrics, setMetrics] = useState<DiscoveryMetrics>({
     totalAssets: 0,

@@ -101,7 +101,16 @@ export const API_CONFIG = {
       HEALTH: '/api/v1/monitoring/health',
       METRICS: '/api/v1/monitoring/metrics',
       CANCEL_TASK: '/api/v1/monitoring/tasks'
-    }
+    },
+    ADMIN: {
+      CLIENTS: '/api/v1/admin/clients',
+      ENGAGEMENTS: '/api/v1/admin/engagements',
+      USERS: '/api/v1/admin/users',
+      USER_PROFILES: '/api/v1/admin/user-profiles',
+      CLIENT_ACCESS: '/api/v1/admin/client-access',
+      ENGAGEMENT_ACCESS: '/api/v1/admin/engagement-access'
+    },
+    HEALTH: '/health'
   }
 };
 
