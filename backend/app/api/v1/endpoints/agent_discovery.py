@@ -1,6 +1,7 @@
 """
 Agent-Driven Discovery API Endpoints
 Provides agentic intelligence for discovery processes, replacing hardcoded heuristics with AI-driven analysis.
+Enhanced with multi-tenant context awareness and session management.
 """
 
 import logging
@@ -10,6 +11,9 @@ from fastapi import APIRouter, HTTPException, Depends, File, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.context import get_current_context
+from app.repositories.session_aware_repository import create_session_aware_repository
+from app.models.cmdb_asset import CMDBAsset
 from app.services.agent_ui_bridge import agent_ui_bridge, QuestionType, ConfidenceLevel, DataClassification
 from app.services.discovery_agents.data_source_intelligence_agent import data_source_intelligence_agent
 from app.services.discovery_agents.application_discovery_agent import application_discovery_agent
@@ -28,6 +32,7 @@ async def perform_agent_analysis(
 ) -> Dict[str, Any]:
     """
     Multi-agent data analysis for different page contexts and analysis types.
+    Enhanced with multi-tenant context awareness.
     
     Request body:
     {
@@ -51,10 +56,21 @@ async def perform_agent_analysis(
     }
     """
     try:
+        context = get_current_context()
         data_source = analysis_request.get("data_source", {})
         data_context = analysis_request.get("data_context", {})
         analysis_type = analysis_request.get("analysis_type", "data_source_analysis")
         page_context = analysis_request.get("page_context", "data-import")  # Extract from body
+        
+        # Add context information to analysis request for agent use
+        enhanced_request = {
+            **analysis_request,
+            "context": {
+                "client_account_id": context.client_account_id,
+                "engagement_id": context.engagement_id,
+                "session_id": context.session_id
+            }
+        }
         
         # For dependency analysis, data_context is expected
         if analysis_type == "dependency_mapping" and data_context:
@@ -63,6 +79,11 @@ async def perform_agent_analysis(
                 "analysis_type": "dependency_mapping",
                 "status": "success",
                 "page_context": page_context,
+                "context": {
+                    "client_account_id": context.client_account_id,
+                    "engagement_id": context.engagement_id,
+                    "session_id": context.session_id
+                },
                 "dependency_analysis_available": True,
                 "total_dependencies": data_context.get("dependency_analysis", {}).get("total_dependencies", 0),
                 "cross_app_dependencies": len(data_context.get("cross_app_dependencies", [])),
@@ -80,14 +101,14 @@ async def perform_agent_analysis(
         # Route to appropriate agent based on analysis type
         elif analysis_type == "data_source_analysis":
             analysis_result = await data_source_intelligence_agent.analyze_data_source(
-                data_source, page_context
+                enhanced_request.get("data_source", {}), page_context
             )
         elif analysis_type == "field_mapping_analysis":
             # Import field mapping service for field mapping analysis
             try:
                 from app.services.field_mapper_modular import field_mapper
                 analysis_result = await field_mapper.analyze_field_mappings(
-                    data_source, page_context
+                    enhanced_request.get("data_source", {}), page_context
                 )
             except ImportError:
                 # Fallback if field mapper service not available
@@ -108,6 +129,11 @@ async def perform_agent_analysis(
             "status": "success",
             "analysis_type": analysis_type,
             "page_context": page_context,
+            "context": {
+                "client_account_id": context.client_account_id,
+                "engagement_id": context.engagement_id,
+                "session_id": context.session_id
+            },
             "agent_analysis": analysis_result,
             "ui_bridge_status": agent_ui_bridge.get_agent_status_summary()
         }
@@ -252,18 +278,38 @@ async def get_application_portfolio(
     include_confidence_levels: bool = True,
     include_business_intelligence: bool = True,
     business_context: Optional[str] = None,
+    view_mode: str = "engagement_view",
     db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
     """
     Comprehensive application portfolio analysis with business intelligence.
     
-    Enhanced with Application Intelligence Agent for business-aligned analysis.
+    Enhanced with Application Intelligence Agent for business-aligned analysis and context awareness.
     """
     try:
-        # Get assets from the discovery system
-        from app.api.v1.discovery.asset_management import crud_handler
-        assets_result = await crud_handler.get_assets_paginated({'page': 1, 'page_size': 1000})
-        assets = assets_result.get('assets', [])
+        context = get_current_context()
+        
+        # Use session-aware repository for context-aware asset access
+        asset_repo = create_session_aware_repository(db, CMDBAsset, view_mode=view_mode)
+        assets_list = await asset_repo.get_all(limit=1000)
+        
+        # Convert to dict format expected by agents
+        assets = []
+        for asset in assets_list:
+            asset_dict = {
+                "id": str(asset.id),
+                "hostname": asset.hostname,
+                "ip_address": asset.ip_address,
+                "asset_type": asset.asset_type,
+                "environment": asset.environment,
+                "operating_system": asset.operating_system,
+                "application_name": asset.business_service,  # Map business_service to application_name
+                "technical_service": asset.technical_service,
+                "owner": asset.owner,
+                "department": asset.department,
+                "session_id": asset.session_id
+            }
+            assets.append(asset_dict)
         
         if not assets:
             return {
@@ -349,11 +395,18 @@ async def get_application_portfolio(
                     page="asset-inventory"
                 )
         
-        # Construct comprehensive response
+        # Construct comprehensive response with context
         response = {
             "status": "success",
             "application_portfolio": discovery_result,
-            "agent_analysis_complete": True
+            "agent_analysis_complete": True,
+            "context": {
+                "client_account_id": context.client_account_id,
+                "engagement_id": context.engagement_id,
+                "session_id": context.session_id,
+                "view_mode": view_mode,
+                "total_assets_analyzed": len(assets)
+            }
         }
         
         if include_business_intelligence:
@@ -362,7 +415,9 @@ async def get_application_portfolio(
                 "business_criticality_assessment": business_intelligence is not None and not business_intelligence.get("error"),
                 "migration_readiness_evaluation": business_intelligence is not None and not business_intelligence.get("error"),
                 "strategic_recommendations": business_intelligence is not None and not business_intelligence.get("error"),
-                "assessment_readiness": business_intelligence is not None and not business_intelligence.get("error")
+                "assessment_readiness": business_intelligence is not None and not business_intelligence.get("error"),
+                "multi_tenant_context": True,
+                "session_awareness": True
             }
         
         return response

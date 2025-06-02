@@ -1,5 +1,6 @@
 """
 Data Import API endpoints for persistent storage of raw import data.
+Enhanced with multi-tenant context awareness and automatic session management.
 """
 
 import uuid
@@ -7,7 +8,7 @@ import hashlib
 import json
 from datetime import datetime
 from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import and_, or_, desc, select
 import re
@@ -16,6 +17,7 @@ from io import StringIO
 import logging
 
 from app.core.database import get_db
+from app.core.context import get_current_context, RequestContext
 from app.models.data_import import (
     DataImport, RawImportRecord, ImportProcessingStep, 
     ImportFieldMapping, DataQualityIssue, ImportStatus, ImportType,
@@ -31,8 +33,17 @@ except ImportError:
     ClientAccount = None
     Engagement = None
 
+# Import session management service
+try:
+    from app.services.session_management_service import SessionManagementService, create_session_management_service
+    SESSION_MANAGEMENT_AVAILABLE = True
+except ImportError:
+    SESSION_MANAGEMENT_AVAILABLE = False
+    SessionManagementService = None
+
 from app.models.cmdb_asset import CMDBAsset
 from app.repositories.demo_repository import DemoRepository
+from app.repositories.session_aware_repository import create_session_aware_repository
 from app.schemas.demo import DemoAssetResponse
 
 router = APIRouter()
@@ -47,26 +58,35 @@ async def upload_data_file(
     description: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db)
 ):
-    """Upload and create a new data import session."""
+    """Upload and create a new data import session with automatic session management."""
     try:
+        # Get current context from middleware
+        context = get_current_context()
+        
         # Read file content
         content = await file.read()
         file_hash = hashlib.sha256(content).hexdigest()
         
-        # Get or create demo client/engagement for development
-        demo_repo = DemoRepository(db)
+        # Create or get active session using SessionManagementService
+        session_id = None
+        if SESSION_MANAGEMENT_AVAILABLE:
+            try:
+                session_service = create_session_management_service(db)
+                session = await session_service.get_or_create_active_session(
+                    client_account_id=context.client_account_id,
+                    engagement_id=context.engagement_id,
+                    auto_create=True
+                )
+                session_id = str(session.id) if session else None
+                logger.info(f"Using session {session_id} for data import")
+            except Exception as session_e:
+                logger.warning(f"Session management failed, continuing without session: {session_e}")
         
-        # Use hardcoded demo context for development
-        demo_context = {
-            "client_account_id": "d838573d-f461-44e4-81b5-5af510ef83b7",  # Actual demo client account
-            "engagement_id": "d1a93e23-719d-4dad-8bbf-b66ab9de2b94",      # Actual demo engagement
-            "user_id": "eef6ea50-6550-4f14-be2c-081d4eb23038"            # Actual demo user
-        }
-        
-        # Create data import record
+        # Create data import record with context
         data_import = DataImport(
-            client_account_id=demo_context["client_account_id"],
-            engagement_id=demo_context["engagement_id"],
+            client_account_id=context.client_account_id,
+            engagement_id=context.engagement_id,
+            session_id=session_id,  # Link to session if available
             import_name=import_name or f"{file.filename} Import",
             import_type=import_type,
             description=description,
@@ -75,8 +95,8 @@ async def upload_data_file(
             file_type=file.content_type,
             file_hash=file_hash,
             status=ImportStatus.UPLOADED,
-            imported_by=demo_context["user_id"],  # Use actual demo user
-            is_mock=True
+            imported_by=context.user_id,
+            is_mock=False  # This is now real data import
         )
         
         db.add(data_import)
@@ -84,10 +104,13 @@ async def upload_data_file(
         await db.refresh(data_import)
         
         # Process the file content
-        await process_uploaded_file(data_import, content, db)
+        await process_uploaded_file(data_import, content, db, context)
         
         return {
             "import_id": str(data_import.id),
+            "session_id": session_id,
+            "client_account_id": context.client_account_id,
+            "engagement_id": context.engagement_id,
             "status": "uploaded",
             "filename": file.filename,
             "size_bytes": len(content),
@@ -98,8 +121,8 @@ async def upload_data_file(
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
-async def process_uploaded_file(data_import: DataImport, content: bytes, db: AsyncSession):
-    """Process uploaded file and create raw import records."""
+async def process_uploaded_file(data_import: DataImport, content: bytes, db: AsyncSession, context: RequestContext):
+    """Process uploaded file and create raw import records with context awareness."""
     try:
         # Update status to processing
         data_import.status = ImportStatus.PROCESSING
@@ -116,9 +139,12 @@ async def process_uploaded_file(data_import: DataImport, content: bytes, db: Asy
         row_number = 1
         
         for row in csv_reader:
-            # Create raw import record
+            # Create raw import record with context
             raw_record = RawImportRecord(
                 data_import_id=data_import.id,
+                client_account_id=context.client_account_id,
+                engagement_id=context.engagement_id,
+                session_id=data_import.session_id,
                 row_number=row_number,
                 record_id=row.get('ID') or row.get('id') or f"ROW_{row_number}",
                 raw_data=dict(row),  # Store exactly as imported
@@ -139,15 +165,16 @@ async def process_uploaded_file(data_import: DataImport, content: bytes, db: Asy
         await db.commit()
         
         # Analyze data quality issues
-        await analyze_data_quality(data_import, raw_records, db)
+        await analyze_data_quality(data_import, raw_records, db, context)
         
     except Exception as e:
         data_import.status = ImportStatus.FAILED
         await db.commit()
         raise e
 
-async def analyze_data_quality(data_import: DataImport, raw_records: List[RawImportRecord], db: AsyncSession):
-    """Analyze data quality and create issue records."""
+async def analyze_data_quality(data_import: DataImport, raw_records: List[RawImportRecord], 
+                              db: AsyncSession, context: RequestContext):
+    """Analyze data quality and create issue records with context awareness."""
     issues = []
     
     # Get a sample record to understand the column structure
@@ -177,7 +204,7 @@ async def analyze_data_quality(data_import: DataImport, raw_records: List[RawImp
                 actual_mappings[standard_field] = possible_name
                 break
     
-    print(f"Found field mappings: {actual_mappings}")
+    logger.info(f"Found field mappings for client {context.client_account_id}: {actual_mappings}")
     
     for record in raw_records:
         raw_data = record.raw_data
@@ -194,6 +221,9 @@ async def analyze_data_quality(data_import: DataImport, raw_records: List[RawImp
                 
                 issue = DataQualityIssue(
                     data_import_id=data_import.id,
+                    client_account_id=context.client_account_id,
+                    engagement_id=context.engagement_id,
+                    session_id=data_import.session_id,
                     raw_record_id=record.id,
                     issue_type='missing_data',
                     field_name=csv_field,  # Use the actual CSV field name
@@ -215,6 +245,9 @@ async def analyze_data_quality(data_import: DataImport, raw_records: List[RawImp
             if ip_value and ip_value not in ['<empty>', '', 'Unknown'] and not is_valid_ip(ip_value):
                 issue = DataQualityIssue(
                     data_import_id=data_import.id,
+                    client_account_id=context.client_account_id,
+                    engagement_id=context.engagement_id,
+                    session_id=data_import.session_id,
                     raw_record_id=record.id,
                     issue_type='format_error',
                     field_name=ip_field,
@@ -236,6 +269,9 @@ async def analyze_data_quality(data_import: DataImport, raw_records: List[RawImp
                 if expanded_value != type_value:
                     issue = DataQualityIssue(
                         data_import_id=data_import.id,
+                        client_account_id=context.client_account_id,
+                        engagement_id=context.engagement_id,
+                        session_id=data_import.session_id,
                         raw_record_id=record.id,
                         issue_type='format_error',
                         field_name=type_field,
@@ -290,38 +326,46 @@ def is_valid_ip(ip: str) -> bool:
 async def get_data_imports(
     limit: int = 10,
     offset: int = 0,
+    view_mode: str = "engagement_view",  # "session_view" or "engagement_view"
     db: AsyncSession = Depends(get_db)
 ):
-    """Get list of data imports."""
-    demo_repo = DemoRepository(db)
+    """Get list of data imports with context-aware filtering."""
+    context = get_current_context()
     
-    query = select(DataImport).where(and_(
-        DataImport.client_account_id == "d838573d-f461-44e4-81b5-5af510ef83b7",
-        DataImport.engagement_id == "d1a93e23-719d-4dad-8bbf-b66ab9de2b94"
-    )).order_by(desc(DataImport.created_at)).limit(limit).offset(offset)
+    # Use session-aware repository for context-aware data access
+    import_repo = create_session_aware_repository(db, DataImport, view_mode=view_mode)
+    imports = await import_repo.get_all(limit=limit, offset=offset)
     
-    result = await db.execute(query)
-    imports = result.scalars().all()
-    
-    return {"imports": [import_to_dict(imp) for imp in imports]}
+    return {
+        "imports": [import_to_dict(imp) for imp in imports],
+        "context": {
+            "client_account_id": context.client_account_id,
+            "engagement_id": context.engagement_id,
+            "session_id": context.session_id,
+            "view_mode": view_mode
+        }
+    }
 
 @router.get("/imports/{import_id}/raw-records")
 async def get_raw_import_records(
     import_id: str,
     limit: int = 100,
     offset: int = 0,
+    view_mode: str = "engagement_view",
     db: AsyncSession = Depends(get_db)
 ):
-    """Get raw import records for a specific import."""
-    query = select(RawImportRecord).where(
-        RawImportRecord.data_import_id == import_id
-    ).order_by(RawImportRecord.row_number).limit(limit).offset(offset)
+    """Get raw import records for a specific import with context awareness."""
+    context = get_current_context()
     
-    result = await db.execute(query)
-    records = result.scalars().all()
+    # Use session-aware repository for context-aware data access
+    record_repo = create_session_aware_repository(db, RawImportRecord, view_mode=view_mode)
+    records = await record_repo.get_by_filters(data_import_id=import_id)
+    
+    # Apply pagination
+    paginated_records = records[offset:offset + limit]
     
     records_list = []
-    for record in records:
+    for record in paginated_records:
         records_list.append({
             "id": str(record.id),
             "row_number": record.row_number,
@@ -330,10 +374,20 @@ async def get_raw_import_records(
             "processed_data": record.processed_data,
             "is_processed": record.is_processed,
             "is_valid": record.is_valid,
-            "created_at": record.created_at.isoformat() if record.created_at else None
+            "created_at": record.created_at.isoformat() if record.created_at else None,
+            "session_id": record.session_id
         })
     
-    return {"records": records_list}
+    return {
+        "records": records_list,
+        "context": {
+            "client_account_id": context.client_account_id,
+            "engagement_id": context.engagement_id,
+            "view_mode": view_mode,
+            "total_records": len(records),
+            "paginated_count": len(paginated_records)
+        }
+    }
 
 @router.get("/imports/{import_id}/quality-issues")
 async def get_data_quality_issues(
@@ -373,22 +427,30 @@ async def get_data_quality_issues(
     return {"issues": issues_list}
 
 @router.get("/imports/latest")
-async def get_latest_import(db: AsyncSession = Depends(get_db)):
+async def get_latest_import(
+    view_mode: str = "engagement_view",
+    db: AsyncSession = Depends(get_db)
+):
     """Get the latest data import for the current context."""
-    demo_repo = DemoRepository(db)
+    context = get_current_context()
     
-    query = select(DataImport).where(and_(
-        DataImport.client_account_id == "d838573d-f461-44e4-81b5-5af510ef83b7",
-        DataImport.engagement_id == "d1a93e23-719d-4dad-8bbf-b66ab9de2b94"
-    )).order_by(desc(DataImport.created_at)).limit(1)
+    # Use session-aware repository for context-aware data access
+    import_repo = create_session_aware_repository(db, DataImport, view_mode=view_mode)
+    imports = await import_repo.get_all(limit=1)
     
-    result = await db.execute(query)
-    latest = result.scalar_one_or_none()
+    if not imports:
+        raise HTTPException(status_code=404, detail="No imports found for current context")
     
-    if not latest:
-        raise HTTPException(status_code=404, detail="No imports found")
+    latest = imports[0]
+    result = import_to_dict(latest)
+    result["context"] = {
+        "client_account_id": context.client_account_id,
+        "engagement_id": context.engagement_id,
+        "session_id": context.session_id,
+        "view_mode": view_mode
+    }
     
-    return import_to_dict(latest)
+    return result
 
 @router.get("/imports/{import_id}/field-mappings")
 async def get_field_mappings(

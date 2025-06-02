@@ -1,12 +1,19 @@
 """
 Asset Management - Modular & Robust
 Combines robust error handling with clean modular architecture.
+Enhanced with multi-tenant context awareness and session management.
 """
 
 import logging
-from typing import Dict, List, Any
-from fastapi import APIRouter, HTTPException, Request
+from typing import Dict, List, Any, Optional
+from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.database import get_db
+from app.core.context import get_current_context
+from app.repositories.session_aware_repository import create_session_aware_repository
+from app.models.cmdb_asset import CMDBAsset
 
 from .asset_handlers import (
     AssetCRUDHandler,
@@ -49,6 +56,11 @@ async def asset_management_health_check():
             "validation": validation_handler.is_available(),
             "analysis": analysis_handler.is_available(),
             "utils": utils_handler.is_available()
+        },
+        "multi_tenant_features": {
+            "context_aware_repositories": True,
+            "session_management": True,
+            "engagement_deduplication": True
         }
     }
 
@@ -60,25 +72,107 @@ async def get_processed_assets_paginated(
     environment: str = None,
     department: str = None,
     criticality: str = None,
-    search: str = None
+    search: str = None,
+    view_mode: str = "engagement_view",  # "session_view" or "engagement_view"
+    db: AsyncSession = Depends(get_db)
 ):
     """
     Get paginated processed assets with filtering capabilities.
-    Enhanced with agentic intelligence and asset inventory management.
+    Enhanced with agentic intelligence and multi-tenant context awareness.
     """
     try:
-        # First try to get assets using existing CRUD handler
-        params = {
-            'page': page,
-            'page_size': page_size,
-            'asset_type': asset_type,
-            'environment': environment,
-            'department': department,
-            'criticality': criticality,
-            'search': search
-        }
+        context = get_current_context()
         
-        result = await crud_handler.get_assets_paginated(params)
+        # Use session-aware repository for context-aware data access
+        asset_repo = create_session_aware_repository(db, CMDBAsset, view_mode=view_mode)
+        
+        # Build filters for repository query
+        filters = {}
+        if asset_type:
+            filters['asset_type'] = asset_type
+        if environment:
+            filters['environment'] = environment
+        if department:
+            filters['department'] = department
+        if criticality:
+            filters['criticality'] = criticality
+        
+        # Calculate offset for pagination
+        offset = (page - 1) * page_size
+        
+        # Get assets from context-aware repository
+        assets = await asset_repo.get_by_filters(**filters)
+        
+        # Apply search filter if provided (simple text search)
+        if search:
+            search_lower = search.lower()
+            assets = [
+                asset for asset in assets 
+                if (asset.hostname and search_lower in asset.hostname.lower()) or
+                   (asset.description and search_lower in asset.description.lower()) or
+                   (asset.asset_type and search_lower in asset.asset_type.lower())
+            ]
+        
+        # Apply pagination
+        total_assets = len(assets)
+        paginated_assets = assets[offset:offset + page_size]
+        
+        # Convert to dict format expected by existing handlers
+        asset_dicts = []
+        for asset in paginated_assets:
+            asset_dict = {
+                "id": str(asset.id),
+                "hostname": asset.hostname,
+                "ip_address": asset.ip_address,
+                "asset_type": asset.asset_type,
+                "environment": asset.environment,
+                "department": asset.department,
+                "criticality": asset.criticality,
+                "operating_system": asset.operating_system,
+                "cpu_cores": asset.cpu_cores,
+                "memory_gb": asset.memory_gb,
+                "storage_gb": asset.storage_gb,
+                "location": asset.location,
+                "owner": asset.owner,
+                "business_service": asset.business_service,
+                "technical_service": asset.technical_service,
+                "support_group": asset.support_group,
+                "cost_center": asset.cost_center,
+                "lifecycle_status": asset.lifecycle_status,
+                "compliance_zone": asset.compliance_zone,
+                "backup_required": asset.backup_required,
+                "dr_tier": asset.dr_tier,
+                "session_id": asset.session_id,
+                "created_at": asset.created_at.isoformat() if asset.created_at else None,
+                "updated_at": asset.updated_at.isoformat() if asset.updated_at else None
+            }
+            asset_dicts.append(asset_dict)
+        
+        # Build result with context-aware pagination
+        result = {
+            "assets": asset_dicts,
+            "pagination": {
+                "page": page,
+                "page_size": page_size,
+                "total_assets": total_assets,
+                "total_pages": (total_assets + page_size - 1) // page_size,
+                "has_next": offset + page_size < total_assets,
+                "has_previous": page > 1
+            },
+            "context": {
+                "client_account_id": context.client_account_id,
+                "engagement_id": context.engagement_id,
+                "session_id": context.session_id,
+                "view_mode": view_mode
+            },
+            "filters_applied": {
+                "asset_type": asset_type,
+                "environment": environment,
+                "department": department,
+                "criticality": criticality,
+                "search": search
+            }
+        }
         
         # Enhance with agentic intelligence if available
         try:
@@ -90,17 +184,20 @@ async def get_processed_assets_paginated(
                     "auto_classification": "AI-powered asset classification available",
                     "bulk_operations": "Intelligent bulk operation planning available",
                     "continuous_learning": "System learns from user interactions",
-                    "agentic_framework_active": True
+                    "agentic_framework_active": True,
+                    "context_aware_deduplication": f"Using {view_mode} with engagement-level intelligence"
                 }
                 
                 # Add intelligence status for UI
                 result["intelligence_status"] = {
                     "asset_intelligence_agent": "asset_intelligence" in (crewai_service.agents or {}),
                     "field_mapping_intelligence": hasattr(crewai_service, 'field_mapping_tool'),
-                    "learning_system": hasattr(crewai_service, 'memory')
+                    "learning_system": hasattr(crewai_service, 'memory'),
+                    "session_management": True,
+                    "multi_tenant_isolation": True
                 }
                 
-                logger.info(f"Enhanced asset response with agentic intelligence for {len(result.get('assets', []))} assets")
+                logger.info(f"Enhanced asset response with agentic intelligence for {len(result.get('assets', []))} assets (context: {context.client_account_id})")
         
         except ImportError:
             logger.info("CrewAI service not available, using standard asset response")
