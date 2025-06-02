@@ -699,10 +699,12 @@ class DependencyIntelligenceAgent:
                               and dep.get("target_application") in cluster_apps]
                 
                 clusters.append({
-                    "cluster_id": f"cluster_{len(clusters) + 1}",
+                    "id": f"cluster_{len(clusters) + 1}",
+                    "name": f"Application Cluster {len(clusters) + 1}",
                     "applications": list(cluster_apps),
                     "dependency_count": len(cluster_deps),
-                    "complexity": "high" if len(cluster_deps) > 5 else "medium" if len(cluster_deps) > 2 else "low"
+                    "complexity_score": 3.0 if len(cluster_deps) > 5 else 2.0 if len(cluster_deps) > 2 else 1.0,
+                    "migration_sequence": len(clusters) + 1
                 })
                 
                 processed_apps.update(cluster_apps)
@@ -711,7 +713,64 @@ class DependencyIntelligenceAgent:
 
     def _build_dependency_graph(self, cross_app_deps: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Build dependency graph for visualization."""
-        return {"nodes": [], "edges": []}  # Simplified
+        if not cross_app_deps:
+            return {"nodes": [], "edges": []}
+        
+        nodes = []
+        edges = []
+        seen_nodes = set()
+        
+        for dep_info in cross_app_deps:
+            source_app = dep_info.get("source_application")
+            target_app = dep_info.get("target_application")
+            dependency = dep_info.get("dependency", {})
+            
+            # Add source node
+            if source_app and source_app not in seen_nodes:
+                source_type = self._infer_node_type(source_app)
+                nodes.append({
+                    "id": source_app,
+                    "label": source_app,
+                    "type": source_type,
+                    "environment": dependency.get("asset_context", {}).get("source_environment", "Unknown")
+                })
+                seen_nodes.add(source_app)
+            
+            # Add target node  
+            if target_app and target_app not in seen_nodes:
+                target_type = self._infer_node_type(target_app)
+                nodes.append({
+                    "id": target_app,
+                    "label": target_app,
+                    "type": target_type,
+                    "environment": "Unknown"
+                })
+                seen_nodes.add(target_app)
+            
+            # Add edge
+            if source_app and target_app:
+                edges.append({
+                    "source": source_app,
+                    "target": target_app,
+                    "type": dependency.get("dependency_type", "unknown"),
+                    "strength": dep_info.get("impact_level", "medium"),
+                    "confidence": dependency.get("confidence", 0.5)
+                })
+        
+        return {"nodes": nodes, "edges": edges}
+    
+    def _infer_node_type(self, node_name: str) -> str:
+        """Infer node type from naming patterns."""
+        node_prefix = node_name[:3].upper() if len(node_name) >= 3 else node_name.upper()
+        
+        if node_prefix == "SRV":
+            return "server"
+        elif node_prefix == "DB" or "database" in node_name.lower():
+            return "database"
+        elif node_prefix == "APP" or any(term in node_name.lower() for term in ["app", "web", "portal", "service"]):
+            return "application"
+        else:
+            return "application"  # Default to application
 
     def _generate_migration_sequence_recommendations(self, cross_app_deps: Dict[str, Any], applications: List[Dict[str, Any]]) -> List[str]:
         """Generate migration sequence recommendations."""
