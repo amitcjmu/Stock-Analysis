@@ -340,9 +340,13 @@ class AgentAnalysisHandler:
         """Identify specific quality issues in an asset using actual field names."""
         issues = []
         
-        # Get asset identifier and name using actual data structure
-        asset_id = asset.get('ID') or asset.get('id') or f"asset_{index}"
-        asset_name = asset.get('NAME') or asset.get('name') or f"Asset {index}"
+        # Get asset identifier using EXACT same logic as frontend table: row.id || row.ID || row.asset_name || row.hostname || row.name || row.NAME || 'unknown'
+        asset_id = asset.get('id') or asset.get('ID') or asset.get('asset_name') or asset.get('hostname') or asset.get('name') or asset.get('NAME') or 'unknown'
+        asset_name = asset.get('NAME') or asset.get('name') or asset.get('asset_name') or asset.get('hostname') or asset.get('ID') or asset.get('id') or f"Asset {index}"
+        
+        # Debug logging
+        logger.info(f"Asset {index} - ID logic: id={asset.get('id')}, ID={asset.get('ID')}, asset_name={asset.get('asset_name')}, hostname={asset.get('hostname')}, name={asset.get('name')}, NAME={asset.get('NAME')}")
+        logger.info(f"Asset {index} - Final asset_id: {asset_id}, asset_name: {asset_name}")
         
         # Issue 1: Missing or empty OS field
         os_value = asset.get('OS', '')
