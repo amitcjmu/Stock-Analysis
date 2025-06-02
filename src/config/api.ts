@@ -110,6 +110,16 @@ export const API_CONFIG = {
       CLIENT_ACCESS: '/api/v1/admin/client-access',
       ENGAGEMENT_ACCESS: '/api/v1/admin/engagement-access'
     },
+    AGENT_LEARNING: {
+      LEARNING_STATISTICS: '/api/v1/agent-learning/learning/statistics',
+      FIELD_MAPPING_LEARN: '/api/v1/agent-learning/learning/field-mapping',
+      FIELD_MAPPING_SUGGEST: '/api/v1/agent-learning/learning/field-mapping/suggest',
+      DATA_SOURCE_PATTERN: '/api/v1/agent-learning/learning/data-source-pattern',
+      QUALITY_ASSESSMENT: '/api/v1/agent-learning/learning/quality-assessment',
+      USER_PREFERENCES: '/api/v1/agent-learning/learning/user-preferences',
+      AGENT_PERFORMANCE: '/api/v1/agent-learning/learning/agent-performance',
+      HEALTH: '/api/v1/agent-learning/health'
+    },
     HEALTH: '/health'
   }
 };

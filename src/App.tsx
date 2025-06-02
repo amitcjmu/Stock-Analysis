@@ -59,6 +59,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import ClientManagement from "./pages/admin/ClientManagement";
 import EngagementManagement from "./pages/admin/EngagementManagement";
 import UserApprovals from "./pages/admin/UserApprovals";
+import AdminLayout from "./components/admin/AdminLayout";
 
 const queryClient = new QueryClient();
 
@@ -120,11 +121,11 @@ const App = () => (
           <Route path="/observability/agent-monitoring" element={<AgentMonitoring />} />
           <Route path="/feedback-view" element={<FeedbackView />} />
           {/* Admin Routes */}
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/dashboard" element={<AdminDashboard />} />
-          <Route path="/admin/clients" element={<ClientManagement />} />
-          <Route path="/admin/engagements" element={<EngagementManagement />} />
-          <Route path="/admin/users/approvals" element={<UserApprovals />} />
+          <Route path="/admin" element={<AdminLayout><AdminDashboard /></AdminLayout>} />
+          <Route path="/admin/dashboard" element={<AdminLayout><AdminDashboard /></AdminLayout>} />
+          <Route path="/admin/clients" element={<AdminLayout><ClientManagement /></AdminLayout>} />
+          <Route path="/admin/engagements" element={<AdminLayout><EngagementManagement /></AdminLayout>} />
+          <Route path="/admin/users/approvals" element={<AdminLayout><UserApprovals /></AdminLayout>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

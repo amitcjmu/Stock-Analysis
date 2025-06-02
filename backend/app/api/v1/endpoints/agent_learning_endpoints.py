@@ -3,11 +3,11 @@ Agent Learning API Endpoints
 Supports Tasks C.1 and C.2: Agent Memory/Learning System and Cross-Page Communication.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Body
+from fastapi import APIRouter, Depends, HTTPException, Body, Request
 from typing import Dict, List, Any, Optional
 import logging
 
-from app.services.agent_learning_system import agent_learning_system
+from app.services.agent_learning_system import agent_learning_system, LearningContext
 from app.services.client_context_manager import client_context_manager
 from app.services.agent_ui_bridge import agent_ui_bridge
 
@@ -19,15 +19,24 @@ router = APIRouter()
 
 @router.post("/learning/field-mapping")
 async def learn_field_mapping_pattern(
+    request: Request,
     learning_data: Dict[str, Any] = Body(...)
 ):
     """Learn from field mapping corrections and successes."""
     try:
-        await agent_learning_system.learn_field_mapping_pattern(learning_data)
+        # Extract context from headers
+        context = LearningContext(
+            client_account_id=request.headers.get('X-Client-ID'),
+            engagement_id=request.headers.get('X-Engagement-ID'),
+            session_id=request.headers.get('X-Session-ID')
+        )
+        
+        await agent_learning_system.learn_field_mapping_pattern(learning_data, context)
         return {
             "success": True,
             "message": "Field mapping pattern learned successfully",
-            "learned_pattern": learning_data.get("original_field", "unknown")
+            "learned_pattern": learning_data.get("original_field", "unknown"),
+            "context": context.context_hash
         }
     except Exception as e:
         logger.error(f"Error learning field mapping pattern: {e}")
@@ -35,16 +44,25 @@ async def learn_field_mapping_pattern(
 
 @router.get("/learning/field-mapping/suggest/{field_name}")
 async def suggest_field_mapping(
+    request: Request,
     field_name: str,
-    context: Optional[Dict[str, Any]] = None
+    context_data: Optional[Dict[str, Any]] = None
 ):
     """Get field mapping suggestions based on learned patterns."""
     try:
-        suggestion = await agent_learning_system.suggest_field_mapping(field_name, context)
+        # Extract context from headers
+        context = LearningContext(
+            client_account_id=request.headers.get('X-Client-ID'),
+            engagement_id=request.headers.get('X-Engagement-ID'),
+            session_id=request.headers.get('X-Session-ID')
+        )
+        
+        suggestion = await agent_learning_system.suggest_field_mapping(field_name, context_data, context)
         return {
             "field_name": field_name,
             "suggestion": suggestion,
-            "learning_available": suggestion["confidence"] > 0.0
+            "learning_available": suggestion["confidence"] > 0.0,
+            "context": context.context_hash
         }
     except Exception as e:
         logger.error(f"Error getting field mapping suggestion: {e}")

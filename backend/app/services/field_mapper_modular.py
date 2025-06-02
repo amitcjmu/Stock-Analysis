@@ -1,6 +1,7 @@
 """
 Dynamic Field Mapping Service - Modular & Robust
 Learns and maintains field mappings with graceful fallbacks.
+Enhanced with context-scoped learning for multi-tenancy.
 """
 
 import logging
@@ -12,6 +13,7 @@ from .field_mapper_handlers import (
     ValidationHandler,
     AgentInterfaceHandler
 )
+from .agent_learning_system import agent_learning_system, LearningContext
 
 logger = logging.getLogger(__name__)
 
@@ -57,9 +59,36 @@ class FieldMapperService:
         return self.mapping_engine.get_field_mappings(asset_type)
     
     def learn_field_mapping(self, canonical_field: str, field_variations: List[str],
-                           source: str = "manual") -> Dict[str, Any]:
-        """Learn new field mapping variations."""
-        return self.mapping_engine.learn_field_mapping(canonical_field, field_variations, source)
+                           source: str = "manual", context: Optional[LearningContext] = None) -> Dict[str, Any]:
+        """Learn new field mapping variations with context isolation."""
+        # Learn in the mapping engine
+        result = self.mapping_engine.learn_field_mapping(canonical_field, field_variations, source)
+        
+        # Also learn in the context-scoped agent learning system
+        if context:
+            try:
+                for variation in field_variations:
+                    learning_data = {
+                        "original_field": variation,
+                        "mapped_field": canonical_field,
+                        "field_type": "mapping",
+                        "confidence": 0.9,
+                        "source": source
+                    }
+                    # Use asyncio to run the async method
+                    import asyncio
+                    try:
+                        loop = asyncio.get_event_loop()
+                        loop.create_task(agent_learning_system.learn_field_mapping_pattern(learning_data, context))
+                    except RuntimeError:
+                        # If no event loop, create one
+                        asyncio.run(agent_learning_system.learn_field_mapping_pattern(learning_data, context))
+                    
+                logger.info(f"Learned field mapping in context {context.context_hash}: {canonical_field}")
+            except Exception as e:
+                logger.warning(f"Failed to learn in context-scoped system: {e}")
+        
+        return result
     
     def find_matching_fields(self, available_columns: List[str], required_field: str) -> List[str]:
         """Find matching columns for a required field."""

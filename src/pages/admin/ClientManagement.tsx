@@ -583,7 +583,7 @@ const ClientManagement: React.FC = () => {
             <SelectValue placeholder="Industry" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Industries</SelectItem>
+                            <SelectItem value="all">All Industries</SelectItem>
             {Industries.map(industry => (
               <SelectItem key={industry} value={industry}>{industry}</SelectItem>
             ))}
@@ -594,7 +594,7 @@ const ClientManagement: React.FC = () => {
             <SelectValue placeholder="Company Size" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Sizes</SelectItem>
+                            <SelectItem value="all">All Sizes</SelectItem>
             {CompanySizes.map(size => (
               <SelectItem key={size} value={size}>{size}</SelectItem>
             ))}

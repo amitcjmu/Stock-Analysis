@@ -1,0 +1,26 @@
+{
+  "4e38c57eec0a74e0": [
+    {
+      "pattern_id": "field_mapping_1748898819.966487",
+      "pattern_type": "field_mapping",
+      "context": {
+        "client_account_id": "demo-client",
+        "engagement_id": "demo-engagement",
+        "session_id": null,
+        "context_hash": "4e38c57eec0a74e0"
+      },
+      "pattern_data": {
+        "original_field": "server_name",
+        "mapped_field": "hostname",
+        "field_type": "server_identifier",
+        "confidence_boost": 0.1,
+        "validation_result": true
+      },
+      "confidence": 0.9,
+      "usage_count": 0,
+      "created_at": "2025-06-02T21:13:39.966551",
+      "last_used": "2025-06-02T21:13:39.966552",
+      "success_rate": 1.0
+    }
+  ]
+}

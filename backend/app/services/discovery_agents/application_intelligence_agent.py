@@ -2,6 +2,7 @@
 Application Intelligence Agent
 Advanced AI agent for comprehensive application portfolio discovery and intelligence.
 Extends the Application Discovery Agent with business context and portfolio analytics.
+Enhanced with context-scoped learning for multi-tenancy.
 """
 
 import logging
@@ -9,6 +10,8 @@ import json
 from typing import Dict, List, Any, Optional, Tuple
 from datetime import datetime
 import uuid
+
+from ..agent_learning_system import agent_learning_system, LearningContext
 
 logger = logging.getLogger(__name__)
 
@@ -21,11 +24,12 @@ class ApplicationIntelligenceAgent:
     - Stakeholder requirement integration and business context mapping
     """
     
-    def __init__(self):
+    def __init__(self, context: Optional[LearningContext] = None):
         self.agent_id = "application_intelligence"
         self.agent_name = "Application Intelligence Agent"
         self.confidence_threshold = 0.75
         self.learning_enabled = True
+        self.context = context or LearningContext()
         
         # Application intelligence patterns
         self.intelligence_patterns = {
@@ -99,6 +103,9 @@ class ApplicationIntelligenceAgent:
                     "confidence": self._calculate_portfolio_confidence(applications_with_readiness)
                 }
             }
+            
+            # Learn from analysis results for future improvements
+            await self._learn_from_analysis(applications_with_readiness, portfolio_intelligence)
             
             logger.info(f"Application portfolio intelligence completed with {len(strategic_recommendations)} recommendations")
             return portfolio_intelligence
@@ -619,6 +626,49 @@ class ApplicationIntelligenceAgent:
         """Save intelligence patterns and business context."""
         # In a real implementation, this would save to persistent storage
         pass
+
+    async def _learn_from_analysis(self, applications: List[Dict[str, Any]], analysis_result: Dict[str, Any]):
+        """Learn from analysis results to improve future assessments."""
+        try:
+            # Learn application patterns
+            for app in applications:
+                if app.get("business_criticality_score", 0) > 0.7:
+                    # Learn high-criticality patterns
+                    learning_data = {
+                        "pattern_type": "high_criticality_application",
+                        "application_name": app.get("name", ""),
+                        "technology_stack": app.get("technology_stack", []),
+                        "criticality_factors": app.get("criticality_factors", []),
+                        "confidence": app.get("business_criticality_score", 0)
+                    }
+                    await agent_learning_system.learn_data_source_pattern(learning_data, self.context)
+                
+                if app.get("migration_readiness", {}).get("score", 0) > 0.8:
+                    # Learn migration readiness patterns
+                    learning_data = {
+                        "pattern_type": "migration_ready_application",
+                        "application_name": app.get("name", ""),
+                        "readiness_factors": app.get("migration_readiness", {}).get("factors", []),
+                        "confidence": app.get("migration_readiness", {}).get("score", 0)
+                    }
+                    await agent_learning_system.learn_data_source_pattern(learning_data, self.context)
+            
+            # Learn portfolio-level patterns
+            portfolio_health = analysis_result.get("portfolio_analysis", {}).get("portfolio_health", {})
+            if portfolio_health.get("overall_health_score", 0) > 0.7:
+                learning_data = {
+                    "pattern_type": "healthy_portfolio",
+                    "health_score": portfolio_health.get("overall_health_score", 0),
+                    "strengths": portfolio_health.get("strengths", []),
+                    "application_count": len(applications)
+                }
+                await agent_learning_system.learn_quality_assessment(learning_data, self.context)
+            
+            logger.info(f"Learned patterns from application analysis in context {self.context.context_hash}")
+            
+        except Exception as e:
+            logger.warning(f"Failed to learn from analysis: {e}")
+
 
 # Global instance for the application
 application_intelligence_agent = ApplicationIntelligenceAgent() 

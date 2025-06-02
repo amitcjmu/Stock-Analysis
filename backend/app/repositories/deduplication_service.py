@@ -180,27 +180,42 @@ class DeduplicationService:
             return result.scalars().all()
         
         # Subquery to get latest session for each unique asset
-        subquery = (
+        # Use created_at timestamp to determine latest session since UUID max() is not supported
+        latest_records_subquery = (
             select(
                 dedup_field,
-                func.max(model_class.session_id).label('latest_session_id')
+                model_class.session_id,
+                func.row_number().over(
+                    partition_by=dedup_field,
+                    order_by=desc(model_class.created_at)
+                ).label('row_num')
             )
-            .group_by(dedup_field)
         )
         
-        # Apply engagement filter to subquery
+        # Apply engagement filter to latest records subquery
         if hasattr(model_class, 'engagement_id'):
-            subquery = subquery.where(model_class.engagement_id == engagement_id)
+            latest_records_subquery = latest_records_subquery.where(model_class.engagement_id == engagement_id)
         
-        # Apply additional filters to subquery
+        # Apply additional filters to latest records subquery
         if filters:
             for field_name, value in filters.items():
                 if hasattr(model_class, field_name):
                     field = getattr(model_class, field_name)
                     if isinstance(value, list):
-                        subquery = subquery.where(field.in_(value))
+                        latest_records_subquery = latest_records_subquery.where(field.in_(value))
                     else:
-                        subquery = subquery.where(field == value)
+                        latest_records_subquery = latest_records_subquery.where(field == value)
+        
+        latest_records_subquery = latest_records_subquery.alias('latest_records')
+        
+        # Subquery to get only the latest record for each asset (row_num = 1)
+        subquery = (
+            select(
+                latest_records_subquery.c[dedup_field.name],
+                latest_records_subquery.c.session_id.label('latest_session_id')
+            )
+            .where(latest_records_subquery.c.row_num == 1)
+        )
         
         subquery = subquery.alias('latest_assets')
         

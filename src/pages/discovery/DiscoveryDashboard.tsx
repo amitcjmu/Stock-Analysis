@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/Sidebar';
 import ContextSelector from '../../components/context/ContextSelector';
 import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
+import AgentLearningInsights from '../../components/discovery/AgentLearningInsights';
 import { 
   BarChart3, TrendingUp, Activity, AlertTriangle, CheckCircle,
   FileText, Database, Server, Network, Shield, Cloud,
@@ -397,6 +398,11 @@ const DiscoveryDashboard = () => {
                       </div>
                     </div>
                   </div>
+                </div>
+
+                {/* Agent Learning Insights */}
+                <div className="mt-8">
+                  <AgentLearningInsights />
                 </div>
               </div>
             )}

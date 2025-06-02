@@ -89,9 +89,9 @@ export const useAppContext = () => {
       const response = await apiCall(`${API_CONFIG.ENDPOINTS.ADMIN.CLIENTS}/?page_size=100`, {
         headers: {
           // Add current context headers
-          ...(context.client && { 'X-Client-ID': context.client.id }),
-          ...(context.engagement && { 'X-Engagement-ID': context.engagement.id }),
-          ...(context.session && { 'X-Session-ID': context.session.id })
+          ...(context.client && { 'X-Client-Account-Id': context.client.id }),
+          ...(context.engagement && { 'X-Engagement-Id': context.engagement.id }),
+          ...(context.session && { 'X-Session-Id': context.session.id })
         }
       });
       
@@ -125,9 +125,9 @@ export const useAppContext = () => {
     try {
       const response = await apiCall(`${API_CONFIG.ENDPOINTS.ADMIN.ENGAGEMENTS}/?client_account_id=${clientId}&page_size=100`, {
         headers: {
-          'X-Client-ID': clientId,
-          ...(context.engagement && { 'X-Engagement-ID': context.engagement.id }),
-          ...(context.session && { 'X-Session-ID': context.session.id })
+          'X-Client-Account-Id': clientId,
+          ...(context.engagement && { 'X-Engagement-Id': context.engagement.id }),
+          ...(context.session && { 'X-Session-Id': context.session.id })
         }
       });
       
@@ -165,9 +165,9 @@ export const useAppContext = () => {
     try {
       const response = await apiCall(`${API_CONFIG.ENDPOINTS.ADMIN.ENGAGEMENTS}/${engagementId}/sessions`, {
         headers: {
-          ...(context.client && { 'X-Client-ID': context.client.id }),
-          'X-Engagement-ID': engagementId,
-          ...(context.session && { 'X-Session-ID': context.session.id })
+          ...(context.client && { 'X-Client-Account-Id': context.client.id }),
+          'X-Engagement-Id': engagementId,
+          ...(context.session && { 'X-Session-Id': context.session.id })
         }
       });
       
@@ -232,15 +232,15 @@ export const useAppContext = () => {
     const headers: Record<string, string> = {};
     
     if (context.client) {
-      headers['X-Client-ID'] = context.client.id;
+      headers['X-Client-Account-Id'] = context.client.id;
     }
     
     if (context.engagement) {
-      headers['X-Engagement-ID'] = context.engagement.id;
+      headers['X-Engagement-Id'] = context.engagement.id;
     }
     
     if (context.session && context.viewMode === 'session_view') {
-      headers['X-Session-ID'] = context.session.id;
+      headers['X-Session-Id'] = context.session.id;
     }
     
     headers['X-View-Mode'] = context.viewMode;

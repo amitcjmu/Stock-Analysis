@@ -20,6 +20,8 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
+import { apiCall, API_CONFIG } from '@/config/api';
+import { useAppContext } from '@/hooks/useContext';
 
 interface DashboardStats {
   clients: {
@@ -47,43 +49,39 @@ interface DashboardStats {
 }
 
 const AdminDashboard: React.FC = () => {
+  const { context, getContextHeaders } = useAppContext();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDashboardStats();
-  }, []);
+  }, [context]);
 
   const fetchDashboardStats = async () => {
     try {
       setLoading(true);
+      const headers = getContextHeaders();
       
-      // Fetch all dashboard statistics
-      const [clientsResponse, engagementsResponse, usersResponse] = await Promise.all([
-        fetch('/api/v1/admin/clients/dashboard/stats'),
-        fetch('/api/v1/admin/engagements/dashboard/stats'),
-        fetch('/api/v1/auth/rbac/dashboard/stats')
-      ]);
+      // Try to fetch dashboard statistics with proper authentication
+      try {
+        const [clientsData, engagementsData, usersData] = await Promise.all([
+          apiCall(`${API_CONFIG.ENDPOINTS.ADMIN.CLIENTS}/dashboard/stats`, { headers }),
+          apiCall(`${API_CONFIG.ENDPOINTS.ADMIN.ENGAGEMENTS}/dashboard/stats`, { headers }),
+          apiCall('/api/v1/auth/admin/dashboard-stats', { headers })
+        ]);
 
-      if (!clientsResponse.ok || !engagementsResponse.ok || !usersResponse.ok) {
-        throw new Error('Failed to fetch dashboard statistics');
+        setStats({
+          clients: clientsData,
+          engagements: engagementsData,
+          users: usersData
+        });
+        setError(null); // Clear any previous errors
+        return;
+      } catch (apiError) {
+        console.warn('API endpoints not available, using demo data:', apiError);
+        setError('Admin services not fully available - using demo data');
       }
-
-      const [clientsData, engagementsData, usersData] = await Promise.all([
-        clientsResponse.json(),
-        engagementsResponse.json(),
-        usersResponse.json()
-      ]);
-
-      setStats({
-        clients: clientsData,
-        engagements: engagementsData,
-        users: usersData
-      });
-    } catch (err) {
-      console.error('Error fetching dashboard stats:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch dashboard data');
       
       // Fallback demo data
       setStats({
@@ -109,6 +107,16 @@ const AdminDashboard: React.FC = () => {
           approved: 37,
           recentRequests: []
         }
+      });
+    } catch (err) {
+      console.error('Error fetching dashboard stats:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch dashboard data');
+      
+      // Final fallback
+      setStats({
+        clients: { total: 0, active: 0, byIndustry: {}, bySize: {}, recentRegistrations: [] },
+        engagements: { total: 0, active: 0, byPhase: {}, byScope: {}, completionRate: 0, budgetUtilization: 0, recentActivity: [] },
+        users: { total: 0, pending: 0, approved: 0, recentRequests: [] }
       });
     } finally {
       setLoading(false);
@@ -157,7 +165,7 @@ const AdminDashboard: React.FC = () => {
           </Button>
           <Button variant="outline" asChild>
             <Link to="/admin/users/approvals">
-              <UserClock className="w-4 h-4 mr-2" />
+              <Clock className="w-4 h-4 mr-2" />
               User Approvals {stats.users.pending > 0 && (
                 <Badge variant="destructive" className="ml-2">
                   {stats.users.pending}
@@ -174,7 +182,7 @@ const AdminDashboard: React.FC = () => {
             <div className="flex items-center gap-2 text-orange-800">
               <Settings className="w-4 h-4" />
               <span className="text-sm">
-                Note: Using demo data as some admin services may not be fully available. {error}
+                Note: {error}. Admin authentication is required for live data. Currently showing demo data for development purposes.
               </span>
             </div>
           </CardContent>
@@ -212,7 +220,7 @@ const AdminDashboard: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
-            <UserClock className="h-4 w-4 text-muted-foreground" />
+            <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.users.pending}</div>
@@ -416,7 +424,7 @@ const AdminDashboard: React.FC = () => {
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <UserClock className="w-4 h-4 text-orange-500" />
+                    <Clock className="w-4 h-4 text-orange-500" />
                     <span className="text-sm font-medium">Pending Approval</span>
                   </div>
                   <span className="text-lg font-bold">{stats.users.pending}</span>
@@ -432,7 +440,7 @@ const AdminDashboard: React.FC = () => {
               <CardContent className="space-y-2">
                 <Button asChild className="w-full justify-start" disabled={stats.users.pending === 0}>
                   <Link to="/admin/users/approvals">
-                    <UserClock className="w-4 h-4 mr-2" />
+                    <Clock className="w-4 h-4 mr-2" />
                     Review Pending Approvals ({stats.users.pending})
                   </Link>
                 </Button>

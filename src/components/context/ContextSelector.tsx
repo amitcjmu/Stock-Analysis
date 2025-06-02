@@ -309,7 +309,7 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
                 <SelectValue placeholder={context.engagement ? "Select a session or use engagement view..." : "Select an engagement first"} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">
+                <SelectItem value="engagement_view">
                   <div className="flex items-center">
                     <Eye className="h-4 w-4 mr-2" />
                     Engagement View (All Sessions)

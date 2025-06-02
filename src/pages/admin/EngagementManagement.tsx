@@ -602,7 +602,7 @@ const EngagementManagement: React.FC = () => {
             <SelectValue placeholder="Client" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Clients</SelectItem>
+                            <SelectItem value="all">All Clients</SelectItem>
             {clients.map(client => (
               <SelectItem key={client.id} value={client.id}>{client.account_name}</SelectItem>
             ))}
@@ -613,7 +613,7 @@ const EngagementManagement: React.FC = () => {
             <SelectValue placeholder="Phase" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Phases</SelectItem>
+                            <SelectItem value="all">All Phases</SelectItem>
             {MigrationPhases.map(phase => (
               <SelectItem key={phase.value} value={phase.value}>{phase.label}</SelectItem>
             ))}

@@ -6,7 +6,7 @@ Extends ContextAwareRepository to add session-level filtering and deduplication.
 from typing import Any, Dict, List, Optional, Type, TypeVar, Generic, Union
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Query
-from sqlalchemy import and_, or_, func, distinct
+from sqlalchemy import and_, or_, func, distinct, desc
 from sqlalchemy.future import select
 from sqlalchemy.sql import Select
 import logging
@@ -231,26 +231,41 @@ class SessionAwareRepository(ContextAwareRepository[ModelType]):
             return await self.get_by_filters(**(filters or {}))
         
         # Build subquery to get latest session for each unique asset
-        subquery = (
+        # Use created_at timestamp to determine latest session since UUID max() is not supported
+        latest_records_subquery = (
             select(
                 dedup_field,
-                func.max(self.model_class.session_id).label('latest_session_id')
+                self.model_class.session_id,
+                func.row_number().over(
+                    partition_by=dedup_field,
+                    order_by=desc(self.model_class.created_at)
+                ).label('row_num')
             )
-            .group_by(dedup_field)
         )
         
-        # Apply context filters to subquery
-        subquery = self._apply_context_filter(subquery)
+        # Apply context filters to latest records subquery
+        latest_records_subquery = self._apply_context_filter(latest_records_subquery)
         
-        # Apply field filters to subquery if provided
+        # Apply field filters to latest records subquery if provided
         if filters:
             for field_name, value in filters.items():
                 if hasattr(self.model_class, field_name):
                     field = getattr(self.model_class, field_name)
                     if isinstance(value, list):
-                        subquery = subquery.where(field.in_(value))
+                        latest_records_subquery = latest_records_subquery.where(field.in_(value))
                     else:
-                        subquery = subquery.where(field == value)
+                        latest_records_subquery = latest_records_subquery.where(field == value)
+        
+        latest_records_subquery = latest_records_subquery.alias('latest_records')
+        
+        # Subquery to get only the latest record for each asset (row_num = 1)
+        subquery = (
+            select(
+                latest_records_subquery.c[dedup_field.name],
+                latest_records_subquery.c.session_id.label('latest_session_id')
+            )
+            .where(latest_records_subquery.c.row_num == 1)
+        )
         
         subquery = subquery.alias('latest_assets')
         
