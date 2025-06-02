@@ -79,6 +79,11 @@ class CrewAIService:
         """Get available crews."""
         return self.agent_coordinator.get_crews()
     
+    @property
+    def agent_manager(self):
+        """Backward compatibility property for agent_manager access."""
+        return getattr(self.agent_coordinator, 'agent_manager', None)
+    
     # Analysis methods
     async def analyze_asset_6r_strategy(self, asset_data: Dict[str, Any]) -> Dict[str, Any]:
         """Analyze asset for 6R migration strategy."""
