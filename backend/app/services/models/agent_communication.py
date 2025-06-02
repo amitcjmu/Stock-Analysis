@@ -15,6 +15,7 @@ class QuestionType(Enum):
     BUSINESS_CONTEXT = "business_context"
     QUALITY_VALIDATION = "quality_validation"
     DEPENDENCY_CLARIFICATION = "dependency_clarification"
+    DEPENDENCY_VALIDATION = "dependency_validation"
     MIGRATION_PREFERENCE = "migration_preference"
     APPLICATION_BOUNDARY = "application_boundary"
 

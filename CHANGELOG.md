@@ -5,6 +5,56 @@ All notable changes to the AI Force Migration Platform will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.36] - 2025-01-28
+
+### 🎯 **DEPENDENCY MAPPING - Complete AI-Powered Dependency Intelligence**
+
+This release implements a comprehensive Dependency Mapping system with real data integration, advanced AI agent intelligence, and complete frontend-backend integration for dependency discovery and visualization.
+
+### 🚀 **Dependency Mapping Intelligence**
+
+#### **Advanced Dependency Intelligence Agent Integration**
+- **Intelligence**: Complete integration with existing Dependency Intelligence Agent for multi-source dependency analysis
+- **Real-Time Analysis**: Comprehensive dependency discovery from assets, applications, and cross-application relationships
+- **Graph Visualization**: Interactive dependency graph with application clusters and migration wave planning
+- **Agent Learning**: Advanced dependency validation and conflict resolution with user feedback integration
+
+#### **Complete Frontend Implementation**
+- **Dependencies Page**: Full replacement of mock data with real-time dependency analysis and agent panels
+- **API Integration**: Connected to `/api/v1/discovery/agents/dependency-analysis` and `/api/v1/discovery/agents/dependency-feedback`
+- **Interactive Graph**: Dependency graph visualization with application/infrastructure view modes and filtering
+- **Agent Panels**: Three agent panels (Agent Clarifications, Data Classifications, Agent Insights) for dependency context
+
+#### **Dependency Analysis Features**
+- **Multi-Source Discovery**: CMDB data, network connections, application context, and user input integration
+- **Cross-Application Mapping**: Application cluster detection with complexity scoring and migration sequencing
+- **Impact Analysis**: Critical dependency identification with migration risk assessment
+- **Validation System**: Intelligent conflict resolution and dependency validation with confidence scoring
+
+### 📊 **Business Intelligence**
+- **Application Clusters**: Automated grouping of applications based on dependency relationships
+- **Migration Recommendations**: AI-generated migration sequence recommendations based on dependency analysis
+- **Risk Assessment**: Critical and high-impact dependency identification for migration planning
+- **User Input Flow**: Agent-driven clarification system for missing app-to-server mappings
+
+### 🎯 **Technical Achievements**
+- **Agent Integration**: Complete agent panel integration with dependency-specific question types and validations
+- **Graph Visualization**: Dependency graph with nodes/edges representation and interactive filtering
+- **API Enhancement**: Added DEPENDENCY_ANALYSIS and DEPENDENCY_FEEDBACK endpoints to API configuration
+- **State Management**: Real-time dependency data fetching with agent analysis triggering and refresh coordination
+
+### 📈 **User Experience Enhancement**
+- **Real-Time Analysis**: Dependency analysis triggers automatically on page load with agent intelligence
+- **Interactive Controls**: Graph view toggling, filtering by type/strength, and search functionality
+- **Context-Aware Agents**: Agents provide dependency-specific clarifications and recommendations
+- **Migration Planning**: Application cluster visualization with migration wave sequencing
+
+### 🎯 **Success Metrics**
+- **Agent Intelligence**: Complete dependency analysis powered by AI agents, not hardcoded rules
+- **Graph Visualization**: Interactive dependency mapping with real asset and application data
+- **Agent Panels**: Full agent integration with dependency-specific question generation and learning
+- **Migration Planning**: Intelligent application clustering and migration sequence recommendations
+
 ## [0.9.35] - 2025-01-28
 
 ### 🎯 **APPLICATION PORTFOLIO FIX - Asset Inventory Application Discovery**
