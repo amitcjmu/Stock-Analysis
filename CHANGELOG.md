@@ -2,6 +2,59 @@
 
 All notable changes to the AI Force Migration Platform will be documented in this file.
 
+## [0.10.8] - June 2nd, 2025
+
+### 🎯 **PHASE 4 COMPLETE: Enhanced Discovery Dashboard with Context Switching**
+
+This release completes Phase 4 of the multi-tenancy implementation plan, delivering comprehensive context switching capabilities and enhanced discovery dashboard with multi-tenant data views.
+
+### 🚀 **Context Management System**
+
+#### **Task 4.1: Context Selector Component - COMPLETE**
+- **useContext Hook**: Comprehensive context management with client/engagement/session switching
+- **ContextSelector Component**: Full-featured context selector with dropdowns and view mode toggle
+- **ContextBreadcrumbs Component**: Navigation breadcrumbs showing current context path
+- **Browser Persistence**: Context state persisted in localStorage with demo fallbacks
+- **API Integration**: Context headers automatically added to all API calls
+- **Error Handling**: Graceful fallbacks and user-friendly error messages
+
+#### **Task 4.2: Enhanced Discovery Dashboard - COMPLETE**
+- **Context Integration**: Discovery dashboard now fully context-aware
+- **Dynamic Data Loading**: API calls include context headers for scoped data
+- **View Mode Toggle**: Switch between engagement-level and session-specific views
+- **Context Information Panel**: Clear indication of current view mode and data scope
+- **Real-time Updates**: Dashboard refreshes when context changes
+- **Demo Data Support**: Seamless fallback to demo data when APIs unavailable
+
+### 📊 **Technical Implementation**
+
+#### **Context Management Features**
+- **Multi-level Context**: Client → Engagement → Session hierarchy
+- **View Modes**: Engagement view (deduplicated) vs Session view (specific)
+- **Smart Defaults**: Demo client "Pujyam Corp" with "Digital Transformation 2025" engagement
+- **Context Headers**: X-Client-ID, X-Engagement-ID, X-Session-ID, X-View-Mode
+- **Breadcrumb Navigation**: Click to navigate up the context hierarchy
+- **Compact Mode**: Collapsible context selector for space efficiency
+
+#### **Discovery Dashboard Enhancements**
+- **Context-Aware Metrics**: All metrics now scoped to selected context
+- **Dynamic API Calls**: Automatic context header injection
+- **View Mode Indicators**: Clear visual indication of current data scope
+- **Context Information**: Detailed explanation of what data is being shown
+- **Responsive Design**: Context selector adapts to available space
+
+### 🎯 **Business Impact**
+- **Multi-Tenant Ready**: Platform now supports multiple client contexts
+- **Data Isolation**: Proper separation of client and engagement data
+- **User Experience**: Intuitive context switching with clear visual feedback
+- **Scalability**: Foundation for enterprise multi-tenant deployment
+
+### 🎯 **Success Metrics**
+- **Context Switching**: Seamless navigation between clients/engagements/sessions
+- **Data Scoping**: Metrics and data properly filtered by context
+- **User Feedback**: Toast notifications for context changes
+- **Performance**: No degradation with context filtering
+
 ## [0.10.7] - June 2nd, 2025
 
 ### 🔧 **DATABASE RELATIONSHIP FIXES - SQLAlchemy Multi-Tenant Model Corrections**

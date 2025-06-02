@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   UserCheck, 
   UserX, 
-  UserClock, 
+  User, 
   Shield, 
   Users,
   Building2,

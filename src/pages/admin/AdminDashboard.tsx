@@ -4,7 +4,7 @@ import {
   Users, 
   Building2, 
   UserCheck, 
-  UserClock, 
+  User, 
   Calendar,
   TrendingUp,
   Settings,

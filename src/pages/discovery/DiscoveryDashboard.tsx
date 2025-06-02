@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/Sidebar';
+import ContextSelector from '../../components/context/ContextSelector';
+import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
 import { 
   BarChart3, TrendingUp, Activity, AlertTriangle, CheckCircle,
   FileText, Database, Server, Network, Shield, Cloud,
@@ -7,6 +9,7 @@ import {
 } from 'lucide-react';
 import { apiCall, API_CONFIG } from '../../config/api';
 import { Link } from 'react-router-dom';
+import { useContext } from '../../hooks/useContext';
 
 interface DiscoveryMetrics {
   totalAssets: number;
@@ -62,6 +65,8 @@ interface InfrastructureLandscape {
 }
 
 const DiscoveryDashboard = () => {
+  const { context, getContextHeaders } = useContext();
+  
   const [metrics, setMetrics] = useState<DiscoveryMetrics>({
     totalAssets: 0,
     totalApplications: 0,
@@ -113,9 +118,21 @@ const DiscoveryDashboard = () => {
     fetchInfrastructureLandscape();
   }, []);
 
+  // Refetch data when context changes
+  useEffect(() => {
+    if (context.client && context.engagement) {
+      fetchDiscoveryMetrics();
+      fetchApplicationLandscape();
+      fetchInfrastructureLandscape();
+    }
+  }, [context.client, context.engagement, context.session, context.viewMode]);
+
   const fetchDiscoveryMetrics = async () => {
     try {
-      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.DISCOVERY_METRICS);
+      const contextHeaders = getContextHeaders();
+      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.DISCOVERY_METRICS, {
+        headers: contextHeaders
+      });
       setMetrics(response.metrics || metrics);
     } catch (error) {
       console.error('Failed to fetch discovery metrics:', error);
@@ -125,7 +142,10 @@ const DiscoveryDashboard = () => {
 
   const fetchApplicationLandscape = async () => {
     try {
-      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.APPLICATION_LANDSCAPE);
+      const contextHeaders = getContextHeaders();
+      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.APPLICATION_LANDSCAPE, {
+        headers: contextHeaders
+      });
       setApplicationLandscape(response.landscape || applicationLandscape);
     } catch (error) {
       console.error('Failed to fetch application landscape:', error);
@@ -136,7 +156,10 @@ const DiscoveryDashboard = () => {
   const fetchInfrastructureLandscape = async () => {
     try {
       setIsLoading(true);
-      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.INFRASTRUCTURE_LANDSCAPE);
+      const contextHeaders = getContextHeaders();
+      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.INFRASTRUCTURE_LANDSCAPE, {
+        headers: contextHeaders
+      });
       setInfrastructureLandscape(response.landscape || infrastructureLandscape);
     } catch (error) {
       console.error('Failed to fetch infrastructure landscape:', error);
@@ -192,13 +215,48 @@ const DiscoveryDashboard = () => {
       <div className="flex-1 ml-64">
         <main className="p-8">
           <div className="max-w-7xl mx-auto">
+            {/* Context Breadcrumbs */}
+            <div className="mb-4">
+              <ContextBreadcrumbs />
+            </div>
+
             {/* Header */}
             <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Discovery Overview</h1>
-              <p className="text-lg text-gray-600">
-                Complete view of your IT landscape for cloud modernization planning
-              </p>
+              <div className="flex items-start justify-between">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">Discovery Overview</h1>
+                  <p className="text-lg text-gray-600">
+                    Complete view of your IT landscape for cloud modernization planning
+                  </p>
+                </div>
+                <div className="ml-8">
+                  <ContextSelector compact={true} className="min-w-96" />
+                </div>
+              </div>
             </div>
+
+            {/* Context Information */}
+            {context.engagement && (
+              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-medium text-blue-900">
+                      {context.viewMode === 'session_view' ? 'Session View' : 'Engagement View'}
+                    </h3>
+                    <p className="text-sm text-blue-700 mt-1">
+                      {context.viewMode === 'session_view' 
+                        ? `Showing data from session: ${context.session?.session_display_name || context.session?.session_name || 'None selected'}`
+                        : `Showing deduplicated data across all sessions in ${context.engagement.name}`
+                      }
+                    </p>
+                  </div>
+                  <div className="text-xs text-blue-600">
+                    Context: {context.client?.name} → {context.engagement?.name}
+                    {context.session && context.viewMode === 'session_view' && ` → ${context.session.session_display_name || context.session.session_name}`}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Navigation Tabs */}
             <div className="mb-8">
