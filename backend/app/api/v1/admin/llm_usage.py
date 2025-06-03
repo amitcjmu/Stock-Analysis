@@ -173,7 +173,7 @@ async def get_model_pricing(
 ):
     """Get current pricing for all LLM models."""
     try:
-        from sqlalchemy import select, and_
+        from sqlalchemy import select, and_, or_
         
         query = select(LLMModelPricing)
         

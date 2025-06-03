@@ -41,20 +41,20 @@ const LLMCosts = () => {
         analytics: analyticsResponse
       });
 
-      // Check if we got real data from any endpoint
+      // Check if we got real data from any endpoint - need to check data.success flag
       const hasRealData = [usageResponse, costResponse, modelsResponse, realtimeResponse, analyticsResponse]
-        .some(response => response.status === 'fulfilled' && response.value?.data);
+        .some(response => response.status === 'fulfilled' && response.value?.data?.success);
 
       if (hasRealData) {
         console.log('✅ Found real LLM data from API endpoints');
         setDataSource('live');
         
         const realData = {
-          usage: usageResponse.status === 'fulfilled' ? usageResponse.value?.data : null,
-          costs: costResponse.status === 'fulfilled' ? costResponse.value?.data : null,
-          models: modelsResponse.status === 'fulfilled' ? modelsResponse.value?.data : null,
-          realtime: realtimeResponse.status === 'fulfilled' ? realtimeResponse.value?.data : null,
-          analytics: analyticsResponse.status === 'fulfilled' ? analyticsResponse.value?.data : null
+          usage: usageResponse.status === 'fulfilled' && usageResponse.value?.data?.success ? usageResponse.value.data.data : null,
+          costs: costResponse.status === 'fulfilled' && costResponse.value?.data?.success ? costResponse.value.data.data : null,
+          models: modelsResponse.status === 'fulfilled' && modelsResponse.value?.data?.success ? modelsResponse.value.data.data : null,
+          realtime: realtimeResponse.status === 'fulfilled' && realtimeResponse.value?.data?.success ? realtimeResponse.value.data.data : null,
+          analytics: analyticsResponse.status === 'fulfilled' && analyticsResponse.value?.data?.success ? analyticsResponse.value.data.data : null
         };
         
         // Transform real data or fall back to mock for missing pieces
@@ -118,10 +118,8 @@ const LLMCosts = () => {
     ];
     
     const models = [
-      { name: 'gpt-4o-mini', provider: 'OpenAI', type: 'General Purpose' },
       { name: 'gemma-3-4b-it', provider: 'DeepInfra', type: 'Chat & Feedback' },
-      { name: 'llama-4-maverick', provider: 'DeepInfra', type: 'Agentic Tasks' },
-      { name: 'claude-3-sonnet', provider: 'Anthropic', type: 'Analysis' }
+      { name: 'llama-4-maverick', provider: 'DeepInfra', type: 'Agentic Tasks' }
     ];
 
     // Generate usage data for last 30 days
@@ -142,17 +140,13 @@ const LLMCosts = () => {
         calls: totalCalls,
         tokens: totalTokens,
         cost: parseFloat(totalCost.toFixed(2)),
-        'gpt-4o-mini': Math.floor(totalCalls * 0.4),
-        'gemma-3-4b-it': Math.floor(totalCalls * 0.35),
-        'llama-4-maverick': Math.floor(totalCalls * 0.15),
-        'claude-3-sonnet': Math.floor(totalCalls * 0.1)
+        'gemma-3-4b-it': Math.floor(totalCalls * 0.65),
+        'llama-4-maverick': Math.floor(totalCalls * 0.35)
       });
       
       costData.push({
         date: dateStr,
-        OpenAI: parseFloat((totalCost * 0.5).toFixed(2)),
-        DeepInfra: parseFloat((totalCost * 0.4).toFixed(2)),
-        Anthropic: parseFloat((totalCost * 0.1).toFixed(2))
+        DeepInfra: parseFloat(totalCost.toFixed(2))
       });
     }
 
@@ -452,9 +446,7 @@ const LLMCosts = () => {
                       }}
                     />
                     <Legend />
-                    <Bar dataKey="OpenAI" stackId="a" fill="#8884d8" />
-                    <Bar dataKey="DeepInfra" stackId="a" fill="#82ca9d" />
-                    <Bar dataKey="Anthropic" stackId="a" fill="#ffc658" />
+                    <Bar dataKey="DeepInfra" fill="#82ca9d" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

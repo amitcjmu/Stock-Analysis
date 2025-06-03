@@ -66,8 +66,8 @@ const AdminDashboard: React.FC = () => {
       // Try to fetch dashboard statistics with proper authentication
       try {
         const [clientsData, engagementsData, usersData] = await Promise.all([
-          apiCall(`${API_CONFIG.ENDPOINTS.ADMIN.CLIENTS}/dashboard/stats`, { headers }),
-          apiCall(`${API_CONFIG.ENDPOINTS.ADMIN.ENGAGEMENTS}/dashboard/stats`, { headers }),
+          apiCall('/api/v1/admin/clients/dashboard/stats', { headers }),
+          apiCall('/api/v1/admin/engagements/dashboard/stats', { headers }),
           apiCall('/api/v1/auth/admin/dashboard-stats', { headers })
         ]);
 

@@ -2,6 +2,54 @@
 
 All notable changes to the AI Force Migration Platform will be documented in this file.
 
+## [0.10.22] - 2025-01-29
+
+### 🎯 **Critical API Fixes - LLM Costs & Admin Dashboard**
+
+This release fixes critical API connectivity issues preventing the LLM Costs dashboard and Admin Dashboard from displaying real data.
+
+### 🐛 **Critical API Fixes**
+
+#### **LLM Usage API Endpoint Resolution**
+- **SQLAlchemy Import Fix**: Added missing `or_` import in LLM usage API causing 500 errors
+- **Endpoint Connectivity**: Fixed `/api/v1/admin/llm-usage/pricing/models` returning proper responses
+- **Data Structure Validation**: Enhanced API response validation to properly detect real vs mock data
+- **Error Handling**: Improved error handling for malformed API responses
+
+#### **Admin Dashboard API Registration**
+- **Import Path Correction**: Fixed incorrect import of `require_admin_access` in session comparison module
+- **Route Registration**: Admin client and engagement management routes now properly registered
+- **Authentication Integration**: All admin endpoints now properly require authentication
+- **API Availability**: Fixed 404 errors for `/api/v1/admin/clients/dashboard/stats` and `/api/v1/admin/engagements/dashboard/stats`
+
+### 🚀 **Technical Improvements**
+
+#### **LLM Costs Dashboard Data Logic**
+- **Real Data Detection**: Fixed logic to properly check `response.value?.data?.success` flag
+- **Model Count Accuracy**: Corrected mock data to show 2 active models (Gemma-3-4b-it, Llama-4-Maverick) instead of 4
+- **Provider Simplification**: Updated cost breakdown to show only DeepInfra provider
+- **Data Source Indicators**: Accurate live vs mock data status indicators
+
+#### **Admin Route Registration**
+- **Module Import Resolution**: Fixed `app.core.rbac_middleware` import path in session comparison
+- **Endpoint Availability**: All admin management endpoints now properly registered:
+  - `/api/v1/admin/clients/dashboard/stats`
+  - `/api/v1/admin/engagements/dashboard/stats`
+  - `/api/v1/admin/clients/health`
+  - `/api/v1/admin/engagements/health`
+
+### 📊 **Business Impact**
+- **Dashboard Functionality**: LLM Costs page now connects to real API endpoints
+- **Admin Operations**: Admin Dashboard can now fetch real statistics when authenticated
+- **Cost Monitoring**: Accurate LLM usage tracking with proper model representation
+- **Data Integrity**: Reliable API connectivity for administrative functions
+
+### 🎯 **Success Metrics**
+- **API Errors**: Eliminated 500 errors from LLM usage endpoints
+- **Route Registration**: 100% of admin management routes now accessible
+- **Model Accuracy**: Corrected model count from 4 to 2 active models
+- **Authentication**: Proper security enforcement on all admin endpoints
+
 ## [0.10.21] - 2025-01-29
 
 ### 🎯 **Critical Bug Fixes - UI/UX & Data Handling**

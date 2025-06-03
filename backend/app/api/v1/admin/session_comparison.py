@@ -11,7 +11,7 @@ from datetime import datetime
 
 from app.core.database import get_db
 from app.schemas.admin_schemas import AdminSuccessResponse, PaginatedResponse
-from app.api.v1.auth.rbac import require_admin_access
+from app.core.rbac_middleware import require_admin_access
 
 try:
     from app.services.session_comparison_service import (
