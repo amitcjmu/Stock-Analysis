@@ -97,7 +97,7 @@ class LLMUsageTracker:
             model_name=model,
             model_version=model_version,
             feature_context=feature_context or self.current_request_context.get('feature_context'),
-            metadata=metadata or {}
+            additional_metadata=metadata or {}
         )
         
         try:
@@ -160,7 +160,7 @@ class LLMUsageTracker:
             request_data=self._sanitize_data(request_data),
             response_data=self._sanitize_data(response_data),
             feature_context=feature_context or self.current_request_context.get('feature_context'),
-            metadata=metadata or {}
+            additional_metadata=metadata or {}
         )
         
         # Calculate costs

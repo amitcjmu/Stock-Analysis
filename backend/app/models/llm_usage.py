@@ -24,8 +24,8 @@ class LLMUsageLog(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
     
     # Context and identification
-    client_account_id = Column(Integer, ForeignKey('client_accounts.id'), nullable=True)
-    engagement_id = Column(Integer, ForeignKey('engagements.id'), nullable=True)
+    client_account_id = Column(UUID(as_uuid=True), ForeignKey('client_accounts.id'), nullable=True)
+    engagement_id = Column(UUID(as_uuid=True), ForeignKey('engagements.id'), nullable=True)
     user_id = Column(Integer, nullable=True)  # Reference to user system when implemented
     username = Column(String(255), nullable=True)
     session_id = Column(String(255), nullable=True)
@@ -61,7 +61,7 @@ class LLMUsageLog(Base):
     # Request/response data (for debugging and analysis)
     request_data = Column(JSONB, nullable=True)         # Truncated/sanitized request
     response_data = Column(JSONB, nullable=True)        # Truncated/sanitized response
-    metadata = Column(JSONB, nullable=True)             # Additional metadata
+    additional_metadata = Column(JSONB, nullable=True)  # Additional metadata
     
     # Audit fields
     ip_address = Column(String(45), nullable=True)      # IPv6 support
@@ -146,8 +146,8 @@ class LLMUsageSummary(Base):
     period_end = Column(DateTime(timezone=True), nullable=False)
     
     # Context
-    client_account_id = Column(Integer, ForeignKey('client_accounts.id'), nullable=True)
-    engagement_id = Column(Integer, ForeignKey('engagements.id'), nullable=True)
+    client_account_id = Column(UUID(as_uuid=True), ForeignKey('client_accounts.id'), nullable=True)
+    engagement_id = Column(UUID(as_uuid=True), ForeignKey('engagements.id'), nullable=True)
     user_id = Column(Integer, nullable=True)
     llm_provider = Column(String(100), nullable=True)
     model_name = Column(String(255), nullable=True)

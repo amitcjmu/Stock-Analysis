@@ -14,7 +14,7 @@ import uuid
 
 # revision identifiers, used by Alembic.
 revision: str = '006_llm_usage_tracking'
-down_revision: Union[str, None] = '005_session_comparison'
+down_revision: Union[str, None] = '002_add_session_support'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -27,8 +27,8 @@ def upgrade() -> None:
         sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
         
         # Context and identification
-        sa.Column('client_account_id', sa.Integer, sa.ForeignKey('client_accounts.id'), nullable=True),
-        sa.Column('engagement_id', sa.Integer, sa.ForeignKey('engagements.id'), nullable=True),
+        sa.Column('client_account_id', UUID(as_uuid=True), sa.ForeignKey('client_accounts.id'), nullable=True),
+        sa.Column('engagement_id', UUID(as_uuid=True), sa.ForeignKey('engagements.id'), nullable=True),
         sa.Column('user_id', sa.Integer, nullable=True),  # Reference to user system when implemented
         sa.Column('username', sa.String(255), nullable=True),
         sa.Column('session_id', sa.String(255), nullable=True),
@@ -64,7 +64,7 @@ def upgrade() -> None:
         # Request/response data (for debugging and analysis)
         sa.Column('request_data', JSONB, nullable=True),            # Truncated/sanitized request
         sa.Column('response_data', JSONB, nullable=True),           # Truncated/sanitized response
-        sa.Column('metadata', JSONB, nullable=True),                # Additional metadata
+        sa.Column('additional_metadata', JSONB, nullable=True),     # Additional metadata
         
         # Audit fields
         sa.Column('ip_address', sa.String(45), nullable=True),      # IPv6 support
@@ -131,8 +131,8 @@ def upgrade() -> None:
         sa.Column('period_end', sa.DateTime(timezone=True), nullable=False),
         
         # Context
-        sa.Column('client_account_id', sa.Integer, sa.ForeignKey('client_accounts.id'), nullable=True),
-        sa.Column('engagement_id', sa.Integer, sa.ForeignKey('engagements.id'), nullable=True),
+        sa.Column('client_account_id', UUID(as_uuid=True), sa.ForeignKey('client_accounts.id'), nullable=True),
+        sa.Column('engagement_id', UUID(as_uuid=True), sa.ForeignKey('engagements.id'), nullable=True),
         sa.Column('user_id', sa.Integer, nullable=True),
         sa.Column('llm_provider', sa.String(100), nullable=True),
         sa.Column('model_name', sa.String(255), nullable=True),

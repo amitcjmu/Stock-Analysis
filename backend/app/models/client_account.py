@@ -104,6 +104,8 @@ class ClientAccount(Base):
     cmdb_assets = relationship("CMDBAsset", back_populates="client_account", cascade="all, delete-orphan")
     data_imports = relationship("DataImport", back_populates="client_account", cascade="all, delete-orphan")
     feedback = relationship("Feedback", back_populates="client_account", cascade="all, delete-orphan")
+    llm_usage_logs = relationship("LLMUsageLog", back_populates="client_account", cascade="all, delete-orphan")
+    llm_usage_summaries = relationship("LLMUsageSummary", back_populates="client_account", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<ClientAccount(id={self.id}, name='{self.name}', slug='{self.slug}', is_mock={self.is_mock})>"
@@ -180,6 +182,8 @@ class Engagement(Base):
     cmdb_assets = relationship("CMDBAsset", back_populates="engagement", cascade="all, delete-orphan")
     data_imports = relationship("DataImport", back_populates="engagement", cascade="all, delete-orphan")
     feedback = relationship("Feedback", back_populates="engagement", cascade="all, delete-orphan")
+    llm_usage_logs = relationship("LLMUsageLog", back_populates="engagement", cascade="all, delete-orphan")
+    llm_usage_summaries = relationship("LLMUsageSummary", back_populates="engagement", cascade="all, delete-orphan")
     
     # Session relationships (Task 1.1.3)
     sessions = relationship(
