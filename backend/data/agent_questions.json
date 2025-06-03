@@ -1683,5 +1683,35 @@
     "answered_at": null,
     "user_response": null,
     "is_resolved": false
+  },
+  "86c5cb2a-6958-464c-9705-f442b81ee9ea": {
+    "id": "86c5cb2a-6958-464c-9705-f442b81ee9ea",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "data_classification",
+    "page": "asset-inventory",
+    "title": "Data Completeness Issue",
+    "question": "Columns support_group, business_service, cost_center appear to be mostly empty. Should these be excluded from analysis?",
+    "context": {
+      "empty_columns": [
+        "support_group",
+        "business_service",
+        "cost_center",
+        "technical_service"
+      ],
+      "sample_size": 5,
+      "analysis_suggestion": "exclude_or_clarify"
+    },
+    "options": [
+      "Exclude from analysis",
+      "Include (data may be elsewhere)",
+      "Request additional data"
+    ],
+    "confidence": "high",
+    "priority": "medium",
+    "created_at": "2025-06-03T13:07:57.172530",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
   }
 }

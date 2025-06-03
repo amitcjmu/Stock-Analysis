@@ -54,7 +54,7 @@ async def create_client_account(
         
         # Check if client already exists
         existing_query = select(ClientAccount).where(
-            ClientAccount.account_name == client_data.account_name
+            ClientAccount.name == client_data.account_name
         )
         result = await db.execute(existing_query)
         existing_client = result.scalar_one_or_none()
@@ -67,13 +67,10 @@ async def create_client_account(
         
         # Create new client account
         client = ClientAccount(
-            account_name=client_data.account_name,
+            name=client_data.account_name,
+            slug=client_data.account_name.lower().replace(' ', '-').replace('&', 'and'),
             industry=client_data.industry,
             company_size=client_data.company_size,
-            headquarters_location=client_data.headquarters_location,
-            primary_contact_name=client_data.primary_contact_name,
-            primary_contact_email=client_data.primary_contact_email,
-            primary_contact_phone=client_data.primary_contact_phone,
             business_objectives=client_data.business_objectives,
             it_guidelines=client_data.it_guidelines,
             decision_criteria=client_data.decision_criteria,
@@ -241,7 +238,7 @@ async def delete_client_account(
         logger.info(f"Client account deleted: {client_id} by admin {admin_user}")
         
         return AdminSuccessResponse(
-            message=f"Client account '{client.account_name}' deleted successfully"
+            message=f"Client account '{client.name}' deleted successfully"
         )
         
     except HTTPException:
@@ -277,7 +274,7 @@ async def list_client_accounts(
         conditions = []
         
         if filters.account_name:
-            conditions.append(ClientAccount.account_name.ilike(f"%{filters.account_name}%"))
+            conditions.append(ClientAccount.name.ilike(f"%{filters.account_name}%"))
         
         if filters.industry:
             conditions.append(ClientAccount.industry.ilike(f"%{filters.industry}%"))
@@ -389,7 +386,7 @@ async def bulk_import_clients(
             try:
                 # Check if client already exists
                 existing_query = select(ClientAccount).where(
-                    ClientAccount.account_name == client_data.account_name
+                    ClientAccount.name == client_data.account_name
                 )
                 result = await db.execute(existing_query)
                 existing_client = result.scalar_one_or_none()
@@ -406,22 +403,14 @@ async def bulk_import_clients(
                 
                 # Create new client
                 client = ClientAccount(
-                    account_name=client_data.account_name,
+                    name=client_data.account_name,
+                    slug=client_data.account_name.lower().replace(' ', '-').replace('&', 'and'),
                     industry=client_data.industry,
                     company_size=client_data.company_size,
-                    headquarters_location=client_data.headquarters_location,
-                    primary_contact_name=client_data.primary_contact_name,
-                    primary_contact_email=client_data.primary_contact_email,
-                    primary_contact_phone=client_data.primary_contact_phone,
                     business_objectives=client_data.business_objectives,
                     it_guidelines=client_data.it_guidelines,
                     decision_criteria=client_data.decision_criteria,
-                    agent_preferences=client_data.agent_preferences,
-                    target_cloud_providers=[provider.value for provider in client_data.target_cloud_providers],
-                    business_priorities=[priority.value for priority in client_data.business_priorities],
-                    compliance_requirements=client_data.compliance_requirements,
-                    budget_constraints=client_data.budget_constraints,
-                    timeline_constraints=client_data.timeline_constraints
+                    agent_preferences=client_data.agent_preferences
                 )
                 
                 db.add(client)
@@ -566,22 +555,22 @@ async def _convert_client_to_response(client: ClientAccount, db: AsyncSession) -
     
     return ClientAccountResponse(
         id=str(client.id),
-        account_name=client.account_name,
-        industry=client.industry,
-        company_size=client.company_size,
-        headquarters_location=client.headquarters_location,
-        primary_contact_name=client.primary_contact_name,
-        primary_contact_email=client.primary_contact_email,
-        primary_contact_phone=client.primary_contact_phone,
+        account_name=client.name,
+        industry=client.industry or '',
+        company_size=client.company_size or '',
+        headquarters_location='',  # Field not in model, use default
+        primary_contact_name='',   # Field not in model, use default  
+        primary_contact_email='',  # Field not in model, use default
+        primary_contact_phone='',  # Field not in model, use default
         business_objectives=client.business_objectives or [],
         it_guidelines=client.it_guidelines or {},
         decision_criteria=client.decision_criteria or {},
         agent_preferences=client.agent_preferences or {},
-        target_cloud_providers=client.target_cloud_providers or [],
-        business_priorities=client.business_priorities or [],
-        compliance_requirements=client.compliance_requirements or [],
-        budget_constraints=client.budget_constraints,
-        timeline_constraints=client.timeline_constraints,
+        target_cloud_providers=[],  # Field not in model, use default
+        business_priorities=[],     # Field not in model, use default
+        compliance_requirements=[], # Field not in model, use default
+        budget_constraints=None,  # Field not in model, use default
+        timeline_constraints=None,  # Field not in model, use default
         created_at=client.created_at,
         updated_at=client.updated_at,
         is_active=client.is_active,

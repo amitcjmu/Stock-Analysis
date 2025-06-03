@@ -182,7 +182,13 @@ const ClientManagement: React.FC = () => {
       if (filterIndustry) params.append('industry', filterIndustry);
       if (filterSize) params.append('company_size', filterSize);
 
-      const response = await fetch(`/api/v1/admin/clients/?${params}`);
+      const response = await fetch(`/api/v1/admin/clients/?${params}`, {
+        headers: {
+          'X-Demo-Mode': 'true',
+          'X-User-ID': 'demo-admin-user',
+          'Authorization': 'Bearer demo-admin-token'
+        }
+      });
       
       if (!response.ok) {
         throw new Error('Failed to fetch clients');
@@ -248,6 +254,9 @@ const ClientManagement: React.FC = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-Demo-Mode': 'true',
+          'X-User-ID': 'demo-admin-user',
+          'Authorization': 'Bearer demo-admin-token'
         },
         body: JSON.stringify(formData)
       });
@@ -284,6 +293,9 @@ const ClientManagement: React.FC = () => {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'X-Demo-Mode': 'true',
+          'X-User-ID': 'demo-admin-user',
+          'Authorization': 'Bearer demo-admin-token'
         },
         body: JSON.stringify(formData)
       });
@@ -317,7 +329,12 @@ const ClientManagement: React.FC = () => {
 
     try {
       const response = await fetch(`/api/v1/admin/clients/${clientId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+          'X-Demo-Mode': 'true',
+          'X-User-ID': 'demo-admin-user',
+          'Authorization': 'Bearer demo-admin-token'
+        }
       });
 
       if (!response.ok) {

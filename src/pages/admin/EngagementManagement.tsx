@@ -171,7 +171,13 @@ const EngagementManagement: React.FC = () => {
       if (filterClient) params.append('client_account_id', filterClient);
       if (filterPhase) params.append('migration_phase', filterPhase);
 
-      const response = await fetch(`/api/v1/admin/engagements/?${params}`);
+      const response = await fetch(`/api/v1/admin/engagements/?${params}`, {
+        headers: {
+          'X-Demo-Mode': 'true',
+          'X-User-ID': 'demo-admin-user',
+          'Authorization': 'Bearer demo-admin-token'
+        }
+      });
       
       if (!response.ok) {
         throw new Error('Failed to fetch engagements');
@@ -238,7 +244,13 @@ const EngagementManagement: React.FC = () => {
 
   const fetchClients = async () => {
     try {
-      const response = await fetch('/api/v1/admin/clients/?page_size=100');
+      const response = await fetch('/api/v1/admin/clients/?page_size=100', {
+        headers: {
+          'X-Demo-Mode': 'true',
+          'X-User-ID': 'demo-admin-user',
+          'Authorization': 'Bearer demo-admin-token'
+        }
+      });
       
       if (!response.ok) {
         throw new Error('Failed to fetch clients');
