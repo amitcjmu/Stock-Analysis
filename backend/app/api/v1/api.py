@@ -134,6 +134,18 @@ if ASSET_INVENTORY_AVAILABLE:
         tags=["enhanced-asset-inventory"]
     )
 
+# Include auth/RBAC endpoints
+try:
+    from app.api.v1.auth import rbac
+    api_router.include_router(
+        rbac.router,
+        prefix="/auth",
+        tags=["authentication", "rbac"]
+    )
+    print("✅ Authentication & RBAC endpoints available")
+except ImportError as e:
+    print(f"⚠️ Authentication & RBAC endpoints not available: {e}")
+
 # Include LLM usage tracking admin endpoints
 try:
     from app.api.v1.admin import llm_usage

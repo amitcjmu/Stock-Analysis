@@ -7,6 +7,7 @@ import logging
 from typing import Dict, List, Any, Optional
 from fastapi import APIRouter, HTTPException, Depends, Request, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+import uuid
 
 from app.core.database import get_db
 from app.core.context import get_current_context
@@ -45,7 +46,7 @@ async def register_user(
         # Extract additional request information
         user_data = registration_request.dict()
         user_data.update({
-            "user_id": f"user_{registration_request.email.replace('@', '_').replace('.', '_')}",  # Temporary ID generation
+            "user_id": str(uuid.uuid4()),  # Temporary ID generation
             "ip_address": request.client.host if request.client else None,
             "user_agent": request.headers.get("User-Agent")
         })

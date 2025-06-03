@@ -34,6 +34,8 @@ const Login: React.FC = () => {
     confirmPassword: '',
     full_name: '',
     username: '',
+    organization: '',
+    role_description: '',
     justification: '',
     requested_access: {
       client_accounts: [],
@@ -86,6 +88,8 @@ const Login: React.FC = () => {
         password: registerData.password,
         full_name: registerData.full_name,
         username: registerData.username,
+        organization: registerData.organization,
+        role_description: registerData.role_description,
         justification: registerData.justification,
         requested_access: registerData.requested_access
       });
@@ -259,6 +263,32 @@ const Login: React.FC = () => {
                     placeholder="john.doe"
                     value={registerData.username}
                     onChange={(e) => setRegisterData(prev => ({ ...prev, username: e.target.value }))}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="reg-organization">Organization *</Label>
+                  <div className="relative">
+                    <Building2 className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="reg-organization"
+                      placeholder="TechCorp Solutions"
+                      className="pl-10"
+                      value={registerData.organization}
+                      onChange={(e) => setRegisterData(prev => ({ ...prev, organization: e.target.value }))}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="reg-role">Role Description *</Label>
+                  <Input
+                    id="reg-role"
+                    placeholder="Senior Data Analyst"
+                    value={registerData.role_description}
+                    onChange={(e) => setRegisterData(prev => ({ ...prev, role_description: e.target.value }))}
                     required
                   />
                 </div>

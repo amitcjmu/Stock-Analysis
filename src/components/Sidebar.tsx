@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { getVersionInfo } from '../utils/version';
+import { useAuth } from '../contexts/AuthContext';
 import { 
   Home, 
   Search, 
@@ -46,6 +47,7 @@ const Sidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const versionInfo = getVersionInfo();
+  const { isAuthenticated, isAdmin, user, logout } = useAuth();
   const [discoveryExpanded, setDiscoveryExpanded] = useState(
     location.pathname.startsWith('/discovery')
   );
@@ -237,14 +239,42 @@ const Sidebar = () => {
     navigate('/feedback-view');
   };
 
+  const handleAuthClick = () => {
+    if (isAuthenticated) {
+      // User is logged in, show logout confirmation or logout directly
+      logout();
+      navigate('/');
+    } else {
+      // User is not logged in, navigate to login page
+      navigate('/login');
+    }
+  };
+
+  // Determine cloud icon color based on authentication status
+  const getCloudIconColor = () => {
+    if (!isAuthenticated) {
+      return 'text-gray-400'; // White/gray for anonymous
+    } else if (isAdmin) {
+      return 'text-red-400'; // Red for admin
+    } else {
+      return 'text-blue-400'; // Blue for regular user
+    }
+  };
+
   return (
     <div className="fixed left-0 top-0 h-full w-64 bg-gray-800 text-white z-50">
       <div className="p-6 border-b border-gray-700">
-        <div className="flex items-center space-x-3">
-          <Cloud className="h-8 w-8 text-blue-400" />
-          <div>
-            <h1 className="text-lg font-semibold">AI Force</h1>
-            <p className="text-xs text-gray-400">Migration Platform</p>
+        <div 
+          className="flex items-center space-x-3 cursor-pointer hover:bg-gray-700 rounded-lg p-2 -m-2 transition-colors duration-200 group"
+          onClick={handleAuthClick}
+          title={isAuthenticated ? `Signed in as ${user?.full_name} - Click to logout` : 'Click to login'}
+        >
+          <Cloud className={`h-8 w-8 ${getCloudIconColor()} group-hover:scale-110 transition-transform duration-200`} />
+          <div className="flex-1">
+            <h1 className="text-lg font-semibold group-hover:text-white transition-colors">AI Force</h1>
+            <p className="text-xs text-gray-400 group-hover:text-gray-300 transition-colors">
+              Migration Platform
+            </p>
           </div>
         </div>
       </div>

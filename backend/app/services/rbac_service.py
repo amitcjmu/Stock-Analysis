@@ -27,11 +27,11 @@ except ImportError:
 
 # Import user and client models with fallback
 try:
-    from app.models.client_account import ClientAccount, Engagement
+    from app.models.client_account import ClientAccount, Engagement, User
     CLIENT_MODELS_AVAILABLE = True
 except ImportError:
     CLIENT_MODELS_AVAILABLE = False
-    ClientAccount = Engagement = None
+    ClientAccount = Engagement = User = None
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +55,27 @@ class RBACService:
             return {"status": "error", "message": "RBAC models not available"}
         
         try:
-            # Create user profile with pending status
+            # Extract name from full_name for first_name/last_name
+            full_name = user_data.get("full_name", "")
+            name_parts = full_name.split(" ", 1)
+            first_name = name_parts[0] if name_parts else ""
+            last_name = name_parts[1] if len(name_parts) > 1 else ""
+            
+            # First create the base User record
+            user = User(
+                id=user_data["user_id"],
+                email=user_data.get("email", ""),
+                first_name=first_name,
+                last_name=last_name,
+                is_active=False,  # Not active until approved
+                is_verified=False,
+                is_mock=False
+            )
+            
+            self.db.add(user)
+            await self.db.flush()  # Flush to ensure user exists before creating profile
+            
+            # Then create user profile with pending status
             user_profile = UserProfile(
                 user_id=user_data["user_id"],
                 status=UserStatus.PENDING_APPROVAL,
@@ -117,6 +137,15 @@ class RBACService:
             
             if not user_profile:
                 return {"status": "error", "message": "User not found or not pending approval"}
+            
+            # Get and activate the base User record
+            user_query = select(User).where(User.id == user_id)
+            user_result = await self.db.execute(user_query)
+            user = user_result.scalar_one_or_none()
+            
+            if user:
+                user.is_active = True
+                user.is_verified = True
             
             # Update user profile
             user_profile.approve(approved_by)

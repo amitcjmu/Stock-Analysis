@@ -26,6 +26,8 @@ interface RegisterData {
   password: string;
   full_name: string;
   username: string;
+  organization: string;
+  role_description: string;
   justification?: string;
   requested_access: {
     client_accounts: string[];
@@ -126,13 +128,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const register = async (userData: RegisterData): Promise<void> => {
     try {
+      // Transform frontend data structure to match backend expectations
+      const registrationPayload = {
+        email: userData.email,
+        full_name: userData.full_name,
+        organization: userData.organization || "User Organization",
+        role_description: userData.role_description || "Platform User",
+        registration_reason: userData.justification || "User registration for platform access",
+        requested_access_level: userData.requested_access.access_level,
+        phone_number: null,
+        manager_email: null,
+        linkedin_profile: null,
+        notification_preferences: {
+          email_notifications: true,
+          system_alerts: true,
+          learning_updates: false,
+          weekly_reports: true
+        }
+      };
+
       // Make API call to register user
       const response = await fetch('/api/v1/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(userData)
+        body: JSON.stringify(registrationPayload)
       });
 
       if (!response.ok) {
