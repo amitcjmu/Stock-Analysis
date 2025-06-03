@@ -420,10 +420,17 @@ const AgentPlanningDashboard: React.FC<AgentPlanningDashboardProps> = ({
     </Button>
   );
 
+  // Enhanced trigger element that ensures modal opens
+  const enhancedTriggerElement = triggerElement ? (
+    <div onClick={() => setModalOpen(true)} className="cursor-pointer">
+      {triggerElement}
+    </div>
+  ) : defaultTrigger;
+
   return (
     <>
       {/* Trigger Element */}
-      {triggerElement || defaultTrigger}
+      {enhancedTriggerElement}
 
       {/* Modal Overlay */}
       {modalOpen && (

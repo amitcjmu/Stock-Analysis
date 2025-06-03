@@ -134,6 +134,18 @@ if ASSET_INVENTORY_AVAILABLE:
         tags=["enhanced-asset-inventory"]
     )
 
+# Include LLM usage tracking admin endpoints
+try:
+    from app.api.v1.admin import llm_usage
+    api_router.include_router(
+        llm_usage.router,
+        prefix="/admin/llm-usage",
+        tags=["llm-usage-tracking"]
+    )
+    print("✅ LLM usage tracking endpoints available")
+except ImportError as e:
+    print(f"⚠️ LLM usage tracking endpoints not available: {e}")
+
 # Include workflow integration endpoints
 try:
     from app.api.v1.endpoints import workflow_integration

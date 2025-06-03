@@ -103,6 +103,12 @@ async def get_processed_assets_paginated(
         # Get assets from context-aware repository
         assets = await asset_repo.get_by_filters(**filters)
         
+        # If no assets found, provide demo data for development
+        if not assets and not filters:
+            logger.info("No assets found in repository, providing demo data for development")
+            demo_assets = await _get_demo_assets()
+            assets = demo_assets
+        
         # Apply search filter if provided (simple text search)
         if search:
             search_lower = search.lower()
@@ -1075,3 +1081,117 @@ def _get_app_replacement_options(app_info: dict) -> list:
         return ["PostgreSQL 15", "Azure SQL Database", "AWS RDS"]
     else:
         return ["Modern Alternative", "Cloud Service"]
+
+
+async def _get_demo_assets():
+    """Generate demo assets for development when no real data is available."""
+    from datetime import datetime
+    
+    demo_data = [
+        {
+            "hostname": "web-server-01",
+            "ip_address": "192.168.1.10",
+            "asset_type": "Server",
+            "environment": "Production",
+            "department": "IT Operations",
+            "criticality": "High",
+            "operating_system": "Windows Server 2019",
+            "cpu_cores": 4,
+            "memory_gb": 16,
+            "storage_gb": 500,
+            "location": "DC1",
+            "owner": "IT Operations Team"
+        },
+        {
+            "hostname": "db-server-01", 
+            "ip_address": "192.168.1.20",
+            "asset_type": "Database",
+            "environment": "Production",
+            "department": "Database Team",
+            "criticality": "Critical",
+            "operating_system": "Linux",
+            "cpu_cores": 8,
+            "memory_gb": 32,
+            "storage_gb": 2000,
+            "location": "DC1",
+            "owner": "Database Team"
+        },
+        {
+            "hostname": "app-server-01",
+            "ip_address": "192.168.1.30", 
+            "asset_type": "Server",
+            "environment": "Production",
+            "department": "Engineering",
+            "criticality": "Medium",
+            "operating_system": "Ubuntu 20.04",
+            "cpu_cores": 4,
+            "memory_gb": 8,
+            "storage_gb": 250,
+            "location": "DC1",
+            "owner": "Development Team"
+        },
+        {
+            "hostname": "test-server-01",
+            "ip_address": "192.168.2.10",
+            "asset_type": "Server", 
+            "environment": "Test",
+            "department": "QA",
+            "criticality": "Low",
+            "operating_system": "Windows Server 2016",
+            "cpu_cores": 2,
+            "memory_gb": 8,
+            "storage_gb": 100,
+            "location": "DC2",
+            "owner": "QA Team"
+        },
+        {
+            "hostname": "backup-server-01",
+            "ip_address": "192.168.1.40",
+            "asset_type": "Storage Device",
+            "environment": "Production", 
+            "department": "IT Operations",
+            "criticality": "High",
+            "operating_system": "Linux",
+            "cpu_cores": 2,
+            "memory_gb": 4,
+            "storage_gb": 5000,
+            "location": "DC1",
+            "owner": "Backup Team"
+        }
+    ]
+    
+    # Create mock asset objects
+    demo_assets = []
+    for i, data in enumerate(demo_data):
+        # Create a mock asset object with required attributes
+        class MockAsset:
+            def __init__(self, **kwargs):
+                self.id = i + 1
+                self.hostname = kwargs.get('hostname')
+                self.ip_address = kwargs.get('ip_address')
+                self.asset_type = kwargs.get('asset_type')
+                self.environment = kwargs.get('environment')
+                self.department = kwargs.get('department')
+                self.criticality = kwargs.get('criticality')
+                self.operating_system = kwargs.get('operating_system')
+                self.cpu_cores = kwargs.get('cpu_cores')
+                self.memory_gb = kwargs.get('memory_gb')
+                self.storage_gb = kwargs.get('storage_gb')
+                self.location = kwargs.get('location')
+                self.owner = kwargs.get('owner')
+                self.business_service = None
+                self.technical_service = None
+                self.support_group = None
+                self.cost_center = None
+                self.lifecycle_status = "Active"
+                self.compliance_zone = "Internal"
+                self.backup_required = True
+                self.dr_tier = "Tier 1" if kwargs.get('criticality') == 'Critical' else "Tier 2"
+                self.session_id = "demo_session"
+                self.created_at = datetime.utcnow()
+                self.updated_at = datetime.utcnow()
+                self.description = f"Demo {kwargs.get('asset_type', 'Asset')}"
+        
+        demo_assets.append(MockAsset(**data))
+    
+    return demo_assets

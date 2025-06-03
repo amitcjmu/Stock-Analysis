@@ -12,6 +12,14 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime
 from enum import Enum
 
+# Import LLM Usage Tracker
+try:
+    from app.services.llm_usage_tracker import llm_tracker
+    LLM_TRACKING_AVAILABLE = True
+except ImportError:
+    LLM_TRACKING_AVAILABLE = False
+    logging.warning("LLM usage tracking not available")
+
 try:
     from openai import OpenAI
     OPENAI_AVAILABLE = True
@@ -177,9 +185,23 @@ class MultiModelService:
         if not self.openai_client:
             return self._placeholder_response(prompt, task_type, "OpenAI client not available")
         
+        model_config = self.model_configs[model_type]
+        
+        # Use LLM tracking if available
+        if LLM_TRACKING_AVAILABLE:
+            async with llm_tracker.track_llm_call(
+                provider="deepinfra",
+                model=model_config["model_name"],
+                feature_context=task_type,
+                metadata={"interface": "openai", "model_type": model_type.value}
+            ) as usage_log:
+                return await self._execute_openai_call(model_config, prompt, system_message, task_type, model_type, usage_log)
+        else:
+            return await self._execute_openai_call(model_config, prompt, system_message, task_type, model_type, None)
+
+    async def _execute_openai_call(self, model_config, prompt, system_message, task_type, model_type, usage_log=None):
+        """Execute the actual OpenAI API call with optional tracking."""
         try:
-            model_config = self.model_configs[model_type]
-            
             # Prepare messages for OpenAI chat format
             messages = []
             
@@ -189,6 +211,15 @@ class MultiModelService:
             
             messages.append({"role": "system", "content": system_message})
             messages.append({"role": "user", "content": prompt})
+            
+            # Store request data for tracking if available
+            if usage_log:
+                usage_log.request_data = {
+                    "messages": [{"role": msg["role"], "content": msg["content"][:200] + "..." if len(msg["content"]) > 200 else msg["content"]} for msg in messages],
+                    "model": model_config["model_name"],
+                    "temperature": model_config["temperature"],
+                    "max_tokens": model_config["max_tokens"]
+                }
             
             # Generate response using OpenAI client
             def generate():
@@ -211,7 +242,8 @@ class MultiModelService:
                         "content": response_content,
                         "tokens_used": tokens_used,
                         "prompt_tokens": usage.prompt_tokens if usage else 0,
-                        "completion_tokens": usage.completion_tokens if usage else 0
+                        "completion_tokens": usage.completion_tokens if usage else 0,
+                        "usage": usage
                     }
                     
                 except Exception as e:
@@ -227,6 +259,16 @@ class MultiModelService:
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 result = await loop.run_in_executor(executor, generate)
             
+            # Update usage tracking if available
+            if usage_log and result.get("usage"):
+                usage_log.input_tokens = result["prompt_tokens"]
+                usage_log.output_tokens = result["completion_tokens"]
+                usage_log.total_tokens = result["tokens_used"]
+                usage_log.response_data = {
+                    "content": result["content"][:200] + "..." if len(result["content"]) > 200 else result["content"],
+                    "finish_reason": "stop"
+                }
+            
             return {
                 "status": "success",
                 "response": result["content"],
@@ -237,7 +279,8 @@ class MultiModelService:
                 "tokens_used": result["tokens_used"],
                 "prompt_tokens": result.get("prompt_tokens", 0),
                 "completion_tokens": result.get("completion_tokens", 0),
-                "model_config": model_config
+                "model_config": model_config,
+                "usage_log_id": str(usage_log.id) if usage_log else None
             }
             
         except Exception as e:
@@ -263,14 +306,37 @@ class MultiModelService:
         if not self.crewai_llm:
             return self._placeholder_response(prompt, task_type, "CrewAI LLM not available")
         
+        model_config = self.model_configs[model_type]
+        
+        # Use LLM tracking if available
+        if LLM_TRACKING_AVAILABLE:
+            async with llm_tracker.track_llm_call(
+                provider="deepinfra",
+                model=model_config["model_name"],
+                feature_context=task_type,
+                metadata={"interface": "crewai", "model_type": model_type.value}
+            ) as usage_log:
+                return await self._execute_crewai_call(model_config, prompt, system_message, task_type, model_type, usage_log)
+        else:
+            return await self._execute_crewai_call(model_config, prompt, system_message, task_type, model_type, None)
+
+    async def _execute_crewai_call(self, model_config, prompt, system_message, task_type, model_type, usage_log=None):
+        """Execute the actual CrewAI LLM call with optional tracking."""
         try:
-            model_config = self.model_configs[model_type]
-            
             # Prepare the full prompt for CrewAI
             if system_message is None:
                 system_message = "You are an expert AI assistant specialized in enterprise IT infrastructure analysis and migration planning. Provide detailed, accurate, and actionable insights."
             
             full_prompt = f"System: {system_message}\n\nTask: {prompt}\n\nProvide a comprehensive response:"
+            
+            # Store request data for tracking if available
+            if usage_log:
+                usage_log.request_data = {
+                    "prompt": full_prompt[:500] + "..." if len(full_prompt) > 500 else full_prompt,
+                    "model": model_config["model_name"],
+                    "temperature": model_config["temperature"],
+                    "max_tokens": model_config["max_tokens"]
+                }
             
             # Generate response using CrewAI LLM
             def generate():
@@ -288,9 +354,12 @@ class MultiModelService:
                         # Fallback for basic string generation
                         response = f"Response to: {full_prompt[:100]}... (generated by {model_type.value})"
                     
+                    response_str = str(response)
                     return {
-                        "content": str(response),
-                        "tokens_used": len(str(response).split()),  # Approximate
+                        "content": response_str,
+                        "tokens_used": len(response_str.split()),  # Approximate
+                        "input_tokens": len(full_prompt.split()),  # Approximate
+                        "output_tokens": len(response_str.split()),  # Approximate
                     }
                     
                 except Exception as e:
@@ -306,6 +375,16 @@ class MultiModelService:
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 result = await loop.run_in_executor(executor, generate)
             
+            # Update usage tracking if available
+            if usage_log:
+                usage_log.input_tokens = result.get("input_tokens", 0)
+                usage_log.output_tokens = result.get("output_tokens", 0)
+                usage_log.total_tokens = result["tokens_used"]
+                usage_log.response_data = {
+                    "content": result["content"][:200] + "..." if len(result["content"]) > 200 else result["content"],
+                    "interface": "crewai"
+                }
+            
             return {
                 "status": "success",
                 "response": result["content"],
@@ -314,7 +393,8 @@ class MultiModelService:
                 "interface": "crewai",
                 "timestamp": datetime.utcnow().isoformat(),
                 "tokens_used": result["tokens_used"],
-                "model_config": model_config
+                "model_config": model_config,
+                "usage_log_id": str(usage_log.id) if usage_log else None
             }
             
         except Exception as e:
