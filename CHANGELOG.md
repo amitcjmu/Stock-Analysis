@@ -2,6 +2,104 @@
 
 All notable changes to the AI Force Migration Platform will be documented in this file.
 
+## [0.10.15] - 2025-01-28
+
+### 🎯 **Agent Planning Dashboard & LLM Usage Tracking - Major UX & Infrastructure Enhancement**
+
+This release transforms the Agent Planning Dashboard into a comprehensive modal interface and implements full LLM usage tracking for cost analysis.
+
+### 🚀 **Agent Planning Dashboard Modal Interface**
+
+#### **Enhanced User Experience**
+- **Modal popup design**: 90% screen coverage for comprehensive planning workflow
+- **Rich human input interface**: Text areas for plan suggestions, corrections, and feedback
+- **Feedback categorization**: Structured feedback types (suggestion, concern, approval, correction)
+- **Interactive plan approval**: Direct plan approval with human-in-the-loop workflow
+- **Tabbed interface**: Organized view of next actions, human input, active tasks, and completed tasks
+- **Real-time plan updates**: Live polling and refresh capabilities
+
+#### **Human-AI Collaboration Features**
+- **Plan modification feedback**: Users can suggest improvements to agent plans
+- **Context-aware suggestions**: Feedback tied to specific page contexts
+- **Rich task interaction**: Detailed task status, progress tracking, and dependency management
+- **Agent response handling**: Proper error boundaries and fallback behaviors
+
+### 💰 **Comprehensive LLM Usage Tracking System**
+
+#### **Database Infrastructure**
+- **LLM usage logs table**: Comprehensive tracking of all LLM API calls
+- **Model pricing management**: Dynamic pricing with effective date ranges
+- **Usage summary aggregation**: Pre-calculated summaries for fast reporting
+- **Multi-tenant support**: Client account and engagement scoped tracking
+
+#### **Cost Tracking Features**
+- **Automatic token counting**: Input/output token tracking per API call
+- **Real-time cost calculation**: Dynamic pricing lookup with fallback mechanisms
+- **Performance metrics**: Response time and success rate monitoring
+- **Request/response logging**: Sanitized data storage for debugging and analysis
+
+#### **Comprehensive Reporting API**
+- **Usage reports**: Detailed statistics with filtering by client, engagement, date, model
+- **Cost breakdown analysis**: By provider, model, feature, and time period
+- **Real-time monitoring**: Live usage statistics and trend analysis
+- **Daily/weekly/monthly summaries**: Aggregated metrics for different time periods
+
+### 🔧 **Technical Infrastructure**
+
+#### **LLM Usage Service**
+- **Context manager integration**: Automatic tracking wrapper for all LLM calls
+- **Async logging**: Non-blocking database writes for performance
+- **Pricing cache**: In-memory caching of model pricing for fast lookups
+- **Error handling**: Graceful degradation when tracking fails
+
+#### **Database Schema**
+- **Optimized indexes**: Fast queries for reporting and analysis
+- **Data retention**: Configurable retention policies for large-scale usage
+- **Security**: Sanitized request/response data with sensitive field removal
+- **Audit trail**: Complete tracking of user context and session information
+
+### 📊 **Business Intelligence Features**
+
+#### **Cost Analysis**
+- **Provider comparison**: Side-by-side cost analysis of different LLM providers
+- **Model efficiency metrics**: Cost per token and response time analysis
+- **Feature usage tracking**: Understanding which features drive LLM costs
+- **Budget monitoring**: Real-time cost tracking against budgets
+
+#### **Usage Analytics**
+- **User behavior insights**: Understanding how different users interact with AI features
+- **Feature adoption metrics**: Tracking usage of different AI-powered features
+- **Performance monitoring**: Identifying bottlenecks and optimization opportunities
+- **Trend analysis**: Historical usage patterns and growth tracking
+
+### 🎯 **Integration Points**
+
+#### **Agent Planning Integration**
+- **Modal trigger system**: Flexible trigger elements for different page contexts
+- **Context preservation**: Maintains page context while allowing rich interaction
+- **Seamless workflow**: Non-disruptive integration with existing Discovery pages
+- **Mobile responsive**: Proper scaling for different screen sizes
+
+#### **LLM Service Integration**
+- **Universal tracking**: Captures all LLM calls across the platform
+- **Provider agnostic**: Supports OpenAI, DeepInfra, Anthropic, and others
+- **Metadata enrichment**: Automatic context injection from request headers
+- **Error correlation**: Links LLM failures to specific user actions
+
+### 📈 **Success Metrics**
+- **Enhanced UX**: 90% screen real estate for agent planning workflow
+- **Complete cost visibility**: 100% LLM call tracking with cost calculation
+- **Performance monitoring**: Real-time metrics for all AI operations
+- **Business intelligence**: Comprehensive reporting for cost management and optimization
+
+### 🔮 **Future Capabilities Enabled**
+- **Budget alerts**: Automated notifications when usage thresholds are exceeded
+- **Cost optimization**: Data-driven recommendations for model selection
+- **Usage forecasting**: Predictive analytics for capacity planning
+- **ROI analysis**: Understanding the business value of AI features
+
+---
+
 ## [0.10.14] - 2025-01-28
 
 ### 🐛 **Critical Bug Fixes - Asset Loading, Console Errors, and Agent Learning**

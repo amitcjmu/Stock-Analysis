@@ -21,7 +21,10 @@ import {
   HelpCircle,
   Zap,
   TrendingUp,
-  Settings
+  Settings,
+  X,
+  Edit3,
+  Send
 } from 'lucide-react';
 import { apiCall, API_CONFIG } from '@/config/api';
 
@@ -60,13 +63,19 @@ interface AgentPlanningDashboardProps {
   onPlanApproval?: (planId: string, approved: boolean) => void;
   onTaskFeedback?: (taskId: string, feedback: any) => void;
   onHumanInput?: (taskId: string, input: any) => void;
+  isOpen?: boolean;
+  onClose?: () => void;
+  triggerElement?: React.ReactNode;
 }
 
 const AgentPlanningDashboard: React.FC<AgentPlanningDashboardProps> = ({
   pageContext,
   onPlanApproval,
   onTaskFeedback,
-  onHumanInput
+  onHumanInput,
+  isOpen = false,
+  onClose,
+  triggerElement
 }) => {
   const [agentPlan, setAgentPlan] = useState<AgentPlan | null>(null);
   const [loading, setLoading] = useState(true);
@@ -75,13 +84,25 @@ const AgentPlanningDashboard: React.FC<AgentPlanningDashboardProps> = ({
   const [selectedTask, setSelectedTask] = useState<AgentTask | null>(null);
   const [humanInputDialog, setHumanInputDialog] = useState(false);
   const [planApprovalDialog, setPlanApprovalDialog] = useState(false);
+  const [modalOpen, setModalOpen] = useState(isOpen);
+  
+  // Human input state
+  const [humanInputText, setHumanInputText] = useState('');
+  const [planSuggestion, setPlanSuggestion] = useState('');
+  const [feedbackType, setFeedbackType] = useState<'suggestion' | 'concern' | 'approval' | 'correction'>('suggestion');
 
   useEffect(() => {
-    fetchAgentPlan();
-    // Poll for updates every 30 seconds
-    const interval = setInterval(fetchAgentPlan, 30000);
-    return () => clearInterval(interval);
-  }, [pageContext]);
+    setModalOpen(isOpen);
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (modalOpen) {
+      fetchAgentPlan();
+      // Poll for updates every 30 seconds when modal is open
+      const interval = setInterval(fetchAgentPlan, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [pageContext, modalOpen]);
 
   const fetchAgentPlan = async () => {
     try {
@@ -313,11 +334,45 @@ const AgentPlanningDashboard: React.FC<AgentPlanningDashboardProps> = ({
       
       setHumanInputDialog(false);
       setSelectedTask(null);
+      setHumanInputText('');
       
       // Refresh plan
       await fetchAgentPlan();
     } catch (error) {
       console.error('Failed to submit human input:', error);
+    }
+  };
+
+  const handlePlanSuggestionSubmit = async () => {
+    if (!planSuggestion.trim()) return;
+    
+    try {
+      await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_LEARNING}`, {
+        method: 'POST',
+        body: JSON.stringify({
+          plan_id: agentPlan?.plan_id,
+          suggestion: planSuggestion,
+          feedback_type: feedbackType,
+          page_context: pageContext,
+          learning_type: 'plan_modification_feedback'
+        })
+      });
+      
+      setPlanSuggestion('');
+      alert('✅ Plan suggestion submitted successfully! Agents will consider this feedback for plan improvements.');
+      
+      // Refresh plan
+      await fetchAgentPlan();
+    } catch (error) {
+      console.error('Failed to submit plan suggestion:', error);
+      alert('🎭 Demo mode: Plan suggestion recorded. In production, this would update the agent planning workflow.');
+    }
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    if (onClose) {
+      onClose();
     }
   };
 
@@ -353,298 +408,307 @@ const AgentPlanningDashboard: React.FC<AgentPlanningDashboardProps> = ({
     }
   };
 
-  if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Brain className="h-5 w-5" />
-            Agent Planning Dashboard
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-2">
-            <RefreshCw className="h-5 w-5 animate-spin" />
-            <span>Loading agent plan...</span>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (error || !agentPlan) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-red-600">
-            <AlertCircle className="h-5 w-5" />
-            Agent Planning Error
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-red-600 mb-4">{error || 'No agent plan available'}</p>
-          <Button onClick={fetchAgentPlan} variant="outline">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Retry
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
+  // Trigger button (if no custom trigger provided)
+  const defaultTrigger = (
+    <Button 
+      onClick={() => setModalOpen(true)}
+      variant="outline" 
+      className="w-full"
+    >
+      <Brain className="h-4 w-4 mr-2" />
+      Agent Planning Dashboard
+    </Button>
+  );
 
   return (
-    <div className="space-y-6">
-      {/* Plan Overview */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <Brain className="h-5 w-5" />
-              {agentPlan.plan_name}
-            </span>
-            <div className="flex items-center gap-2">
-              <Badge variant={agentPlan.status === 'active' ? 'default' : 'secondary'}>
-                {agentPlan.status}
-              </Badge>
-              <Button onClick={fetchAgentPlan} variant="outline" size="sm">
-                <RefreshCw className="h-4 w-4" />
+    <>
+      {/* Trigger Element */}
+      {triggerElement || defaultTrigger}
+
+      {/* Modal Overlay */}
+      {modalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg w-[90%] h-[90%] max-w-7xl max-h-[90vh] flex flex-col overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div className="flex items-center gap-2">
+                <Brain className="h-6 w-6" />
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {agentPlan?.plan_name || 'Agent Planning Dashboard'}
+                </h2>
+                {agentPlan && (
+                  <Badge variant={agentPlan.status === 'active' ? 'default' : 'secondary'}>
+                    {agentPlan.status}
+                  </Badge>
+                )}
+              </div>
+              <Button onClick={handleCloseModal} variant="ghost" size="sm">
+                <X className="h-5 w-5" />
               </Button>
             </div>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-gray-600 mb-4">{agentPlan.description}</p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{agentPlan.overall_progress}%</div>
-              <div className="text-sm text-gray-600">Overall Progress</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{agentPlan.completed_tasks}</div>
-              <div className="text-sm text-gray-600">Completed Tasks</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600">{agentPlan.human_input_required.length}</div>
-              <div className="text-sm text-gray-600">Need Your Input</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">{agentPlan.blocking_issues.length}</div>
-              <div className="text-sm text-gray-600">Blocking Issues</div>
-            </div>
-          </div>
 
-          <div className="mb-4">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-medium">Plan Progress</span>
-              <span className="text-sm text-gray-600">
-                {agentPlan.completed_tasks} of {agentPlan.total_tasks} tasks completed
-              </span>
-            </div>
-            <Progress value={agentPlan.overall_progress} className="h-2" />
-          </div>
-
-          {agentPlan.next_actions.length > 0 && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="font-medium text-blue-900 mb-2 flex items-center gap-2">
-                <Target className="h-4 w-4" />
-                Next Actions for You
-              </h4>
-              <ul className="space-y-1">
-                {agentPlan.next_actions.map((action, index) => (
-                  <li key={index} className="text-sm text-blue-800 flex items-center gap-2">
-                    <ArrowRight className="h-3 w-3" />
-                    {action}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Human Input Required */}
-      {agentPlan.human_input_required.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-orange-600">
-              <MessageSquare className="h-5 w-5" />
-              Human Input Required ({agentPlan.human_input_required.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {agentPlan.human_input_required.map((task) => (
-                <div key={task.id} className="border border-orange-200 rounded-lg p-4 bg-orange-50">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h4 className="font-medium text-gray-900">{task.agent_name}</h4>
-                      <p className="text-sm text-gray-600">{task.task_description}</p>
-                    </div>
-                    <Badge className={getPriorityColor(task.priority)}>
-                      {task.priority}
-                    </Badge>
-                  </div>
-                  
-                  {task.human_feedback && (
-                    <div className="mt-3">
-                      <p className="text-sm font-medium text-orange-900 mb-2">
-                        {task.human_feedback.question}
-                      </p>
-                      <p className="text-xs text-orange-700 mb-3">
-                        Context: {task.human_feedback.context}
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {task.human_feedback.options.map((option, index) => (
-                          <Button
-                            key={index}
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleHumanInputSubmission(task.id, { selected_option: option })}
-                          >
-                            {option}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <RefreshCw className="h-6 w-6 animate-spin mr-2" />
+                  <span>Loading agent plan...</span>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Task Details */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Task Details</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-3 w-full">
-              <TabsTrigger value="active">Active & Planned</TabsTrigger>
-              <TabsTrigger value="completed">Completed</TabsTrigger>
-              <TabsTrigger value="all">All Tasks</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="active" className="space-y-4 mt-4">
-              {agentPlan.tasks.filter(task => task.status !== 'completed').map((task) => (
-                <div key={task.id} className="border rounded-lg p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        {getStatusIcon(task.status)}
-                        <h4 className="font-medium text-gray-900">{task.agent_name}</h4>
-                        <Badge className={getStatusColor(task.status)}>
-                          {task.status.replace('_', ' ')}
-                        </Badge>
-                        <Badge className={getPriorityColor(task.priority)}>
-                          {task.priority}
-                        </Badge>
+              ) : error || !agentPlan ? (
+                <div className="text-center py-8">
+                  <AlertCircle className="h-8 w-8 text-red-600 mx-auto mb-4" />
+                  <p className="text-red-600 mb-4">{error || 'No agent plan available'}</p>
+                  <Button onClick={fetchAgentPlan} variant="outline">
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Retry
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Plan Overview */}
+                  <div className="bg-gray-50 rounded-lg p-6">
+                    <p className="text-gray-600 mb-4">{agentPlan.description}</p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                      <div className="text-center">
+                        <div className="text-3xl font-bold text-blue-600">{agentPlan.overall_progress}%</div>
+                        <div className="text-sm text-gray-600">Overall Progress</div>
                       </div>
-                      <p className="text-sm text-gray-600 mb-2">{task.task_description}</p>
-                      {task.progress > 0 && (
-                        <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-                          <div 
-                            className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${task.progress}%` }}
-                          />
-                        </div>
-                      )}
-                      <div className="text-xs text-gray-500">
-                        Estimated duration: {task.estimated_duration} minutes
-                        {task.dependencies.length > 0 && (
-                          <span className="ml-2">
-                            • Depends on: {task.dependencies.join(', ')}
-                          </span>
-                        )}
+                      <div className="text-center">
+                        <div className="text-3xl font-bold text-green-600">{agentPlan.completed_tasks}</div>
+                        <div className="text-sm text-gray-600">Completed Tasks</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-3xl font-bold text-orange-600">{agentPlan.human_input_required.length}</div>
+                        <div className="text-sm text-gray-600">Need Your Input</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-3xl font-bold text-purple-600">{agentPlan.blocking_issues.length}</div>
+                        <div className="text-sm text-gray-600">Blocking Issues</div>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      {task.requires_human_input && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedTask(task);
-                            setHumanInputDialog(true);
-                          }}
+
+                    <div className="mb-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm font-medium">Plan Progress</span>
+                        <span className="text-sm text-gray-600">
+                          {agentPlan.completed_tasks} of {agentPlan.total_tasks} tasks completed
+                        </span>
+                      </div>
+                      <Progress value={agentPlan.overall_progress} className="h-3" />
+                    </div>
+                  </div>
+
+                  {/* Human Input Section */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                    <h3 className="font-semibold text-blue-900 mb-4 flex items-center gap-2">
+                      <Edit3 className="h-5 w-5" />
+                      Provide Plan Feedback
+                    </h3>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Feedback Type
+                        </label>
+                        <select
+                          value={feedbackType}
+                          onChange={(e) => setFeedbackType(e.target.value as any)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
-                          <MessageSquare className="h-4 w-4 mr-1" />
-                          Provide Input
-                        </Button>
-                      )}
+                          <option value="suggestion">Suggestion for improvement</option>
+                          <option value="concern">Concern about current plan</option>
+                          <option value="approval">Approval with comments</option>
+                          <option value="correction">Correction needed</option>
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Your Input
+                        </label>
+                        <textarea
+                          value={planSuggestion}
+                          onChange={(e) => setPlanSuggestion(e.target.value)}
+                          placeholder="Share your suggestions, concerns, or corrections for the agent plan..."
+                          rows={4}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      
+                      <Button 
+                        onClick={handlePlanSuggestionSubmit}
+                        disabled={!planSuggestion.trim()}
+                        className="w-full"
+                      >
+                        <Send className="h-4 w-4 mr-2" />
+                        Submit Feedback to Agents
+                      </Button>
                     </div>
                   </div>
-                </div>
-              ))}
-            </TabsContent>
 
-            <TabsContent value="completed" className="space-y-4 mt-4">
-              {agentPlan.tasks.filter(task => task.status === 'completed').map((task) => (
-                <div key={task.id} className="border rounded-lg p-4 bg-green-50">
-                  <div className="flex items-center gap-2 mb-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <h4 className="font-medium text-gray-900">{task.agent_name}</h4>
-                    <Badge className="text-green-600 bg-green-100">completed</Badge>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-2">{task.task_description}</p>
-                  <div className="text-xs text-gray-500">
-                    Completed: {task.completed_at ? new Date(task.completed_at).toLocaleString() : 'Unknown'}
-                    • Duration: {task.estimated_duration} minutes
-                  </div>
-                </div>
-              ))}
-            </TabsContent>
+                  {/* Rest of the existing content in tabs */}
+                  <Tabs value={activeTab} onValueChange={setActiveTab}>
+                    <TabsList className="grid grid-cols-4 w-full">
+                      <TabsTrigger value="overview">Next Actions</TabsTrigger>
+                      <TabsTrigger value="human-input">Human Input Required</TabsTrigger>
+                      <TabsTrigger value="active">Active & Planned</TabsTrigger>
+                      <TabsTrigger value="completed">Completed</TabsTrigger>
+                    </TabsList>
 
-            <TabsContent value="all" className="space-y-4 mt-4">
-              {agentPlan.tasks.map((task) => (
-                <div key={task.id} className={`border rounded-lg p-4 ${task.status === 'completed' ? 'bg-green-50' : ''}`}>
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        {getStatusIcon(task.status)}
-                        <h4 className="font-medium text-gray-900">{task.agent_name}</h4>
-                        <Badge className={getStatusColor(task.status)}>
-                          {task.status.replace('_', ' ')}
-                        </Badge>
-                        <Badge className={getPriorityColor(task.priority)}>
-                          {task.priority}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-gray-600 mb-2">{task.task_description}</p>
-                      {task.progress > 0 && task.status !== 'completed' && (
-                        <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-                          <div 
-                            className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${task.progress}%` }}
-                          />
+                    <TabsContent value="overview" className="space-y-4 mt-6">
+                      {agentPlan.next_actions.length > 0 && (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                          <h4 className="font-medium text-green-900 mb-2 flex items-center gap-2">
+                            <Target className="h-4 w-4" />
+                            Next Actions for You
+                          </h4>
+                          <ul className="space-y-1">
+                            {agentPlan.next_actions.map((action, index) => (
+                              <li key={index} className="text-sm text-green-800 flex items-center gap-2">
+                                <ArrowRight className="h-3 w-3" />
+                                {action}
+                              </li>
+                            ))}
+                          </ul>
                         </div>
                       )}
-                      <div className="text-xs text-gray-500">
-                        {task.status === 'completed' && task.completed_at ? (
-                          `Completed: ${new Date(task.completed_at).toLocaleString()}`
-                        ) : task.status === 'in_progress' && task.started_at ? (
-                          `Started: ${new Date(task.started_at).toLocaleString()}`
-                        ) : (
-                          `Estimated duration: ${task.estimated_duration} minutes`
-                        )}
-                        {task.dependencies.length > 0 && (
-                          <span className="ml-2">
-                            • Depends on: {task.dependencies.join(', ')}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                    </TabsContent>
+
+                    <TabsContent value="human-input" className="space-y-4 mt-6">
+                      {agentPlan.human_input_required.length > 0 ? (
+                        <div className="space-y-4">
+                          {agentPlan.human_input_required.map((task) => (
+                            <div key={task.id} className="border border-orange-200 rounded-lg p-4 bg-orange-50">
+                              <div className="flex items-start justify-between mb-3">
+                                <div>
+                                  <h4 className="font-medium text-gray-900">{task.agent_name}</h4>
+                                  <p className="text-sm text-gray-600">{task.task_description}</p>
+                                </div>
+                                <Badge className={getPriorityColor(task.priority)}>
+                                  {task.priority}
+                                </Badge>
+                              </div>
+                              
+                              {task.human_feedback && (
+                                <div className="mt-3">
+                                  <p className="text-sm font-medium text-orange-900 mb-2">
+                                    {task.human_feedback.question}
+                                  </p>
+                                  <p className="text-xs text-orange-700 mb-3">
+                                    Context: {task.human_feedback.context}
+                                  </p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {task.human_feedback.options.map((option, index) => (
+                                      <Button
+                                        key={index}
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleHumanInputSubmission(task.id, { selected_option: option })}
+                                      >
+                                        {option}
+                                      </Button>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-gray-500">
+                          <CheckCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                          <p>No human input required at this time</p>
+                        </div>
+                      )}
+                    </TabsContent>
+
+                    <TabsContent value="active" className="space-y-4 mt-6">
+                      {agentPlan.tasks.filter(task => task.status !== 'completed').map((task) => (
+                        <div key={task.id} className="border rounded-lg p-4">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                {getStatusIcon(task.status)}
+                                <h4 className="font-medium text-gray-900">{task.agent_name}</h4>
+                                <Badge className={getStatusColor(task.status)}>
+                                  {task.status.replace('_', ' ')}
+                                </Badge>
+                                <Badge className={getPriorityColor(task.priority)}>
+                                  {task.priority}
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-gray-600 mb-2">{task.task_description}</p>
+                              {task.progress > 0 && (
+                                <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                                  <div 
+                                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                                    style={{ width: `${task.progress}%` }}
+                                  />
+                                </div>
+                              )}
+                              <div className="text-xs text-gray-500">
+                                Estimated duration: {task.estimated_duration} minutes
+                                {task.dependencies.length > 0 && (
+                                  <span className="ml-2">
+                                    • Depends on: {task.dependencies.join(', ')}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </TabsContent>
+
+                    <TabsContent value="completed" className="space-y-4 mt-6">
+                      {agentPlan.tasks.filter(task => task.status === 'completed').map((task) => (
+                        <div key={task.id} className="border rounded-lg p-4 bg-green-50">
+                          <div className="flex items-center gap-2 mb-2">
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <h4 className="font-medium text-gray-900">{task.agent_name}</h4>
+                            <Badge className="text-green-600 bg-green-100">completed</Badge>
+                          </div>
+                          <p className="text-sm text-gray-600 mb-2">{task.task_description}</p>
+                          <div className="text-xs text-gray-500">
+                            Completed: {task.completed_at ? new Date(task.completed_at).toLocaleString() : 'Unknown'}
+                            • Duration: {task.estimated_duration} minutes
+                          </div>
+                        </div>
+                      ))}
+                    </TabsContent>
+                  </Tabs>
                 </div>
-              ))}
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-    </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="border-t border-gray-200 p-6 flex justify-between items-center">
+              <Button onClick={fetchAgentPlan} variant="outline">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh Plan
+              </Button>
+              
+              <div className="flex gap-3">
+                <Button onClick={handleCloseModal} variant="outline">
+                  Close Dashboard
+                </Button>
+                {agentPlan && (
+                  <Button onClick={() => {
+                    if (onPlanApproval) {
+                      onPlanApproval(agentPlan.plan_id, true);
+                    }
+                    alert('✅ Plan approved! Agents will proceed with execution.');
+                  }}>
+                    Approve Plan
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

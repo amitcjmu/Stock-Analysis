@@ -7,9 +7,10 @@ import AgentInsightsSection from '../../components/discovery/AgentInsightsSectio
 import ApplicationDiscoveryPanel from '../../components/discovery/application-discovery/ApplicationDiscoveryPanel';
 import AgentPlanningDashboard from '../../components/discovery/AgentPlanningDashboard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import { 
   Download, Filter, Database, Server, HardDrive, RefreshCw, Router, Shield, Cpu, Cloud, Zap,
-  ChevronLeft, ChevronRight, Search, Plus, Trash2, Eye, ArrowUpDown, Users
+  ChevronLeft, ChevronRight, Search, Plus, Trash2, Eye, ArrowUpDown, Users, Brain
 } from 'lucide-react';
 import { apiCall, API_CONFIG } from '../../config/api';
 
@@ -1592,6 +1593,21 @@ const Inventory = () => {
               {/* Agent Planning Dashboard */}
               <AgentPlanningDashboard 
                 pageContext="asset-inventory"
+                triggerElement={
+                  <div className="bg-white rounded-lg shadow p-4">
+                    <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
+                      <Brain className="h-4 w-4" />
+                      Agent Planning
+                    </h4>
+                    <p className="text-sm text-gray-600 mb-3">
+                      View and manage agent workflow plans for asset analysis.
+                    </p>
+                    <Button className="w-full">
+                      <Brain className="h-4 w-4 mr-2" />
+                      Open Planning Dashboard
+                    </Button>
+                  </div>
+                }
                 onPlanApproval={(planId, approved) => {
                   console.log('Inventory plan approval:', planId, approved);
                   // Handle plan approval for asset inventory
