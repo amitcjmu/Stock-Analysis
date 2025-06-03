@@ -8,6 +8,7 @@ from typing import Dict, List, Any, Optional
 from fastapi import APIRouter, HTTPException, Depends, Request, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 import uuid
+import bcrypt
 from sqlalchemy import select, and_
 
 from app.core.database import get_db
@@ -65,8 +66,14 @@ async def login_user(
         if not user_profile or user_profile.status != "active":
             raise HTTPException(status_code=401, detail="Account not approved")
         
-        # For demo purposes, accept any password for database users
-        # In production, verify password hash here
+        # Verify password hash if user has a password set
+        if user.password_hash:
+            # Check if provided password matches the stored hash
+            if not bcrypt.checkpw(login_request.password.encode('utf-8'), user.password_hash.encode('utf-8')):
+                raise HTTPException(status_code=401, detail="Invalid credentials")
+        else:
+            # For users without password hash (demo mode), accept any password
+            pass
         
         # Get user roles
         user_roles_query = select(UserRole).where(
