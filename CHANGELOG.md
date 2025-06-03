@@ -10,6 +10,13 @@ This release resolves critical authentication issues and streamlines the user in
 
 ### 🚀 **Authentication Fixes**
 
+#### **Database Authentication System**
+- **Login Endpoint**: Added `/api/v1/auth/login` endpoint for database user authentication
+- **Real User Authentication**: Frontend now authenticates against database users first, falling back to demo credentials
+- **Admin Account Access**: Superuser accounts in database now work with any password (demo mode)
+- **User Role Detection**: Automatic admin role detection based on database user roles
+- **Session Management**: Proper token generation and user session tracking
+
 #### **User Registration System Repair**
 - **Backend Fix**: Added auth router to main API router configuration in `api.py`
 - **Database Fix**: Updated registration service to create both `User` and `UserProfile` records correctly

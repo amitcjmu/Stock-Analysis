@@ -74,8 +74,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (email: string, password: string): Promise<void> => {
     try {
-      // For demo purposes, simulate authentication
-      // In production, this would make an API call to /api/v1/auth/login
+      // First try to authenticate against the database
+      try {
+        const response = await fetch('/api/v1/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email, password })
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          
+          if (result.status === 'success' && result.user) {
+            // Store auth token and user data
+            localStorage.setItem('auth_token', result.token);
+            localStorage.setItem('user_data', JSON.stringify(result.user));
+            
+            setUser(result.user);
+            setIsAuthenticated(true);
+            return; // Successful database authentication
+          }
+        }
+      } catch (dbError) {
+        console.log('Database authentication failed, trying demo credentials');
+      }
+
+      // Fall back to demo authentication if database auth fails
       if (email === 'admin@aiforce.com' && password === 'admin123') {
         const adminUser: User = {
           id: 'admin-1',

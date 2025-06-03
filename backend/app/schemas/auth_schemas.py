@@ -38,6 +38,18 @@ class RoleTypeEnum(str, Enum):
 # User Registration Schemas
 # =========================
 
+class LoginRequest(BaseModel):
+    """Schema for user login request."""
+    email: str = Field(..., description="User's email address")
+    password: str = Field(..., description="User's password")
+
+class LoginResponse(BaseModel):
+    """Schema for user login response."""
+    status: str
+    message: str
+    user: Optional[Dict[str, Any]] = None
+    token: Optional[str] = None
+
 class UserRegistrationRequest(BaseModel):
     """Schema for user registration request."""
     email: str = Field(..., description="User's business email address", pattern=r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')

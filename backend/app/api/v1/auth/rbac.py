@@ -8,11 +8,13 @@ from typing import Dict, List, Any, Optional
 from fastapi import APIRouter, HTTPException, Depends, Request, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 import uuid
+from sqlalchemy import select, and_
 
 from app.core.database import get_db
 from app.core.context import get_current_context
 from app.services.rbac_service import create_rbac_service, RBACService
 from app.schemas.auth_schemas import (
+    LoginRequest, LoginResponse,
     UserRegistrationRequest, UserRegistrationResponse,
     UserApprovalRequest, UserApprovalResponse,
     UserRejectionRequest, UserRejectionResponse,
@@ -20,6 +22,8 @@ from app.schemas.auth_schemas import (
     ClientAccessGrant, ClientAccessGrantResponse,
     PaginationParams, FilterParams, ErrorResponse, SuccessResponse
 )
+from app.models.client_account import User
+from app.models.rbac import UserProfile, UserRole
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +33,86 @@ router = APIRouter(prefix="/auth", tags=["Authentication & RBAC"])
 # =========================
 # User Registration Endpoints
 # =========================
+
+@router.post("/login", response_model=LoginResponse)
+async def login_user(
+    login_request: LoginRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Authenticate user against the database.
+    For now, this is a simplified implementation that checks if user exists and is active.
+    In production, this would verify password hashes.
+    """
+    try:
+        # Find user by email
+        user_query = select(User).where(User.email == login_request.email)
+        result = await db.execute(user_query)
+        user = result.scalar_one_or_none()
+        
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+        
+        # Check if user is active
+        if not user.is_active or not user.is_verified:
+            raise HTTPException(status_code=401, detail="Account not activated")
+        
+        # Get user profile for additional info
+        profile_query = select(UserProfile).where(UserProfile.user_id == user.id)
+        profile_result = await db.execute(profile_query)
+        user_profile = profile_result.scalar_one_or_none()
+        
+        if not user_profile or user_profile.status != "active":
+            raise HTTPException(status_code=401, detail="Account not approved")
+        
+        # For demo purposes, accept any password for database users
+        # In production, verify password hash here
+        
+        # Get user roles
+        user_roles_query = select(UserRole).where(
+            and_(UserRole.user_id == user.id, UserRole.is_active == True)
+        )
+        roles_result = await db.execute(user_roles_query)
+        user_roles = roles_result.scalars().all()
+        
+        # Determine if user is admin
+        is_admin = any(
+            role.role_type in ["platform_admin", "client_admin"] 
+            for role in user_roles
+        )
+        
+        # Create user session data
+        user_data = {
+            "id": str(user.id),
+            "username": user.email.split("@")[0],
+            "email": user.email,
+            "full_name": f"{user.first_name} {user.last_name}".strip(),
+            "role": "admin" if is_admin else "user",
+            "status": "approved",
+            "organization": user_profile.organization,
+            "role_description": user_profile.role_description
+        }
+        
+        # Log successful login
+        if user_profile:
+            from datetime import datetime
+            user_profile.last_login_at = datetime.utcnow()
+            user_profile.login_count = (user_profile.login_count or 0) + 1
+            user_profile.failed_login_attempts = 0
+            await db.commit()
+        
+        return LoginResponse(
+            status="success",
+            message="Login successful",
+            user=user_data,
+            token=f"db-token-{user.id}-{uuid.uuid4().hex[:8]}"  # Simple token for demo
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in login_user: {e}")
+        raise HTTPException(status_code=500, detail=f"Login failed: {str(e)}")
 
 @router.post("/register", response_model=UserRegistrationResponse)
 async def register_user(
