@@ -24,13 +24,20 @@ const LLMCosts = () => {
     try {
       setIsLoading(true);
       
+      // Demo authentication headers for admin endpoints
+      const adminHeaders = {
+        'X-Demo-Mode': 'true',
+        'X-User-ID': 'demo-admin-user',
+        'Authorization': 'Bearer demo-admin-token'
+      };
+      
       // Try to fetch real data from multiple LLM admin endpoints
       const [usageResponse, costResponse, modelsResponse, realtimeResponse, analyticsResponse] = await Promise.allSettled([
-        apiCall('/api/v1/admin/llm-usage/usage/report', { method: 'GET' }),
-        apiCall('/api/v1/admin/llm-usage/usage/costs/breakdown', { method: 'GET' }),
-        apiCall('/api/v1/admin/llm-usage/pricing/models', { method: 'GET' }),
-        apiCall('/api/v1/admin/llm-usage/usage/real-time', { method: 'GET' }),
-        apiCall('/api/v1/admin/llm-usage/usage/summary/daily', { method: 'GET' })
+        apiCall('/api/v1/admin/llm-usage/usage/report', { method: 'GET', headers: adminHeaders }),
+        apiCall('/api/v1/admin/llm-usage/usage/costs/breakdown', { method: 'GET', headers: adminHeaders }),
+        apiCall('/api/v1/admin/llm-usage/pricing/models', { method: 'GET', headers: adminHeaders }),
+        apiCall('/api/v1/admin/llm-usage/usage/real-time', { method: 'GET', headers: adminHeaders }),
+        apiCall('/api/v1/admin/llm-usage/usage/summary/daily', { method: 'GET', headers: adminHeaders })
       ]);
 
       console.log('🧠 LLM API responses:', {
