@@ -22,6 +22,7 @@ import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { apiCall, API_CONFIG } from '@/config/api';
 import { useAppContext } from '@/hooks/useContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface DashboardStats {
   clients: {
@@ -50,6 +51,7 @@ interface DashboardStats {
 
 const AdminDashboard: React.FC = () => {
   const { context, getContextHeaders } = useAppContext();
+  const { getAuthHeaders, user } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -63,12 +65,10 @@ const AdminDashboard: React.FC = () => {
       setLoading(true);
       const headers = {
         ...getContextHeaders(),
-        'X-Demo-Mode': 'true',
-        'X-User-ID': 'demo-admin-user',
-        'Authorization': 'Bearer demo-admin-token'
+        ...getAuthHeaders()
       };
       
-      // Try to fetch dashboard statistics with admin authentication
+      // Try to fetch dashboard statistics with real authentication
       try {
         const [clientsData, engagementsData, usersData] = await Promise.all([
           apiCall('/api/v1/admin/clients/dashboard/stats', { headers }),
@@ -85,7 +85,7 @@ const AdminDashboard: React.FC = () => {
         return;
       } catch (apiError) {
         console.warn('API endpoints not available, using demo data:', apiError);
-        setError('Admin services not fully available - using demo data. Authentication headers added for demo mode.');
+        setError(`Admin services not fully available - using demo data. Authenticated as: ${user?.full_name} (${user?.role})`);
       }
       
       // Fallback demo data
@@ -187,7 +187,7 @@ const AdminDashboard: React.FC = () => {
             <div className="flex items-center gap-2 text-orange-800">
               <Settings className="w-4 h-4" />
               <span className="text-sm">
-                Note: {error}. Admin authentication is required for live data. Currently showing demo data for development purposes.
+                Note: {error}. Currently showing demo data for development purposes.
               </span>
             </div>
           </CardContent>

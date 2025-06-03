@@ -1,0 +1,190 @@
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+
+interface User {
+  id: string;
+  username: string;
+  email: string;
+  full_name: string;
+  role: 'admin' | 'user';
+  status: 'approved' | 'pending' | 'rejected' | 'suspended';
+  client_accounts?: string[];
+  engagements?: string[];
+}
+
+interface AuthContextType {
+  user: User | null;
+  isAuthenticated: boolean;
+  isAdmin: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => void;
+  register: (userData: RegisterData) => Promise<void>;
+  getAuthHeaders: () => Record<string, string>;
+}
+
+interface RegisterData {
+  email: string;
+  password: string;
+  full_name: string;
+  username: string;
+  justification?: string;
+  requested_access: {
+    client_accounts: string[];
+    engagements: string[];
+    access_level: string;
+  };
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    // Check if user is already logged in (check localStorage for token)
+    const token = localStorage.getItem('auth_token');
+    const userData = localStorage.getItem('user_data');
+    
+    if (token && userData) {
+      try {
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
+        setIsAuthenticated(true);
+      } catch (error) {
+        console.error('Error parsing stored user data:', error);
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user_data');
+      }
+    }
+  }, []);
+
+  const login = async (email: string, password: string): Promise<void> => {
+    try {
+      // For demo purposes, simulate authentication
+      // In production, this would make an API call to /api/v1/auth/login
+      if (email === 'admin@aiforce.com' && password === 'admin123') {
+        const adminUser: User = {
+          id: 'admin-1',
+          username: 'admin',
+          email: 'admin@aiforce.com',
+          full_name: 'Admin User',
+          role: 'admin',
+          status: 'approved'
+        };
+        
+        // Store auth token and user data
+        const token = 'demo-admin-token-' + Date.now();
+        localStorage.setItem('auth_token', token);
+        localStorage.setItem('user_data', JSON.stringify(adminUser));
+        
+        setUser(adminUser);
+        setIsAuthenticated(true);
+      } else if (email === 'user@demo.com' && password === 'user123') {
+        const demoUser: User = {
+          id: 'user-1',
+          username: 'demo_user',
+          email: 'user@demo.com',
+          full_name: 'Demo User',
+          role: 'user',
+          status: 'approved',
+          client_accounts: ['client-1'],
+          engagements: ['engagement-1']
+        };
+        
+        const token = 'demo-user-token-' + Date.now();
+        localStorage.setItem('auth_token', token);
+        localStorage.setItem('user_data', JSON.stringify(demoUser));
+        
+        setUser(demoUser);
+        setIsAuthenticated(true);
+      } else {
+        throw new Error('Invalid email or password');
+      }
+    } catch (error) {
+      throw new Error('Login failed: ' + (error as Error).message);
+    }
+  };
+
+  const logout = () => {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_data');
+    setUser(null);
+    setIsAuthenticated(false);
+  };
+
+  const register = async (userData: RegisterData): Promise<void> => {
+    try {
+      // Make API call to register user
+      const response = await fetch('/api/v1/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Registration failed');
+      }
+
+      // Registration successful - user needs approval
+      const result = await response.json();
+      
+      if (result.status === 'success') {
+        // Registration successful, pending approval
+        return;
+      } else {
+        throw new Error(result.message || 'Registration failed');
+      }
+    } catch (error) {
+      throw new Error('Registration failed: ' + (error as Error).message);
+    }
+  };
+
+  const getAuthHeaders = (): Record<string, string> => {
+    const token = localStorage.getItem('auth_token');
+    const headers: Record<string, string> = {};
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    if (user) {
+      headers['X-User-ID'] = user.id;
+      headers['X-User-Role'] = user.role;
+    }
+    
+    return headers;
+  };
+
+  const isAdmin = user?.role === 'admin';
+
+  const value = {
+    user,
+    isAuthenticated,
+    isAdmin,
+    login,
+    logout,
+    register,
+    getAuthHeaders
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+}; 

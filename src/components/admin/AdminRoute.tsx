@@ -1,22 +1,21 @@
 import React, { ReactNode } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { Shield, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AdminRouteProps {
   children: ReactNode;
 }
 
 const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
-  // TODO: Replace with actual authentication check
-  // For now, we'll assume admin access is available
-  const isAdmin = true; // This would come from auth context
-  const isAuthenticated = true; // This would come from auth context
+  const { isAuthenticated, isAdmin, user } = useAuth();
+  const location = useLocation();
 
   if (!isAuthenticated) {
-    // Redirect to login page (when implemented)
-    return <Navigate to="/login" replace />;
+    // Redirect to login page with return location
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   if (!isAdmin) {
@@ -38,16 +37,25 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
               <AlertCircle className="w-4 h-4" />
               <span>Administrator privileges required</span>
             </div>
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-gray-600 space-y-2">
+              <p>Current user: <strong>{user?.full_name}</strong> ({user?.role})</p>
               <p>If you believe you should have access to this area, please contact your system administrator.</p>
             </div>
-            <Button 
-              onClick={() => window.history.back()} 
-              variant="outline" 
-              className="w-full"
-            >
-              Go Back
-            </Button>
+            <div className="flex flex-col gap-2">
+              <Button 
+                onClick={() => window.history.back()} 
+                variant="outline" 
+                className="w-full"
+              >
+                Go Back
+              </Button>
+              <Button 
+                onClick={() => window.location.href = '/'}
+                className="w-full"
+              >
+                Return to Platform
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
