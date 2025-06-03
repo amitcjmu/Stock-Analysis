@@ -26,11 +26,11 @@ const LLMCosts = () => {
       
       // Try to fetch real data from multiple LLM admin endpoints
       const [usageResponse, costResponse, modelsResponse, realtimeResponse, analyticsResponse] = await Promise.allSettled([
-        apiCall('/api/v1/admin/llm-usage/reports', { method: 'GET' }),
-        apiCall('/api/v1/admin/llm-usage/cost-breakdown', { method: 'GET' }),
-        apiCall('/api/v1/admin/llm-usage/model-pricing', { method: 'GET' }),
-        apiCall('/api/v1/admin/llm-usage/monitoring', { method: 'GET' }),
-        apiCall('/api/v1/admin/llm-usage/analytics', { method: 'GET' })
+        apiCall('/api/v1/admin/llm-usage/usage/report', { method: 'GET' }),
+        apiCall('/api/v1/admin/llm-usage/usage/costs/breakdown', { method: 'GET' }),
+        apiCall('/api/v1/admin/llm-usage/pricing/models', { method: 'GET' }),
+        apiCall('/api/v1/admin/llm-usage/usage/real-time', { method: 'GET' }),
+        apiCall('/api/v1/admin/llm-usage/usage/summary/daily', { method: 'GET' })
       ]);
 
       console.log('🧠 LLM API responses:', {
