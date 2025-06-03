@@ -81,14 +81,26 @@ const LLMCosts = () => {
     // Fill gaps with mock data where real data is incomplete
     const mockData = generateMockLLMData();
     
-    return {
-      usage: realData.usage || mockData.usage,
-      costs: realData.costs || mockData.costs,
-      models: realData.models || mockData.models,
+    // Safely extract and transform real data
+    const transformedData = {
+      usage: Array.isArray(realData.usage?.daily_usage) ? realData.usage.daily_usage : mockData.usage,
+      costs: Array.isArray(realData.costs?.breakdown_by_model) ? realData.costs.breakdown_by_model : mockData.costs,
+      models: Array.isArray(realData.models) ? realData.models : mockData.models,
       realtime: realData.realtime || mockData.realtime,
       analytics: realData.analytics || mockData.analytics,
       features: mockData.features, // Always use mock for feature breakdown until endpoint exists
-      summary: realData.analytics?.summary || mockData.summary
+      summary: realData.analytics?.summary || realData.usage?.summary || mockData.summary
+    };
+    
+    // Ensure all required data structures exist and are arrays where expected
+    return {
+      usage: Array.isArray(transformedData.usage) ? transformedData.usage : mockData.usage,
+      costs: Array.isArray(transformedData.costs) ? transformedData.costs : mockData.costs,
+      models: Array.isArray(transformedData.models) ? transformedData.models : mockData.models,
+      realtime: transformedData.realtime || mockData.realtime,
+      analytics: transformedData.analytics || mockData.analytics,
+      features: Array.isArray(transformedData.features) ? transformedData.features : mockData.features,
+      summary: transformedData.summary || mockData.summary
     };
   };
 
@@ -348,15 +360,27 @@ const LLMCosts = () => {
                   Cost Trends
                 </h3>
                 <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={llmData?.usage?.slice(-14)}>
+                  <AreaChart data={Array.isArray(llmData?.usage) ? llmData.usage.slice(-14) : []}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis 
                       dataKey="date" 
-                      tickFormatter={(value) => new Date(value).toLocaleDateString()}
+                      tickFormatter={(value) => {
+                        try {
+                          return new Date(value).toLocaleDateString();
+                        } catch {
+                          return value;
+                        }
+                      }}
                     />
                     <YAxis tickFormatter={(value) => `$${value}`} />
                     <Tooltip 
-                      labelFormatter={(value) => new Date(value).toLocaleDateString()}
+                      labelFormatter={(value) => {
+                        try {
+                          return new Date(value).toLocaleDateString();
+                        } catch {
+                          return value;
+                        }
+                      }}
                       formatter={(value, name) => [`$${value}`, 'Cost']}
                     />
                     <Area 
@@ -379,20 +403,20 @@ const LLMCosts = () => {
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
                     <Pie
-                      data={llmData?.models}
+                      data={Array.isArray(llmData?.models) ? llmData.models : []}
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({name, value}) => `${name}: ${value}`}
+                      label={({name, value}) => `${name || 'Unknown'}: ${value || 0}`}
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="calls"
                     >
-                      {llmData?.models?.map((entry, index) => (
+                      {(Array.isArray(llmData?.models) ? llmData.models : []).map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value, name) => [`${value} calls`, name]} />
+                    <Tooltip formatter={(value, name) => [`${value || 0} calls`, name || 'Unknown']} />
                     <Legend />
                   </PieChart>
                 </ResponsiveContainer>
@@ -405,15 +429,27 @@ const LLMCosts = () => {
                   Provider Cost Breakdown
                 </h3>
                 <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={llmData?.costs?.slice(-7)}>
+                  <BarChart data={Array.isArray(llmData?.costs) ? llmData.costs.slice(-7) : []}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis 
                       dataKey="date" 
-                      tickFormatter={(value) => new Date(value).toLocaleDateString()}
+                      tickFormatter={(value) => {
+                        try {
+                          return new Date(value).toLocaleDateString();
+                        } catch {
+                          return value;
+                        }
+                      }}
                     />
                     <YAxis tickFormatter={(value) => `$${value}`} />
                     <Tooltip 
-                      labelFormatter={(value) => new Date(value).toLocaleDateString()}
+                      labelFormatter={(value) => {
+                        try {
+                          return new Date(value).toLocaleDateString();
+                        } catch {
+                          return value;
+                        }
+                      }}
                     />
                     <Legend />
                     <Bar dataKey="OpenAI" stackId="a" fill="#8884d8" />
@@ -430,15 +466,27 @@ const LLMCosts = () => {
                   Token Usage Trends
                 </h3>
                 <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={llmData?.usage?.slice(-14)}>
+                  <LineChart data={Array.isArray(llmData?.usage) ? llmData.usage.slice(-14) : []}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis 
                       dataKey="date" 
-                      tickFormatter={(value) => new Date(value).toLocaleDateString()}
+                      tickFormatter={(value) => {
+                        try {
+                          return new Date(value).toLocaleDateString();
+                        } catch {
+                          return value;
+                        }
+                      }}
                     />
                     <YAxis tickFormatter={(value) => `${(value/1000).toFixed(0)}K`} />
                     <Tooltip 
-                      labelFormatter={(value) => new Date(value).toLocaleDateString()}
+                      labelFormatter={(value) => {
+                        try {
+                          return new Date(value).toLocaleDateString();
+                        } catch {
+                          return value;
+                        }
+                      }}
                       formatter={(value, name) => [`${(value/1000).toFixed(1)}K tokens`, 'Tokens']}
                     />
                     <Line 
@@ -473,18 +521,18 @@ const LLMCosts = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {llmData?.features?.map((feature, index) => (
-                      <tr key={feature.name} className="hover:bg-gray-50">
+                    {(Array.isArray(llmData?.features) ? llmData.features : []).map((feature, index) => (
+                      <tr key={feature?.name || `feature-${index}`} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             <div className={`w-3 h-3 rounded-full mr-3`} style={{backgroundColor: COLORS[index % COLORS.length]}}></div>
-                            <span className="text-sm font-medium text-gray-900">{feature.name}</span>
+                            <span className="text-sm font-medium text-gray-900">{feature?.name || 'Unknown Feature'}</span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{feature.calls.toLocaleString()}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{(feature.tokens/1000).toFixed(1)}K</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${feature.cost}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${feature.avgCostPerCall}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{(feature?.calls || 0).toLocaleString()}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{((feature?.tokens || 0)/1000).toFixed(1)}K</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${feature?.cost || 0}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${feature?.avgCostPerCall || 0}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -501,28 +549,28 @@ const LLMCosts = () => {
                 </h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 p-6">
-                {llmData?.models?.map((model, index) => (
-                  <div key={model.name} className="border rounded-lg p-4">
+                {(Array.isArray(llmData?.models) ? llmData.models : []).map((model, index) => (
+                  <div key={model?.name || `model-${index}`} className="border rounded-lg p-4">
                     <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-medium text-gray-900">{model.name}</h4>
-                      <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded">{model.provider}</span>
+                      <h4 className="font-medium text-gray-900">{model?.name || 'Unknown Model'}</h4>
+                      <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded">{model?.provider || 'Unknown'}</span>
                     </div>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-gray-600">Calls:</span>
-                        <span className="font-medium">{model.calls.toLocaleString()}</span>
+                        <span className="font-medium">{(model?.calls || 0).toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Cost:</span>
-                        <span className="font-medium">${model.cost}</span>
+                        <span className="font-medium">${model?.cost || 0}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Avg Response:</span>
-                        <span className="font-medium">{model.avgResponseTime}s</span>
+                        <span className="font-medium">{model?.avgResponseTime || 0}s</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Success Rate:</span>
-                        <span className="font-medium text-green-600">{model.successRate}%</span>
+                        <span className="font-medium text-green-600">{model?.successRate || 0}%</span>
                       </div>
                     </div>
                   </div>

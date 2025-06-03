@@ -1,19 +1,22 @@
 {
-  "data_row_0_analysis_20250603_013001": {
-    "id": "data_row_0_analysis_20250603_013001",
+  "data_row_0_analysis_20250603_043638": {
+    "id": "data_row_0_analysis_20250603_043638",
     "data_type": "asset_record",
     "content": {
-      "ID": "SRV001",
-      "TYPE": "Application",
-      "CPU (CORES)": "4",
-      "ENVIRONMENT": "Production",
-      "IP ADDRESS": "192.168.1.10",
-      "LOCATION": "DC1",
-      "NAME": "Web_Server_01",
-      "OS": "Windows Server 2019",
-      "OWNER": "John Smith",
-      "RAM (GB)": "16",
-      "RELATED CMDB RECORDS": ""
+      "id": "os_risk_Windows Server 2016_srv-monitor-01",
+      "assetId": "SRV0012",
+      "assetName": "Windows Server 2016",
+      "component": "os",
+      "technology": "Windows Server 2016",
+      "currentVersion": "srv-monitor-01",
+      "latestVersion": "Windows Server 2022",
+      "supportStatus": "extended",
+      "endOfLifeDate": "2027-01-12",
+      "securityRisk": "high",
+      "migrationEffort": "medium",
+      "businessImpact": "high",
+      "recommendedAction": "Plan upgrade to current supported version",
+      "dependencies": []
     },
     "classification": "good_data",
     "agent_analysis": {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Calendar, 
@@ -20,7 +20,10 @@ import {
   Upload,
   Target,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  Briefcase,
+  User,
+  AlertTriangle
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -134,6 +137,22 @@ const EngagementManagement: React.FC = () => {
     team_preferences: {},
     stakeholder_preferences: {}
   });
+
+  // Optimized form field handlers to prevent input focus loss
+  const handleInputChange = useCallback((field: keyof EngagementFormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = field === 'budget' ? parseFloat(e.target.value) || 0 : e.target.value;
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  }, []);
+
+  const handleSelectChange = useCallback((field: keyof EngagementFormData) => (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  }, []);
 
   useEffect(() => {
     fetchEngagements();
@@ -406,7 +425,7 @@ const EngagementManagement: React.FC = () => {
           <Input
             id="engagement_name"
             value={formData.engagement_name}
-            onChange={(e) => setFormData({...formData, engagement_name: e.target.value})}
+            onChange={handleInputChange('engagement_name')}
             placeholder="Enter engagement name"
             required
           />
@@ -414,7 +433,7 @@ const EngagementManagement: React.FC = () => {
         
         <div className="space-y-2">
           <Label htmlFor="client_account_id">Client *</Label>
-          <Select value={formData.client_account_id} onValueChange={(value) => setFormData({...formData, client_account_id: value})}>
+          <Select value={formData.client_account_id} onValueChange={handleSelectChange('client_account_id')}>
             <SelectTrigger>
               <SelectValue placeholder="Select client" />
             </SelectTrigger>
@@ -428,7 +447,7 @@ const EngagementManagement: React.FC = () => {
 
         <div className="space-y-2">
           <Label htmlFor="migration_scope">Migration Scope *</Label>
-          <Select value={formData.migration_scope} onValueChange={(value) => setFormData({...formData, migration_scope: value})}>
+          <Select value={formData.migration_scope} onValueChange={handleSelectChange('migration_scope')}>
             <SelectTrigger>
               <SelectValue placeholder="Select migration scope" />
             </SelectTrigger>
@@ -442,7 +461,7 @@ const EngagementManagement: React.FC = () => {
 
         <div className="space-y-2">
           <Label htmlFor="target_cloud_provider">Target Cloud Provider *</Label>
-          <Select value={formData.target_cloud_provider} onValueChange={(value) => setFormData({...formData, target_cloud_provider: value})}>
+          <Select value={formData.target_cloud_provider} onValueChange={handleSelectChange('target_cloud_provider')}>
             <SelectTrigger>
               <SelectValue placeholder="Select cloud provider" />
             </SelectTrigger>
@@ -456,7 +475,7 @@ const EngagementManagement: React.FC = () => {
 
         <div className="space-y-2">
           <Label htmlFor="migration_phase">Migration Phase *</Label>
-          <Select value={formData.migration_phase} onValueChange={(value) => setFormData({...formData, migration_phase: value})}>
+          <Select value={formData.migration_phase} onValueChange={handleSelectChange('migration_phase')}>
             <SelectTrigger>
               <SelectValue placeholder="Select phase" />
             </SelectTrigger>
@@ -473,7 +492,7 @@ const EngagementManagement: React.FC = () => {
           <Input
             id="engagement_manager"
             value={formData.engagement_manager}
-            onChange={(e) => setFormData({...formData, engagement_manager: e.target.value})}
+            onChange={handleInputChange('engagement_manager')}
             placeholder="Full name"
             required
           />
@@ -484,7 +503,7 @@ const EngagementManagement: React.FC = () => {
           <Input
             id="technical_lead"
             value={formData.technical_lead}
-            onChange={(e) => setFormData({...formData, technical_lead: e.target.value})}
+            onChange={handleInputChange('technical_lead')}
             placeholder="Full name"
             required
           />
@@ -496,7 +515,7 @@ const EngagementManagement: React.FC = () => {
             id="start_date"
             type="date"
             value={formData.start_date}
-            onChange={(e) => setFormData({...formData, start_date: e.target.value})}
+            onChange={handleInputChange('start_date')}
             required
           />
         </div>
@@ -507,7 +526,7 @@ const EngagementManagement: React.FC = () => {
             id="end_date"
             type="date"
             value={formData.end_date}
-            onChange={(e) => setFormData({...formData, end_date: e.target.value})}
+            onChange={handleInputChange('end_date')}
             required
           />
         </div>
@@ -519,11 +538,11 @@ const EngagementManagement: React.FC = () => {
               id="budget"
               type="number"
               value={formData.budget || ''}
-              onChange={(e) => setFormData({...formData, budget: parseFloat(e.target.value) || 0})}
+              onChange={handleInputChange('budget')}
               placeholder="0"
               className="flex-1"
             />
-            <Select value={formData.budget_currency} onValueChange={(value) => setFormData({...formData, budget_currency: value})}>
+            <Select value={formData.budget_currency} onValueChange={handleSelectChange('budget_currency')}>
               <SelectTrigger className="w-20">
                 <SelectValue />
               </SelectTrigger>
@@ -602,7 +621,7 @@ const EngagementManagement: React.FC = () => {
             <SelectValue placeholder="Client" />
           </SelectTrigger>
           <SelectContent>
-                            <SelectItem value="all">All Clients</SelectItem>
+            <SelectItem value="all">All Clients</SelectItem>
             {clients.map(client => (
               <SelectItem key={client.id} value={client.id}>{client.account_name}</SelectItem>
             ))}
@@ -613,7 +632,7 @@ const EngagementManagement: React.FC = () => {
             <SelectValue placeholder="Phase" />
           </SelectTrigger>
           <SelectContent>
-                            <SelectItem value="all">All Phases</SelectItem>
+            <SelectItem value="all">All Phases</SelectItem>
             {MigrationPhases.map(phase => (
               <SelectItem key={phase.value} value={phase.value}>{phase.label}</SelectItem>
             ))}
