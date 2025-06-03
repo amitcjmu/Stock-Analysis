@@ -62,6 +62,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import ClientManagement from "./pages/admin/ClientManagement";
 import EngagementManagement from "./pages/admin/EngagementManagement";
 import UserApprovals from "./pages/admin/UserApprovals";
+import UserProfile from "./pages/admin/UserProfile";
 import AdminLayout from "./components/admin/AdminLayout";
 import AdminRoute from "./components/admin/AdminRoute";
 
@@ -127,6 +128,7 @@ const App = () => (
               <Route path="/observability" element={<Observability />} />
               <Route path="/observability/agent-monitoring" element={<AgentMonitoring />} />
               <Route path="/feedback-view" element={<FeedbackView />} />
+              <Route path="/profile" element={<UserProfile />} />
               {/* Admin Routes - Protected */}
               <Route path="/admin" element={<AdminRoute><AdminLayout><AdminDashboard /></AdminLayout></AdminRoute>} />
               <Route path="/admin/dashboard" element={<AdminRoute><AdminLayout><AdminDashboard /></AdminLayout></AdminRoute>} />

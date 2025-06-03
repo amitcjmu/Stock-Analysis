@@ -50,6 +50,29 @@ class LoginResponse(BaseModel):
     user: Optional[Dict[str, Any]] = None
     token: Optional[str] = None
 
+class PasswordChangeRequest(BaseModel):
+    """Schema for password change request."""
+    current_password: str = Field(..., description="Current password")
+    new_password: str = Field(..., min_length=8, description="New password (minimum 8 characters)")
+    confirm_password: str = Field(..., description="Confirm new password")
+    
+    @validator('new_password')
+    def validate_new_password(cls, v):
+        if len(v) < 8:
+            raise ValueError('New password must be at least 8 characters long')
+        return v
+    
+    @validator('confirm_password')
+    def passwords_match(cls, v, values):
+        if 'new_password' in values and v != values['new_password']:
+            raise ValueError('Passwords do not match')
+        return v
+
+class PasswordChangeResponse(BaseModel):
+    """Schema for password change response."""
+    status: str
+    message: str
+
 class UserRegistrationRequest(BaseModel):
     """Schema for user registration request."""
     email: str = Field(..., description="User's business email address", pattern=r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')

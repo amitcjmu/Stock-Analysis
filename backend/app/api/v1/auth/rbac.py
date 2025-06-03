@@ -15,7 +15,7 @@ from app.core.database import get_db
 from app.core.context import get_current_context
 from app.services.rbac_service import create_rbac_service, RBACService
 from app.schemas.auth_schemas import (
-    LoginRequest, LoginResponse,
+    LoginRequest, LoginResponse, PasswordChangeRequest, PasswordChangeResponse,
     UserRegistrationRequest, UserRegistrationResponse,
     UserApprovalRequest, UserApprovalResponse,
     UserRejectionRequest, UserRejectionResponse,
@@ -120,6 +120,58 @@ async def login_user(
     except Exception as e:
         logger.error(f"Error in login_user: {e}")
         raise HTTPException(status_code=500, detail=f"Login failed: {str(e)}")
+
+@router.post("/change-password", response_model=PasswordChangeResponse)
+async def change_password(
+    password_change: PasswordChangeRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Change user's password.
+    Requires authentication and current password verification.
+    """
+    try:
+        # Get user ID from request headers
+        user_id = request.headers.get("X-User-ID")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        
+        # Find user by ID
+        user_query = select(User).where(User.id == user_id)
+        result = await db.execute(user_query)
+        user = result.scalar_one_or_none()
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Verify current password
+        if user.password_hash:
+            if not bcrypt.checkpw(password_change.current_password.encode('utf-8'), user.password_hash.encode('utf-8')):
+                raise HTTPException(status_code=401, detail="Current password is incorrect")
+        else:
+            # For users without password hash, any current password is accepted
+            pass
+        
+        # Generate new password hash
+        new_password_hash = bcrypt.hashpw(password_change.new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        
+        # Update password in database
+        user.password_hash = new_password_hash
+        await db.commit()
+        
+        logger.info(f"Password changed successfully for user {user.email}")
+        
+        return PasswordChangeResponse(
+            status="success",
+            message="Password changed successfully"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in change_password: {e}")
+        raise HTTPException(status_code=500, detail=f"Password change failed: {str(e)}")
 
 @router.post("/register", response_model=UserRegistrationResponse)
 async def register_user(
