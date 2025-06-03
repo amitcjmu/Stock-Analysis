@@ -38,7 +38,8 @@ import {
   Upload,
   LayoutDashboard,
   UserCheck,
-  User
+  User,
+  Brain
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -163,6 +164,7 @@ const Sidebar = () => {
         { name: 'Cloud Comparison', path: '/finops/cloud-comparison', icon: Cloud },
         { name: 'Savings Analysis', path: '/finops/savings-analysis', icon: TrendingUp },
         { name: 'Cost Analysis', path: '/finops/cost-analysis', icon: Calculator },
+        { name: 'LLM Costs', path: '/finops/llm-costs', icon: Brain },
         { name: 'Wave Breakdown', path: '/finops/wave-breakdown', icon: BarChart3 },
         { name: 'Cost Trends', path: '/finops/cost-trends', icon: TrendingUp },
         { name: 'Budget Alerts', path: '/finops/budget-alerts', icon: AlertTriangle }

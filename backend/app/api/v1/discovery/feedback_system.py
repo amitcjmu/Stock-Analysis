@@ -1,15 +1,23 @@
 """
-Feedback System Endpoints.
-Handles user feedback collection and management using database storage with graceful fallback.
-Updated for Vercel serverless compatibility and Railway deployment resilience.
+Enhanced feedback system with LLM analysis for better insights.
 """
 
 import logging
 import uuid
+import json
 from typing import Dict, List, Any, Optional
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import desc, func, select
+from datetime import datetime
+
+# Import LLM services for feedback analysis
+try:
+    from app.services.multi_model_service import multi_model_service, TaskComplexity
+    LLM_SERVICE_AVAILABLE = True
+except ImportError:
+    LLM_SERVICE_AVAILABLE = False
+    logging.warning("Multi-model service not available for feedback analysis")
 
 from app.api.v1.discovery.models import PageFeedbackRequest
 from app.core.database import get_db
@@ -29,11 +37,14 @@ FALLBACK_FEEDBACK_STORE = []
 @router.post("/feedback")
 async def submit_page_feedback(request: PageFeedbackRequest):
     """
-    Submit general page feedback with automatic fallback.
+    Submit general page feedback with automatic LLM analysis and fallback.
     """
     # Try database storage first
     try:
         from app.core.database import get_db, AsyncSessionLocal
+        
+        # Analyze feedback using LLM for better insights
+        feedback_analysis = await analyze_feedback_with_llm(request)
         
         async with AsyncSessionLocal() as db:
             # Create feedback entry in database
@@ -46,7 +57,10 @@ async def submit_page_feedback(request: PageFeedbackRequest):
                 category=request.category,
                 breadcrumb=request.breadcrumb,
                 user_timestamp=request.timestamp,
-                status="new"
+                status="new",
+                # Store LLM analysis results
+                learning_patterns_extracted=feedback_analysis.get("patterns", []),
+                confidence_impact=feedback_analysis.get("confidence_impact", 0.0)
             )
             
             db.add(feedback_entry)
@@ -59,15 +73,18 @@ async def submit_page_feedback(request: PageFeedbackRequest):
                 "status": "success",
                 "message": "Feedback submitted successfully",
                 "feedback_id": str(feedback_entry.id),
-                "storage_method": "database"
+                "storage_method": "database",
+                "llm_analysis": feedback_analysis,
+                "insights": feedback_analysis.get("insights", [])
             }
     
     except Exception as db_error:
         logger.warning(f"Database storage failed: {db_error}. Trying fallback...")
         
-        # Fall back to in-memory storage
+        # Fall back to in-memory storage with LLM analysis
         try:
-            from datetime import datetime
+            # Analyze feedback even in fallback mode
+            feedback_analysis = await analyze_feedback_with_llm(request)
             
             feedback_entry = {
                 "id": str(uuid.uuid4()),
@@ -80,7 +97,8 @@ async def submit_page_feedback(request: PageFeedbackRequest):
                 "user_timestamp": request.timestamp,
                 "created_at": datetime.utcnow().isoformat(),
                 "status": "new",
-                "storage_method": "fallback_memory"
+                "storage_method": "fallback_memory",
+                "llm_analysis": feedback_analysis
             }
             
             # Store in global fallback store
@@ -94,12 +112,165 @@ async def submit_page_feedback(request: PageFeedbackRequest):
                 "message": "Feedback submitted successfully (fallback mode)",
                 "feedback_id": feedback_entry["id"],
                 "storage_method": "fallback_memory",
-                "warning": "Database unavailable - using temporary storage"
+                "warning": "Database unavailable - using temporary storage",
+                "llm_analysis": feedback_analysis,
+                "insights": feedback_analysis.get("insights", [])
             }
             
         except Exception as fallback_error:
             logger.error(f"Both database and fallback failed: {fallback_error}")
             raise HTTPException(status_code=500, detail="Failed to submit feedback - all storage methods failed")
+
+async def analyze_feedback_with_llm(request: PageFeedbackRequest) -> Dict[str, Any]:
+    """
+    Analyze user feedback using LLM to extract insights and patterns.
+    This function ensures LLM usage is tracked for cost analysis.
+    """
+    
+    if not LLM_SERVICE_AVAILABLE:
+        logger.warning("LLM service not available for feedback analysis")
+        return {
+            "analysis_available": False,
+            "patterns": [],
+            "insights": ["LLM analysis not available"],
+            "confidence_impact": 0.0,
+            "sentiment": "neutral"
+        }
+    
+    try:
+        # Prepare feedback context for LLM analysis
+        feedback_prompt = f"""
+        Analyze this user feedback for a migration platform and extract actionable insights:
+
+        Page: {request.page}
+        Rating: {request.rating}/5
+        Category: {request.category}
+        Comment: {request.comment}
+        Context: {request.breadcrumb}
+
+        Please provide:
+        1. Key improvement areas mentioned
+        2. Sentiment analysis (positive/negative/neutral)
+        3. Actionable recommendations
+        4. Priority level (high/medium/low)
+        5. Any patterns that could help improve the platform
+
+        Return in JSON format with keys: sentiment, improvement_areas, recommendations, priority, patterns
+        """
+        
+        # Use Gemma 3 4B for cost-effective feedback analysis
+        analysis_result = await multi_model_service.generate_response(
+            prompt=feedback_prompt,
+            task_type="feedback_processing",  # This will be tracked in LLM costs
+            complexity=TaskComplexity.SIMPLE,
+            system_message="You are an expert UX analyst specialized in enterprise software feedback analysis. Provide structured, actionable insights."
+        )
+        
+        if analysis_result.get("status") == "success":
+            # Parse LLM response
+            llm_response = analysis_result.get("response", "")
+            
+            # Try to extract structured data from LLM response
+            structured_analysis = parse_llm_feedback_analysis(llm_response)
+            
+            # Calculate confidence impact based on rating and sentiment
+            confidence_impact = calculate_confidence_impact(request.rating, structured_analysis.get("sentiment", "neutral"))
+            
+            return {
+                "analysis_available": True,
+                "llm_response": llm_response,
+                "structured_analysis": structured_analysis,
+                "patterns": structured_analysis.get("patterns", []),
+                "insights": structured_analysis.get("recommendations", []),
+                "confidence_impact": confidence_impact,
+                "sentiment": structured_analysis.get("sentiment", "neutral"),
+                "improvement_areas": structured_analysis.get("improvement_areas", []),
+                "priority": structured_analysis.get("priority", "medium"),
+                "model_used": analysis_result.get("model_used", "unknown"),
+                "tokens_used": analysis_result.get("tokens_used", 0)
+            }
+        else:
+            logger.warning(f"LLM analysis failed: {analysis_result.get('error', 'Unknown error')}")
+            return {
+                "analysis_available": False,
+                "patterns": [],
+                "insights": ["LLM analysis failed"],
+                "confidence_impact": 0.0,
+                "sentiment": "neutral",
+                "error": analysis_result.get("error", "Analysis failed")
+            }
+    
+    except Exception as e:
+        logger.error(f"Error in LLM feedback analysis: {e}")
+        return {
+            "analysis_available": False,
+            "patterns": [],
+            "insights": ["Analysis error occurred"],
+            "confidence_impact": 0.0,
+            "sentiment": "neutral",
+            "error": str(e)
+        }
+
+def parse_llm_feedback_analysis(llm_response: str) -> Dict[str, Any]:
+    """
+    Parse LLM response to extract structured feedback analysis.
+    """
+    try:
+        # Try to find JSON in the response
+        import re
+        json_match = re.search(r'\{.*\}', llm_response, re.DOTALL)
+        if json_match:
+            json_str = json_match.group()
+            parsed = json.loads(json_str)
+            return parsed
+    except:
+        pass
+    
+    # Fallback to simple text parsing
+    analysis = {
+        "sentiment": "neutral",
+        "improvement_areas": [],
+        "recommendations": [],
+        "priority": "medium",
+        "patterns": []
+    }
+    
+    # Simple keyword-based parsing
+    lower_response = llm_response.lower()
+    
+    # Sentiment analysis
+    if any(word in lower_response for word in ["excellent", "great", "love", "perfect", "amazing"]):
+        analysis["sentiment"] = "positive"
+    elif any(word in lower_response for word in ["poor", "bad", "terrible", "awful", "hate", "frustrating"]):
+        analysis["sentiment"] = "negative"
+    
+    # Extract recommendations (look for bullet points or numbered lists)
+    lines = llm_response.split('\n')
+    recommendations = []
+    for line in lines:
+        line = line.strip()
+        if line.startswith(('•', '-', '*', '1.', '2.', '3.')) or 'recommend' in line.lower():
+            recommendations.append(line)
+    
+    analysis["recommendations"] = recommendations[:5]  # Limit to 5
+    
+    return analysis
+
+def calculate_confidence_impact(rating: int, sentiment: str) -> float:
+    """
+    Calculate the confidence impact of feedback on the platform.
+    """
+    base_impact = (rating - 3) * 0.1  # -0.2 to +0.2 based on rating
+    
+    # Adjust based on sentiment
+    sentiment_multiplier = {
+        "positive": 1.2,
+        "neutral": 1.0,
+        "negative": 1.5  # Negative feedback has higher impact
+    }
+    
+    impact = base_impact * sentiment_multiplier.get(sentiment, 1.0)
+    return round(impact, 3)
 
 @router.get("/feedback")
 async def get_feedback(

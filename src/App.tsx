@@ -48,6 +48,7 @@ import FinOps from "./pages/FinOps";
 import CloudComparison from "./pages/finops/CloudComparison";
 import SavingsAnalysis from "./pages/finops/SavingsAnalysis";
 import CostAnalysis from "./pages/finops/CostAnalysis";
+import LLMCosts from "./pages/finops/LLMCosts";
 import WaveBreakdown from "./pages/finops/WaveBreakdown";
 import CostTrends from "./pages/finops/CostTrends";
 import BudgetAlerts from "./pages/finops/BudgetAlerts";
@@ -114,6 +115,7 @@ const App = () => (
           <Route path="/finops/cloud-comparison" element={<CloudComparison />} />
           <Route path="/finops/savings-analysis" element={<SavingsAnalysis />} />
           <Route path="/finops/cost-analysis" element={<CostAnalysis />} />
+          <Route path="/finops/llm-costs" element={<LLMCosts />} />
           <Route path="/finops/wave-breakdown" element={<WaveBreakdown />} />
           <Route path="/finops/cost-trends" element={<CostTrends />} />
           <Route path="/finops/budget-alerts" element={<BudgetAlerts />} />
