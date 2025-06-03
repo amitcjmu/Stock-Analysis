@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/Sidebar';
+import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
 import AgentClarificationPanel from '../../components/discovery/AgentClarificationPanel';
 import DataClassificationDisplay from '../../components/discovery/DataClassificationDisplay';
 import AgentInsightsSection from '../../components/discovery/AgentInsightsSection';
@@ -340,8 +341,11 @@ const Dependencies = () => {
         <div className="flex-1">
           <main className="p-8">
             <div className="max-w-full mx-auto">
-              {/* Header */}
+              {/* Header with Breadcrumbs */}
               <div className="mb-8">
+                <div className="mb-4">
+                  <ContextBreadcrumbs showContextSelector={true} />
+                </div>
                 <div className="flex items-center justify-between">
                   <div>
                     <h1 className="text-3xl font-bold text-gray-900 mb-2">Dependency Mapping</h1>

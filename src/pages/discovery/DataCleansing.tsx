@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, ArrowLeft } from 'lucide-react';
 import Sidebar from '../../components/Sidebar';
+import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
 import RawDataTable from '../../components/discovery/RawDataTable';
 import AgentClarificationPanel from '../../components/discovery/AgentClarificationPanel';
 import DataClassificationDisplay from '../../components/discovery/DataClassificationDisplay';
@@ -105,12 +106,19 @@ const DataCleansing = () => {
           <div className="flex-1 overflow-y-auto">
             <main className="p-8">
               <div className="max-w-4xl mx-auto">
-                {/* Header */}
-                <DataCleansingHeader
-                  isAnalyzing={isAnalyzing}
-                  rawDataLength={rawData.length}
-                  onRefreshAnalysis={handleRefreshAnalysis}
-                />
+                {/* Header with Breadcrumbs */}
+                <div className="mb-8">
+                  <div className="mb-4">
+                    <ContextBreadcrumbs showContextSelector={true} />
+                  </div>
+                  
+                  {/* DataCleansingHeader component already handles the main header */}
+                  <DataCleansingHeader
+                    isAnalyzing={isAnalyzing}
+                    rawDataLength={rawData.length}
+                    onRefreshAnalysis={handleRefreshAnalysis}
+                  />
+                </div>
 
                 {/* Debug Panel (Development Only) */}
                 {import.meta.env.DEV && (

@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight, CheckCircle, XCircle, Target, Brain } from 'lucide-react';
 import Sidebar from '../../components/Sidebar';
+import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
 import RawDataTable from '../../components/discovery/RawDataTable';
 import AgentClarificationPanel from '../../components/discovery/AgentClarificationPanel';
 import DataClassificationDisplay from '../../components/discovery/DataClassificationDisplay';
@@ -729,8 +730,11 @@ const AttributeMapping = () => {
           <div className="flex-1 overflow-y-auto">
             <main className="p-8">
               <div className="max-w-5xl mx-auto">
-                {/* Header */}
+                {/* Header with Breadcrumbs */}
                 <div className="mb-8">
+                  <div className="mb-4">
+                    <ContextBreadcrumbs showContextSelector={true} />
+                  </div>
                   <h1 className="text-3xl font-bold text-gray-900 mb-2">
                     Attribute Mapping & AI Training
                   </h1>

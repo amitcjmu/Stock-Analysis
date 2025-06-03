@@ -2,6 +2,66 @@
 
 All notable changes to the AI Force Migration Platform will be documented in this file.
 
+## [0.10.13] - 2025-01-02
+
+### 🎯 **Discovery Dashboard Enhancements - Asset Intelligence & Agent Planning**
+
+This release addresses critical Asset Inventory data loading issues and introduces comprehensive agent planning visibility with human-in-the-loop capabilities.
+
+### 🚀 **Asset Intelligence Improvements**
+
+#### **Asset Inventory Data Loading Fix**
+- **Implementation**: Completely rewrote asset data loading to properly handle API responses vs demo data fallback
+- **API Integration**: Enhanced fetchAssets to handle multiple response formats (direct arrays, wrapped responses)
+- **Data Processing**: Added intelligent summary calculation from actual asset data instead of hardcoded values
+- **Context Awareness**: Real data is now properly loaded regardless of client context selection
+- **Logging**: Added comprehensive logging to track data sources and API response handling
+
+#### **Application Count Synchronization**
+- **Dedicated Function**: Created separate fetchApplicationsCount function to get accurate application counts
+- **Multiple Endpoints**: Integrated with both applications and application portfolio endpoints
+- **Real-time Updates**: Application counts now update dynamically with asset loading
+- **Fallback Handling**: Graceful degradation when application endpoints are unavailable
+
+### 🧭 **Navigation Enhancements**
+
+#### **Universal Breadcrumb Implementation**
+- **Complete Coverage**: Added ContextBreadcrumbs to all Discovery phase pages
+- **Consistent UX**: Unified navigation experience across Inventory, Data Cleansing, Tech Debt, Dependencies, and Attribute Mapping
+- **Context Selector**: Integrated dropdown context selection within breadcrumb component
+- **Page Headers**: Standardized header layout with breadcrumbs for all Discovery pages
+
+### 🤖 **Agent Planning Dashboard**
+
+#### **Human-in-the-Loop Agent Orchestration**
+- **Planning Visibility**: Created comprehensive AgentPlanningDashboard component for task visualization
+- **Task Management**: Real-time display of agent task status, progress, and dependencies
+- **Human Input Interface**: Interactive components for providing agent feedback and approvals
+- **Context-Aware Plans**: Dynamic plan generation based on page context (asset-inventory, data-cleansing, tech-debt)
+- **Multi-Tab Interface**: Organized view of active, completed, and all agent tasks
+
+#### **Agent Intelligence Integration**
+- **7 Active Agents**: Asset Intelligence, Field Mapping, Data Quality, Pattern Learning, Tech Debt Analyzer, Migration Readiness, and Modernization Planner
+- **Learning Feedback**: User feedback collection for continuous agent improvement
+- **Blocking Issue Resolution**: Clear identification and resolution paths for blocked tasks
+- **Progress Tracking**: Visual progress indicators and estimated completion times
+
+### 📊 **Data Quality Enhancements**
+
+#### **Asset Field Mapping Improvements**
+- **Smart Field Detection**: Enhanced asset data mapping to handle multiple field name variations
+- **Rich Display Data**: Added comprehensive asset details including IP addresses, OS info, resource specifications
+- **Dynamic Type Classification**: Intelligent asset type detection and icon assignment
+- **Status Visualization**: Color-coded environment and status badges for quick identification
+
+### 🎯 **Success Metrics**
+
+- **Data Accuracy**: Asset Inventory now shows real data instead of demo data fallback
+- **Navigation Consistency**: 100% of Discovery pages now have unified breadcrumb navigation
+- **Agent Transparency**: Users can now see and interact with agent planning workflow
+- **Human-AI Collaboration**: Interactive feedback system enables continuous agent learning improvement
+- **Application Sync**: Application counts now consistent between Overview and Inventory pages
+
 ## [0.10.12] - 2025-01-21
 
 ### 🎯 **UI/UX FIXES - Dashboard Layout and Data Quality Improvements**

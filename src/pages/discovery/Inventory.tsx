@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/Sidebar';
+import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
 import AgentClarificationPanel from '../../components/discovery/AgentClarificationPanel';
 import DataClassificationDisplay from '../../components/discovery/DataClassificationDisplay';
 import AgentInsightsSection from '../../components/discovery/AgentInsightsSection';
 import ApplicationDiscoveryPanel from '../../components/discovery/application-discovery/ApplicationDiscoveryPanel';
+import AgentPlanningDashboard from '../../components/discovery/AgentPlanningDashboard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Download, Filter, Database, Server, HardDrive, RefreshCw, Router, Shield, Cpu, Cloud, Zap,
@@ -115,129 +117,221 @@ const Inventory = () => {
         params.append('search', filters.search);
       }
       
+      console.log('🔍 Fetching assets from API:', `${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}?${params}`);
+      
       const response = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}?${params}`);
       
-      const responseData = {
-        assets: response.assets || [],
-        summary: response.summary || summary,
-        pagination: response.pagination || pagination,
-        lastUpdated: response.lastUpdated,
-        dataSource: response.dataSource || 'live',
-        suggestedHeaders: response.suggestedHeaders || []
-      };
+      console.log('📊 Asset API response:', response);
       
-      // Set demo data if no assets returned from API
-      if (responseData.assets.length === 0) {
+      // Process the response - handle both direct asset arrays and wrapped responses
+      let assetsData = [];
+      let summaryData = summary;
+      let paginationData = pagination;
+      
+      if (Array.isArray(response)) {
+        // Direct array response
+        assetsData = response;
+      } else if (response.assets && Array.isArray(response.assets)) {
+        // Wrapped response with assets array
+        assetsData = response.assets;
+        summaryData = response.summary || summary;
+        paginationData = response.pagination || pagination;
+      } else if (response.data && Array.isArray(response.data)) {
+        // Another possible wrapper format
+        assetsData = response.data;
+      }
+      
+      console.log('🎯 Processed assets data:', {
+        count: assetsData.length,
+        sample: assetsData[0],
+        summary: summaryData
+      });
+      
+      // If we got real assets data, use it
+      if (assetsData.length > 0) {
+        setAssets(assetsData);
+        setDataSource('live');
+        
+        // Calculate summary from actual data
+        const calculatedSummary = {
+          total: assetsData.length,
+          filtered: assetsData.length,
+          applications: assetsData.filter(asset => {
+            const type = asset.asset_type || asset.ci_type || asset.intelligent_asset_type || '';
+            return type.toLowerCase().includes('application');
+          }).length,
+          servers: assetsData.filter(asset => {
+            const type = asset.asset_type || asset.ci_type || asset.intelligent_asset_type || '';
+            return type.toLowerCase().includes('server');
+          }).length,
+          databases: assetsData.filter(asset => {
+            const type = asset.asset_type || asset.ci_type || asset.intelligent_asset_type || '';
+            return type.toLowerCase().includes('database');
+          }).length,
+          devices: assetsData.filter(asset => {
+            const type = asset.asset_type || asset.ci_type || asset.intelligent_asset_type || '';
+            return type.toLowerCase().includes('device') || type.toLowerCase().includes('infrastructure');
+          }).length,
+          unknown: assetsData.filter(asset => {
+            const type = asset.asset_type || asset.ci_type || asset.intelligent_asset_type || '';
+            return !type || type.toLowerCase().includes('unknown');
+          }).length,
+          discovered: assetsData.length,
+          pending: 0,
+          device_breakdown: {
+            network: assetsData.filter(asset => {
+              const type = asset.asset_type || asset.ci_type || asset.intelligent_asset_type || '';
+              return type.toLowerCase().includes('network');
+            }).length,
+            storage: assetsData.filter(asset => {
+              const type = asset.asset_type || asset.ci_type || asset.intelligent_asset_type || '';
+              return type.toLowerCase().includes('storage');
+            }).length,
+            security: assetsData.filter(asset => {
+              const type = asset.asset_type || asset.ci_type || asset.intelligent_asset_type || '';
+              return type.toLowerCase().includes('security');
+            }).length,
+            infrastructure: assetsData.filter(asset => {
+              const type = asset.asset_type || asset.ci_type || asset.intelligent_asset_type || '';
+              return type.toLowerCase().includes('infrastructure');
+            }).length,
+            virtualization: assetsData.filter(asset => {
+              const type = asset.asset_type || asset.ci_type || asset.intelligent_asset_type || '';
+              return type.toLowerCase().includes('virtual');
+            }).length
+          }
+        };
+        
+        setSummary(calculatedSummary);
+        
+        // Update pagination
+        setPagination({
+          current_page: page,
+          page_size: pageSize,
+          total_items: assetsData.length,
+          total_pages: Math.ceil(assetsData.length / pageSize),
+          has_next: page * pageSize < assetsData.length,
+          has_previous: page > 1
+        });
+        
+        console.log('✅ Using live data from API with calculated summary:', calculatedSummary);
+      } else {
+        // Only use demo data if no API data is available
+        console.log('⚠️ No data from API, using demo data');
         const demoAssets = [
           {
             id: 'asset_001',
+            asset_name: 'web-server-01',
             hostname: 'web-server-01',
             asset_type: 'Server',
+            ci_type: 'Server',
             status: 'Active',
             department: 'IT',
+            business_owner: 'IT Operations',
             environment: 'Production',
+            operating_system: 'Windows Server 2019',
             os_type: 'Windows Server 2019',
-            application: 'IIS',
+            application_name: 'IIS',
             business_criticality: 'High',
+            criticality: 'High',
+            ip_address: '192.168.1.10',
+            location: 'DC1',
+            datacenter: 'DC1',
+            cpu_cores: 4,
+            memory_gb: 16,
+            ram_gb: 16,
+            storage_gb: 500,
             last_scan: '2024-06-01T10:30:00Z',
             confidence_score: 0.95
           },
           {
             id: 'asset_002',
+            asset_name: 'db-server-01',
             hostname: 'db-server-01',
             asset_type: 'Database',
+            ci_type: 'Database',
             status: 'Active',
             department: 'IT',
+            business_owner: 'Database Team',
             environment: 'Production',
+            operating_system: 'Linux',
             os_type: 'Linux',
-            application: 'PostgreSQL',
+            application_name: 'PostgreSQL',
             business_criticality: 'Critical',
+            criticality: 'Critical',
+            ip_address: '192.168.1.20',
+            location: 'DC1',
+            datacenter: 'DC1',
+            cpu_cores: 8,
+            memory_gb: 32,
+            ram_gb: 32,
+            storage_gb: 2000,
             last_scan: '2024-06-01T10:30:00Z',
             confidence_score: 0.92
           },
           {
             id: 'asset_003',
+            asset_name: 'app-server-01',
             hostname: 'app-server-01',
             asset_type: 'Server',
+            ci_type: 'Server',
             status: 'Active',
             department: 'Engineering',
+            business_owner: 'Development Team',
             environment: 'Production',
+            operating_system: 'Ubuntu 20.04',
             os_type: 'Ubuntu 20.04',
-            application: 'Node.js',
+            application_name: 'Node.js',
             business_criticality: 'Medium',
+            criticality: 'Medium',
+            ip_address: '192.168.1.30',
+            location: 'DC1',
+            datacenter: 'DC1',
+            cpu_cores: 4,
+            memory_gb: 8,
+            ram_gb: 8,
+            storage_gb: 250,
             last_scan: '2024-06-01T10:30:00Z',
             confidence_score: 0.88
-          },
-          {
-            id: 'asset_004',
-            hostname: 'backup-server-01',
-            asset_type: 'Infrastructure Device',
-            status: 'Active',
-            department: 'IT',
-            environment: 'Production',
-            os_type: 'Windows Server 2022',
-            application: 'Backup Software',
-            business_criticality: 'Medium',
-            last_scan: '2024-06-01T10:30:00Z',
-            confidence_score: 0.90
-          },
-          {
-            id: 'asset_005',
-            hostname: 'load-balancer-01',
-            asset_type: 'Infrastructure Device',
-            status: 'Active',
-            department: 'IT',
-            environment: 'Production',
-            os_type: 'Linux',
-            application: 'Load Balancer',
-            business_criticality: 'High',
-            last_scan: '2024-06-01T10:30:00Z',
-            confidence_score: 0.93
           }
         ];
         
         setAssets(demoAssets);
         setSummary({
-          total: 5,
-          filtered: 5,
+          total: 3,
+          filtered: 3,
           applications: 0,
-          servers: 3,
+          servers: 2,
           databases: 1,
           devices: 0,
           unknown: 0,
-          discovered: 5,
+          discovered: 3,
           pending: 0,
           device_breakdown: {
             network: 0,
             storage: 0,
             security: 0,
-            infrastructure: 2,
+            infrastructure: 0,
             virtualization: 0
           }
         });
         setPagination({
           current_page: 1,
-          page_size: 50,
-          total_items: 5,
+          page_size: pageSize,
+          total_items: 3,
           total_pages: 1,
           has_next: false,
           has_previous: false
         });
         setDataSource('demo');
-      } else {
-        setAssets(responseData.assets);
-        setSummary(responseData.summary);
-        setPagination(responseData.pagination);
-        setDataSource(responseData.dataSource);
       }
       
-      setLastUpdated(responseData.lastUpdated || new Date().toISOString());
-      setSuggestedHeaders(responseData.suggestedHeaders);
+      setLastUpdated(new Date().toISOString());
       
-      // Trigger agent analysis for asset inventory context
-      if (responseData.assets && responseData.assets.length > 0 && page === 1) {
+      // Trigger agent analysis for asset inventory context if we have real data
+      if (assetsData.length > 0 && page === 1) {
         try {
-          await triggerAgentAnalysis(responseData.assets);
+          await triggerAgentAnalysis(assetsData);
         } catch (agentError) {
           console.warn('Agent analysis failed for asset inventory:', agentError);
           // Non-critical, continue without agent analysis
@@ -246,12 +340,20 @@ const Inventory = () => {
       
       // Cache the successful response
       const cacheKey = getCacheKey(page, filters);
-      saveToCache(cacheKey, responseData);
+      saveToCache(cacheKey, {
+        assets: assetsData,
+        summary: summaryData,
+        pagination: paginationData,
+        lastUpdated: new Date().toISOString(),
+        dataSource: assetsData.length > 0 ? 'live' : 'demo'
+      });
       
     } catch (error) {
       console.error('Failed to fetch assets:', error);
-      setError(error.message);
+      setError(`Failed to load assets: ${error.message}`);
       setDataSource('error');
+      
+      // Set empty state for error case
       setAssets([]);
       setSummary({
         total: 0,
@@ -273,7 +375,7 @@ const Inventory = () => {
       });
       setPagination({
         current_page: 1,
-        page_size: 50,
+        page_size: pageSize,
         total_items: 0,
         total_pages: 0,
         has_next: false,
@@ -307,6 +409,65 @@ const Inventory = () => {
       setAppMappings([]);
     } finally {
       setMappingLoading(false);
+    }
+  };
+
+  // Fetch applications count for summary - separate from app mappings
+  const fetchApplicationsCount = async () => {
+    try {
+      console.log('🔍 Fetching applications count from:', API_CONFIG.ENDPOINTS.DISCOVERY.APPLICATIONS);
+      
+      // Try the applications endpoint
+      const applicationsResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.APPLICATIONS);
+      console.log('📊 Applications API response:', applicationsResponse);
+      
+      let applicationsCount = 0;
+      
+      if (Array.isArray(applicationsResponse)) {
+        applicationsCount = applicationsResponse.length;
+      } else if (applicationsResponse.applications && Array.isArray(applicationsResponse.applications)) {
+        applicationsCount = applicationsResponse.applications.length;
+      } else if (applicationsResponse.data && Array.isArray(applicationsResponse.data)) {
+        applicationsCount = applicationsResponse.data.length;
+      }
+      
+      console.log('✅ Found applications count:', applicationsCount);
+      
+      // Update the summary with real applications count
+      setSummary(prevSummary => ({
+        ...prevSummary,
+        applications: applicationsCount
+      }));
+      
+      return applicationsCount;
+      
+    } catch (error) {
+      console.error('Failed to fetch applications count:', error);
+      
+      // Try the application portfolio endpoint as backup
+      try {
+        console.log('🔄 Trying application portfolio endpoint as backup');
+        const portfolioResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.APPLICATION_PORTFOLIO);
+        console.log('📊 Application portfolio response:', portfolioResponse);
+        
+        let portfolioCount = 0;
+        
+        if (portfolioResponse.application_portfolio?.applications) {
+          portfolioCount = portfolioResponse.application_portfolio.applications.length;
+          console.log('✅ Found applications in portfolio:', portfolioCount);
+          
+          setSummary(prevSummary => ({
+            ...prevSummary,
+            applications: portfolioCount
+          }));
+          
+          return portfolioCount;
+        }
+      } catch (portfolioError) {
+        console.error('Failed to fetch from application portfolio endpoint:', portfolioError);
+      }
+      
+      return 0;
     }
   };
 
@@ -362,6 +523,9 @@ const Inventory = () => {
     
     // Try to load from cache first, then fetch from API
     loadAssetsWithCache(currentPage, filters);
+    
+    // Also fetch applications count for accurate summary
+    fetchApplicationsCount();
   }, [currentPage, pageSize, selectedFilter, selectedEnv, selectedDept, selectedCriticality, searchTerm]);
 
   // Trigger initial agent panel refresh on component mount
@@ -706,8 +870,11 @@ const Inventory = () => {
           <div className="flex-1 overflow-y-auto">
             <main className="p-8">
               <div className="max-w-5xl mx-auto">
-            {/* Header */}
+            {/* Header with Breadcrumbs */}
             <div className="mb-8">
+              <div className="mb-4">
+                <ContextBreadcrumbs showContextSelector={true} />
+              </div>
               <div className="flex items-center justify-between">
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900 mb-2">Asset Inventory</h1>
@@ -960,11 +1127,11 @@ const Inventory = () => {
                         </div>
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Asset</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tech Stack</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Environment</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Specs</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">App Mapped</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Owner</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -1000,16 +1167,35 @@ const Inventory = () => {
                       </tr>
                     ) : (
                       assets.map((asset) => {
-                        const Icon = getTypeIcon(asset.type);
+                        // Map asset data to display fields
+                        const displayAsset = {
+                          id: asset.id || asset.ci_id || asset.asset_id,
+                          name: asset.asset_name || asset.hostname || asset.name || 'Unknown Asset',
+                          type: asset.asset_type || asset.ci_type || asset.type || 'Unknown',
+                          environment: asset.environment || 'Unknown',
+                          owner: asset.business_owner || asset.owner || 'Unknown',
+                          location: asset.location || asset.datacenter || 'Unknown',
+                          status: asset.status || 'Unknown',
+                          // Additional fields for display
+                          ipAddress: asset.ip_address || asset.ipAddress,
+                          operatingSystem: asset.operating_system || asset.os_type,
+                          cpuCores: asset.cpu_cores || asset.cpuCores,
+                          memoryGb: asset.memory_gb || asset.ram_gb || asset.memoryGb,
+                          storageGb: asset.storage_gb || asset.storageGb,
+                          applicationMapped: asset.application_name || asset.application || asset.applicationMapped,
+                          criticality: asset.business_criticality || asset.criticality
+                        };
+                        
+                        const Icon = getTypeIcon(displayAsset.type);
                         
                         return (
-                          <tr key={asset.id} className={`hover:bg-gray-50 ${selectedAssets.includes(asset.id) ? 'bg-blue-50' : ''}`}>
+                          <tr key={displayAsset.id} className={`hover:bg-gray-50 ${selectedAssets.includes(displayAsset.id) ? 'bg-blue-50' : ''}`}>
                             {/* Selection Checkbox */}
                             <td className="px-6 py-4 whitespace-nowrap">
                               <input
                                 type="checkbox"
-                                checked={selectedAssets.includes(asset.id)}
-                                onChange={() => toggleAssetSelection(asset.id)}
+                                checked={selectedAssets.includes(displayAsset.id)}
+                                onChange={() => toggleAssetSelection(displayAsset.id)}
                                 className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                               />
                             </td>
@@ -1017,58 +1203,55 @@ const Inventory = () => {
                             {/* Asset Info */}
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="flex items-center">
-                                <Icon className={`h-5 w-5 ${getTypeColor(asset.type)} mr-3`} />
+                                <Icon className={`h-5 w-5 ${getTypeColor(displayAsset.type)} mr-3`} />
                                 <div>
-                                  <div className="text-sm font-medium text-gray-900">{asset.name}</div>
-                                  <div className="text-sm text-gray-500">{asset.type}</div>
+                                  <div className="text-sm font-medium text-gray-900">{displayAsset.name}</div>
+                                  {displayAsset.ipAddress && (
+                                    <div className="text-sm text-gray-500">{displayAsset.ipAddress}</div>
+                                  )}
                                 </div>
                               </div>
                             </td>
 
-                            {/* Tech Stack */}
-                            <td className="px-6 py-4">
-                              <div className="text-sm text-gray-900">{asset.techStack}</div>
-                            </td>
-
-                            {/* Department */}
+                            {/* Type */}
                             <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm text-gray-900">{asset.department}</div>
+                              <div className="text-sm text-gray-900">{displayAsset.type}</div>
+                              {displayAsset.operatingSystem && (
+                                <div className="text-sm text-gray-500">{displayAsset.operatingSystem}</div>
+                              )}
                             </td>
 
                             {/* Environment */}
                             <td className="px-6 py-4 whitespace-nowrap">
                               <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                asset.environment === 'Production' ? 'bg-red-100 text-red-800' :
-                                asset.environment === 'Test' ? 'bg-yellow-100 text-yellow-800' :
-                                asset.environment === 'Dev' ? 'bg-green-100 text-green-800' :
+                                displayAsset.environment === 'Production' ? 'bg-red-100 text-red-800' :
+                                displayAsset.environment === 'Test' ? 'bg-yellow-100 text-yellow-800' :
+                                displayAsset.environment === 'Development' ? 'bg-green-100 text-green-800' :
                                 'bg-gray-100 text-gray-800'
                               }`}>
-                                {asset.environment}
+                                {displayAsset.environment}
                               </span>
                             </td>
 
-                            {/* Specs */}
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {asset.type === 'Server' || asset.type === 'Database' ? (
-                                <div>
-                                  {asset.cpuCores && <div>{asset.cpuCores} cores</div>}
-                                  {asset.memoryGb && <div>{asset.memoryGb} GB RAM</div>}
-                                  {asset.ipAddress && <div>{asset.ipAddress}</div>}
-                                </div>
-                              ) : (
-                                <span className="text-gray-400">-</span>
-                              )}
+                            {/* Owner */}
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-900">{displayAsset.owner}</div>
                             </td>
 
-                            {/* Application Mapped */}
+                            {/* Location */}
                             <td className="px-6 py-4 whitespace-nowrap">
-                              {asset.applicationMapped ? (
-                                <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                                  {asset.applicationMapped}
-                                </span>
-                              ) : (
-                                <span className="text-gray-400">-</span>
-                              )}
+                              <div className="text-sm text-gray-900">{displayAsset.location}</div>
+                            </td>
+
+                            {/* Status */}
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                displayAsset.status === 'Active' || displayAsset.status === 'Installed' ? 'bg-green-100 text-green-800' :
+                                displayAsset.status === 'Inactive' ? 'bg-red-100 text-red-800' :
+                                'bg-gray-100 text-gray-800'
+                              }`}>
+                                {displayAsset.status}
+                              </span>
                             </td>
                           </tr>
                         );
@@ -1362,6 +1545,23 @@ const Inventory = () => {
                     // Trigger bulk updates or asset categorization improvements
                     console.log('Applying agent inventory insights');
                   }
+                }}
+              />
+
+              {/* Agent Planning Dashboard */}
+              <AgentPlanningDashboard 
+                pageContext="asset-inventory"
+                onPlanApproval={(planId, approved) => {
+                  console.log('Inventory plan approval:', planId, approved);
+                  // Handle plan approval for asset inventory
+                }}
+                onTaskFeedback={(taskId, feedback) => {
+                  console.log('Task feedback:', taskId, feedback);
+                  // Handle task feedback
+                }}
+                onHumanInput={(taskId, input) => {
+                  console.log('Human input provided:', taskId, input);
+                  // Handle human input for agent tasks
                 }}
               />
             </div>
