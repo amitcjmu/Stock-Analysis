@@ -144,11 +144,13 @@ const Inventory = () => {
       console.log('🎯 Processed assets data:', {
         count: assetsData.length,
         sample: assetsData[0],
-        summary: summaryData
+        summary: summaryData,
+        responseStructure: response
       });
       
-      // If we got real assets data, use it
+      // Check if we got real assets data or an empty response
       if (assetsData.length > 0) {
+        console.log('✅ Found real assets data, using live data');
         setAssets(assetsData);
         setDataSource('live');
         
@@ -216,114 +218,149 @@ const Inventory = () => {
         
         console.log('✅ Using live data from API with calculated summary:', calculatedSummary);
       } else {
-        // Only use demo data if no API data is available
-        console.log('⚠️ No data from API, using demo data');
-        const demoAssets = [
-          {
-            id: 'asset_001',
-            asset_name: 'web-server-01',
-            hostname: 'web-server-01',
-            asset_type: 'Server',
-            ci_type: 'Server',
-            status: 'Active',
-            department: 'IT',
-            business_owner: 'IT Operations',
-            environment: 'Production',
-            operating_system: 'Windows Server 2019',
-            os_type: 'Windows Server 2019',
-            application_name: 'IIS',
-            business_criticality: 'High',
-            criticality: 'High',
-            ip_address: '192.168.1.10',
-            location: 'DC1',
-            datacenter: 'DC1',
-            cpu_cores: 4,
-            memory_gb: 16,
-            ram_gb: 16,
-            storage_gb: 500,
-            last_scan: '2024-06-01T10:30:00Z',
-            confidence_score: 0.95
-          },
-          {
-            id: 'asset_002',
-            asset_name: 'db-server-01',
-            hostname: 'db-server-01',
-            asset_type: 'Database',
-            ci_type: 'Database',
-            status: 'Active',
-            department: 'IT',
-            business_owner: 'Database Team',
-            environment: 'Production',
-            operating_system: 'Linux',
-            os_type: 'Linux',
-            application_name: 'PostgreSQL',
-            business_criticality: 'Critical',
-            criticality: 'Critical',
-            ip_address: '192.168.1.20',
-            location: 'DC1',
-            datacenter: 'DC1',
-            cpu_cores: 8,
-            memory_gb: 32,
-            ram_gb: 32,
-            storage_gb: 2000,
-            last_scan: '2024-06-01T10:30:00Z',
-            confidence_score: 0.92
-          },
-          {
-            id: 'asset_003',
-            asset_name: 'app-server-01',
-            hostname: 'app-server-01',
-            asset_type: 'Server',
-            ci_type: 'Server',
-            status: 'Active',
-            department: 'Engineering',
-            business_owner: 'Development Team',
-            environment: 'Production',
-            operating_system: 'Ubuntu 20.04',
-            os_type: 'Ubuntu 20.04',
-            application_name: 'Node.js',
-            business_criticality: 'Medium',
-            criticality: 'Medium',
-            ip_address: '192.168.1.30',
-            location: 'DC1',
-            datacenter: 'DC1',
-            cpu_cores: 4,
-            memory_gb: 8,
-            ram_gb: 8,
-            storage_gb: 250,
-            last_scan: '2024-06-01T10:30:00Z',
-            confidence_score: 0.88
-          }
-        ];
-        
-        setAssets(demoAssets);
-        setSummary({
-          total: 3,
-          filtered: 3,
-          applications: 0,
-          servers: 2,
-          databases: 1,
-          devices: 0,
-          unknown: 0,
-          discovered: 3,
-          pending: 0,
-          device_breakdown: {
-            network: 0,
-            storage: 0,
-            security: 0,
-            infrastructure: 0,
-            virtualization: 0
-          }
+        // Check if this might be a valid empty response or if we should try demo data
+        console.log('⚠️ API returned empty assets array. Response details:', {
+          hasAssetsProperty: response.hasOwnProperty('assets'),
+          assetsLength: response.assets?.length,
+          hasPagination: response.hasOwnProperty('pagination'),
+          hasFilters: response.hasOwnProperty('filters_ap'),
+          isEmptyResult: response.assets && Array.isArray(response.assets) && response.assets.length === 0
         });
+        
+        // If it's a structured response with empty assets array, it means no data in database
+        if (response.assets && Array.isArray(response.assets) && response.assets.length === 0) {
+          console.log('📊 Database has no assets, showing empty state');
+          setAssets([]);
+          setSummary({
+            total: 0,
+            filtered: 0,
+            applications: 0,
+            servers: 0,
+            databases: 0,
+            devices: 0,
+            unknown: 0,
+            discovered: 0,
+            pending: 0,
+            device_breakdown: {
+              network: 0,
+              storage: 0,
+              security: 0,
+              infrastructure: 0,
+              virtualization: 0
+            }
+          });
+          setDataSource('empty');
+        } else {
+          // Fallback to demo data only if we got an unexpected response
+          console.log('🎭 Using demo data as fallback for development');
+          const demoAssets = [
+            {
+              id: 'asset_001',
+              asset_name: 'web-server-01',
+              hostname: 'web-server-01',
+              asset_type: 'Server',
+              ci_type: 'Server',
+              status: 'Active',
+              department: 'IT',
+              business_owner: 'IT Operations',
+              environment: 'Production',
+              operating_system: 'Windows Server 2019',
+              os_type: 'Windows Server 2019',
+              application_name: 'IIS',
+              business_criticality: 'High',
+              criticality: 'High',
+              ip_address: '192.168.1.10',
+              location: 'DC1',
+              datacenter: 'DC1',
+              cpu_cores: 4,
+              memory_gb: 16,
+              ram_gb: 16,
+              storage_gb: 500,
+              last_scan: '2024-06-01T10:30:00Z',
+              confidence_score: 0.95
+            },
+            {
+              id: 'asset_002',
+              asset_name: 'db-server-01',
+              hostname: 'db-server-01',
+              asset_type: 'Database',
+              ci_type: 'Database',
+              status: 'Active',
+              department: 'IT',
+              business_owner: 'Database Team',
+              environment: 'Production',
+              operating_system: 'Linux',
+              os_type: 'Linux',
+              application_name: 'PostgreSQL',
+              business_criticality: 'Critical',
+              criticality: 'Critical',
+              ip_address: '192.168.1.20',
+              location: 'DC1',
+              datacenter: 'DC1',
+              cpu_cores: 8,
+              memory_gb: 32,
+              ram_gb: 32,
+              storage_gb: 2000,
+              last_scan: '2024-06-01T10:30:00Z',
+              confidence_score: 0.92
+            },
+            {
+              id: 'asset_003',
+              asset_name: 'app-server-01',
+              hostname: 'app-server-01',
+              asset_type: 'Server',
+              ci_type: 'Server',
+              status: 'Active',
+              department: 'Engineering',
+              business_owner: 'Development Team',
+              environment: 'Production',
+              operating_system: 'Ubuntu 20.04',
+              os_type: 'Ubuntu 20.04',
+              application_name: 'Node.js',
+              business_criticality: 'Medium',
+              criticality: 'Medium',
+              ip_address: '192.168.1.30',
+              location: 'DC1',
+              datacenter: 'DC1',
+              cpu_cores: 4,
+              memory_gb: 8,
+              ram_gb: 8,
+              storage_gb: 250,
+              last_scan: '2024-06-01T10:30:00Z',
+              confidence_score: 0.88
+            }
+          ];
+          
+          setAssets(demoAssets);
+          setSummary({
+            total: 3,
+            filtered: 3,
+            applications: 0,
+            servers: 2,
+            databases: 1,
+            devices: 0,
+            unknown: 0,
+            discovered: 3,
+            pending: 0,
+            device_breakdown: {
+              network: 0,
+              storage: 0,
+              security: 0,
+              infrastructure: 0,
+              virtualization: 0
+            }
+          });
+          setDataSource('demo');
+        }
+        
         setPagination({
           current_page: 1,
           page_size: pageSize,
-          total_items: 3,
-          total_pages: 1,
+          total_items: dataSource === 'empty' ? 0 : 3,
+          total_pages: dataSource === 'empty' ? 0 : 1,
           has_next: false,
           has_previous: false
         });
-        setDataSource('demo');
       }
       
       setLastUpdated(new Date().toISOString());
@@ -974,6 +1011,10 @@ const Inventory = () => {
                     ) : dataSource === 'cached' ? (
                       <span className="text-blue-600">
                         <strong>Cached Data:</strong> Showing {summary.filtered || 0} of {summary.total || 0} assets (refreshing in background)
+                      </span>
+                    ) : dataSource === 'empty' ? (
+                      <span className="text-orange-600">
+                        <strong>No Data:</strong> Database is empty - import CMDB data to see assets here
                       </span>
                     ) : (
                       <span className="text-blue-600">
