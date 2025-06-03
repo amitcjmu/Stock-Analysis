@@ -43,7 +43,13 @@ const QualityIssuesSummary: React.FC<QualityIssuesSummaryProps> = ({
             {qualityIssues.map((issue) => (
               <div
                 key={issue.id}
-                onClick={() => onIssueSelect(selectedIssue === issue.id ? null : issue.id)}
+                onClick={() => {
+                  try {
+                    onIssueSelect(selectedIssue === issue.id ? null : issue.id);
+                  } catch (error) {
+                    console.error('Error selecting issue:', error);
+                  }
+                }}
                 className={`p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
                   selectedIssue === issue.id
                     ? 'border-red-300 bg-red-50 shadow-md'
@@ -100,7 +106,11 @@ const QualityIssuesSummary: React.FC<QualityIssuesSummaryProps> = ({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            onFixIssue(issue.id);
+                            try {
+                              onFixIssue(issue.id);
+                            } catch (error) {
+                              console.error('Error fixing issue:', error);
+                            }
                           }}
                           className="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition-colors"
                         >
@@ -109,7 +119,11 @@ const QualityIssuesSummary: React.FC<QualityIssuesSummaryProps> = ({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            onIssueSelect(null);
+                            try {
+                              onIssueSelect(null);
+                            } catch (error) {
+                              console.error('Error clearing selection:', error);
+                            }
                           }}
                           className="text-xs bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600 transition-colors"
                         >

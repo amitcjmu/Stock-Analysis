@@ -134,10 +134,29 @@ const DiscoveryDashboard = () => {
       const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.DISCOVERY_METRICS, {
         headers: contextHeaders
       });
-      setMetrics(response.metrics || metrics);
+      setMetrics(response.metrics || {
+        totalAssets: 24,
+        totalApplications: 0,
+        applicationToServerMapping: 0,
+        dependencyMappingComplete: 10,
+        techDebtItems: 10,
+        criticalIssues: 0,
+        discoveryCompleteness: 58,
+        dataQuality: 58
+      });
     } catch (error) {
       console.error('Failed to fetch discovery metrics:', error);
-      // Keep existing demo data as fallback
+      // Set fallback demo data
+      setMetrics({
+        totalAssets: 24,
+        totalApplications: 0,
+        applicationToServerMapping: 0,
+        dependencyMappingComplete: 10,
+        techDebtItems: 10,
+        criticalIssues: 0,
+        discoveryCompleteness: 58,
+        dataQuality: 58
+      });
     }
   };
 
@@ -147,10 +166,25 @@ const DiscoveryDashboard = () => {
       const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.APPLICATION_LANDSCAPE, {
         headers: contextHeaders
       });
-      setApplicationLandscape(response.landscape || applicationLandscape);
+      setApplicationLandscape(response.landscape || {
+        applications: [],
+        summary: {
+          byEnvironment: { 'Production': 0, 'Staging': 0, 'Development': 0 },
+          byCriticality: { 'High': 0, 'Medium': 0, 'Low': 0 },
+          byTechStack: {}
+        }
+      });
     } catch (error) {
       console.error('Failed to fetch application landscape:', error);
-      // Keep existing demo data as fallback
+      // Set fallback demo data
+      setApplicationLandscape({
+        applications: [],
+        summary: {
+          byEnvironment: { 'Production': 0, 'Staging': 0, 'Development': 0 },
+          byCriticality: { 'High': 0, 'Medium': 0, 'Low': 0 },
+          byTechStack: {}
+        }
+      });
     }
   };
 
@@ -161,10 +195,51 @@ const DiscoveryDashboard = () => {
       const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.INFRASTRUCTURE_LANDSCAPE, {
         headers: contextHeaders
       });
-      setInfrastructureLandscape(response.landscape || infrastructureLandscape);
+      setInfrastructureLandscape(response.landscape || {
+        servers: {
+          total: 0,
+          physical: 0,
+          virtual: 0,
+          cloud: 0,
+          supportedOS: 0,
+          deprecatedOS: 0
+        },
+        databases: {
+          total: 0,
+          supportedVersions: 0,
+          deprecatedVersions: 0,
+          endOfLife: 0
+        },
+        networks: {
+          devices: 0,
+          securityDevices: 0,
+          storageDevices: 0
+        }
+      });
     } catch (error) {
       console.error('Failed to fetch infrastructure landscape:', error);
-      // Keep existing demo data as fallback
+      // Set fallback demo data
+      setInfrastructureLandscape({
+        servers: {
+          total: 0,
+          physical: 0,
+          virtual: 0,
+          cloud: 0,
+          supportedOS: 0,
+          deprecatedOS: 0
+        },
+        databases: {
+          total: 0,
+          supportedVersions: 0,
+          deprecatedVersions: 0,
+          endOfLife: 0
+        },
+        networks: {
+          devices: 0,
+          securityDevices: 0,
+          storageDevices: 0
+        }
+      });
     } finally {
       setIsLoading(false);
     }
@@ -216,48 +291,20 @@ const DiscoveryDashboard = () => {
       <div className="flex-1 ml-64">
         <main className="p-8">
           <div className="max-w-7xl mx-auto">
-            {/* Context Breadcrumbs */}
-            <div className="mb-4">
-              <ContextBreadcrumbs />
-            </div>
-
-            {/* Header */}
+            {/* Header with Clickable Context Breadcrumb */}
             <div className="mb-8">
               <div className="flex items-start justify-between">
                 <div>
+                  <div className="mb-4">
+                    <ContextBreadcrumbs showContextSelector={true} />
+                  </div>
                   <h1 className="text-3xl font-bold text-gray-900 mb-2">Discovery Overview</h1>
                   <p className="text-lg text-gray-600">
                     Complete view of your IT landscape for cloud modernization planning
                   </p>
                 </div>
-                <div className="ml-8">
-                  <ContextSelector compact={true} className="min-w-96" />
-                </div>
               </div>
             </div>
-
-            {/* Context Information */}
-            {context.engagement && (
-              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-medium text-blue-900">
-                      {context.viewMode === 'session_view' ? 'Session View' : 'Engagement View'}
-                    </h3>
-                    <p className="text-sm text-blue-700 mt-1">
-                      {context.viewMode === 'session_view' 
-                        ? `Showing data from session: ${context.session?.session_display_name || context.session?.session_name || 'None selected'}`
-                        : `Showing deduplicated data across all sessions in ${context.engagement.name}`
-                      }
-                    </p>
-                  </div>
-                  <div className="text-xs text-blue-600">
-                    Context: {context.client?.name} → {context.engagement?.name}
-                    {context.session && context.viewMode === 'session_view' && ` → ${context.session.session_display_name || context.session.session_name}`}
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Navigation Tabs */}
             <div className="mb-8">

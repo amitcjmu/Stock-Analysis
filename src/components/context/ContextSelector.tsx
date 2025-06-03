@@ -16,9 +16,10 @@ import { useToast } from '@/hooks/use-toast';
 interface ContextSelectorProps {
   className?: string;
   compact?: boolean;
+  onSelectionChange?: () => void;
 }
 
-const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compact = false }) => {
+const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compact = false, onSelectionChange }) => {
   const { 
     context, 
     isLoading, 
@@ -111,6 +112,7 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
         title: "Client Selected",
         description: `Switched to ${selectedClient.name}`
       });
+      onSelectionChange?.();
     }
   };
 
@@ -122,6 +124,7 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
         title: "Engagement Selected",
         description: `Switched to ${selectedEngagement.name}`
       });
+      onSelectionChange?.();
     }
   };
 
@@ -134,6 +137,7 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
         title: "Session Selected",
         description: `Switched to ${selectedSession.session_display_name || selectedSession.session_name}`
       });
+      onSelectionChange?.();
     }
   };
 
@@ -143,6 +147,7 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
       title: "View Mode Changed",
       description: mode === 'session_view' ? 'Viewing session-specific data' : 'Viewing engagement-level data'
     });
+    onSelectionChange?.();
   };
 
   const handleRefresh = () => {

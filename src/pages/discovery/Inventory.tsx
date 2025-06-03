@@ -126,11 +126,112 @@ const Inventory = () => {
         suggestedHeaders: response.suggestedHeaders || []
       };
       
-      setAssets(responseData.assets);
-      setSummary(responseData.summary);
-      setPagination(responseData.pagination);
-      setLastUpdated(responseData.lastUpdated);
-      setDataSource(responseData.dataSource);
+      // Set demo data if no assets returned from API
+      if (responseData.assets.length === 0) {
+        const demoAssets = [
+          {
+            id: 'asset_001',
+            hostname: 'web-server-01',
+            asset_type: 'Server',
+            status: 'Active',
+            department: 'IT',
+            environment: 'Production',
+            os_type: 'Windows Server 2019',
+            application: 'IIS',
+            business_criticality: 'High',
+            last_scan: '2024-06-01T10:30:00Z',
+            confidence_score: 0.95
+          },
+          {
+            id: 'asset_002',
+            hostname: 'db-server-01',
+            asset_type: 'Database',
+            status: 'Active',
+            department: 'IT',
+            environment: 'Production',
+            os_type: 'Linux',
+            application: 'PostgreSQL',
+            business_criticality: 'Critical',
+            last_scan: '2024-06-01T10:30:00Z',
+            confidence_score: 0.92
+          },
+          {
+            id: 'asset_003',
+            hostname: 'app-server-01',
+            asset_type: 'Server',
+            status: 'Active',
+            department: 'Engineering',
+            environment: 'Production',
+            os_type: 'Ubuntu 20.04',
+            application: 'Node.js',
+            business_criticality: 'Medium',
+            last_scan: '2024-06-01T10:30:00Z',
+            confidence_score: 0.88
+          },
+          {
+            id: 'asset_004',
+            hostname: 'backup-server-01',
+            asset_type: 'Infrastructure Device',
+            status: 'Active',
+            department: 'IT',
+            environment: 'Production',
+            os_type: 'Windows Server 2022',
+            application: 'Backup Software',
+            business_criticality: 'Medium',
+            last_scan: '2024-06-01T10:30:00Z',
+            confidence_score: 0.90
+          },
+          {
+            id: 'asset_005',
+            hostname: 'load-balancer-01',
+            asset_type: 'Infrastructure Device',
+            status: 'Active',
+            department: 'IT',
+            environment: 'Production',
+            os_type: 'Linux',
+            application: 'Load Balancer',
+            business_criticality: 'High',
+            last_scan: '2024-06-01T10:30:00Z',
+            confidence_score: 0.93
+          }
+        ];
+        
+        setAssets(demoAssets);
+        setSummary({
+          total: 5,
+          filtered: 5,
+          applications: 0,
+          servers: 3,
+          databases: 1,
+          devices: 0,
+          unknown: 0,
+          discovered: 5,
+          pending: 0,
+          device_breakdown: {
+            network: 0,
+            storage: 0,
+            security: 0,
+            infrastructure: 2,
+            virtualization: 0
+          }
+        });
+        setPagination({
+          current_page: 1,
+          page_size: 50,
+          total_items: 5,
+          total_pages: 1,
+          has_next: false,
+          has_previous: false
+        });
+        setDataSource('demo');
+      } else {
+        setAssets(responseData.assets);
+        setSummary(responseData.summary);
+        setPagination(responseData.pagination);
+        setDataSource(responseData.dataSource);
+      }
+      
+      setLastUpdated(responseData.lastUpdated || new Date().toISOString());
       setSuggestedHeaders(responseData.suggestedHeaders);
       
       // Trigger agent analysis for asset inventory context
