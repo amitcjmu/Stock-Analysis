@@ -139,26 +139,13 @@ const EngagementManagement: React.FC = () => {
     stakeholder_preferences: {}
   });
 
-  // Optimized form field handlers to prevent input focus loss and excessive validation
-  const handleInputChange = useCallback((field: keyof EngagementFormData, value: string | number) => {
-    setFormData(prev => {
-      if (prev[field] === value) return prev; // Prevent unnecessary state updates
-      return {
-        ...prev,
-        [field]: value
-      };
-    });
-  }, []); // Remove dependencies to prevent recreating handlers
-
-  const handleSelectChange = useCallback((field: keyof EngagementFormData, value: string) => {
-    setFormData(prev => {
-      if (prev[field] === value) return prev; // Prevent unnecessary state updates
-      return {
-        ...prev,
-        [field]: value
-      };
-    });
-  }, []); // Remove dependencies to prevent recreating handlers
+  // Simple direct form handlers - no useCallback to prevent re-renders
+  const handleFormChange = (field: keyof EngagementFormData, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
 
   useEffect(() => {
     fetchEngagements();
@@ -461,7 +448,7 @@ const EngagementManagement: React.FC = () => {
           <Input
             id="engagement_name"
             value={formData.engagement_name}
-            onChange={(e) => handleInputChange('engagement_name', e.target.value)}
+            onChange={(e) => handleFormChange('engagement_name', e.target.value)}
             placeholder="Enter engagement name"
             required
           />
@@ -469,7 +456,7 @@ const EngagementManagement: React.FC = () => {
         
         <div className="space-y-2">
           <Label htmlFor="client_account_id">Client *</Label>
-          <Select value={formData.client_account_id} onValueChange={(value) => handleSelectChange('client_account_id', value)}>
+          <Select value={formData.client_account_id} onValueChange={(value) => handleFormChange('client_account_id', value)}>
             <SelectTrigger>
               <SelectValue placeholder="Select client" />
             </SelectTrigger>
@@ -483,7 +470,7 @@ const EngagementManagement: React.FC = () => {
 
         <div className="space-y-2">
           <Label htmlFor="migration_scope">Migration Scope *</Label>
-          <Select value={formData.migration_scope} onValueChange={(value) => handleSelectChange('migration_scope', value)}>
+          <Select value={formData.migration_scope} onValueChange={(value) => handleFormChange('migration_scope', value)}>
             <SelectTrigger>
               <SelectValue placeholder="Select migration scope" />
             </SelectTrigger>
@@ -497,7 +484,7 @@ const EngagementManagement: React.FC = () => {
 
         <div className="space-y-2">
           <Label htmlFor="target_cloud_provider">Target Cloud Provider *</Label>
-          <Select value={formData.target_cloud_provider} onValueChange={(value) => handleSelectChange('target_cloud_provider', value)}>
+          <Select value={formData.target_cloud_provider} onValueChange={(value) => handleFormChange('target_cloud_provider', value)}>
             <SelectTrigger>
               <SelectValue placeholder="Select cloud provider" />
             </SelectTrigger>
@@ -511,7 +498,7 @@ const EngagementManagement: React.FC = () => {
 
         <div className="space-y-2">
           <Label htmlFor="migration_phase">Migration Phase *</Label>
-          <Select value={formData.migration_phase} onValueChange={(value) => handleSelectChange('migration_phase', value)}>
+          <Select value={formData.migration_phase} onValueChange={(value) => handleFormChange('migration_phase', value)}>
             <SelectTrigger>
               <SelectValue placeholder="Select phase" />
             </SelectTrigger>
@@ -528,7 +515,7 @@ const EngagementManagement: React.FC = () => {
           <Input
             id="engagement_manager"
             value={formData.engagement_manager}
-            onChange={(e) => handleInputChange('engagement_manager', e.target.value)}
+            onChange={(e) => handleFormChange('engagement_manager', e.target.value)}
             placeholder="Full name"
             required
           />
@@ -539,7 +526,7 @@ const EngagementManagement: React.FC = () => {
           <Input
             id="technical_lead"
             value={formData.technical_lead}
-            onChange={(e) => handleInputChange('technical_lead', e.target.value)}
+            onChange={(e) => handleFormChange('technical_lead', e.target.value)}
             placeholder="Full name"
             required
           />
@@ -551,7 +538,7 @@ const EngagementManagement: React.FC = () => {
             id="start_date"
             type="date"
             value={formData.start_date}
-            onChange={(e) => handleInputChange('start_date', e.target.value)}
+            onChange={(e) => handleFormChange('start_date', e.target.value)}
             required
           />
         </div>
@@ -562,7 +549,7 @@ const EngagementManagement: React.FC = () => {
             id="end_date"
             type="date"
             value={formData.end_date}
-            onChange={(e) => handleInputChange('end_date', e.target.value)}
+            onChange={(e) => handleFormChange('end_date', e.target.value)}
             required
           />
         </div>
@@ -574,11 +561,11 @@ const EngagementManagement: React.FC = () => {
               id="budget"
               type="number"
               value={formData.budget || ''}
-              onChange={(e) => handleInputChange('budget', parseFloat(e.target.value) || 0)}
+              onChange={(e) => handleFormChange('budget', parseFloat(e.target.value) || 0)}
               placeholder="0"
               className="flex-1"
             />
-            <Select value={formData.budget_currency} onValueChange={(value) => handleSelectChange('budget_currency', value)}>
+            <Select value={formData.budget_currency} onValueChange={(value) => handleFormChange('budget_currency', value)}>
               <SelectTrigger className="w-20">
                 <SelectValue />
               </SelectTrigger>

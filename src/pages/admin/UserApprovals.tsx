@@ -174,7 +174,7 @@ const UserApprovals: React.FC = () => {
       if (response.status === 'success') {
         setActiveUsers(response.active_users || []);
       } else {
-        // Demo active users
+        // Demo active users - including more demo users
         setActiveUsers([
           {
             user_id: 'admin_001',
@@ -214,14 +214,70 @@ const UserApprovals: React.FC = () => {
             is_active: true,
             approved_at: '2025-01-15T14:22:00Z',
             last_login: '2025-01-27T16:45:00Z'
+          },
+          {
+            user_id: 'chocka_001',
+            email: 'chocka@gmail.com',
+            full_name: 'Chocka Swamy',
+            username: 'chocka',
+            organization: 'CryptoYogi LLC',
+            role_description: 'Global Program Director',
+            access_level: 'admin',
+            role_name: 'Administrator',
+            is_active: true,
+            approved_at: '2025-01-28T12:00:00Z',
+            last_login: '2025-01-28T11:45:00Z'
           }
         ]);
       }
     } catch (error) {
       console.error('Error fetching active users:', error);
-      // Silent fail for active users
+      // Silent fail for active users but ensure we have demo data
+      setActiveUsers([
+        {
+          user_id: 'admin_001',
+          email: 'admin@aiforce.com',
+          full_name: 'Platform Administrator',
+          username: 'admin',
+          organization: 'AI Force Platform',
+          role_description: 'System Administrator',
+          access_level: 'admin',
+          role_name: 'Administrator',
+          is_active: true,
+          approved_at: '2025-01-01T00:00:00Z',
+          last_login: '2025-01-28T10:30:00Z'
+        }
+      ]);
     }
   };
+
+  // Listen for user creation events
+  useEffect(() => {
+    // Check if user was just created and should be added to active users
+    const handleUserCreated = (event: CustomEvent) => {
+      const newUser: ActiveUser = {
+        user_id: `user_${Date.now()}`,
+        email: event.detail.email,
+        full_name: event.detail.full_name,
+        username: event.detail.username,
+        organization: event.detail.organization,
+        role_description: event.detail.role_description,
+        access_level: event.detail.access_level,
+        role_name: event.detail.role_name,
+        is_active: event.detail.is_active,
+        approved_at: new Date().toISOString(),
+        last_login: undefined
+      };
+      
+      setActiveUsers(prev => [newUser, ...prev]);
+    };
+
+    window.addEventListener('userCreated', handleUserCreated as EventListener);
+    
+    return () => {
+      window.removeEventListener('userCreated', handleUserCreated as EventListener);
+    };
+  }, []);
 
   const handleApprove = async () => {
     if (!selectedUser) return;
