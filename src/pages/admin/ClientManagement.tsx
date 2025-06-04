@@ -42,10 +42,22 @@ interface Client {
   primary_contact_name: string;
   primary_contact_email: string;
   primary_contact_phone?: string;
+  description?: string;
+  subscription_tier?: string;
+  billing_contact_email?: string;
+  settings?: Record<string, any>;
+  branding?: Record<string, any>;
+  slug?: string;
+  created_by?: string;
   business_objectives: string[];
   target_cloud_providers: string[];
   business_priorities: string[];
   compliance_requirements: string[];
+  it_guidelines?: Record<string, any>;
+  decision_criteria?: Record<string, any>;
+  agent_preferences?: Record<string, any>;
+  budget_constraints?: Record<string, any>;
+  timeline_constraints?: Record<string, any>;
   created_at: string;
   updated_at?: string;
   is_active: boolean;
@@ -61,6 +73,11 @@ interface ClientFormData {
   primary_contact_name: string;
   primary_contact_email: string;
   primary_contact_phone: string;
+  description: string;
+  subscription_tier: string;
+  billing_contact_email: string;
+  settings: Record<string, any>;
+  branding: Record<string, any>;
   business_objectives: string[];
   target_cloud_providers: string[];
   business_priorities: string[];
@@ -68,6 +85,8 @@ interface ClientFormData {
   it_guidelines: Record<string, any>;
   decision_criteria: Record<string, any>;
   agent_preferences: Record<string, any>;
+  budget_constraints: Record<string, any>;
+  timeline_constraints: Record<string, any>;
 }
 
 const CloudProviders = [
@@ -190,6 +209,32 @@ const ClientForm: React.FC<ClientFormProps> = React.memo(({ formData, onFormChan
       />
     </div>
 
+    <div className="space-y-2">
+      <Label htmlFor="billing_contact_email">Billing Contact Email</Label>
+      <Input
+        id="billing_contact_email"
+        type="email"
+        value={formData.billing_contact_email}
+        onChange={(e) => onFormChange('billing_contact_email', e.target.value)}
+        placeholder="billing@company.com"
+      />
+    </div>
+
+    <div className="space-y-2">
+      <Label htmlFor="subscription_tier">Subscription Tier</Label>
+      <Select value={formData.subscription_tier} onValueChange={(value) => onFormChange('subscription_tier', value)}>
+        <SelectTrigger>
+          <SelectValue placeholder="Select subscription tier" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="basic">Basic</SelectItem>
+          <SelectItem value="pro">Pro</SelectItem>
+          <SelectItem value="enterprise">Enterprise</SelectItem>
+          <SelectItem value="custom">Custom</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+
     <Separator />
 
     <div className="space-y-4">
@@ -265,6 +310,17 @@ const ClientForm: React.FC<ClientFormProps> = React.memo(({ formData, onFormChan
         />
       </div>
     </div>
+
+    <div className="space-y-2">
+      <Label htmlFor="description">Description</Label>
+      <Textarea
+        id="description"
+        value={formData.description}
+        onChange={(e) => onFormChange('description', e.target.value)}
+        placeholder="Brief description of the client and their business"
+        rows={3}
+      />
+    </div>
   </div>
 ));
 
@@ -288,13 +344,20 @@ const ClientManagement: React.FC = () => {
     primary_contact_name: '',
     primary_contact_email: '',
     primary_contact_phone: '',
+    description: '',
+    subscription_tier: '',
+    billing_contact_email: '',
+    settings: {},
+    branding: {},
     business_objectives: [],
     target_cloud_providers: [],
     business_priorities: [],
     compliance_requirements: [],
     it_guidelines: {},
     decision_criteria: {},
-    agent_preferences: {}
+    agent_preferences: {},
+    budget_constraints: {},
+    timeline_constraints: {}
   });
 
   // Use useCallback to memoize the form change handler
@@ -314,7 +377,8 @@ const ClientManagement: React.FC = () => {
       setLoading(true);
       const params = new URLSearchParams({
         page: currentPage.toString(),
-        page_size: '20'
+        page_size: '20',
+        is_active: 'true'  // Only show active clients
       });
 
       if (searchTerm) params.append('account_name', searchTerm);
@@ -505,13 +569,20 @@ const ClientManagement: React.FC = () => {
       primary_contact_name: '',
       primary_contact_email: '',
       primary_contact_phone: '',
+      description: '',
+      subscription_tier: '',
+      billing_contact_email: '',
+      settings: {},
+      branding: {},
       business_objectives: [],
       target_cloud_providers: [],
       business_priorities: [],
       compliance_requirements: [],
       it_guidelines: {},
       decision_criteria: {},
-      agent_preferences: {}
+      agent_preferences: {},
+      budget_constraints: {},
+      timeline_constraints: {}
     });
   };
 
@@ -525,13 +596,20 @@ const ClientManagement: React.FC = () => {
       primary_contact_name: client.primary_contact_name,
       primary_contact_email: client.primary_contact_email,
       primary_contact_phone: client.primary_contact_phone || '',
+      description: client.description || '',
+      subscription_tier: client.subscription_tier || '',
+      billing_contact_email: client.billing_contact_email || '',
+      settings: client.settings || {},
+      branding: client.branding || {},
       business_objectives: client.business_objectives,
       target_cloud_providers: client.target_cloud_providers,
       business_priorities: client.business_priorities,
       compliance_requirements: client.compliance_requirements,
-      it_guidelines: {},
-      decision_criteria: {},
-      agent_preferences: {}
+      it_guidelines: client.it_guidelines || {},
+      decision_criteria: client.decision_criteria || {},
+      agent_preferences: client.agent_preferences || {},
+      budget_constraints: client.budget_constraints || {},
+      timeline_constraints: client.timeline_constraints || {}
     });
   };
 

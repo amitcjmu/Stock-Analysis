@@ -60,7 +60,14 @@ class ClientAccountCreate(BaseModel):
     headquarters_location: str = Field(..., min_length=2, max_length=255)
     primary_contact_name: str = Field(..., min_length=2, max_length=100)
     primary_contact_email: str = Field(..., pattern=r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
-    primary_contact_phone: Optional[str] = Field(None, pattern=r'^\+?[1-9]\d{1,14}$')
+    primary_contact_phone: Optional[str] = Field(None, pattern=r'^\+?[\d\s\-\(\)\.]{7,20}$')
+    
+    # Missing database fields
+    description: Optional[str] = Field(None, max_length=1000, description="Client account description")
+    subscription_tier: Optional[str] = Field(None, max_length=50, description="Subscription tier (e.g., Basic, Pro, Enterprise)")
+    billing_contact_email: Optional[str] = Field(None, pattern=r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+    settings: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Client-specific platform settings")
+    branding: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Client branding and UI customization")
     
     # Business Context Fields - Made optional to match frontend
     business_objectives: List[str] = Field(default_factory=list, description="Primary business objectives for migration")
@@ -89,7 +96,14 @@ class ClientAccountUpdate(BaseModel):
     headquarters_location: Optional[str] = Field(None, min_length=2, max_length=255)
     primary_contact_name: Optional[str] = Field(None, min_length=2, max_length=100)
     primary_contact_email: Optional[str] = Field(None, pattern=r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
-    primary_contact_phone: Optional[str] = Field(None, pattern=r'^\+?[1-9]\d{1,14}$')
+    primary_contact_phone: Optional[str] = Field(None, pattern=r'^\+?[\d\s\-\(\)\.]{7,20}$')
+    
+    # Missing database fields for updates
+    description: Optional[str] = Field(None, max_length=1000)
+    subscription_tier: Optional[str] = Field(None, max_length=50)
+    billing_contact_email: Optional[str] = Field(None, pattern=r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+    settings: Optional[Dict[str, Any]] = None
+    branding: Optional[Dict[str, Any]] = None
     
     # Business Context Updates
     business_objectives: Optional[List[str]] = None
@@ -114,6 +128,15 @@ class ClientAccountResponse(BaseModel):
     primary_contact_name: str
     primary_contact_email: str
     primary_contact_phone: Optional[str] = None
+    
+    # Missing database fields in response
+    description: Optional[str] = None
+    subscription_tier: Optional[str] = None
+    billing_contact_email: Optional[str] = None
+    settings: Optional[Dict[str, Any]] = None
+    branding: Optional[Dict[str, Any]] = None
+    slug: Optional[str] = None
+    created_by: Optional[str] = None
     
     # Business Context
     business_objectives: List[str]

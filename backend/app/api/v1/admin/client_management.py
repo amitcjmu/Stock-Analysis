@@ -92,6 +92,15 @@ async def create_client_account(
             slug=client_data.account_name.lower().replace(' ', '-').replace('&', 'and'),
             industry=client_data.industry,
             company_size=client_data.company_size,
+            headquarters_location=client_data.headquarters_location,
+            primary_contact_name=client_data.primary_contact_name,
+            primary_contact_email=client_data.primary_contact_email,
+            primary_contact_phone=client_data.primary_contact_phone,
+            description=client_data.description,
+            subscription_tier=client_data.subscription_tier,
+            billing_contact_email=client_data.billing_contact_email,
+            settings=client_data.settings or {},
+            branding=client_data.branding or {},
             # Map business context to JSON fields in the database model
             business_objectives={
                 "primary_goals": client_data.business_objectives,
@@ -100,7 +109,7 @@ async def create_client_account(
                 "budget_constraints": "",
                 "compliance_requirements": client_data.compliance_requirements
             },
-            it_guidelines={
+            it_guidelines=client_data.it_guidelines or {
                 "architecture_patterns": [],
                 "security_requirements": [],
                 "compliance_standards": [],
@@ -108,7 +117,7 @@ async def create_client_account(
                 "cloud_strategy": "",
                 "data_governance": {}
             },
-            decision_criteria={
+            decision_criteria=client_data.decision_criteria or {
                 "risk_tolerance": "medium",
                 "cost_sensitivity": "medium", 
                 "innovation_appetite": "moderate",
@@ -116,7 +125,7 @@ async def create_client_account(
                 "quality_vs_speed": "balanced",
                 "technical_debt_tolerance": "low"
             },
-            agent_preferences={
+            agent_preferences=client_data.agent_preferences or {
                 "confidence_thresholds": {
                     "field_mapping": 0.8,
                     "data_classification": 0.75,
@@ -609,10 +618,17 @@ async def _convert_client_to_response(client: ClientAccount, db: AsyncSession) -
         account_name=client.name,
         industry=client.industry or '',
         company_size=client.company_size or '',
-        headquarters_location='',  # Field not in model, use default
-        primary_contact_name='',   # Field not in model, use default  
-        primary_contact_email='',  # Field not in model, use default
-        primary_contact_phone='',  # Field not in model, use default
+        headquarters_location=client.headquarters_location or '',
+        primary_contact_name=client.primary_contact_name or '',
+        primary_contact_email=client.primary_contact_email or '',
+        primary_contact_phone=client.primary_contact_phone or '',
+        description=client.description,
+        subscription_tier=client.subscription_tier,
+        billing_contact_email=client.billing_contact_email,
+        settings=client.settings or {},
+        branding=client.branding or {},
+        slug=client.slug,
+        created_by=str(client.created_by) if client.created_by else None,
         business_objectives=client.business_objectives.get('primary_goals', []) if client.business_objectives else [],
         it_guidelines=client.it_guidelines or {},
         decision_criteria=client.decision_criteria or {},

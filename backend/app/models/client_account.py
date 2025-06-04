@@ -38,6 +38,12 @@ class ClientAccount(Base):
     industry = Column(String(100))
     company_size = Column(String(50))
     
+    # Contact Information
+    headquarters_location = Column(String(255))
+    primary_contact_name = Column(String(255))
+    primary_contact_email = Column(String(255))
+    primary_contact_phone = Column(String(50))
+    
     # Subscription & Billing
     subscription_tier = Column(String(50), default='standard')
     billing_contact_email = Column(String(255))

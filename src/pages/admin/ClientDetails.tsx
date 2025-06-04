@@ -28,10 +28,22 @@ interface Client {
   primary_contact_name: string;
   primary_contact_email: string;
   primary_contact_phone?: string;
+  description?: string;
+  subscription_tier?: string;
+  billing_contact_email?: string;
+  settings?: Record<string, any>;
+  branding?: Record<string, any>;
+  slug?: string;
+  created_by?: string;
   business_objectives: string[];
   target_cloud_providers: string[];
   business_priorities: string[];
   compliance_requirements: string[];
+  it_guidelines?: Record<string, any>;
+  decision_criteria?: Record<string, any>;
+  agent_preferences?: Record<string, any>;
+  budget_constraints?: Record<string, any>;
+  timeline_constraints?: Record<string, any>;
   created_at: string;
   updated_at?: string;
   is_active: boolean;
@@ -68,7 +80,7 @@ const ClientDetails: React.FC = () => {
       }
 
       const data = await response.json();
-      setClient(data);
+      setClient(data.data || data);
     } catch (error) {
       console.error('Error fetching client details:', error);
       toast({
@@ -226,6 +238,15 @@ const ClientDetails: React.FC = () => {
                 <MapPin className="w-5 h-5 text-muted-foreground" />
                 <p className="text-sm">{client.headquarters_location}</p>
               </div>
+              {client.billing_contact_email && (
+                <div className="flex items-center gap-3">
+                  <Mail className="w-5 h-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Billing Contact</p>
+                    <p className="text-sm">{client.billing_contact_email}</p>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -303,6 +324,32 @@ const ClientDetails: React.FC = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Account Information */}
+          {(client.description || client.subscription_tier) && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Account Information</CardTitle>
+                <CardDescription>Additional client account details</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {client.description && (
+                  <div>
+                    <h4 className="font-medium mb-2">Description</h4>
+                    <p className="text-sm text-muted-foreground">{client.description}</p>
+                  </div>
+                )}
+                {client.subscription_tier && (
+                  <div>
+                    <h4 className="font-medium mb-2">Subscription Tier</h4>
+                    <Badge variant="outline" className="capitalize">
+                      {client.subscription_tier}
+                    </Badge>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Sidebar */}
