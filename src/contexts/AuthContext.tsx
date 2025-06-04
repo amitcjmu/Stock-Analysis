@@ -15,6 +15,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   register: (userData: RegisterData) => Promise<void>;
@@ -53,6 +54,7 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Add loading state
 
   useEffect(() => {
     // Check if user is already logged in (check localStorage for token)
@@ -83,6 +85,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         localStorage.removeItem('auth_source');
       }
     }
+    setIsLoading(false); // Always set loading to false after checking
   }, []);
 
   const login = async (email: string, password: string): Promise<void> => {
@@ -242,6 +245,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     user,
     isAuthenticated,
     isAdmin,
+    isLoading,
     login,
     logout,
     register,

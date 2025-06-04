@@ -174,10 +174,10 @@ const UserApprovals: React.FC = () => {
       if (response.status === 'success') {
         setActiveUsers(response.active_users || []);
       } else {
-        // Demo active users - including more demo users
+        // Enhanced demo active users with more realistic data
         setActiveUsers([
           {
-            user_id: 'admin_001',
+            user_id: '2a0de3df-7484-4fab-98b9-2ca126e2ab21',
             email: 'admin@aiforce.com',
             full_name: 'Platform Administrator',
             username: 'admin',
@@ -190,14 +190,53 @@ const UserApprovals: React.FC = () => {
             last_login: '2025-01-28T10:30:00Z'
           },
           {
-            user_id: 'demo_001',
-            email: 'demo@example.com',
+            user_id: 'demo-user-12345678-1234-5678-9012-123456789012',
+            email: 'user@demo.com',
             full_name: 'Demo User',
             username: 'demo_user',
             organization: 'Demo Organization',
             role_description: 'Demo Analyst',
             access_level: 'read_write',
             role_name: 'Analyst',
+            is_active: true,
+            approved_at: '2025-01-27T10:00:00Z',
+            last_login: '2025-01-28T09:15:00Z'
+          },
+          {
+            user_id: 'user_004',
+            email: 'sarah.analyst@techcorp.com',
+            full_name: 'Sarah Johnson',
+            username: 'sarah.johnson',
+            organization: 'TechCorp Solutions',
+            role_description: 'Senior Migration Analyst',
+            access_level: 'read_write',
+            role_name: 'Analyst',
+            is_active: true,
+            approved_at: '2025-01-25T14:30:00Z',
+            last_login: '2025-01-27T16:45:00Z'
+          },
+          {
+            user_id: 'user_005',
+            email: 'mike.pm@globalsystems.com',
+            full_name: 'Mike Rodriguez',
+            username: 'mike.rodriguez',
+            organization: 'Global Systems Inc',
+            role_description: 'Project Manager',
+            access_level: 'read_write',
+            role_name: 'Project Manager',
+            is_active: true,
+            approved_at: '2025-01-26T09:15:00Z',
+            last_login: '2025-01-28T08:30:00Z'
+          },
+          {
+            user_id: 'user_006',
+            email: 'jenny.consultant@cloudexperts.com',
+            full_name: 'Jenny Chen',
+            username: 'jenny.chen',
+            organization: 'Cloud Experts Consulting',
+            role_description: 'Senior Cloud Architect',
+            access_level: 'read_only',
+            role_name: 'Consultant',
             is_active: true,
             approved_at: '2025-01-01T00:00:00Z',
             last_login: '2025-01-28T09:15:00Z'

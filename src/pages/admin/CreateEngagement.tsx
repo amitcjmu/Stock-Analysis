@@ -116,24 +116,29 @@ const CreateEngagement: React.FC = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setClientAccounts(data.client_accounts || []);
+        console.log('Clients API response:', data);
+        
+        // Backend returns data.items array, not data.client_accounts
+        if (data.items && Array.isArray(data.items)) {
+          setClientAccounts(data.items.map((client: any) => ({
+            id: client.id,
+            account_name: client.account_name,
+            industry: client.industry
+          })));
+        } else {
+          throw new Error('Invalid response format');
+        }
       } else {
-        // Fallback to demo data
-        setClientAccounts([
-          { id: '1', account_name: 'TechCorp Inc.', industry: 'Technology' },
-          { id: '2', account_name: 'HealthSystem Partners', industry: 'Healthcare' },
-          { id: '3', account_name: 'FinanceFirst Bank', industry: 'Finance' },
-          { id: '4', account_name: 'ManufactureCo', industry: 'Manufacturing' }
-        ]);
+        throw new Error('API request failed');
       }
     } catch (error) {
       console.error('Error fetching client accounts:', error);
-      // Fallback to demo data
+      // Enhanced fallback to demo data including the real backend client
       setClientAccounts([
-        { id: '1', account_name: 'TechCorp Inc.', industry: 'Technology' },
-        { id: '2', account_name: 'HealthSystem Partners', industry: 'Healthcare' },
-        { id: '3', account_name: 'FinanceFirst Bank', industry: 'Finance' },
-        { id: '4', account_name: 'ManufactureCo', industry: 'Manufacturing' }
+        { id: 'd838573d-f461-44e4-81b5-5af510ef83b7', account_name: 'Acme Corporation', industry: 'Technology' },
+        { id: 'demo-client-2', account_name: 'TechCorp Solutions', industry: 'Information Technology' },
+        { id: 'demo-client-3', account_name: 'Global Systems Inc', industry: 'Financial Services' },
+        { id: 'demo-client-4', account_name: 'HealthSystem Partners', industry: 'Healthcare' }
       ]);
     }
   };

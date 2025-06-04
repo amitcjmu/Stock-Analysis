@@ -105,7 +105,7 @@ const CreateUser: React.FC = () => {
       try {
         console.log('Creating user with data:', formData);
         
-        const response = await fetch('/api/v1/admin/users/', {
+        const response = await fetch('/api/v1/auth/register', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -113,7 +113,17 @@ const CreateUser: React.FC = () => {
             'X-User-ID': 'demo-admin-user',
             'Authorization': 'Bearer demo-admin-token'
           },
-          body: JSON.stringify(formData)
+          body: JSON.stringify({
+            email: formData.email,
+            password: formData.password,
+            full_name: formData.full_name,
+            organization: formData.organization,
+            role_description: formData.role_description,
+            registration_reason: `Created by admin: ${formData.notes || 'Manual user creation'}`,
+            requested_access_level: formData.access_level,
+            phone_number: formData.phone_number,
+            manager_email: formData.manager_email
+          })
         });
 
         console.log('User creation API response:', response.status, response.statusText);
