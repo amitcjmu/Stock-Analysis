@@ -241,7 +241,7 @@ const AdminDashboard: React.FC = () => {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.engagements.completionRate.toFixed(1)}%</div>
+            <div className="text-2xl font-bold">{(stats.engagements.completionRate || 0).toFixed(1)}%</div>
             <p className="text-xs text-muted-foreground">
               across all engagements
             </p>
@@ -362,15 +362,15 @@ const AdminDashboard: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Average Completion Rate</span>
                   <div className="flex items-center gap-2">
-                    <Progress value={stats.engagements.completionRate} className="w-24 h-2" />
-                    <span className="text-sm font-bold">{stats.engagements.completionRate.toFixed(1)}%</span>
+                    <Progress value={stats.engagements.completionRate || 0} className="w-24 h-2" />
+                    <span className="text-sm font-bold">{(stats.engagements.completionRate || 0).toFixed(1)}%</span>
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Budget Utilization</span>
                   <div className="flex items-center gap-2">
-                    <Progress value={stats.engagements.budgetUtilization} className="w-24 h-2" />
-                    <span className="text-sm font-bold">{stats.engagements.budgetUtilization.toFixed(1)}%</span>
+                    <Progress value={stats.engagements.budgetUtilization || 0} className="w-24 h-2" />
+                    <span className="text-sm font-bold">{(stats.engagements.budgetUtilization || 0).toFixed(1)}%</span>
                   </div>
                 </div>
               </CardContent>
