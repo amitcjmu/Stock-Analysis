@@ -29,12 +29,14 @@ This release implements comprehensive user profile management with secure passwo
 - **Validation**: Enforces minimum 8-character password requirement
 - **Error Handling**: Comprehensive error responses for various failure scenarios
 - **Authentication**: Uses user session headers for secure user identification
+- **Proxy Fix**: Configured Vite proxy to route API requests from frontend to backend container
 
 ### 📊 **Technical Achievements**
 - **Database Security**: Proper bcrypt password hashing for all password operations
 - **Form Validation**: Client-side and server-side password validation
 - **User Experience**: Intuitive profile management with clear feedback
 - **Session Management**: Secure authentication token handling
+- **Container Networking**: Fixed Docker container communication for API requests
 
 ### 🎯 **Success Metrics**
 - **Platform Access**: Superadmin can now login with known credentials
