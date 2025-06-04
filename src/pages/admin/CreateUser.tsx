@@ -105,24 +105,27 @@ const CreateUser: React.FC = () => {
       try {
         console.log('Creating user with data:', formData);
         
-        const response = await fetch('/api/v1/auth/register', {
+        const response = await fetch('/api/v1/auth/admin/create-user', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'X-Demo-Mode': 'true',
-            'X-User-ID': 'demo-admin-user',
+            'X-User-ID': 'admin_user',
             'Authorization': 'Bearer demo-admin-token'
           },
           body: JSON.stringify({
             email: formData.email,
             password: formData.password,
             full_name: formData.full_name,
+            username: formData.username,
             organization: formData.organization,
             role_description: formData.role_description,
-            registration_reason: `Created by admin: ${formData.notes || 'Manual user creation'}`,
-            requested_access_level: formData.access_level,
+            access_level: formData.access_level,
+            role_name: formData.role_name,
             phone_number: formData.phone_number,
-            manager_email: formData.manager_email
+            manager_email: formData.manager_email,
+            notes: formData.notes,
+            is_active: formData.is_active
           })
         });
 
@@ -134,12 +137,12 @@ const CreateUser: React.FC = () => {
           
           toast({
             title: "User Created Successfully",
-            description: `User ${formData.full_name} has been created and is now active on the platform.`,
+            description: `User ${formData.full_name} has been created and is ${formData.is_active ? 'active' : 'pending approval'} on the platform.`,
           });
           
           // Create proper user object for event
           const createdUser = {
-            id: responseData.id || `user-${Date.now()}`,
+            id: responseData.user_profile_id || `user-${Date.now()}`,
             email: formData.email,
             first_name: formData.full_name.split(' ')[0],
             last_name: formData.full_name.split(' ').slice(1).join(' '),
@@ -152,9 +155,10 @@ const CreateUser: React.FC = () => {
             access_level: formData.access_level,
             role_name: formData.role_name,
             is_active: formData.is_active,
-            is_verified: true,
+            is_verified: formData.is_active,
             is_mock: false,
-            created_at: new Date().toISOString()
+            created_at: new Date().toISOString(),
+            status: responseData.approval_status || (formData.is_active ? 'active' : 'pending_approval')
           };
           
           // Dispatch event for UserApprovals to pick up
@@ -164,7 +168,7 @@ const CreateUser: React.FC = () => {
         } else {
           const errorData = await response.text();
           console.log('API call failed:', response.status, errorData);
-          throw new Error(`API call failed: ${response.status}`);
+          throw new Error(`API call failed: ${response.status} - ${errorData}`);
         }
       } catch (apiError) {
         // Enhanced fallback with proper demo user
@@ -185,17 +189,18 @@ const CreateUser: React.FC = () => {
           access_level: formData.access_level,
           role_name: formData.role_name,
           is_active: formData.is_active,
-          is_verified: false,
+          is_verified: formData.is_active,
           is_mock: true,
           created_at: new Date().toISOString(),
-          password_hash: '$2b$12$demo.hash'
+          password_hash: '$2b$12$demo.hash',
+          status: formData.is_active ? 'active' : 'pending_approval'
         };
         
         console.log('Using demo user:', demoUser);
         
         toast({
           title: "User Created Successfully (Demo Mode)",
-          description: `User ${formData.full_name} has been created in demo mode and is now active on the platform.`,
+          description: `User ${formData.full_name} has been created in demo mode and is ${formData.is_active ? 'active' : 'pending approval'} on the platform.`,
         });
         
         // Dispatch event for UserApprovals to pick up

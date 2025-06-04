@@ -34,6 +34,27 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/admin/clients", tags=["Client Management"])
 
 # =========================
+# Health Check (Must be before parameterized routes)
+# =========================
+
+@router.get("/health")
+async def client_management_health():
+    """Health check for client management service."""
+    return {
+        "status": "healthy",
+        "service": "client-management",
+        "version": "1.0.0",
+        "capabilities": {
+            "client_crud": True,
+            "business_context": True,
+            "search_filtering": True,
+            "bulk_operations": True,
+            "dashboard_analytics": True,
+            "client_models_available": CLIENT_MODELS_AVAILABLE
+        }
+    }
+
+# =========================
 # Client CRUD Operations
 # =========================
 
@@ -592,13 +613,13 @@ async def _convert_client_to_response(client: ClientAccount, db: AsyncSession) -
         primary_contact_name='',   # Field not in model, use default  
         primary_contact_email='',  # Field not in model, use default
         primary_contact_phone='',  # Field not in model, use default
-        business_objectives=client.business_objectives or [],
+        business_objectives=client.business_objectives.get('primary_goals', []) if client.business_objectives else [],
         it_guidelines=client.it_guidelines or {},
         decision_criteria=client.decision_criteria or {},
         agent_preferences=client.agent_preferences or {},
         target_cloud_providers=[],  # Field not in model, use default
         business_priorities=[],     # Field not in model, use default
-        compliance_requirements=[], # Field not in model, use default
+        compliance_requirements=client.business_objectives.get('compliance_requirements', []) if client.business_objectives else [],
         budget_constraints=None,  # Field not in model, use default
         timeline_constraints=None,  # Field not in model, use default
         created_at=client.created_at,
@@ -606,25 +627,4 @@ async def _convert_client_to_response(client: ClientAccount, db: AsyncSession) -
         is_active=client.is_active,
         total_engagements=total_engagements,
         active_engagements=active_engagements
-    )
-
-# =========================
-# Health Check
-# =========================
-
-@router.get("/health")
-async def client_management_health():
-    """Health check for client management service."""
-    return {
-        "status": "healthy",
-        "service": "client-management",
-        "version": "1.0.0",
-        "capabilities": {
-            "client_crud": True,
-            "business_context": True,
-            "search_filtering": True,
-            "bulk_operations": True,
-            "dashboard_analytics": True,
-            "client_models_available": CLIENT_MODELS_AVAILABLE
-        }
-    } 
+    ) 

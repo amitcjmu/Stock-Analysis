@@ -9,7 +9,8 @@ from fastapi import APIRouter, HTTPException, Depends, Request, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 import uuid
 import bcrypt
-from sqlalchemy import select, and_, desc
+from sqlalchemy import select, and_, desc, text
+import json
 
 from app.core.database import get_db
 from app.core.context import get_current_context
@@ -889,4 +890,291 @@ async def create_demo_admin_user(
         
     except Exception as e:
         logger.error(f"Error in create_demo_admin_user: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to create demo admin user: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Failed to create demo admin user: {str(e)}")
+
+# =========================
+# Admin User Creation Endpoint
+# =========================
+
+@router.post("/admin/create-user", response_model=UserRegistrationResponse)
+async def admin_create_user(
+    user_data: Dict[str, Any],
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Admin endpoint to create a complete user account with immediate activation.
+    Bypasses normal approval workflow for admin-created users.
+    """
+    try:
+        import bcrypt
+        import uuid
+        from sqlalchemy import text
+        
+        context = get_current_context()
+        
+        # Validate admin access
+        user_id_str = context.user_id or "admin_user"
+        if user_id_str not in ["admin_user", "demo_user"]:
+            # For real users, validate admin access
+            rbac_service = create_rbac_service(db)
+            access_check = await rbac_service.validate_user_access(
+                user_id=user_id_str,
+                resource_type="admin_console",
+                action="manage"
+            )
+            if not access_check.get("has_access", False):
+                raise HTTPException(status_code=403, detail="Admin access required")
+        
+        # Use the actual admin user UUID for database operations
+        admin_user_uuid = "2a0de3df-7484-4fab-98b9-2ca126e2ab21"  # The actual admin user from the database
+        
+        # Generate user ID
+        new_user_id = str(uuid.uuid4())
+        
+        # Hash password
+        password = user_data.get('password', 'defaultPassword123!')
+        password_bytes = password.encode('utf-8')
+        salt = bcrypt.gensalt()
+        password_hash = bcrypt.hashpw(password_bytes, salt).decode('utf-8')
+        
+        # Determine activation status
+        is_active = user_data.get('is_active', True)
+        is_verified = is_active  # If admin creates and activates, also verify
+        
+        # Create user in users table
+        user_insert = text("""
+            INSERT INTO users (id, email, password_hash, first_name, last_name, is_active, is_verified, is_mock, created_at, updated_at)
+            VALUES (:id, :email, :password_hash, :first_name, :last_name, :is_active, :is_verified, :is_mock, NOW(), NOW())
+        """)
+        
+        full_name = user_data.get('full_name', '')
+        name_parts = full_name.split(' ', 1)
+        first_name = name_parts[0] if name_parts else ''
+        last_name = name_parts[1] if len(name_parts) > 1 else ''
+        
+        await db.execute(user_insert, {
+            'id': new_user_id,
+            'email': user_data.get('email'),
+            'password_hash': password_hash,
+            'first_name': first_name,
+            'last_name': last_name,
+            'is_active': is_active,
+            'is_verified': is_verified,
+            'is_mock': False
+        })
+        
+        # Create user profile
+        profile_status = "active" if is_active else "pending_approval"
+        
+        if is_active:
+            # For active users, set approved_at to NOW() and approved_by
+            profile_insert = text("""
+                INSERT INTO user_profiles (user_id, status, organization, role_description, requested_access_level, phone_number, manager_email, registration_reason, approval_requested_at, approved_at, approved_by, created_at, updated_at)
+                VALUES (:user_id, :status, :organization, :role_description, :requested_access_level, :phone_number, :manager_email, :registration_reason, NOW(), NOW(), :approved_by, NOW(), NOW())
+            """)
+            
+            await db.execute(profile_insert, {
+                'user_id': new_user_id,
+                'status': profile_status,
+                'organization': user_data.get('organization', ''),
+                'role_description': user_data.get('role_description', ''),
+                'requested_access_level': user_data.get('access_level', 'read_only'),
+                'phone_number': user_data.get('phone_number'),
+                'manager_email': user_data.get('manager_email'),
+                'registration_reason': f"Created by admin: {user_data.get('notes', 'Manual user creation')}",
+                'approved_by': admin_user_uuid
+            })
+        else:
+            # For pending users, don't set approved_at or approved_by
+            profile_insert = text("""
+                INSERT INTO user_profiles (user_id, status, organization, role_description, requested_access_level, phone_number, manager_email, registration_reason, approval_requested_at, created_at, updated_at)
+                VALUES (:user_id, :status, :organization, :role_description, :requested_access_level, :phone_number, :manager_email, :registration_reason, NOW(), NOW(), NOW())
+            """)
+            
+            await db.execute(profile_insert, {
+                'user_id': new_user_id,
+                'status': profile_status,
+                'organization': user_data.get('organization', ''),
+                'role_description': user_data.get('role_description', ''),
+                'requested_access_level': user_data.get('access_level', 'read_only'),
+                'phone_number': user_data.get('phone_number'),
+                'manager_email': user_data.get('manager_email'),
+                'registration_reason': f"Created by admin: {user_data.get('notes', 'Manual user creation')}"
+            })
+        
+        # Create user role
+        role_name = user_data.get('role_name', 'User')
+        
+        # Ensure basic roles exist
+        await ensure_basic_roles_exist(db)
+        
+        # Map role names to role types
+        role_type_mapping = {
+            'Administrator': 'platform_admin',
+            'Client Admin': 'client_admin', 
+            'Manager': 'engagement_manager',
+            'Analyst': 'analyst',
+            'User': 'viewer',
+            'Super Administrator': 'platform_admin'
+        }
+        
+        role_type = role_type_mapping.get(role_name, 'viewer')
+        
+        # Get role permissions based on type
+        role_permissions = get_role_permissions(role_type)
+        
+        role_insert = text("""
+            INSERT INTO user_roles (id, user_id, role_type, role_name, description, permissions, scope_type, is_active, assigned_at, assigned_by, created_at)
+            VALUES (:id, :user_id, :role_type, :role_name, :description, :permissions, :scope_type, :is_active, NOW(), :assigned_by, NOW())
+        """)
+        
+        await db.execute(role_insert, {
+            'id': str(uuid.uuid4()),
+            'user_id': new_user_id,
+            'role_type': role_type,
+            'role_name': role_name,
+            'description': f'{role_name} role with {user_data.get("access_level", "read_only")} access',
+            'permissions': json.dumps(role_permissions),
+            'scope_type': 'global',
+            'is_active': True,
+            'assigned_by': admin_user_uuid
+        })
+        
+        await db.commit()
+        
+        return UserRegistrationResponse(
+            status="success",
+            message=f"User {full_name} created successfully",
+            user_profile_id=new_user_id,
+            approval_status="active" if is_active else "pending_approval"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error in admin_create_user: {e}")
+        raise HTTPException(status_code=500, detail=f"User creation failed: {str(e)}")
+
+
+async def ensure_basic_roles_exist(db: AsyncSession):
+    """Ensure basic user roles exist in the database."""
+    try:
+        from sqlalchemy import text
+        
+        # Check if roles exist
+        check_roles = text("SELECT COUNT(*) as count FROM user_roles WHERE role_type != 'platform_admin'")
+        result = await db.execute(check_roles)
+        count = result.scalar()
+        
+        if count == 0:
+            # Create basic roles for demo/reference
+            basic_roles = [
+                {
+                    'role_type': 'client_admin',
+                    'role_name': 'Client Administrator',
+                    'description': 'Client-level administration access',
+                    'permissions': get_role_permissions('client_admin')
+                },
+                {
+                    'role_type': 'engagement_manager', 
+                    'role_name': 'Engagement Manager',
+                    'description': 'Engagement management access',
+                    'permissions': get_role_permissions('engagement_manager')
+                },
+                {
+                    'role_type': 'analyst',
+                    'role_name': 'Analyst',
+                    'description': 'Data analysis and reporting access',
+                    'permissions': get_role_permissions('analyst')
+                },
+                {
+                    'role_type': 'viewer',
+                    'role_name': 'Viewer',
+                    'description': 'Read-only access to assigned resources',
+                    'permissions': get_role_permissions('viewer')
+                }
+            ]
+            
+            # Create demo roles with admin user as template
+            admin_user_id = "2a0de3df-7484-4fab-98b9-2ca126e2ab21"
+            
+            for role_data in basic_roles:
+                role_insert = text("""
+                    INSERT INTO user_roles (id, user_id, role_type, role_name, description, permissions, scope_type, is_active, assigned_at, assigned_by, created_at)
+                    VALUES (:id, :user_id, :role_type, :role_name, :description, :permissions, :scope_type, :is_active, NOW(), :assigned_by, NOW())
+                """)
+                
+                await db.execute(role_insert, {
+                    'id': str(uuid.uuid4()),
+                    'user_id': admin_user_id,  # Assign to admin for demo
+                    'role_type': role_data['role_type'],
+                    'role_name': role_data['role_name'],
+                    'description': role_data['description'],
+                    'permissions': json.dumps(role_data['permissions']),
+                    'scope_type': 'global',
+                    'is_active': False,  # Demo roles, not active
+                    'assigned_by': admin_user_id
+                })
+        
+    except Exception as e:
+        logger.warning(f"Could not ensure basic roles exist: {e}")
+
+
+def get_role_permissions(role_type: str) -> Dict[str, bool]:
+    """Get permissions for a specific role type."""
+    permissions_map = {
+        'platform_admin': {
+            "can_create_clients": True,
+            "can_manage_engagements": True,
+            "can_import_data": True,
+            "can_export_data": True,
+            "can_view_analytics": True,
+            "can_manage_users": True,
+            "can_configure_agents": True,
+            "can_access_admin_console": True
+        },
+        'client_admin': {
+            "can_create_clients": False,
+            "can_manage_engagements": True,
+            "can_import_data": True,
+            "can_export_data": True,
+            "can_view_analytics": True,
+            "can_manage_users": False,
+            "can_configure_agents": False,
+            "can_access_admin_console": False
+        },
+        'engagement_manager': {
+            "can_create_clients": False,
+            "can_manage_engagements": True,
+            "can_import_data": True,
+            "can_export_data": True,
+            "can_view_analytics": True,
+            "can_manage_users": False,
+            "can_configure_agents": False,
+            "can_access_admin_console": False
+        },
+        'analyst': {
+            "can_create_clients": False,
+            "can_manage_engagements": False,
+            "can_import_data": True,
+            "can_export_data": True,
+            "can_view_analytics": True,
+            "can_manage_users": False,
+            "can_configure_agents": False,
+            "can_access_admin_console": False
+        },
+        'viewer': {
+            "can_create_clients": False,
+            "can_manage_engagements": False,
+            "can_import_data": False,
+            "can_export_data": False,
+            "can_view_analytics": True,
+            "can_manage_users": False,
+            "can_configure_agents": False,
+            "can_access_admin_console": False
+        }
+    }
+    
+    return permissions_map.get(role_type, permissions_map['viewer']) 
