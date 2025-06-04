@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   Calendar, 
   Plus, 
@@ -110,6 +110,7 @@ const MigrationPhases = [
 ];
 
 const EngagementManagement: React.FC = () => {
+  const navigate = useNavigate();
   const [engagements, setEngagements] = useState<Engagement[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
@@ -138,21 +139,26 @@ const EngagementManagement: React.FC = () => {
     stakeholder_preferences: {}
   });
 
-  // Optimized form field handlers to prevent input focus loss
-  const handleInputChange = useCallback((field: keyof EngagementFormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = field === 'budget' ? parseFloat(e.target.value) || 0 : e.target.value;
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  }, []);
+  // Optimized form field handlers to prevent input focus loss and excessive validation
+  const handleInputChange = useCallback((field: keyof EngagementFormData, value: string | number) => {
+    setFormData(prev => {
+      if (prev[field] === value) return prev; // Prevent unnecessary state updates
+      return {
+        ...prev,
+        [field]: value
+      };
+    });
+  }, []); // Remove dependencies to prevent recreating handlers
 
-  const handleSelectChange = useCallback((field: keyof EngagementFormData) => (value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  }, []);
+  const handleSelectChange = useCallback((field: keyof EngagementFormData, value: string) => {
+    setFormData(prev => {
+      if (prev[field] === value) return prev; // Prevent unnecessary state updates
+      return {
+        ...prev,
+        [field]: value
+      };
+    });
+  }, []); // Remove dependencies to prevent recreating handlers
 
   useEffect(() => {
     fetchEngagements();
@@ -455,7 +461,7 @@ const EngagementManagement: React.FC = () => {
           <Input
             id="engagement_name"
             value={formData.engagement_name}
-            onChange={handleInputChange('engagement_name')}
+            onChange={(e) => handleInputChange('engagement_name', e.target.value)}
             placeholder="Enter engagement name"
             required
           />
@@ -463,7 +469,7 @@ const EngagementManagement: React.FC = () => {
         
         <div className="space-y-2">
           <Label htmlFor="client_account_id">Client *</Label>
-          <Select value={formData.client_account_id} onValueChange={handleSelectChange('client_account_id')}>
+          <Select value={formData.client_account_id} onValueChange={(value) => handleSelectChange('client_account_id', value)}>
             <SelectTrigger>
               <SelectValue placeholder="Select client" />
             </SelectTrigger>
@@ -477,7 +483,7 @@ const EngagementManagement: React.FC = () => {
 
         <div className="space-y-2">
           <Label htmlFor="migration_scope">Migration Scope *</Label>
-          <Select value={formData.migration_scope} onValueChange={handleSelectChange('migration_scope')}>
+          <Select value={formData.migration_scope} onValueChange={(value) => handleSelectChange('migration_scope', value)}>
             <SelectTrigger>
               <SelectValue placeholder="Select migration scope" />
             </SelectTrigger>
@@ -491,7 +497,7 @@ const EngagementManagement: React.FC = () => {
 
         <div className="space-y-2">
           <Label htmlFor="target_cloud_provider">Target Cloud Provider *</Label>
-          <Select value={formData.target_cloud_provider} onValueChange={handleSelectChange('target_cloud_provider')}>
+          <Select value={formData.target_cloud_provider} onValueChange={(value) => handleSelectChange('target_cloud_provider', value)}>
             <SelectTrigger>
               <SelectValue placeholder="Select cloud provider" />
             </SelectTrigger>
@@ -505,7 +511,7 @@ const EngagementManagement: React.FC = () => {
 
         <div className="space-y-2">
           <Label htmlFor="migration_phase">Migration Phase *</Label>
-          <Select value={formData.migration_phase} onValueChange={handleSelectChange('migration_phase')}>
+          <Select value={formData.migration_phase} onValueChange={(value) => handleSelectChange('migration_phase', value)}>
             <SelectTrigger>
               <SelectValue placeholder="Select phase" />
             </SelectTrigger>
@@ -522,7 +528,7 @@ const EngagementManagement: React.FC = () => {
           <Input
             id="engagement_manager"
             value={formData.engagement_manager}
-            onChange={handleInputChange('engagement_manager')}
+            onChange={(e) => handleInputChange('engagement_manager', e.target.value)}
             placeholder="Full name"
             required
           />
@@ -533,7 +539,7 @@ const EngagementManagement: React.FC = () => {
           <Input
             id="technical_lead"
             value={formData.technical_lead}
-            onChange={handleInputChange('technical_lead')}
+            onChange={(e) => handleInputChange('technical_lead', e.target.value)}
             placeholder="Full name"
             required
           />
@@ -545,7 +551,7 @@ const EngagementManagement: React.FC = () => {
             id="start_date"
             type="date"
             value={formData.start_date}
-            onChange={handleInputChange('start_date')}
+            onChange={(e) => handleInputChange('start_date', e.target.value)}
             required
           />
         </div>
@@ -556,7 +562,7 @@ const EngagementManagement: React.FC = () => {
             id="end_date"
             type="date"
             value={formData.end_date}
-            onChange={handleInputChange('end_date')}
+            onChange={(e) => handleInputChange('end_date', e.target.value)}
             required
           />
         </div>
@@ -568,11 +574,11 @@ const EngagementManagement: React.FC = () => {
               id="budget"
               type="number"
               value={formData.budget || ''}
-              onChange={handleInputChange('budget')}
+              onChange={(e) => handleInputChange('budget', parseFloat(e.target.value) || 0)}
               placeholder="0"
               className="flex-1"
             />
-            <Select value={formData.budget_currency} onValueChange={handleSelectChange('budget_currency')}>
+            <Select value={formData.budget_currency} onValueChange={(value) => handleSelectChange('budget_currency', value)}>
               <SelectTrigger className="w-20">
                 <SelectValue />
               </SelectTrigger>
@@ -646,7 +652,7 @@ const EngagementManagement: React.FC = () => {
             className="pl-8"
           />
         </div>
-        <Select value={filterClient} onValueChange={setFilterClient}>
+        <Select value={filterClient} onValueChange={(value) => setFilterClient(value)}>
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Client" />
           </SelectTrigger>
@@ -657,7 +663,7 @@ const EngagementManagement: React.FC = () => {
             ))}
           </SelectContent>
         </Select>
-        <Select value={filterPhase} onValueChange={setFilterPhase}>
+        <Select value={filterPhase} onValueChange={(value) => setFilterPhase(value)}>
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Phase" />
           </SelectTrigger>

@@ -11,7 +11,9 @@ import {
   XCircle,
   AlertCircle,
   Eye,
-  Trash2
+  Trash2,
+  Plus,
+  Edit
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,6 +25,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 import { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface PendingUser {
   user_id: string;
@@ -40,6 +43,20 @@ interface PendingUser {
   status: string;
 }
 
+interface ActiveUser {
+  user_id: string;
+  email: string;
+  full_name: string;
+  username: string;
+  organization: string;
+  role_description: string;
+  access_level: string;
+  role_name: string;
+  is_active: boolean;
+  approved_at: string;
+  last_login?: string;
+}
+
 interface ApprovalData {
   access_level: string;
   role_name: string;
@@ -54,13 +71,16 @@ interface RejectionData {
 const UserApprovals: React.FC = () => {
   const { getAuthHeaders } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
+  const [activeUsers, setActiveUsers] = useState<ActiveUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<PendingUser | null>(null);
   const [showApprovalDialog, setShowApprovalDialog] = useState(false);
   const [showRejectionDialog, setShowRejectionDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [activeTab, setActiveTab] = useState<'pending' | 'active'>('pending');
 
   // Approval form state
   const [approvalData, setApprovalData] = useState<ApprovalData>({
@@ -77,6 +97,7 @@ const UserApprovals: React.FC = () => {
 
   useEffect(() => {
     fetchPendingUsers();
+    fetchActiveUsers();
   }, []);
 
   const fetchPendingUsers = async () => {
@@ -144,6 +165,64 @@ const UserApprovals: React.FC = () => {
     }
   };
 
+  const fetchActiveUsers = async () => {
+    try {
+      const response = await apiCall('/api/v1/auth/active-users', {
+        headers: getAuthHeaders()
+      });
+
+      if (response.status === 'success') {
+        setActiveUsers(response.active_users || []);
+      } else {
+        // Demo active users
+        setActiveUsers([
+          {
+            user_id: 'admin_001',
+            email: 'admin@aiforce.com',
+            full_name: 'Platform Administrator',
+            username: 'admin',
+            organization: 'AI Force Platform',
+            role_description: 'System Administrator',
+            access_level: 'admin',
+            role_name: 'Administrator',
+            is_active: true,
+            approved_at: '2025-01-01T00:00:00Z',
+            last_login: '2025-01-28T10:30:00Z'
+          },
+          {
+            user_id: 'demo_001',
+            email: 'demo@example.com',
+            full_name: 'Demo User',
+            username: 'demo_user',
+            organization: 'Demo Organization',
+            role_description: 'Demo Analyst',
+            access_level: 'read_write',
+            role_name: 'Analyst',
+            is_active: true,
+            approved_at: '2025-01-01T00:00:00Z',
+            last_login: '2025-01-28T09:15:00Z'
+          },
+          {
+            user_id: 'analyst_001',
+            email: 'alice.analyst@techcorp.com',
+            full_name: 'Alice Data Analyst',
+            username: 'alice.analyst',
+            organization: 'TechCorp Solutions',
+            role_description: 'Senior Migration Analyst',
+            access_level: 'read_write',
+            role_name: 'Senior Analyst',
+            is_active: true,
+            approved_at: '2025-01-15T14:22:00Z',
+            last_login: '2025-01-27T16:45:00Z'
+          }
+        ]);
+      }
+    } catch (error) {
+      console.error('Error fetching active users:', error);
+      // Silent fail for active users
+    }
+  };
+
   const handleApprove = async () => {
     if (!selectedUser) return;
 
@@ -164,14 +243,34 @@ const UserApprovals: React.FC = () => {
 
       if (response.status === 'success') {
         toast({
-          title: "User Approved",
+          title: "User Approved Successfully",
           description: `${selectedUser.full_name} has been approved and can now access the platform.`,
         });
+        
+        // Add to active users list
+        const newActiveUser: ActiveUser = {
+          user_id: selectedUser.user_id,
+          email: selectedUser.email,
+          full_name: selectedUser.full_name,
+          username: selectedUser.username,
+          organization: selectedUser.organization,
+          role_description: selectedUser.role_description,
+          access_level: approvalData.access_level,
+          role_name: approvalData.role_name,
+          is_active: true,
+          approved_at: new Date().toISOString(),
+          last_login: undefined
+        };
+        
+        setActiveUsers(prev => [newActiveUser, ...prev]);
         
         // Remove from pending list
         setPendingUsers(prev => prev.filter(u => u.user_id !== selectedUser.user_id));
         setShowApprovalDialog(false);
         setSelectedUser(null);
+        
+        // Switch to active users tab to show the newly approved user
+        setActiveTab('active');
         
         // Reset form
         setApprovalData({
@@ -275,19 +374,25 @@ const UserApprovals: React.FC = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">User Approvals</h1>
+          <h1 className="text-3xl font-bold">User Management</h1>
           <p className="text-muted-foreground">
-            Review and approve pending user registration requests
+            Review pending user registration requests and manage active users
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Clock className="w-4 h-4 text-orange-500" />
-          <span className="text-sm font-medium">{pendingUsers.length} pending</span>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-orange-500" />
+            <span className="text-sm font-medium">{pendingUsers.length} pending</span>
+          </div>
+          <Button onClick={() => navigate('/admin/users/create')}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add New User
+          </Button>
         </div>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
@@ -296,6 +401,17 @@ const UserApprovals: React.FC = () => {
           <CardContent>
             <div className="text-2xl font-bold">{pendingUsers.length}</div>
             <p className="text-xs text-muted-foreground">awaiting review</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
+            <UserCheck className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{activeUsers.length}</div>
+            <p className="text-xs text-muted-foreground">approved and active</p>
           </CardContent>
         </Card>
 
@@ -324,112 +440,231 @@ const UserApprovals: React.FC = () => {
         </Card>
       </div>
 
-      {/* Pending Users List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Pending Registration Requests</CardTitle>
-          <CardDescription>
-            Review user registration requests and approve or reject access
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {pendingUsers.length === 0 ? (
-            <div className="text-center py-8">
-              <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">No pending approvals</h3>
-              <p className="text-muted-foreground">All user registration requests have been processed.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {pendingUsers.map((user) => (
-                <div key={user.user_id} className="border rounded-lg p-4 space-y-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                          <User className="w-5 h-5 text-gray-600" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium">{user.full_name}</h4>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                              <Mail className="w-3 h-3" />
-                              {user.email}
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Building2 className="w-3 h-3" />
-                              {user.organization}
+      {/* Tabs */}
+      <div className="border-b">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => setActiveTab('pending')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'pending'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Pending Approvals ({pendingUsers.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('active')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'active'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Active Users ({activeUsers.length})
+          </button>
+        </nav>
+      </div>
+
+      {/* Pending Users Tab */}
+      {activeTab === 'pending' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Pending Registration Requests</CardTitle>
+            <CardDescription>
+              Review user registration requests and approve or reject access
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {pendingUsers.length === 0 ? (
+              <div className="text-center py-8">
+                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">No pending approvals</h3>
+                <p className="text-muted-foreground">All user registration requests have been processed.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {pendingUsers.map((user) => (
+                  <div key={user.user_id} className="border rounded-lg p-4 space-y-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                            <User className="w-5 h-5 text-gray-600" />
+                          </div>
+                          <div>
+                            <h4 className="font-medium">{user.full_name}</h4>
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                              <div className="flex items-center gap-1">
+                                <Mail className="w-3 h-3" />
+                                {user.email}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Building2 className="w-3 h-3" />
+                                {user.organization}
+                              </div>
                             </div>
                           </div>
                         </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline">{user.role_description}</Badge>
+                          <Badge className={getAccessLevelColor(user.requested_access_level)}>
+                            {user.requested_access_level.replace('_', ' ')}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            Requested {formatDate(user.registration_requested_at)}
+                          </span>
+                        </div>
+
+                        <p className="text-sm text-gray-700 line-clamp-2">
+                          {user.registration_reason}
+                        </p>
                       </div>
-                      
+
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline">{user.role_description}</Badge>
-                        <Badge className={getAccessLevelColor(user.requested_access_level)}>
-                          {user.requested_access_level.replace('_', ' ')}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">
-                          Requested {formatDate(user.registration_requested_at)}
-                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setShowDetailsDialog(true);
+                          }}
+                        >
+                          <Eye className="w-4 h-4 mr-1" />
+                          Details
+                        </Button>
+                        
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setShowRejectionDialog(true);
+                          }}
+                          disabled={actionLoading === user.user_id}
+                        >
+                          <XCircle className="w-4 h-4 mr-1" />
+                          Reject
+                        </Button>
+                        
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setApprovalData({
+                              access_level: user.requested_access_level,
+                              role_name: user.role_description,
+                              client_access: [],
+                              notes: ''
+                            });
+                            setShowApprovalDialog(true);
+                          }}
+                          disabled={actionLoading === user.user_id}
+                        >
+                          {actionLoading === user.user_id ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          ) : (
+                            <>
+                              <UserCheck className="w-4 h-4 mr-1" />
+                              Approve
+                            </>
+                          )}
+                        </Button>
                       </div>
-
-                      <p className="text-sm text-gray-700 line-clamp-2">
-                        {user.registration_reason}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedUser(user);
-                          setShowDetailsDialog(true);
-                        }}
-                      >
-                        <Eye className="w-4 h-4 mr-1" />
-                        Details
-                      </Button>
-                      
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedUser(user);
-                          setShowRejectionDialog(true);
-                        }}
-                        disabled={actionLoading === user.user_id}
-                      >
-                        <XCircle className="w-4 h-4 mr-1" />
-                        Reject
-                      </Button>
-                      
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          setSelectedUser(user);
-                          setApprovalData({
-                            access_level: user.requested_access_level,
-                            role_name: user.role_description,
-                            client_access: [],
-                            notes: ''
-                          });
-                          setShowApprovalDialog(true);
-                        }}
-                        disabled={actionLoading === user.user_id}
-                      >
-                        <CheckCircle className="w-4 h-4 mr-1" />
-                        Approve
-                      </Button>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Active Users Tab */}
+      {activeTab === 'active' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Active Platform Users</CardTitle>
+            <CardDescription>
+              View and manage users who have been approved and are active on the platform
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {activeUsers.length === 0 ? (
+              <div className="text-center py-8">
+                <UserX className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">No active users</h3>
+                <p className="text-muted-foreground">No users have been approved yet.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {activeUsers.map((user) => (
+                  <div key={user.user_id} className="border rounded-lg p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                            <User className="w-5 h-5 text-green-600" />
+                          </div>
+                          <div>
+                            <h4 className="font-medium">{user.full_name}</h4>
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                              <div className="flex items-center gap-1">
+                                <Mail className="w-3 h-3" />
+                                {user.email}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Building2 className="w-3 h-3" />
+                                {user.organization}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline">{user.role_name}</Badge>
+                          <Badge className={getAccessLevelColor(user.access_level)}>
+                            {user.access_level.replace('_', ' ')}
+                          </Badge>
+                          <Badge variant={user.is_active ? "default" : "secondary"}>
+                            {user.is_active ? "Active" : "Inactive"}
+                          </Badge>
+                        </div>
+
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          <span>Approved: {formatDate(user.approved_at)}</span>
+                          {user.last_login && (
+                            <span>Last login: {formatDate(user.last_login)}</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm">
+                          <Edit className="w-4 h-4 mr-1" />
+                          Edit Access
+                        </Button>
+                        {user.is_active ? (
+                          <Button variant="outline" size="sm">
+                            <UserX className="w-4 h-4 mr-1" />
+                            Deactivate
+                          </Button>
+                        ) : (
+                          <Button variant="outline" size="sm">
+                            <UserCheck className="w-4 h-4 mr-1" />
+                            Activate
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* User Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>

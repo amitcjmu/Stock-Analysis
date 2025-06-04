@@ -126,30 +126,42 @@ const ClientManagement: React.FC = () => {
     agent_preferences: {}
   });
 
-  // Optimized form field handlers to prevent input focus loss
-  const handleInputChange = useCallback((field: keyof ClientFormData) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const value = e.target.value;
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  }, []);
+  // Optimized form field handlers to prevent input focus loss and excessive validation
+  const handleInputChange = useCallback((field: keyof ClientFormData, value: string) => {
+    // Use functional update to prevent unnecessary re-renders
+    setFormData(prev => {
+      if (prev[field] === value) return prev; // Prevent unnecessary state updates
+      return {
+        ...prev,
+        [field]: value
+      };
+    });
+  }, []); // Remove dependencies to prevent recreating handlers
 
-  const handleSelectChange = useCallback((field: keyof ClientFormData) => (value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  }, []);
+  const handleSelectChange = useCallback((field: keyof ClientFormData, value: string) => {
+    setFormData(prev => {
+      if (prev[field] === value) return prev; // Prevent unnecessary state updates
+      return {
+        ...prev,
+        [field]: value
+      };
+    });
+  }, []); // Remove dependencies to prevent recreating handlers
 
-  const handleArrayChange = useCallback((field: keyof ClientFormData) => (value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value.split('\n').filter(item => item.trim())
-    }));
-  }, []);
+  const handleArrayChange = useCallback((field: keyof ClientFormData, value: string) => {
+    const newArray = value.split('\n').filter(item => item.trim());
+    setFormData(prev => {
+      // Deep comparison for arrays to prevent unnecessary updates
+      const currentArray = prev[field] as string[];
+      if (JSON.stringify(currentArray) === JSON.stringify(newArray)) return prev;
+      return {
+        ...prev,
+        [field]: newArray
+      };
+    });
+  }, []); // Remove dependencies to prevent recreating handlers
 
-  const handleCheckboxChange = useCallback((field: keyof ClientFormData, value: string) => (checked: boolean) => {
+  const handleCheckboxChange = useCallback((field: keyof ClientFormData, value: string, checked: boolean) => {
     setFormData(prev => {
       const currentArray = prev[field] as string[];
       if (checked) {
@@ -164,7 +176,7 @@ const ClientManagement: React.FC = () => {
         };
       }
     });
-  }, []);
+  }, []); // Remove dependencies to prevent recreating handlers
 
   useEffect(() => {
     fetchClients();
@@ -410,7 +422,7 @@ const ClientManagement: React.FC = () => {
           <Input
             id="account_name"
             value={formData.account_name}
-            onChange={handleInputChange('account_name')}
+            onChange={(e) => handleInputChange('account_name', e.target.value)}
             placeholder="Enter company name"
             required
           />
@@ -418,7 +430,7 @@ const ClientManagement: React.FC = () => {
         
         <div className="space-y-2">
           <Label htmlFor="industry">Industry *</Label>
-          <Select value={formData.industry} onValueChange={handleSelectChange('industry')}>
+          <Select value={formData.industry} onValueChange={(value) => handleSelectChange('industry', value)}>
             <SelectTrigger>
               <SelectValue placeholder="Select industry" />
             </SelectTrigger>
@@ -432,7 +444,7 @@ const ClientManagement: React.FC = () => {
 
         <div className="space-y-2">
           <Label htmlFor="company_size">Company Size *</Label>
-          <Select value={formData.company_size} onValueChange={handleSelectChange('company_size')}>
+          <Select value={formData.company_size} onValueChange={(value) => handleSelectChange('company_size', value)}>
             <SelectTrigger>
               <SelectValue placeholder="Select company size" />
             </SelectTrigger>
@@ -449,7 +461,7 @@ const ClientManagement: React.FC = () => {
           <Input
             id="headquarters_location"
             value={formData.headquarters_location}
-            onChange={handleInputChange('headquarters_location')}
+            onChange={(e) => handleInputChange('headquarters_location', e.target.value)}
             placeholder="City, State/Country"
             required
           />
@@ -460,7 +472,7 @@ const ClientManagement: React.FC = () => {
           <Input
             id="primary_contact_name"
             value={formData.primary_contact_name}
-            onChange={handleInputChange('primary_contact_name')}
+            onChange={(e) => handleInputChange('primary_contact_name', e.target.value)}
             placeholder="Full name"
             required
           />
@@ -472,7 +484,7 @@ const ClientManagement: React.FC = () => {
             id="primary_contact_email"
             type="email"
             value={formData.primary_contact_email}
-            onChange={handleInputChange('primary_contact_email')}
+            onChange={(e) => handleInputChange('primary_contact_email', e.target.value)}
             placeholder="email@company.com"
             required
           />
@@ -484,7 +496,7 @@ const ClientManagement: React.FC = () => {
         <Input
           id="primary_contact_phone"
           value={formData.primary_contact_phone}
-          onChange={handleInputChange('primary_contact_phone')}
+          onChange={(e) => handleInputChange('primary_contact_phone', e.target.value)}
           placeholder="+1-555-0123"
         />
       </div>
@@ -501,7 +513,7 @@ const ClientManagement: React.FC = () => {
               <label key={provider.value} className="flex items-center space-x-2">
                 <Checkbox
                   checked={formData.target_cloud_providers.includes(provider.value)}
-                  onCheckedChange={handleCheckboxChange('target_cloud_providers', provider.value)}
+                  onCheckedChange={(checked) => handleCheckboxChange('target_cloud_providers', provider.value, checked)}
                 />
                 <span className="text-sm">{provider.label}</span>
               </label>
@@ -516,7 +528,7 @@ const ClientManagement: React.FC = () => {
               <label key={priority.value} className="flex items-center space-x-2">
                 <Checkbox
                   checked={formData.business_priorities.includes(priority.value)}
-                  onCheckedChange={handleCheckboxChange('business_priorities', priority.value)}
+                  onCheckedChange={(checked) => handleCheckboxChange('business_priorities', priority.value, checked)}
                 />
                 <span className="text-sm">{priority.label}</span>
               </label>
@@ -530,7 +542,7 @@ const ClientManagement: React.FC = () => {
             id="business_objectives"
             placeholder="Enter business objectives (one per line)"
             value={formData.business_objectives.join('\n')}
-            onChange={(e) => handleArrayChange('business_objectives')(e.target.value)}
+            onChange={(e) => handleArrayChange('business_objectives', e.target.value)}
           />
         </div>
 
@@ -540,7 +552,7 @@ const ClientManagement: React.FC = () => {
             id="compliance_requirements"
             placeholder="Enter compliance requirements (one per line)"
             value={formData.compliance_requirements.join('\n')}
-            onChange={(e) => handleArrayChange('compliance_requirements')(e.target.value)}
+            onChange={(e) => handleArrayChange('compliance_requirements', e.target.value)}
           />
         </div>
       </div>

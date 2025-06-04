@@ -60,8 +60,11 @@ import FeedbackView from "./pages/FeedbackView";
 import NotFound from "./pages/NotFound";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ClientManagement from "./pages/admin/ClientManagement";
+import ClientDetails from "./pages/admin/ClientDetails";
 import EngagementManagement from "./pages/admin/EngagementManagement";
+import EngagementDetails from "./pages/admin/EngagementDetails";
 import UserApprovals from "./pages/admin/UserApprovals";
+import CreateUser from "./pages/admin/CreateUser";
 import UserProfile from "./pages/admin/UserProfile";
 import AdminLayout from "./components/admin/AdminLayout";
 import AdminRoute from "./components/admin/AdminRoute";
@@ -133,8 +136,12 @@ const App = () => (
               <Route path="/admin" element={<AdminRoute><AdminLayout><AdminDashboard /></AdminLayout></AdminRoute>} />
               <Route path="/admin/dashboard" element={<AdminRoute><AdminLayout><AdminDashboard /></AdminLayout></AdminRoute>} />
               <Route path="/admin/clients" element={<AdminRoute><AdminLayout><ClientManagement /></AdminLayout></AdminRoute>} />
+              <Route path="/admin/clients/new" element={<AdminRoute><AdminLayout><ClientManagement /></AdminLayout></AdminRoute>} />
+              <Route path="/admin/clients/:clientId" element={<AdminRoute><AdminLayout><ClientDetails /></AdminLayout></AdminRoute>} />
               <Route path="/admin/engagements" element={<AdminRoute><AdminLayout><EngagementManagement /></AdminLayout></AdminRoute>} />
+              <Route path="/admin/engagements/:engagementId" element={<AdminRoute><AdminLayout><EngagementDetails /></AdminLayout></AdminRoute>} />
               <Route path="/admin/users/approvals" element={<AdminRoute><AdminLayout><UserApprovals /></AdminLayout></AdminRoute>} />
+              <Route path="/admin/users/create" element={<AdminRoute><AdminLayout><CreateUser /></AdminLayout></AdminRoute>} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

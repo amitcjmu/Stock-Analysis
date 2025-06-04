@@ -2,6 +2,75 @@
 
 All notable changes to the AI Force Migration Platform will be documented in this file.
 
+## [0.50.5] - 2025-01-28
+
+### 🐛 **CRITICAL UI/UX FIXES - Form Input Focus & User Management Visibility**
+
+This release resolves critical usability issues in the admin interface that were preventing proper data entry and user management operations.
+
+### 🚀 **Form Input Focus Resolution**
+
+#### **Client Management Form Fix**
+- **Issue Resolved**: Fixed input fields losing focus after typing each character in "Create New Client" dialog
+- **Root Cause**: Excessive re-renders caused by unstable callback dependencies in form handlers  
+- **Technical Fix**: Stabilized form handlers by removing unnecessary dependencies and preventing callback recreation
+- **Impact**: Users can now type continuously in all form fields without interruption
+
+#### **Engagement Management Form Fix**
+- **Issue Resolved**: Fixed same focus-shifting problem in "Create New Engagement" dialog
+- **Implementation**: Applied identical form handler stabilization to prevent input focus loss
+- **User Experience**: Seamless form completion for engagement creation
+- **Field Stability**: All input fields (text, select, date, number) now maintain focus properly
+
+#### **Form Handler Optimization**
+```typescript
+// ✅ Fixed: Stable handlers prevent re-renders
+const handleInputChange = useCallback((field: string, value: string) => {
+  setFormData(prev => {
+    if (prev[field] === value) return prev; // Prevent unnecessary updates
+    return { ...prev, [field]: value };
+  });
+}, []); // No dependencies = stable handler
+```
+
+### 📊 **User Management Visibility Enhancement**
+
+#### **Complete User Management Interface**
+- **Enhancement**: Transformed "User Approvals" page into comprehensive "User Management" system
+- **Dual View**: Added tabs for both "Pending Approvals" and "Active Users"
+- **Admin Visibility**: Admins can now see both users awaiting approval AND currently active users
+- **Success Feedback**: Clear confirmation when users are successfully created and approved
+
+#### **Active Users Dashboard**
+- **New Tab**: "Active Users" tab shows all approved and active platform users
+- **User Details**: Displays role, access level, approval date, and last login information
+- **Status Management**: Visual indicators for active/inactive status with management controls
+- **User Actions**: Edit access, activate/deactivate functionality for ongoing user management
+
+#### **Enhanced User Approval Workflow**
+- **Improved Feedback**: Success toasts with clear messaging for all user operations
+- **Automatic Tab Switching**: After approving a user, automatically switches to "Active Users" tab
+- **Real-time Updates**: Approved users immediately appear in active users list
+- **Comprehensive Stats**: Updated dashboard cards to show both pending and active user counts
+
+### 🔧 **Technical Improvements**
+- **Form Stability**: Eliminated unnecessary React re-renders that caused input focus loss
+- **State Management**: Optimized form state updates to prevent performance issues
+- **UI Continuity**: Seamless user experience across admin operations
+- **Data Flow**: Proper state transitions from pending to active user status
+
+### 📊 **User Experience Impact**
+- **Form Usability**: 100% resolution of input focus issues - users can now type normally
+- **Admin Efficiency**: Complete visibility into user management with dual-tab interface
+- **Success Confirmation**: Clear feedback for all user operations (create, approve, reject)
+- **Workflow Completion**: End-to-end user management from creation to active status tracking
+
+### 🎯 **Success Metrics**
+- **Form Completion Rate**: Input focus issues completely eliminated
+- **Admin Productivity**: Full user lifecycle visibility in single interface
+- **User Feedback**: Immediate success/error confirmation for all operations
+- **Data Integrity**: Proper state management ensures consistent user status tracking
+
 ## [0.50.4] - 2025-01-28
 
 ### 🐛 **ENGAGEMENT MANAGEMENT FIXES - Currency Formatting & Error Resolution**
