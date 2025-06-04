@@ -103,7 +103,9 @@ const CreateUser: React.FC = () => {
       
       // Try to call the real API first
       try {
-        const response = await fetch('/api/v1/auth/create-user', {
+        console.log('Creating user with data:', formData);
+        
+        const response = await fetch('/api/v1/admin/users/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -114,30 +116,81 @@ const CreateUser: React.FC = () => {
           body: JSON.stringify(formData)
         });
 
+        console.log('User creation API response:', response.status, response.statusText);
+
         if (response.ok) {
+          const responseData = await response.json();
+          console.log('User created successfully:', responseData);
+          
           toast({
             title: "User Created Successfully",
             description: `User ${formData.full_name} has been created and is now active on the platform.`,
           });
           
+          // Create proper user object for event
+          const createdUser = {
+            id: responseData.id || `user-${Date.now()}`,
+            email: formData.email,
+            first_name: formData.full_name.split(' ')[0],
+            last_name: formData.full_name.split(' ').slice(1).join(' '),
+            full_name: formData.full_name,
+            username: formData.username,
+            organization: formData.organization,
+            role_description: formData.role_description,
+            phone_number: formData.phone_number,
+            manager_email: formData.manager_email,
+            access_level: formData.access_level,
+            role_name: formData.role_name,
+            is_active: formData.is_active,
+            is_verified: true,
+            is_mock: false,
+            created_at: new Date().toISOString()
+          };
+          
           // Dispatch event for UserApprovals to pick up
           window.dispatchEvent(new CustomEvent('userCreated', {
-            detail: formData
+            detail: createdUser
           }));
         } else {
-          throw new Error('API call failed');
+          const errorData = await response.text();
+          console.log('API call failed:', response.status, errorData);
+          throw new Error(`API call failed: ${response.status}`);
         }
       } catch (apiError) {
-        // Fallback to demo mode
-        console.log('API call failed, using demo mode');
+        // Enhanced fallback with proper demo user
+        console.log('User creation API failed, using demo mode. Error:', apiError);
+        
+        // Create demo user object with proper structure
+        const demoUser = {
+          id: `demo-${Date.now()}`,
+          email: formData.email,
+          first_name: formData.full_name.split(' ')[0],
+          last_name: formData.full_name.split(' ').slice(1).join(' '),
+          full_name: formData.full_name,
+          username: formData.username,
+          organization: formData.organization,
+          role_description: formData.role_description,
+          phone_number: formData.phone_number,
+          manager_email: formData.manager_email,
+          access_level: formData.access_level,
+          role_name: formData.role_name,
+          is_active: formData.is_active,
+          is_verified: false,
+          is_mock: true,
+          created_at: new Date().toISOString(),
+          password_hash: '$2b$12$demo.hash'
+        };
+        
+        console.log('Using demo user:', demoUser);
+        
         toast({
-          title: "User Created Successfully",
-          description: `User ${formData.full_name} has been created and is now active on the platform.`,
+          title: "User Created Successfully (Demo Mode)",
+          description: `User ${formData.full_name} has been created in demo mode and is now active on the platform.`,
         });
         
         // Dispatch event for UserApprovals to pick up
         window.dispatchEvent(new CustomEvent('userCreated', {
-          detail: formData
+          detail: demoUser
         }));
       }
 

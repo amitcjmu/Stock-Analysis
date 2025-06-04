@@ -600,31 +600,12 @@ const EngagementManagement: React.FC = () => {
             <Upload className="w-4 h-4 mr-2" />
             Import
           </Button>
-          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="w-4 h-4 mr-2" />
-                New Engagement
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl">
-              <DialogHeader>
-                <DialogTitle>Create New Engagement</DialogTitle>
-                <DialogDescription>
-                  Set up a new migration engagement with project details and team assignments.
-                </DialogDescription>
-              </DialogHeader>
-              <EngagementForm />
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => {setShowCreateDialog(false); resetForm();}}>
-                  Cancel
-                </Button>
-                <Button onClick={handleCreateEngagement}>
-                  Create Engagement
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Button asChild>
+            <Link to="/admin/engagements/create">
+              <Plus className="w-4 h-4 mr-2" />
+              New Engagement
+            </Link>
+          </Button>
         </div>
       </div>
 

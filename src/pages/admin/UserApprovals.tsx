@@ -255,8 +255,10 @@ const UserApprovals: React.FC = () => {
   useEffect(() => {
     // Check if user was just created and should be added to active users
     const handleUserCreated = (event: CustomEvent) => {
+      console.log('UserApprovals received userCreated event:', event.detail);
+      
       const newUser: ActiveUser = {
-        user_id: `user_${Date.now()}`,
+        user_id: event.detail.id || `user_${Date.now()}`,
         email: event.detail.email,
         full_name: event.detail.full_name,
         username: event.detail.username,
@@ -269,15 +271,27 @@ const UserApprovals: React.FC = () => {
         last_login: undefined
       };
       
+      console.log('Adding new user to active users:', newUser);
       setActiveUsers(prev => [newUser, ...prev]);
+      
+      // Switch to active users tab to show the newly created user
+      setActiveTab('active');
+      
+      // Show toast notification
+      toast({
+        title: "User Added to Active List",
+        description: `${newUser.full_name} is now visible in the active users tab.`,
+      });
     };
 
+    console.log('UserApprovals component: Setting up userCreated event listener');
     window.addEventListener('userCreated', handleUserCreated as EventListener);
     
     return () => {
+      console.log('UserApprovals component: Removing userCreated event listener');
       window.removeEventListener('userCreated', handleUserCreated as EventListener);
     };
-  }, []);
+  }, [toast]);
 
   const handleApprove = async () => {
     if (!selectedUser) return;

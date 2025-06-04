@@ -239,11 +239,15 @@ const ClientDetails: React.FC = () => {
               <div>
                 <h4 className="font-medium mb-3">Business Objectives</h4>
                 <div className="flex flex-wrap gap-2">
-                  {client.business_objectives.map((objective, index) => (
-                    <Badge key={index} variant="secondary">
-                      {objective}
-                    </Badge>
-                  ))}
+                  {client.business_objectives && client.business_objectives.length > 0 ? (
+                    client.business_objectives.map((objective, index) => (
+                      <Badge key={index} variant="secondary">
+                        {objective}
+                      </Badge>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No business objectives specified</p>
+                  )}
                 </div>
               </div>
 
@@ -252,11 +256,15 @@ const ClientDetails: React.FC = () => {
               <div>
                 <h4 className="font-medium mb-3">Target Cloud Providers</h4>
                 <div className="flex flex-wrap gap-2">
-                  {client.target_cloud_providers.map((provider, index) => (
-                    <Badge key={index} variant="outline">
-                      {getProviderLabel(provider)}
-                    </Badge>
-                  ))}
+                  {client.target_cloud_providers && client.target_cloud_providers.length > 0 ? (
+                    client.target_cloud_providers.map((provider, index) => (
+                      <Badge key={index} variant="outline">
+                        {getProviderLabel(provider)}
+                      </Badge>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No cloud providers specified</p>
+                  )}
                 </div>
               </div>
 
@@ -265,11 +273,15 @@ const ClientDetails: React.FC = () => {
               <div>
                 <h4 className="font-medium mb-3">Business Priorities</h4>
                 <div className="flex flex-wrap gap-2">
-                  {client.business_priorities.map((priority, index) => (
-                    <Badge key={index} className="bg-blue-100 text-blue-800">
-                      {getPriorityLabel(priority)}
-                    </Badge>
-                  ))}
+                  {client.business_priorities && client.business_priorities.length > 0 ? (
+                    client.business_priorities.map((priority, index) => (
+                      <Badge key={index} className="bg-blue-100 text-blue-800">
+                        {getPriorityLabel(priority)}
+                      </Badge>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No business priorities specified</p>
+                  )}
                 </div>
               </div>
 
@@ -278,11 +290,15 @@ const ClientDetails: React.FC = () => {
               <div>
                 <h4 className="font-medium mb-3">Compliance Requirements</h4>
                 <div className="flex flex-wrap gap-2">
-                  {client.compliance_requirements.map((requirement, index) => (
-                    <Badge key={index} className="bg-purple-100 text-purple-800">
-                      {requirement}
-                    </Badge>
-                  ))}
+                  {client.compliance_requirements && client.compliance_requirements.length > 0 ? (
+                    client.compliance_requirements.map((requirement, index) => (
+                      <Badge key={index} className="bg-purple-100 text-purple-800">
+                        {requirement}
+                      </Badge>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No compliance requirements specified</p>
+                  )}
                 </div>
               </div>
             </CardContent>

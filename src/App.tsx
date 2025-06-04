@@ -65,6 +65,8 @@ import EngagementManagement from "./pages/admin/EngagementManagement";
 import EngagementDetails from "./pages/admin/EngagementDetails";
 import UserApprovals from "./pages/admin/UserApprovals";
 import CreateUser from "./pages/admin/CreateUser";
+import CreateClient from "./pages/admin/CreateClient";
+import CreateEngagement from "./pages/admin/CreateEngagement";
 import UserProfile from "./pages/admin/UserProfile";
 import AdminLayout from "./components/admin/AdminLayout";
 import AdminRoute from "./components/admin/AdminRoute";
@@ -145,6 +147,8 @@ const App = () => (
               <Route path="/admin/users" element={<AdminRoute><AdminLayout><UserApprovals /></AdminLayout></AdminRoute>} />
               <Route path="/admin/users/access" element={<AdminRoute><AdminLayout><UserApprovals /></AdminLayout></AdminRoute>} />
               <Route path="/admin/reports" element={<AdminRoute><AdminLayout><Reports /></AdminLayout></AdminRoute>} />
+              <Route path="/admin/clients/create" element={<AdminRoute><AdminLayout><CreateClient /></AdminLayout></AdminRoute>} />
+              <Route path="/admin/engagements/create" element={<AdminRoute><AdminLayout><CreateEngagement /></AdminLayout></AdminRoute>} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

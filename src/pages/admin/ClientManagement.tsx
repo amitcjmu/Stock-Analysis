@@ -554,31 +554,12 @@ const ClientManagement: React.FC = () => {
             <Upload className="w-4 h-4 mr-2" />
             Import
           </Button>
-          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="w-4 h-4 mr-2" />
-                New Client
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl">
-              <DialogHeader>
-                <DialogTitle>Create New Client</DialogTitle>
-                <DialogDescription>
-                  Add a new client account with business context and migration preferences.
-                </DialogDescription>
-              </DialogHeader>
-              <ClientForm />
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => {setShowCreateDialog(false); resetForm();}}>
-                  Cancel
-                </Button>
-                <Button onClick={handleCreateClient}>
-                  Create Client
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Button asChild>
+            <Link to="/admin/clients/create">
+              <Plus className="w-4 h-4 mr-2" />
+              New Client
+            </Link>
+          </Button>
         </div>
       </div>
 
