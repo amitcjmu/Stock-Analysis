@@ -76,9 +76,19 @@ const AdminDashboard: React.FC = () => {
           apiCall('/api/v1/auth/admin/dashboard-stats', { headers })
         ]);
 
+        // Transform API response to match frontend interface
+        const transformedEngagements = engagementsData.dashboard_stats || engagementsData;
         setStats({
           clients: clientsData.dashboard_stats || clientsData,
-          engagements: engagementsData.dashboard_stats || engagementsData,
+          engagements: {
+            total: transformedEngagements.total_engagements || 0,
+            active: transformedEngagements.active_engagements || 0,
+            byPhase: transformedEngagements.engagements_by_phase || {},
+            byScope: transformedEngagements.engagements_by_scope || {},
+            completionRate: transformedEngagements.completion_rate_average || 0,
+            budgetUtilization: transformedEngagements.budget_utilization_average || 0,
+            recentActivity: transformedEngagements.recent_engagement_activity || []
+          },
           users: usersData.dashboard_stats || usersData
         });
         setError(null); // Clear any previous errors

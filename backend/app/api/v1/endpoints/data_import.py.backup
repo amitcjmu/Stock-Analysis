@@ -1229,31 +1229,6 @@ async def store_import_data(
             except Exception as session_e:
                 logger.warning(f"Session management failed, continuing without session: {session_e}")
         
-        # Demo fallback UUIDs
-        demo_client_uuid = "cc92315a-4bae-469d-9550-46d1c6e5ab68"  # Pujyam Corp
-        demo_engagement_uuid = "3d4e572d-46b1-4b3c-bfb4-99c50e9aa6ec"  # Digital Transformation 2025
-        demo_user_uuid = "eef6ea50-6550-4f14-be2c-081d4eb23038"  # John Doe
-        
-        # Use actual context or fallback to demo values
-        client_account_id = context.client_account_id or demo_client_uuid
-        engagement_id = context.engagement_id or demo_engagement_uuid
-        user_id = context.user_id or demo_user_uuid
-        
-        # Create or get active session using SessionManagementService
-        session_id = None
-        if SESSION_MANAGEMENT_AVAILABLE:
-            try:
-                session_service = create_session_management_service(db)
-                session = await session_service.get_or_create_active_session(
-                    client_account_id=client_account_id,
-                    engagement_id=engagement_id,
-                    auto_create=True
-                )
-                session_id = str(session.id) if session else None
-                logger.info(f"Using session {session_id} for data import from store-import")
-            except Exception as session_e:
-                logger.warning(f"Session management failed, continuing without session: {session_e}")
-        
         # Create import session record with proper context and session
         import_session = DataImport(
             import_name=metadata.get("filename", "Unknown Import"),

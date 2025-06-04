@@ -128,9 +128,9 @@
     "confidence": "high",
     "priority": "high",
     "created_at": "2025-06-02T03:51:38.749963",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "answered_at": "2025-06-04T03:14:29.867231",
+    "user_response": "No",
+    "is_resolved": true
   },
   "bfef8ebe-b9d8-45b4-84d0-14ca13829fa7": {
     "id": "bfef8ebe-b9d8-45b4-84d0-14ca13829fa7",
@@ -153,9 +153,9 @@
     "confidence": "medium",
     "priority": "low",
     "created_at": "2025-06-02T03:51:38.752866",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "answered_at": "2025-06-04T03:13:56.744608",
+    "user_response": "Will provide later",
+    "is_resolved": true
   },
   "daeaec3f-ee07-4f24-921e-5318ad7fec6b": {
     "id": "daeaec3f-ee07-4f24-921e-5318ad7fec6b",
@@ -178,9 +178,9 @@
     "confidence": "medium",
     "priority": "low",
     "created_at": "2025-06-02T03:51:38.754244",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "answered_at": "2025-06-04T03:13:49.261228",
+    "user_response": "Skip validation",
+    "is_resolved": true
   },
   "eb228e3f-9497-4fce-93ff-30b8484dc141": {
     "id": "eb228e3f-9497-4fce-93ff-30b8484dc141",
@@ -203,9 +203,9 @@
     "confidence": "low",
     "priority": "low",
     "created_at": "2025-06-02T03:51:38.755117",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "answered_at": "2025-06-04T03:13:44.865717",
+    "user_response": "Somewhat important",
+    "is_resolved": true
   },
   "af50b27e-c1f6-4519-9342-92f82c48b172": {
     "id": "af50b27e-c1f6-4519-9342-92f82c48b172",
@@ -552,9 +552,9 @@
     "confidence": "high",
     "priority": "high",
     "created_at": "2025-06-02T04:47:11.465387",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "answered_at": "2025-06-04T03:14:46.395178",
+    "user_response": "Data was uploaded",
+    "is_resolved": true
   },
   "2affaa36-a5f3-45c9-a979-c03630290fa5": {
     "id": "2affaa36-a5f3-45c9-a979-c03630290fa5",
@@ -594,9 +594,9 @@
     "confidence": "medium",
     "priority": "medium",
     "created_at": "2025-06-02T04:59:10.381406",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "answered_at": "2025-06-04T03:13:39.697568",
+    "user_response": "Asset identifier",
+    "is_resolved": true
   },
   "33446604-dec1-4f84-b670-963ae2bdd85e": {
     "id": "33446604-dec1-4f84-b670-963ae2bdd85e",
@@ -631,9 +631,9 @@
     "confidence": "medium",
     "priority": "medium",
     "created_at": "2025-06-02T04:59:10.385457",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "answered_at": "2025-06-04T03:13:32.307363",
+    "user_response": "Manual review needed",
+    "is_resolved": true
   },
   "55d68941-0a31-45bf-90fc-3f7b7fd7d2b9": {
     "id": "55d68941-0a31-45bf-90fc-3f7b7fd7d2b9",

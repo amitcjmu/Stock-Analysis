@@ -89,7 +89,9 @@ export const API_CONFIG = {
       DATA_CLEANUP_PROCESS: '/api/v1/discovery/data-cleanup/agent-process',
       // Data import persistence endpoints
       STORE_IMPORT: '/api/v1/data-import/store-import',
+      STORE_IMPORT_TEMP: '/api/v1/data-import/store-import-temp',
       LATEST_IMPORT: '/api/v1/data-import/latest-import',
+      LATEST_IMPORT_TEMP: '/api/v1/data-import/latest-import-temp',
       GET_IMPORT: '/api/v1/data-import/import',
       LIST_IMPORTS: '/api/v1/data-import/imports',
       AVAILABLE_TARGET_FIELDS: '/api/v1/data-import/available-target-fields'

@@ -40,11 +40,11 @@ class DataImport(Base):
     __tablename__ = "data_imports"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    client_account_id = Column(UUID(as_uuid=True), ForeignKey("client_accounts.id", ondelete="CASCADE"), nullable=False)
-    engagement_id = Column(UUID(as_uuid=True), ForeignKey("engagements.id", ondelete="CASCADE"), nullable=False)
+    client_account_id = Column(UUID(as_uuid=True), ForeignKey("client_accounts.id", ondelete="CASCADE"), nullable=True)
+    engagement_id = Column(UUID(as_uuid=True), ForeignKey("engagements.id", ondelete="CASCADE"), nullable=True)
     
     # Session reference (Task 1.1.4) 
-    session_id = Column(UUID(as_uuid=True), ForeignKey("data_import_sessions.id", ondelete="CASCADE"), nullable=False, index=True)
+    session_id = Column(UUID(as_uuid=True), ForeignKey("data_import_sessions.id", ondelete="CASCADE"), nullable=True, index=True)
     
     # Import metadata
     import_name = Column(String(255), nullable=False)

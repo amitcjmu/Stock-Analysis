@@ -83,21 +83,19 @@ class SessionManagementService:
         
         # Create session
         session = DataImportSession(
-            id=str(uuid.uuid4()),
-            name=session_name,
+            session_name=session_name,
             client_account_id=client_account_id,
             engagement_id=engagement_id,
             description=description or f"Data import session for {engagement.name}",
             status="active",
-            metadata=metadata or {},
-            created_at=datetime.now(timezone.utc)
+            created_by="eef6ea50-6550-4f14-be2c-081d4eb23038"  # Use client_account_id as fallback for created_by
         )
         
         self.db.add(session)
         await self.db.commit()
         await self.db.refresh(session)
         
-        logger.info(f"Created session {session.name} for client {client.name}, engagement {engagement.name}")
+        logger.info(f"Created session {session.session_name} for client {client.name}, engagement {engagement.name}")
         return session
     
     async def get_or_create_active_session(
@@ -130,7 +128,7 @@ class SessionManagementService:
         session = result.scalar_one_or_none()
         
         if session:
-            logger.debug(f"Found active session: {session.name}")
+            logger.debug(f"Found active session: {session.session_name}")
             return session
         
         if auto_create:
@@ -176,7 +174,7 @@ class SessionManagementService:
         await self.db.commit()
         await self.db.refresh(session)
         
-        logger.info(f"Completed session {session.name}")
+        logger.info(f"Completed session {session.session_name}")
         return session
     
     async def archive_session(self, session_id: str) -> DataImportSession:
@@ -203,7 +201,7 @@ class SessionManagementService:
         await self.db.commit()
         await self.db.refresh(session)
         
-        logger.info(f"Archived session {session.name}")
+        logger.info(f"Archived session {session.session_name}")
         return session
     
     async def get_sessions_for_engagement(
@@ -267,7 +265,7 @@ class SessionManagementService:
         # For now, return basic session info
         stats = {
             "session_id": session.id,
-            "session_name": session.name,
+            "session_name": session.session_name,
             "status": session.status,
             "created_at": session.created_at.isoformat(),
             "completed_at": session.completed_at.isoformat() if session.completed_at else None,
@@ -308,7 +306,7 @@ class SessionManagementService:
         await self.db.commit()
         await self.db.refresh(session)
         
-        logger.debug(f"Updated metadata for session {session.name}")
+        logger.debug(f"Updated metadata for session {session.session_name}")
         return session
 
 
