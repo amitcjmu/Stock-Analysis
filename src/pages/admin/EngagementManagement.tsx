@@ -417,10 +417,28 @@ const EngagementManagement: React.FC = () => {
   };
 
   const formatCurrency = (amount: number, currency: string) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency
-    }).format(amount);
+    // Handle missing or invalid currency codes
+    if (!currency || currency.trim() === '') {
+      return new Intl.NumberFormat('en-US', {
+        style: 'decimal',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(amount);
+    }
+    
+    try {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currency
+      }).format(amount);
+    } catch (error) {
+      // Fallback to decimal format if currency is invalid
+      return new Intl.NumberFormat('en-US', {
+        style: 'decimal',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(amount);
+    }
   };
 
   const filteredEngagements = engagements.filter(engagement =>
@@ -729,7 +747,10 @@ const EngagementManagement: React.FC = () => {
                     <TableCell>
                       <div className="text-sm">
                         <div className="font-medium">
-                          {formatCurrency(engagement.budget, engagement.budget_currency)}
+                          {engagement.budget ? 
+                            formatCurrency(engagement.budget, engagement.budget_currency || 'USD') :
+                            'No budget set'
+                          }
                         </div>
                       </div>
                     </TableCell>
