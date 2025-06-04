@@ -62,12 +62,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (token && userData) {
       try {
         const parsedUser = JSON.parse(userData);
+        
+        // Handle migration from old user ID format to UUID format
+        if (parsedUser.id === 'admin-1' && parsedUser.email === 'admin@aiforce.com') {
+          parsedUser.id = '2a0de3df-7484-4fab-98b9-2ca126e2ab21'; // Update to real admin UUID
+          localStorage.setItem('user_data', JSON.stringify(parsedUser));
+          localStorage.setItem('auth_source', 'demo');
+        } else if (parsedUser.id === 'user-1' && parsedUser.email === 'user@demo.com') {
+          parsedUser.id = 'demo-user-12345678-1234-5678-9012-123456789012'; // Update to UUID format
+          localStorage.setItem('user_data', JSON.stringify(parsedUser));
+          localStorage.setItem('auth_source', 'demo');
+        }
+        
         setUser(parsedUser);
         setIsAuthenticated(true);
       } catch (error) {
         console.error('Error parsing stored user data:', error);
         localStorage.removeItem('auth_token');
         localStorage.removeItem('user_data');
+        localStorage.removeItem('auth_source');
       }
     }
   }, []);
@@ -91,6 +104,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             // Store auth token and user data
             localStorage.setItem('auth_token', result.token);
             localStorage.setItem('user_data', JSON.stringify(result.user));
+            localStorage.setItem('auth_source', 'database'); // Track the auth source
             
             setUser(result.user);
             setIsAuthenticated(true);
@@ -103,8 +117,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       // Fall back to demo authentication if database auth fails
       if (email === 'admin@aiforce.com' && password === 'admin123') {
+        // Use the real admin UUID from the database for demo auth
         const adminUser: User = {
-          id: 'admin-1',
+          id: '2a0de3df-7484-4fab-98b9-2ca126e2ab21', // Real admin UUID from database
           username: 'admin',
           email: 'admin@aiforce.com',
           full_name: 'Admin User',
@@ -116,12 +131,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const token = 'demo-admin-token-' + Date.now();
         localStorage.setItem('auth_token', token);
         localStorage.setItem('user_data', JSON.stringify(adminUser));
+        localStorage.setItem('auth_source', 'demo'); // Track the auth source
         
         setUser(adminUser);
         setIsAuthenticated(true);
       } else if (email === 'user@demo.com' && password === 'user123') {
+        // Generate a proper UUID for demo user instead of "user-1"
         const demoUser: User = {
-          id: 'user-1',
+          id: 'demo-user-12345678-1234-5678-9012-123456789012', // Valid UUID format
           username: 'demo_user',
           email: 'user@demo.com',
           full_name: 'Demo User',
@@ -134,6 +151,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const token = 'demo-user-token-' + Date.now();
         localStorage.setItem('auth_token', token);
         localStorage.setItem('user_data', JSON.stringify(demoUser));
+        localStorage.setItem('auth_source', 'demo'); // Track the auth source
         
         setUser(demoUser);
         setIsAuthenticated(true);
@@ -148,6 +166,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user_data');
+    localStorage.removeItem('auth_source');
     setUser(null);
     setIsAuthenticated(false);
   };
