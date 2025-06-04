@@ -265,18 +265,24 @@ const AdminDashboard: React.FC = () => {
                 <CardDescription>Distribution of client accounts by industry sector</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {Object.entries(stats.clients.byIndustry).map(([industry, count]) => (
-                  <div key={industry} className="flex items-center justify-between">
-                    <span className="text-sm font-medium">{industry}</span>
-                    <div className="flex items-center gap-2">
-                      <Progress 
-                        value={(count / stats.clients.total) * 100} 
-                        className="w-20 h-2"
-                      />
-                      <span className="text-sm text-muted-foreground w-8">{count}</span>
+                {stats.clients.byIndustry && Object.entries(stats.clients.byIndustry).length > 0 ? (
+                  Object.entries(stats.clients.byIndustry).map(([industry, count]) => (
+                    <div key={industry} className="flex items-center justify-between">
+                      <span className="text-sm font-medium">{industry}</span>
+                      <div className="flex items-center gap-2">
+                        <Progress 
+                          value={(count / Math.max(stats.clients.total, 1)) * 100} 
+                          className="w-20 h-2"
+                        />
+                        <span className="text-sm text-muted-foreground w-8">{count}</span>
+                      </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="text-center text-muted-foreground py-4">
+                    No industry data available
                   </div>
-                ))}
+                )}
               </CardContent>
             </Card>
 
@@ -286,18 +292,24 @@ const AdminDashboard: React.FC = () => {
                 <CardDescription>Distribution by organizational size</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {Object.entries(stats.clients.bySize).map(([size, count]) => (
-                  <div key={size} className="flex items-center justify-between">
-                    <span className="text-sm font-medium">{size}</span>
-                    <div className="flex items-center gap-2">
-                      <Progress 
-                        value={(count / stats.clients.total) * 100} 
-                        className="w-20 h-2"
-                      />
-                      <span className="text-sm text-muted-foreground w-8">{count}</span>
+                {stats.clients.bySize && Object.entries(stats.clients.bySize).length > 0 ? (
+                  Object.entries(stats.clients.bySize).map(([size, count]) => (
+                    <div key={size} className="flex items-center justify-between">
+                      <span className="text-sm font-medium">{size}</span>
+                      <div className="flex items-center gap-2">
+                        <Progress 
+                          value={(count / Math.max(stats.clients.total, 1)) * 100} 
+                          className="w-20 h-2"
+                        />
+                        <span className="text-sm text-muted-foreground w-8">{count}</span>
+                      </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="text-center text-muted-foreground py-4">
+                    No company size data available
                   </div>
-                ))}
+                )}
               </CardContent>
             </Card>
           </div>
@@ -311,18 +323,24 @@ const AdminDashboard: React.FC = () => {
                 <CardDescription>Current phase distribution across all engagements</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {Object.entries(stats.engagements.byPhase).map(([phase, count]) => (
-                  <div key={phase} className="flex items-center justify-between">
-                    <span className="text-sm font-medium capitalize">{phase}</span>
-                    <div className="flex items-center gap-2">
-                      <Progress 
-                        value={(count / stats.engagements.total) * 100} 
-                        className="w-20 h-2"
-                      />
-                      <span className="text-sm text-muted-foreground w-8">{count}</span>
+                {stats.engagements.byPhase && Object.entries(stats.engagements.byPhase).length > 0 ? (
+                  Object.entries(stats.engagements.byPhase).map(([phase, count]) => (
+                    <div key={phase} className="flex items-center justify-between">
+                      <span className="text-sm font-medium capitalize">{phase}</span>
+                      <div className="flex items-center gap-2">
+                        <Progress 
+                          value={(count / Math.max(stats.engagements.total, 1)) * 100} 
+                          className="w-20 h-2"
+                        />
+                        <span className="text-sm text-muted-foreground w-8">{count}</span>
+                      </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="text-center text-muted-foreground py-4">
+                    No engagement phase data available
                   </div>
-                ))}
+                )}
               </CardContent>
             </Card>
 
@@ -332,22 +350,28 @@ const AdminDashboard: React.FC = () => {
                 <CardDescription>Types of migration scopes being executed</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {Object.entries(stats.engagements.byScope).map(([scope, count]) => (
-                  <div key={scope} className="flex items-center justify-between">
-                    <span className="text-sm font-medium">
-                      {scope.replace('_', ' ').split(' ').map(word => 
-                        word.charAt(0).toUpperCase() + word.slice(1)
-                      ).join(' ')}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <Progress 
-                        value={(count / stats.engagements.total) * 100} 
-                        className="w-20 h-2"
-                      />
-                      <span className="text-sm text-muted-foreground w-8">{count}</span>
+                {stats.engagements.byScope && Object.entries(stats.engagements.byScope).length > 0 ? (
+                  Object.entries(stats.engagements.byScope).map(([scope, count]) => (
+                    <div key={scope} className="flex items-center justify-between">
+                      <span className="text-sm font-medium">
+                        {scope.replace('_', ' ').split(' ').map(word => 
+                          word.charAt(0).toUpperCase() + word.slice(1)
+                        ).join(' ')}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <Progress 
+                          value={(count / Math.max(stats.engagements.total, 1)) * 100} 
+                          className="w-20 h-2"
+                        />
+                        <span className="text-sm text-muted-foreground w-8">{count}</span>
+                      </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="text-center text-muted-foreground py-4">
+                    No engagement scope data available
                   </div>
-                ))}
+                )}
               </CardContent>
             </Card>
           </div>

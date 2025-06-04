@@ -86,6 +86,14 @@ try:
 except ImportError as e:
     logger.warning(f"⚠️ App-server mappings router not available: {e}")
 
+# Include discovery flow router for async CrewAI workflows
+try:
+    from app.api.v1.discovery.discovery_flow import router as discovery_flow_router
+    router.include_router(discovery_flow_router, prefix="/flow", tags=["discovery-flow"])
+    logger.info("✅ Discovery flow router included in discovery")
+except ImportError as e:
+    logger.warning(f"⚠️ Discovery flow router not available: {e}")
+
 @router.get("/health")
 async def discovery_health_check():
     """Health check endpoint for the discovery module."""
@@ -98,7 +106,8 @@ async def discovery_health_check():
             "data_processing": processing_handler.is_available(),
             "templates": template_handler.is_available(),
             "feedback": feedback_handler.is_available(),
-            "asset_management": True  # Asset management is now included
+            "asset_management": True,  # Asset management is now included
+            "discovery_flow": True  # Async CrewAI Discovery Flow
         },
         "available_endpoints": [
             "/health",
@@ -118,7 +127,12 @@ async def discovery_health_check():
             "/data-cleanup/agent-process",  # Data cleanup processing
             "/agents/agent-status",  # Agent status endpoint
             "/agents/agent-analysis",  # Agent analysis endpoint
-            "/agents/application-portfolio"  # Application portfolio endpoint
+            "/agents/application-portfolio",  # Application portfolio endpoint
+            "/flow/run",  # Async CrewAI Discovery Flow
+            "/flow/health",  # Flow service health check
+            "/flow/validate-data",  # Quick data validation
+            "/flow/map-fields",  # AI field mapping
+            "/flow/classify-assets"  # AI asset classification
         ]
     }
 

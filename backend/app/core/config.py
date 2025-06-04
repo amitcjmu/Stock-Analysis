@@ -66,10 +66,7 @@ class Settings(BaseSettings):
     # Removed OpenAI support - using DeepInfra exclusively
     
     # Security settings
-    SECRET_KEY: str = Field(
-        default="your-secret-key-change-in-production",
-        env="SECRET_KEY"
-    )
+    SECRET_KEY: str = "your-secret-key-here"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30, env="ACCESS_TOKEN_EXPIRE_MINUTES")
     
     # CORS settings
@@ -87,7 +84,7 @@ class Settings(BaseSettings):
     WS_HEARTBEAT_INTERVAL: int = Field(default=30, env="WS_HEARTBEAT_INTERVAL")
     
     # CrewAI settings (using DeepInfra)
-    CREWAI_ENABLED: bool = Field(default=True, env="CREWAI_ENABLED")
+    CREWAI_ENABLED: bool = True
     CREWAI_MODEL: str = Field(
         default="meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8", 
         env="CREWAI_MODEL"
@@ -98,6 +95,18 @@ class Settings(BaseSettings):
     # Migration specific settings
     MAX_ASSETS_PER_SCAN: int = Field(default=1000, env="MAX_ASSETS_PER_SCAN")
     DEFAULT_MIGRATION_TIMELINE_DAYS: int = Field(default=90, env="DEFAULT_MIGRATION_TIMELINE_DAYS")
+    
+    # Enhanced CrewAI Flow Service Configuration
+    CREWAI_TIMEOUT_DATA_VALIDATION: float = 15.0
+    CREWAI_TIMEOUT_FIELD_MAPPING: float = 20.0  
+    CREWAI_TIMEOUT_ASSET_CLASSIFICATION: float = 15.0
+    CREWAI_LLM_MODEL: str = "meta-llama/Llama-3.3-70B-Instruct"
+    CREWAI_LLM_TEMPERATURE: float = 0.1
+    CREWAI_LLM_MAX_TOKENS: int = 4000
+    CREWAI_LLM_BASE_URL: str = "https://api.deepinfra.com/v1/openai"
+    CREWAI_RETRY_ATTEMPTS: int = 3
+    CREWAI_RETRY_WAIT_SECONDS: int = 2
+    CREWAI_FLOW_TTL_HOURS: int = 1
     
     class Config:
         env_file = ".env"
