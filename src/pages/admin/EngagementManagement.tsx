@@ -109,6 +109,155 @@ const MigrationPhases = [
   { value: 'completed', label: 'Completed' }
 ];
 
+// Move EngagementForm component outside to prevent re-creation
+interface EngagementFormProps {
+  formData: EngagementFormData;
+  onFormChange: (field: keyof EngagementFormData, value: any) => void;
+  clients: Client[];
+}
+
+const EngagementForm: React.FC<EngagementFormProps> = React.memo(({ formData, onFormChange, clients }) => (
+  <div className="space-y-6 max-h-96 overflow-y-auto">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="space-y-2">
+        <Label htmlFor="engagement_name">Engagement Name *</Label>
+        <Input
+          id="engagement_name"
+          value={formData.engagement_name}
+          onChange={(e) => onFormChange('engagement_name', e.target.value)}
+          placeholder="Enter engagement name"
+          required
+        />
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="client_account_id">Client Account *</Label>
+        <Select value={formData.client_account_id} onValueChange={(value) => onFormChange('client_account_id', value)}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select client" />
+          </SelectTrigger>
+          <SelectContent>
+            {clients.map(client => (
+              <SelectItem key={client.id} value={client.id}>{client.account_name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="migration_scope">Migration Scope *</Label>
+        <Select value={formData.migration_scope} onValueChange={(value) => onFormChange('migration_scope', value)}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select scope" />
+          </SelectTrigger>
+          <SelectContent>
+            {MigrationScopes.map(scope => (
+              <SelectItem key={scope.value} value={scope.value}>{scope.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="target_cloud_provider">Target Cloud Provider *</Label>
+        <Select value={formData.target_cloud_provider} onValueChange={(value) => onFormChange('target_cloud_provider', value)}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select provider" />
+          </SelectTrigger>
+          <SelectContent>
+            {CloudProviders.map(provider => (
+              <SelectItem key={provider.value} value={provider.value}>{provider.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="migration_phase">Migration Phase *</Label>
+        <Select value={formData.migration_phase} onValueChange={(value) => onFormChange('migration_phase', value)}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select phase" />
+          </SelectTrigger>
+          <SelectContent>
+            {MigrationPhases.map(phase => (
+              <SelectItem key={phase.value} value={phase.value}>{phase.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="engagement_manager">Engagement Manager *</Label>
+        <Input
+          id="engagement_manager"
+          value={formData.engagement_manager}
+          onChange={(e) => onFormChange('engagement_manager', e.target.value)}
+          placeholder="Full name"
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="technical_lead">Technical Lead *</Label>
+        <Input
+          id="technical_lead"
+          value={formData.technical_lead}
+          onChange={(e) => onFormChange('technical_lead', e.target.value)}
+          placeholder="Full name"
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="start_date">Start Date *</Label>
+        <Input
+          id="start_date"
+          type="date"
+          value={formData.start_date}
+          onChange={(e) => onFormChange('start_date', e.target.value)}
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="end_date">End Date *</Label>
+        <Input
+          id="end_date"
+          type="date"
+          value={formData.end_date}
+          onChange={(e) => onFormChange('end_date', e.target.value)}
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="budget">Budget</Label>
+        <Input
+          id="budget"
+          type="number"
+          value={formData.budget}
+          onChange={(e) => onFormChange('budget', parseFloat(e.target.value) || 0)}
+          placeholder="0"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="budget_currency">Budget Currency</Label>
+        <Select value={formData.budget_currency} onValueChange={(value) => onFormChange('budget_currency', value)}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {Currencies.map(currency => (
+              <SelectItem key={currency.value} value={currency.value}>{currency.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  </div>
+));
+
 const EngagementManagement: React.FC = () => {
   const navigate = useNavigate();
   const [engagements, setEngagements] = useState<Engagement[]>([]);
@@ -139,13 +288,13 @@ const EngagementManagement: React.FC = () => {
     stakeholder_preferences: {}
   });
 
-  // Simple direct form handlers - no useCallback to prevent re-renders
-  const handleFormChange = (field: keyof EngagementFormData, value: any) => {
+  // Use useCallback to memoize the form change handler
+  const handleFormChange = useCallback((field: keyof EngagementFormData, value: any) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
-  };
+  }, []);
 
   useEffect(() => {
     fetchEngagements();
@@ -440,147 +589,6 @@ const EngagementManagement: React.FC = () => {
     engagement.engagement_manager.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const EngagementForm = () => (
-    <div className="space-y-6 max-h-96 overflow-y-auto">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="engagement_name">Engagement Name *</Label>
-          <Input
-            id="engagement_name"
-            value={formData.engagement_name}
-            onChange={(e) => handleFormChange('engagement_name', e.target.value)}
-            placeholder="Enter engagement name"
-            required
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="client_account_id">Client *</Label>
-          <Select value={formData.client_account_id} onValueChange={(value) => handleFormChange('client_account_id', value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select client" />
-            </SelectTrigger>
-            <SelectContent>
-              {clients.map(client => (
-                <SelectItem key={client.id} value={client.id}>{client.account_name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="migration_scope">Migration Scope *</Label>
-          <Select value={formData.migration_scope} onValueChange={(value) => handleFormChange('migration_scope', value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select migration scope" />
-            </SelectTrigger>
-            <SelectContent>
-              {MigrationScopes.map(scope => (
-                <SelectItem key={scope.value} value={scope.value}>{scope.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="target_cloud_provider">Target Cloud Provider *</Label>
-          <Select value={formData.target_cloud_provider} onValueChange={(value) => handleFormChange('target_cloud_provider', value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select cloud provider" />
-            </SelectTrigger>
-            <SelectContent>
-              {CloudProviders.map(provider => (
-                <SelectItem key={provider.value} value={provider.value}>{provider.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="migration_phase">Migration Phase *</Label>
-          <Select value={formData.migration_phase} onValueChange={(value) => handleFormChange('migration_phase', value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select phase" />
-            </SelectTrigger>
-            <SelectContent>
-              {MigrationPhases.map(phase => (
-                <SelectItem key={phase.value} value={phase.value}>{phase.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="engagement_manager">Engagement Manager *</Label>
-          <Input
-            id="engagement_manager"
-            value={formData.engagement_manager}
-            onChange={(e) => handleFormChange('engagement_manager', e.target.value)}
-            placeholder="Full name"
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="technical_lead">Technical Lead *</Label>
-          <Input
-            id="technical_lead"
-            value={formData.technical_lead}
-            onChange={(e) => handleFormChange('technical_lead', e.target.value)}
-            placeholder="Full name"
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="start_date">Start Date *</Label>
-          <Input
-            id="start_date"
-            type="date"
-            value={formData.start_date}
-            onChange={(e) => handleFormChange('start_date', e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="end_date">End Date *</Label>
-          <Input
-            id="end_date"
-            type="date"
-            value={formData.end_date}
-            onChange={(e) => handleFormChange('end_date', e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="budget">Budget</Label>
-          <div className="flex gap-2">
-            <Input
-              id="budget"
-              type="number"
-              value={formData.budget || ''}
-              onChange={(e) => handleFormChange('budget', parseFloat(e.target.value) || 0)}
-              placeholder="0"
-              className="flex-1"
-            />
-            <Select value={formData.budget_currency} onValueChange={(value) => handleFormChange('budget_currency', value)}>
-              <SelectTrigger className="w-20">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="USD">USD</SelectItem>
-                <SelectItem value="EUR">EUR</SelectItem>
-                <SelectItem value="GBP">GBP</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
@@ -789,10 +797,10 @@ const EngagementManagement: React.FC = () => {
           <DialogHeader>
             <DialogTitle>Edit Engagement: {editingEngagement?.engagement_name}</DialogTitle>
             <DialogDescription>
-              Update engagement details and project configuration.
+              Update engagement information and team assignments.
             </DialogDescription>
           </DialogHeader>
-          <EngagementForm />
+          <EngagementForm formData={formData} onFormChange={handleFormChange} clients={clients} />
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => {setEditingEngagement(null); resetForm();}}>
               Cancel

@@ -65,21 +65,51 @@ async def create_client_account(
                 detail=f"Client account '{client_data.account_name}' already exists"
             )
         
-        # Create new client account
+        # Create new client account with proper field mapping
         client = ClientAccount(
             name=client_data.account_name,
             slug=client_data.account_name.lower().replace(' ', '-').replace('&', 'and'),
             industry=client_data.industry,
             company_size=client_data.company_size,
-            business_objectives=client_data.business_objectives,
-            it_guidelines=client_data.it_guidelines,
-            decision_criteria=client_data.decision_criteria,
-            agent_preferences=client_data.agent_preferences,
-            target_cloud_providers=[provider.value for provider in client_data.target_cloud_providers],
-            business_priorities=[priority.value for priority in client_data.business_priorities],
-            compliance_requirements=client_data.compliance_requirements,
-            budget_constraints=client_data.budget_constraints,
-            timeline_constraints=client_data.timeline_constraints
+            # Map business context to JSON fields in the database model
+            business_objectives={
+                "primary_goals": client_data.business_objectives,
+                "timeframe": "",
+                "success_metrics": [],
+                "budget_constraints": "",
+                "compliance_requirements": client_data.compliance_requirements
+            },
+            it_guidelines={
+                "architecture_patterns": [],
+                "security_requirements": [],
+                "compliance_standards": [],
+                "technology_preferences": [],
+                "cloud_strategy": "",
+                "data_governance": {}
+            },
+            decision_criteria={
+                "risk_tolerance": "medium",
+                "cost_sensitivity": "medium", 
+                "innovation_appetite": "moderate",
+                "timeline_pressure": "medium",
+                "quality_vs_speed": "balanced",
+                "technical_debt_tolerance": "low"
+            },
+            agent_preferences={
+                "confidence_thresholds": {
+                    "field_mapping": 0.8,
+                    "data_classification": 0.75,
+                    "risk_assessment": 0.85,
+                    "migration_strategy": 0.9
+                },
+                "learning_preferences": ["conservative", "accuracy_focused"],
+                "custom_prompts": {},
+                "notification_preferences": {
+                    "confidence_alerts": True,
+                    "learning_updates": False,
+                    "error_notifications": True
+                }
+            }
         )
         
         db.add(client)

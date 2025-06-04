@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   Building2, 
   Plus, 
@@ -97,6 +97,177 @@ const CompanySizes = [
   'Small (1-100)', 'Medium (101-1000)', 'Large (1001-5000)', 'Enterprise (5000+)'
 ];
 
+// Move ClientForm component outside to prevent re-creation
+interface ClientFormProps {
+  formData: ClientFormData;
+  onFormChange: (field: keyof ClientFormData, value: any) => void;
+}
+
+const ClientForm: React.FC<ClientFormProps> = React.memo(({ formData, onFormChange }) => (
+  <div className="space-y-6 max-h-96 overflow-y-auto">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="space-y-2">
+        <Label htmlFor="account_name">Account Name *</Label>
+        <Input
+          id="account_name"
+          value={formData.account_name}
+          onChange={(e) => onFormChange('account_name', e.target.value)}
+          placeholder="Enter company name"
+          required
+        />
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="industry">Industry *</Label>
+        <Select value={formData.industry} onValueChange={(value) => onFormChange('industry', value)}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select industry" />
+          </SelectTrigger>
+          <SelectContent>
+            {Industries.map(industry => (
+              <SelectItem key={industry} value={industry}>{industry}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="company_size">Company Size *</Label>
+        <Select value={formData.company_size} onValueChange={(value) => onFormChange('company_size', value)}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select company size" />
+          </SelectTrigger>
+          <SelectContent>
+            {CompanySizes.map(size => (
+              <SelectItem key={size} value={size}>{size}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="headquarters_location">Headquarters Location *</Label>
+        <Input
+          id="headquarters_location"
+          value={formData.headquarters_location}
+          onChange={(e) => onFormChange('headquarters_location', e.target.value)}
+          placeholder="City, State/Country"
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="primary_contact_name">Primary Contact Name *</Label>
+        <Input
+          id="primary_contact_name"
+          value={formData.primary_contact_name}
+          onChange={(e) => onFormChange('primary_contact_name', e.target.value)}
+          placeholder="Full name"
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="primary_contact_email">Primary Contact Email *</Label>
+        <Input
+          id="primary_contact_email"
+          type="email"
+          value={formData.primary_contact_email}
+          onChange={(e) => onFormChange('primary_contact_email', e.target.value)}
+          placeholder="email@company.com"
+          required
+        />
+      </div>
+    </div>
+
+    <div className="space-y-2">
+      <Label htmlFor="primary_contact_phone">Primary Contact Phone</Label>
+      <Input
+        id="primary_contact_phone"
+        value={formData.primary_contact_phone}
+        onChange={(e) => onFormChange('primary_contact_phone', e.target.value)}
+        placeholder="+1-555-0123"
+      />
+    </div>
+
+    <Separator />
+
+    <div className="space-y-4">
+      <h4 className="font-medium">Business Context</h4>
+      
+      <div className="space-y-2">
+        <Label>Target Cloud Providers</Label>
+        <div className="grid grid-cols-2 gap-2">
+          {CloudProviders.map(provider => (
+            <label key={provider.value} className="flex items-center space-x-2">
+              <Checkbox
+                checked={formData.target_cloud_providers.includes(provider.value)}
+                onCheckedChange={(checked) => {
+                  const currentArray = formData.target_cloud_providers;
+                  if (checked) {
+                    onFormChange('target_cloud_providers', [...currentArray, provider.value]);
+                  } else {
+                    onFormChange('target_cloud_providers', currentArray.filter(item => item !== provider.value));
+                  }
+                }}
+              />
+              <span className="text-sm">{provider.label}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Business Priorities</Label>
+        <div className="grid grid-cols-2 gap-2">
+          {BusinessPriorities.map(priority => (
+            <label key={priority.value} className="flex items-center space-x-2">
+              <Checkbox
+                checked={formData.business_priorities.includes(priority.value)}
+                onCheckedChange={(checked) => {
+                  const currentArray = formData.business_priorities;
+                  if (checked) {
+                    onFormChange('business_priorities', [...currentArray, priority.value]);
+                  } else {
+                    onFormChange('business_priorities', currentArray.filter(item => item !== priority.value));
+                  }
+                }}
+              />
+              <span className="text-sm">{priority.label}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="business_objectives">Business Objectives</Label>
+        <Textarea
+          id="business_objectives"
+          placeholder="Enter business objectives (one per line)"
+          value={formData.business_objectives.join('\n')}
+          onChange={(e) => {
+            const newArray = e.target.value.split('\n').filter(item => item.trim());
+            onFormChange('business_objectives', newArray);
+          }}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="compliance_requirements">Compliance Requirements</Label>
+        <Textarea
+          id="compliance_requirements"
+          placeholder="Enter compliance requirements (one per line)"
+          value={formData.compliance_requirements.join('\n')}
+          onChange={(e) => {
+            const newArray = e.target.value.split('\n').filter(item => item.trim());
+            onFormChange('compliance_requirements', newArray);
+          }}
+        />
+      </div>
+    </div>
+  </div>
+));
+
 const ClientManagement: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
@@ -126,13 +297,13 @@ const ClientManagement: React.FC = () => {
     agent_preferences: {}
   });
 
-  // Simple direct form handlers - no useCallback to prevent re-renders
-  const handleFormChange = (field: keyof ClientFormData, value: any) => {
+  // Use useCallback to memoize the form change handler
+  const handleFormChange = useCallback((field: keyof ClientFormData, value: any) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
-  };
+  }, []);
 
   useEffect(() => {
     fetchClients();
@@ -370,171 +541,6 @@ const ClientManagement: React.FC = () => {
     client.industry.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const ClientForm = () => (
-    <div className="space-y-6 max-h-96 overflow-y-auto">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="account_name">Account Name *</Label>
-          <Input
-            id="account_name"
-            value={formData.account_name}
-            onChange={(e) => handleFormChange('account_name', e.target.value)}
-            placeholder="Enter company name"
-            required
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="industry">Industry *</Label>
-          <Select value={formData.industry} onValueChange={(value) => handleFormChange('industry', value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select industry" />
-            </SelectTrigger>
-            <SelectContent>
-              {Industries.map(industry => (
-                <SelectItem key={industry} value={industry}>{industry}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="company_size">Company Size *</Label>
-          <Select value={formData.company_size} onValueChange={(value) => handleFormChange('company_size', value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select company size" />
-            </SelectTrigger>
-            <SelectContent>
-              {CompanySizes.map(size => (
-                <SelectItem key={size} value={size}>{size}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="headquarters_location">Headquarters Location *</Label>
-          <Input
-            id="headquarters_location"
-            value={formData.headquarters_location}
-            onChange={(e) => handleFormChange('headquarters_location', e.target.value)}
-            placeholder="City, State/Country"
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="primary_contact_name">Primary Contact Name *</Label>
-          <Input
-            id="primary_contact_name"
-            value={formData.primary_contact_name}
-            onChange={(e) => handleFormChange('primary_contact_name', e.target.value)}
-            placeholder="Full name"
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="primary_contact_email">Primary Contact Email *</Label>
-          <Input
-            id="primary_contact_email"
-            type="email"
-            value={formData.primary_contact_email}
-            onChange={(e) => handleFormChange('primary_contact_email', e.target.value)}
-            placeholder="email@company.com"
-            required
-          />
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="primary_contact_phone">Primary Contact Phone</Label>
-        <Input
-          id="primary_contact_phone"
-          value={formData.primary_contact_phone}
-          onChange={(e) => handleFormChange('primary_contact_phone', e.target.value)}
-          placeholder="+1-555-0123"
-        />
-      </div>
-
-      <Separator />
-
-      <div className="space-y-4">
-        <h4 className="font-medium">Business Context</h4>
-        
-        <div className="space-y-2">
-          <Label>Target Cloud Providers</Label>
-          <div className="grid grid-cols-2 gap-2">
-            {CloudProviders.map(provider => (
-              <label key={provider.value} className="flex items-center space-x-2">
-                <Checkbox
-                  checked={formData.target_cloud_providers.includes(provider.value)}
-                  onCheckedChange={(checked) => {
-                    const currentArray = formData.target_cloud_providers;
-                    if (checked) {
-                      handleFormChange('target_cloud_providers', [...currentArray, provider.value]);
-                    } else {
-                      handleFormChange('target_cloud_providers', currentArray.filter(item => item !== provider.value));
-                    }
-                  }}
-                />
-                <span className="text-sm">{provider.label}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label>Business Priorities</Label>
-          <div className="grid grid-cols-2 gap-2">
-            {BusinessPriorities.map(priority => (
-              <label key={priority.value} className="flex items-center space-x-2">
-                <Checkbox
-                  checked={formData.business_priorities.includes(priority.value)}
-                  onCheckedChange={(checked) => {
-                    const currentArray = formData.business_priorities;
-                    if (checked) {
-                      handleFormChange('business_priorities', [...currentArray, priority.value]);
-                    } else {
-                      handleFormChange('business_priorities', currentArray.filter(item => item !== priority.value));
-                    }
-                  }}
-                />
-                <span className="text-sm">{priority.label}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="business_objectives">Business Objectives</Label>
-          <Textarea
-            id="business_objectives"
-            placeholder="Enter business objectives (one per line)"
-            value={formData.business_objectives.join('\n')}
-            onChange={(e) => {
-              const newArray = e.target.value.split('\n').filter(item => item.trim());
-              handleFormChange('business_objectives', newArray);
-            }}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="compliance_requirements">Compliance Requirements</Label>
-          <Textarea
-            id="compliance_requirements"
-            placeholder="Enter compliance requirements (one per line)"
-            value={formData.compliance_requirements.join('\n')}
-            onChange={(e) => {
-              const newArray = e.target.value.split('\n').filter(item => item.trim());
-              handleFormChange('compliance_requirements', newArray);
-            }}
-          />
-        </div>
-      </div>
-    </div>
-  );
-
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
@@ -739,7 +745,7 @@ const ClientManagement: React.FC = () => {
               Update client account information and business context.
             </DialogDescription>
           </DialogHeader>
-          <ClientForm />
+          <ClientForm formData={formData} onFormChange={handleFormChange} />
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => {setEditingClient(null); resetForm();}}>
               Cancel

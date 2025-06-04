@@ -62,24 +62,18 @@ class ClientAccountCreate(BaseModel):
     primary_contact_email: str = Field(..., pattern=r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
     primary_contact_phone: Optional[str] = Field(None, pattern=r'^\+?[1-9]\d{1,14}$')
     
-    # Business Context Fields
+    # Business Context Fields - Made optional to match frontend
     business_objectives: List[str] = Field(default_factory=list, description="Primary business objectives for migration")
     it_guidelines: Dict[str, Any] = Field(default_factory=dict, description="IT policies and guidelines")
     decision_criteria: Dict[str, Any] = Field(default_factory=dict, description="Decision-making criteria and priorities")
     agent_preferences: Dict[str, Any] = Field(default_factory=dict, description="Preferred agent configurations and settings")
     
-    # Migration Context
-    target_cloud_providers: List[CloudProviderEnum] = Field(default_factory=list)
-    business_priorities: List[BusinessPriorityEnum] = Field(default_factory=list)
+    # Migration Context - Made optional to match frontend
+    target_cloud_providers: List[str] = Field(default_factory=list, description="Target cloud provider preferences")
+    business_priorities: List[str] = Field(default_factory=list, description="Business priority areas")
     compliance_requirements: List[str] = Field(default_factory=list)
     budget_constraints: Optional[Dict[str, Any]] = None
     timeline_constraints: Optional[Dict[str, Any]] = None
-    
-    @validator('business_objectives')
-    def validate_business_objectives(cls, v):
-        if not v or len(v) == 0:
-            raise ValueError('At least one business objective must be specified')
-        return v
     
     @validator('account_name')
     def validate_account_name(cls, v):
