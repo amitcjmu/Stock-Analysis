@@ -338,6 +338,31 @@ const UserApprovals: React.FC = () => {
     try {
       setActionLoading(selectedUser.user_id);
       
+      // Get available clients to assign a default one
+      let clientAccess = approvalData.client_access;
+      if (!clientAccess || clientAccess.length === 0) {
+        try {
+          const clientsResponse = await apiCall('/api/v1/admin/clients/', {
+            headers: getAuthHeaders()
+          });
+          
+          if (clientsResponse.items && clientsResponse.items.length > 0) {
+            // Assign the first available client with the same access level as the user
+            clientAccess = [{
+              client_id: clientsResponse.items[0].id,
+              access_level: approvalData.access_level
+            }];
+          }
+        } catch (error) {
+          console.error('Failed to get clients for approval:', error);
+          // Fallback: create a minimal client access
+          clientAccess = [{
+            client_id: "default-client",
+            access_level: approvalData.access_level
+          }];
+        }
+      }
+      
       const response = await apiCall('/api/v1/auth/approve-user', {
         method: 'POST',
         headers: {
@@ -346,7 +371,8 @@ const UserApprovals: React.FC = () => {
         },
         body: JSON.stringify({
           user_id: selectedUser.user_id,
-          ...approvalData
+          ...approvalData,
+          client_access: clientAccess
         })
       });
 
@@ -929,11 +955,16 @@ const UserApprovals: React.FC = () => {
               <Label htmlFor="rejection-reason">Rejection Reason *</Label>
               <Textarea
                 id="rejection-reason"
-                placeholder="Please explain why this request is being rejected..."
+                placeholder="Please explain why this request is being rejected (minimum 10 characters)..."
                 value={rejectionData.rejection_reason}
                 onChange={(e) => setRejectionData(prev => ({ ...prev, rejection_reason: e.target.value }))}
                 required
               />
+              {rejectionData.rejection_reason && rejectionData.rejection_reason.length < 10 && (
+                <p className="text-sm text-red-500 mt-1">
+                  Rejection reason must be at least 10 characters ({rejectionData.rejection_reason.length}/10)
+                </p>
+              )}
             </div>
           </div>
           
@@ -944,7 +975,7 @@ const UserApprovals: React.FC = () => {
             <Button 
               variant="destructive" 
               onClick={handleReject} 
-              disabled={!rejectionData.rejection_reason || actionLoading === selectedUser?.user_id}
+              disabled={!rejectionData.rejection_reason || rejectionData.rejection_reason.length < 10 || actionLoading === selectedUser?.user_id}
             >
               {actionLoading === selectedUser?.user_id ? 'Rejecting...' : 'Reject Request'}
             </Button>

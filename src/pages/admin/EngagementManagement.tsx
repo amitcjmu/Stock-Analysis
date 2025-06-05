@@ -38,6 +38,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { apiCall } from '@/config/api';
 
 interface Engagement {
   id: string;
@@ -283,6 +285,8 @@ const EngagementForm: React.FC<EngagementFormProps> = React.memo(({ formData, on
 
 const EngagementManagement: React.FC = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const { getAuthHeaders } = useAuth();
   const [engagements, setEngagements] = useState<Engagement[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
@@ -293,7 +297,6 @@ const EngagementManagement: React.FC = () => {
   const [editingEngagement, setEditingEngagement] = useState<Engagement | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const { toast } = useToast();
 
   const [formData, setFormData] = useState<EngagementFormData>({
     engagement_name: '',
@@ -338,11 +341,7 @@ const EngagementManagement: React.FC = () => {
       if (filterPhase) params.append('migration_phase', filterPhase);
 
       const response = await fetch(`/api/v1/admin/engagements/?${params}`, {
-        headers: {
-          'X-Demo-Mode': 'true',
-          'X-User-ID': 'demo-admin-user',
-          'Authorization': 'Bearer demo-admin-token'
-        }
+        headers: getAuthHeaders()
       });
       
       if (!response.ok) {
@@ -411,11 +410,7 @@ const EngagementManagement: React.FC = () => {
   const fetchClients = async () => {
     try {
       const response = await fetch('/api/v1/admin/clients/?page_size=100', {
-        headers: {
-          'X-Demo-Mode': 'true',
-          'X-User-ID': 'demo-admin-user',
-          'Authorization': 'Bearer demo-admin-token'
-        }
+        headers: getAuthHeaders()
       });
       
       if (!response.ok) {
@@ -437,19 +432,17 @@ const EngagementManagement: React.FC = () => {
 
   const handleCreateEngagement = async () => {
     try {
-      const response = await fetch('/api/v1/admin/engagements/', {
+      const response = await apiCall('/api/v1/admin/engagements/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Demo-Mode': 'true',
-          'X-User-ID': 'admin_user',
-          'Authorization': 'Bearer demo-admin-token'
+          ...getAuthHeaders()
         },
         body: JSON.stringify(formData)
       });
 
-      if (response.ok) {
-        const result = await response.json();
+      if (response.status === 'success') {
+        const result = response;
         
         toast({
           title: "Success",
@@ -459,27 +452,8 @@ const EngagementManagement: React.FC = () => {
         setShowCreateDialog(false);
         resetForm();
         fetchEngagements();
-      } else if (response.status === 422) {
-        // Handle validation errors
-        const errorData = await response.json();
-        console.log('Validation error:', errorData);
-        
-        let errorMessage = "Validation error";
-        if (errorData.detail && Array.isArray(errorData.detail)) {
-          const missingFields = errorData.detail.map((err: any) => err.loc[err.loc.length - 1]).join(', ');
-          errorMessage = `Missing required fields: ${missingFields}`;
-        } else if (errorData.detail) {
-          errorMessage = errorData.detail;
-        }
-        
-        toast({
-          title: "Validation Error",
-          description: errorMessage,
-          variant: "destructive"
-        });
       } else {
-        const errorData = await response.text();
-        throw new Error(`API call failed: ${response.status} - ${errorData}`);
+        throw new Error(response.message || 'Failed to create engagement');
       }
     } catch (error) {
       console.error('Error creating engagement:', error);
@@ -495,18 +469,16 @@ const EngagementManagement: React.FC = () => {
     if (!editingEngagement) return;
 
     try {
-      const response = await fetch(`/api/v1/admin/engagements/${editingEngagement.id}`, {
+      const response = await apiCall(`/api/v1/admin/engagements/${editingEngagement.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'X-Demo-Mode': 'true',
-          'X-User-ID': 'admin_user',
-          'Authorization': 'Bearer demo-admin-token'
+          ...getAuthHeaders()
         },
         body: JSON.stringify(formData)
       });
 
-      if (response.ok) {
+      if (response.status === 'success') {
         toast({
           title: "Success",
           description: `Engagement "${formData.engagement_name}" updated successfully`,
@@ -515,27 +487,8 @@ const EngagementManagement: React.FC = () => {
         setEditingEngagement(null);
         resetForm();
         fetchEngagements();
-      } else if (response.status === 422) {
-        // Handle validation errors
-        const errorData = await response.json();
-        console.log('Validation error:', errorData);
-        
-        let errorMessage = "Validation error";
-        if (errorData.detail && Array.isArray(errorData.detail)) {
-          const missingFields = errorData.detail.map((err: any) => err.loc[err.loc.length - 1]).join(', ');
-          errorMessage = `Missing required fields: ${missingFields}`;
-        } else if (errorData.detail) {
-          errorMessage = errorData.detail;
-        }
-        
-        toast({
-          title: "Validation Error",
-          description: errorMessage,
-          variant: "destructive"
-        });
       } else {
-        const errorData = await response.text();
-        throw new Error(`API call failed: ${response.status} - ${errorData}`);
+        throw new Error(response.message || 'Failed to update engagement');
       }
     } catch (error) {
       console.error('Error updating engagement:', error);
@@ -553,12 +506,13 @@ const EngagementManagement: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`/api/v1/admin/engagements/${engagementId}`, {
-        method: 'DELETE'
+      const response = await apiCall(`/api/v1/admin/engagements/${engagementId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to delete engagement');
+      if (response.status !== 'success') {
+        throw new Error(response.message || 'Failed to delete engagement');
       }
 
       toast({
