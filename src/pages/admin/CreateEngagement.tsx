@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { apiCall } from '@/config/api';
 
 interface CreateEngagementData {
   engagement_name: string;
@@ -73,6 +75,7 @@ const RiskLevels = [
 const CreateEngagement: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { getAuthHeaders } = useAuth();
   const [loading, setLoading] = useState(false);
   const [clientAccounts, setClientAccounts] = useState<ClientAccount[]>([]);
 
@@ -107,11 +110,7 @@ const CreateEngagement: React.FC = () => {
   const fetchClientAccounts = async () => {
     try {
       const response = await fetch('/api/v1/admin/clients/', {
-        headers: {
-          'X-Demo-Mode': 'true',
-          'X-User-ID': 'demo-admin-user',
-          'Authorization': 'Bearer demo-admin-token'
-        }
+        headers: getAuthHeaders()
       });
 
       if (response.ok) {
@@ -187,32 +186,41 @@ const CreateEngagement: React.FC = () => {
     try {
       setLoading(true);
       
-      // Format data for submission
+      // Format data for submission - map frontend fields to backend fields
       const submissionData = {
-        ...formData,
-        budget: formData.budget ? parseFloat(formData.budget.toString()) : null
+        engagement_name: formData.engagement_name,
+        client_account_id: formData.client_account_id,
+        engagement_description: formData.description,
+        migration_scope: 'full_datacenter', // Default scope
+        target_cloud_provider: formData.target_cloud_provider || 'aws',
+        engagement_manager: formData.project_manager,
+        technical_lead: formData.project_manager, // Use same person as default
+        start_date: formData.estimated_start_date,
+        end_date: formData.estimated_end_date,
+        budget: formData.budget ? parseFloat(formData.budget.toString()) : 0,
+        budget_currency: formData.budget_currency,
+        team_preferences: {},
+        stakeholder_preferences: {}
       };
       
       // Try to call the real API first
       try {
-        const response = await fetch('/api/v1/admin/engagements/', {
+        const response = await apiCall('/api/v1/admin/engagements/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-Demo-Mode': 'true',
-            'X-User-ID': 'demo-admin-user',
-            'Authorization': 'Bearer demo-admin-token'
+            ...getAuthHeaders()
           },
           body: JSON.stringify(submissionData)
         });
 
-        if (response.ok) {
+        if (response.status === 'success') {
           toast({
             title: "Engagement Created Successfully",
             description: `Engagement ${formData.engagement_name} has been created and is now active.`,
           });
         } else {
-          throw new Error('API call failed');
+          throw new Error(response.message || 'API call failed');
         }
       } catch (apiError) {
         // Fallback to demo mode

@@ -23,6 +23,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { apiCall } from '@/config/api';
 
 interface Client {
   id: string;
@@ -60,6 +62,7 @@ const ClientDetails: React.FC = () => {
   const { clientId } = useParams<{ clientId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { getAuthHeaders } = useAuth();
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -86,11 +89,7 @@ const ClientDetails: React.FC = () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/v1/admin/clients/${id}`, {
-        headers: {
-          'X-Demo-Mode': 'true',
-          'X-User-ID': 'demo-admin-user',
-          'Authorization': 'Bearer demo-admin-token'
-        }
+        headers: getAuthHeaders()
       });
       
       if (!response.ok) {
@@ -185,19 +184,17 @@ const ClientDetails: React.FC = () => {
 
   const handleUpdate = async () => {
     try {
-      const response = await fetch(`/api/v1/admin/clients/${clientId}`, {
+      const response = await apiCall(`/api/v1/admin/clients/${clientId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'X-Demo-Mode': 'true',
-          'X-User-ID': 'demo-admin-user',
-          'Authorization': 'Bearer demo-admin-token'
+          ...getAuthHeaders()
         },
         body: JSON.stringify(formData)
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to update client');
+      if (response.status !== 'success') {
+        throw new Error(response.message || 'Failed to update client');
       }
 
       toast({
@@ -332,15 +329,25 @@ const ClientDetails: React.FC = () => {
               <div>
                 <h4 className="font-medium mb-3">Business Objectives</h4>
                 <div className="flex flex-wrap gap-2">
-                  {client.business_objectives && client.business_objectives.length > 0 ? (
-                    client.business_objectives.map((objective, index) => (
-                      <Badge key={index} variant="secondary">
-                        {objective}
-                      </Badge>
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No business objectives specified</p>
-                  )}
+                  {(() => {
+                    // Handle different data structures from API
+                    let objectives = [];
+                    if (Array.isArray(client.business_objectives)) {
+                      objectives = client.business_objectives;
+                    } else if (client.business_objectives && typeof client.business_objectives === 'object' && client.business_objectives.primary_goals) {
+                      objectives = client.business_objectives.primary_goals;
+                    }
+                    
+                    return objectives && objectives.length > 0 ? (
+                      objectives.map((objective, index) => (
+                        <Badge key={index} variant="secondary">
+                          {objective}
+                        </Badge>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No business objectives specified</p>
+                    );
+                  })()}
                 </div>
               </div>
 

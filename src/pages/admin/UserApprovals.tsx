@@ -475,6 +475,91 @@ const UserApprovals: React.FC = () => {
     }
   };
 
+  const handleDeactivateUser = async (user: ActiveUser) => {
+    if (!confirm(`Are you sure you want to deactivate ${user.full_name}?`)) {
+      return;
+    }
+
+    try {
+      setActionLoading(user.user_id);
+      
+      const response = await apiCall('/api/v1/auth/deactivate-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify({
+          user_id: user.user_id,
+          reason: 'Admin deactivation'
+        })
+      });
+
+      if (response.status === 'success') {
+        toast({
+          title: "User Deactivated",
+          description: `${user.full_name} has been deactivated.`,
+        });
+        
+        // Update user in active list
+        setActiveUsers(prev => prev.map(u => 
+          u.user_id === user.user_id ? { ...u, is_active: false } : u
+        ));
+      } else {
+        throw new Error(response.message || 'Deactivation failed');
+      }
+    } catch (error) {
+      console.error('Error deactivating user:', error);
+      toast({
+        title: "Deactivation Failed",
+        description: (error as Error).message,
+        variant: "destructive"
+      });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleActivateUser = async (user: ActiveUser) => {
+    try {
+      setActionLoading(user.user_id);
+      
+      const response = await apiCall('/api/v1/auth/activate-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify({
+          user_id: user.user_id
+        })
+      });
+
+      if (response.status === 'success') {
+        toast({
+          title: "User Activated",
+          description: `${user.full_name} has been activated.`,
+        });
+        
+        // Update user in active list
+        setActiveUsers(prev => prev.map(u => 
+          u.user_id === user.user_id ? { ...u, is_active: true } : u
+        ));
+      } else {
+        throw new Error(response.message || 'Activation failed');
+      }
+    } catch (error) {
+      console.error('Error activating user:', error);
+      toast({
+        title: "Activation Failed",
+        description: (error as Error).message,
+        variant: "destructive"
+      });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -781,14 +866,24 @@ const UserApprovals: React.FC = () => {
                           Edit Access
                         </Button>
                         {user.is_active ? (
-                          <Button variant="outline" size="sm">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => handleDeactivateUser(user)}
+                            disabled={actionLoading === user.user_id}
+                          >
                             <UserX className="w-4 h-4 mr-1" />
-                            Deactivate
+                            {actionLoading === user.user_id ? 'Deactivating...' : 'Deactivate'}
                           </Button>
                         ) : (
-                          <Button variant="outline" size="sm">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleActivateUser(user)}
+                            disabled={actionLoading === user.user_id}
+                          >
                             <UserCheck className="w-4 h-4 mr-1" />
-                            Activate
+                            {actionLoading === user.user_id ? 'Activating...' : 'Activate'}
                           </Button>
                         )}
                       </div>

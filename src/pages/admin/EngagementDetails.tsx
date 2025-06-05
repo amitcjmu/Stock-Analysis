@@ -137,6 +137,11 @@ const EngagementDetails: React.FC = () => {
   };
 
   const formatCurrency = (amount: number, currency: string) => {
+    // Handle NaN and invalid amounts
+    if (isNaN(amount) || amount === null || amount === undefined) {
+      return 'N/A';
+    }
+    
     if (!currency || currency.trim() === '') {
       return new Intl.NumberFormat('en-US', {
         style: 'decimal',
@@ -269,21 +274,34 @@ const EngagementDetails: React.FC = () => {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Overall Progress</span>
-              <span className="text-2xl font-bold text-green-600">{engagement.progress_percentage}%</span>
+              <span className="text-2xl font-bold text-green-600">
+                {isNaN(engagement.progress_percentage) ? 'N/A' : `${engagement.progress_percentage}%`}
+              </span>
             </div>
-            <Progress value={engagement.progress_percentage} className="h-3" />
+            <Progress value={isNaN(engagement.progress_percentage) ? 0 : engagement.progress_percentage} className="h-3" />
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
               <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <div className="text-2xl font-bold text-blue-600">{engagement.total_applications}</div>
+                <div className="text-2xl font-bold text-blue-600">
+                  {isNaN(engagement.total_applications) ? 'N/A' : engagement.total_applications}
+                </div>
                 <div className="text-sm text-muted-foreground">Total Applications</div>
               </div>
               <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <div className="text-2xl font-bold text-green-600">{engagement.migrated_applications}</div>
+                <div className="text-2xl font-bold text-green-600">
+                  {isNaN(engagement.migrated_applications) ? 'N/A' : engagement.migrated_applications}
+                </div>
                 <div className="text-sm text-muted-foreground">Migrated</div>
               </div>
               <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <div className="text-2xl font-bold text-orange-600">{engagement.total_applications - engagement.migrated_applications}</div>
+                <div className="text-2xl font-bold text-orange-600">
+                  {(() => {
+                    const total = isNaN(engagement.total_applications) ? 0 : engagement.total_applications;
+                    const migrated = isNaN(engagement.migrated_applications) ? 0 : engagement.migrated_applications;
+                    const remaining = total - migrated;
+                    return isNaN(remaining) || remaining < 0 ? 'N/A' : remaining;
+                  })()}
+                </div>
                 <div className="text-sm text-muted-foreground">Remaining</div>
               </div>
             </div>
