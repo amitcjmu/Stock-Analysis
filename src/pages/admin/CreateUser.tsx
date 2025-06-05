@@ -109,9 +109,7 @@ const CreateUser: React.FC = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-Demo-Mode': 'true',
-            'X-User-ID': 'admin_user',
-            'Authorization': 'Bearer demo-admin-token'
+            'Authorization': 'Bearer demo_token'
           },
           body: JSON.stringify({
             email: formData.email,

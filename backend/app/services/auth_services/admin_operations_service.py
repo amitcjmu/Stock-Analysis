@@ -319,7 +319,7 @@ class AdminOperationsService:
                 "user_agent": request_data.get("user_agent")
             })
             
-            result = await rbac_service.admin_create_user(enhanced_user_data)
+            result = await rbac_service.admin_create_user(enhanced_user_data, created_by)
             
             if result["status"] == "error":
                 if "Access denied" in result["message"]:

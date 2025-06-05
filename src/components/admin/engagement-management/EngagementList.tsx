@@ -78,11 +78,11 @@ export const EngagementList: React.FC<EngagementListProps> = ({
                           <Badge className={getPhaseColor(engagement.migration_phase)}>
                             {engagement.migration_phase}
                           </Badge>
-                          <span>{engagement.migration_scope.replace('_', ' ')}</span>
+                          <span>{Array.isArray(engagement.migration_scope) ? engagement.migration_scope.join(', ') : (engagement.migration_scope || 'Not specified')}</span>
                         </div>
                         <div className="text-sm text-muted-foreground flex items-center">
                           <Target className="w-3 h-3 mr-1" />
-                          {engagement.target_cloud_provider.toUpperCase()}
+                          {engagement.target_cloud_provider ? engagement.target_cloud_provider.toUpperCase() : 'NOT SPECIFIED'}
                         </div>
                       </div>
                     </TableCell>
@@ -108,11 +108,11 @@ export const EngagementList: React.FC<EngagementListProps> = ({
                       <div className="text-sm">
                         <div className="flex items-center">
                           <Calendar className="w-3 h-3 mr-1" />
-                          {new Date(engagement.start_date).toLocaleDateString()}
+                          {engagement.start_date ? new Date(engagement.start_date).toLocaleDateString() : 'Not set'}
                         </div>
                         <div className="flex items-center text-muted-foreground">
                           <Clock className="w-3 h-3 mr-1" />
-                          {new Date(engagement.end_date).toLocaleDateString()}
+                          {engagement.end_date ? new Date(engagement.end_date).toLocaleDateString() : 'Not set'}
                         </div>
                       </div>
                     </TableCell>

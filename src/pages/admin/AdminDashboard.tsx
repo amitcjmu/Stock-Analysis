@@ -77,9 +77,16 @@ const AdminDashboard: React.FC = () => {
         ]);
 
         // Transform API response to match frontend interface
+        const transformedClients = clientsData.dashboard_stats || clientsData;
         const transformedEngagements = engagementsData.dashboard_stats || engagementsData;
         setStats({
-          clients: clientsData.dashboard_stats || clientsData,
+          clients: {
+            total: transformedClients.total_clients || 0,
+            active: transformedClients.active_clients || 0,
+            byIndustry: transformedClients.clients_by_industry || {},
+            bySize: transformedClients.clients_by_company_size || {},
+            recentRegistrations: transformedClients.recent_client_registrations || []
+          },
           engagements: {
             total: transformedEngagements.total_engagements || 0,
             active: transformedEngagements.active_engagements || 0,

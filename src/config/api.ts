@@ -127,7 +127,7 @@ export const API_CONFIG = {
 };
 
 /**
- * Helper function to make API calls with proper error handling
+ * Helper function to make API calls with proper error handling and authentication
  */
 export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   const url = `${API_CONFIG.BASE_URL}${endpoint}`;
@@ -137,9 +137,13 @@ export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
     console.log(`API Call: ${options.method || 'GET'} ${url}`);
   }
   
+  // Get authentication token (for now using demo token, in production this would come from auth context)
+  const authToken = 'demo_token'; // This should come from your auth context/localStorage in production
+  
   const response = await fetch(url, {
     headers: {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authToken}`,
       ...options.headers,
     },
     ...options,

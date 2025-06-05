@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/components/ui/use-toast';
+import { apiCall } from '@/config/api';
 import { Client, ClientFormData, Industries, CompanySizes, SubscriptionTiers } from './types';
 
 // ClientForm component
@@ -157,43 +158,36 @@ const ClientManagementMain: React.FC = () => {
     }));
   }, []);
 
-  // Fetch clients (demo data)
+  // Fetch clients from API
   const fetchClients = useCallback(async () => {
     try {
       setLoading(true);
       
-      // Demo data
-      const demoClients: Client[] = [
-        {
-          id: '1',
-          account_name: 'Pujyam Corp',
-          industry: 'Technology',
-          company_size: 'Large (1001-5000)',
-          headquarters_location: 'San Francisco, CA',
-          primary_contact_name: 'John Smith',
-          primary_contact_email: 'john.smith@pujyam.com',
-          primary_contact_phone: '+1 (555) 123-4567',
-          description: 'Leading technology company',
-          subscription_tier: 'enterprise',
-          business_objectives: [],
-          target_cloud_providers: [],
-          business_priorities: [],
-          compliance_requirements: [],
-          created_at: '2025-01-10T10:30:00Z',
-          is_active: true,
-          total_engagements: 3,
-          active_engagements: 2
-        }
-      ];
+      // Build query parameters
+      const params = new URLSearchParams();
+      if (searchTerm) params.append('account_name', searchTerm);
+      if (filterIndustry && filterIndustry !== 'all') params.append('industry', filterIndustry);
+      params.append('page', '1');
+      params.append('page_size', '50');
 
-      setClients(demoClients);
+      const queryString = params.toString();
+      const url = `/api/v1/admin/clients/${queryString ? `?${queryString}` : ''}`;
+
+      const result = await apiCall(url);
+      
+      if (result && result.items) {
+        setClients(result.items || []);
+      } else {
+        console.error('Invalid API response format:', result);
+        setClients([]);
+      }
     } catch (error) {
       console.error('Error fetching clients:', error);
       setClients([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [searchTerm, filterIndustry]);
 
   // Handle client operations
   const handleCreateClient = async () => {

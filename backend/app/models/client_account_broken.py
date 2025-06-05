@@ -52,7 +52,7 @@ class ClientAccount(Base):
     settings = Column(JSON, default=lambda: {})
     branding = Column(JSON, default=lambda: {})
     
-    # Enhanced Business Context
+    # Enhanced Business Context (Task 1.1.1)
     business_objectives = Column(JSON, default=lambda: {
         "primary_goals": [],
         "timeframe": "",
@@ -71,12 +71,12 @@ class ClientAccount(Base):
     })
     
     decision_criteria = Column(JSON, default=lambda: {
-        "risk_tolerance": "medium",
-        "cost_sensitivity": "medium",
-        "innovation_appetite": "moderate",
-        "timeline_pressure": "medium",
-        "quality_vs_speed": "balanced",
-        "technical_debt_tolerance": "low"
+        "risk_tolerance": "medium",  # low, medium, high
+        "cost_sensitivity": "medium",  # low, medium, high
+        "innovation_appetite": "moderate",  # conservative, moderate, aggressive
+        "timeline_pressure": "medium",  # low, medium, high
+        "quality_vs_speed": "balanced",  # quality, balanced, speed
+        "technical_debt_tolerance": "low"  # low, medium, high
     })
     
     agent_preferences = Column(JSON, default=lambda: {
@@ -104,9 +104,15 @@ class ClientAccount(Base):
     created_by = Column(PostgresUUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
     is_active = Column(Boolean, default=True, index=True)
     
-    # Core relationships only
+    # Relationships
     engagements = relationship("Engagement", back_populates="client_account", cascade="all, delete-orphan")
     user_associations = relationship("UserAccountAssociation", back_populates="client_account", cascade="all, delete-orphan")
+    cmdb_assets = relationship("CMDBAsset", back_populates="client_account", cascade="all, delete-orphan")
+    data_imports = relationship("DataImport", back_populates="client_account", cascade="all, delete-orphan")
+    feedback = relationship("Feedback", back_populates="client_account", cascade="all, delete-orphan")
+    # LLM usage relationships - commented out temporarily to fix import issues
+    # llm_usage_logs = relationship("LLMUsageLog", back_populates="client_account", cascade="all, delete-orphan")
+    # llm_usage_summaries = relationship("LLMUsageSummary", back_populates="client_account", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<ClientAccount(id={self.id}, name='{self.name}', slug='{self.slug}', is_mock={self.is_mock})>"
@@ -142,27 +148,30 @@ class Engagement(Base):
     # Settings
     settings = Column(JSON, default=lambda: {})
     
-    # Enhanced Engagement Context
+    # Enhanced Engagement Context (Task 1.1.2)
     migration_scope = Column(JSON, default=lambda: {
-        "target_clouds": [],
-        "migration_strategies": [],
+        "target_clouds": [],  # ["AWS", "Azure", "GCP"]
+        "migration_strategies": [],  # 6R strategies preferred for this engagement
         "excluded_systems": [],
-        "included_environments": [],
+        "included_environments": [],  # ["Production", "Development", "Staging"]
         "business_units": [],
         "geographic_scope": [],
         "timeline_constraints": {}
     })
     
     team_preferences = Column(JSON, default=lambda: {
-        "stakeholders": [],
+        "stakeholders": [],  # [{"name": "", "role": "", "email": "", "decision_authority": ""}]
         "decision_makers": [],
         "technical_leads": [],
-        "communication_style": "formal",
-        "reporting_frequency": "weekly",
+        "communication_style": "formal",  # formal, informal, technical
+        "reporting_frequency": "weekly",  # daily, weekly, monthly
         "preferred_meeting_times": [],
         "escalation_contacts": [],
-        "project_methodology": "agile"
+        "project_methodology": "agile"  # agile, waterfall, hybrid
     })
+    
+    # Current Session Reference
+    current_session_id = Column(PostgresUUID(as_uuid=True), ForeignKey('data_import_sessions.id'), nullable=True)
     
     # Mock data flag
     is_mock = Column(Boolean, default=False, nullable=False, index=True)
@@ -173,10 +182,29 @@ class Engagement(Base):
     created_by = Column(PostgresUUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
     is_active = Column(Boolean, default=True, index=True)
     
-    # Core relationships only
+    # Relationships
     client_account = relationship("ClientAccount", back_populates="engagements")
     engagement_lead = relationship("User", foreign_keys=[engagement_lead_id])
     created_by_user = relationship("User", foreign_keys=[created_by])
+    cmdb_assets = relationship("CMDBAsset", back_populates="engagement", cascade="all, delete-orphan")
+    data_imports = relationship("DataImport", back_populates="engagement", cascade="all, delete-orphan")
+    feedback = relationship("Feedback", back_populates="engagement", cascade="all, delete-orphan")
+    # LLM usage relationships - commented out temporarily to fix import issues
+    # llm_usage_logs = relationship("LLMUsageLog", back_populates="engagement", cascade="all, delete-orphan")
+    # llm_usage_summaries = relationship("LLMUsageSummary", back_populates="engagement", cascade="all, delete-orphan")
+    
+    # Session relationships (Task 1.1.3)
+    sessions = relationship(
+        "DataImportSession", 
+        back_populates="engagement", 
+        foreign_keys="DataImportSession.engagement_id",
+        cascade="all, delete-orphan"
+    )
+    current_session_ref = relationship(
+        "DataImportSession", 
+        foreign_keys=[current_session_id], 
+        post_update=True
+    )
     
     def __repr__(self):
         return f"<Engagement(id={self.id}, name='{self.name}', client_account_id={self.client_account_id}, is_mock={self.is_mock})>"
@@ -189,7 +217,7 @@ class User(Base):
     
     id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     email = Column(String(255), unique=True, nullable=False, index=True)
-    password_hash = Column(String(255), nullable=True)
+    password_hash = Column(String(255), nullable=True)  # Nullable for future SSO users
     first_name = Column(String(100))
     last_name = Column(String(100))
     
