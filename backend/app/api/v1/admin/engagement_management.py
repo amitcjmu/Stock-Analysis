@@ -1,15 +1,26 @@
 """
 Engagement Management API - Modular Implementation
-Admin endpoints for managing migration engagements.
+Admin endpoints for managing migration engagements with real database integration.
 """
 
 import logging
 from typing import Dict, List, Any, Optional
 from fastapi import APIRouter, HTTPException, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from sqlalchemy import func, and_
+from datetime import datetime
 
 from app.core.database import get_db
 from app.core.rbac_middleware import require_admin_access
+
+# Conditional imports with fallbacks
+try:
+    from app.models.client_account import ClientAccount, Engagement, User
+    MODELS_AVAILABLE = True
+except ImportError:
+    MODELS_AVAILABLE = False
+    ClientAccount = Engagement = User = None
 
 logger = logging.getLogger(__name__)
 
@@ -23,11 +34,13 @@ async def engagement_management_health():
         "status": "healthy",
         "service": "engagement-management-modular",
         "version": "2.0.0",
+        "models_available": MODELS_AVAILABLE,
         "capabilities": {
-            "engagement_crud": True,
-            "migration_planning": True,
-            "progress_tracking": True,
-            "modular_architecture": True
+            "engagement_crud": MODELS_AVAILABLE,
+            "migration_planning": MODELS_AVAILABLE,
+            "progress_tracking": MODELS_AVAILABLE,
+            "modular_architecture": True,
+            "real_database_queries": MODELS_AVAILABLE
         }
     }
 
@@ -38,38 +51,72 @@ async def list_engagements(
     db: AsyncSession = Depends(get_db),
     admin_user: str = Depends(require_admin_access)
 ):
-    """List engagements with pagination."""
+    """List engagements with pagination using real database queries."""
     try:
-        # Demo data
-        demo_engagements = [
-            {
-                "id": "1",
-                "engagement_name": "Pujyam Corp Migration",
-                "client_account_id": "1",
-                "client_account_name": "Pujyam Corp",
-                "migration_scope": "Full Infrastructure",
-                "target_cloud_provider": "AWS",
-                "migration_phase": "discovery",
-                "engagement_manager": "John Smith",
-                "technical_lead": "Jane Doe",
-                "start_date": "2025-01-10",
-                "end_date": "2025-06-30",
-                "budget": 2500000,
+        if not MODELS_AVAILABLE:
+            raise HTTPException(status_code=503, detail="Database models not available")
+            
+        logger.info(f"Admin user {admin_user} requesting engagement list with pagination: page={page}, page_size={page_size}")
+        
+        # Build base query for engagements first
+        query = select(Engagement)\
+            .where(Engagement.is_active == True)\
+            .order_by(Engagement.created_at.desc())
+        
+        # Get total count for pagination
+        count_query = select(func.count(Engagement.id))\
+            .where(Engagement.is_active == True)
+        total_result = await db.execute(count_query)
+        total_items = total_result.scalar() or 0
+        
+        # Apply pagination
+        offset = (page - 1) * page_size
+        query = query.offset(offset).limit(page_size)
+        
+        # Execute query
+        result = await db.execute(query)
+        engagements = result.scalars().all()
+        
+        # Transform to response format
+        engagement_list = []
+        for engagement in engagements:
+            # Get client account separately
+            client_query = select(ClientAccount).where(ClientAccount.id == engagement.client_account_id)
+            client_result = await db.execute(client_query)
+            client = client_result.scalar_one_or_none()
+            engagement_data = {
+                "id": str(engagement.id),
+                "engagement_name": engagement.name or "Unnamed Engagement",
+                "client_account_id": str(engagement.client_account_id),
+                "client_account_name": client.name if client else "Unknown Client",
+                "migration_scope": engagement.migration_scope.get("target_clouds", []) if engagement.migration_scope else [],
+                "target_cloud_provider": engagement.migration_scope.get("target_clouds", ["Not specified"])[0] if engagement.migration_scope and engagement.migration_scope.get("target_clouds") else "Not specified",
+                "migration_phase": engagement.status or "planning",
+                "engagement_manager": "Not assigned",  # Simplified since engagement_lead might not be loaded
+                "technical_lead": engagement.client_contact_name or "Not assigned",
+                "start_date": engagement.start_date.isoformat() if engagement.start_date else None,
+                "end_date": engagement.target_completion_date.isoformat() if engagement.target_completion_date else None,
+                "budget": None,  # Would need to be added to engagement model
                 "budget_currency": "USD",
-                "completion_percentage": 25.5,
-                "created_at": "2025-01-10T10:30:00Z",
-                "is_active": True,
-                "total_sessions": 3,
-                "active_sessions": 1
+                "completion_percentage": 0.0,  # Would need to be calculated
+                "created_at": engagement.created_at.isoformat() if engagement.created_at else None,
+                "is_active": engagement.is_active,
+                "total_sessions": 0,  # Would need to count related sessions
+                "active_sessions": 0   # Would need to count active sessions
             }
-        ]
+            engagement_list.append(engagement_data)
+        
+        # Calculate pagination info
+        total_pages = (total_items + page_size - 1) // page_size
+        
+        logger.info(f"Found {len(engagement_list)} engagements out of {total_items} total for admin user {admin_user}")
         
         return {
-            "items": demo_engagements,
-            "total": len(demo_engagements),
+            "items": engagement_list,
+            "total": total_items,
             "page": page,
             "page_size": page_size,
-            "total_pages": 1
+            "total_pages": total_pages
         }
         
     except Exception as e:
@@ -179,21 +226,68 @@ async def get_engagement_dashboard_stats(
     db: AsyncSession = Depends(get_db),
     admin_user: str = Depends(require_admin_access)
 ):
-    """Get engagement dashboard statistics."""
+    """Get engagement dashboard statistics from real database."""
     try:
+        if not MODELS_AVAILABLE:
+            raise HTTPException(status_code=503, detail="Database models not available")
+            
+        logger.info(f"Admin user {admin_user} requesting engagement dashboard stats")
+        
+        # Total engagements
+        total_engagements_result = await db.execute(
+            select(func.count(Engagement.id)).where(Engagement.is_active == True)
+        )
+        total_engagements = total_engagements_result.scalar() or 0
+        
+        # Active engagements
+        active_engagements_result = await db.execute(
+            select(func.count(Engagement.id)).where(
+                and_(
+                    Engagement.is_active == True,
+                    Engagement.status.in_(['active', 'in_progress', 'planning'])
+                )
+            )
+        )
+        active_engagements = active_engagements_result.scalar() or 0
+        
+        # Completed engagements
+        completed_engagements_result = await db.execute(
+            select(func.count(Engagement.id)).where(
+                and_(
+                    Engagement.is_active == True,
+                    Engagement.status.in_(['completed', 'done'])
+                )
+            )
+        )
+        completed_engagements = completed_engagements_result.scalar() or 0
+        
+        # Engagements by phase (status)
+        phase_result = await db.execute(
+            select(Engagement.status, func.count(Engagement.id))
+            .where(and_(Engagement.is_active == True, Engagement.status.isnot(None)))
+            .group_by(Engagement.status)
+        )
+        engagements_by_phase = {row[0]: row[1] for row in phase_result.fetchall()}
+        
+        # Default phases if none found
+        if not engagements_by_phase:
+            engagements_by_phase = {
+                "discovery": 0,
+                "assessment": 0,
+                "planning": 0,
+                "execution": 0
+            }
+        
+        logger.info(f"Returning engagement dashboard stats: {total_engagements} total, {active_engagements} active")
+        
         return {
-            "total_engagements": 5,
-            "active_engagements": 3,
-            "completed_engagements": 2,
-            "engagements_by_phase": {
-                "discovery": 2,
-                "assessment": 1,
-                "planning": 1,
-                "execution": 1
-            },
-            "avg_completion_percentage": 45.2,
-            "total_budget": 12500000,
-            "budget_utilization": 67.5
+            "total_engagements": total_engagements,
+            "active_engagements": active_engagements,
+            "completed_engagements": completed_engagements,
+            "engagements_by_phase": engagements_by_phase,
+            "avg_completion_percentage": 0.0,  # Would need to calculate from progress data
+            "total_budget": 0,  # Would need budget field in engagement model
+            "budget_utilization": 0.0  # Would need budget tracking
         }
         
     except Exception as e:
