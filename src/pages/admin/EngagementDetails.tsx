@@ -110,11 +110,30 @@ const EngagementDetails: React.FC = () => {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    if (!dateString) return 'Not set';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Invalid Date';
+    return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
     });
+  };
+
+  const calculateDurationMonths = (startDate: string, endDate: string) => {
+    if (!startDate || !endDate) return 'Not calculated';
+    
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return 'Invalid dates';
+    }
+    
+    const diffTime = end.getTime() - start.getTime();
+    const diffMonths = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 30));
+    
+    return diffMonths > 0 ? `${diffMonths} months` : 'Invalid duration';
   };
 
   const formatCurrency = (amount: number, currency: string) => {
@@ -366,7 +385,7 @@ const EngagementDetails: React.FC = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">Duration</p>
                   <p className="font-medium">
-                    {Math.ceil((new Date(engagement.end_date).getTime() - new Date(engagement.start_date).getTime()) / (1000 * 60 * 60 * 24 * 30))} months
+                    {calculateDurationMonths(engagement.start_date, engagement.end_date)}
                   </p>
                 </div>
               </div>

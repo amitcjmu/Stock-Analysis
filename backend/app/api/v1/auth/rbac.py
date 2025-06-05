@@ -257,27 +257,32 @@ async def get_pending_approvals(
         # Get user ID from context, with fallback for demo purposes
         user_id_str = context.user_id or "admin_user"
         
-        # For demo users with non-UUID format, use a default admin validation
+        # For demo users with non-UUID format, still query the real database but skip UUID validation
         if user_id_str in ["admin_user", "demo_user"]:
-            # Skip UUID validation for demo users and return demo pending approvals
-            demo_pending_users = [
-                {
-                    "user_id": "pending_user_001",
-                    "organization": "New Company Inc",
-                    "role_description": "Data Analyst",
-                    "registration_reason": "Need access to migration planning tools",
-                    "requested_access_level": "read_write",
-                    "phone_number": "+1-555-0789",
-                    "manager_email": "manager@company.com",
-                    "requested_at": "2025-01-28T10:00:00Z"
-                }
-            ]
-            
-            return PendingApprovalsResponse(
-                status="success",
-                pending_approvals=demo_pending_users,
-                total_pending=len(demo_pending_users)
-            )
+            # Skip UUID validation for demo users but query real database
+            try:
+                result = await rbac_service.get_pending_approvals(user_id_str)
+                
+                if result["status"] == "error":
+                    if "Access denied" in result["message"]:
+                        # If access denied for demo user, return empty list instead of error
+                        return PendingApprovalsResponse(
+                            status="success",
+                            pending_approvals=[],
+                            total_pending=0
+                        )
+                    else:
+                        raise HTTPException(status_code=500, detail=result["message"])
+                
+                return PendingApprovalsResponse(**result)
+            except Exception as e:
+                logger.error(f"Error getting pending approvals for demo user: {e}")
+                # Fallback to empty list for demo users if there's an error
+                return PendingApprovalsResponse(
+                    status="success",
+                    pending_approvals=[],
+                    total_pending=0
+                )
         else:
             # Validate admin access for real users
             try:
