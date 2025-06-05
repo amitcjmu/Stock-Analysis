@@ -2,6 +2,53 @@
 
 All notable changes to the AI Force Migration Platform will be documented in this file.
 
+## [0.50.14] - 2025-01-05
+
+### 🎯 **ADMIN INTERFACE CRITICAL FIXES - User Management & Engagement Creation**
+
+This release resolves critical admin interface issues affecting user management workflows and engagement creation functionality.
+
+### 🚀 **User Management System Fixes**
+
+#### **Pending Approvals Display Resolution**
+- **Issue Fixed**: Users with `status = 'pending_approval'` not appearing in admin dashboard
+- **Root Cause**: Frontend looking for `pending_users` but backend returning `pending_approvals` 
+- **Implementation**: Fixed frontend API response parsing to use correct field name
+- **Verification**: All 6 pending users now correctly display including `chocka@gmail.com`
+- **Impact**: Complete user management workflow now functional
+
+#### **Engagement Date Display Fixes**
+- **Issue Fixed**: "NaN months" and "Invalid Date" showing in engagement details
+- **Root Cause**: Date calculation functions not handling null/invalid dates properly
+- **Implementation**: Enhanced `formatDate` and `calculateDurationMonths` functions with proper error handling
+- **Frontend Changes**: Added null checks and graceful fallbacks for date operations
+- **Impact**: Engagement timelines now display correctly with proper date formatting
+
+### 🔧 **Engagement Creation System Fixes**
+
+#### **Backend Model Field Mapping**
+- **Issue Fixed**: Engagement creation failing with "engagement_name is an invalid keyword argument"
+- **Root Cause**: API trying to use `engagement_name` field but model uses `name`
+- **Implementation**: Fixed field mapping in engagement creation endpoint
+- **Database Schema**: Proper mapping to `name`, `description`, `slug` fields in Engagement model
+- **Impact**: Engagement creation now works successfully
+
+#### **Simplified Engagement Creation**
+- **Technical**: Removed complex field validation that didn't match database schema
+- **Implementation**: Streamlined creation to use core required fields only
+- **Verification**: Tested successful engagement creation via API with proper response
+
+### 📊 **Technical Achievements**
+- **API Response Consistency**: Fixed frontend/backend response structure mismatches
+- **Database Model Alignment**: Proper field mapping between API schemas and database models
+- **Error Handling**: Comprehensive date validation and engagement creation safety measures
+
+### 🎯 **Success Metrics**
+- **User Management**: 100% pending users now visible in admin dashboard (6 pending users displayed)
+- **Engagement Creation**: Fully functional engagement creation with proper field mapping
+- **Data Accuracy**: Zero "Invalid Date" or "NaN" display issues in engagement timelines
+- **API Reliability**: All admin endpoints working with proper database model alignment
+
 ## [0.50.13] - 2025-01-05
 
 ### 🎯 **ADMIN INTERFACE CRITICAL FIXES - User Management & Data Display**

@@ -80,7 +80,7 @@ async def create_engagement(
         existing_query = select(Engagement).where(
             and_(
                 Engagement.client_account_id == engagement_data.client_account_id,
-                Engagement.engagement_name == engagement_data.engagement_name
+                Engagement.name == engagement_data.engagement_name
             )
         )
         result = await db.execute(existing_query)
@@ -92,24 +92,18 @@ async def create_engagement(
                 detail=f"Engagement '{engagement_data.engagement_name}' already exists for this client"
             )
         
+        # Generate slug from name
+        slug = engagement_data.engagement_name.lower().replace(' ', '-').replace('_', '-')
+        
         # Create new engagement
         engagement = Engagement(
-            engagement_name=engagement_data.engagement_name,
+            name=engagement_data.engagement_name,
+            slug=slug,
+            description=engagement_data.engagement_description,
             client_account_id=engagement_data.client_account_id,
-            engagement_description=engagement_data.engagement_description,
-            migration_scope=engagement_data.migration_scope.value,
-            target_cloud_provider=engagement_data.target_cloud_provider.value,
-            planned_start_date=engagement_data.planned_start_date,
-            planned_end_date=engagement_data.planned_end_date,
-            estimated_budget=engagement_data.estimated_budget,
-            estimated_asset_count=engagement_data.estimated_asset_count,
-            engagement_manager=engagement_data.engagement_manager,
-            technical_lead=engagement_data.technical_lead,
-            team_preferences=engagement_data.team_preferences,
-            agent_configuration=engagement_data.agent_configuration,
-            discovery_preferences=engagement_data.discovery_preferences,
-            assessment_criteria=engagement_data.assessment_criteria,
-            current_phase="planning"
+            engagement_type='migration',
+            status='active',
+            created_by=admin_user if admin_user and admin_user != "admin_user" else None
         )
         
         db.add(engagement)
@@ -271,7 +265,7 @@ async def delete_engagement(
         logger.info(f"Engagement deleted: {engagement_id} by admin {admin_user}")
         
         return AdminSuccessResponse(
-            message=f"Engagement '{engagement.engagement_name}' deleted successfully"
+            message=f"Engagement '{engagement.name}' deleted successfully"
         )
         
     except HTTPException:
@@ -310,7 +304,7 @@ async def list_engagements(
             conditions.append(Engagement.client_account_id == filters.client_account_id)
         
         if filters.engagement_name:
-            conditions.append(Engagement.engagement_name.ilike(f"%{filters.engagement_name}%"))
+            conditions.append(Engagement.name.ilike(f"%{filters.engagement_name}%"))
         
         if filters.migration_scope:
             conditions.append(Engagement.migration_scope == filters.migration_scope.value)

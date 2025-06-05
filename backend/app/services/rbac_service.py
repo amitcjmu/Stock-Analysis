@@ -359,10 +359,7 @@ class RBACService:
     
     async def _validate_admin_access(self, user_id: str) -> bool:
         """Validate admin console access."""
-        # Allow demo users admin access
-        if user_id in ["admin_user", "demo_user"]:
-            return True
-            
+        # Check if user has admin role in database
         query = select(UserRole).where(
             and_(
                 UserRole.user_id == user_id,
@@ -377,6 +374,9 @@ class RBACService:
         admin_role = result.scalar_one_or_none()
         
         if not admin_role:
+            # For demo/fallback purposes, allow certain users admin access
+            if user_id in ["admin_user", "demo_user"]:
+                return True
             return False
         
         permissions = admin_role.permissions or {}

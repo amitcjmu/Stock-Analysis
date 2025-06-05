@@ -108,7 +108,7 @@ const UserApprovals: React.FC = () => {
       });
 
       if (response.status === 'success') {
-        setPendingUsers(response.pending_users || []);
+        setPendingUsers(response.pending_approvals || []);
       } else {
         // Demo data fallback
         setPendingUsers([
