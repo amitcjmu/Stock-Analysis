@@ -62,11 +62,12 @@ const EngagementManagementMain: React.FC = () => {
 
       const result = await apiCall(url);
       
-      if (result.success) {
-        setEngagements(result.data.engagements || []);
-        setTotalPages(Math.ceil((result.data.total || 0) / 10));
+      // API returns data directly, not wrapped in success/data structure
+      if (result && result.items) {
+        setEngagements(result.items || []);
+        setTotalPages(Math.ceil((result.total || 0) / 10));
       } else {
-        console.error('Failed to fetch engagements:', result.error);
+        console.error('Invalid API response format:', result);
         toast({
           title: "Error",
           description: "Failed to fetch engagements. Please try again.",
@@ -90,11 +91,11 @@ const EngagementManagementMain: React.FC = () => {
   // Fetch clients for dropdown
   const fetchClients = useCallback(async () => {
     try {
-      const result = await apiCall('/api/v1/admin/clients?limit=100');
-      if (result.success) {
-        setClients(result.data.clients || []);
+      const result = await apiCall('/api/v1/admin/clients/?limit=100');
+      if (result && result.items) {
+        setClients(result.items || []);
       } else {
-        console.error('Failed to fetch clients:', result.error);
+        console.error('Failed to fetch clients:', result);
         setClients([]);
       }
     } catch (error) {
@@ -121,10 +122,10 @@ const EngagementManagementMain: React.FC = () => {
         body: JSON.stringify(formData)
       });
 
-      if (result.success) {
+      if (result && result.message) {
         toast({
           title: "Success",
-          description: "Engagement updated successfully.",
+          description: result.message || "Engagement updated successfully.",
         });
         setEditingEngagement(null);
         resetForm();
@@ -132,7 +133,7 @@ const EngagementManagementMain: React.FC = () => {
       } else {
         toast({
           title: "Error", 
-          description: result.error || "Failed to update engagement.",
+          description: "Failed to update engagement.",
           variant: "destructive",
         });
       }
@@ -157,16 +158,16 @@ const EngagementManagementMain: React.FC = () => {
         method: 'DELETE'
       });
 
-      if (result.success) {
+      if (result && result.message) {
         toast({
           title: "Success",
-          description: "Engagement deleted successfully.",
+          description: result.message || "Engagement deleted successfully.",
         });
         await fetchEngagements();
       } else {
         toast({
           title: "Error",
-          description: result.error || "Failed to delete engagement.",
+          description: "Failed to delete engagement.",
           variant: "destructive",
         });
       }

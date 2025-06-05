@@ -116,7 +116,7 @@ async def list_client_accounts(
 ):
     """List client accounts with pagination and filtering."""
     try:
-        # Demo implementation for list functionality
+        # Demo implementation for list functionality with all required fields
         demo_clients = [
             {
                 "id": "1",
@@ -126,10 +126,28 @@ async def list_client_accounts(
                 "headquarters_location": "San Francisco, CA",
                 "primary_contact_name": "John Smith",
                 "primary_contact_email": "john.smith@pujyam.com",
+                "primary_contact_phone": "+1-555-123-4567",
+                "description": "Leading technology company focused on cloud migration",
+                "subscription_tier": "Enterprise",
+                "billing_contact_email": "billing@pujyam.com",
+                "settings": {"notifications": True, "reporting": "weekly"},
+                "branding": {"theme": "blue", "logo_url": "/assets/pujyam-logo.png"},
+                "slug": "pujyam-corp",
+                "created_by": "admin@aiforce.com",
+                "business_objectives": ["Cost Reduction", "Scalability", "Innovation"],
+                "it_guidelines": {"security_level": "high", "compliance": ["SOC2", "HIPAA"]},
+                "decision_criteria": {"cost_weight": 0.4, "performance_weight": 0.3, "security_weight": 0.3},
+                "agent_preferences": {"analysis_depth": "comprehensive", "automation_level": "medium"},
+                "target_cloud_providers": ["AWS", "Azure"],
+                "business_priorities": ["cost_reduction", "agility_speed"],
+                "compliance_requirements": ["SOC2", "HIPAA", "PCI-DSS"],
+                "budget_constraints": {"max_budget": 2000000, "currency": "USD"},
+                "timeline_constraints": {"max_duration_months": 12},
                 "is_active": True,
                 "total_engagements": 3,
                 "active_engagements": 2,
-                "created_at": "2025-01-10T10:30:00Z"
+                "created_at": datetime.fromisoformat("2025-01-10T10:30:00"),
+                "updated_at": datetime.fromisoformat("2025-01-15T14:20:00")
             },
             {
                 "id": "2",
@@ -139,20 +157,40 @@ async def list_client_accounts(
                 "headquarters_location": "New York, NY",
                 "primary_contact_name": "Sarah Wilson",
                 "primary_contact_email": "sarah.wilson@techcorp.com",
+                "primary_contact_phone": "+1-555-987-6543",
+                "description": "Financial services firm modernizing infrastructure",
+                "subscription_tier": "Professional",
+                "billing_contact_email": "finance@techcorp.com",
+                "settings": {"notifications": True, "reporting": "daily"},
+                "branding": {"theme": "green", "logo_url": "/assets/techcorp-logo.png"},
+                "slug": "techcorp-solutions",
+                "created_by": "admin@aiforce.com",
+                "business_objectives": ["Security", "Compliance", "Performance"],
+                "it_guidelines": {"security_level": "maximum", "compliance": ["SOX", "PCI-DSS"]},
+                "decision_criteria": {"security_weight": 0.5, "compliance_weight": 0.3, "cost_weight": 0.2},
+                "agent_preferences": {"analysis_depth": "detailed", "automation_level": "high"},
+                "target_cloud_providers": ["Azure", "GCP"],
+                "business_priorities": ["security_compliance", "reliability"],
+                "compliance_requirements": ["SOX", "PCI-DSS", "GDPR"],
+                "budget_constraints": {"max_budget": 5000000, "currency": "USD"},
+                "timeline_constraints": {"max_duration_months": 18},
                 "is_active": True,
                 "total_engagements": 1,
                 "active_engagements": 1,
-                "created_at": "2025-02-15T14:20:00Z"
+                "created_at": datetime.fromisoformat("2025-02-15T14:20:00"),
+                "updated_at": datetime.fromisoformat("2025-02-20T09:15:00")
             }
         ]
         
-        return PaginatedResponse(
-            items=demo_clients,
-            total=len(demo_clients),
-            page=pagination.page,
-            page_size=pagination.page_size,
-            total_pages=1
-        )
+        return {
+            "items": demo_clients,
+            "total_items": len(demo_clients),
+            "total_pages": 1,
+            "current_page": pagination.page,
+            "page_size": pagination.page_size,
+            "has_next": False,
+            "has_previous": False
+        }
         
     except Exception as e:
         logger.error(f"Error listing client accounts: {e}")

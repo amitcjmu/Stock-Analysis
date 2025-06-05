@@ -251,19 +251,43 @@ class RBACService:
             return {"status": "error", "message": "RBAC models not available"}
         
         try:
-            # Get user profile
-            query = select(UserProfile).where(UserProfile.user_id == user_id)
-            result = await self.db.execute(query)
-            user_profile = result.scalar_one_or_none()
+            # First, try to find user by UUID or email
+            user_profile = None
+            actual_user_id = user_id
+            
+            # Try finding by UUID first
+            try:
+                query = select(UserProfile).where(UserProfile.user_id == user_id)
+                result = await self.db.execute(query)
+                user_profile = result.scalar_one_or_none()
+            except Exception:
+                # Not a valid UUID, try finding by email
+                pass
+            
+            # If not found by UUID, try finding by email in the base User table
+            if not user_profile:
+                try:
+                    user_query = select(User).where(User.email == user_id)
+                    user_result = await self.db.execute(user_query)
+                    base_user = user_result.scalar_one_or_none()
+                    
+                    if base_user:
+                        actual_user_id = str(base_user.id)
+                        # Now get the user profile by the actual UUID
+                        profile_query = select(UserProfile).where(UserProfile.user_id == actual_user_id)
+                        profile_result = await self.db.execute(profile_query)
+                        user_profile = profile_result.scalar_one_or_none()
+                except Exception as e:
+                    logger.warning(f"Could not find user by email {user_id}: {e}")
             
             if not user_profile:
-                return {"status": "error", "message": "User not found"}
+                return {"status": "error", "message": f"User not found: {user_id}"}
             
             if user_profile.status == UserStatus.DEACTIVATED:
                 return {"status": "error", "message": "User is already deactivated"}
             
             # Get and deactivate the base User record
-            user_query = select(User).where(User.id == user_id)
+            user_query = select(User).where(User.id == actual_user_id)
             user_result = await self.db.execute(user_query)
             user = user_result.scalar_one_or_none()
             
@@ -275,7 +299,7 @@ class RBACService:
             user_profile.updated_at = datetime.utcnow()
             
             # Deactivate all user roles
-            roles_query = select(UserRole).where(UserRole.user_id == user_id)
+            roles_query = select(UserRole).where(UserRole.user_id == actual_user_id)
             roles_result = await self.db.execute(roles_query)
             user_roles = roles_result.scalars().all()
             
@@ -284,7 +308,7 @@ class RBACService:
                 role.updated_at = datetime.utcnow()
             
             # Deactivate all client access
-            access_query = select(ClientAccess).where(ClientAccess.user_profile_id == user_id)
+            access_query = select(ClientAccess).where(ClientAccess.user_profile_id == actual_user_id)
             access_result = await self.db.execute(access_query)
             client_accesses = access_result.scalars().all()
             
@@ -300,13 +324,13 @@ class RBACService:
                 action_type="user_deactivation",
                 result="success",
                 reason=reason or f"User {user_id} deactivated by admin",
-                details={"deactivated_user": user_id}
+                details={"deactivated_user": user_id, "actual_user_id": actual_user_id}
             )
             
             return {
                 "status": "success",
-                "message": "User deactivated successfully",
-                "user_id": user_id
+                "message": f"User {user_id} deactivated successfully",
+                "user_id": actual_user_id
             }
             
         except Exception as e:
@@ -673,8 +697,20 @@ class RBACService:
             return
         
         try:
+            # Handle demo users who don't have UUIDs
+            logged_user_id = user_id
+            if user_id in ["admin_user", "demo_user"]:
+                # For demo users, create a dummy UUID or use a predefined UUID
+                import uuid
+                # Use consistent UUIDs for demo users
+                demo_uuids = {
+                    "admin_user": "550e8400-e29b-41d4-a716-446655440001",
+                    "demo_user": "550e8400-e29b-41d4-a716-446655440002"
+                }
+                logged_user_id = demo_uuids.get(user_id, str(uuid.uuid4()))
+            
             log_entry = AccessAuditLog(
-                user_id=user_id,
+                user_id=logged_user_id,
                 action_type=action_type,
                 result=result,
                 reason=reason,
