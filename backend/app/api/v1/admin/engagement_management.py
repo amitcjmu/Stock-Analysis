@@ -132,21 +132,115 @@ async def create_engagement(
 ):
     """Create a new engagement."""
     try:
-        # Demo implementation
-        new_engagement = {
-            "id": "new_" + str(hash(str(engagement_data))),
-            **engagement_data,
-            "created_at": "2025-01-16T10:00:00Z",
-            "is_active": True,
-            "completion_percentage": 0.0
+        if not MODELS_AVAILABLE:
+            raise HTTPException(status_code=503, detail="Database models not available")
+        
+        # Validate required fields
+        required_fields = ['engagement_name', 'client_account_id']
+        for field in required_fields:
+            if not engagement_data.get(field):
+                raise HTTPException(status_code=400, detail=f"Missing required field: {field}")
+        
+        # Verify client account exists
+        client_query = select(ClientAccount).where(ClientAccount.id == engagement_data['client_account_id'])
+        client_result = await db.execute(client_query)
+        client = client_result.scalar_one_or_none()
+        
+        if not client:
+            raise HTTPException(status_code=404, detail="Client account not found")
+        
+        # Check if engagement name already exists for this client
+        existing_query = select(Engagement).where(
+            and_(
+                Engagement.client_account_id == engagement_data['client_account_id'],
+                Engagement.name == engagement_data['engagement_name']
+            )
+        )
+        existing_result = await db.execute(existing_query)
+        existing_engagement = existing_result.scalar_one_or_none()
+        
+        if existing_engagement:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Engagement '{engagement_data['engagement_name']}' already exists for this client"
+            )
+        
+        # Create slug from name
+        slug = engagement_data['engagement_name'].lower().replace(' ', '-').replace('_', '-')
+        
+        # Create new engagement
+        engagement = Engagement(
+            name=engagement_data['engagement_name'],
+            slug=slug,
+            description=engagement_data.get('description', ''),
+            client_account_id=engagement_data['client_account_id'],
+            engagement_type='migration',
+            status='active',
+            start_date=datetime.utcnow() if engagement_data.get('estimated_start_date') else None,
+            target_completion_date=None,  # Can be set later
+            client_contact_name=engagement_data.get('project_manager', ''),
+            client_contact_email='',
+            migration_scope={
+                "target_clouds": [engagement_data.get('target_cloud_provider', 'AWS')] if engagement_data.get('target_cloud_provider') else [],
+                "migration_strategies": [],
+                "excluded_systems": [],
+                "included_environments": [],
+                "business_units": [],
+                "geographic_scope": [],
+                "timeline_constraints": {}
+            },
+            team_preferences={
+                "stakeholders": [],
+                "decision_makers": [],
+                "technical_leads": [],
+                "communication_style": "formal",
+                "reporting_frequency": "weekly",
+                "preferred_meeting_times": [],
+                "escalation_contacts": [],
+                "project_methodology": "agile"
+            },
+            created_by="eef6ea50-6550-4f14-be2c-081d4eb23038" if admin_user in ["admin_user", "demo_user"] else None,
+            is_active=True
+        )
+        
+        db.add(engagement)
+        await db.commit()
+        await db.refresh(engagement)
+        
+        # Convert to response format
+        response_data = {
+            "id": str(engagement.id),
+            "engagement_name": engagement.name,
+            "client_account_id": str(engagement.client_account_id),
+            "client_account_name": client.name,
+            "migration_scope": engagement.migration_scope.get("target_clouds", []) if engagement.migration_scope else [],
+            "target_cloud_provider": engagement.migration_scope.get("target_clouds", ["Not specified"])[0] if engagement.migration_scope and engagement.migration_scope.get("target_clouds") else "Not specified",
+            "migration_phase": engagement.status or "planning",
+            "engagement_manager": engagement.client_contact_name or "Not assigned",
+            "technical_lead": "Not assigned",
+            "start_date": engagement.start_date.isoformat() if engagement.start_date else None,
+            "end_date": engagement.target_completion_date.isoformat() if engagement.target_completion_date else None,
+            "budget": None,
+            "budget_currency": "USD",
+            "completion_percentage": 0.0,
+            "created_at": engagement.created_at.isoformat() if engagement.created_at else None,
+            "is_active": engagement.is_active,
+            "total_sessions": 0,
+            "active_sessions": 0
         }
+        
+        logger.info(f"Engagement created: {engagement_data['engagement_name']} for client {engagement_data['client_account_id']} by admin {admin_user}")
         
         return {
-            "message": f"Engagement '{engagement_data.get('engagement_name', 'New Engagement')}' created successfully",
-            "data": new_engagement
+            "status": "success",
+            "message": f"Engagement '{engagement_data['engagement_name']}' created successfully",
+            "data": response_data
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
+        await db.rollback()
         logger.error(f"Error creating engagement: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to create engagement: {str(e)}")
 
