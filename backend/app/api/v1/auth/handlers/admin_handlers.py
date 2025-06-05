@@ -191,4 +191,60 @@ async def ensure_basic_roles(
         raise
     except Exception as e:
         logger.error(f"Error in ensure_basic_roles: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to ensure basic roles: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Failed to ensure basic roles: {str(e)}")
+
+
+@admin_router.get("/user-type")
+async def get_user_type(
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get user type information for access control."""
+    try:
+        context = get_current_context()
+        user_id_str = context.user_id or "admin_user"
+        
+        # Check if user is demo admin
+        is_demo_admin = user_id_str in ["admin_user", "demo_user"]
+        
+        # For real users, check if they have demo/mock flag
+        is_mock_user = False
+        if not is_demo_admin and user_id_str:
+            try:
+                from sqlalchemy import select
+                from app.models.rbac import User
+                
+                # Check if user has is_mock flag
+                query = select(User).where(User.id == user_id_str)
+                result = await db.execute(query)
+                user = result.scalar_one_or_none()
+                
+                if user:
+                    is_mock_user = getattr(user, 'is_mock', False)
+                    
+            except Exception as e:
+                logger.warning(f"Could not check user mock status: {e}")
+        
+        return {
+            "status": "success",
+            "user_type": {
+                "user_id": user_id_str,
+                "is_demo_admin": is_demo_admin,
+                "is_mock_user": is_mock_user,
+                "should_see_mock_data_only": is_demo_admin or is_mock_user,
+                "access_level": "demo" if (is_demo_admin or is_mock_user) else "production"
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in get_user_type: {e}")
+        return {
+            "status": "success",
+            "user_type": {
+                "user_id": "unknown",
+                "is_demo_admin": True,  # Default to demo for safety
+                "is_mock_user": False,
+                "should_see_mock_data_only": True,
+                "access_level": "demo"
+            }
+        } 

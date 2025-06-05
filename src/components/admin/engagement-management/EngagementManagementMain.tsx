@@ -205,7 +205,7 @@ const EngagementManagementMain: React.FC = () => {
   const startEdit = useCallback((engagement: Engagement) => {
     setFormData({
       engagement_name: engagement.engagement_name || '',
-      engagement_description: '',
+      engagement_description: engagement.engagement_description || '',
       client_account_id: engagement.client_account_id || '',
       migration_scope: engagement.migration_scope || '',
       target_cloud_provider: engagement.target_cloud_provider || '',

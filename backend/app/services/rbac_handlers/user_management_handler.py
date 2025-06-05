@@ -265,9 +265,14 @@ class UserManagementHandler(BaseRBACHandler):
             
             await self.db.commit()
             
-            # Log the deactivation
+            # Log the deactivation - handle demo users properly
+            log_user_id = deactivated_by
+            if deactivated_by == "admin_user":
+                # Use a valid UUID for demo admin user
+                log_user_id = "eef6ea50-6550-4f14-be2c-081d4eb23038"
+            
             await self._log_access(
-                user_id=deactivated_by,
+                user_id=log_user_id,
                 action_type="user_deactivation",
                 result="success",
                 reason=f"User {user_id} deactivated: {reason or 'No reason provided'}",
@@ -285,6 +290,64 @@ class UserManagementHandler(BaseRBACHandler):
             await self.db.rollback()
             logger.error(f"Error in deactivate_user: {e}")
             return {"status": "error", "message": f"Deactivation failed: {str(e)}"}
+    
+    async def activate_user(self, user_id: str, activated_by: str, reason: str = None) -> Dict[str, Any]:
+        """Activate a deactivated user."""
+        if not self.is_available:
+            return {"status": "error", "message": "RBAC models not available"}
+        
+        try:
+            # Get deactivated user profile
+            query = select(UserProfile).where(
+                and_(
+                    UserProfile.user_id == user_id,
+                    UserProfile.status == UserStatus.DEACTIVATED
+                )
+            )
+            result = await self.db.execute(query)
+            user_profile = result.scalar_one_or_none()
+            
+            if not user_profile:
+                return {"status": "error", "message": "User not found or not deactivated"}
+            
+            # Activate the base User record
+            user_query = select(User).where(User.id == user_id)
+            user_result = await self.db.execute(user_query)
+            user = user_result.scalar_one_or_none()
+            
+            if user:
+                user.is_active = True
+            
+            # Update user profile to active
+            user_profile.activate(activated_by, reason)
+            
+            await self.db.commit()
+            
+            # Log the activation - handle demo users properly
+            log_user_id = activated_by
+            if activated_by == "admin_user":
+                # Use a valid UUID for demo admin user
+                log_user_id = "eef6ea50-6550-4f14-be2c-081d4eb23038"
+            
+            await self._log_access(
+                user_id=log_user_id,
+                action_type="user_activation",
+                result="success",
+                reason=f"User {user_id} activated: {reason or 'No reason provided'}",
+                details={"activated_user": user_id, "activation_reason": reason}
+            )
+            
+            return {
+                "status": "success",
+                "message": "User activated successfully",
+                "user_id": user_id,
+                "activation_reason": reason
+            }
+            
+        except Exception as e:
+            await self.db.rollback()
+            logger.error(f"Error in activate_user: {e}")
+            return {"status": "error", "message": f"Activation failed: {str(e)}"}
     
     async def get_pending_approvals(self, admin_user_id: str) -> Dict[str, Any]:
         """Get all users pending approval."""

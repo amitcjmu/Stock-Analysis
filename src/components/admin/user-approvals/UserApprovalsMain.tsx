@@ -13,6 +13,7 @@ import { UserFilters } from './UserFilters';
 import { UserList } from './UserList';
 import { UserDetailsModal } from './UserDetailsModal';
 import { ApprovalActions } from './ApprovalActions';
+import { UserAccessManagement } from './UserAccessManagement';
 import { PendingUser, ActiveUser, ApprovalData, RejectionData } from './types';
 
 export const UserApprovalsMain: React.FC = () => {
@@ -26,7 +27,7 @@ export const UserApprovalsMain: React.FC = () => {
   const [showApprovalDialog, setShowApprovalDialog] = useState(false);
   const [showRejectionDialog, setShowRejectionDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
-  const [activeTab, setActiveTab] = useState<'pending' | 'active'>('pending');
+  const [activeTab, setActiveTab] = useState<'pending' | 'active' | 'access'>('pending');
 
   // Approval form state
   const [approvalData, setApprovalData] = useState<ApprovalData>({
@@ -433,24 +434,30 @@ export const UserApprovalsMain: React.FC = () => {
         onTabChange={setActiveTab}
       />
 
-      <UserStats
-        pendingUsers={pendingUsers}
-        activeUsers={activeUsers}
-      />
+      {activeTab !== 'access' && (
+        <UserStats
+          pendingUsers={pendingUsers}
+          activeUsers={activeUsers}
+        />
+      )}
 
-      <UserList
-        activeTab={activeTab}
-        pendingUsers={pendingUsers}
-        activeUsers={activeUsers}
-        actionLoading={actionLoading}
-        onViewDetails={handleViewDetails}
-        onApprove={handleApproveUser}
-        onReject={handleRejectUser}
-        onDeactivateUser={handleDeactivateUser}
-        onActivateUser={handleActivateUser}
-        formatDate={formatDate}
-        getAccessLevelColor={getAccessLevelColor}
-      />
+      {activeTab === 'access' ? (
+        <UserAccessManagement />
+      ) : (
+        <UserList
+          activeTab={activeTab}
+          pendingUsers={pendingUsers}
+          activeUsers={activeUsers}
+          actionLoading={actionLoading}
+          onViewDetails={handleViewDetails}
+          onApprove={handleApproveUser}
+          onReject={handleRejectUser}
+          onDeactivateUser={handleDeactivateUser}
+          onActivateUser={handleActivateUser}
+          formatDate={formatDate}
+          getAccessLevelColor={getAccessLevelColor}
+        />
+      )}
 
       {/* User Details Dialog */}
       <UserDetailsModal

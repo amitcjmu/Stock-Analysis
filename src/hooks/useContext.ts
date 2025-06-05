@@ -97,7 +97,7 @@ export const useAppContext = () => {
       
       const clients = response.items?.map((client: any) => ({
         id: client.id,
-        name: client.name,
+        name: client.account_name, // Map account_name to name
         slug: client.slug
       })) || [];
       

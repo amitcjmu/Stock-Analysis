@@ -4,10 +4,10 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 
 interface UserFiltersProps {
-  activeTab: 'pending' | 'active';
+  activeTab: 'pending' | 'active' | 'access';
   pendingUsersCount: number;
   activeUsersCount: number;
-  onTabChange: (tab: 'pending' | 'active') => void;
+  onTabChange: (tab: 'pending' | 'active' | 'access') => void;
 }
 
 export const UserFilters: React.FC<UserFiltersProps> = ({
@@ -62,6 +62,16 @@ export const UserFilters: React.FC<UserFiltersProps> = ({
             }`}
           >
             Active Users ({activeUsersCount})
+          </button>
+          <button
+            onClick={() => onTabChange('access')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'access'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            User Access Management
           </button>
         </nav>
       </div>

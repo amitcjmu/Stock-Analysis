@@ -58,6 +58,10 @@ class RBACService:
         """Deactivate an active user."""
         return await self.user_management.deactivate_user(user_id, deactivated_by, reason)
     
+    async def activate_user(self, user_id: str, activated_by: str, reason: str = None) -> Dict[str, Any]:
+        """Activate a deactivated user."""
+        return await self.user_management.activate_user(user_id, activated_by, reason)
+    
     async def get_pending_approvals(self, admin_user_id: str) -> Dict[str, Any]:
         """Get all users pending approval."""
         return await self.user_management.get_pending_approvals(admin_user_id)

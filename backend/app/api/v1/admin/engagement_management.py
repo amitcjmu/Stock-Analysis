@@ -87,15 +87,16 @@ async def list_engagements(
             engagement_data = {
                 "id": str(engagement.id),
                 "engagement_name": engagement.name or "Unnamed Engagement",
+                "engagement_description": engagement.description or "",
                 "client_account_id": str(engagement.client_account_id),
                 "client_account_name": client.name if client else "Unknown Client",
                 "migration_scope": engagement.migration_scope.get("target_clouds", []) if engagement.migration_scope else [],
                 "target_cloud_provider": engagement.migration_scope.get("target_clouds", ["Not specified"])[0] if engagement.migration_scope and engagement.migration_scope.get("target_clouds") else "Not specified",
                 "migration_phase": engagement.status or "planning",
-                "engagement_manager": "Not assigned",  # Simplified since engagement_lead might not be loaded
+                "engagement_manager": engagement.client_contact_name or "Not assigned",
                 "technical_lead": engagement.client_contact_name or "Not assigned",
-                "start_date": engagement.start_date.isoformat() if engagement.start_date else None,
-                "end_date": engagement.target_completion_date.isoformat() if engagement.target_completion_date else None,
+                "start_date": engagement.start_date.strftime('%Y-%m-%d') if engagement.start_date else "",
+                "end_date": engagement.target_completion_date.strftime('%Y-%m-%d') if engagement.target_completion_date else "",
                 "budget": None,  # Would need to be added to engagement model
                 "budget_currency": "USD",
                 "completion_percentage": 0.0,  # Would need to be calculated

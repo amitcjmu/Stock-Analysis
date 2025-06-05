@@ -1,6 +1,7 @@
 export interface Engagement {
   id: string;
   engagement_name: string;
+  engagement_description?: string;
   client_account_id: string;
   client_account_name: string;
   migration_scope: string;

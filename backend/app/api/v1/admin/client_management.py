@@ -14,6 +14,15 @@ from datetime import datetime
 from app.core.database import get_db
 from app.core.rbac_middleware import require_admin_access
 from app.repositories.context_aware_repository import ContextAwareRepository
+
+# Import ClientCRUDHandler
+try:
+    from app.api.v1.admin.client_management_handlers.client_crud_handler import ClientCRUDHandler
+    CLIENT_CRUD_AVAILABLE = True
+except ImportError:
+    CLIENT_CRUD_AVAILABLE = False
+    ClientCRUDHandler = None
+
 # Conditional imports with fallbacks
 try:
     from app.models.client_account import ClientAccount, Engagement, User
@@ -72,6 +81,8 @@ async def create_client_account(
     """Create a new client account with business context."""
     if not MODELS_AVAILABLE:
         raise HTTPException(status_code=503, detail="Database models not available")
+    if not CLIENT_CRUD_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Client CRUD handler not available")
     
     return await ClientCRUDHandler.create_client(client_data, db, admin_user)
 
@@ -174,6 +185,8 @@ async def update_client_account(
     """Update client account information."""
     if not MODELS_AVAILABLE:
         raise HTTPException(status_code=503, detail="Database models not available")
+    if not CLIENT_CRUD_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Client CRUD handler not available")
     
     return await ClientCRUDHandler.update_client(client_id, update_data, db, admin_user)
 
@@ -187,6 +200,8 @@ async def delete_client_account(
     """Delete client account."""
     if not MODELS_AVAILABLE:
         raise HTTPException(status_code=503, detail="Database models not available")
+    if not CLIENT_CRUD_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Client CRUD handler not available")
     
     return await ClientCRUDHandler.delete_client(client_id, db, admin_user)
 
