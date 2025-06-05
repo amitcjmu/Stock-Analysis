@@ -203,7 +203,7 @@ const UserApprovals: React.FC = () => {
             last_login: '2025-01-28T09:15:00Z'
           },
           {
-            user_id: 'user_004',
+            user_id: '3b1de4df-8595-4fab-a8c9-3db237e3bc32',
             email: 'sarah.analyst@techcorp.com',
             full_name: 'Sarah Johnson',
             username: 'sarah.johnson',
@@ -216,7 +216,7 @@ const UserApprovals: React.FC = () => {
             last_login: '2025-01-27T16:45:00Z'
           },
           {
-            user_id: 'user_005',
+            user_id: '4c2ef5e0-9606-4fab-b9da-4ec348f4cd43',
             email: 'mike.pm@globalsystems.com',
             full_name: 'Mike Rodriguez',
             username: 'mike.rodriguez',
@@ -229,7 +229,7 @@ const UserApprovals: React.FC = () => {
             last_login: '2025-01-28T08:30:00Z'
           },
           {
-            user_id: 'user_006',
+            user_id: '5d3f06f1-a717-4fab-caeb-5fd459a5de54',
             email: 'jenny.consultant@cloudexperts.com',
             full_name: 'Jenny Chen',
             username: 'jenny.chen',
@@ -242,7 +242,7 @@ const UserApprovals: React.FC = () => {
             last_login: '2025-01-28T09:15:00Z'
           },
           {
-            user_id: 'analyst_001',
+            user_id: '6e4017a2-b828-4fab-dbfc-60e56ab6ef65',
             email: 'alice.analyst@techcorp.com',
             full_name: 'Alice Data Analyst',
             username: 'alice.analyst',
@@ -255,7 +255,7 @@ const UserApprovals: React.FC = () => {
             last_login: '2025-01-27T16:45:00Z'
           },
           {
-            user_id: 'chocka_001',
+            user_id: '7f5128a3-c939-4fab-ec0d-71f67ba7f076',
             email: 'chocka@gmail.com',
             full_name: 'Chocka Swamy',
             username: 'chocka',
@@ -274,7 +274,7 @@ const UserApprovals: React.FC = () => {
       // Silent fail for active users but ensure we have demo data
       setActiveUsers([
         {
-          user_id: 'admin_001',
+          user_id: '8a6239b4-da4a-4fab-fd1e-82a78cb8a087',
           email: 'admin@aiforce.com',
           full_name: 'Platform Administrator',
           username: 'admin',

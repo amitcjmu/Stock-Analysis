@@ -195,12 +195,13 @@ const CreateEngagement: React.FC = () => {
         target_cloud_provider: formData.target_cloud_provider || 'aws',
         engagement_manager: formData.project_manager,
         technical_lead: formData.project_manager, // Use same person as default
-        start_date: formData.estimated_start_date,
-        end_date: formData.estimated_end_date,
-        budget: formData.budget ? parseFloat(formData.budget.toString()) : 0,
-        budget_currency: formData.budget_currency,
+        planned_start_date: formData.estimated_start_date ? new Date(formData.estimated_start_date).toISOString() : null,
+        planned_end_date: formData.estimated_end_date ? new Date(formData.estimated_end_date).toISOString() : null,
+        estimated_budget: formData.budget ? parseFloat(formData.budget.toString()) : null,
         team_preferences: {},
-        stakeholder_preferences: {}
+        agent_configuration: {},
+        discovery_preferences: {},
+        assessment_criteria: {}
       };
       
       // Try to call the real API first

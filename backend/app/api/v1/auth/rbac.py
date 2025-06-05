@@ -1193,4 +1193,125 @@ def get_role_permissions(role_type: str) -> Dict[str, bool]:
         }
     }
     
-    return permissions_map.get(role_type, permissions_map['viewer']) 
+    return permissions_map.get(role_type, permissions_map['viewer'])
+
+@router.post("/deactivate-user")
+async def deactivate_user(
+    request_data: Dict[str, Any],
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Deactivate an active user account.
+    Sets user status to inactive while preserving data.
+    """
+    try:
+        user_id = request_data.get("user_id")
+        reason = request_data.get("reason", "Admin deactivation")
+        
+        if not user_id:
+            raise HTTPException(status_code=400, detail="user_id is required")
+        
+        # Find user profile
+        profile_query = select(UserProfile).where(UserProfile.user_id == user_id)
+        result = await db.execute(profile_query)
+        user_profile = result.scalar_one_or_none()
+        
+        if not user_profile:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        if user_profile.status != "active":
+            raise HTTPException(status_code=400, detail="User is not active")
+        
+        # Update user profile status
+        user_profile.status = "inactive"
+        user_profile.deactivated_at = datetime.utcnow()
+        user_profile.deactivation_reason = reason
+        user_profile.updated_at = datetime.utcnow()
+        
+        # Also update User table if it exists
+        try:
+            user_query = select(User).where(User.id == user_id)
+            user_result = await db.execute(user_query)
+            user = user_result.scalar_one_or_none()
+            if user:
+                user.is_active = False
+                user.updated_at = datetime.utcnow()
+        except Exception as e:
+            logger.warning(f"Could not update User table: {e}")
+        
+        await db.commit()
+        
+        logger.info(f"User {user_id} deactivated by admin. Reason: {reason}")
+        
+        return {
+            "status": "success",
+            "message": "User deactivated successfully",
+            "user_id": user_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deactivating user: {e}")
+        raise HTTPException(status_code=500, detail=f"User deactivation failed: {str(e)}")
+
+@router.post("/activate-user")
+async def activate_user(
+    request_data: Dict[str, Any],
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Activate a deactivated user account.
+    Sets user status back to active.
+    """
+    try:
+        user_id = request_data.get("user_id")
+        
+        if not user_id:
+            raise HTTPException(status_code=400, detail="user_id is required")
+        
+        # Find user profile
+        profile_query = select(UserProfile).where(UserProfile.user_id == user_id)
+        result = await db.execute(profile_query)
+        user_profile = result.scalar_one_or_none()
+        
+        if not user_profile:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        if user_profile.status == "active":
+            raise HTTPException(status_code=400, detail="User is already active")
+        
+        # Update user profile status
+        user_profile.status = "active"
+        user_profile.reactivated_at = datetime.utcnow()
+        user_profile.deactivation_reason = None
+        user_profile.updated_at = datetime.utcnow()
+        
+        # Also update User table if it exists
+        try:
+            user_query = select(User).where(User.id == user_id)
+            user_result = await db.execute(user_query)
+            user = user_result.scalar_one_or_none()
+            if user:
+                user.is_active = True
+                user.updated_at = datetime.utcnow()
+        except Exception as e:
+            logger.warning(f"Could not update User table: {e}")
+        
+        await db.commit()
+        
+        logger.info(f"User {user_id} activated by admin")
+        
+        return {
+            "status": "success",
+            "message": "User activated successfully",
+            "user_id": user_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error activating user: {e}")
+        raise HTTPException(status_code=500, detail=f"User activation failed: {str(e)}") 
