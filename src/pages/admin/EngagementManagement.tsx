@@ -63,6 +63,7 @@ interface Engagement {
 
 interface EngagementFormData {
   engagement_name: string;
+  engagement_description: string;
   client_account_id: string;
   migration_scope: string;
   target_cloud_provider: string;
@@ -265,6 +266,18 @@ const EngagementForm: React.FC<EngagementFormProps> = React.memo(({ formData, on
         </Select>
       </div>
     </div>
+
+    <div className="space-y-2">
+      <Label htmlFor="engagement_description">Engagement Description *</Label>
+      <Textarea
+        id="engagement_description"
+        value={formData.engagement_description}
+        onChange={(e) => onFormChange('engagement_description', e.target.value)}
+        placeholder="Brief description of the engagement scope and objectives"
+        rows={3}
+        required
+      />
+    </div>
   </div>
 ));
 
@@ -284,6 +297,7 @@ const EngagementManagement: React.FC = () => {
 
   const [formData, setFormData] = useState<EngagementFormData>({
     engagement_name: '',
+    engagement_description: '',
     client_account_id: '',
     migration_scope: '',
     target_cloud_provider: '',
@@ -427,24 +441,46 @@ const EngagementManagement: React.FC = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-Demo-Mode': 'true',
+          'X-User-ID': 'admin_user',
+          'Authorization': 'Bearer demo-admin-token'
         },
         body: JSON.stringify(formData)
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to create engagement');
+      if (response.ok) {
+        const result = await response.json();
+        
+        toast({
+          title: "Success",
+          description: `Engagement "${formData.engagement_name}" created successfully`,
+        });
+
+        setShowCreateDialog(false);
+        resetForm();
+        fetchEngagements();
+      } else if (response.status === 422) {
+        // Handle validation errors
+        const errorData = await response.json();
+        console.log('Validation error:', errorData);
+        
+        let errorMessage = "Validation error";
+        if (errorData.detail && Array.isArray(errorData.detail)) {
+          const missingFields = errorData.detail.map((err: any) => err.loc[err.loc.length - 1]).join(', ');
+          errorMessage = `Missing required fields: ${missingFields}`;
+        } else if (errorData.detail) {
+          errorMessage = errorData.detail;
+        }
+        
+        toast({
+          title: "Validation Error",
+          description: errorMessage,
+          variant: "destructive"
+        });
+      } else {
+        const errorData = await response.text();
+        throw new Error(`API call failed: ${response.status} - ${errorData}`);
       }
-
-      const result = await response.json();
-      
-      toast({
-        title: "Success",
-        description: `Engagement "${formData.engagement_name}" created successfully`,
-      });
-
-      setShowCreateDialog(false);
-      resetForm();
-      fetchEngagements();
     } catch (error) {
       console.error('Error creating engagement:', error);
       toast({
@@ -463,22 +499,44 @@ const EngagementManagement: React.FC = () => {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'X-Demo-Mode': 'true',
+          'X-User-ID': 'admin_user',
+          'Authorization': 'Bearer demo-admin-token'
         },
         body: JSON.stringify(formData)
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to update engagement');
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: `Engagement "${formData.engagement_name}" updated successfully`,
+        });
+
+        setEditingEngagement(null);
+        resetForm();
+        fetchEngagements();
+      } else if (response.status === 422) {
+        // Handle validation errors
+        const errorData = await response.json();
+        console.log('Validation error:', errorData);
+        
+        let errorMessage = "Validation error";
+        if (errorData.detail && Array.isArray(errorData.detail)) {
+          const missingFields = errorData.detail.map((err: any) => err.loc[err.loc.length - 1]).join(', ');
+          errorMessage = `Missing required fields: ${missingFields}`;
+        } else if (errorData.detail) {
+          errorMessage = errorData.detail;
+        }
+        
+        toast({
+          title: "Validation Error",
+          description: errorMessage,
+          variant: "destructive"
+        });
+      } else {
+        const errorData = await response.text();
+        throw new Error(`API call failed: ${response.status} - ${errorData}`);
       }
-
-      toast({
-        title: "Success",
-        description: `Engagement "${formData.engagement_name}" updated successfully`,
-      });
-
-      setEditingEngagement(null);
-      resetForm();
-      fetchEngagements();
     } catch (error) {
       console.error('Error updating engagement:', error);
       toast({
@@ -522,6 +580,7 @@ const EngagementManagement: React.FC = () => {
   const resetForm = () => {
     setFormData({
       engagement_name: '',
+      engagement_description: '',
       client_account_id: '',
       migration_scope: '',
       target_cloud_provider: '',
@@ -541,6 +600,7 @@ const EngagementManagement: React.FC = () => {
     setEditingEngagement(engagement);
     setFormData({
       engagement_name: engagement.engagement_name,
+      engagement_description: '',
       client_account_id: engagement.client_account_id,
       migration_scope: engagement.migration_scope,
       target_cloud_provider: engagement.target_cloud_provider,

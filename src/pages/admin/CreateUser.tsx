@@ -165,6 +165,22 @@ const CreateUser: React.FC = () => {
           window.dispatchEvent(new CustomEvent('userCreated', {
             detail: createdUser
           }));
+          
+          // Navigate back to user management
+          navigate('/admin/users/approvals');
+        } else if (response.status === 400) {
+          // Handle validation errors (like duplicate email)
+          const errorData = await response.json();
+          console.log('Validation error:', errorData);
+          
+          toast({
+            title: "Validation Error",
+            description: errorData.detail || "Invalid user data provided",
+            variant: "destructive"
+          });
+          
+          // Don't navigate away, let user fix the error
+          return;
         } else {
           const errorData = await response.text();
           console.log('API call failed:', response.status, errorData);
@@ -208,9 +224,6 @@ const CreateUser: React.FC = () => {
           detail: demoUser
         }));
       }
-
-      // Navigate back to user management
-      navigate('/admin/users/approvals');
     } catch (error) {
       console.error('Error creating user:', error);
       toast({

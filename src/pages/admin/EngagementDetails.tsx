@@ -141,6 +141,8 @@ const EngagementDetails: React.FC = () => {
   };
 
   const getPhaseColor = (phase: string) => {
+    if (!phase) return 'bg-gray-100 text-gray-800';
+    
     switch (phase) {
       case 'planning': return 'bg-yellow-100 text-yellow-800';
       case 'discovery': return 'bg-blue-100 text-blue-800';
@@ -302,7 +304,10 @@ const EngagementDetails: React.FC = () => {
               <div>
                 <h4 className="font-medium mb-3">Current Phase</h4>
                 <Badge className={getPhaseColor(engagement.migration_phase)}>
-                  {engagement.migration_phase.charAt(0).toUpperCase() + engagement.migration_phase.slice(1)}
+                  {engagement.migration_phase ? 
+                    engagement.migration_phase.charAt(0).toUpperCase() + engagement.migration_phase.slice(1) :
+                    'Unknown'
+                  }
                 </Badge>
               </div>
             </CardContent>
