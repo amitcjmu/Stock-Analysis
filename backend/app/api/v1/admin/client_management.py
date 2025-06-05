@@ -75,17 +75,93 @@ async def create_client_account(
     
     return await ClientCRUDHandler.create_client(client_data, db, admin_user)
 
-@router.get("/{client_id}", response_model=AdminSuccessResponse)
+@router.get("/{client_id}")
 async def get_client_account(
     client_id: str,
     db: AsyncSession = Depends(get_db),
     admin_user: str = Depends(require_admin_access)
 ):
     """Get detailed client account information."""
-    if not MODELS_AVAILABLE:
-        raise HTTPException(status_code=503, detail="Database models not available")
-    
-    return await ClientCRUDHandler.get_client(client_id, db)
+    try:
+        if not MODELS_AVAILABLE:
+            raise HTTPException(status_code=503, detail="Database models not available")
+        
+        logger.info(f"Admin user {admin_user} requesting client details for {client_id}")
+        
+        # Query for the client
+        query = select(ClientAccount).where(
+            and_(
+                ClientAccount.id == client_id,
+                ClientAccount.is_active == True
+            )
+        )
+        result = await db.execute(query)
+        client = result.scalar_one_or_none()
+        
+        if not client:
+            raise HTTPException(status_code=404, detail="Client not found")
+        
+        # Get engagement counts for this client
+        total_engagements_query = select(func.count(Engagement.id)).where(
+            and_(
+                Engagement.client_account_id == client.id,
+                Engagement.is_active == True
+            )
+        )
+        total_engagements_result = await db.execute(total_engagements_query)
+        total_engagements = total_engagements_result.scalar() or 0
+        
+        active_engagements_query = select(func.count(Engagement.id)).where(
+            and_(
+                Engagement.client_account_id == client.id,
+                Engagement.is_active == True,
+                Engagement.status.in_(['active', 'in_progress', 'planning'])
+            )
+        )
+        active_engagements_result = await db.execute(active_engagements_query)
+        active_engagements = active_engagements_result.scalar() or 0
+        
+        # Format response
+        client_data = {
+            "id": str(client.id),
+            "account_name": client.name,
+            "industry": client.industry or "Not specified",
+            "company_size": client.company_size or "Not specified",
+            "headquarters_location": client.headquarters_location or "Not specified",
+            "primary_contact_name": client.primary_contact_name or "Not specified",
+            "primary_contact_email": client.primary_contact_email or "Not specified",
+            "primary_contact_phone": client.primary_contact_phone,
+            "description": client.description,
+            "subscription_tier": client.subscription_tier or "standard",
+            "billing_contact_email": client.billing_contact_email,
+            "settings": client.settings or {},
+            "branding": client.branding or {},
+            "slug": client.slug,
+            "created_by": str(client.created_by) if client.created_by else None,
+            "business_objectives": client.business_objectives.get("primary_goals", []) if client.business_objectives else [],
+            "it_guidelines": client.it_guidelines or {},
+            "decision_criteria": client.decision_criteria or {},
+            "agent_preferences": client.agent_preferences or {},
+            "target_cloud_providers": [],  # This would need to be derived from engagements or settings
+            "business_priorities": [],
+            "compliance_requirements": client.business_objectives.get("compliance_requirements", []) if client.business_objectives else [],
+            "budget_constraints": client.business_objectives.get("budget_constraints") if client.business_objectives and client.business_objectives.get("budget_constraints") else None,
+            "timeline_constraints": {},
+            "is_active": client.is_active,
+            "total_engagements": total_engagements,
+            "active_engagements": active_engagements,
+            "created_at": client.created_at,
+            "updated_at": client.updated_at
+        }
+        
+        logger.info(f"Successfully retrieved client details for {client_id}")
+        return client_data
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting client details for {client_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get client details: {str(e)}")
 
 @router.put("/{client_id}", response_model=AdminSuccessResponse)
 async def update_client_account(

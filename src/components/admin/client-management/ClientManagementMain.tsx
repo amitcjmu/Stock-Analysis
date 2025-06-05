@@ -375,6 +375,11 @@ const ClientManagementMain: React.FC = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild>
+                            <Link to={`/admin/clients/${client.id}`}>
+                              <Eye className="w-4 h-4 mr-2" />View Details
+                            </Link>
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => startEdit(client)}>
                             <Edit className="w-4 h-4 mr-2" />Edit Client
                           </DropdownMenuItem>

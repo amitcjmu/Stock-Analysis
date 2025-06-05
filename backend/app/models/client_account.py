@@ -108,6 +108,16 @@ class ClientAccount(Base):
     engagements = relationship("Engagement", back_populates="client_account", cascade="all, delete-orphan")
     user_associations = relationship("UserAccountAssociation", back_populates="client_account", cascade="all, delete-orphan")
     
+    # Data import relationships (string reference to avoid circular imports)
+    data_imports = relationship("DataImport", back_populates="client_account", cascade="all, delete-orphan", lazy="select")
+    
+    # Feedback relationships (string reference to avoid circular imports)
+    feedback = relationship("Feedback", back_populates="client_account", cascade="all, delete-orphan", lazy="select")
+    
+    # LLM usage relationships (string reference to avoid circular imports)
+    llm_usage_logs = relationship("LLMUsageLog", back_populates="client_account", cascade="all, delete-orphan", lazy="select")
+    llm_usage_summaries = relationship("LLMUsageSummary", back_populates="client_account", cascade="all, delete-orphan", lazy="select")
+    
     def __repr__(self):
         return f"<ClientAccount(id={self.id}, name='{self.name}', slug='{self.slug}', is_mock={self.is_mock})>"
 
@@ -177,6 +187,22 @@ class Engagement(Base):
     client_account = relationship("ClientAccount", back_populates="engagements")
     engagement_lead = relationship("User", foreign_keys=[engagement_lead_id])
     created_by_user = relationship("User", foreign_keys=[created_by])
+    
+    # Asset relationships (string reference to avoid circular imports)
+    cmdb_assets = relationship("CMDBAsset", back_populates="engagement", cascade="all, delete-orphan", lazy="select")
+    
+    # Data import relationships (string reference to avoid circular imports)
+    data_imports = relationship("DataImport", back_populates="engagement", cascade="all, delete-orphan", lazy="select")
+    
+    # Feedback relationships (string reference to avoid circular imports)
+    feedback = relationship("Feedback", back_populates="engagement", cascade="all, delete-orphan", lazy="select")
+    
+    # LLM usage relationships (string reference to avoid circular imports)
+    llm_usage_logs = relationship("LLMUsageLog", back_populates="engagement", cascade="all, delete-orphan", lazy="select")
+    llm_usage_summaries = relationship("LLMUsageSummary", back_populates="engagement", cascade="all, delete-orphan", lazy="select")
+    
+    # Data import session relationships (string reference to avoid circular imports)
+    sessions = relationship("DataImportSession", back_populates="engagement", cascade="all, delete-orphan", lazy="select")
     
     def __repr__(self):
         return f"<Engagement(id={self.id}, name='{self.name}', client_account_id={self.client_account_id}, is_mock={self.is_mock})>"

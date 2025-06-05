@@ -76,7 +76,11 @@ const ClientDetails: React.FC = () => {
     primary_contact_phone: '',
     description: '',
     subscription_tier: '',
-    billing_contact_email: ''
+    billing_contact_email: '',
+    business_objectives: [] as string[],
+    target_cloud_providers: [] as string[],
+    business_priorities: [] as string[],
+    compliance_requirements: [] as string[]
   });
 
   useEffect(() => {
@@ -88,7 +92,7 @@ const ClientDetails: React.FC = () => {
   const fetchClientDetails = async (id: string) => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/v1/admin/clients/${id}`, {
+      const response = await fetch(`http://localhost:8000/api/v1/admin/clients/${id}`, {
         headers: getAuthHeaders()
       });
       
@@ -97,7 +101,7 @@ const ClientDetails: React.FC = () => {
       }
 
       const data = await response.json();
-      setClient(data.data || data);
+      setClient(data);
     } catch (error) {
       console.error('Error fetching client details:', error);
       toast({
@@ -176,7 +180,11 @@ const ClientDetails: React.FC = () => {
         primary_contact_phone: client.primary_contact_phone || '',
         description: client.description || '',
         subscription_tier: client.subscription_tier || '',
-        billing_contact_email: client.billing_contact_email || ''
+        billing_contact_email: client.billing_contact_email || '',
+        business_objectives: client.business_objectives || [],
+        target_cloud_providers: client.target_cloud_providers || [],
+        business_priorities: client.business_priorities || [],
+        compliance_requirements: client.compliance_requirements || []
       });
       setShowEditDialog(true);
     }
