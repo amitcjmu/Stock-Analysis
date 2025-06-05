@@ -29,7 +29,7 @@ export const EngagementForm: React.FC<EngagementFormProps> = React.memo(({
         <Label htmlFor="engagement_name">Engagement Name *</Label>
         <Input
           id="engagement_name"
-          value={formData.engagement_name}
+          value={formData.engagement_name || ''}
           onChange={(e) => onFormChange('engagement_name', e.target.value)}
           placeholder="Enter engagement name"
           required
@@ -38,7 +38,7 @@ export const EngagementForm: React.FC<EngagementFormProps> = React.memo(({
       
       <div className="space-y-2">
         <Label htmlFor="client_account_id">Client Account *</Label>
-        <Select value={formData.client_account_id} onValueChange={(value) => onFormChange('client_account_id', value)}>
+        <Select value={formData.client_account_id || ''} onValueChange={(value) => onFormChange('client_account_id', value)}>
           <SelectTrigger>
             <SelectValue placeholder="Select client" />
           </SelectTrigger>
@@ -52,7 +52,7 @@ export const EngagementForm: React.FC<EngagementFormProps> = React.memo(({
 
       <div className="space-y-2">
         <Label htmlFor="migration_scope">Migration Scope *</Label>
-        <Select value={formData.migration_scope} onValueChange={(value) => onFormChange('migration_scope', value)}>
+        <Select value={formData.migration_scope || ''} onValueChange={(value) => onFormChange('migration_scope', value)}>
           <SelectTrigger>
             <SelectValue placeholder="Select scope" />
           </SelectTrigger>
@@ -66,7 +66,7 @@ export const EngagementForm: React.FC<EngagementFormProps> = React.memo(({
 
       <div className="space-y-2">
         <Label htmlFor="target_cloud_provider">Target Cloud Provider *</Label>
-        <Select value={formData.target_cloud_provider} onValueChange={(value) => onFormChange('target_cloud_provider', value)}>
+        <Select value={formData.target_cloud_provider || ''} onValueChange={(value) => onFormChange('target_cloud_provider', value)}>
           <SelectTrigger>
             <SelectValue placeholder="Select provider" />
           </SelectTrigger>
@@ -80,7 +80,7 @@ export const EngagementForm: React.FC<EngagementFormProps> = React.memo(({
 
       <div className="space-y-2">
         <Label htmlFor="migration_phase">Migration Phase *</Label>
-        <Select value={formData.migration_phase} onValueChange={(value) => onFormChange('migration_phase', value)}>
+        <Select value={formData.migration_phase || ''} onValueChange={(value) => onFormChange('migration_phase', value)}>
           <SelectTrigger>
             <SelectValue placeholder="Select phase" />
           </SelectTrigger>
@@ -96,7 +96,7 @@ export const EngagementForm: React.FC<EngagementFormProps> = React.memo(({
         <Label htmlFor="engagement_manager">Engagement Manager *</Label>
         <Input
           id="engagement_manager"
-          value={formData.engagement_manager}
+          value={formData.engagement_manager || ''}
           onChange={(e) => onFormChange('engagement_manager', e.target.value)}
           placeholder="Enter engagement manager name"
           required
@@ -107,7 +107,7 @@ export const EngagementForm: React.FC<EngagementFormProps> = React.memo(({
         <Label htmlFor="technical_lead">Technical Lead *</Label>
         <Input
           id="technical_lead"
-          value={formData.technical_lead}
+          value={formData.technical_lead || ''}
           onChange={(e) => onFormChange('technical_lead', e.target.value)}
           placeholder="Enter technical lead name"
           required
@@ -119,7 +119,7 @@ export const EngagementForm: React.FC<EngagementFormProps> = React.memo(({
         <Input
           id="start_date"
           type="date"
-          value={formData.start_date}
+          value={formData.start_date || ''}
           onChange={(e) => onFormChange('start_date', e.target.value)}
           required
         />
@@ -130,7 +130,7 @@ export const EngagementForm: React.FC<EngagementFormProps> = React.memo(({
         <Input
           id="end_date"
           type="date"
-          value={formData.end_date}
+          value={formData.end_date || ''}
           onChange={(e) => onFormChange('end_date', e.target.value)}
           required
         />
@@ -141,15 +141,15 @@ export const EngagementForm: React.FC<EngagementFormProps> = React.memo(({
         <Input
           id="budget"
           type="number"
-          value={formData.budget || ''}
-          onChange={(e) => onFormChange('budget', parseFloat(e.target.value) || 0)}
+          value={formData.budget ? formData.budget.toString() : ''}
+          onChange={(e) => onFormChange('budget', e.target.value ? parseFloat(e.target.value) : null)}
           placeholder="Enter budget amount"
         />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="budget_currency">Budget Currency</Label>
-        <Select value={formData.budget_currency} onValueChange={(value) => onFormChange('budget_currency', value)}>
+        <Select value={formData.budget_currency || ''} onValueChange={(value) => onFormChange('budget_currency', value)}>
           <SelectTrigger>
             <SelectValue placeholder="Select currency" />
           </SelectTrigger>
@@ -166,7 +166,7 @@ export const EngagementForm: React.FC<EngagementFormProps> = React.memo(({
       <Label htmlFor="engagement_description">Description</Label>
       <Textarea
         id="engagement_description"
-        value={formData.engagement_description}
+        value={formData.engagement_description || ''}
         onChange={(e) => onFormChange('engagement_description', e.target.value)}
         placeholder="Enter engagement description..."
         rows={3}

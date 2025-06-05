@@ -204,18 +204,18 @@ const EngagementManagementMain: React.FC = () => {
   // Start editing an engagement
   const startEdit = useCallback((engagement: Engagement) => {
     setFormData({
-      engagement_name: engagement.engagement_name,
+      engagement_name: engagement.engagement_name || '',
       engagement_description: '',
-      client_account_id: engagement.client_account_id,
-      migration_scope: engagement.migration_scope,
-      target_cloud_provider: engagement.target_cloud_provider,
-      migration_phase: engagement.migration_phase,
-      engagement_manager: engagement.engagement_manager,
-      technical_lead: engagement.technical_lead,
-      start_date: engagement.start_date,
-      end_date: engagement.end_date,
-      budget: engagement.budget,
-      budget_currency: engagement.budget_currency,
+      client_account_id: engagement.client_account_id || '',
+      migration_scope: engagement.migration_scope || '',
+      target_cloud_provider: engagement.target_cloud_provider || '',
+      migration_phase: engagement.migration_phase || '',
+      engagement_manager: engagement.engagement_manager || '',
+      technical_lead: engagement.technical_lead || '',
+      start_date: engagement.start_date || '',
+      end_date: engagement.end_date || '',
+      budget: engagement.budget || 0,
+      budget_currency: engagement.budget_currency || 'USD',
       team_preferences: {},
       stakeholder_preferences: {}
     });

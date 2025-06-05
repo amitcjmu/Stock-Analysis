@@ -127,6 +127,12 @@ class UserProfile(Base):
         """Suspend user access."""
         self.status = UserStatus.SUSPENDED
     
+    def deactivate(self, deactivated_by: str, reason: str = None):
+        """Deactivate user access."""
+        from datetime import datetime
+        self.status = UserStatus.DEACTIVATED
+        self.updated_at = datetime.utcnow()
+    
     def record_login(self):
         """Record successful login."""
         self.last_login_at = func.now()

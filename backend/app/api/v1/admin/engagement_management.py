@@ -281,19 +281,88 @@ async def update_engagement(
 ):
     """Update engagement."""
     try:
-        # Demo implementation
-        updated_engagement = {
-            "id": engagement_id,
-            **update_data,
-            "updated_at": "2025-01-16T10:00:00Z"
+        if not MODELS_AVAILABLE:
+            raise HTTPException(status_code=503, detail="Database models not available")
+        
+        # Get existing engagement
+        query = select(Engagement).where(Engagement.id == engagement_id)
+        result = await db.execute(query)
+        engagement = result.scalar_one_or_none()
+        
+        if not engagement:
+            raise HTTPException(status_code=404, detail="Engagement not found")
+        
+        # Update fields that are provided
+        for field, value in update_data.items():
+            if field in ['engagement_name']:
+                setattr(engagement, 'name', value)
+            elif field in ['engagement_description']:
+                setattr(engagement, 'description', value)
+            elif field in ['engagement_manager']:
+                setattr(engagement, 'client_contact_name', value)
+            elif field in ['start_date'] and value:
+                try:
+                    setattr(engagement, 'start_date', datetime.fromisoformat(value.replace('Z', '+00:00')))
+                except:
+                    setattr(engagement, 'start_date', None)
+            elif field in ['end_date'] and value:
+                try:
+                    setattr(engagement, 'target_completion_date', datetime.fromisoformat(value.replace('Z', '+00:00')))
+                except:
+                    setattr(engagement, 'target_completion_date', None)
+            elif field in ['migration_phase']:
+                setattr(engagement, 'status', value)
+            elif field in ['target_cloud_provider'] and value:
+                # Update migration_scope JSON
+                scope = engagement.migration_scope or {}
+                scope['target_clouds'] = [value]
+                setattr(engagement, 'migration_scope', scope)
+        
+        engagement.updated_at = datetime.utcnow()
+        
+        await db.commit()
+        await db.refresh(engagement)
+        
+        # Get client info for response
+        client_query = select(ClientAccount).where(ClientAccount.id == engagement.client_account_id)
+        client_result = await db.execute(client_query)
+        client = client_result.scalar_one_or_none()
+        
+        # Convert to response format
+        response_data = {
+            "id": str(engagement.id),
+            "engagement_name": engagement.name,
+            "client_account_id": str(engagement.client_account_id),
+            "client_account_name": client.name if client else "Unknown Client",
+            "migration_scope": engagement.migration_scope.get("target_clouds", []) if engagement.migration_scope else [],
+            "target_cloud_provider": engagement.migration_scope.get("target_clouds", ["Not specified"])[0] if engagement.migration_scope and engagement.migration_scope.get("target_clouds") else "Not specified",
+            "migration_phase": engagement.status or "planning",
+            "engagement_manager": engagement.client_contact_name or "Not assigned",
+            "technical_lead": "Not assigned",
+            "start_date": engagement.start_date.isoformat() if engagement.start_date else None,
+            "end_date": engagement.target_completion_date.isoformat() if engagement.target_completion_date else None,
+            "budget": None,
+            "budget_currency": "USD",
+            "completion_percentage": 0.0,
+            "created_at": engagement.created_at.isoformat() if engagement.created_at else None,
+            "updated_at": engagement.updated_at.isoformat() if engagement.updated_at else None,
+            "is_active": engagement.is_active,
+            "total_sessions": 0,
+            "active_sessions": 0
         }
+        
+        logger.info(f"Engagement updated: {engagement_id} by admin {admin_user}")
         
         return {
+            "status": "success",
             "message": "Engagement updated successfully",
-            "data": updated_engagement
+            "data": response_data
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
+        await db.rollback()
         logger.error(f"Error updating engagement {engagement_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to update engagement: {str(e)}")
 
