@@ -1,0 +1,323 @@
+# Test info
+
+- Name: Admin Interface - Complete Workflow Tests >> Engagement Management >> should successfully create a new engagement
+- Location: /Users/chocka/CursorProjects/migrate-ui-orchestrator/tests/e2e/admin-interface.spec.ts:194:5
+
+# Error details
+
+```
+Error: page.click: Test timeout of 60000ms exceeded.
+Call log:
+  - waiting for locator('button:has-text("New Engagement")')
+
+    at /Users/chocka/CursorProjects/migrate-ui-orchestrator/tests/e2e/admin-interface.spec.ts:199:18
+```
+
+# Page snapshot
+
+```yaml
+- region "Notifications (F8)":
+  - list
+- img
+- heading "Admin Console" [level=1]
+- paragraph: AI Force Platform
+- navigation:
+  - link "Dashboard Overview and metrics":
+    - /url: /admin/dashboard
+    - img
+    - text: Dashboard Overview and metrics
+  - link "Client Management Manage client accounts":
+    - /url: /admin/clients
+    - img
+    - text: Client Management Manage client accounts
+  - link "Engagement Management Manage engagements":
+    - /url: /admin/engagements
+    - img
+    - text: Engagement Management Manage engagements
+    - img
+  - link "User Approvals Review pending users":
+    - /url: /admin/users/approvals
+    - img
+    - text: User Approvals Review pending users
+- link "Back to Main App":
+  - /url: /
+  - img
+  - text: Back to Main App
+- img
+- text: Administration
+- button "Admin User admin":
+  - img
+  - text: Admin User admin
+- heading "Engagement Management" [level=1]
+- paragraph: Manage client engagements and migration projects
+- button "Export":
+  - img
+  - text: Export
+- button "Import":
+  - img
+  - text: Import
+- link "New Engagement":
+  - /url: /admin/engagements/create
+  - img
+  - text: New Engagement
+- img
+- textbox "Search engagements..."
+- combobox: Client
+- combobox: Phase
+- heading "Active Engagements" [level=3]
+- paragraph: 2 engagements found
+- table:
+  - rowgroup:
+    - row "Engagement Client Team Timeline Budget Progress Actions":
+      - cell "Engagement"
+      - cell "Client"
+      - cell "Team"
+      - cell "Timeline"
+      - cell "Budget"
+      - cell "Progress"
+      - cell "Actions"
+  - rowgroup:
+    - 'row "Test Engagement 2 migration AWS 0 sessions EM: TL: Invalid Date Invalid Date No budget set 0.0%"':
+      - cell "Test Engagement 2 migration AWS":
+        - text: Test Engagement 2 migration
+        - img
+        - text: AWS
+      - cell "0 sessions"
+      - 'cell "EM: TL:"'
+      - cell "Invalid Date Invalid Date":
+        - img
+        - text: Invalid Date
+        - img
+        - text: Invalid Date
+      - cell "No budget set"
+      - cell "0.0%"
+      - cell:
+        - button:
+          - img
+    - 'row "Cloud Migration Initiative 2024 migration AWS 2 sessions EM: TL: Invalid Date Invalid Date No budget set 0.0%"':
+      - cell "Cloud Migration Initiative 2024 migration AWS":
+        - text: Cloud Migration Initiative 2024 migration
+        - img
+        - text: AWS
+      - cell "2 sessions"
+      - 'cell "EM: TL:"'
+      - cell "Invalid Date Invalid Date":
+        - img
+        - text: Invalid Date
+        - img
+        - text: Invalid Date
+      - cell "No budget set"
+      - cell "0.0%"
+      - cell:
+        - button:
+          - img
+- button "Open AI Assistant and Feedback":
+  - img
+```
+
+# Test source
+
+```ts
+   99 |       
+  100 |       // Look for a user with "Activate" button (deactivated user)
+  101 |       const activateButton = page.locator('button:has-text("Activate")').first();
+  102 |       
+  103 |       if (await activateButton.isVisible()) {
+  104 |         await activateButton.click();
+  105 |         
+  106 |         // Wait for success or error message
+  107 |         await Promise.race([
+  108 |           page.waitForSelector('text=User Activated', { timeout: 10000 }),
+  109 |           page.waitForSelector('text=Error', { timeout: 10000 })
+  110 |         ]);
+  111 |         
+  112 |         const successMessage = page.locator('text=User Activated');
+  113 |         if (await successMessage.isVisible()) {
+  114 |           console.log('✅ User activation succeeded');
+  115 |         } else {
+  116 |           throw new Error('User activation failed - this indicates a bug');
+  117 |         }
+  118 |       } else {
+  119 |         console.log('ℹ️ No deactivated users available to test activation');
+  120 |       }
+  121 |     });
+  122 |   });
+  123 |
+  124 |   test.describe('Client Management', () => {
+  125 |     test('should navigate to client management and display clients', async ({ page }) => {
+  126 |       await page.click('text=Client Management');
+  127 |       await page.waitForURL('**/admin/clients');
+  128 |       
+  129 |       await expect(page.locator('h1').first()).toContainText('Client Management');
+  130 |       
+  131 |       // Check if clients are displayed
+  132 |       const clientRows = page.locator('[data-testid="client-row"]');
+  133 |       await expect(clientRows.first()).toBeVisible();
+  134 |     });
+  135 |
+  136 |     test('should successfully edit a client', async ({ page }) => {
+  137 |       await page.click('text=Client Management');
+  138 |       await page.waitForURL('**/admin/clients');
+  139 |       
+  140 |       // Click on first client to view details
+  141 |       await page.click('[data-testid="client-row"]').first();
+  142 |       await page.waitForSelector('text=Edit Client');
+  143 |       
+  144 |       // Click edit client button
+  145 |       await page.click('button:has-text("Edit Client")');
+  146 |       
+  147 |       // Wait for edit dialog to appear
+  148 |       await expect(page.locator('[role="dialog"]')).toBeVisible();
+  149 |       await expect(page.locator('text=Edit Client:')).toBeVisible();
+  150 |       
+  151 |       // Update a field (account name)
+  152 |       const accountNameField = page.locator('input[name="account_name"], #account_name');
+  153 |       await accountNameField.clear();
+  154 |       await accountNameField.fill('Updated Test Client Name');
+  155 |       
+  156 |       // Update industry field
+  157 |       const industrySelect = page.locator('select[name="industry"], #industry');
+  158 |       await industrySelect.selectOption('Technology');
+  159 |       
+  160 |       // Click update button
+  161 |       await page.click('button:has-text("Update Client")');
+  162 |       
+  163 |       // Wait for success or error message
+  164 |       await Promise.race([
+  165 |         page.waitForSelector('text=updated successfully', { timeout: 15000 }),
+  166 |         page.waitForSelector('text=Error', { timeout: 15000 }),
+  167 |         page.waitForSelector('text=Failed', { timeout: 15000 })
+  168 |       ]);
+  169 |       
+  170 |       // Check result
+  171 |       const successMessage = page.locator('text=updated successfully');
+  172 |       const errorMessage = page.locator('text=Error, text=Failed');
+  173 |       
+  174 |       if (await successMessage.isVisible()) {
+  175 |         console.log('✅ Client update succeeded');
+  176 |       } else if (await errorMessage.isVisible()) {
+  177 |         console.log('❌ Client update failed');
+  178 |         throw new Error('Client update failed - this indicates a bug');
+  179 |       }
+  180 |     });
+  181 |   });
+  182 |
+  183 |   test.describe('Engagement Management', () => {
+  184 |     test('should navigate to engagement management', async ({ page }) => {
+  185 |       await page.click('text=Engagement Management');
+  186 |       await page.waitForURL('**/admin/engagements');
+  187 |       
+  188 |       await expect(page.locator('h1').first()).toContainText('Engagement Management');
+  189 |       
+  190 |       // Check for "New Engagement" button
+  191 |       await expect(page.locator('button:has-text("New Engagement")')).toBeVisible();
+  192 |     });
+  193 |
+  194 |     test('should successfully create a new engagement', async ({ page }) => {
+  195 |       await page.click('text=Engagement Management');
+  196 |       await page.waitForURL('**/admin/engagements');
+  197 |       
+  198 |       // Click new engagement button
+> 199 |       await page.click('button:has-text("New Engagement")');
+      |                  ^ Error: page.click: Test timeout of 60000ms exceeded.
+  200 |       await page.waitForURL('**/admin/engagements/create');
+  201 |       
+  202 |       // Fill out engagement creation form
+  203 |       await expect(page.locator('h1').first()).toContainText('Create New Engagement');
+  204 |       
+  205 |       // Fill required fields
+  206 |       await page.fill('#engagement_name', 'E2E Test Engagement');
+  207 |       await page.fill('#project_manager', 'Test Project Manager');
+  208 |       await page.fill('textarea[name="description"]', 'This is a test engagement created by E2E tests for validation purposes.');
+  209 |       
+  210 |       // Select a client account (if dropdown exists)
+  211 |       const clientSelect = page.locator('select[name="client_account_id"]');
+  212 |       if (await clientSelect.isVisible()) {
+  213 |         const options = await clientSelect.locator('option').allTextContents();
+  214 |         if (options.length > 1) {
+  215 |           await clientSelect.selectOption({ index: 1 }); // Select first non-empty option
+  216 |         }
+  217 |       }
+  218 |       
+  219 |       // Set dates
+  220 |       await page.fill('input[name="estimated_start_date"]', '2025-02-01');
+  221 |       await page.fill('input[name="estimated_end_date"]', '2025-06-30');
+  222 |       
+  223 |       // Set budget
+  224 |       await page.fill('input[name="budget"]', '500000');
+  225 |       
+  226 |       // Submit the form
+  227 |       await page.click('button[type="submit"]:has-text("Create Engagement")');
+  228 |       
+  229 |       // Wait for success or error message
+  230 |       await Promise.race([
+  231 |         page.waitForSelector('text=created successfully', { timeout: 15000 }),
+  232 |         page.waitForSelector('text=Engagement Created Successfully', { timeout: 15000 }),
+  233 |         page.waitForSelector('text=Error', { timeout: 15000 }),
+  234 |         page.waitForSelector('text=Failed', { timeout: 15000 })
+  235 |       ]);
+  236 |       
+  237 |       // Check result
+  238 |       const successMessage = page.locator('text=created successfully, text=Engagement Created Successfully');
+  239 |       const errorMessage = page.locator('text=Error, text=Failed');
+  240 |       
+  241 |       if (await successMessage.isVisible()) {
+  242 |         console.log('✅ Engagement creation succeeded');
+  243 |         
+  244 |         // Should redirect back to engagement management
+  245 |         await page.waitForURL('**/admin/engagements');
+  246 |         await expect(page.locator('h1').first()).toContainText('Engagement Management');
+  247 |       } else if (await errorMessage.isVisible()) {
+  248 |         console.log('❌ Engagement creation failed');
+  249 |         throw new Error('Engagement creation failed - this indicates a bug');
+  250 |       }
+  251 |     });
+  252 |   });
+  253 |
+  254 |   test.describe('Navigation and General UI', () => {
+  255 |     test('should navigate between all admin sections', async ({ page }) => {
+  256 |       // Test navigation to each admin section
+  257 |       const sections = [
+  258 |         { name: 'Dashboard', url: '**/admin' },
+  259 |         { name: 'Client Management', url: '**/admin/clients' },
+  260 |         { name: 'Engagement Management', url: '**/admin/engagements' },
+  261 |         { name: 'User Approvals', url: '**/admin/users/approvals' }
+  262 |       ];
+  263 |       
+  264 |       for (const section of sections) {
+  265 |         await page.click(`text=${section.name}`);
+  266 |         await page.waitForURL(section.url);
+  267 |         console.log(`✅ Successfully navigated to ${section.name}`);
+  268 |       }
+  269 |     });
+  270 |
+  271 |     test('should display error messages properly when API calls fail', async ({ page }) => {
+  272 |       // This test will help us identify frontend-backend integration issues
+  273 |       
+  274 |       // Go to user management
+  275 |       await page.click('text=User Approvals');
+  276 |       await page.waitForURL('**/admin/users/approvals');
+  277 |       
+  278 |       // Intercept API calls to simulate failures
+  279 |       await page.route('**/api/v1/auth/deactivate-user', route => {
+  280 |         route.fulfill({ status: 500, body: JSON.stringify({ detail: 'Test error simulation' }) });
+  281 |       });
+  282 |       
+  283 |       await page.click('text=Active Users');
+  284 |       
+  285 |       // Try to deactivate a user (which should fail due to our mock)
+  286 |       const deactivateButton = page.locator('button:has-text("Deactivate")').first();
+  287 |       if (await deactivateButton.isVisible()) {
+  288 |         await deactivateButton.click();
+  289 |         
+  290 |         // Should show error message
+  291 |         await expect(page.locator('text=Error, text=Failed')).toBeVisible({ timeout: 10000 });
+  292 |         console.log('✅ Error handling working correctly');
+  293 |       }
+  294 |     });
+  295 |   });
+  296 |
+  297 |   test.describe('Data Validation', () => {
+  298 |     test('should validate form fields properly', async ({ page }) => {
+  299 |       // Test engagement creation validation
+```
