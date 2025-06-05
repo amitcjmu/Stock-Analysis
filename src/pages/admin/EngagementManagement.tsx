@@ -109,6 +109,16 @@ const MigrationPhases = [
   { value: 'completed', label: 'Completed' }
 ];
 
+const Currencies = [
+  { value: 'USD', label: 'US Dollar (USD)' },
+  { value: 'EUR', label: 'Euro (EUR)' },
+  { value: 'GBP', label: 'British Pound (GBP)' },
+  { value: 'CAD', label: 'Canadian Dollar (CAD)' },
+  { value: 'AUD', label: 'Australian Dollar (AUD)' },
+  { value: 'JPY', label: 'Japanese Yen (JPY)' },
+  { value: 'INR', label: 'Indian Rupee (INR)' }
+];
+
 // Move EngagementForm component outside to prevent re-creation
 interface EngagementFormProps {
   formData: EngagementFormData;

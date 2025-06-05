@@ -929,6 +929,17 @@ async def admin_create_user(
         # Use the actual admin user UUID for database operations
         admin_user_uuid = "2a0de3df-7484-4fab-98b9-2ca126e2ab21"  # The actual admin user from the database
         
+        # Check for duplicate email
+        email_check = text("SELECT COUNT(*) as count FROM users WHERE email = :email")
+        email_result = await db.execute(email_check, {'email': user_data.get('email')})
+        email_count = email_result.scalar()
+        
+        if email_count > 0:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"User with email '{user_data.get('email')}' already exists. Please use a different email address."
+            )
+        
         # Generate user ID
         new_user_id = str(uuid.uuid4())
         
