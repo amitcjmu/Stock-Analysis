@@ -58,7 +58,7 @@ const EngagementManagementMain: React.FC = () => {
       params.append('limit', '10');
 
       const queryString = params.toString();
-      const url = `/admin/engagements${queryString ? `?${queryString}` : ''}`;
+      const url = `/api/v1/admin/engagements/${queryString ? `?${queryString}` : ''}`;
 
       const result = await apiCall(url);
       
@@ -90,7 +90,7 @@ const EngagementManagementMain: React.FC = () => {
   // Fetch clients for dropdown
   const fetchClients = useCallback(async () => {
     try {
-      const result = await apiCall('/admin/clients?limit=100');
+      const result = await apiCall('/api/v1/admin/clients?limit=100');
       if (result.success) {
         setClients(result.data.clients || []);
       } else {
@@ -116,7 +116,7 @@ const EngagementManagementMain: React.FC = () => {
     if (!editingEngagement) return;
 
     try {
-      const result = await apiCall(`/admin/engagements/${editingEngagement.id}`, {
+      const result = await apiCall(`/api/v1/admin/engagements/${editingEngagement.id}`, {
         method: 'PUT',
         body: JSON.stringify(formData)
       });
@@ -153,7 +153,7 @@ const EngagementManagementMain: React.FC = () => {
     }
 
     try {
-      const result = await apiCall(`/admin/engagements/${engagementId}`, {
+      const result = await apiCall(`/api/v1/admin/engagements/${engagementId}`, {
         method: 'DELETE'
       });
 

@@ -2,6 +2,44 @@
 
 All notable changes to the AI Force Migration Platform will be documented in this file.
 
+## [0.51.1] - 2025-01-28
+
+### 🚨 **CRITICAL BUG FIXES: Admin Console Full Resolution**
+
+This release resolves **critical admin console issues** that were preventing user management operations, admin profile access, and engagement data loading. All admin functionality is now fully operational with comprehensive E2E testing validation.
+
+### 🐛 **Critical Admin Console Fixes**
+
+#### **User Deactivation System Restored**
+- **Issue**: User deactivation failing with `RBACService' object has no attribute 'deactivate_user'`
+- **Root Cause**: Missing `deactivate_user` method in RBACService implementation
+- **Solution**: Added comprehensive `deactivate_user` method with user profile status updates, role deactivation, client access deactivation, and audit logging
+- **Impact**: User management workflow fully restored for admin operations
+
+#### **Admin Profile Route Fixed**
+- **Issue**: `/admin/profile` returning 404 Not Found error
+- **Root Cause**: Missing route definition in React Router configuration
+- **Solution**: Added `/admin/profile` route to App.tsx with proper AdminRoute protection
+- **Impact**: Admin users can now access profile settings and account management
+
+#### **Engagement Management API Endpoints Fixed**
+- **Issue**: Frontend calling incorrect API endpoints causing failed data loading
+- **Root Cause**: Component using `/admin/engagements` instead of `/api/v1/admin/engagements/`
+- **Solution**: Updated EngagementManagementMain.tsx to use correct endpoints with `/api/v1/` prefix and trailing slash
+- **Impact**: Engagement dashboard loads real data, management operations functional
+
+### 📊 **E2E Testing Results**
+- **✅ User Management Workflow**: Fully functional with proper role assignment
+- **✅ Admin Profile Access**: Route accessible with proper authentication  
+- **✅ Engagement Management System**: Real engagement data display and CRUD operations
+- **✅ Admin Console Navigation**: All admin features operational with zero console errors
+
+### 🎯 **Business Impact**
+- **Operational Restoration**: Admin can now properly manage user lifecycle and engagement operations
+- **System Reliability**: All admin endpoints returning proper responses with data integrity
+- **Security Compliance**: Proper user deactivation maintains audit trail
+- **Error Resolution**: Zero admin console errors in browser console
+
 ## [0.51.0] - 2025-01-28
 
 ### 🎯 **ADMIN MODULARIZATION PLAN - MISSION ACCOMPLISHED!**

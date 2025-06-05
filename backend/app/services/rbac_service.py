@@ -245,6 +245,75 @@ class RBACService:
             logger.error(f"Error in reject_user: {e}")
             return {"status": "error", "message": f"Rejection failed: {str(e)}"}
     
+    async def deactivate_user(self, user_id: str, deactivated_by: str, reason: str = None) -> Dict[str, Any]:
+        """Deactivate an active user."""
+        if not self.is_available:
+            return {"status": "error", "message": "RBAC models not available"}
+        
+        try:
+            # Get user profile
+            query = select(UserProfile).where(UserProfile.user_id == user_id)
+            result = await self.db.execute(query)
+            user_profile = result.scalar_one_or_none()
+            
+            if not user_profile:
+                return {"status": "error", "message": "User not found"}
+            
+            if user_profile.status == UserStatus.DEACTIVATED:
+                return {"status": "error", "message": "User is already deactivated"}
+            
+            # Get and deactivate the base User record
+            user_query = select(User).where(User.id == user_id)
+            user_result = await self.db.execute(user_query)
+            user = user_result.scalar_one_or_none()
+            
+            if user:
+                user.is_active = False
+            
+            # Update user profile status
+            user_profile.status = UserStatus.DEACTIVATED
+            user_profile.updated_at = datetime.utcnow()
+            
+            # Deactivate all user roles
+            roles_query = select(UserRole).where(UserRole.user_id == user_id)
+            roles_result = await self.db.execute(roles_query)
+            user_roles = roles_result.scalars().all()
+            
+            for role in user_roles:
+                role.is_active = False
+                role.updated_at = datetime.utcnow()
+            
+            # Deactivate all client access
+            access_query = select(ClientAccess).where(ClientAccess.user_profile_id == user_id)
+            access_result = await self.db.execute(access_query)
+            client_accesses = access_result.scalars().all()
+            
+            for access in client_accesses:
+                access.is_active = False
+                access.updated_at = datetime.utcnow()
+            
+            await self.db.commit()
+            
+            # Log the deactivation
+            await self._log_access(
+                user_id=deactivated_by,
+                action_type="user_deactivation",
+                result="success",
+                reason=reason or f"User {user_id} deactivated by admin",
+                details={"deactivated_user": user_id}
+            )
+            
+            return {
+                "status": "success",
+                "message": "User deactivated successfully",
+                "user_id": user_id
+            }
+            
+        except Exception as e:
+            await self.db.rollback()
+            logger.error(f"Error in deactivate_user: {e}")
+            return {"status": "error", "message": f"User deactivation failed: {str(e)}"}
+    
     # =========================
     # Access Control Validation
     # =========================
