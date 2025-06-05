@@ -4,6 +4,7 @@ Admin endpoints for managing client accounts with business context and migration
 """
 
 import logging
+from datetime import datetime
 from typing import Dict, List, Any, Optional
 from fastapi import APIRouter, HTTPException, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -168,24 +169,51 @@ async def get_client_dashboard_stats(
         return ClientDashboardStats(
             total_clients=2,
             active_clients=2,
-            inactive_clients=0,
             clients_by_industry={
                 "Technology": 1,
                 "Finance": 1
             },
-            clients_by_size={
+            clients_by_company_size={
                 "Large (1001-5000)": 1,
                 "Enterprise (5000+)": 1
             },
-            total_engagements=4,
-            active_engagements=3,
-            avg_engagements_per_client=2.0,
-            top_industries=["Technology", "Finance"],
-            growth_metrics={
-                "new_clients_this_month": 2,
-                "new_engagements_this_month": 4,
-                "client_retention_rate": 100.0
-            }
+            clients_by_cloud_provider={
+                "AWS": 1,
+                "Azure": 1
+            },
+            recent_client_registrations=[
+                {
+                    "id": "1",
+                    "account_name": "Pujyam Corp",
+                    "industry": "Technology",
+                    "company_size": "Large (1001-5000)",
+                    "headquarters_location": "San Francisco, CA",
+                    "primary_contact_name": "John Smith",
+                    "primary_contact_email": "john.smith@pujyam.com",
+                    "primary_contact_phone": None,
+                    "description": None,
+                    "subscription_tier": None,
+                    "billing_contact_email": None,
+                    "settings": {},
+                    "branding": {},
+                    "slug": None,
+                    "created_by": None,
+                    "business_objectives": [],
+                    "it_guidelines": {},
+                    "decision_criteria": {},
+                    "agent_preferences": {},
+                    "target_cloud_providers": ["aws"],
+                    "business_priorities": [],
+                    "compliance_requirements": [],
+                    "budget_constraints": None,
+                    "timeline_constraints": None,
+                    "created_at": datetime.now(),
+                    "updated_at": None,
+                    "is_active": True,
+                    "total_engagements": 3,
+                    "active_engagements": 2
+                }
+            ]
         )
         
     except Exception as e:
