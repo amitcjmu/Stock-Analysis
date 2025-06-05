@@ -710,7 +710,7 @@ const ClientManagement: React.FC = () => {
               </TableHeader>
               <TableBody>
                 {filteredClients.map((client) => (
-                  <TableRow key={client.id}>
+                  <TableRow key={client.id} data-testid="client-row">
                     <TableCell>
                       <div>
                         <div className="font-medium">{client.account_name}</div>
