@@ -1470,126 +1470,64 @@ async def process_raw_to_assets(
 ):
     """
     CrewAI Flow endpoint to process raw import records into cmdb_assets using agentic intelligence.
-    This is the missing link in the agentic workflow from Data Import → Asset Inventory.
+    Now uses proper CrewAI Flow state management pattern for complete application and server classification.
     """
     try:
-        logger.info(f"🚀 Starting agentic CrewAI Flow processing for session: {import_session_id}")
+        logger.info(f"🚀 Starting enhanced CrewAI Flow processing with state management for session: {import_session_id}")
         
-        # Import CrewAI Flow service
+        # Use the new CrewAI Flow Data Processing Service with proper state management
         try:
-            from app.services.crewai_flow_service import CrewAIFlowService
-            flow_service = CrewAIFlowService()
-        except ImportError:
-            logger.warning("CrewAI Flow service not available, using fallback processing")
-            return await _fallback_raw_to_assets_processing(import_session_id, db, context)
-        
-        # Get unprocessed raw import records
-        if import_session_id:
-            # Process specific session
-            raw_records_query = await db.execute(
-                select(RawImportRecord).where(
-                    and_(
-                        RawImportRecord.data_import_id == import_session_id,
-                        RawImportRecord.cmdb_asset_id.is_(None)
-                    )
-                )
+            from app.services.crewai_flow_data_processing import CrewAIFlowDataProcessingService
+            flow_service = CrewAIFlowDataProcessingService()
+            
+            # Process using CrewAI Flow with state management
+            result = await flow_service.process_import_session(
+                import_session_id=import_session_id,
+                client_account_id=context.client_account_id,
+                engagement_id=context.engagement_id,
+                user_id=context.user_id
             )
-        else:
-            # Process all unprocessed records
-            raw_records_query = await db.execute(
-                select(RawImportRecord).where(
-                    RawImportRecord.cmdb_asset_id.is_(None)
-                )
-            )
-        
-        raw_records = raw_records_query.scalars().all()
-        
-        if not raw_records:
-            return {
-                "status": "no_data",
-                "message": "No unprocessed raw import records found",
-                "processed_count": 0
-            }
-        
-        logger.info(f"📝 Found {len(raw_records)} unprocessed raw records for agentic processing")
-        
-        # Prepare data for CrewAI Flow
-        cmdb_data = {
-            "filename": f"raw_import_session_{import_session_id or 'all'}",
-            "headers": list(raw_records[0].raw_data.keys()) if raw_records else [],
-            "sample_data": [record.raw_data for record in raw_records[:5]],  # Sample for analysis
-            "total_records": len(raw_records),
-            "session_context": {
-                "import_session_id": import_session_id,
-                "client_account_id": context.client_account_id,
-                "engagement_id": context.engagement_id,
-                "processing_timestamp": datetime.utcnow().isoformat()
-            }
-        }
-        
-        # Run CrewAI Discovery Flow for intelligent processing
-        logger.info("🧠 Running agentic CrewAI Discovery Flow for asset intelligence")
-        flow_result = await flow_service.run_discovery_flow(cmdb_data)
-        
-        if flow_result.get("status") != "success":
-            logger.warning(f"CrewAI Flow returned non-success status: {flow_result.get('status')}")
+            
+            # Enhanced response with detailed classification results
+            if result.get("status") == "success":
+                logger.info(f"✅ CrewAI Flow completed successfully!")
+                logger.info(f"   📊 Processing Status: {result.get('processing_status')}")
+                logger.info(f"   📱 Applications: {result.get('classification_results', {}).get('applications', 0)}")
+                logger.info(f"   🖥️  Servers: {result.get('classification_results', {}).get('servers', 0)}")
+                logger.info(f"   🗄️  Databases: {result.get('classification_results', {}).get('databases', 0)}")
+                logger.info(f"   🔗 Dependencies: {result.get('classification_results', {}).get('dependencies', 0)}")
+                
+                return {
+                    "status": "success",
+                    "message": f"CrewAI Flow successfully processed {result.get('total_processed', 0)} assets with intelligent classification",
+                    "processed_count": result.get("total_processed", 0),
+                    "flow_id": result.get("flow_id"),
+                    "processing_status": result.get("processing_status"),
+                    "progress_percentage": result.get("progress_percentage", 100),
+                    "agentic_intelligence": {
+                        "crewai_flow_active": result.get("crewai_flow_used", False),
+                        "state_management": True,
+                        "intelligent_classification": True,
+                        "asset_breakdown": result.get("classification_results", {}),
+                        "field_mappings_applied": len(result.get("field_mappings", {})),
+                        "processing_method": "crewai_flow_with_state_management"
+                    },
+                    "classification_results": result.get("classification_results", {}),
+                    "processed_asset_ids": result.get("processed_asset_ids", []),
+                    "processing_errors": result.get("processing_errors", []),
+                    "import_session_id": import_session_id,
+                    "completed_at": result.get("completed_at")
+                }
+            else:
+                logger.warning(f"CrewAI Flow returned error, falling back: {result.get('error', 'Unknown error')}")
+                return await _fallback_raw_to_assets_processing(import_session_id, db, context)
+                
+        except ImportError as e:
+            logger.warning(f"CrewAI Flow Data Processing service not available: {e}")
             return await _fallback_raw_to_assets_processing(import_session_id, db, context)
-        
-        # Extract agentic intelligence results
-        field_mappings = flow_result.get("suggested_field_mappings", {})
-        asset_classifications = flow_result.get("asset_classifications", [])
-        readiness_scores = flow_result.get("readiness_scores", {})
-        
-        logger.info(f"✨ CrewAI Flow completed with {len(field_mappings)} field mappings and {len(asset_classifications)} classifications")
-        
-        # Process each raw record using agentic intelligence
-        processed_count = 0
-        for record in raw_records:
-            try:
-                # Use agentic field mapping and classification
-                asset_data = await _process_single_raw_record_agentic(
-                    record, field_mappings, asset_classifications, context
-                )
-                
-                # Create CMDBAsset using agentic intelligence
-                cmdb_asset = CMDBAsset(**asset_data)
-                db.add(cmdb_asset)
-                await db.flush()  # Get the ID
-                
-                # Update raw record to mark as processed
-                record.cmdb_asset_id = cmdb_asset.id
-                record.is_processed = True
-                record.processed_at = datetime.utcnow()
-                record.processing_notes = f"Processed by CrewAI Flow with {len(field_mappings)} field mappings"
-                
-                processed_count += 1
-                logger.debug(f"✅ Processed: {asset_data.get('name')} → {cmdb_asset.id}")
-                
-            except Exception as e:
-                logger.error(f"❌ Error processing record {record.id}: {e}")
-                continue
-        
-        # Commit all changes
-        await db.commit()
-        
-        logger.info(f"🎉 Agentic CrewAI Flow processing completed: {processed_count} assets created")
-        
-        return {
-            "status": "success",
-            "message": f"Successfully processed {processed_count} raw records into cmdb_assets using agentic intelligence",
-            "processed_count": processed_count,
-            "total_raw_records": len(raw_records),
-            "agentic_intelligence": {
-                "field_mappings_applied": len(field_mappings),
-                "asset_classifications": len(asset_classifications),
-                "readiness_assessment": readiness_scores,
-                "crewai_flow_active": True
-            },
-            "import_session_id": import_session_id
-        }
         
     except Exception as e:
-        logger.error(f"Error in agentic CrewAI Flow processing: {e}")
+        logger.error(f"Error in enhanced CrewAI Flow processing: {e}")
         # Fallback to non-agentic processing
         return await _fallback_raw_to_assets_processing(import_session_id, db, context)
 
@@ -1668,7 +1606,7 @@ async def _process_single_raw_record_agentic(
 
 
 def _determine_asset_type_agentic(raw_data: Dict[str, Any], asset_classification: Dict[str, Any]) -> str:
-    """Determine asset type using agentic intelligence with fallbacks."""
+    """Determine asset type using agentic intelligence with enhanced CITYPE field reading."""
     
     # First, use agentic classification if available
     if asset_classification and asset_classification.get("asset_type"):
@@ -1676,23 +1614,53 @@ def _determine_asset_type_agentic(raw_data: Dict[str, Any], asset_classification
         if agentic_type in ["server", "application", "database", "network_device", "storage_device"]:
             return agentic_type
     
-    # Fallback to raw data analysis
-    raw_type = (raw_data.get("asset_type") or 
-                raw_data.get("type") or 
-                raw_data.get("ci_type") or "").lower()
+    # Enhanced raw data analysis - check for CITYPE field first (most reliable)
+    citype_variations = ["CITYPE", "citype", "CI_TYPE", "ci_type", "CIType"]
+    raw_type = ""
     
-    # Map common variations
-    if any(term in raw_type for term in ["server", "srv", "vm", "virtual"]):
-        return "server"
-    elif any(term in raw_type for term in ["app", "application", "software"]):
-        return "application" 
-    elif any(term in raw_type for term in ["db", "database", "sql", "oracle", "mysql"]):
+    # Check for CITYPE field variations
+    for field_name in citype_variations:
+        if field_name in raw_data and raw_data[field_name]:
+            raw_type = str(raw_data[field_name]).lower()
+            break
+    
+    # If no CITYPE found, check other type fields
+    if not raw_type:
+        raw_type = (raw_data.get("asset_type") or 
+                    raw_data.get("type") or 
+                    raw_data.get("Type") or 
+                    raw_data.get("TYPE") or "").lower()
+    
+    # Enhanced mapping with exact CITYPE matches first
+    if "application" in raw_type:
+        return "application"
+    elif "server" in raw_type:
+        return "server" 
+    elif "database" in raw_type:
         return "database"
     elif any(term in raw_type for term in ["network", "switch", "router", "firewall"]):
         return "network_device"
     elif any(term in raw_type for term in ["storage", "san", "nas", "disk"]):
         return "storage_device"
+    # Pattern-based fallback for unclear types
+    elif any(term in raw_type for term in ["app", "software", "portal", "service"]):
+        return "application" 
+    elif any(term in raw_type for term in ["srv", "vm", "virtual", "host"]):
+        return "server"
+    elif any(term in raw_type for term in ["db", "sql", "oracle", "mysql", "postgres"]):
+        return "database"
     else:
+        # Check CIID patterns as final fallback
+        ciid = raw_data.get("CIID", raw_data.get("ciid", raw_data.get("CI_ID", "")))
+        if ciid:
+            ciid_lower = str(ciid).lower()
+            if ciid_lower.startswith("app"):
+                return "application"
+            elif ciid_lower.startswith("srv"):
+                return "server"
+            elif ciid_lower.startswith("db"):
+                return "database"
+        
         return "server"  # Default fallback
 
 
