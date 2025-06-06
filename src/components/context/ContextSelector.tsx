@@ -135,10 +135,15 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
   };
 
   const handleStagedSessionChange = (sessionId: string) => {
-    const selectedSession = sessions.find(s => s.id === sessionId);
-    setStagedSession(selectedSession || null);
-    if (selectedSession) {
-      setStagedViewMode('session_view');
+    if (sessionId === 'no-session') {
+      setStagedSession(null);
+      setStagedViewMode('engagement_view');
+    } else {
+      const selectedSession = sessions.find(s => s.id === sessionId);
+      setStagedSession(selectedSession || null);
+      if (selectedSession) {
+        setStagedViewMode('session_view');
+      }
     }
   };
 
@@ -349,7 +354,7 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
               Session (Optional)
             </label>
             <Select
-              value={stagedSession?.id || ''}
+              value={stagedSession?.id || 'no-session'}
               onValueChange={handleStagedSessionChange}
               disabled={isLoading || !stagedEngagement}
             >
@@ -357,7 +362,7 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
                 <SelectValue placeholder={stagedEngagement ? "Select a session (optional)..." : "Select an engagement first"} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">
+                <SelectItem value="no-session">
                   <div className="flex items-center">
                     <Eye className="h-4 w-4 mr-2" />
                     Engagement View (No specific session)
