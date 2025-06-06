@@ -6,8 +6,8 @@ This document addresses critical architectural issues in the AI Force Migration 
 
 ### **Core Problems Identified**
 
-1. **Dual Asset Models**: Two disconnected asset tables (`assets` and `cmdb_assets`) serving similar purposes with different schemas
-2. **Data Fragmentation**: All data (56 assets) stored in `cmdb_assets` while `assets` table is empty, causing frontend/backend confusion
+1. **✅ RESOLVED - Dual Asset Models**: Previously had two disconnected asset tables (`assets` and `cmdb_assets`) - now unified into single `assets` table
+2. **✅ RESOLVED - Data Fragmentation**: All 56 assets successfully migrated from `cmdb_assets` to unified `assets` table
 3. **Non-Functional Agent Learning**: Learning tables are empty (0 records) - agents aren't storing or retrieving patterns
 4. **Application Detection Failure**: Agents failing to automatically classify applications from asset_name and metadata
 5. **Attribute Mapping Regression**: Manual mappings not being learned, requiring repeated manual intervention
@@ -20,13 +20,13 @@ This document addresses critical architectural issues in the AI Force Migration 
 
 #### **Asset Data Distribution**
 - **`migration.assets`**: 0 records (76 columns, comprehensive schema)
-- **`migration.cmdb_assets`**: 56 records (51 columns, limited schema)
+- **`migration.assets`**: 56 records (76+ columns, comprehensive unified schema)
 - **`migration.mapping_learning_patterns`**: 0 records (learning not functioning)
 - **`migration.import_field_mappings`**: 0 records (mapping history lost)
 
 #### **Schema Comparison**
 
-| Feature | assets | cmdb_assets | Issue |
+| Feature | assets (UNIFIED) | cmdb_assets (REMOVED) | Resolution |
 |---------|--------|-------------|--------|
 | **Row Count** | 0 | 56 | All data in wrong table |
 | **Application Fields** | ✅ application_id, programming_language, framework | ❌ Only application_name | Limited app classification |
