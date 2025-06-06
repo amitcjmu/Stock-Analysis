@@ -48,6 +48,7 @@ async def engagement_management_health():
 async def list_engagements(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
+    client_account_id: str = Query(None, description="Filter engagements by client account ID"),
     db: AsyncSession = Depends(get_db),
     admin_user: str = Depends(require_admin_access)
 ):
@@ -56,16 +57,24 @@ async def list_engagements(
         if not MODELS_AVAILABLE:
             raise HTTPException(status_code=503, detail="Database models not available")
             
-        logger.info(f"Admin user {admin_user} requesting engagement list with pagination: page={page}, page_size={page_size}")
+        logger.info(f"Admin user {admin_user} requesting engagement list with pagination: page={page}, page_size={page_size}, client_filter={client_account_id}")
         
         # Build base query for engagements first
         query = select(Engagement)\
-            .where(Engagement.is_active == True)\
-            .order_by(Engagement.created_at.desc())
+            .where(Engagement.is_active == True)
         
-        # Get total count for pagination
+        # Add client filter if provided
+        if client_account_id:
+            query = query.where(Engagement.client_account_id == client_account_id)
+            
+        query = query.order_by(Engagement.created_at.desc())
+        
+        # Get total count for pagination with same filters
         count_query = select(func.count(Engagement.id))\
             .where(Engagement.is_active == True)
+        
+        if client_account_id:
+            count_query = count_query.where(Engagement.client_account_id == client_account_id)
         total_result = await db.execute(count_query)
         total_items = total_result.scalar() or 0
         

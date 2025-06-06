@@ -2,6 +2,88 @@
 
 All notable changes to the AI Force Migration Platform will be documented in this file.
 
+## [0.53.2] - 2025-01-28
+
+### 🎯 **ENGAGEMENT FILTERING FIX - Client-Scoped Context Management**
+
+This release fixes critical issues with engagement filtering in the context selector, ensuring engagements are properly scoped to the selected client and only loaded when needed.
+
+### 🔧 **Backend API Filtering Enhancement**
+
+#### **Engagement List API Fix (CRITICAL)**
+- **Client Filtering**: Added missing `client_account_id` query parameter to `/api/v1/admin/engagements/` endpoint
+- **Database Query Enhancement**: Modified engagement list query to filter by `client_account_id` when provided
+- **Pagination Preservation**: Count queries properly include client filter for accurate pagination
+- **Security Improvement**: Users now only see engagements for clients they have access to, not all engagements
+- **API Documentation**: Added proper parameter description for client account filtering
+
+#### **Query Optimization**
+```python
+# Before: Returned ALL engagements regardless of query parameter
+query = select(Engagement).where(Engagement.is_active == True)
+
+# After: Properly filters by client when provided
+if client_account_id:
+    query = query.where(Engagement.client_account_id == client_account_id)
+```
+
+### 🚀 **Frontend Context Management Improvements**
+
+#### **Progressive Data Loading**
+- **Client-First Selection**: Engagements only load after a client is selected, not on modal open
+- **Automatic Filtering**: When client is selected, only engagements for that client are displayed
+- **Clean State Management**: Engagement list is cleared when no client is selected
+- **Efficient Loading**: No unnecessary API calls for engagements until client selection is made
+
+#### **Enhanced User Experience**
+- **Scoped Choices**: Users no longer see overwhelming list of all engagements from all clients
+- **Security by Design**: Authorization naturally enforced by only showing relevant engagements
+- **Performance Optimization**: Reduced API calls and data transfer by filtering at backend
+- **Clear Selection Flow**: Client → Engagements → Sessions sequence is now properly enforced
+
+### 📊 **Technical Validation**
+
+#### **API Testing Results**
+```bash
+# All engagements (no filter): 5 total engagements
+curl "/api/v1/admin/engagements/?page_size=100" → 5 items
+
+# Acme Corporation filter: 2 engagements  
+curl "/api/v1/admin/engagements/?client_account_id=d838573d-f461-44e4-81b5-5af510ef83b7" → 2 items
+
+# Marathon Petroleum filter: 2 engagements
+curl "/api/v1/admin/engagements/?client_account_id=73dee5f1-6a01-43e3-b1b8-dbe6c66f2990" → 2 items
+```
+
+#### **Context Selection Flow Validation**
+- **✅ Step 1**: Open context selector modal - no engagements loaded
+- **✅ Step 2**: Select client - only that client's engagements load automatically  
+- **✅ Step 3**: Select engagement - only that engagement's sessions load
+- **✅ Step 4**: Confirm selection - context switches globally with proper scoping
+
+### 🎯 **Business Impact**
+
+#### **Security & Compliance Enhancement**
+- **Data Isolation**: Users can only see engagements they are authorized to access
+- **Privacy Protection**: Client data properly segregated at API level
+- **Authorization Enforcement**: Natural access control through data scoping
+- **Audit Trail**: Clear separation between different client contexts
+
+#### **User Experience Improvements**
+- **Reduced Cognitive Load**: Users see only relevant engagement options
+- **Faster Decision Making**: Shorter lists make engagement selection quicker
+- **Clear Hierarchies**: Client → Engagement relationship now visually and functionally clear
+- **Performance**: Faster loading with reduced data transfer
+
+### 🔍 **Bug Fixes**
+
+- **Engagement Filtering**: Fixed backend API to properly filter engagements by client_account_id
+- **Modal Loading**: Engagements no longer pre-load unnecessarily when modal opens
+- **Context Scoping**: Context selector now properly respects client boundaries
+- **API Performance**: Reduced data transfer by filtering at database level
+
+---
+
 ## [0.53.1] - 2025-01-28
 
 ### 🎯 **CONTEXT SWITCHING FIX - Dynamic Context Management**
