@@ -54,7 +54,8 @@
   "Storage (GB)": [
     "storage_gb",
     "storage (gb)",
-    "disk size (gb)"
+    "disk size (gb)",
+    "storage_(gb)"
   ],
   "Asset Type": [
     "application_service",
@@ -86,6 +87,7 @@
   ],
   "Hostname": [
     "id",
-    "hostname"
+    "hostname",
+    "ci_id"
   ]
 }
