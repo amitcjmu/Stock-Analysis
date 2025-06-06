@@ -30,9 +30,9 @@ class MappingLearningPattern(Base):
     
     # Source field information
     source_field_name = Column(String(255), nullable=False)
-    source_field_embedding = Column(Vector(1536), nullable=False)
+    source_field_embedding = Column(Vector(1024), nullable=False)
     source_sample_values = Column(JSONB, nullable=True)  # Array of sample values
-    source_sample_embedding = Column(Vector(1536), nullable=True)  # Embedding of sample values
+    source_sample_embedding = Column(Vector(1024), nullable=True)  # Embedding of sample values
     
     # Target field information
     target_field_name = Column(String(255), nullable=False)
@@ -82,11 +82,11 @@ class AssetClassificationPattern(Base):
     
     # Asset name pattern
     asset_name_pattern = Column(String(500), nullable=True)  # Regex or text pattern
-    asset_name_embedding = Column(Vector(1536), nullable=True)  # Embedding of name pattern
+    asset_name_embedding = Column(Vector(1024), nullable=True)  # Embedding of name pattern
     
     # Metadata patterns
     metadata_patterns = Column(JSONB, nullable=True)  # Key-value patterns for metadata
-    metadata_embedding = Column(Vector(1536), nullable=True)  # Embedding of metadata
+    metadata_embedding = Column(Vector(1024), nullable=True)  # Embedding of metadata
     
     # Classification results
     predicted_asset_type = Column(String(100), nullable=False)
