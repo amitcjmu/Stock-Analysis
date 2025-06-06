@@ -251,6 +251,27 @@ async def startup_event():
                 await conn.run_sync(Base.metadata.create_all)
             print("✅ Database tables created successfully!")
             
+            # Run post-deploy schema fix if on Railway
+            try:
+                import sys
+                import os
+                sys.path.append(os.path.join(os.path.dirname(__file__), 'scripts'))
+                from post_deploy_fix import fix_railway_schema
+                
+                # Only run schema fix if DATABASE_URL is present (Railway environment)
+                if os.getenv('DATABASE_URL'):
+                    print("🔧 Running Railway schema fix...")
+                    schema_success = await fix_railway_schema()
+                    if schema_success:
+                        print("✅ Railway schema fix completed successfully!")
+                    else:
+                        print("⚠️  Railway schema fix had issues - check logs")
+                else:
+                    print("ℹ️  Localhost environment - skipping Railway schema fix")
+            except Exception as schema_e:
+                print(f"⚠️  Schema fix failed: {schema_e}")
+                # Don't fail startup - this is optional
+            
             # Resolve demo client context (Task 1.2.4)
             try:
                 from app.core.database import AsyncSessionLocal

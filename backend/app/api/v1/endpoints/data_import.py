@@ -84,7 +84,7 @@ async def upload_data_file(
         
         # Create data import record with context
         data_import = DataImport(
-            client_account_id=context.client_account_id or "cc92315a-4bae-469d-9550-46d1c6e5ab68",  # Pujyam Corp UUID
+            client_account_id=context.client_account_id or "bafd5b46-aaaf-4c95-8142-573699d93171",  # Complete Test Client UUID
             engagement_id=context.engagement_id,
             session_id=session_id,  # Link to session if available
             import_name=import_name or f"{file.filename} Import",
@@ -1204,9 +1204,9 @@ async def store_import_data(
         # Get current context from middleware
         context = get_current_context()
         
-        # Demo fallback UUIDs
-        demo_client_uuid = "cc92315a-4bae-469d-9550-46d1c6e5ab68"  # Pujyam Corp
-        demo_engagement_uuid = "3d4e572d-46b1-4b3c-bfb4-99c50e9aa6ec"  # Digital Transformation 2025
+        # Demo fallback UUIDs (using existing client from database)
+        demo_client_uuid = "bafd5b46-aaaf-4c95-8142-573699d93171"  # Complete Test Client
+        demo_engagement_uuid = "6e9c8133-4169-4b79-b052-106dc93d0208"  # Azure Transformation
         demo_user_uuid = "eef6ea50-6550-4f14-be2c-081d4eb23038"  # John Doe
         
         # Use actual context or fallback to demo values
@@ -1214,10 +1214,10 @@ async def store_import_data(
         engagement_id = context.engagement_id or demo_engagement_uuid
         user_id = context.user_id or demo_user_uuid
         
-        # Create or get active session using SessionManagementService
+        # Simplified session management - don't fail the whole operation if session fails
         session_id = None
-        if SESSION_MANAGEMENT_AVAILABLE:
-            try:
+        try:
+            if SESSION_MANAGEMENT_AVAILABLE:
                 session_service = create_session_management_service(db)
                 session = await session_service.get_or_create_active_session(
                     client_account_id=client_account_id,
@@ -1226,33 +1226,9 @@ async def store_import_data(
                 )
                 session_id = str(session.id) if session else None
                 logger.info(f"Using session {session_id} for data import from store-import")
-            except Exception as session_e:
-                logger.warning(f"Session management failed, continuing without session: {session_e}")
-        
-        # Demo fallback UUIDs
-        demo_client_uuid = "cc92315a-4bae-469d-9550-46d1c6e5ab68"  # Pujyam Corp
-        demo_engagement_uuid = "3d4e572d-46b1-4b3c-bfb4-99c50e9aa6ec"  # Digital Transformation 2025
-        demo_user_uuid = "eef6ea50-6550-4f14-be2c-081d4eb23038"  # John Doe
-        
-        # Use actual context or fallback to demo values
-        client_account_id = context.client_account_id or demo_client_uuid
-        engagement_id = context.engagement_id or demo_engagement_uuid
-        user_id = context.user_id or demo_user_uuid
-        
-        # Create or get active session using SessionManagementService
-        session_id = None
-        if SESSION_MANAGEMENT_AVAILABLE:
-            try:
-                session_service = create_session_management_service(db)
-                session = await session_service.get_or_create_active_session(
-                    client_account_id=client_account_id,
-                    engagement_id=engagement_id,
-                    auto_create=True
-                )
-                session_id = str(session.id) if session else None
-                logger.info(f"Using session {session_id} for data import from store-import")
-            except Exception as session_e:
-                logger.warning(f"Session management failed, continuing without session: {session_e}")
+        except Exception as session_e:
+            logger.warning(f"Session management failed, continuing without session: {session_e}")
+            # Continue without session - this is not critical for data storage
         
         # Create import session record with proper context and session
         import_session = DataImport(
@@ -1272,10 +1248,10 @@ async def store_import_data(
                 "analysis_timestamp": datetime.utcnow().isoformat()
             },
             # Use context values with fallbacks for demo/development
-            client_account_id=context.client_account_id or "cc92315a-4bae-469d-9550-46d1c6e5ab68",
-            engagement_id=context.engagement_id or "3d4e572d-46b1-4b3c-bfb4-99c50e9aa6ec",
-            imported_by=context.user_id or "eef6ea50-6550-4f14-be2c-081d4eb23038",
-            session_id=session_id,  # Link to session created/retrieved above
+            client_account_id=client_account_id,
+            engagement_id=engagement_id,
+            imported_by=user_id,
+            session_id=session_id,  # Link to session if available
             completed_at=datetime.utcnow()
         )
         

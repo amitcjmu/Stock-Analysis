@@ -17,12 +17,12 @@ _engagement_id: ContextVar[Optional[str]] = ContextVar('engagement_id', default=
 _session_id: ContextVar[Optional[str]] = ContextVar('session_id', default=None)
 _user_id: ContextVar[Optional[str]] = ContextVar('user_id', default=None)
 
-# Demo client configuration
+# Demo client configuration with proper UUIDs (using existing client from database)
 DEMO_CLIENT_CONFIG = {
-    "client_account_id": "pujyam-corp",  # Will be replaced with actual UUID after seeding
-    "client_name": "Pujyam Corp",
-    "engagement_id": "digital-transformation-2025",  # Will be replaced with actual UUID 
-    "engagement_name": "Digital Transformation 2025"
+    "client_account_id": "bafd5b46-aaaf-4c95-8142-573699d93171",  # Complete Test Client UUID
+    "client_name": "Complete Test Client",
+    "engagement_id": "6e9c8133-4169-4b79-b052-106dc93d0208",  # Azure Transformation UUID
+    "engagement_name": "Azure Transformation"
 }
 
 
@@ -101,7 +101,7 @@ def extract_context_from_request(request: Request) -> RequestContext:
         client_account_id = DEMO_CLIENT_CONFIG["client_account_id"]
         logger.debug("No client context provided, using demo client: Pujyam Corp")
     
-    if not engagement_id and client_account_id == DEMO_CLIENT_CONFIG["client_account_id"]:
+    if not engagement_id and (client_account_id == DEMO_CLIENT_CONFIG["client_account_id"] or client_account_id == "pujyam-corp"):
         engagement_id = DEMO_CLIENT_CONFIG["engagement_id"] 
         logger.debug("No engagement context provided, using demo engagement: Digital Transformation 2025")
     
@@ -202,7 +202,7 @@ def is_demo_client(client_account_id: Optional[str] = None) -> bool:
     if client_account_id is None:
         client_account_id = get_client_account_id()
     
-    return client_account_id == DEMO_CLIENT_CONFIG["client_account_id"]
+    return client_account_id == DEMO_CLIENT_CONFIG["client_account_id"] or client_account_id == "pujyam-corp"
 
 
 def create_context_headers(context: RequestContext) -> Dict[str, str]:
