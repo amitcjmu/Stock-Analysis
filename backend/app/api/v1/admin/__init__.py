@@ -1,3 +1,8 @@
+"""
+Admin API endpoints package.
+Contains all administration-related API handlers including user management, platform administration, and enhanced RBAC.
+"""
+
 # Admin module for client and engagement management endpoints
 
 # Import admin routers

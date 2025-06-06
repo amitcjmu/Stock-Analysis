@@ -11,7 +11,8 @@ import {
   Home,
   ChevronRight,
   LogOut,
-  User
+  User,
+  Crown
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -51,6 +52,16 @@ const adminNavItems = [
   }
 ];
 
+const platformAdminNavItems = [
+  {
+    title: 'Platform Administration',
+    href: '/admin/platform',
+    icon: Crown,
+    description: 'Manage platform & deleted data',
+    platformAdminOnly: true
+  }
+];
+
 const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const location = useLocation();
   const { user, logout } = useAuth();
@@ -87,6 +98,31 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                   "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
                   isActive
                     ? "bg-blue-50 text-blue-700 border border-blue-200"
+                    : "text-gray-700 hover:bg-gray-100"
+                )}
+              >
+                <item.icon className="h-5 w-5" />
+                <div className="flex-1">
+                  <div className="font-medium">{item.title}</div>
+                  <div className="text-xs text-gray-500">{item.description}</div>
+                </div>
+                {isActive && <ChevronRight className="h-4 w-4" />}
+              </Link>
+            );
+          })}
+          
+          {/* Platform Admin Only Navigation */}
+          {user?.role === 'platform_admin' && platformAdminNavItems.map((item) => {
+            const isActive = location.pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                to={item.href}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
+                  "border-t mt-4 pt-4",
+                  isActive
+                    ? "bg-amber-50 text-amber-700 border border-amber-200"
                     : "text-gray-700 hover:bg-gray-100"
                 )}
               >

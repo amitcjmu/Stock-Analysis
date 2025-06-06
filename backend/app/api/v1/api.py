@@ -158,6 +158,18 @@ try:
 except ImportError as e:
     print(f"⚠️ LLM usage tracking endpoints not available: {e}")
 
+# Include platform admin endpoints for enhanced RBAC
+try:
+    from app.api.v1.admin import platform_admin_handlers
+    api_router.include_router(
+        platform_admin_handlers.router,
+        prefix="/platform-admin",
+        tags=["platform-administration"]
+    )
+    print("✅ Platform admin endpoints available")
+except ImportError as e:
+    print(f"⚠️ Platform admin endpoints not available: {e}")
+
 # Include workflow integration endpoints
 try:
     from app.api.v1.endpoints import workflow_integration
