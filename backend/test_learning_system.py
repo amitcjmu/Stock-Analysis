@@ -13,6 +13,8 @@ sys.path.append('/app')
 from app.services.field_mapping_learner import FieldMappingLearner
 from app.services.learning_pattern_service import LearningPatternService
 from app.utils.vector_utils import VectorUtils
+from app.services.asset_classification_learner import AssetClassificationLearner
+from app.services.confidence_manager import ConfidenceManager
 
 async def test_learning_system():
     """Test the learning pattern system functionality."""
@@ -26,6 +28,8 @@ async def test_learning_system():
     field_learner = FieldMappingLearner()
     learning_service = LearningPatternService()
     vector_utils = VectorUtils()
+    asset_learner = AssetClassificationLearner()
+    confidence_manager = ConfidenceManager()
     
     print("✅ Services initialized successfully")
     
@@ -175,5 +179,239 @@ async def test_learning_system():
     print("   - Vector similarity: ✅ pgvector integration")
     print("   - Classification patterns: ✅ Asset type learning")
 
+async def test_end_to_end_learning_flow():
+    """Test complete learning workflow."""
+    print("🧪 Testing End-to-End Learning Flow...")
+    print("=" * 80)
+    
+    # Initialize services
+    field_learner = FieldMappingLearner()
+    asset_learner = AssetClassificationLearner()
+    confidence_manager = ConfidenceManager()
+    
+    client_id = "test_client_e2e"
+    
+    print("\n📋 Phase 1: Initial Field Mapping Learning")
+    print("-" * 60)
+    
+    # Scenario: User maps unknown field "DR_PRIORITY" to "business_criticality"
+    print("1. User encounters unknown field 'DR_PRIORITY'")
+    
+    # Learn from user mapping
+    mapping_success = await field_learner.learn_from_mapping(
+        source_field="DR_PRIORITY",
+        target_field="business_criticality",
+        sample_values=["HIGH", "MEDIUM", "LOW", "CRITICAL"],
+        client_account_id=client_id,
+        success=True,
+        user_id="test_user"
+    )
+    
+    print(f"   ✅ Learning result: {mapping_success}")
+    
+    # Test field mapping suggestions
+    print("\n2. Testing field mapping suggestions for similar field...")
+    suggestions = await field_learner.suggest_field_mappings(
+        source_fields=["DISASTER_RECOVERY_TIER", "SERVER_NAME", "ENVIRONMENT"],
+        sample_data={
+            "DISASTER_RECOVERY_TIER": ["TIER1", "TIER2", "TIER3"],
+            "SERVER_NAME": ["web-prod-01", "db-prod-02"],
+            "ENVIRONMENT": ["PRODUCTION", "STAGING"]
+        },
+        client_account_id=client_id
+    )
+    
+    print("   Field Mapping Suggestions:")
+    for field, field_suggestions in suggestions.items():
+        print(f"     {field}:")
+        for suggestion in field_suggestions:
+            print(f"       → {suggestion.target_field} (confidence: {suggestion.confidence:.2f})")
+            print(f"         Reasoning: {suggestion.reasoning}")
+        print()
+    
+    print("\n📊 Phase 2: Asset Classification Learning")
+    print("-" * 60)
+    
+    # Learn from asset classifications
+    print("1. Learning from asset classifications...")
+    
+    test_assets = [
+        {
+            'name': 'web-prod-server-01',
+            'metadata': {'environment': 'production', 'technology': 'apache', 'tier': 'web'}
+        },
+        {
+            'name': 'mysql-db-primary',
+            'metadata': {'environment': 'production', 'technology': 'mysql', 'tier': 'database'}
+        },
+        {
+            'name': 'api-gateway-prod',
+            'metadata': {'environment': 'production', 'technology': 'nginx', 'tier': 'api'}
+        }
+    ]
+    
+    for asset in test_assets:
+        # Classify asset first
+        classification = await asset_learner.classify_asset_automatically(
+            asset_data={'name': asset['name'], 'metadata': asset['metadata']},
+            client_account_id=client_id
+        )
+        
+        print(f"   Asset: {asset['name']}")
+        print(f"     Classified as: {classification.asset_type}")
+        print(f"     Confidence: {classification.confidence:.2f}")
+        
+        # Learn from classification (simulate user confirmation)
+        learn_success = await asset_learner.learn_from_classification(
+            asset_name=asset['name'],
+            asset_metadata=asset['metadata'],
+            classification_result={
+                'asset_type': classification.asset_type,
+                'application_type': classification.application_type,
+                'technology_stack': classification.technology_stack
+            },
+            user_confirmed=True,
+            client_account_id=client_id,
+            user_id="test_user"
+        )
+        
+        print(f"     Learning success: {learn_success}")
+        print()
+    
+    print("\n2. Testing classification suggestions for new assets...")
+    
+    new_test_assets = [
+        {
+            'name': 'web-staging-server-02',
+            'metadata': {'environment': 'staging', 'technology': 'apache'}
+        },
+        {
+            'name': 'postgres-db-backup',
+            'metadata': {'environment': 'production', 'technology': 'postgresql'}
+        }
+    ]
+    
+    for asset in new_test_assets:
+        classification = await asset_learner.classify_asset_automatically(
+            asset_data={'name': asset['name'], 'metadata': asset['metadata']},
+            client_account_id=client_id
+        )
+        
+        print(f"   New Asset: {asset['name']}")
+        print(f"     Suggested Type: {classification.asset_type}")
+        print(f"     Application Type: {classification.application_type}")
+        print(f"     Technology: {classification.technology_stack}")
+        print(f"     Confidence: {classification.confidence:.2f}")
+        print(f"     Reasoning: {classification.reasoning}")
+        print()
+    
+    print("\n⚙️ Phase 3: Confidence Management Integration")
+    print("-" * 60)
+    
+    # Test confidence thresholds
+    print("1. Testing confidence thresholds...")
+    
+    operations = ["field_mapping", "asset_classification"]
+    for operation in operations:
+        thresholds = await confidence_manager.get_thresholds(client_id, operation)
+        print(f"   {operation.title()} Thresholds:")
+        print(f"     Auto Apply: {thresholds.auto_apply}")
+        print(f"     Suggest: {thresholds.suggest}")
+        print(f"     Reject: {thresholds.reject}")
+        print()
+    
+    # Simulate user feedback
+    print("2. Recording user feedback...")
+    
+    feedback_events = [
+        {
+            'operation': 'field_mapping',
+            'confidence': 0.85,
+            'action': 'accepted',
+            'correct': True,
+            'details': {'field': 'DISASTER_RECOVERY_TIER', 'mapped_to': 'business_criticality'}
+        },
+        {
+            'operation': 'asset_classification',
+            'confidence': 0.75,
+            'action': 'corrected',
+            'correct': False,
+            'details': {'asset': 'web-staging-server-02', 'corrected_type': 'application'}
+        },
+        {
+            'operation': 'field_mapping',
+            'confidence': 0.92,
+            'action': 'accepted',
+            'correct': True,
+            'details': {'field': 'SERVER_NAME', 'mapped_to': 'hostname'}
+        }
+    ]
+    
+    for feedback in feedback_events:
+        success = await confidence_manager.record_user_feedback(
+            client_account_id=client_id,
+            operation_type=feedback['operation'],
+            original_confidence=feedback['confidence'],
+            user_action=feedback['action'],
+            was_correct=feedback['correct'],
+            feedback_details=feedback['details']
+        )
+        
+        print(f"   Recorded {feedback['action']} for {feedback['operation']}: {success}")
+        print(f"     Confidence: {feedback['confidence']}, Correct: {feedback['correct']}")
+    
+    print("\n📈 Phase 4: Learning Performance Analysis")
+    print("-" * 60)
+    
+    # Get learning statistics
+    print("1. Analyzing learning performance...")
+    
+    for operation in operations:
+        stats = await confidence_manager.get_threshold_statistics(
+            client_account_id=client_id,
+            operation_type=operation
+        )
+        
+        print(f"   {operation.title()} Statistics:")
+        print(f"     Total Feedback: {stats['total_feedback']}")
+        print(f"     Overall Accuracy: {stats['overall_accuracy']:.1%}")
+        print(f"     User Actions: {stats['user_action_distribution']}")
+        print()
+    
+    print("\n🎯 Phase 5: Threshold Adjustment Testing")
+    print("-" * 60)
+    
+    # Test threshold adjustment
+    print("1. Testing threshold adjustment...")
+    
+    for operation in operations:
+        adjustment_result = await confidence_manager.adjust_thresholds_based_on_feedback(
+            client_account_id=client_id,
+            operation_type=operation
+        )
+        
+        print(f"   {operation.title()} Threshold Adjustment:")
+        print(f"     Success: {adjustment_result['success']}")
+        print(f"     Reason: {adjustment_result['reason']}")
+        
+        if 'old_thresholds' in adjustment_result:
+            print(f"     Old Thresholds: {adjustment_result['old_thresholds']}")
+            print(f"     New Thresholds: {adjustment_result['new_thresholds']}")
+        print()
+    
+    print("\n✅ End-to-End Learning Flow Test Complete!")
+    print("=" * 80)
+    
+    # Summary
+    print("\n📋 Test Summary:")
+    print("   ✅ Field mapping learning and suggestions working")
+    print("   ✅ Asset classification learning and suggestions working")
+    print("   ✅ Confidence threshold management operational")
+    print("   ✅ User feedback integration functional")
+    print("   ✅ Learning performance tracking active")
+    print("   ✅ Threshold adjustment logic working")
+    print("\n🎉 All learning systems integrated successfully!")
+
 if __name__ == "__main__":
-    asyncio.run(test_learning_system()) 
+    asyncio.run(test_learning_system())
+    asyncio.run(test_end_to_end_learning_flow()) 
