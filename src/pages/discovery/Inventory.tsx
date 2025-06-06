@@ -17,7 +17,7 @@ import { apiCall, API_CONFIG } from '../../config/api';
 const Inventory = () => {
   // Filtering and pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(50);
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [selectedDept, setSelectedDept] = useState('all');
   const [selectedEnv, setSelectedEnv] = useState('all');
@@ -96,140 +96,106 @@ const Inventory = () => {
       setIsLoading(true);
       setError(null);
       
-      // Build query parameters
+      // Build query parameters for both assets and summary requests
       const params = new URLSearchParams({
         page: page.toString(),
         page_size: pageSize.toString(),
       });
       
+      const summaryParams = new URLSearchParams();
+      
       if (filters.asset_type && filters.asset_type !== 'all') {
         params.append('asset_type', filters.asset_type);
+        summaryParams.append('asset_type', filters.asset_type);
       }
       if (filters.environment && filters.environment !== 'all') {
         params.append('environment', filters.environment);
+        summaryParams.append('environment', filters.environment);
       }
       if (filters.department && filters.department !== 'all') {
         params.append('department', filters.department);
+        summaryParams.append('department', filters.department);
       }
       if (filters.criticality && filters.criticality !== 'all') {
         params.append('criticality', filters.criticality);
+        summaryParams.append('criticality', filters.criticality);
       }
       if (filters.search) {
         params.append('search', filters.search);
+        summaryParams.append('search', filters.search);
       }
       
       console.log('🔍 Fetching assets from API:', `${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}?${params}`);
+      console.log('📊 Fetching summary from API:', `${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/summary?${summaryParams}`);
       
-      const response = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}?${params}`);
+      // Fetch both assets and summary in parallel for better performance
+      const [assetsResponse, summaryResponse] = await Promise.all([
+        apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}?${params}`),
+        apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/summary?${summaryParams}`)
+      ]);
       
-      console.log('📊 Asset API response:', response);
+      console.log('📊 Asset API response:', assetsResponse);
+      console.log('📈 Summary API response:', summaryResponse);
       
-      // Process the response - handle both direct asset arrays and wrapped responses
+      // Process the assets response
       let assetsData = [];
-      let summaryData = summary;
       let paginationData = pagination;
       
-      if (Array.isArray(response)) {
-        // Direct array response
-        assetsData = response;
-      } else if (response.assets && Array.isArray(response.assets)) {
-        // Wrapped response with assets array
-        assetsData = response.assets;
-        summaryData = response.summary || summary;
-        paginationData = response.pagination || pagination;
-      } else if (response.data && Array.isArray(response.data)) {
-        // Another possible wrapper format
-        assetsData = response.data;
+      if (Array.isArray(assetsResponse)) {
+        assetsData = assetsResponse;
+      } else if (assetsResponse.assets && Array.isArray(assetsResponse.assets)) {
+        assetsData = assetsResponse.assets;
+        paginationData = assetsResponse.pagination || pagination;
+      } else if (assetsResponse.data && Array.isArray(assetsResponse.data)) {
+        assetsData = assetsResponse.data;
       }
       
-      console.log('🎯 Processed assets data:', {
-        count: assetsData.length,
-        sample: assetsData[0],
-        summary: summaryData,
-        responseStructure: response
+      // Use summary response for accurate totals
+      let summaryData = summary;
+      if (summaryResponse && typeof summaryResponse === 'object') {
+        summaryData = summaryResponse;
+        console.log('✅ Using accurate summary from dedicated endpoint:', summaryData);
+      }
+      
+      console.log('🎯 Processed data:', {
+        assetsCount: assetsData.length,
+        summaryTotal: summaryData.total,
+        paginationInfo: paginationData
       });
       
       // Check if we got real assets data or an empty response
-      if (assetsData.length > 0) {
-        console.log('✅ Found real assets data, using live data');
+      if (assetsData.length > 0 || (summaryData && summaryData.total > 0)) {
+        console.log('✅ Found real data, using live data');
         setAssets(assetsData);
         setDataSource('live');
         
-        // Calculate summary from actual data
-        const calculatedSummary = {
-          total: assetsData.length,
-          filtered: assetsData.length,
-          applications: assetsData.filter(asset => {
-            const type = asset.asset_type || asset.ci_type || asset.intelligent_asset_type || '';
-            return type.toLowerCase().includes('application');
-          }).length,
-          servers: assetsData.filter(asset => {
-            const type = asset.asset_type || asset.ci_type || asset.intelligent_asset_type || '';
-            return type.toLowerCase().includes('server');
-          }).length,
-          databases: assetsData.filter(asset => {
-            const type = asset.asset_type || asset.ci_type || asset.intelligent_asset_type || '';
-            return type.toLowerCase().includes('database');
-          }).length,
-          devices: assetsData.filter(asset => {
-            const type = asset.asset_type || asset.ci_type || asset.intelligent_asset_type || '';
-            return type.toLowerCase().includes('device') || type.toLowerCase().includes('infrastructure');
-          }).length,
-          unknown: assetsData.filter(asset => {
-            const type = asset.asset_type || asset.ci_type || asset.intelligent_asset_type || '';
-            return !type || type.toLowerCase().includes('unknown');
-          }).length,
-          discovered: assetsData.length,
-          pending: 0,
-          device_breakdown: {
-            network: assetsData.filter(asset => {
-              const type = asset.asset_type || asset.ci_type || asset.intelligent_asset_type || '';
-              return type.toLowerCase().includes('network');
-            }).length,
-            storage: assetsData.filter(asset => {
-              const type = asset.asset_type || asset.ci_type || asset.intelligent_asset_type || '';
-              return type.toLowerCase().includes('storage');
-            }).length,
-            security: assetsData.filter(asset => {
-              const type = asset.asset_type || asset.ci_type || asset.intelligent_asset_type || '';
-              return type.toLowerCase().includes('security');
-            }).length,
-            infrastructure: assetsData.filter(asset => {
-              const type = asset.asset_type || asset.ci_type || asset.intelligent_asset_type || '';
-              return type.toLowerCase().includes('infrastructure');
-            }).length,
-            virtualization: assetsData.filter(asset => {
-              const type = asset.asset_type || asset.ci_type || asset.intelligent_asset_type || '';
-              return type.toLowerCase().includes('virtual');
-            }).length
-          }
-        };
+        // Use the accurate summary from the dedicated endpoint
+        setSummary(summaryData);
         
-        setSummary(calculatedSummary);
-        
-        // Update pagination
-        setPagination({
+        // Update pagination using data from backend
+        setPagination(paginationData || {
           current_page: page,
           page_size: pageSize,
-          total_items: assetsData.length,
-          total_pages: Math.ceil(assetsData.length / pageSize),
-          has_next: page * pageSize < assetsData.length,
+          total_items: summaryData.total || 0,
+          total_pages: Math.ceil((summaryData.total || 0) / pageSize),
+          has_next: page * pageSize < (summaryData.total || 0),
           has_previous: page > 1
         });
         
-        console.log('✅ Using live data from API with calculated summary:', calculatedSummary);
+        console.log('✅ Using live data with accurate summary:', summaryData);
+        console.log('📊 Updated pagination info:', paginationData);
       } else {
         // Check if this might be a valid empty response or if we should try demo data
         console.log('⚠️ API returned empty assets array. Response details:', {
-          hasAssetsProperty: response.hasOwnProperty('assets'),
-          assetsLength: response.assets?.length,
-          hasPagination: response.hasOwnProperty('pagination'),
-          hasFilters: response.hasOwnProperty('filters_ap'),
-          isEmptyResult: response.assets && Array.isArray(response.assets) && response.assets.length === 0
+          hasAssetsProperty: assetsResponse.hasOwnProperty('assets'),
+          assetsLength: assetsResponse.assets?.length,
+          hasPagination: assetsResponse.hasOwnProperty('pagination'),
+          hasFilters: assetsResponse.hasOwnProperty('filters_ap'),
+          isEmptyResult: assetsResponse.assets && Array.isArray(assetsResponse.assets) && assetsResponse.assets.length === 0
         });
         
         // If it's a structured response with empty assets array, it means no data in database
-        if (response.assets && Array.isArray(response.assets) && response.assets.length === 0) {
+        if (assetsResponse.assets && Array.isArray(assetsResponse.assets) && assetsResponse.assets.length === 0) {
           console.log('📊 Database has no assets, showing empty state');
           setAssets([]);
           setSummary({

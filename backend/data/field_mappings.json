@@ -31,7 +31,8 @@
     "name",
     "asset_name",
     "asset name",
-    "hostname"
+    "hostname",
+    "workload_type"
   ],
   "IP Address": [
     "ip address",
@@ -89,6 +90,11 @@
   "Hostname": [
     "id",
     "hostname",
-    "ci_id"
+    "ci_id",
+    "server_name"
+  ],
+  "Application Group": [
+    "application_group",
+    "department"
   ]
 }

@@ -2110,5 +2110,59 @@
     "answered_at": null,
     "user_response": null,
     "is_resolved": false
+  },
+  "8028a107-88c4-41e8-a32b-adb6d7a10da3": {
+    "id": "8028a107-88c4-41e8-a32b-adb6d7a10da3",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "quality_validation",
+    "page": "data-cleansing",
+    "title": "Data Format Inconsistencies",
+    "question": "Found format inconsistencies in: Recommended AWS Instance Type. Should we standardize these?",
+    "context": {
+      "format_issues": {
+        "Recommended AWS Instance Type": [
+          "text",
+          "mixed_alphanumeric"
+        ]
+      },
+      "standardization_needed": true
+    },
+    "options": [
+      "Yes, standardize automatically",
+      "No, keep as-is",
+      "Manual review needed"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-06T11:55:06.668433",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "2d213f20-5786-4620-b253-9ff6ce70f67b": {
+    "id": "2d213f20-5786-4620-b253-9ff6ce70f67b",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "business_context",
+    "page": "data-cleansing",
+    "title": "Asset Ownership Information",
+    "question": "No asset ownership information found. Is this available elsewhere or should migration proceed without owner details?",
+    "context": {
+      "missing_info": "ownership",
+      "migration_impact": "medium",
+      "suggestion": "may_need_additional_data"
+    },
+    "options": [
+      "Available in separate file",
+      "Not available",
+      "Will provide later"
+    ],
+    "confidence": "medium",
+    "priority": "low",
+    "created_at": "2025-06-06T11:55:06.688946",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
   }
 }

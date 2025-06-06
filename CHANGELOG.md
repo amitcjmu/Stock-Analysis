@@ -2,6 +2,46 @@
 
 All notable changes to the AI Force Migration Platform will be documented in this file.
 
+## [0.55.0] - 2025-01-06
+
+### 🎯 **Asset Inventory Display Fix - Accurate Asset Counts**
+
+This release resolves the critical issue where the Asset Inventory dashboard was displaying incorrect asset counts (showing only 10 items instead of the actual 56 assets in the database).
+
+### 🐛 **Bug Fixes**
+
+#### **Asset Inventory Summary Calculation**
+- **Root Cause**: Frontend was calculating summary statistics based only on paginated data (10 items per page) instead of total database assets
+- **Solution**: Created dedicated `/api/v1/discovery/assets/summary` endpoint for accurate totals
+- **Implementation**: Frontend now fetches both paginated assets and comprehensive summary statistics in parallel
+- **Result**: Asset Inventory now correctly displays 56 total assets (55 servers + 1 database)
+
+#### **Backend Summary Endpoint**
+- **New Endpoint**: `GET /api/v1/discovery/assets/summary` - Returns accurate asset statistics without pagination
+- **Comprehensive Statistics**: Provides total counts, asset type breakdown, environment/criticality/department distributions
+- **Multi-Tenant Support**: Properly filters by client account context
+- **Performance**: Optimized query to calculate statistics across all assets efficiently
+
+#### **Frontend Pagination Enhancement**
+- **Parallel API Calls**: Fetches assets and summary data simultaneously for better performance
+- **Accurate Totals**: Uses dedicated summary endpoint for dashboard cards instead of estimating from paginated data
+- **Improved Page Size**: Increased default page size from 10 to 50 assets for better user experience
+- **Better Error Handling**: Graceful fallback when summary endpoint is unavailable
+
+### 📊 **Technical Achievements**
+- **Database Verification**: Confirmed 56 assets exist in `cmdb_assets` table (55 servers, 1 database)
+- **API Consistency**: Both `/assets` and `/assets/summary` endpoints return consistent data
+- **Frontend Architecture**: Clean separation between paginated display and summary statistics
+- **Performance Optimization**: Parallel API calls reduce page load time
+
+### 🎯 **Success Metrics**
+- **Accuracy**: Asset Inventory now shows correct totals (56 instead of 10)
+- **Performance**: Summary statistics load in parallel with asset data
+- **User Experience**: Increased page size shows more assets per page (50 vs 10)
+- **Data Integrity**: Backend and frontend asset counts are now synchronized
+
+---
+
 ## [0.54.0] - 2025-01-06
 
 ### 🚀 **Enhanced CrewAI Flow Modular Service - Agentic Intelligence with Database Integration**

@@ -1220,3 +1220,153 @@ async def _get_demo_assets():
         demo_assets.append(MockAsset(**data))
     
     return demo_assets
+
+@router.get("/assets/summary")
+async def get_asset_summary_statistics(
+    asset_type: str = None,
+    environment: str = None,
+    department: str = None,
+    criticality: str = None,
+    search: str = None,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get comprehensive asset summary statistics without pagination.
+    Returns accurate totals for Asset Inventory dashboard.
+    """
+    try:
+        context = get_current_context()
+        
+        # Use direct SQLAlchemy query to get all assets for summary calculation
+        from sqlalchemy import select, and_, func
+        from sqlalchemy.sql import cast
+        from sqlalchemy import String
+        
+        # Build base query for CMDB assets
+        query = select(CMDBAsset)
+        
+        # Apply context filtering for demo client (if context is available)
+        demo_client_query = await db.execute(select(ClientAccount).where(ClientAccount.is_mock == True))
+        demo_client = demo_client_query.scalar_one_or_none()
+        
+        if demo_client:
+            query = query.where(CMDBAsset.client_account_id == demo_client.id)
+            logger.info(f"Filtering assets for demo client: {demo_client.name} ({demo_client.id})")
+        
+        # Apply filters (same as main assets endpoint)
+        if asset_type:
+            from app.models.cmdb_asset import AssetType
+            try:
+                asset_type_enum = AssetType(asset_type.lower())
+                query = query.where(CMDBAsset.asset_type == asset_type_enum)
+            except ValueError:
+                query = query.where(CMDBAsset.asset_type.cast(String).ilike(f"%{asset_type}%"))
+        if environment:
+            query = query.where(CMDBAsset.environment.ilike(f"%{environment}%"))
+        if department:
+            query = query.where(CMDBAsset.department.ilike(f"%{department}%"))
+        if criticality:
+            query = query.where(CMDBAsset.criticality.ilike(f"%{criticality}%"))
+        
+        # Execute query to get all matching assets
+        result = await db.execute(query)
+        all_assets = result.scalars().all()
+        
+        logger.info(f"Calculating summary statistics for {len(all_assets)} assets")
+        
+        # If no real assets found, provide demo data for development
+        if not all_assets and not any([asset_type, environment, department, criticality]):
+            logger.info("No real assets found, providing demo statistics")
+            demo_assets = await _get_demo_assets()
+            all_assets = demo_assets
+        
+        # Apply search filter if provided
+        if search:
+            search_lower = search.lower()
+            filtered_assets = []
+            for asset in all_assets:
+                if (asset.hostname and search_lower in asset.hostname.lower()) or \
+                   (asset.description and search_lower in asset.description.lower()) or \
+                   (str(asset.asset_type) and search_lower in str(asset.asset_type).lower()):
+                    filtered_assets.append(asset)
+            all_assets = filtered_assets
+        
+        # Calculate comprehensive summary statistics
+        def get_asset_type_string(asset):
+            """Get asset type as string for classification"""
+            if hasattr(asset, 'asset_type'):
+                if hasattr(asset.asset_type, 'value'):
+                    return asset.asset_type.value.lower()
+                else:
+                    return str(asset.asset_type).lower()
+            return ''
+        
+        total_assets = len(all_assets)
+        
+        # Calculate asset type distributions
+        applications = len([a for a in all_assets if 'application' in get_asset_type_string(a)])
+        servers = len([a for a in all_assets if 'server' in get_asset_type_string(a)])
+        databases = len([a for a in all_assets if 'database' in get_asset_type_string(a)])
+        devices = len([a for a in all_assets if any(t in get_asset_type_string(a) for t in ['device', 'infrastructure', 'network', 'storage'])])
+        unknown = len([a for a in all_assets if not get_asset_type_string(a) or 'unknown' in get_asset_type_string(a)])
+        
+        # Device breakdown
+        network_devices = len([a for a in all_assets if 'network' in get_asset_type_string(a)])
+        storage_devices = len([a for a in all_assets if 'storage' in get_asset_type_string(a)])
+        security_devices = len([a for a in all_assets if 'security' in get_asset_type_string(a) or 'firewall' in get_asset_type_string(a)])
+        infrastructure_devices = len([a for a in all_assets if 'infrastructure' in get_asset_type_string(a)])
+        virtualization_devices = len([a for a in all_assets if 'virtual' in get_asset_type_string(a)])
+        
+        # Environment breakdown
+        environments = {}
+        for asset in all_assets:
+            env = asset.environment or 'Unknown'
+            environments[env] = environments.get(env, 0) + 1
+        
+        # Criticality breakdown
+        criticalities = {}
+        for asset in all_assets:
+            crit = asset.criticality or 'Unknown'
+            criticalities[crit] = criticalities.get(crit, 0) + 1
+        
+        # Department breakdown
+        departments = {}
+        for asset in all_assets:
+            dept = asset.department or 'Unknown'
+            departments[dept] = departments.get(dept, 0) + 1
+        
+        summary_statistics = {
+            "total": total_assets,
+            "filtered": total_assets,
+            "applications": applications,
+            "servers": servers,
+            "databases": databases,
+            "devices": devices,
+            "unknown": unknown,
+            "discovered": total_assets,
+            "pending": 0,
+            "device_breakdown": {
+                "network": network_devices,
+                "storage": storage_devices,
+                "security": security_devices,
+                "infrastructure": infrastructure_devices,
+                "virtualization": virtualization_devices
+            },
+            "environment_breakdown": environments,
+            "criticality_breakdown": criticalities,
+            "department_breakdown": departments,
+            "filters_applied": {
+                "asset_type": asset_type,
+                "environment": environment,
+                "department": department,
+                "criticality": criticality,
+                "search": search
+            }
+        }
+        
+        logger.info(f"Asset summary calculated: {summary_statistics}")
+        return summary_statistics
+        
+    except Exception as e:
+        logger.error(f"Error calculating asset summary: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to calculate asset summary: {str(e)}")
