@@ -66,34 +66,101 @@ asset_tags: ? records                  -- AI-generated tags
 - Enhanced AI insight storage
 - Comprehensive business context fields
 
-#### **1.2 Data Migration Strategy**
+#### **1.2 Enhanced Data Migration Strategy**
 ```sql
--- Step 1: Migrate data from cmdb_assets to assets
+-- Pre-migration Validation
+DO $$
+DECLARE
+    missing_fields TEXT[];
+    incompatible_count INTEGER;
+BEGIN
+    -- Check for missing critical fields
+    SELECT array_agg(field_name) INTO missing_fields
+    FROM (VALUES ('name'), ('asset_type'), ('client_account_id'), ('engagement_id')) AS required(field_name)
+    WHERE NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'cmdb_assets' AND column_name = required.field_name
+    );
+    
+    IF array_length(missing_fields, 1) > 0 THEN
+        RAISE EXCEPTION 'Missing required fields: %', array_to_string(missing_fields, ', ');
+    END IF;
+    
+    -- Check for incompatible asset types
+    SELECT COUNT(*) INTO incompatible_count
+    FROM migration.cmdb_assets 
+    WHERE asset_type NOT IN ('server', 'database', 'application', 'network', 'storage', 'container', 'virtual_machine', 'load_balancer', 'security_group', 'other');
+    
+    IF incompatible_count > 0 THEN
+        RAISE WARNING 'Found % assets with incompatible asset types that will need manual review', incompatible_count;
+    END IF;
+END $$;
+
+-- Step 1: Migrate data from cmdb_assets to assets with enhanced mapping
 INSERT INTO migration.assets (
     name, hostname, asset_type, description, ip_address, 
     environment, operating_system, cpu_cores, memory_gb, storage_gb,
-    business_owner, department, application_name as asset_name,
-    technology_stack as programming_language, criticality as business_criticality,
+    business_owner, department, asset_name, application_name,
+    programming_language, technology_stack, business_criticality,
     migration_priority, migration_complexity, six_r_strategy,
-    client_account_id, engagement_id, created_at, updated_at
+    client_account_id, engagement_id, created_at, updated_at,
+    -- Enhanced fields with heuristic population
+    intelligent_asset_type, application_type, framework,
+    discovery_method, source_filename, raw_data
 ) 
 SELECT 
-    name, hostname, asset_type, description, ip_address,
-    environment, operating_system, cpu_cores, memory_gb, storage_gb,
-    business_owner, department, application_name,
-    technology_stack, criticality,
-    migration_priority, migration_complexity, six_r_strategy,
-    client_account_id, engagement_id, created_at, updated_at
-FROM migration.cmdb_assets;
+    c.name, c.hostname, c.asset_type, c.description, c.ip_address,
+    c.environment, c.operating_system, c.cpu_cores, c.memory_gb, c.storage_gb,
+    c.business_owner, c.department, c.name as asset_name, c.application_name,
+    c.technology_stack as programming_language, c.technology_stack, c.criticality as business_criticality,
+    c.migration_priority, c.migration_complexity, c.six_r_strategy,
+    c.client_account_id, c.engagement_id, c.created_at, c.updated_at,
+    -- Heuristic classification
+    CASE 
+        WHEN c.application_name IS NOT NULL AND c.application_name != '' THEN 'application'
+        ELSE c.asset_type::text
+    END as intelligent_asset_type,
+    CASE
+        WHEN c.name ~* '.*(web|apache|nginx|iis).*' THEN 'web_server'
+        WHEN c.name ~* '.*(sql|database|db|mysql|postgres|oracle).*' THEN 'database'
+        WHEN c.name ~* '.*(app|application).*' THEN 'application'
+        WHEN c.name ~* '.*(mail|exchange|smtp).*' THEN 'email'
+        ELSE 'unknown'
+    END as application_type,
+    COALESCE(c.technology_stack, 'unknown') as framework,
+    'data_import' as discovery_method,
+    c.source_filename,
+    jsonb_build_object('original_cmdb_data', row_to_json(c)) as raw_data
+FROM migration.cmdb_assets c;
 
--- Step 2: Update foreign key references
-UPDATE migration.asset_tags SET asset_id = (
-    SELECT a.id FROM migration.assets a 
-    WHERE a.name = (SELECT c.name FROM migration.cmdb_assets c WHERE c.id = asset_tags.cmdb_asset_id)
-);
+-- Step 2: Update foreign key references with proper mapping
+UPDATE migration.asset_tags 
+SET asset_id = mapped.new_asset_id
+FROM (
+    SELECT c.id as old_id, a.id as new_asset_id
+    FROM migration.cmdb_assets c
+    JOIN migration.assets a ON a.name = c.name AND a.client_account_id = c.client_account_id
+) mapped
+WHERE asset_tags.cmdb_asset_id = mapped.old_id;
 
--- Step 3: Deprecate cmdb_assets (keep for transition period)
-ALTER TABLE migration.cmdb_assets ADD COLUMN migrated_to_assets_id INTEGER;
+-- Step 3: Post-migration validation
+DO $$
+DECLARE
+    migrated_count INTEGER;
+    original_count INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO original_count FROM migration.cmdb_assets;
+    SELECT COUNT(*) INTO migrated_count FROM migration.assets WHERE discovery_method = 'data_import';
+    
+    IF migrated_count != original_count THEN
+        RAISE EXCEPTION 'Migration validation failed: Expected % assets, got %', original_count, migrated_count;
+    END IF;
+    
+    RAISE NOTICE 'Successfully migrated % assets from cmdb_assets to assets', migrated_count;
+END $$;
+
+-- Step 4: Drop cmdb_assets table immediately (no transition period needed)
+DROP TABLE migration.cmdb_assets CASCADE;
 ```
 
 #### **1.3 Application Model Integration**
@@ -124,11 +191,13 @@ class Asset(Base):
 
 ### **Phase 2: Agent Learning Infrastructure (Week 2)**
 
-#### **2.1 Enhanced Learning Models**
+#### **2.1 Enhanced Learning Models with pgvector Integration**
 
 ```python
+from pgvector.sqlalchemy import Vector
+
 class MappingLearningPattern(Base):
-    """Stores successful field mapping patterns for future use."""
+    """Stores successful field mapping patterns with vector embeddings for similarity search."""
     __tablename__ = "mapping_learning_patterns"
     
     id = Column(UUID, primary_key=True, default=uuid.uuid4)
@@ -139,28 +208,54 @@ class MappingLearningPattern(Base):
     content_pattern = Column(String(500))         # e.g., "Critical|High|Medium|Low"
     target_field = Column(String(255))           # e.g., "business_criticality"
     
-    # Learning Metrics
-    pattern_confidence = Column(Float)            # 0.0-1.0 confidence
+    # Vector Embedding for Similarity Search
+    pattern_embedding = Column(Vector(1536))      # OpenAI embedding dimension
+    content_embedding = Column(Vector(1536))      # Content pattern embedding
+    
+    # Learning Scope (Hybrid Approach)
+    scope = Column(String(20), default='client_specific')  # 'global' or 'client_specific'
+    
+    # Dynamic Learning Metrics
+    pattern_confidence = Column(Float)            # 0.0-1.0 confidence (dynamic)
     success_count = Column(Integer, default=1)   # Times successfully applied
     failure_count = Column(Integer, default=0)   # Times failed
+    correction_frequency = Column(Float, default=0.0)  # User correction rate
     
-    # Context
+    # Context and Feedback
     learned_from_mapping_id = Column(UUID, ForeignKey('import_field_mappings.id'))
     user_feedback = Column(JSON)                  # User corrections/confirmations
+    manual_corrections = Column(JSON)            # Heavily weighted feedback
+    
+    # Self-Training Metadata
+    synthetic_training_data = Column(JSON)        # Generated training examples
+    reinforcement_score = Column(Float, default=0.0)  # RL reward score
     
     # Pattern Metadata
     matching_rules = Column(JSON)                 # Regex/fuzzy match rules
     transformation_hints = Column(JSON)          # Data transformation logic
     quality_checks = Column(JSON)                # Validation rules
     
-    # Application
+    # Application Tracking
     times_applied = Column(Integer, default=0)
     last_applied_at = Column(DateTime)
+    retirement_candidate = Column(Boolean, default=False)  # For pattern pruning
+    
+    # Audit
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
+    
+    # Indexes for Performance
+    __table_args__ = (
+        Index('ix_mapping_patterns_client_scope', 'client_account_id', 'scope'),
+        Index('ix_mapping_patterns_confidence', 'pattern_confidence'),
+        Index('ix_mapping_patterns_field', 'source_field_pattern'),
+        # pgvector index for similarity search
+        Index('ix_mapping_patterns_embedding', 'pattern_embedding', postgresql_using='ivfflat',
+              postgresql_with={'lists': 100}, postgresql_ops={'pattern_embedding': 'vector_cosine_ops'})
+    )
 
 class AssetClassificationPattern(Base):
-    """Stores patterns for automatic asset classification."""
+    """Stores patterns for automatic asset classification with vector similarity."""
     __tablename__ = "asset_classification_patterns"
     
     id = Column(UUID, primary_key=True, default=uuid.uuid4)
@@ -171,15 +266,75 @@ class AssetClassificationPattern(Base):
     pattern_value = Column(String(500))          # Regex or matching criteria
     target_classification = Column(JSON)         # {asset_type, application_type, technology_stack}
     
-    # Learning History
-    confidence_score = Column(Float)             # Pattern reliability
+    # Vector Embeddings for Clustering and Similarity
+    pattern_embedding = Column(Vector(1536))      # Pattern vector for similarity search
+    asset_name_embedding = Column(Vector(1536))   # Asset name pattern embedding
+    
+    # Learning Scope
+    scope = Column(String(20), default='client_specific')  # 'global' or 'client_specific'
+    
+    # Dynamic Learning History
+    confidence_score = Column(Float)             # Pattern reliability (dynamic)
     examples_learned_from = Column(JSON)        # Sample assets that created this pattern
     user_confirmations = Column(Integer, default=0)
     user_rejections = Column(Integer, default=0)
+    synthetic_confirmations = Column(Integer, default=0)  # Self-training validations
+    
+    # Reinforcement Learning
+    reward_score = Column(Float, default=0.0)    # RL reward for pattern effectiveness
+    exploration_bonus = Column(Float, default=0.0)  # Bonus for trying new patterns
     
     # Application Context
     applicable_environments = Column(JSON)       # Where this pattern applies
     exclusion_patterns = Column(JSON)           # When NOT to apply
+    clustering_metadata = Column(JSON)          # K-means cluster assignments
+    
+    # Pattern Lifecycle
+    is_retired = Column(Boolean, default=False)  # Retired low-performing patterns
+    retirement_reason = Column(String(255))     # Why pattern was retired
+    
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+    
+    # Performance Indexes
+    __table_args__ = (
+        Index('ix_classification_patterns_client_scope', 'client_account_id', 'scope'),
+        Index('ix_classification_patterns_type', 'pattern_type'),
+        Index('ix_classification_patterns_confidence', 'confidence_score'),
+        # pgvector indexes for similarity search
+        Index('ix_classification_patterns_pattern_embedding', 'pattern_embedding', 
+              postgresql_using='ivfflat', postgresql_with={'lists': 100}, 
+              postgresql_ops={'pattern_embedding': 'vector_cosine_ops'}),
+        Index('ix_classification_patterns_name_embedding', 'asset_name_embedding',
+              postgresql_using='ivfflat', postgresql_with={'lists': 100},
+              postgresql_ops={'asset_name_embedding': 'vector_cosine_ops'})
+    )
+
+class ConfidenceThreshold(Base):
+    """Dynamic confidence thresholds learned from user feedback."""
+    __tablename__ = "confidence_thresholds"
+    
+    id = Column(UUID, primary_key=True, default=uuid.uuid4)
+    client_account_id = Column(UUID, ForeignKey('client_accounts.id'))
+    
+    # Threshold Context
+    operation_type = Column(String(50))          # 'field_mapping', 'asset_classification'
+    asset_type = Column(String(50), nullable=True)  # Specific to asset type if applicable
+    pattern_type = Column(String(50), nullable=True) # Specific to pattern type
+    
+    # Dynamic Thresholds
+    auto_apply_threshold = Column(Float, default=0.9)     # No user confirmation needed
+    suggest_threshold = Column(Float, default=0.6)       # User confirmation recommended
+    reject_threshold = Column(Float, default=0.3)        # Don't suggest
+    
+    # Learning Metrics
+    total_operations = Column(Integer, default=0)
+    user_corrections = Column(Integer, default=0)
+    correction_rate = Column(Float, default=0.0)
+    
+    # Adjustment History
+    threshold_adjustments = Column(JSON)         # History of threshold changes
+    last_adjustment = Column(DateTime)
     
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
@@ -188,20 +343,148 @@ class AssetClassificationPattern(Base):
 #### **2.2 Agent Learning Services**
 
 ```python
-class AgentLearningService:
-    """Centralized agent learning and pattern management."""
+class EnhancedAgentLearningService:
+    """Centralized agent learning with pgvector, self-training, and reinforcement learning."""
     
-    async def learn_from_mapping(self, mapping_event: FieldMappingEvent):
-        """Learn patterns from successful field mappings."""
-        # Extract patterns from source field names and values
-        patterns = self._extract_field_patterns(mapping_event)
+    def __init__(self):
+        self.embedding_service = OpenAIEmbeddingService()
+        self.confidence_manager = DynamicConfidenceManager()
+        self.self_trainer = AgentSelfTrainer()
         
-        # Store or update learning patterns
+    async def learn_from_mapping(self, mapping_event: FieldMappingEvent):
+        """Learn patterns from successful field mappings with vector embeddings."""
+        # Extract patterns from source field names and values
+        patterns = await self._extract_field_patterns_with_embeddings(mapping_event)
+        
+        # Store or update learning patterns with vector similarity
         for pattern in patterns:
-            await self._update_learning_pattern(pattern)
+            await self._update_learning_pattern_with_vectors(pattern)
             
-        # Update agent knowledge
+        # Trigger self-training if sufficient data
+        if mapping_event.user_corrected:
+            await self.self_trainer.learn_from_correction(mapping_event)
+            
+        # Update dynamic confidence thresholds
+        await self.confidence_manager.adjust_thresholds(mapping_event)
+            
+        # Update agent knowledge across all 17 agents
         await self._notify_mapping_agents(patterns)
+        
+    async def _extract_field_patterns_with_embeddings(self, mapping_event: FieldMappingEvent) -> List[MappingPattern]:
+        """Extract patterns and generate embeddings for similarity search."""
+        patterns = []
+        
+        # Generate embeddings for field name and content
+        field_embedding = await self.embedding_service.embed_text(mapping_event.source_field)
+        content_embedding = await self.embedding_service.embed_text(' '.join(mapping_event.sample_values))
+        
+        # Check for similar existing patterns using pgvector
+        similar_patterns = await self._find_similar_patterns(field_embedding, content_embedding)
+        
+        if similar_patterns and max(p.confidence for p in similar_patterns) > 0.8:
+            # Update existing high-confidence pattern
+            await self._reinforce_existing_pattern(similar_patterns[0], mapping_event)
+        else:
+            # Create new pattern
+            pattern = MappingPattern(
+                source_field_pattern=mapping_event.source_field,
+                content_pattern=self._extract_content_pattern(mapping_event.sample_values),
+                target_field=mapping_event.target_field,
+                pattern_embedding=field_embedding,
+                content_embedding=content_embedding,
+                scope='client_specific' if mapping_event.client_specific else 'global',
+                pattern_confidence=0.7,  # Initial confidence
+                manual_corrections=mapping_event.corrections if mapping_event.user_corrected else None
+            )
+            patterns.append(pattern)
+            
+        return patterns
+    
+    async def suggest_field_mapping_with_similarity(self, source_field: str, sample_values: List[str], client_id: str) -> List[MappingSuggestion]:
+        """Use pgvector similarity search for intelligent field mapping suggestions."""
+        # Generate embeddings for the query
+        field_embedding = await self.embedding_service.embed_text(source_field)
+        content_embedding = await self.embedding_service.embed_text(' '.join(sample_values))
+        
+        # Find similar patterns using vector similarity (client-specific first, then global)
+        similar_patterns = await self._vector_similarity_search(
+            field_embedding, content_embedding, client_id
+        )
+        
+        # Get dynamic confidence thresholds for this client/operation
+        thresholds = await self.confidence_manager.get_thresholds(client_id, 'field_mapping')
+        
+        suggestions = []
+        for pattern in similar_patterns:
+            # Calculate dynamic confidence based on similarity and historical performance
+            confidence = self._calculate_dynamic_confidence(pattern, field_embedding, content_embedding)
+            
+            if confidence > thresholds.suggest_threshold:
+                suggestions.append(MappingSuggestion(
+                    target_field=pattern.target_field,
+                    confidence=confidence,
+                    reasoning=f"Vector similarity: {pattern.similarity_score:.3f}, Pattern success rate: {pattern.success_rate:.2f}",
+                    pattern_id=pattern.id,
+                    auto_apply=confidence > thresholds.auto_apply_threshold
+                ))
+        
+        # If no high-confidence suggestions, use self-training to generate synthetic examples
+        if not suggestions or max(s.confidence for s in suggestions) < 0.6:
+            synthetic_suggestions = await self.self_trainer.generate_synthetic_suggestions(
+                source_field, sample_values
+            )
+            suggestions.extend(synthetic_suggestions)
+        
+        return sorted(suggestions, key=lambda x: x.confidence, reverse=True)
+    
+    async def _vector_similarity_search(self, field_embedding: List[float], content_embedding: List[float], client_id: str) -> List[MappingPattern]:
+        """Perform pgvector similarity search for mapping patterns."""
+        from sqlalchemy import text
+        
+        # Search client-specific patterns first
+        query = text("""
+            SELECT *, 
+                   (pattern_embedding <=> :field_embedding) as field_similarity,
+                   (content_embedding <=> :content_embedding) as content_similarity,
+                   ((pattern_embedding <=> :field_embedding) + (content_embedding <=> :content_embedding)) / 2 as avg_similarity
+            FROM mapping_learning_patterns 
+            WHERE client_account_id = :client_id 
+              AND scope = 'client_specific'
+              AND pattern_confidence > 0.5
+              AND NOT retirement_candidate
+            ORDER BY avg_similarity ASC
+            LIMIT 10
+        """)
+        
+        client_patterns = await self.db.execute(query, {
+            'field_embedding': field_embedding,
+            'content_embedding': content_embedding,
+            'client_id': client_id
+        })
+        
+        # If insufficient client patterns, search global patterns
+        if len(client_patterns.all()) < 3:
+            global_query = text("""
+                SELECT *, 
+                       (pattern_embedding <=> :field_embedding) as field_similarity,
+                       (content_embedding <=> :content_embedding) as content_similarity,
+                       ((pattern_embedding <=> :field_embedding) + (content_embedding <=> :content_embedding)) / 2 as avg_similarity
+                FROM mapping_learning_patterns 
+                WHERE scope = 'global'
+                  AND pattern_confidence > 0.6
+                  AND NOT retirement_candidate
+                ORDER BY avg_similarity ASC
+                LIMIT 5
+            """)
+            
+            global_patterns = await self.db.execute(global_query, {
+                'field_embedding': field_embedding,
+                'content_embedding': content_embedding
+            })
+            
+            return client_patterns.all() + global_patterns.all()
+        
+        return client_patterns.all()
     
     async def learn_from_classification(self, classification_event: ClassificationEvent):
         """Learn from asset classification events."""
@@ -250,9 +533,148 @@ class AgentLearningService:
         return final_classification
 ```
 
+class AgentSelfTrainer:
+    """Self-training mechanism for agents to improve without user input."""
+    
+    def __init__(self):
+        self.synthetic_data_generator = SyntheticAssetGenerator()
+        self.unsupervised_learner = UnsupervisedPatternLearner()
+        
+    async def learn_from_correction(self, correction_event: UserCorrectionEvent):
+        """Learn from user corrections using reinforcement learning."""
+        # Store correction with high weight
+        await self._store_weighted_correction(correction_event, weight=2.0)
+        
+        # Generate synthetic training data based on correction
+        synthetic_examples = await self._generate_synthetic_corrections(correction_event)
+        
+        # Train pattern recognition on synthetic data
+        for example in synthetic_examples:
+            await self._simulate_pattern_learning(example)
+            
+        # Update reward scores for relevant patterns
+        await self._update_reinforcement_scores(correction_event)
+    
+    async def generate_synthetic_suggestions(self, source_field: str, sample_values: List[str]) -> List[MappingSuggestion]:
+        """Generate suggestions using synthetic training data."""
+        # Create synthetic asset names and field combinations
+        synthetic_assets = await self.synthetic_data_generator.generate_similar_assets(source_field, sample_values)
+        
+        # Use unsupervised learning to cluster and suggest mappings
+        clusters = await self.unsupervised_learner.cluster_field_patterns(synthetic_assets)
+        
+        suggestions = []
+        for cluster in clusters:
+            if cluster.confidence > 0.5:
+                suggestions.append(MappingSuggestion(
+                    target_field=cluster.suggested_target,
+                    confidence=cluster.confidence,
+                    reasoning=f"Unsupervised clustering with {cluster.sample_count} synthetic examples",
+                    source="self_training"
+                ))
+                
+        return suggestions
+    
+    async def periodic_pattern_discovery(self, client_id: str):
+        """Proactive pattern discovery using unsupervised learning."""
+        # Get all assets for clustering analysis
+        assets = await self._get_client_assets(client_id)
+        
+        # Extract embeddings for asset names and attributes
+        asset_embeddings = []
+        for asset in assets:
+            embedding = await self._embed_asset_attributes(asset)
+            asset_embeddings.append((asset.id, embedding))
+        
+        # Perform K-means clustering on embeddings
+        from sklearn.cluster import KMeans
+        import numpy as np
+        
+        embeddings_matrix = np.array([emb for _, emb in asset_embeddings])
+        kmeans = KMeans(n_clusters=min(10, len(assets) // 3))
+        cluster_labels = kmeans.fit_predict(embeddings_matrix)
+        
+        # Analyze clusters for new patterns
+        for cluster_id in range(kmeans.n_clusters):
+            cluster_assets = [assets[i] for i, label in enumerate(cluster_labels) if label == cluster_id]
+            pattern = await self._extract_cluster_pattern(cluster_assets)
+            
+            if pattern.confidence > 0.7:
+                await self._store_discovered_pattern(pattern, client_id)
+
+class AgentCoordinationService:
+    """Coordinates learning and task distribution across 17 specialized agents."""
+    
+    def __init__(self):
+        self.agent_registry = {
+            'discovery': ['data_source_intelligence', 'cmdb_analyst', 'application_discovery', 'dependency_intelligence'],
+            'assessment': ['migration_strategy_expert', 'risk_assessment_specialist'],
+            'planning': ['wave_planning_coordinator'],
+            'execution': ['migration_execution_coordinator'],
+            'modernization': ['containerization_specialist'],
+            'decommission': ['decommission_coordinator'],
+            'finops': ['cost_optimization_agent'],
+            'learning': ['agent_learning_system', 'client_context_manager', 'enhanced_ui_bridge'],
+            'observability': ['asset_intelligence', 'agent_health_monitor', 'performance_analytics']
+        }
+        self.shared_learning_store = SharedLearningPatternStore()
+        self.load_balancer = AgentLoadBalancer()
+        
+    async def coordinate_asset_analysis(self, asset_data: dict, client_id: str) -> AssetAnalysisResult:
+        """Coordinate multiple agents for comprehensive asset analysis."""
+        # Distribute tasks based on agent specialization and load
+        tasks = []
+        
+        # Discovery phase agents
+        discovery_agents = await self.load_balancer.select_agents('discovery', 2)
+        for agent in discovery_agents:
+            tasks.append(agent.analyze_asset_basic(asset_data))
+            
+        # Learning-enabled classification
+        learning_agent = await self.load_balancer.select_agents('learning', 1)[0]
+        tasks.append(learning_agent.classify_with_learned_patterns(asset_data, client_id))
+        
+        # Risk assessment
+        risk_agent = await self.load_balancer.select_agents('assessment', 1)[0]
+        tasks.append(risk_agent.assess_migration_risk(asset_data))
+        
+        # Execute all analyses in parallel
+        results = await asyncio.gather(*tasks)
+        
+        # Combine results and share learnings
+        combined_result = await self._combine_agent_results(results)
+        await self.shared_learning_store.update_patterns(combined_result.learned_patterns)
+        
+        return combined_result
+    
+    async def share_learning_across_agents(self, learning_event: LearningEvent):
+        """Share learned patterns across all relevant agents."""
+        # Store in shared learning pattern store
+        await self.shared_learning_store.store_pattern(learning_event.pattern)
+        
+        # Notify relevant agents based on pattern type
+        relevant_agents = await self._get_relevant_agents(learning_event.pattern.pattern_type)
+        
+        notification_tasks = []
+        for agent in relevant_agents:
+            notification_tasks.append(agent.update_knowledge(learning_event))
+            
+        await asyncio.gather(*notification_tasks)
+    
+    async def _get_relevant_agents(self, pattern_type: str) -> List[Agent]:
+        """Get agents that should be notified of pattern updates."""
+        if pattern_type == 'field_mapping':
+            return self.agent_registry['discovery'] + self.agent_registry['learning']
+        elif pattern_type == 'asset_classification':
+            return self.agent_registry['discovery'] + self.agent_registry['assessment']
+        elif pattern_type == 'application_detection':
+            return ['application_discovery', 'asset_intelligence']
+        else:
+            return self.agent_registry['learning']  # Default to learning agents
+
 ### **Phase 3: Enhanced Agent Architecture (Week 3)**
 
-#### **3.1 Learning-Enabled Discovery Agents**
+#### **3.1 Learning-Enabled Discovery Agents with 17-Agent Coordination**
 
 ```python
 class EnhancedAssetDiscoveryAgent:
@@ -486,11 +908,331 @@ class NamePatternDetector:
 - [ ] **Day 4**: Add classification learning capabilities
 - [ ] **Day 5**: Integration testing
 
-### **Week 4: Application Detection**
-- [ ] **Day 1-2**: Build multi-strategy detection engine
-- [ ] **Day 3**: Implement pattern learning for applications
-- [ ] **Day 4**: Create user feedback integration
-- [ ] **Day 5**: Performance optimization and testing
+### **Week 4: Application Detection & Testing**
+- [ ] **Day 1-2**: Build multi-strategy detection engine with pgvector clustering
+- [ ] **Day 3**: Implement pattern learning and self-training for applications
+- [ ] **Day 4**: Create comprehensive testing framework
+- [ ] **Day 5**: Frontend-backend synchronization and performance optimization
+
+---
+
+## 🧪 **Enhanced Testing Framework**
+
+### **Unit Testing for Agent Components**
+
+```python
+# tests/backend/agents/test_learning_asset_classification.py
+import pytest
+import asyncio
+from unittest.mock import Mock, AsyncMock
+from app.services.enhanced_agent_learning import EnhancedAgentLearningService
+from app.services.agent_coordination import AgentCoordinationService
+
+class TestLearningAssetClassification:
+    """Unit tests for learning-enabled asset classification."""
+    
+    @pytest.fixture
+    async def learning_service(self):
+        service = EnhancedAgentLearningService()
+        service.embedding_service = Mock()
+        service.embedding_service.embed_text = AsyncMock(return_value=[0.1] * 1536)
+        return service
+    
+    @pytest.fixture
+    def synthetic_assets(self):
+        return [
+            {"name": "web-prod-01", "application_name": "WebApp", "technology_stack": "nginx"},
+            {"name": "sql-db-02", "application_name": "Database", "technology_stack": "postgresql"},
+            {"name": "app-server-03", "application_name": "API", "technology_stack": "python"}
+        ]
+    
+    async def test_field_mapping_suggestion_accuracy(self, learning_service, synthetic_assets):
+        """Test field mapping suggestions with known patterns."""
+        # Setup: Create known pattern
+        await learning_service._store_known_pattern(
+            source_field="DR_TIER",
+            sample_values=["Critical", "High", "Medium", "Low"],
+            target_field="business_criticality",
+            confidence=0.9
+        )
+        
+        # Test: Get suggestions for similar field
+        suggestions = await learning_service.suggest_field_mapping_with_similarity(
+            "DISASTER_RECOVERY_LEVEL", 
+            ["Critical", "Important", "Normal"], 
+            "test-client-id"
+        )
+        
+        # Assert: Should suggest business_criticality with high confidence
+        assert len(suggestions) > 0
+        assert suggestions[0].target_field == "business_criticality"
+        assert suggestions[0].confidence > 0.8
+    
+    async def test_application_detection_patterns(self, learning_service, synthetic_assets):
+        """Test application detection using name patterns."""
+        coordinator = AgentCoordinationService()
+        
+        for asset in synthetic_assets:
+            result = await coordinator.coordinate_asset_analysis(asset, "test-client-id")
+            
+            # Verify application type detection
+            if "web" in asset["name"]:
+                assert result.application_type == "web_server"
+            elif "sql" in asset["name"] or "db" in asset["name"]:
+                assert result.application_type == "database"
+            elif "app" in asset["name"]:
+                assert result.application_type == "application"
+    
+    async def test_self_training_synthetic_generation(self, learning_service):
+        """Test synthetic data generation for self-training."""
+        synthetic_suggestions = await learning_service.self_trainer.generate_synthetic_suggestions(
+            "APPLICATION_TYPE", 
+            ["Web Server", "Database", "Application"]
+        )
+        
+        assert len(synthetic_suggestions) > 0
+        assert all(s.confidence > 0.5 for s in synthetic_suggestions)
+        assert any("application" in s.target_field.lower() for s in synthetic_suggestions)
+
+# tests/backend/agents/test_vector_similarity.py
+class TestVectorSimilarity:
+    """Test pgvector similarity search functionality."""
+    
+    @pytest.fixture
+    async def vector_test_data(self):
+        return {
+            "similar_fields": [
+                ("DR_TIER", "business_criticality", ["Critical", "High", "Low"]),
+                ("DISASTER_RECOVERY_LEVEL", "business_criticality", ["Critical", "Important", "Normal"]),
+                ("ENVIRONMENT_TYPE", "environment", ["Production", "Development", "Test"])
+            ]
+        }
+    
+    async def test_cosine_similarity_calculation(self, learning_service, vector_test_data):
+        """Test vector similarity calculation for field patterns."""
+        # Store first pattern
+        field1, target1, values1 = vector_test_data["similar_fields"][0]
+        await learning_service._store_pattern_with_embedding(field1, values1, target1)
+        
+        # Search for similar pattern
+        field2, target2, values2 = vector_test_data["similar_fields"][1]
+        similar_patterns = await learning_service._vector_similarity_search(
+            await learning_service.embedding_service.embed_text(field2),
+            await learning_service.embedding_service.embed_text(" ".join(values2)),
+            "test-client-id"
+        )
+        
+        # Should find the similar pattern
+        assert len(similar_patterns) > 0
+        assert similar_patterns[0].target_field == target1
+        assert similar_patterns[0].avg_similarity < 0.2  # Low distance = high similarity
+
+# tests/backend/integration/test_end_to_end_workflow.py
+class TestEndToEndWorkflow:
+    """Integration tests for complete discovery-to-classification workflow."""
+    
+    async def test_complete_asset_processing_workflow(self):
+        """Test full workflow from raw asset import to final classification."""
+        # Step 1: Import raw asset data
+        raw_asset = {
+            "name": "web-prod-server-01",
+            "hostname": "web01.company.com",
+            "ip_address": "10.1.1.100",
+            "DR_TIER": "Critical",
+            "Environment_Type": "Production",
+            "Application_Name": "Customer Portal"
+        }
+        
+        # Step 2: Field mapping with learning
+        field_mappings = await field_mapping_service.suggest_mappings(raw_asset)
+        assert "DR_TIER" in [m.source_field for m in field_mappings]
+        assert any(m.target_field == "business_criticality" for m in field_mappings)
+        
+        # Step 3: Asset classification
+        classification_result = await asset_classification_service.classify_asset(raw_asset)
+        assert classification_result.asset_type == "server"
+        assert classification_result.application_type == "web_server"
+        assert classification_result.confidence > 0.7
+        
+        # Step 4: Verify learning storage
+        stored_patterns = await learning_service.get_patterns_for_client("test-client-id")
+        assert len(stored_patterns) > 0
+    
+    async def test_user_feedback_integration(self):
+        """Test that user corrections improve future suggestions."""
+        # Initial classification (likely wrong)
+        asset = {"name": "unknown-server-99"}
+        initial_result = await asset_classification_service.classify_asset(asset)
+        initial_confidence = initial_result.confidence
+        
+        # User provides correction
+        correction = UserCorrectionEvent(
+            asset_data=asset,
+            agent_suggestion="server",
+            user_correction="database",
+            feedback="This is clearly a database server based on the port configuration"
+        )
+        await learning_service.learn_from_correction(correction)
+        
+        # Rerun classification
+        updated_result = await asset_classification_service.classify_asset(asset)
+        
+        # Should show improvement
+        assert updated_result.confidence > initial_confidence
+        # Should eventually suggest database type for similar names
+```
+
+### **Performance Testing**
+
+```python
+# tests/backend/performance/test_response_times.py
+import time
+import pytest
+from concurrent.futures import ThreadPoolExecutor
+
+class TestPerformanceRequirements:
+    """Test that system meets <500ms response time requirements."""
+    
+    async def test_field_mapping_suggestion_performance(self):
+        """Field mapping suggestions should complete in <500ms."""
+        start_time = time.time()
+        
+        suggestions = await learning_service.suggest_field_mapping_with_similarity(
+            "COMPLEX_FIELD_NAME_WITH_LOTS_OF_DATA",
+            ["Value1", "Value2", "Value3"] * 100,  # Large sample
+            "test-client-id"
+        )
+        
+        duration = time.time() - start_time
+        assert duration < 0.5  # 500ms requirement
+        assert len(suggestions) > 0
+    
+    async def test_concurrent_classification_performance(self):
+        """Test performance under concurrent classification requests."""
+        assets = [{"name": f"asset-{i}"} for i in range(50)]
+        
+        start_time = time.time()
+        
+        # Process assets concurrently
+        tasks = [asset_classification_service.classify_asset(asset) for asset in assets]
+        results = await asyncio.gather(*tasks)
+        
+        duration = time.time() - start_time
+        avg_time_per_asset = duration / len(assets)
+        
+        assert avg_time_per_asset < 0.5  # Each classification <500ms
+        assert all(r.confidence > 0 for r in results)
+```
+
+---
+
+## 🔄 **Frontend-Backend Synchronization**
+
+### **API Versioning Strategy**
+
+```python
+# backend/app/api/v2/endpoints/assets.py
+from fastapi import APIRouter, Depends
+from app.models.asset import Asset
+from app.schemas.asset_v2 import AssetResponse, AssetCreateRequest
+
+router = APIRouter(prefix="/v2/assets", tags=["assets-v2"])
+
+@router.get("/", response_model=List[AssetResponse])
+async def list_assets_v2(
+    page: int = 1,
+    page_size: int = 50,
+    asset_type: Optional[str] = None,
+    application_type: Optional[str] = None,
+    client_id: str = Depends(get_current_client_id)
+):
+    """List assets using unified assets model with enhanced filtering."""
+    assets = await asset_service.get_assets_with_classification(
+        client_id=client_id,
+        page=page,
+        page_size=page_size,
+        filters={"asset_type": asset_type, "application_type": application_type}
+    )
+    
+    return [AssetResponse.from_orm(asset) for asset in assets]
+
+@router.get("/summary", response_model=AssetSummaryResponse)
+async def get_asset_summary_v2(client_id: str = Depends(get_current_client_id)):
+    """Get comprehensive asset summary with application classification."""
+    summary = await asset_service.get_enhanced_asset_summary(client_id)
+    return AssetSummaryResponse(
+        total_assets=summary.total,
+        by_type=summary.asset_type_breakdown,
+        by_application=summary.application_type_breakdown,
+        classification_accuracy=summary.avg_confidence,
+        learning_patterns_applied=summary.patterns_used
+    )
+
+# Backward compatibility endpoint
+@router.get("/legacy", deprecated=True)
+async def list_assets_legacy():
+    """Legacy endpoint for backward compatibility (deprecated)."""
+    return {"message": "Please migrate to /v2/assets endpoint"}
+```
+
+### **Next.js Frontend Updates**
+
+```typescript
+// src/lib/api/assets-v2.ts
+export interface AssetV2 {
+  id: string;
+  name: string;
+  asset_type: string;
+  application_type?: string;
+  intelligent_asset_type?: string;
+  classification_confidence?: number;
+  learning_patterns_applied?: string[];
+  // ... other fields
+}
+
+export interface AssetSummaryV2 {
+  total_assets: number;
+  by_type: Record<string, number>;
+  by_application: Record<string, number>;
+  classification_accuracy: number;
+  learning_patterns_applied: number;
+}
+
+export class AssetsV2API {
+  private baseUrl = process.env.NEXT_PUBLIC_API_URL + '/v2/assets';
+  
+  async getAssets(params: {
+    page?: number;
+    page_size?: number;
+    asset_type?: string;
+    application_type?: string;
+  } = {}): Promise<{ assets: AssetV2[]; pagination: PaginationInfo }> {
+    const searchParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) searchParams.append(key, value.toString());
+    });
+    
+    const response = await fetch(`${this.baseUrl}?${searchParams}`);
+    if (!response.ok) throw new Error('Failed to fetch assets');
+    
+    return response.json();
+  }
+  
+  async getSummary(): Promise<AssetSummaryV2> {
+    const response = await fetch(`${this.baseUrl}/summary`);
+    if (!response.ok) throw new Error('Failed to fetch asset summary');
+    
+    return response.json();
+  }
+}
+
+// Usage in React components
+const { data: summary, isLoading } = useQuery({
+  queryKey: ['assets-summary-v2'],
+  queryFn: () => assetsV2API.getSummary(),
+  staleTime: 5 * 60 * 1000 // 5 minutes
+});
+```
 
 ---
 
@@ -594,34 +1336,71 @@ async def suggest_field_mappings(source_fields: List[str], sample_data: dict) ->
 
 ---
 
-## 📋 **Required Clarifications**
+## ✅ **Implementation Decisions Based on Feedback**
 
-Before proceeding with implementation, please clarify:
+Based on your excellent clarifications, the plan has been enhanced with these decisions:
 
-1. **Migration Timeline**: Is the 4-week timeline acceptable, or do you need faster results?
+### **1. pgvector Integration ✅**
+- **Decision**: Use pgvector for all learning pattern storage with vector embeddings
+- **Implementation**: `Vector(1536)` columns with cosine distance search (`<=>`)
+- **Performance**: ivfflat indexes for optimized similarity queries
 
-2. **Data Retention**: Should we keep `cmdb_assets` table as backup during transition, or can we remove it after migration?
+### **2. Immediate cmdb_assets Removal ✅**
+- **Decision**: Drop `cmdb_assets` table immediately after migration validation
+- **Rationale**: Test data only, no business value in retention
+- **Approach**: Enhanced migration with pre/post validation, no transition period
 
-3. **Learning Scope**: Should learning be:
-   - Global across all clients (shared intelligence)
-   - Client-specific (isolated learning per organization)
-   - Hybrid (shared patterns + client-specific overrides)
+### **3. Hybrid Learning Scope ✅**
+- **Decision**: Client-specific patterns prioritized, global patterns as fallback
+- **Implementation**: `scope` field in learning models ('client_specific'/'global')
+- **Strategy**: Early learning focuses on client patterns due to limited historical data
 
-4. **Agent Memory Storage**: Where should we store agent learning data:
-   - PostgreSQL database (current approach)
-   - Vector database (ChromaDB/Pinecone)
-   - File-based storage (JSON/pickle)
+### **4. Dynamic Confidence Thresholds ✅**
+- **Decision**: Replace static thresholds with learning-based dynamic adjustment
+- **Implementation**: `ConfidenceThreshold` table with client/operation-specific values
+- **Adaptation**: Thresholds adjust based on user correction frequency
 
-5. **Confidence Thresholds**: What confidence levels should trigger:
-   - Automatic application (no user confirmation needed)
-   - Suggested application (user confirmation recommended)
-   - No application (insufficient confidence)
+### **5. Self-Training and Reinforcement Learning ✅**
+- **Decision**: Implement `AgentSelfTrainer` for synthetic data generation
+- **Features**: K-means clustering, synthetic asset generation, reinforcement scoring
+- **Benefits**: Learns without user input, improves with limited historical data
 
-6. **Rollback Strategy**: If the unified model causes issues, what's the acceptable rollback timeline and process?
+### **6. 17-Agent Coordination ✅**
+- **Decision**: `AgentCoordinationService` with load balancing and task distribution
+- **Implementation**: Shared learning store, parallel execution, collaborative workflows
+- **Specialization**: Clear task boundaries with `allow_delegation=True`
 
-7. **Performance Requirements**: What are the acceptable response times for:
-   - Field mapping suggestions
-   - Asset classification
-   - Learning pattern queries
+### **7. Performance Optimization ✅**
+- **Target**: <500ms response times for all operations
+- **Implementation**: Async FastAPI, proper indexing, concurrent processing
+- **Testing**: Performance test suite with <500ms assertion requirements
 
-Please provide feedback on these clarifications so we can finalize the implementation approach and begin execution. 
+### **8. Comprehensive Testing Framework ✅**
+- **Unit Tests**: Each agent component with synthetic datasets
+- **Integration Tests**: End-to-end workflow testing
+- **Performance Tests**: Concurrent load testing with response time validation
+
+### **9. API Versioning ✅**
+- **Implementation**: `/v2/assets` endpoints for unified model
+- **Frontend**: Next.js migration with backward compatibility
+- **Schema**: Enhanced response models with classification and learning metadata
+
+### **10. Enhanced Data Validation ✅**
+- **Pre-migration**: Field compatibility and asset type validation
+- **Post-migration**: Count verification and data integrity checks
+- **Heuristic Population**: Rule-based initial classification during migration
+
+---
+
+## 🚀 **Ready for Implementation**
+
+All clarifications have been addressed and incorporated into the enhanced plan. Key improvements include:
+
+- **pgvector-powered similarity search** for intelligent pattern matching
+- **Self-training mechanisms** for learning without user input  
+- **Dynamic confidence management** adapting to user feedback patterns
+- **17-agent coordination** with specialized roles and shared learning
+- **Comprehensive testing strategy** ensuring reliability and performance
+- **Immediate cmdb_assets removal** with enhanced migration validation
+
+The plan is now production-ready with sophisticated learning capabilities that will transform your static platform into an intelligent, self-improving agentic system. 
