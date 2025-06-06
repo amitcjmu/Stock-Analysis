@@ -62,7 +62,8 @@
     "asset type",
     "workload type",
     "type",
-    "asset_type"
+    "asset_type",
+    "ci_type"
   ],
   "Environment": [
     "environment"
