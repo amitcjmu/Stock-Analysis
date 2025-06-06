@@ -32,16 +32,16 @@ export interface AppContext {
 
 const STORAGE_KEY = 'aiforce_context';
 const DEFAULT_DEMO_CLIENT: ClientContext = {
-  id: 'cc92315a-4bae-469d-9550-46d1c6e5ab68',
-  name: 'Pujyam Corp',
-  slug: 'pujyam-corp'
+  id: 'd838573d-f461-44e4-81b5-5af510ef83b7',
+  name: 'Acme Corporation',
+  slug: 'acme-corp'
 };
 
 const DEFAULT_DEMO_ENGAGEMENT: EngagementContext = {
-  id: '3d4e572d-46b1-4b3c-bfb4-99c50e9aa6ec',
-  name: 'Digital Transformation 2025',
-  slug: 'digital-transformation-2025',
-  client_account_id: 'cc92315a-4bae-469d-9550-46d1c6e5ab68'
+  id: 'd1a93e23-719d-4dad-8bbf-b66ab9de2b94',
+  name: 'Cloud Migration Initiative 2024',
+  slug: 'cloud-migration-initiative-2024',
+  client_account_id: 'd838573d-f461-44e4-81b5-5af510ef83b7'
 };
 
 export const useAppContext = () => {
@@ -97,7 +97,7 @@ export const useAppContext = () => {
       
       const clients = response.items?.map((client: any) => ({
         id: client.id,
-        name: client.account_name, // Map account_name to name
+        name: client.account_name, // API returns account_name
         slug: client.slug
       })) || [];
       
@@ -133,8 +133,8 @@ export const useAppContext = () => {
       
       const engagements = response.items?.map((engagement: any) => ({
         id: engagement.id,
-        name: engagement.name,
-        slug: engagement.slug,
+        name: engagement.engagement_name, // API returns engagement_name
+        slug: engagement.slug || engagement.engagement_name?.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''), // Generate slug if not provided
         client_account_id: engagement.client_account_id
       })) || [];
       

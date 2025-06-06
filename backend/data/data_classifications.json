@@ -1,23 +1,11 @@
 {
-  "data_row_0_analysis_20250604_030511": {
-    "id": "data_row_0_analysis_20250604_030511",
+  "data_row_0_analysis_20250606_002858": {
+    "id": "data_row_0_analysis_20250606_002858",
     "data_type": "asset_record",
     "content": {
-      "Server Name": "OG-GCP-SRV01",
-      "Operating System": "Windows Server 2019",
-      "CPU Cores": "8",
-      "Memory (GB)": "32",
-      "Disk Size (GB)": "1000",
-      "Network Interfaces": "1",
-      "IP Address": "192.168.1.40",
-      "CPU Utilization (%)": "68",
-      "Memory Utilization (%)": "62",
-      "GCP Readiness": "Ready",
-      "Recommended GCP Instance Type": "n2-standard-8",
-      "Estimated Monthly GCP Cost (USD)": "430.00",
-      "Workload Type": "Seismic Data Processing",
-      "Application Group": "Geoscience",
-      "Dependency Notes": "Depends on OG-GCP-SRV02 for data pipeline"
+      "hostname": "test-server-01",
+      "ip_address": "192.168.1.10",
+      "os": "Linux"
     },
     "classification": "good_data",
     "agent_analysis": {

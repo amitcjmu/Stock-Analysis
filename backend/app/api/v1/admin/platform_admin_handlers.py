@@ -28,7 +28,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 # Create router
-platform_admin_router = APIRouter(prefix="/platform-admin", tags=["platform-admin"])
+router = APIRouter(prefix="/platform-admin", tags=["platform-admin"])
 
 # Pydantic models for request/response
 class PurgeApprovalRequest(BaseModel):
@@ -81,7 +81,7 @@ async def verify_platform_admin(
         logger.error(f"Error verifying platform admin: {e}")
         raise HTTPException(status_code=500, detail="Access verification failed")
 
-@platform_admin_router.get("/pending-purge-items", response_model=PendingItemsResponse)
+@router.get("/pending-purge-items", response_model=PendingItemsResponse)
 async def get_pending_purge_items(
     db: AsyncSession = Depends(get_db),
     admin_profile: EnhancedUserProfile = Depends(verify_platform_admin)
@@ -134,7 +134,7 @@ async def get_pending_purge_items(
         logger.error(f"Error getting pending purge items: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch pending items")
 
-@platform_admin_router.post("/approve-purge", response_model=PurgeApprovalResponse)
+@router.post("/approve-purge", response_model=PurgeApprovalResponse)
 async def approve_purge(
     request: PurgeApprovalRequest,
     db: AsyncSession = Depends(get_db),
@@ -180,7 +180,7 @@ async def approve_purge(
         logger.error(f"Error approving purge: {e}")
         raise HTTPException(status_code=500, detail="Failed to approve purge")
 
-@platform_admin_router.post("/reject-purge", response_model=PurgeApprovalResponse)
+@router.post("/reject-purge", response_model=PurgeApprovalResponse)
 async def reject_purge(
     request: PurgeApprovalRequest,
     db: AsyncSession = Depends(get_db),
@@ -233,7 +233,7 @@ async def reject_purge(
         logger.error(f"Error rejecting purge: {e}")
         raise HTTPException(status_code=500, detail="Failed to reject purge")
 
-@platform_admin_router.get("/stats")
+@router.get("/stats")
 async def get_platform_admin_stats(
     db: AsyncSession = Depends(get_db),
     admin_profile: EnhancedUserProfile = Depends(verify_platform_admin)
@@ -285,7 +285,7 @@ async def get_platform_admin_stats(
         logger.error(f"Error getting platform admin stats: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch statistics")
 
-@platform_admin_router.get("/audit-log")
+@router.get("/audit-log")
 async def get_audit_log(
     limit: int = 50,
     offset: int = 0,

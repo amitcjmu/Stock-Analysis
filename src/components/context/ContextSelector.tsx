@@ -108,6 +108,7 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
     const selectedClient = clients.find(c => c.id === clientId);
     if (selectedClient) {
       setClient(selectedClient);
+      // Engagements will be loaded automatically by useEffect
       toast({
         title: "Client Selected",
         description: `Switched to ${selectedClient.name}`
@@ -120,6 +121,7 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
     const selectedEngagement = engagements.find(e => e.id === engagementId);
     if (selectedEngagement) {
       setEngagement(selectedEngagement);
+      // Sessions will be loaded automatically by useEffect
       toast({
         title: "Engagement Selected",
         description: `Switched to ${selectedEngagement.name}`
@@ -262,7 +264,7 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
                     <div className="flex items-center">
                       <Building2 className="h-4 w-4 mr-2" />
                       {client.name}
-                      {client.id === 'cc92315a-4bae-469d-9550-46d1c6e5ab68' && (
+                      {client.id === 'd838573d-f461-44e4-81b5-5af510ef83b7' && (
                         <Badge variant="secondary" className="ml-2 text-xs">Demo</Badge>
                       )}
                     </div>

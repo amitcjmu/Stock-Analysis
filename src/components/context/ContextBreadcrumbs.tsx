@@ -109,7 +109,7 @@ const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
             >
               {getIcon(breadcrumb.type)}
               <span>{truncateText(breadcrumb.label, maxLength)}</span>
-              {breadcrumb.type === 'client' && context.client?.id === 'cc92315a-4bae-469d-9550-46d1c6e5ab68' && (
+              {breadcrumb.type === 'client' && context.client?.id === 'd838573d-f461-44e4-81b5-5af510ef83b7' && (
                 <Badge variant="secondary" className="ml-1 text-xs px-1 py-0">Demo</Badge>
               )}
             </Button>
@@ -155,12 +155,38 @@ const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
 
       {/* Context Selector Dropdown */}
       {showContextSelector && showSelector && (
-        <div className="absolute top-8 left-0 z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-4 min-w-96">
-          <ContextSelector 
-            compact={false} 
-            onSelectionChange={() => setShowSelector(false)}
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 z-40 bg-black bg-opacity-25" 
+            onClick={() => setShowSelector(false)}
           />
-        </div>
+          {/* Modal */}
+          <div className="absolute top-8 left-0 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-96 max-w-lg">
+            <div className="p-4 border-b flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Switch Context</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowSelector(false)}
+                className="h-6 w-6 p-0"
+              >
+                ×
+              </Button>
+            </div>
+            <div className="p-4">
+              <ContextSelector 
+                compact={false} 
+                onSelectionChange={() => {
+                  // Only close if we have a complete context (client + engagement)
+                  if (context.client && context.engagement) {
+                    setShowSelector(false);
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

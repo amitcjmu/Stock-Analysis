@@ -1713,5 +1713,58 @@
     "answered_at": null,
     "user_response": null,
     "is_resolved": false
+  },
+  "1dfe4d71-417c-4bab-9ad6-15648d8103c6": {
+    "id": "1dfe4d71-417c-4bab-9ad6-15648d8103c6",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "field_mapping",
+    "page": "attribute-mapping",
+    "title": "Missing Critical Fields",
+    "question": "This data appears to be missing asset_name, server_name. Are these available in other columns?",
+    "context": {
+      "missing_fields": [
+        "asset_name",
+        "server_name"
+      ],
+      "available_columns": [
+        "hostname",
+        "os",
+        "ip_address"
+      ],
+      "suggestion": "field_mapping_needed"
+    },
+    "options": null,
+    "confidence": "high",
+    "priority": "high",
+    "created_at": "2025-06-06T00:22:27.080903",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "0ffaf2d0-de9c-44ca-8699-2486fbbe0d53": {
+    "id": "0ffaf2d0-de9c-44ca-8699-2486fbbe0d53",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "business_context",
+    "page": "attribute-mapping",
+    "title": "Asset Ownership Information",
+    "question": "No asset ownership information found. Is this available elsewhere or should migration proceed without owner details?",
+    "context": {
+      "missing_info": "ownership",
+      "migration_impact": "medium",
+      "suggestion": "may_need_additional_data"
+    },
+    "options": [
+      "Available in separate file",
+      "Not available",
+      "Will provide later"
+    ],
+    "confidence": "medium",
+    "priority": "low",
+    "created_at": "2025-06-06T00:22:27.084645",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
   }
 }
