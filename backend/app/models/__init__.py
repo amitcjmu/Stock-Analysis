@@ -65,6 +65,21 @@ except ImportError:
     LLMModelPricing = None
     LLMUsageSummary = None
 
+# Learning Pattern models (conditional import)
+try:
+    from .learning_patterns import (
+        MappingLearningPattern, AssetClassificationPattern, ConfidenceThreshold,
+        UserFeedbackEvent, LearningStatistics
+    )
+    LEARNING_PATTERNS_AVAILABLE = True
+except ImportError:
+    LEARNING_PATTERNS_AVAILABLE = False
+    MappingLearningPattern = None
+    AssetClassificationPattern = None
+    ConfidenceThreshold = None
+    UserFeedbackEvent = None
+    LearningStatistics = None
+
 __all__ = [
     # Migration models
     "Migration",
@@ -154,4 +169,14 @@ if LLM_USAGE_AVAILABLE:
         "LLMUsageLog",
         "LLMModelPricing", 
         "LLMUsageSummary"
+    ])
+
+# Add Learning Pattern models only if available
+if LEARNING_PATTERNS_AVAILABLE:
+    __all__.extend([
+        "MappingLearningPattern",
+        "AssetClassificationPattern",
+        "ConfidenceThreshold",
+        "UserFeedbackEvent",
+        "LearningStatistics"
     ]) 

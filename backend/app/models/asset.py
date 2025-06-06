@@ -102,6 +102,7 @@ class Asset(Base):
     # Environment and location
     environment = Column(String(50), nullable=True)
     datacenter = Column(String(100), nullable=True)
+    location = Column(String(100), nullable=True)  # Added for compatibility
     rack_location = Column(String(50), nullable=True)
     availability_zone = Column(String(50), nullable=True)
     
@@ -155,7 +156,8 @@ class Asset(Base):
     
     # Multi-tenant support
     client_account_id = Column(UUID(as_uuid=True), nullable=True)
-    engagement_id = Column(UUID(as_uuid=True), nullable=True)
+    engagement_id = Column(UUID(as_uuid=True), ForeignKey('engagements.id'), nullable=True)
+    session_id = Column(UUID(as_uuid=True), nullable=True)  # Added for compatibility
     
     # Workflow status fields (added by migration)
     discovery_status = Column(String(50), server_default='discovered', nullable=True)
@@ -174,10 +176,12 @@ class Asset(Base):
     technical_owner = Column(String(100), nullable=True)
     department = Column(String(100), nullable=True)
     application_id = Column(String(100), nullable=True)
+    application_name = Column(String(255), nullable=True)  # Added for compatibility
     application_version = Column(String(50), nullable=True)
     programming_language = Column(String(100), nullable=True)
     framework = Column(String(100), nullable=True)
     database_type = Column(String(100), nullable=True)
+    technology_stack = Column(String(255), nullable=True)  # Added for compatibility
     cloud_readiness_score = Column(Float, nullable=True)
     modernization_complexity = Column(String(20), nullable=True)
     tech_debt_score = Column(Float, nullable=True)
@@ -201,6 +205,7 @@ class Asset(Base):
     # Relationships
     migration = relationship("Migration", back_populates="assets")
     workflow_progress = relationship("WorkflowProgress", back_populates="asset")
+    engagement = relationship("Engagement", back_populates="assets")
     
     def __repr__(self):
         return f"<Asset(id={self.id}, name='{self.name}', type='{self.asset_type}')>"
@@ -209,6 +214,11 @@ class Asset(Base):
     def is_migrated(self) -> bool:
         """Check if asset has been successfully migrated."""
         return self.status == AssetStatus.MIGRATED
+    
+    @property
+    def criticality(self) -> str:
+        """Alias for business_criticality for backward compatibility."""
+        return self.business_criticality
     
     @property
     def has_dependencies(self) -> bool:

@@ -166,7 +166,7 @@ class CMDBAsset(Base):
     
     # Relationships
     client_account = relationship("ClientAccount")
-    engagement = relationship("Engagement", back_populates="cmdb_assets")
+    # engagement = relationship("Engagement", back_populates="cmdb_assets")  # Disabled for unified model
     
     def __repr__(self):
         return f"<CMDBAsset(id={self.id}, name='{self.name}', type='{self.asset_type}', is_mock={self.is_mock})>"
