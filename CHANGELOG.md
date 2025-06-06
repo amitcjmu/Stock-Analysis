@@ -33,6 +33,12 @@ This release addresses critical missing database columns preventing the producti
 - **Comprehensive Coverage**: Handles both engagements and client_accounts table schema mismatches
 - **Rollback Support**: Proper downgrade migrations to safely remove added columns if needed
 
+#### **Emergency Fix Scripts**
+- **Direct SQL Script**: Created `fix_railway_schema.sql` for manual database execution
+- **Python Fix Script**: Created `force_railway_migration.py` for programmatic schema fix
+- **Railway Compatible**: Both scripts designed to work directly on Railway production environment
+- **Verification Built-in**: Scripts include validation queries to confirm successful schema fix
+
 #### **Production-Safe Migration Pattern**
 ```sql
 -- Check if column exists before adding
