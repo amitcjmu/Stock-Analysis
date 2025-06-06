@@ -28,7 +28,41 @@ from .data_import import (
     DataImport, RawImportRecord, ImportProcessingStep, ImportFieldMapping, 
     DataQualityIssue, ImportStatus, ImportType
 )
+from .data_import_session import DataImportSession
 from .feedback import Feedback, FeedbackSummary
+
+# RBAC models (conditional import)
+try:
+    from .rbac import UserProfile, UserRole, ClientAccess, EngagementAccess, AccessAuditLog
+    RBAC_AVAILABLE = True
+except ImportError:
+    RBAC_AVAILABLE = False
+    UserProfile = None
+    UserRole = None
+    ClientAccess = None
+    EngagementAccess = None
+    AccessAuditLog = None
+
+# Enhanced RBAC models (conditional import)
+try:
+    from .rbac_enhanced import EnhancedUserProfile, RolePermissions, SoftDeletedItems, EnhancedAccessAuditLog
+    ENHANCED_RBAC_AVAILABLE = True
+except ImportError:
+    ENHANCED_RBAC_AVAILABLE = False
+    EnhancedUserProfile = None
+    RolePermissions = None
+    SoftDeletedItems = None
+    EnhancedAccessAuditLog = None
+
+# LLM Usage tracking models (conditional import)
+try:
+    from .llm_usage import LLMUsageLog, LLMModelPricing, LLMUsageSummary
+    LLM_USAGE_AVAILABLE = True
+except ImportError:
+    LLM_USAGE_AVAILABLE = False
+    LLMUsageLog = None
+    LLMModelPricing = None
+    LLMUsageSummary = None
 
 __all__ = [
     # Migration models
@@ -80,6 +114,7 @@ __all__ = [
     "DataQualityIssue",
     "ImportStatus",
     "ImportType",
+    "DataImportSession",
     
     # Feedback models
     "Feedback",
@@ -93,4 +128,31 @@ if CLIENT_ACCOUNT_AVAILABLE:
         "Engagement", 
         "User",
         "UserAccountAssociation"
+    ])
+
+# Add RBAC models only if available
+if RBAC_AVAILABLE:
+    __all__.extend([
+        "UserProfile",
+        "UserRole",
+        "ClientAccess", 
+        "EngagementAccess",
+        "AccessAuditLog"
+    ])
+
+# Add Enhanced RBAC models only if available
+if ENHANCED_RBAC_AVAILABLE:
+    __all__.extend([
+        "EnhancedUserProfile",
+        "RolePermissions",
+        "SoftDeletedItems",
+        "EnhancedAccessAuditLog"
+    ])
+
+# Add LLM Usage models only if available
+if LLM_USAGE_AVAILABLE:
+    __all__.extend([
+        "LLMUsageLog",
+        "LLMModelPricing", 
+        "LLMUsageSummary"
     ]) 

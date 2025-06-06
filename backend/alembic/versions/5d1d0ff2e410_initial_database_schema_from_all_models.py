@@ -1,8 +1,8 @@
-"""Add data import tables for Discovery phase persistence
+"""Initial database schema from all models
 
-Revision ID: f802528ca6c1
-Revises: e5988c596062
-Create Date: 2025-05-30 23:51:56.234127
+Revision ID: 5d1d0ff2e410
+Revises: 
+Create Date: 2025-06-06 01:33:01.730315
 
 """
 from alembic import op
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'f802528ca6c1'
-down_revision = 'e5988c596062'
+revision = '5d1d0ff2e410'
+down_revision = None
 branch_labels = None
 depends_on = None
 

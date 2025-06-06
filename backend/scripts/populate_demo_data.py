@@ -1,0 +1,317 @@
+#!/usr/bin/env python3
+"""
+Script to populate demo data for the AI Force Migration Platform.
+This script uses the backend API to create demo data, ensuring consistency with application logic.
+"""
+
+import asyncio
+import sys
+import os
+sys.path.append('/app')
+
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.database import AsyncSessionLocal
+from app.models.client_account import User, ClientAccount, Engagement
+from app.models.data_import_session import DataImportSession
+from app.models.rbac import UserProfile
+from datetime import datetime
+import uuid
+
+async def create_demo_users(db: AsyncSession):
+    """Create demo users."""
+    print("Creating demo users...")
+    
+    # Admin user
+    admin_user = User(
+        id=uuid.UUID('eef6ea50-6550-4f14-be2c-081d4eb23038'),
+        email='admin@aiforce.com',
+        password_hash='$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhZ8/iGda9iaHeqM1a3huS',
+        first_name='Admin',
+        last_name='User',
+        is_active=True,
+        is_mock=False,
+        created_at=datetime.utcnow()
+    )
+    
+    # Demo user
+    demo_user = User(
+        id=uuid.UUID('550e8400-e29b-41d4-a716-446655440000'),
+        email='demo@aiforce.com',
+        password_hash='$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhZ8/iGda9iaHeqM1a3huS',
+        first_name='Demo',
+        last_name='User',
+        is_active=True,
+        is_mock=True,
+        created_at=datetime.utcnow()
+    )
+    
+    # Check if users already exist
+    from sqlalchemy import select
+    existing_admin = await db.execute(select(User).where(User.id == admin_user.id))
+    if not existing_admin.scalar_one_or_none():
+        db.add(admin_user)
+        print("✓ Created admin user")
+    else:
+        print("✓ Admin user already exists")
+    
+    existing_demo = await db.execute(select(User).where(User.id == demo_user.id))
+    if not existing_demo.scalar_one_or_none():
+        db.add(demo_user)
+        print("✓ Created demo user")
+    else:
+        print("✓ Demo user already exists")
+    
+    await db.commit()
+    return admin_user, demo_user
+
+async def create_demo_clients(db: AsyncSession):
+    """Create demo client accounts."""
+    print("Creating demo client accounts...")
+    
+    clients = [
+        {
+            'id': uuid.UUID('d838573d-f461-44e4-81b5-5af510ef83b7'),
+            'name': 'Acme Corporation',
+            'slug': 'acme-corp',
+            'description': 'Leading technology company specializing in cloud solutions',
+            'industry': 'Technology',
+            'company_size': 'Enterprise',
+            'headquarters_location': 'San Francisco, CA',
+            'is_mock': False
+        },
+        {
+            'id': uuid.UUID('73dee5f1-6a01-43e3-b1b8-dbe6c66f2990'),
+            'name': 'Marathon Petroleum',
+            'slug': 'marathon-petroleum',
+            'description': 'Major energy company with extensive infrastructure',
+            'industry': 'Energy',
+            'company_size': 'Enterprise',
+            'headquarters_location': 'Findlay, OH',
+            'is_mock': False
+        },
+        {
+            'id': uuid.UUID('bafd5b46-aaaf-4c95-8142-573699d93171'),
+            'name': 'Complete Test Client',
+            'slug': 'complete-test-client',
+            'description': 'Demo client for testing platform features',
+            'industry': 'Technology',
+            'company_size': 'Mid-Market',
+            'headquarters_location': 'Austin, TX',
+            'is_mock': True
+        }
+    ]
+    
+    from sqlalchemy import select
+    created_clients = []
+    
+    for client_data in clients:
+        existing = await db.execute(select(ClientAccount).where(ClientAccount.id == client_data['id']))
+        existing_client = existing.scalar_one_or_none()
+        if not existing_client:
+            client = ClientAccount(
+                id=client_data['id'],
+                name=client_data['name'],
+                slug=client_data['slug'],
+                description=client_data['description'],
+                industry=client_data['industry'],
+                company_size=client_data['company_size'],
+                headquarters_location=client_data['headquarters_location'],
+                is_mock=client_data['is_mock'],
+                is_active=True,
+                created_at=datetime.utcnow()
+            )
+            db.add(client)
+            created_clients.append(client)
+            print(f"✓ Created client: {client_data['name']}")
+        else:
+            print(f"✓ Client already exists: {client_data['name']}")
+            # Use existing client for return
+            created_clients.append(existing_client)
+    
+    await db.commit()
+    return created_clients
+
+async def create_demo_engagements(db: AsyncSession, clients, admin_user):
+    """Create demo engagements."""
+    print("Creating demo engagements...")
+    
+    engagements_data = [
+        {
+            'id': uuid.UUID('d1a93e23-719d-4dad-8bbf-b66ab9de2b94'),
+            'name': 'Cloud Migration Initiative 2024',
+            'slug': 'cloud-migration-initiative-2024',
+            'description': 'Comprehensive cloud migration project for legacy infrastructure',
+            'client_account_id': uuid.UUID('d838573d-f461-44e4-81b5-5af510ef83b7')
+        },
+        {
+            'id': uuid.UUID('90dd2829-c750-4230-bf70-1728ca370283'),
+            'name': 'Test Fixed Engagement',
+            'slug': 'test-fixed-engagement',
+            'description': 'Fixed engagement for testing purposes',
+            'client_account_id': uuid.UUID('d838573d-f461-44e4-81b5-5af510ef83b7')
+        },
+        {
+            'id': uuid.UUID('6e9c8133-4169-4b79-b052-106dc93d0208'),
+            'name': 'Azure Transformation',
+            'slug': 'azure-transformation',
+            'description': 'Migration to Microsoft Azure cloud platform',
+            'client_account_id': uuid.UUID('bafd5b46-aaaf-4c95-8142-573699d93171')
+        },
+        {
+            'id': uuid.UUID('baf640df-433c-4bcd-8c8f-7b01c12e9005'),
+            'name': 'Debug Test Engagement',
+            'slug': 'debug-test-engagement',
+            'description': 'Engagement for debugging and testing',
+            'client_account_id': uuid.UUID('73dee5f1-6a01-43e3-b1b8-dbe6c66f2990')
+        },
+        {
+            'id': uuid.UUID('803fbeb6-caaf-4a17-8526-b1a5baccb9bb'),
+            'name': 'Test Engagement 2',
+            'slug': 'test-engagement-2',
+            'description': 'Second test engagement for Marathon Petroleum',
+            'client_account_id': uuid.UUID('73dee5f1-6a01-43e3-b1b8-dbe6c66f2990')
+        }
+    ]
+    
+    from sqlalchemy import select
+    created_engagements = []
+    
+    for eng_data in engagements_data:
+        existing = await db.execute(select(Engagement).where(Engagement.id == eng_data['id']))
+        existing_engagement = existing.scalar_one_or_none()
+        if not existing_engagement:
+            engagement = Engagement(
+                id=eng_data['id'],
+                name=eng_data['name'],
+                slug=eng_data['slug'],
+                description=eng_data['description'],
+                client_account_id=eng_data['client_account_id'],
+                engagement_type='migration',
+                status='active',
+                start_date=datetime.utcnow(),
+                created_by=admin_user.id,
+                is_active=True,
+                is_mock=False,  # Engagements inherit mock status from client
+                created_at=datetime.utcnow()
+            )
+            db.add(engagement)
+            created_engagements.append(engagement)
+            print(f"✓ Created engagement: {eng_data['name']}")
+        else:
+            print(f"✓ Engagement already exists: {eng_data['name']}")
+            created_engagements.append(existing_engagement)
+    
+    await db.commit()
+    return created_engagements
+
+async def create_demo_sessions(db: AsyncSession, engagements, admin_user):
+    """Create demo data import sessions."""
+    print("Creating demo data import sessions...")
+    
+    sessions_data = [
+        {
+            'id': uuid.UUID('a1b2c3d4-e5f6-7890-abcd-ef1234567890'),
+            'session_name': 'Demo Session 1',
+            'client_account_id': uuid.UUID('d838573d-f461-44e4-81b5-5af510ef83b7'),
+            'engagement_id': uuid.UUID('d1a93e23-719d-4dad-8bbf-b66ab9de2b94')
+        },
+        {
+            'id': uuid.UUID('b2c3d4e5-f6a7-8901-bcde-f23456789012'),
+            'session_name': 'Test Session',
+            'client_account_id': uuid.UUID('d838573d-f461-44e4-81b5-5af510ef83b7'),
+            'engagement_id': uuid.UUID('90dd2829-c750-4230-bf70-1728ca370283')
+        }
+    ]
+    
+    from sqlalchemy import select
+    
+    for session_data in sessions_data:
+        existing = await db.execute(select(DataImportSession).where(DataImportSession.id == session_data['id']))
+        if not existing.scalar_one_or_none():
+            session = DataImportSession(
+                id=session_data['id'],
+                session_name=session_data['session_name'],
+                client_account_id=session_data['client_account_id'],
+                engagement_id=session_data['engagement_id'],
+                created_by=admin_user.id,
+                status='active',
+                created_at=datetime.utcnow()
+            )
+            db.add(session)
+            print(f"✓ Created session: {session_data['session_name']}")
+        else:
+            print(f"✓ Session already exists: {session_data['session_name']}")
+    
+    await db.commit()
+
+async def create_user_profiles(db: AsyncSession, admin_user, demo_user):
+    """Create user profiles for RBAC."""
+    print("Creating user profiles...")
+    
+    from sqlalchemy import select
+    
+    # Admin profile
+    existing_admin_profile = await db.execute(select(UserProfile).where(UserProfile.user_id == admin_user.id))
+    if not existing_admin_profile.scalar_one_or_none():
+        admin_profile = UserProfile(
+            user_id=admin_user.id,
+            status='active',
+            requested_access_level='super_admin',
+            registration_reason='Platform administrator',
+            organization='AI Force',
+            role_description='Platform Administrator',
+            approved_at=datetime.utcnow(),
+            approved_by=admin_user.id,
+            created_at=datetime.utcnow()
+        )
+        db.add(admin_profile)
+        print("✓ Created admin user profile")
+    else:
+        print("✓ Admin user profile already exists")
+    
+    # Demo user profile
+    existing_demo_profile = await db.execute(select(UserProfile).where(UserProfile.user_id == demo_user.id))
+    if not existing_demo_profile.scalar_one_or_none():
+        demo_profile = UserProfile(
+            user_id=demo_user.id,
+            status='active',
+            requested_access_level='admin',
+            registration_reason='Demo user for testing',
+            organization='Acme Corporation',
+            role_description='Client Administrator',
+            approved_at=datetime.utcnow(),
+            approved_by=admin_user.id,
+            created_at=datetime.utcnow()
+        )
+        db.add(demo_profile)
+        print("✓ Created demo user profile")
+    else:
+        print("✓ Demo user profile already exists")
+    
+    await db.commit()
+
+async def main():
+    """Main function to populate all demo data."""
+    print("🚀 Starting demo data population...")
+    
+    async with AsyncSessionLocal() as db:
+        try:
+            # Create demo data in order
+            admin_user, demo_user = await create_demo_users(db)
+            clients = await create_demo_clients(db)
+            engagements = await create_demo_engagements(db, clients, admin_user)
+            await create_demo_sessions(db, engagements, admin_user)
+            await create_user_profiles(db, admin_user, demo_user)
+            
+            print("\n✅ Demo data population completed successfully!")
+            print("\nDemo credentials:")
+            print("  Admin: admin@aiforce.com / password")
+            print("  Demo:  demo@aiforce.com / password")
+            
+        except Exception as e:
+            print(f"\n❌ Error populating demo data: {e}")
+            await db.rollback()
+            raise
+
+if __name__ == "__main__":
+    asyncio.run(main()) 
