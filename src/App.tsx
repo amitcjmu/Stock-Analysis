@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ChatFeedbackProvider } from "./contexts/ChatFeedbackContext";
 import { AuthProvider } from "./contexts/AuthContext";
+import { AppContextProvider } from "./hooks/useContext";
 import GlobalChatFeedback from "./components/GlobalChatFeedback";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
@@ -81,8 +82,9 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <ChatFeedbackProvider>
-            <Routes>
+          <AppContextProvider>
+            <ChatFeedbackProvider>
+              <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
               <Route path="/discovery" element={<Discovery />} />
@@ -154,9 +156,10 @@ const App = () => (
               <Route path="/admin/profile" element={<AdminRoute><AdminLayout><UserProfile /></AdminLayout></AdminRoute>} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
-            </Routes>
-            <GlobalChatFeedback />
-          </ChatFeedbackProvider>
+              </Routes>
+              <GlobalChatFeedback />
+            </ChatFeedbackProvider>
+          </AppContextProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

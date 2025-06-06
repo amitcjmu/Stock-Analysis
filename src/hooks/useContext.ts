@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { apiCall, API_CONFIG } from '../config/api';
 
@@ -18,7 +18,7 @@ export interface EngagementContext {
 export interface SessionContext {
   id: string;
   session_name: string;
-  session_display_name?: string;
+  session_display_name: string;
   engagement_id: string;
   status: string;
 }
@@ -28,6 +28,24 @@ export interface AppContext {
   engagement: EngagementContext | null;
   session: SessionContext | null;
   viewMode: 'session_view' | 'engagement_view';
+}
+
+interface AppContextType {
+  context: AppContext;
+  isLoading: boolean;
+  error: string | null;
+  fetchClients: () => Promise<ClientContext[]>;
+  fetchEngagements: (clientId: string) => Promise<EngagementContext[]>;
+  fetchSessions: (engagementId: string) => Promise<SessionContext[]>;
+  setClient: (client: ClientContext | null) => void;
+  setEngagement: (engagement: EngagementContext | null) => void;
+  setSession: (session: SessionContext | null) => void;
+  setViewMode: (viewMode: 'session_view' | 'engagement_view') => void;
+  updateContext: (updates: Partial<AppContext>) => void;
+  getContextHeaders: () => Record<string, string>;
+  getBreadcrumbs: () => Array<{ label: string; type: string; active: boolean }>;
+  resetToDemo: () => void;
+  clearError: () => void;
 }
 
 const STORAGE_KEY = 'aiforce_context';
@@ -44,7 +62,11 @@ const DEFAULT_DEMO_ENGAGEMENT: EngagementContext = {
   client_account_id: 'd838573d-f461-44e4-81b5-5af510ef83b7'
 };
 
-export const useAppContext = () => {
+// Create the context
+const AppContextContext = createContext<AppContextType | undefined>(undefined);
+
+// Context Provider
+export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const [context, setContext] = useState<AppContext>({
     client: DEFAULT_DEMO_CLIENT,
@@ -138,20 +160,11 @@ export const useAppContext = () => {
         client_account_id: engagement.client_account_id
       })) || [];
       
-      // For demo client, ensure demo engagement is included
-      if (clientId === DEFAULT_DEMO_CLIENT.id) {
-        const hasDemo = engagements.some((e: EngagementContext) => e.id === DEFAULT_DEMO_ENGAGEMENT.id);
-        if (!hasDemo) {
-          engagements.unshift(DEFAULT_DEMO_ENGAGEMENT);
-        }
-      }
-      
       return engagements;
     } catch (err) {
       console.warn('Failed to fetch engagements:', err);
       setError('Failed to load engagements');
-      // Return demo engagement for demo client
-      return clientId === DEFAULT_DEMO_CLIENT.id ? [DEFAULT_DEMO_ENGAGEMENT] : [];
+      return [];
     } finally {
       setIsLoading(false);
     }
@@ -289,7 +302,10 @@ export const useAppContext = () => {
     });
   };
 
-  return {
+  // Clear error
+  const clearError = () => setError(null);
+
+  const value: AppContextType = {
     context,
     isLoading,
     error,
@@ -304,6 +320,21 @@ export const useAppContext = () => {
     getContextHeaders,
     getBreadcrumbs,
     resetToDemo,
-    clearError: () => setError(null)
+    clearError
   };
+
+  return (
+    <AppContextContext.Provider value={value}>
+      {children}
+    </AppContextContext.Provider>
+  );
+};
+
+// Hook to use the context
+export const useAppContext = (): AppContextType => {
+  const context = useContext(AppContextContext);
+  if (context === undefined) {
+    throw new Error('useAppContext must be used within an AppContextProvider');
+  }
+  return context;
 }; 
