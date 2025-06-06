@@ -2,9 +2,11 @@
 
 ## 📋 **Overview**
 
-This document provides granular, hour-by-hour tasks for implementing the data model consolidation plan. Each task is designed to be completed by a junior developer without requiring deep architectural decisions.
+This document provides granular, hour-by-hour tasks for implementing the data model consolidation plan detailed in `/docs/DATA_MODEL_CONSOLIDATION_PLAN.md`. Each task is designed to be completed by a junior developer without requiring deep architectural decisions.
 
 **Total Estimated Time**: 80 hours (4 weeks × 20 hours/week)
+
+**Reference Document**: For architectural context and detailed technical specifications, see `/docs/DATA_MODEL_CONSOLIDATION_PLAN.md`
 
 ---
 
@@ -24,250 +26,236 @@ This document provides granular, hour-by-hour tasks for implementing the data mo
 
 **Deliverable**: Working development environment with new feature branch
 
-#### **Task 1.2: Database Schema Analysis (1 hour)**
-**Objective**: Document current state of both asset tables
+#### **Task 1.2: Code Reference Analysis (1 hour)**
+**Objective**: Identify all cmdb_assets references in codebase
 
 **Steps**:
-1. Copy schema analysis script: `cp debug_schema_analysis.py analyze_current_state.py`
-2. Run analysis: `docker exec -it migration_backend python /app/analyze_current_state.py`
-3. Document findings in `docs/CURRENT_STATE_ANALYSIS.md`:
-   - Row counts for both tables
-   - Column differences between assets and cmdb_assets
-   - Sample data from cmdb_assets (first 3 records)
-   - Foreign key relationships affected
+1. Search for all cmdb_assets references: `grep -r "cmdb_asset" backend/ src/ --include="*.py" --include="*.ts" --include="*.tsx" > docs/cmdb_assets_references.txt`
+2. Identify key areas to update:
+   - Backend models: `backend/app/models/cmdb_asset.py`
+   - API endpoints: `backend/app/api/v1/discovery/asset_management.py`
+   - Services: `backend/app/services/crewai_flow_*.py`
+   - Frontend components: `src/pages/discovery/CMDBImport.tsx`
+   - Data import: `backend/app/api/v1/endpoints/data_import.py`
+3. Document in `docs/CODE_MIGRATION_CHECKLIST.md` all files requiring updates
+4. Note: Test data in cmdb_assets can be dropped (no backup needed)
 
-**Deliverable**: `docs/CURRENT_STATE_ANALYSIS.md` with complete current state documentation
+**Deliverable**: `docs/CODE_MIGRATION_CHECKLIST.md` with complete list of files to update
 
-#### **Task 1.3: Migration Script Planning (1 hour)**
-**Objective**: Create detailed migration plan with field mappings
-
-**Steps**:
-1. Create file: `backend/scripts/migration_planning.py`
-2. List all cmdb_assets columns with data types
-3. Map each cmdb_assets field to corresponding assets field
-4. Identify fields needing data transformation
-5. Document heuristic rules for new fields (application_type, intelligent_asset_type)
-6. Create validation checklist for migration success
-
-**Deliverable**: `backend/scripts/migration_planning.py` with complete field mapping documentation
-
-#### **Task 1.4: Backup Strategy Implementation (1 hour)**
-**Objective**: Ensure data safety before migration
+#### **Task 1.3: Data Model Enhancement Plan (1 hour)**
+**Objective**: Plan the unified asset model structure
 
 **Steps**:
-1. Create backup script: `backend/scripts/backup_cmdb_data.sql`
-2. Write SQL to export cmdb_assets data to JSON
-3. Test backup script: `docker exec -it migration_backend psql postgresql://postgres:password@migration_postgres:5432/migration_db -f /app/scripts/backup_cmdb_data.sql`
-4. Verify backup file created and contains all 56 records
-5. Store backup in `data/migration_backup_YYYYMMDD.json`
+1. Create file: `backend/scripts/unified_model_planning.py`
+2. Compare `assets` model vs `cmdb_assets` model field by field
+3. Document which cmdb_assets fields map to existing assets fields
+4. Identify new fields to add to assets model (if any needed)
+5. Plan database migration steps (drop cmdb_assets table, update foreign keys)
+6. No backup needed - test data will be regenerated
 
-**Deliverable**: Working backup script and verified backup file
+**Deliverable**: `backend/scripts/unified_model_planning.py` with model unification plan
 
-### **Day 2: Migration Script Development (4 hours)**
-
-#### **Task 2.1: Pre-Migration Validation Script (1 hour)**
-**Objective**: Create validation to run before migration
-
-**Steps**:
-1. Create file: `backend/scripts/pre_migration_validation.sql`
-2. Add checks for:
-   - Required fields (name, asset_type, client_account_id, engagement_id) exist
-   - No NULL values in required fields
-   - Asset types are valid enum values
-   - Foreign key references are valid
-3. Test validation script
-4. Ensure script returns clear pass/fail status
-
-**Deliverable**: `backend/scripts/pre_migration_validation.sql` with comprehensive validation
-
-#### **Task 2.2: Core Migration Script (2 hours)**
-**Objective**: Create the main data migration script
+#### **Task 1.4: pgvector Status Assessment (1 hour)**
+**Objective**: Assess current pgvector configuration
 
 **Steps**:
-1. Create file: `backend/scripts/migrate_cmdb_to_assets.sql`
-2. Implement the exact SQL from the plan:
-   - Pre-migration validation section
-   - Main INSERT statement with field mappings
-   - Heuristic classification logic for application_type
-   - Foreign key updates for asset_tags table
-   - Post-migration validation
-3. Add detailed comments explaining each step
-4. Include rollback instructions at the top
+1. Check if pgvector is in requirements.txt: `grep pgvector backend/requirements.txt`
+2. Check if docker-compose uses pgvector image: `grep pgvector docker-compose.yml`
+3. Check existing pgvector models: `find backend/ -name "*.py" -exec grep -l "Vector" {} \;`
+4. Test if pgvector extension is available: `docker exec -it migration_backend psql postgresql://postgres:password@migration_postgres:5432/migration_db -c "\dx"`
+5. Document current status and what needs to be added
 
-**Deliverable**: `backend/scripts/migrate_cmdb_to_assets.sql` with complete migration logic
+**Deliverable**: Current pgvector status assessment and required setup steps
 
-#### **Task 2.3: Post-Migration Validation (1 hour)**
-**Objective**: Create validation to verify migration success
+### **Day 2: Backend Code Migration (4 hours)**
+
+#### **Task 2.1: Update CMDBAsset Model References (1 hour)**
+**Objective**: Replace cmdb_asset model usage with assets model
 
 **Steps**:
-1. Create file: `backend/scripts/post_migration_validation.py`
-2. Add Python script to verify:
-   - Row count matches (56 assets migrated)
-   - No data loss (spot check 5 random records)
-   - Foreign keys updated correctly
-   - Application types assigned properly
-   - All required fields populated
-3. Test validation script with current data
+1. Update imports in all files from checklist:
+   - Replace `from app.models.cmdb_asset import CMDBAsset` with `from app.models.asset import Asset`
+   - Update model references in services and API endpoints
+2. Update `backend/app/models/__init__.py` to remove CMDBAsset exports
+3. Update relationships in other models (client_account.py, data_import.py)
+4. Test imports: `docker exec -it migration_backend python -c "from app.models.asset import Asset; print('Success')"`
 
-**Deliverable**: `backend/scripts/post_migration_validation.py` with thorough verification
+**Deliverable**: All backend model references updated to use unified Asset model
 
-### **Day 3: pgvector Setup & Learning Models (4 hours)**
-
-#### **Task 3.1: pgvector Extension Installation (1 hour)**
-**Objective**: Enable vector support in PostgreSQL
+#### **Task 2.2: Update API Endpoints (2 hours)**
+**Objective**: Convert API endpoints to use unified asset model
 
 **Steps**:
-1. Update `docker-compose.yml` to use postgres image with pgvector:
+1. Update `backend/app/api/v1/discovery/asset_management.py`:
+   - Replace CMDBAsset queries with Asset queries
+   - Update response serialization
+   - Test endpoints: `curl http://localhost:8000/api/v1/discovery/assets`
+2. Update `backend/app/api/v1/endpoints/data_import.py`:
+   - Replace cmdb_asset creation with asset creation
+   - Update record linking logic
+3. Update any other API files with CMDBAsset references
+4. Verify all endpoints compile without errors
+
+**Deliverable**: All API endpoints using unified Asset model
+
+#### **Task 2.3: Update CrewAI Services (1 hour)**
+**Objective**: Update CrewAI services to create unified assets
+
+**Steps**:
+1. Update `backend/app/services/crewai_flow_modular_enhanced.py`:
+   - Change `create_cmdb_assets` method to `create_assets`
+   - Update Asset model usage
+2. Update `backend/app/services/crewai_flow_data_processing.py`:
+   - Replace CMDBAsset creation with Asset creation
+3. Test service compilation: `docker exec -it migration_backend python -c "from app.services.crewai_flow_modular_enhanced import CrewAIFlowModularService; print('Success')"`
+
+**Deliverable**: CrewAI services updated to create unified assets
+
+### **Day 3: Frontend Code Migration (4 hours)**
+
+#### **Task 3.1: Update Frontend Asset Interfaces (1 hour)**
+**Objective**: Update TypeScript interfaces for unified asset model
+
+**Steps**:
+1. Update `src/types/asset.ts`:
+   - Remove references to CMDBAsset type
+   - Ensure Asset interface matches backend unified model
+   - Add any new fields from unified model
+2. Update API client interfaces in `src/lib/api/assets.ts`
+3. Run TypeScript check: `docker exec -it migration_frontend npm run type-check`
+4. Fix any type errors
+
+**Deliverable**: Frontend interfaces aligned with unified asset model
+
+#### **Task 3.2: Update Asset Components (2 hours)**
+**Objective**: Update React components to use unified asset model
+
+**Steps**:
+1. Update `src/pages/discovery/CMDBImport.tsx`:
+   - Change references from "cmdb_assets" to "assets"
+   - Update API endpoints calls
+   - Update data processing logic
+2. Update asset display components:
+   - Asset inventory displays
+   - Asset detail views
+   - Asset list components
+3. Test frontend compilation: `docker exec -it migration_frontend npm run build`
+
+**Deliverable**: All frontend components using unified asset model
+
+#### **Task 3.3: Complete pgvector Setup (1 hour)**
+**Objective**: Complete pgvector configuration (if not already done)
+
+**Steps**:
+1. If needed, update `docker-compose.yml` to use pgvector image:
    ```yaml
    postgres:
      image: pgvector/pgvector:pg15
    ```
-2. Create initialization script: `backend/scripts/init_pgvector.sql`
-3. Add to script: `CREATE EXTENSION IF NOT EXISTS vector;`
-4. Test extension: `docker exec -it migration_backend psql postgresql://postgres:password@migration_postgres:5432/migration_db -c "CREATE EXTENSION IF NOT EXISTS vector;"`
-5. Verify: `docker exec -it migration_backend psql postgresql://postgres:password@migration_postgres:5432/migration_db -c "\dx"`
+2. If needed, add pgvector to `backend/requirements.txt`:
+   ```
+   pgvector==0.2.4
+   ```
+3. Enable extension: `docker exec -it migration_backend psql postgresql://postgres:password@migration_postgres:5432/migration_db -c "CREATE EXTENSION IF NOT EXISTS vector;"`
+4. Verify: `docker exec -it migration_backend psql postgresql://postgres:password@migration_postgres:5432/migration_db -c "\dx"`
 
-**Deliverable**: Working pgvector extension in database
+**Deliverable**: pgvector fully configured and working
 
-#### **Task 3.2: Learning Models Creation (2 hours)**
-**Objective**: Create database models for learning patterns
+### **Day 4: Database Migration & Testing (4 hours)**
+
+#### **Task 4.1: Database Schema Update (1 hour)**
+**Objective**: Update database to remove cmdb_assets table and fix foreign keys
+
+**Steps**:
+1. Create migration script: `backend/scripts/remove_cmdb_assets.sql`
+2. Add SQL to:
+   - Drop foreign key constraints referencing cmdb_assets
+   - Update data_import.cmdb_asset_id to link to assets table instead
+   - Drop cmdb_assets table entirely
+3. Execute migration: `docker exec -it migration_backend psql postgresql://postgres:password@migration_postgres:5432/migration_db -f /app/scripts/remove_cmdb_assets.sql`
+4. Verify table is gone: `docker exec -it migration_backend psql postgresql://postgres:password@migration_postgres:5432/migration_db -c "\dt"`
+
+**Deliverable**: cmdb_assets table removed and foreign keys updated
+
+#### **Task 4.2: Create Learning Models (2 hours)**
+**Objective**: Add learning pattern models to database
 
 **Steps**:
 1. Create file: `backend/app/models/learning_patterns.py`
-2. Copy the enhanced model definitions from the plan:
+2. Add models from consolidation plan:
    - `MappingLearningPattern` with Vector(1536) fields
    - `AssetClassificationPattern` with embeddings
    - `ConfidenceThreshold` for dynamic thresholds
-3. Add proper imports and relationships
+3. Add to `backend/app/models/__init__.py`
 4. Create Alembic migration: `docker exec -it migration_backend alembic revision --autogenerate -m "Add learning patterns tables"`
 5. Run migration: `docker exec -it migration_backend alembic upgrade head`
 
 **Deliverable**: Learning pattern tables created in database
 
-#### **Task 3.3: pgvector Dependencies (1 hour)**
-**Objective**: Install required Python packages
+#### **Task 4.3: End-to-End Testing (1 hour)**
+**Objective**: Test that unified model works throughout application
 
 **Steps**:
-1. Add to `backend/requirements.txt`:
-   ```
-   pgvector==0.2.4
-   numpy==1.24.3
-   scikit-learn==1.3.0
-   openai==1.3.0
-   ```
-2. Rebuild backend container: `docker-compose build backend`
-3. Test imports in Python:
-   ```python
-   from pgvector.sqlalchemy import Vector
-   import numpy as np
-   from sklearn.cluster import KMeans
-   ```
-4. Verify no import errors
-
-**Deliverable**: All required dependencies installed and working
-
-### **Day 4: Execute Migration (4 hours)**
-
-#### **Task 4.1: Final Pre-Migration Checks (1 hour)**
-**Objective**: Ensure everything is ready for migration
-
-**Steps**:
-1. Run backup script one more time
-2. Run pre-migration validation
-3. Check that no other processes are writing to cmdb_assets
-4. Document current foreign key relationships:
-   ```sql
-   SELECT * FROM asset_tags WHERE cmdb_asset_id IS NOT NULL;
-   ```
-5. Create migration log file to track progress
-
-**Deliverable**: Complete pre-migration checklist and backup
-
-#### **Task 4.2: Execute Data Migration (1 hour)**
-**Objective**: Run the actual data migration
-
-**Steps**:
-1. Stop all API services to prevent writes: `docker-compose stop backend frontend`
-2. Keep only database running: `docker-compose start postgres`
-3. Execute migration script: `docker exec -it migration_backend psql postgresql://postgres:password@migration_postgres:5432/migration_db -f /app/scripts/migrate_cmdb_to_assets.sql`
-4. Monitor output for any errors
-5. If errors occur, restore from backup and investigate
-
-**Deliverable**: Successfully migrated data or documented issues for resolution
-
-#### **Task 4.3: Post-Migration Validation (1 hour)**
-**Objective**: Verify migration completed successfully
-
-**Steps**:
-1. Run post-migration validation script
-2. Compare record counts: `SELECT COUNT(*) FROM assets WHERE discovery_method = 'data_import';`
-3. Spot check 5 random migrated records for data integrity
-4. Verify foreign key updates worked: `SELECT COUNT(*) FROM asset_tags WHERE asset_id IS NOT NULL;`
-5. Test that cmdb_assets table no longer exists
-
-**Deliverable**: Migration validation report showing success or specific issues
-
-#### **Task 4.4: API Updates for Unified Model (1 hour)**
-**Objective**: Update backend APIs to use assets table
-
-**Steps**:
-1. Update `backend/app/api/v1/discovery/asset_management.py`:
-   - Change all queries from CMDBAsset to Asset model
-   - Update import statements
-   - Modify response serialization
-2. Test key endpoints:
+1. Start all services: `docker-compose up -d`
+2. Test asset creation through API:
    ```bash
-   curl http://localhost:8000/api/v1/discovery/assets
-   curl http://localhost:8000/api/v1/discovery/assets/summary
+   curl -X POST http://localhost:8000/api/v1/discovery/assets \
+   -H "Content-Type: application/json" \
+   -d '{"name": "test-server", "asset_type": "server"}'
    ```
-3. Update any other API files that reference CMDBAsset
+3. Test frontend asset display: Open http://localhost:8081 and navigate to asset inventory
+4. Verify no cmdb_assets references in logs
+5. Test data import flow creates assets (not cmdb_assets)
 
-**Deliverable**: All API endpoints working with unified Asset model
+**Deliverable**: Full application working with unified asset model
 
-### **Day 5: Frontend Updates (4 hours)**
+### **Day 5: Documentation & Validation (4 hours)**
 
-#### **Task 5.1: Update Asset Type Definitions (1 hour)**
-**Objective**: Update frontend interfaces for new asset model
-
-**Steps**:
-1. Update `src/types/asset.ts`:
-   - Add new fields: application_type, intelligent_asset_type, classification_confidence
-   - Remove cmdb_asset_id references
-   - Add learning_patterns_applied field
-2. Update API response types in `src/lib/api/assets.ts`
-3. Run TypeScript check: `docker exec -it migration_frontend npm run type-check`
-4. Fix any type errors
-
-**Deliverable**: Updated TypeScript definitions with no compilation errors
-
-#### **Task 5.2: Update Asset Inventory Components (2 hours)**
-**Objective**: Update frontend components to display new fields
+#### **Task 5.1: Update Documentation (1 hour)**
+**Objective**: Update all documentation to reflect unified model
 
 **Steps**:
-1. Update `src/pages/discovery/Inventory.tsx`:
-   - Add application_type filter
-   - Display classification confidence in asset cards
-   - Show intelligent_asset_type when different from asset_type
-   - Add tooltips for learning-based classifications
-2. Update asset table columns to include new fields
-3. Test that summary cards show correct totals
-4. Verify no console errors in browser
+1. Search for cmdb_assets references in docs: `grep -r "cmdb_asset" docs/ > docs/doc_references_to_update.txt`
+2. Update technical documentation to refer to unified asset model
+3. Update API documentation with new asset model schema
+4. Update README.md if it references cmdb_assets
+5. Remove any outdated cmdb_assets documentation
 
-**Deliverable**: Updated inventory page displaying all new asset information
+**Deliverable**: All documentation updated to reflect unified asset model
 
-#### **Task 5.3: Update Asset Detail Views (1 hour)**
-**Objective**: Show enhanced asset information in detail views
+#### **Task 5.2: Comprehensive Testing (2 hours)**
+**Objective**: Thoroughly test the unified system
 
 **Steps**:
-1. Update asset detail components to show:
-   - Application type classification
-   - Classification confidence score
-   - Which learning patterns were applied
-   - Original CMDB data (from raw_data field)
-2. Add visual indicators for AI-classified vs manually classified assets
-3. Test detail view with migrated assets
+1. Test asset CRUD operations:
+   - Create new assets through API
+   - Read asset lists and details
+   - Update asset information
+   - Delete assets
+2. Test data import flow end-to-end:
+   - Upload CSV file
+   - Process through CrewAI agents
+   - Verify assets (not cmdb_assets) are created
+3. Test frontend asset displays:
+   - Asset inventory page
+   - Asset detail views
+   - Search and filtering
+4. Check for any remaining cmdb_assets references in logs
 
-**Deliverable**: Enhanced asset detail views showing all available information
+**Deliverable**: Comprehensive test results showing unified model works correctly
+
+#### **Task 5.3: Performance Validation (1 hour)**
+**Objective**: Ensure system performs well with unified model
+
+**Steps**:
+1. Test asset list loading times
+2. Test asset creation through API (should be fast)
+3. Test concurrent asset operations
+4. Verify database queries are using proper indexes
+5. Check memory usage patterns
+6. No performance optimization needed for MVP, just ensure reasonable response times
+
+**Deliverable**: Performance validation report showing acceptable response times
 
 ---
 
@@ -882,11 +870,12 @@ This document provides granular, hour-by-hour tasks for implementing the data mo
 ## 📋 **Delivery Checklist**
 
 ### **Week 1 Deliverables**
-- [ ] Unified Asset model with all 56 assets migrated
-- [ ] cmdb_assets table removed
+- [ ] Unified Asset model implemented
+- [ ] cmdb_assets table and all references removed
 - [ ] All APIs using unified model
 - [ ] Frontend displaying unified asset data
-- [ ] pgvector extension installed and working
+- [ ] pgvector extension configured (if needed)
+- [ ] Comprehensive code migration completed
 
 ### **Week 2 Deliverables**
 - [ ] Learning pattern storage with embeddings
@@ -922,10 +911,10 @@ This document provides granular, hour-by-hour tasks for implementing the data mo
 
 ### **Common Issues & Solutions**
 
-#### **Migration Fails**
-- **Check**: Pre-migration validation passes
-- **Solution**: Fix validation errors before retrying
-- **Rollback**: Restore from backup if needed
+#### **Code Migration Issues**
+- **Check**: All import statements updated correctly
+- **Solution**: Search for remaining cmdb_asset references and update
+- **Validation**: Test that all services compile without errors
 
 #### **pgvector Queries Slow**
 - **Check**: Indexes are created properly

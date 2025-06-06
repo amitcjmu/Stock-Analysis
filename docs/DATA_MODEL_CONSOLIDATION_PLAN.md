@@ -892,27 +892,27 @@ class NamePatternDetector:
 
 ### **Week 1: Data Model Unification**
 - [x] **Day 1-2**: Analyze current schema differences
-- [ ] **Day 3**: Create data migration scripts
-- [ ] **Day 4**: Execute data migration (cmdb_assets → assets)
-- [ ] **Day 5**: Update all API endpoints to use unified model
+- [ ] **Day 3**: Create data migration scripts (drop test data, no backup needed)
+- [ ] **Day 4**: Execute unified model migration and remove cmdb_assets references
+- [ ] **Day 5**: Update all API endpoints and frontend to use unified model
 
 ### **Week 2: Learning Infrastructure**
-- [ ] **Day 1-2**: Implement learning models and services
+- [ ] **Day 1-2**: Implement learning models and services (pgvector already partially configured)
 - [ ] **Day 3**: Create agent learning integration
 - [ ] **Day 4**: Build learning pattern storage
 - [ ] **Day 5**: Test learning pipeline end-to-end
 
-### **Week 3: Enhanced Agent Architecture**
+### **Week 3: Multi-Agent Coordination**
 - [ ] **Day 1-2**: Upgrade CrewAI agents with learning tools
 - [ ] **Day 3**: Implement intelligent field mapping
 - [ ] **Day 4**: Add classification learning capabilities
 - [ ] **Day 5**: Integration testing
 
-### **Week 4: Application Detection & Testing**
-- [ ] **Day 1-2**: Build multi-strategy detection engine with pgvector clustering
+### **Week 4: Testing & Frontend Integration**
+- [ ] **Day 1-2**: Build multi-strategy detection engine with vector clustering
 - [ ] **Day 3**: Implement pattern learning and self-training for applications
-- [ ] **Day 4**: Create comprehensive testing framework
-- [ ] **Day 5**: Frontend-backend synchronization and performance optimization
+- [ ] **Day 4**: Create basic testing framework
+- [ ] **Day 5**: Frontend-backend synchronization
 
 ---
 
@@ -1348,7 +1348,7 @@ Based on your excellent clarifications, the plan has been enhanced with these de
 ### **2. Immediate cmdb_assets Removal ✅**
 - **Decision**: Drop `cmdb_assets` table immediately after migration validation
 - **Rationale**: Test data only, no business value in retention
-- **Approach**: Enhanced migration with pre/post validation, no transition period
+- **Approach**: No backup needed - focus on proper model unification and code updates
 
 ### **3. Hybrid Learning Scope ✅**
 - **Decision**: Client-specific patterns prioritized, global patterns as fallback
@@ -1365,42 +1365,47 @@ Based on your excellent clarifications, the plan has been enhanced with these de
 - **Features**: K-means clustering, synthetic asset generation, reinforcement scoring
 - **Benefits**: Learns without user input, improves with limited historical data
 
-### **6. 17-Agent Coordination ✅**
+### **6. Multi-Agent Coordination ✅**
 - **Decision**: `AgentCoordinationService` with load balancing and task distribution
 - **Implementation**: Shared learning store, parallel execution, collaborative workflows
-- **Specialization**: Clear task boundaries with `allow_delegation=True`
+- **Specialization**: Clear task boundaries with agent coordination
 
-### **7. Performance Optimization ✅**
-- **Target**: <500ms response times for all operations
-- **Implementation**: Async FastAPI, proper indexing, concurrent processing
-- **Testing**: Performance test suite with <500ms assertion requirements
-
-### **8. Comprehensive Testing Framework ✅**
+### **7. MVP-Focused Testing Framework ✅**
 - **Unit Tests**: Each agent component with synthetic datasets
 - **Integration Tests**: End-to-end workflow testing
-- **Performance Tests**: Concurrent load testing with response time validation
+- **Basic Performance**: Ensure reasonable response times for MVP
 
-### **9. API Versioning ✅**
-- **Implementation**: `/v2/assets` endpoints for unified model
-- **Frontend**: Next.js migration with backward compatibility
+### **8. Unified API Enhancement ✅**
+- **Implementation**: Update existing endpoints to use unified assets model
+- **Frontend**: Next.js updates for new asset model structure
 - **Schema**: Enhanced response models with classification and learning metadata
 
-### **10. Enhanced Data Validation ✅**
-- **Pre-migration**: Field compatibility and asset type validation
-- **Post-migration**: Count verification and data integrity checks
-- **Heuristic Population**: Rule-based initial classification during migration
+### **9. Enhanced Data Validation & Code Migration ✅**
+- **Schema Unification**: Comprehensive identification of cmdb_assets references
+- **Code Migration**: Update all API endpoints, models, and frontend components
+- **Validation**: Ensure unified model works across entire application
 
 ---
 
 ## 🚀 **Ready for Implementation**
 
-All clarifications have been addressed and incorporated into the enhanced plan. Key improvements include:
+All clarifications have been addressed and incorporated into the MVP-focused plan. Key improvements include:
 
-- **pgvector-powered similarity search** for intelligent pattern matching
+- **pgvector-powered similarity search** for intelligent pattern matching (partially configured)
 - **Self-training mechanisms** for learning without user input  
 - **Dynamic confidence management** adapting to user feedback patterns
-- **17-agent coordination** with specialized roles and shared learning
-- **Comprehensive testing strategy** ensuring reliability and performance
-- **Immediate cmdb_assets removal** with enhanced migration validation
+- **Multi-agent coordination** with specialized roles and shared learning
+- **MVP-focused testing strategy** ensuring core functionality
+- **Immediate cmdb_assets removal** with comprehensive code migration
 
-The plan is now production-ready with sophisticated learning capabilities that will transform your static platform into an intelligent, self-improving agentic system. 
+The plan is now MVP-ready with sophisticated learning capabilities that will transform your static platform into an intelligent, self-improving agentic system.
+
+## 📋 **Detailed Implementation Task Tracker**
+
+For detailed hour-by-hour implementation guidance, see: `/docs/DATA_MODEL_CONSOLIDATION_TASK_TRACKER.md`
+
+This companion document provides:
+- 80 hours of granular 1-hour tasks
+- Junior developer-friendly instructions
+- Clear deliverables and success criteria
+- Comprehensive troubleshooting guide 
