@@ -602,6 +602,35 @@ const DataImport = () => {
         const storeResult = await storeResponse.json();
         console.log(`Stored ${fullParsedData.length} assets to database with session ID: ${storeResult.import_session_id}`);
         
+        // 🚀 AGENTIC CREWAI FLOW: Trigger processing from raw_import_records → cmdb_assets
+        console.log('🧠 Triggering agentic CrewAI Flow processing for asset intelligence...');
+        try {
+          const flowResponse = await fetch(`${API_CONFIG.BASE_URL}/api/v1/data-import/process-raw-to-assets`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              import_session_id: storeResult.import_session_id
+            })
+          });
+          
+          if (flowResponse.ok) {
+            const flowResult = await flowResponse.json();
+            console.log(`✨ CrewAI Flow completed: ${flowResult.processed_count} assets processed with agentic intelligence`);
+            
+            // Update insights with agentic results
+            if (flowResult.agentic_intelligence && flowResult.agentic_intelligence.crewai_flow_active) {
+              suggestions.push(`🧠 CrewAI Flow processed ${flowResult.processed_count} assets with intelligent field mapping and classification`);
+              suggestions.push(`✨ Applied ${flowResult.agentic_intelligence.field_mappings_applied} agentic field mappings for enhanced accuracy`);
+            }
+          } else {
+            console.warn('CrewAI Flow processing failed, assets stored but not processed to inventory');
+          }
+        } catch (flowError) {
+          console.warn('CrewAI Flow processing failed:', flowError);
+        }
+        
         // Add import session ID to next steps for traceability
         nextSteps.forEach(step => {
           if (step.route === '/discovery/attribute-mapping') {

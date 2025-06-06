@@ -1460,4 +1460,335 @@ async def list_imports(
         
     except Exception as e:
         logger.error(f"Failed to list imports: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to list imports: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Failed to list imports: {str(e)}")
+
+@router.post("/process-raw-to-assets")
+async def process_raw_to_assets(
+    import_session_id: str = None,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+):
+    """
+    CrewAI Flow endpoint to process raw import records into cmdb_assets using agentic intelligence.
+    This is the missing link in the agentic workflow from Data Import → Asset Inventory.
+    """
+    try:
+        logger.info(f"🚀 Starting agentic CrewAI Flow processing for session: {import_session_id}")
+        
+        # Import CrewAI Flow service
+        try:
+            from app.services.crewai_flow_service import CrewAIFlowService
+            flow_service = CrewAIFlowService()
+        except ImportError:
+            logger.warning("CrewAI Flow service not available, using fallback processing")
+            return await _fallback_raw_to_assets_processing(import_session_id, db, context)
+        
+        # Get unprocessed raw import records
+        if import_session_id:
+            # Process specific session
+            raw_records_query = await db.execute(
+                select(RawImportRecord).where(
+                    and_(
+                        RawImportRecord.data_import_id == import_session_id,
+                        RawImportRecord.cmdb_asset_id.is_(None)
+                    )
+                )
+            )
+        else:
+            # Process all unprocessed records
+            raw_records_query = await db.execute(
+                select(RawImportRecord).where(
+                    RawImportRecord.cmdb_asset_id.is_(None)
+                )
+            )
+        
+        raw_records = raw_records_query.scalars().all()
+        
+        if not raw_records:
+            return {
+                "status": "no_data",
+                "message": "No unprocessed raw import records found",
+                "processed_count": 0
+            }
+        
+        logger.info(f"📝 Found {len(raw_records)} unprocessed raw records for agentic processing")
+        
+        # Prepare data for CrewAI Flow
+        cmdb_data = {
+            "filename": f"raw_import_session_{import_session_id or 'all'}",
+            "headers": list(raw_records[0].raw_data.keys()) if raw_records else [],
+            "sample_data": [record.raw_data for record in raw_records[:5]],  # Sample for analysis
+            "total_records": len(raw_records),
+            "session_context": {
+                "import_session_id": import_session_id,
+                "client_account_id": context.client_account_id,
+                "engagement_id": context.engagement_id,
+                "processing_timestamp": datetime.utcnow().isoformat()
+            }
+        }
+        
+        # Run CrewAI Discovery Flow for intelligent processing
+        logger.info("🧠 Running agentic CrewAI Discovery Flow for asset intelligence")
+        flow_result = await flow_service.run_discovery_flow(cmdb_data)
+        
+        if flow_result.get("status") != "success":
+            logger.warning(f"CrewAI Flow returned non-success status: {flow_result.get('status')}")
+            return await _fallback_raw_to_assets_processing(import_session_id, db, context)
+        
+        # Extract agentic intelligence results
+        field_mappings = flow_result.get("suggested_field_mappings", {})
+        asset_classifications = flow_result.get("asset_classifications", [])
+        readiness_scores = flow_result.get("readiness_scores", {})
+        
+        logger.info(f"✨ CrewAI Flow completed with {len(field_mappings)} field mappings and {len(asset_classifications)} classifications")
+        
+        # Process each raw record using agentic intelligence
+        processed_count = 0
+        for record in raw_records:
+            try:
+                # Use agentic field mapping and classification
+                asset_data = await _process_single_raw_record_agentic(
+                    record, field_mappings, asset_classifications, context
+                )
+                
+                # Create CMDBAsset using agentic intelligence
+                cmdb_asset = CMDBAsset(**asset_data)
+                db.add(cmdb_asset)
+                await db.flush()  # Get the ID
+                
+                # Update raw record to mark as processed
+                record.cmdb_asset_id = cmdb_asset.id
+                record.is_processed = True
+                record.processed_at = datetime.utcnow()
+                record.processing_notes = f"Processed by CrewAI Flow with {len(field_mappings)} field mappings"
+                
+                processed_count += 1
+                logger.debug(f"✅ Processed: {asset_data.get('name')} → {cmdb_asset.id}")
+                
+            except Exception as e:
+                logger.error(f"❌ Error processing record {record.id}: {e}")
+                continue
+        
+        # Commit all changes
+        await db.commit()
+        
+        logger.info(f"🎉 Agentic CrewAI Flow processing completed: {processed_count} assets created")
+        
+        return {
+            "status": "success",
+            "message": f"Successfully processed {processed_count} raw records into cmdb_assets using agentic intelligence",
+            "processed_count": processed_count,
+            "total_raw_records": len(raw_records),
+            "agentic_intelligence": {
+                "field_mappings_applied": len(field_mappings),
+                "asset_classifications": len(asset_classifications),
+                "readiness_assessment": readiness_scores,
+                "crewai_flow_active": True
+            },
+            "import_session_id": import_session_id
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in agentic CrewAI Flow processing: {e}")
+        # Fallback to non-agentic processing
+        return await _fallback_raw_to_assets_processing(import_session_id, db, context)
+
+
+async def _process_single_raw_record_agentic(
+    record: RawImportRecord,
+    field_mappings: Dict[str, str],
+    asset_classifications: List[Dict[str, Any]],
+    context: RequestContext
+) -> Dict[str, Any]:
+    """Process a single raw record using agentic CrewAI intelligence."""
+    
+    raw_data = record.raw_data
+    
+    # Apply agentic field mappings
+    mapped_data = {}
+    for source_field, canonical_field in field_mappings.items():
+        if source_field in raw_data:
+            mapped_data[canonical_field.lower().replace(" ", "_")] = raw_data[source_field]
+    
+    # Find agentic asset classification for this record
+    asset_classification = None
+    for classification in asset_classifications:
+        # Match by hostname, name, or other identifier
+        if (classification.get("hostname") == raw_data.get("hostname") or
+            classification.get("name") == raw_data.get("name") or
+            classification.get("asset_name") == raw_data.get("asset_name")):
+            asset_classification = classification
+            break
+    
+    # Build CMDBAsset data using agentic intelligence
+    asset_data = {
+        "id": uuid.uuid4(),
+        "client_account_id": context.client_account_id,
+        "engagement_id": context.engagement_id,
+        
+        # Core identification using agentic field mapping
+        "name": (mapped_data.get("asset_name") or 
+                mapped_data.get("hostname") or 
+                raw_data.get("hostname") or 
+                raw_data.get("name") or 
+                f"Asset_{record.row_number}"),
+        "hostname": mapped_data.get("hostname") or raw_data.get("hostname"),
+        "asset_type": _determine_asset_type_agentic(raw_data, asset_classification),
+        
+        # Infrastructure details from agentic mapping
+        "ip_address": mapped_data.get("ip_address") or raw_data.get("ip_address"),
+        "operating_system": mapped_data.get("operating_system") or raw_data.get("os"),
+        "environment": mapped_data.get("environment") or raw_data.get("environment"),
+        
+        # Business information from agentic analysis
+        "business_owner": mapped_data.get("business_owner") or raw_data.get("business_owner"),
+        "department": mapped_data.get("department") or raw_data.get("department"),
+        
+        # Migration assessment from agentic intelligence
+        "sixr_ready": asset_classification.get("sixr_readiness") if asset_classification else "Pending Analysis",
+        "migration_complexity": asset_classification.get("migration_complexity") if asset_classification else "Unknown",
+        
+        # Source and processing metadata
+        "discovery_source": "agentic_cmdb_import",
+        "discovery_method": "crewai_flow",
+        "discovery_timestamp": datetime.utcnow(),
+        "imported_by": context.user_id,
+        "imported_at": datetime.utcnow(),
+        "source_filename": f"import_session_{record.data_import_id}",
+        "raw_data": raw_data,
+        "field_mappings_used": field_mappings,
+        
+        # Audit
+        "created_at": datetime.utcnow(),
+        "created_by": context.user_id,
+        "is_mock": False
+    }
+    
+    return asset_data
+
+
+def _determine_asset_type_agentic(raw_data: Dict[str, Any], asset_classification: Dict[str, Any]) -> str:
+    """Determine asset type using agentic intelligence with fallbacks."""
+    
+    # First, use agentic classification if available
+    if asset_classification and asset_classification.get("asset_type"):
+        agentic_type = asset_classification["asset_type"].lower()
+        if agentic_type in ["server", "application", "database", "network_device", "storage_device"]:
+            return agentic_type
+    
+    # Fallback to raw data analysis
+    raw_type = (raw_data.get("asset_type") or 
+                raw_data.get("type") or 
+                raw_data.get("ci_type") or "").lower()
+    
+    # Map common variations
+    if any(term in raw_type for term in ["server", "srv", "vm", "virtual"]):
+        return "server"
+    elif any(term in raw_type for term in ["app", "application", "software"]):
+        return "application" 
+    elif any(term in raw_type for term in ["db", "database", "sql", "oracle", "mysql"]):
+        return "database"
+    elif any(term in raw_type for term in ["network", "switch", "router", "firewall"]):
+        return "network_device"
+    elif any(term in raw_type for term in ["storage", "san", "nas", "disk"]):
+        return "storage_device"
+    else:
+        return "server"  # Default fallback
+
+
+async def _fallback_raw_to_assets_processing(
+    import_session_id: str,
+    db: AsyncSession,
+    context: RequestContext
+) -> Dict[str, Any]:
+    """Fallback processing when CrewAI Flow is not available."""
+    
+    logger.info("🔄 Using fallback processing (non-agentic) for raw import records")
+    
+    # Get unprocessed raw records
+    if import_session_id:
+        raw_records_query = await db.execute(
+            select(RawImportRecord).where(
+                and_(
+                    RawImportRecord.data_import_id == import_session_id,
+                    RawImportRecord.cmdb_asset_id.is_(None)
+                )
+            )
+        )
+    else:
+        raw_records_query = await db.execute(
+            select(RawImportRecord).where(
+                RawImportRecord.cmdb_asset_id.is_(None)
+            )
+        )
+    
+    raw_records = raw_records_query.scalars().all()
+    
+    if not raw_records:
+        return {
+            "status": "no_data",
+            "message": "No unprocessed raw import records found",
+            "processed_count": 0
+        }
+    
+    # Simple processing without agentic intelligence
+    processed_count = 0
+    for record in raw_records:
+        try:
+            raw_data = record.raw_data
+            
+            # Basic field mapping
+            asset_data = {
+                "id": uuid.uuid4(),
+                "client_account_id": context.client_account_id,
+                "engagement_id": context.engagement_id,
+                "name": (raw_data.get("hostname") or 
+                        raw_data.get("name") or 
+                        raw_data.get("asset_name") or
+                        f"Asset_{record.row_number}"),
+                "hostname": raw_data.get("hostname"),
+                "asset_type": _determine_asset_type_agentic(raw_data, None),
+                "ip_address": raw_data.get("ip_address"),
+                "operating_system": raw_data.get("os") or raw_data.get("operating_system"),
+                "environment": raw_data.get("environment"),
+                "business_owner": raw_data.get("business_owner"),
+                "department": raw_data.get("department"),
+                "discovery_source": "fallback_cmdb_import",
+                "discovery_method": "basic_mapping",
+                "discovery_timestamp": datetime.utcnow(),
+                "imported_by": context.user_id,
+                "imported_at": datetime.utcnow(),
+                "source_filename": f"import_session_{record.data_import_id}",
+                "raw_data": raw_data,
+                "created_at": datetime.utcnow(),
+                "created_by": context.user_id,
+                "is_mock": False
+            }
+            
+            # Create CMDBAsset
+            cmdb_asset = CMDBAsset(**asset_data)
+            db.add(cmdb_asset)
+            await db.flush()
+            
+            # Update raw record
+            record.cmdb_asset_id = cmdb_asset.id
+            record.is_processed = True
+            record.processed_at = datetime.utcnow()
+            record.processing_notes = "Processed by fallback method (non-agentic)"
+            
+            processed_count += 1
+            
+        except Exception as e:
+            logger.error(f"Error in fallback processing for record {record.id}: {e}")
+            continue
+    
+    await db.commit()
+    
+    return {
+        "status": "success",
+        "message": f"Fallback processing completed: {processed_count} assets created",
+        "processed_count": processed_count,
+        "total_raw_records": len(raw_records),
+        "agentic_intelligence": False,
+        "import_session_id": import_session_id
+    } 
