@@ -1204,15 +1204,48 @@ async def store_import_data(
         # Get current context from middleware
         context = get_current_context()
         
-        # Demo fallback UUIDs (using existing client from database)
-        demo_client_uuid = "bafd5b46-aaaf-4c95-8142-573699d93171"  # Complete Test Client
-        demo_engagement_uuid = "6e9c8133-4169-4b79-b052-106dc93d0208"  # Azure Transformation
+        # Dynamically resolve demo client and engagement UUIDs
+        demo_client_uuid = None
+        demo_engagement_uuid = None
         demo_user_uuid = "eef6ea50-6550-4f14-be2c-081d4eb23038"  # John Doe
         
-        # Use actual context or fallback to demo values
+        # Resolve demo client dynamically if context is missing
+        if not context.client_account_id:
+            try:
+                # Find demo client by is_mock=true
+                demo_client_query = select(ClientAccount).where(ClientAccount.is_mock == True)
+                demo_client_result = await db.execute(demo_client_query)
+                demo_client = demo_client_result.scalar_one_or_none()
+                
+                if demo_client:
+                    demo_client_uuid = str(demo_client.id)
+                    logger.info(f"Dynamically resolved demo client: {demo_client.name} ({demo_client_uuid})")
+                    
+                    # Get first engagement for demo client
+                    demo_engagement_query = select(Engagement).where(
+                        Engagement.client_account_id == demo_client.id
+                    ).limit(1)
+                    demo_engagement_result = await db.execute(demo_engagement_query)
+                    demo_engagement = demo_engagement_result.scalar_one_or_none()
+                    
+                    if demo_engagement:
+                        demo_engagement_uuid = str(demo_engagement.id)
+                        logger.info(f"Dynamically resolved demo engagement: {demo_engagement.name} ({demo_engagement_uuid})")
+            except Exception as resolve_e:
+                logger.warning(f"Failed to resolve demo client/engagement dynamically: {resolve_e}")
+                # Keep None values to trigger error handling below
+        
+        # Use actual context or fallback to dynamically resolved demo values
         client_account_id = context.client_account_id or demo_client_uuid
-        engagement_id = context.engagement_id or demo_engagement_uuid
+        engagement_id = context.engagement_id or demo_engagement_uuid  
         user_id = context.user_id or demo_user_uuid
+        
+        # Verify we have required IDs
+        if not client_account_id or not engagement_id:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Missing required context: client_account_id={client_account_id}, engagement_id={engagement_id}"
+            )
         
         # Simplified session management - don't fail the whole operation if session fails
         session_id = None

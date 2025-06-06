@@ -324,7 +324,7 @@ const DataImport = () => {
         const intelligentInsights = await generateIntelligentInsights(analysisResult, fileUpload.type, {
           filename: fileUpload.file.name,
           fileType: fileUpload.file.type
-        });
+        }, fileContent); // Pass full file content for complete data parsing
         
         console.log('Intelligent AI analysis complete for:', fileUpload.file.name);
         setUploadedFiles(prev => 
@@ -371,15 +371,17 @@ const DataImport = () => {
     });
   };
 
-  const parseFileContent = (content: string, filename: string) => {
-    // Parse content based on file type for agent analysis
+  const parseFileContent = (content: string, filename: string, parseAll: boolean = false) => {
+    // Parse content based on file type for agent analysis or full data storage
     try {
       if (filename.endsWith('.csv')) {
         const lines = content.split('\n').filter(line => line.trim());
         if (lines.length === 0) return [];
         
         const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-        return lines.slice(1, 6).map(line => { // Send first 5 rows for analysis
+        const dataLines = parseAll ? lines.slice(1) : lines.slice(1, 6); // Parse all or first 5 rows
+        
+        return dataLines.map(line => {
           const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
           const row: any = {};
           headers.forEach((header, index) => {
@@ -389,10 +391,14 @@ const DataImport = () => {
         }).filter(row => Object.values(row).some(v => v)); // Remove empty rows
       } else if (filename.endsWith('.json')) {
         const parsed = JSON.parse(content);
-        return Array.isArray(parsed) ? parsed.slice(0, 5) : [parsed];
+        if (parseAll) {
+          return Array.isArray(parsed) ? parsed : [parsed];
+        } else {
+          return Array.isArray(parsed) ? parsed.slice(0, 5) : [parsed];
+        }
       } else {
         // For other file types, return a sample of the content
-        return [{ content: content.substring(0, 1000) }];
+        return [{ content: parseAll ? content : content.substring(0, 1000) }];
       }
     } catch (error) {
       console.error('Error parsing file content:', error);
@@ -412,12 +418,24 @@ const DataImport = () => {
     return contextMap[uploadType] || 'User uploaded data for analysis';
   };
 
-  const generateIntelligentInsights = async (analysisResult: any, intendedType: string, fileInfo?: { filename: string; fileType: string }) => {
+  const generateIntelligentInsights = async (analysisResult: any, intendedType: string, fileInfo?: { filename: string; fileType: string }, fullFileContent?: string) => {
     // Extract real insights from the AI crew's intelligent analysis
     const dataQuality = analysisResult.dataQuality || {};
     const coverage = analysisResult.coverage || {};
     const missingFields = analysisResult.missingFields || [];
     const preview = analysisResult.preview || [];
+    
+    // Parse full file content for complete data storage (not just preview)
+    let fullParsedData = preview; // Fallback to preview if full content not available
+    if (fullFileContent && fileInfo?.filename) {
+      try {
+        fullParsedData = parseFileContent(fullFileContent, fileInfo.filename, true); // Parse all data
+        console.log(`Parsed full file: ${fullParsedData.length} records vs preview: ${preview.length} records`);
+      } catch (error) {
+        console.warn('Failed to parse full file content, using preview data:', error);
+        fullParsedData = preview;
+      }
+    }
     
     // Calculate real confidence based on data quality
     const confidence = dataQuality.score || 85;
@@ -521,7 +539,7 @@ const DataImport = () => {
     
     // Generate insights based on AI crew's actual analysis
     const suggestions = [
-      `AI crew detected ${preview.length} records in your uploaded file`,
+      `AI crew detected ${fullParsedData.length} records in your uploaded file (${preview.length} analyzed for insights)`,
       `Data quality assessment: ${confidence}% - ${realDataQualityIssues.length} issues identified for cleansing`,
       `Content analysis: ${coverage.applications || 0} applications, ${coverage.servers || 0} servers, ${coverage.databases || 0} databases`,
       `Relevance score: ${Math.min(confidence + 10, 100)}% - data contains valuable migration insights`,
@@ -535,8 +553,8 @@ const DataImport = () => {
       { 
         label: 'Start Attribute Mapping & AI Training', 
         route: '/discovery/attribute-mapping',
-        description: `Map your data fields to migration-critical attributes (${preview.length} records ready)`,
-        importedData: preview
+        description: `Map your data fields to migration-critical attributes (${fullParsedData.length} records ready)`,
+        importedData: fullParsedData // Use full data for attribute mapping
       },
       { 
         label: 'Proceed to AI-Powered Data Cleansing', 
@@ -564,23 +582,25 @@ const DataImport = () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          file_data: preview,
+          file_data: fullParsedData, // Use full parsed data instead of just preview
           metadata: {
             filename: fileInfo?.filename || 'uploaded_file',
-            size: preview.length * 1000, // Approximate size
+            size: fullParsedData.length * 1000, // Approximate size based on full data
             type: fileInfo?.fileType || 'unknown'
           },
           upload_context: {
             intended_type: intendedType,
             user_context: getUploadAreaInfo(intendedType),
-            analysis_timestamp: new Date().toISOString()
+            analysis_timestamp: new Date().toISOString(),
+            preview_size: preview.length,
+            full_data_size: fullParsedData.length
           }
         })
       });
       
       if (storeResponse.ok) {
         const storeResult = await storeResponse.json();
-        console.log(`Stored ${preview.length} assets to database with session ID: ${storeResult.import_session_id}`);
+        console.log(`Stored ${fullParsedData.length} assets to database with session ID: ${storeResult.import_session_id}`);
         
         // Add import session ID to next steps for traceability
         nextSteps.forEach(step => {
@@ -590,14 +610,14 @@ const DataImport = () => {
         });
       } else {
         console.warn('Failed to store data to database, falling back to localStorage');
-        // Fallback to localStorage for compatibility
-        localStorage.setItem('imported_assets', JSON.stringify(preview));
+        // Fallback to localStorage for compatibility using full data
+        localStorage.setItem('imported_assets', JSON.stringify(fullParsedData));
       }
     } catch (error) {
       console.warn('Failed to store data to database, falling back to localStorage:', error);
-      // Fallback to localStorage for compatibility
+      // Fallback to localStorage for compatibility using full data
       try {
-        localStorage.setItem('imported_assets', JSON.stringify(preview));
+        localStorage.setItem('imported_assets', JSON.stringify(fullParsedData));
       } catch (storageError) {
         console.error('Both database and localStorage storage failed:', storageError);
       }

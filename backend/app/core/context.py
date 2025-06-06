@@ -234,7 +234,7 @@ def create_context_headers(context: RequestContext) -> Dict[str, str]:
 
 async def resolve_demo_client_ids(db_session) -> None:
     """
-    Resolve demo client slug to actual UUID after database initialization.
+    Dynamically resolve demo client by finding the client marked with is_mock=true.
     This should be called during application startup.
     
     Args:
@@ -244,30 +244,33 @@ async def resolve_demo_client_ids(db_session) -> None:
         from app.models.client_account import ClientAccount, Engagement
         from sqlalchemy import select
         
-        # Find Pujyam Corp client by slug
+        # Find demo client by is_mock=true flag
         client_result = await db_session.execute(
-            select(ClientAccount).where(ClientAccount.slug == "pujyam-corp")
+            select(ClientAccount).where(ClientAccount.is_mock == True)
         )
         demo_client = client_result.scalar_one_or_none()
         
         if demo_client:
             DEMO_CLIENT_CONFIG["client_account_id"] = str(demo_client.id)
-            logger.info(f"✅ Resolved demo client ID: {demo_client.id}")
+            DEMO_CLIENT_CONFIG["client_name"] = demo_client.name
+            logger.info(f"✅ Resolved demo client ID: {demo_client.id} ({demo_client.name})")
             
-            # Find demo engagement
+            # Find first engagement for this demo client
             engagement_result = await db_session.execute(
                 select(Engagement).where(
-                    Engagement.client_account_id == demo_client.id,
-                    Engagement.slug == "digital-transformation-2025"
-                )
+                    Engagement.client_account_id == demo_client.id
+                ).limit(1)
             )
             demo_engagement = engagement_result.scalar_one_or_none()
             
             if demo_engagement:
                 DEMO_CLIENT_CONFIG["engagement_id"] = str(demo_engagement.id)
-                logger.info(f"✅ Resolved demo engagement ID: {demo_engagement.id}")
+                DEMO_CLIENT_CONFIG["engagement_name"] = demo_engagement.name
+                logger.info(f"✅ Resolved demo engagement ID: {demo_engagement.id} ({demo_engagement.name})")
+            else:
+                logger.warning(f"⚠️  No engagements found for demo client {demo_client.name}")
         else:
-            logger.warning("⚠️  Demo client 'Pujyam Corp' not found in database")
+            logger.warning("⚠️  No demo client with is_mock=true found in database")
             
     except Exception as e:
         logger.error(f"❌ Failed to resolve demo client IDs: {e}") 
