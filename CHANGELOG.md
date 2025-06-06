@@ -11,16 +11,18 @@ This release addresses critical missing database columns preventing the producti
 ### 🚀 **Production Schema Synchronization**
 
 #### **Missing Column Migration (CRITICAL)**
-- **Critical Fix**: Added migration to create missing `migration_scope` and `team_preferences` columns in production database
-- **Railway Compatibility**: Migration includes column existence checks to prevent conflicts between development and production
-- **Data Integrity**: Automatic population of default JSON values for existing engagement records
+- **Engagements Table Fix**: Added migration to create missing `migration_scope` and `team_preferences` columns in production database
+- **Client Accounts Table Fix**: Added comprehensive migration for missing client_accounts columns including `headquarters_location`, contact fields, and JSON settings
+- **Railway Compatibility**: Migrations include column existence checks to prevent conflicts between development and production
+- **Data Integrity**: Automatic population of default JSON values for existing records across all tables
 - **Safe Deployment**: Conditional column creation only when columns don't exist, preventing duplicate column errors
 
 #### **Production Error Resolution**
-- **Error Fixed**: Resolved "column engagements.migration_scope does not exist" error on Railway production deployment
-- **Schema Alignment**: Production database now matches local development schema specifications
-- **API Restoration**: Engagement management endpoints working properly without database column errors
-- **User Experience**: Context switching and engagement filtering fully restored for production users
+- **Engagements Error Fixed**: Resolved "column engagements.migration_scope does not exist" error on Railway
+- **Client Accounts Error Fixed**: Resolved "column client_accounts.headquarters_location does not exist" error
+- **Schema Alignment**: Production database now matches local development schema specifications across all tables
+- **API Restoration**: All management endpoints working properly without database column errors
+- **User Experience**: Context switching, engagement filtering, and client management fully restored for production users
 
 ### 🔧 **Technical Implementation**
 
@@ -28,7 +30,8 @@ This release addresses critical missing database columns preventing the producti
 - **Column Detection**: Uses `information_schema.columns` to check for existing columns before attempting to add
 - **Conditional Logic**: Only adds columns if they don't already exist, preventing migration conflicts
 - **Default Values**: Automatically populates JSON columns with proper default structures for existing data
-- **Rollback Support**: Proper downgrade migration to safely remove added columns if needed
+- **Comprehensive Coverage**: Handles both engagements and client_accounts table schema mismatches
+- **Rollback Support**: Proper downgrade migrations to safely remove added columns if needed
 
 #### **Production-Safe Migration Pattern**
 ```sql
@@ -36,11 +39,18 @@ This release addresses critical missing database columns preventing the producti
 SELECT column_name FROM information_schema.columns 
 WHERE table_name = 'engagements' AND column_name = 'migration_scope'
 
--- Only add if not exists
+-- Only add if not exists for engagements table
 IF NOT EXISTS: ALTER TABLE engagements ADD COLUMN migration_scope JSON
+
+-- Check and add client_accounts columns
+SELECT column_name FROM information_schema.columns 
+WHERE table_name = 'client_accounts' AND column_name = 'headquarters_location'
+
+IF NOT EXISTS: ALTER TABLE client_accounts ADD COLUMN headquarters_location VARCHAR(255)
 
 -- Populate default values for existing records
 UPDATE engagements SET migration_scope = '{...}' WHERE migration_scope IS NULL
+UPDATE client_accounts SET settings = '{}' WHERE settings IS NULL
 ```
 
 ### 📊 **Business Impact**
