@@ -41,7 +41,7 @@ except ImportError:
     SESSION_MANAGEMENT_AVAILABLE = False
     SessionManagementService = None
 
-from app.models.cmdb_asset import CMDBAsset
+from app.models.asset import Asset
 from app.repositories.demo_repository import DemoRepository
 from app.repositories.session_aware_repository import create_session_aware_repository
 from app.schemas.demo import DemoAssetResponse
@@ -1469,7 +1469,7 @@ async def process_raw_to_assets(
     context: RequestContext = Depends(get_current_context)
 ):
     """
-    CrewAI Flow endpoint to process raw import records into cmdb_assets using agentic intelligence.
+    CrewAI Flow endpoint to process raw import records into assets using agentic intelligence.
     Now uses proper CrewAI Flow state management pattern for complete application and server classification.
     """
     try:
@@ -1679,14 +1679,14 @@ async def _fallback_raw_to_assets_processing(
             select(RawImportRecord).where(
                 and_(
                     RawImportRecord.data_import_id == import_session_id,
-                    RawImportRecord.cmdb_asset_id.is_(None)
+                    RawImportRecord.asset_id.is_(None)
                 )
             )
         )
     else:
         raw_records_query = await db.execute(
             select(RawImportRecord).where(
-                RawImportRecord.cmdb_asset_id.is_(None)
+                RawImportRecord.asset_id.is_(None)
             )
         )
     
@@ -1733,13 +1733,13 @@ async def _fallback_raw_to_assets_processing(
                 "is_mock": False
             }
             
-            # Create CMDBAsset
-            cmdb_asset = CMDBAsset(**asset_data)
-            db.add(cmdb_asset)
+            # Create Asset
+            asset = Asset(**asset_data)
+            db.add(asset)
             await db.flush()
             
             # Update raw record
-            record.cmdb_asset_id = cmdb_asset.id
+            record.asset_id = asset.id
             record.is_processed = True
             record.processed_at = datetime.utcnow()
             record.processing_notes = "Processed by fallback method (non-agentic)"

@@ -602,7 +602,7 @@ const DataImport = () => {
         const storeResult = await storeResponse.json();
         console.log(`Stored ${fullParsedData.length} assets to database with session ID: ${storeResult.import_session_id}`);
         
-        // 🚀 AGENTIC CREWAI FLOW: Trigger processing from raw_import_records → cmdb_assets
+        // 🚀 AGENTIC CREWAI FLOW: Trigger processing from raw_import_records → assets
         console.log('🧠 Triggering agentic CrewAI Flow processing for asset intelligence...');
         try {
           const flowResponse = await fetch(`${API_CONFIG.BASE_URL}/api/v1/data-import/process-raw-to-assets`, {

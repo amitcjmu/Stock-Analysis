@@ -189,7 +189,7 @@ class Engagement(Base):
     created_by_user = relationship("User", foreign_keys=[created_by])
     
     # Asset relationships (string reference to avoid circular imports)
-    cmdb_assets = relationship("CMDBAsset", back_populates="engagement", cascade="all, delete-orphan", lazy="select")
+    assets = relationship("Asset", back_populates="engagement", cascade="all, delete-orphan", lazy="select")
     
     # Data import relationships (string reference to avoid circular imports)
     data_imports = relationship("DataImport", back_populates="engagement", cascade="all, delete-orphan", lazy="select")

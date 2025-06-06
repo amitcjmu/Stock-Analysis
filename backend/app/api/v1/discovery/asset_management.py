@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.context import get_current_context
 from app.repositories.session_aware_repository import create_session_aware_repository
-from app.models.cmdb_asset import CMDBAsset
+from app.models.asset import Asset
 from app.models.client_account import ClientAccount
 from sqlalchemy import String
 
@@ -89,8 +89,8 @@ async def get_processed_assets_paginated(
         # The session-aware repository has complex filtering that excludes real assets
         from sqlalchemy import select, and_
         
-        # Build base query for CMDB assets
-        query = select(CMDBAsset)
+        # Build base query for assets
+        query = select(Asset)
         
         # Apply context filtering for demo client (if context is available)
         # For demo environment, query demo client assets directly
@@ -99,24 +99,24 @@ async def get_processed_assets_paginated(
         
         if demo_client:
             # Filter by demo client context
-            query = query.where(CMDBAsset.client_account_id == demo_client.id)
+            query = query.where(Asset.client_account_id == demo_client.id)
             logger.info(f"Filtering assets for demo client: {demo_client.name} ({demo_client.id})")
         
         # Apply additional filters
         if asset_type:
-            from app.models.cmdb_asset import AssetType
+            from app.models.asset import AssetType
             try:
                 asset_type_enum = AssetType(asset_type.lower())
-                query = query.where(CMDBAsset.asset_type == asset_type_enum)
+                query = query.where(Asset.asset_type == asset_type_enum)
             except ValueError:
                 # If asset_type doesn't match enum, filter by string comparison
-                query = query.where(CMDBAsset.asset_type.cast(String).ilike(f"%{asset_type}%"))
+                query = query.where(Asset.asset_type.cast(String).ilike(f"%{asset_type}%"))
         if environment:
-            query = query.where(CMDBAsset.environment.ilike(f"%{environment}%"))
+            query = query.where(Asset.environment.ilike(f"%{environment}%"))
         if department:
-            query = query.where(CMDBAsset.department.ilike(f"%{department}%"))
+            query = query.where(Asset.department.ilike(f"%{department}%"))
         if criticality:
-            query = query.where(CMDBAsset.criticality.ilike(f"%{criticality}%"))
+            query = query.where(Asset.business_criticality.ilike(f"%{criticality}%"))
         
         # Execute query to get all matching assets
         result = await db.execute(query)
@@ -1242,31 +1242,31 @@ async def get_asset_summary_statistics(
         from sqlalchemy.sql import cast
         from sqlalchemy import String
         
-        # Build base query for CMDB assets
-        query = select(CMDBAsset)
+        # Build base query for assets
+        query = select(Asset)
         
         # Apply context filtering for demo client (if context is available)
         demo_client_query = await db.execute(select(ClientAccount).where(ClientAccount.is_mock == True))
         demo_client = demo_client_query.scalar_one_or_none()
         
         if demo_client:
-            query = query.where(CMDBAsset.client_account_id == demo_client.id)
+            query = query.where(Asset.client_account_id == demo_client.id)
             logger.info(f"Filtering assets for demo client: {demo_client.name} ({demo_client.id})")
         
         # Apply filters (same as main assets endpoint)
         if asset_type:
-            from app.models.cmdb_asset import AssetType
+            from app.models.asset import AssetType
             try:
                 asset_type_enum = AssetType(asset_type.lower())
-                query = query.where(CMDBAsset.asset_type == asset_type_enum)
+                query = query.where(Asset.asset_type == asset_type_enum)
             except ValueError:
-                query = query.where(CMDBAsset.asset_type.cast(String).ilike(f"%{asset_type}%"))
+                query = query.where(Asset.asset_type.cast(String).ilike(f"%{asset_type}%"))
         if environment:
-            query = query.where(CMDBAsset.environment.ilike(f"%{environment}%"))
+            query = query.where(Asset.environment.ilike(f"%{environment}%"))
         if department:
-            query = query.where(CMDBAsset.department.ilike(f"%{department}%"))
+            query = query.where(Asset.department.ilike(f"%{department}%"))
         if criticality:
-            query = query.where(CMDBAsset.criticality.ilike(f"%{criticality}%"))
+            query = query.where(Asset.business_criticality.ilike(f"%{criticality}%"))
         
         # Execute query to get all matching assets
         result = await db.execute(query)

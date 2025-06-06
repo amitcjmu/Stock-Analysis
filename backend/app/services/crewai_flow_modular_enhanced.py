@@ -21,7 +21,7 @@ from .crewai_flow_handlers import (
     ValidationHandler, 
     FlowStateHandler
 )
-from app.models.cmdb_asset import CMDBAsset, AssetType
+from app.models.asset import Asset, AssetType
 from app.models.raw_import_record import RawImportRecord
 from app.core.database import AsyncSessionLocal
 
@@ -70,7 +70,7 @@ class DatabaseHandler:
     def __init__(self, config: CrewAIFlowConfig):
         self.config = config
     
-    async def create_cmdb_assets(
+    async def create_assets(
         self, 
         flow_state: DiscoveryFlowState, 
         session: AsyncSession,
@@ -87,7 +87,7 @@ class DatabaseHandler:
                 asset_data = classification.get("asset_data", {})
                 
                 # Create CMDBAsset instance
-                cmdb_asset = CMDBAsset(
+                asset = Asset(
                     id=uuid.uuid4(),
                     client_account_id=client_account_id,
                     engagement_id=engagement_id,
@@ -127,10 +127,10 @@ class DatabaseHandler:
                     is_mock=False
                 )
                 
-                session.add(cmdb_asset)
+                session.add(asset)
                 await session.flush()
                 
-                created_asset_ids.append(str(cmdb_asset.id))
+                created_asset_ids.append(str(asset.id))
                 
             await session.commit()
             logger.info(f"✅ Created {len(created_asset_ids)} CMDB assets")
@@ -400,7 +400,7 @@ class CrewAIFlowModularService:
                 
                 async with AsyncSessionLocal() as session:
                     # Create CMDB assets
-                    created_asset_ids = await self.database_handler.create_cmdb_assets(
+                    created_asset_ids = await self.database_handler.create_assets(
                         flow_state, session, client_account_id, engagement_id, user_id
                     )
                     flow_state.processed_assets = created_asset_ids

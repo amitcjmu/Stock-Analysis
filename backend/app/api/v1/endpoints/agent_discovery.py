@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.context import get_current_context
 from app.repositories.session_aware_repository import create_session_aware_repository
-from app.models.cmdb_asset import CMDBAsset
+from app.models.asset import Asset
 from app.services.agent_ui_bridge import agent_ui_bridge, QuestionType, ConfidenceLevel, DataClassification
 from app.services.discovery_agents.data_source_intelligence_agent import data_source_intelligence_agent
 from app.services.discovery_agents.application_discovery_agent import application_discovery_agent

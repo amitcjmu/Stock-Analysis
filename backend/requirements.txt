@@ -8,6 +8,7 @@ starlette>=0.27.0
 sqlalchemy>=2.0.0
 # psycopg2-binary>=2.9.0  # Commented out - use asyncpg instead
 alembic>=1.12.0
+pgvector>=0.2.4
 
 # DeepInfra AI provider using OpenAI-compatible API
 openai>=1.0.0

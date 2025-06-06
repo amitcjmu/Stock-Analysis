@@ -22,8 +22,9 @@ except ImportError:
     User = None
     UserAccountAssociation = None
 
-from .cmdb_asset import CMDBAsset, CMDBSixRAnalysis, MigrationWave, AssetType, AssetStatus, SixRStrategy
-from .tags import Tag, CMDBAssetEmbedding, AssetTag
+from .asset import Asset, AssetType, AssetStatus, SixRStrategy
+# Removed CMDBAsset imports - now using unified Asset model
+from .tags import Tag, AssetEmbedding, AssetTag
 from .data_import import (
     DataImport, RawImportRecord, ImportProcessingStep, ImportFieldMapping, 
     DataQualityIssue, ImportStatus, ImportType
@@ -94,16 +95,14 @@ __all__ = [
     "SixRQuestionResponse",
     
     # CMDB models (always available)
-    "CMDBAsset",
-    "CMDBSixRAnalysis",  # This is the new one from cmdb_asset.py
-    "MigrationWave",
-    "AssetType",     # This is the new one from cmdb_asset.py
-    "AssetStatus",   # This is the new one from cmdb_asset.py
-    "SixRStrategy",  # This is the new one from cmdb_asset.py
+    "Asset",         # Unified asset model
+    "AssetType",     # From unified Asset model
+    "AssetStatus",   # From unified Asset model
+    "SixRStrategy",  # From unified Asset model
     
     # Tags and embeddings
     "Tag",
-    "CMDBAssetEmbedding",
+    "AssetEmbedding",
     "AssetTag",
     
     # Data Import models

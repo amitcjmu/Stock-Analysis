@@ -65,13 +65,13 @@ class Tag(Base):
         return f"<Tag(id={self.id}, name='{self.name}', category='{self.category}')>"
 
 
-class CMDBAssetEmbedding(Base):
-    """Vector embeddings for CMDB assets to enable AI-driven similarity search and auto-tagging."""
+class AssetEmbedding(Base):
+    """Vector embeddings for assets to enable AI-driven similarity search and auto-tagging."""
     
-    __tablename__ = "cmdb_asset_embeddings"
+    __tablename__ = "asset_embeddings"
     
     id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    cmdb_asset_id = Column(PostgresUUID(as_uuid=True), ForeignKey('cmdb_assets.id', ondelete='CASCADE'), nullable=False, index=True)
+    asset_id = Column(PostgresUUID(as_uuid=True), ForeignKey('assets.id', ondelete='CASCADE'), nullable=False, index=True)
     
     # Multi-tenant isolation (inherited from asset, but explicit for vector queries)
     client_account_id = Column(PostgresUUID(as_uuid=True), ForeignKey('client_accounts.id', ondelete='CASCADE'), nullable=False, index=True)
@@ -92,10 +92,10 @@ class CMDBAssetEmbedding(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     # Relationships
-    cmdb_asset = relationship("CMDBAsset")
+    asset = relationship("Asset")
     
     def __repr__(self):
-        return f"<CMDBAssetEmbedding(id={self.id}, cmdb_asset_id={self.cmdb_asset_id}, is_mock={self.is_mock})>"
+        return f"<AssetEmbedding(id={self.id}, asset_id={self.asset_id}, is_mock={self.is_mock})>"
 
 
 class AssetTag(Base):
@@ -104,7 +104,7 @@ class AssetTag(Base):
     __tablename__ = "asset_tags"
     
     id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    cmdb_asset_id = Column(PostgresUUID(as_uuid=True), ForeignKey('cmdb_assets.id', ondelete='CASCADE'), nullable=False, index=True)
+    asset_id = Column(PostgresUUID(as_uuid=True), ForeignKey('assets.id', ondelete='CASCADE'), nullable=False, index=True)
     tag_id = Column(PostgresUUID(as_uuid=True), ForeignKey('tags.id', ondelete='CASCADE'), nullable=False, index=True)
     
     # Auto-tagging metadata
@@ -125,8 +125,8 @@ class AssetTag(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     # Relationships
-    cmdb_asset = relationship("CMDBAsset")
+    asset = relationship("Asset")
     tag = relationship("Tag")
     
     def __repr__(self):
-        return f"<AssetTag(cmdb_asset_id={self.cmdb_asset_id}, tag_id={self.tag_id}, confidence={self.confidence_score}, is_mock={self.is_mock})>" 
+        return f"<AssetTag(asset_id={self.asset_id}, tag_id={self.tag_id}, confidence={self.confidence_score}, is_mock={self.is_mock})>" 

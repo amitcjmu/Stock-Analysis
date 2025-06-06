@@ -31,8 +31,8 @@ except ImportError:
     def Field(**kwargs):
         return None
 
-from app.models.cmdb_asset import CMDBAsset
-from app.models.raw_import_record import RawImportRecord
+from app.models.asset import Asset
+from app.models.data_import import RawImportRecord
 from app.core.database import AsyncSessionLocal
 
 logger = logging.getLogger(__name__)
@@ -249,9 +249,9 @@ class CrewAIFlowDataProcessor(Flow[DataProcessingState]):
             return error_msg
     
     @listen(classify_assets_intelligently)
-    async def create_cmdb_assets(self, previous_result: str) -> str:
-        """Step 4: Create CMDB assets in database with proper relationships."""
-        self.logger.info("💾 Step 4: Creating CMDB assets in database")
+    async def create_assets(self, previous_result: str) -> str:
+        """Step 4: Create assets in database with proper relationships."""
+        self.logger.info("💾 Step 4: Creating assets in database")
         self.state.processing_status = "creating"
         self.state.current_step = 4
         self.update_progress()
@@ -266,8 +266,8 @@ class CrewAIFlowDataProcessor(Flow[DataProcessingState]):
                 
                 for asset_data in all_assets:
                     try:
-                        # Create CMDBAsset
-                        cmdb_asset = CMDBAsset(
+                        # Create Asset
+                        asset = Asset(
                             id=uuid.uuid4(),
                             client_account_id=self.state.client_account_id,
                             engagement_id=self.state.engagement_id,
@@ -301,10 +301,10 @@ class CrewAIFlowDataProcessor(Flow[DataProcessingState]):
                             created_at=datetime.utcnow()
                         )
                         
-                        session.add(cmdb_asset)
+                        session.add(asset)
                         await session.flush()  # Get the ID
                         
-                        self.state.processed_assets.append(str(cmdb_asset.id))
+                        self.state.processed_assets.append(str(asset.id))
                         created_count += 1
                         
                         # Update corresponding raw record
@@ -319,7 +319,7 @@ class CrewAIFlowDataProcessor(Flow[DataProcessingState]):
                         raw_record = raw_record_query.scalar_one_or_none()
                         
                         if raw_record:
-                            raw_record.cmdb_asset_id = cmdb_asset.id
+                            raw_record.asset_id = asset.id
                             raw_record.is_processed = True
                             raw_record.processed_at = datetime.utcnow()
                             raw_record.processing_notes = f"Processed by CrewAI Flow - classified as {asset_data['asset_type']}"
@@ -337,16 +337,16 @@ class CrewAIFlowDataProcessor(Flow[DataProcessingState]):
                 self.update_progress()
                 
                 self.logger.info(f"✅ CrewAI Flow completed successfully!")
-                self.logger.info(f"   📊 Created {created_count} CMDB assets")
+                self.logger.info(f"   📊 Created {created_count} assets")
                 self.logger.info(f"   📱 Applications: {len(self.state.applications)}")
                 self.logger.info(f"   🖥️  Servers: {len(self.state.servers)}")
                 self.logger.info(f"   🗄️  Databases: {len(self.state.databases)}")
                 self.logger.info(f"   ⚠️  Errors: {len(self.state.processing_errors)}")
                 
-                return f"Successfully created {created_count} CMDB assets with proper classification"
+                return f"Successfully created {created_count} assets with proper classification"
                 
         except Exception as e:
-            error_msg = f"Error creating CMDB assets: {e}"
+            error_msg = f"Error creating assets: {e}"
             self.state.processing_errors.append(error_msg)
             self.logger.error(error_msg)
             return error_msg
@@ -380,7 +380,7 @@ class CrewAIFlowDataProcessor(Flow[DataProcessingState]):
         
         # Check for application and server indicators
         for record in raw_records[:10]:  # Check first 10 records
-            citype = str(record.get("CITYPE", record.get("citype", record.get("CI_TYPE", ""))).lower()
+            citype = str(record.get("CITYPE", record.get("citype", record.get("CI_TYPE", "")))).lower()
             if "application" in citype:
                 analysis["has_applications"] = True
             if "server" in citype:

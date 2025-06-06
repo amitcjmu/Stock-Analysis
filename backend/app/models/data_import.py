@@ -116,7 +116,7 @@ class RawImportRecord(Base):
     # Status tracking
     is_processed = Column(Boolean, default=False)
     is_valid = Column(Boolean, default=True)
-    cmdb_asset_id = Column(UUID(as_uuid=True), ForeignKey("cmdb_assets.id"))  # Link to final asset if created
+    asset_id = Column(UUID(as_uuid=True), ForeignKey("assets.id"))  # Link to final asset if created
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -124,7 +124,7 @@ class RawImportRecord(Base):
     
     # Relationships
     data_import = relationship("DataImport", back_populates="raw_records")
-    cmdb_asset = relationship("CMDBAsset")
+    asset = relationship("Asset")
     
     def __repr__(self):
         return f"<RawImportRecord(id={self.id}, row={self.row_number}, processed={self.is_processed})>"
