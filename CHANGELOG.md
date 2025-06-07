@@ -2,6 +2,84 @@
 
 All notable changes to the AI Force Migration Platform will be documented in this file.
 
+## [0.8.12] - 2025-01-17
+
+### 🚨 **CRITICAL: Dependencies Page Fix + Backend RBAC Security**
+
+This release fixes **critical JavaScript errors** causing Dependencies page crashes and **critical backend 500 errors** in asset operations due to missing multi-tenant context.
+
+### 🐛 **Critical Issues Resolved**
+
+#### **Dependencies Page JavaScript Crashes**
+- **Problem**: `Uncaught ReferenceError: nodeSpacingX is not defined` causing page load failures
+- **Root Cause**: Variable scope issue in SVG rendering - nodeSpacingX defined in nodes section but used in edges section
+- **Impact**: Dependencies page completely unusable for all users
+- **Fix**: Restructured SVG rendering with shared IIFE scope for grid layout calculations
+
+#### **Backend Asset Operations 500 Errors**
+- **Problem**: Bulk delete, bulk update, cleanup operations returning `500 Internal Server Error`
+- **Root Cause**: Backend endpoints missing multi-tenant context dependencies
+- **Security Risk**: Operations executed without proper client/engagement scoping
+- **Fix**: Added `RequestContext` dependencies to all bulk operations
+
+### 🛡️ **Backend Security Fixes**
+
+#### **Asset Management API Endpoints**
+- **✅ Fixed**: `PUT /api/v1/discovery/assets/bulk` - Added context dependency and client_account_id/engagement_id scoping
+- **✅ Fixed**: `DELETE /api/v1/discovery/assets/bulk` - Added context dependency with proper parameter passing
+- **✅ Fixed**: `POST /api/v1/discovery/assets/cleanup-duplicates` - Added context dependency for safe cleanup
+- **✅ Fixed**: `GET /api/v1/discovery/applications` - Added context dependency for 6R Treatment proper scoping
+
+#### **Frontend Dependencies Page**
+- **✅ Fixed**: Shared grid layout calculation scope using IIFE pattern
+- **✅ Fixed**: Node spacing variables accessible to both edges and nodes rendering
+- **✅ Fixed**: Proper SVG structure with consistent variable access
+- **✅ Fixed**: Dependencies page now loads without JavaScript errors
+
+### 📊 **Technical Improvements**
+
+#### **Backend Endpoint Security**
+```python
+# Before: Missing context - security vulnerability
+@router.delete("/assets/bulk")
+async def bulk_delete_assets_endpoint(request: BulkDeleteRequest):
+    result = await crud_handler.bulk_delete_assets(request.asset_ids)
+
+# After: Proper context scoping - secure
+@router.delete("/assets/bulk") 
+async def bulk_delete_assets_endpoint(
+    request: BulkDeleteRequest,
+    context: RequestContext = Depends(get_current_context)
+):
+    result = await crud_handler.bulk_delete_assets(
+        request.asset_ids,
+        client_account_id=context.client_account_id,
+        engagement_id=context.engagement_id
+    )
+```
+
+#### **Frontend SVG Rendering**
+```javascript
+// Before: Scope error - nodeSpacingX undefined
+{edges.map(edge => {
+  const sourceX = 50 + sourceCol * nodeSpacingX; // ERROR!
+})}
+{nodes.map(node => {
+  const nodeSpacingX = 900 / Math.max(cols - 1, 1); // Defined here
+})}
+
+// After: Shared scope - variables accessible
+{(() => {
+  const nodeSpacingX = 900 / Math.max(cols - 1, 1);
+  return (
+    <>
+      {edges.map(...)} {/* nodeSpacingX accessible */}
+      {nodes.map(...)} {/* nodeSpacingX accessible */}
+    </>
+  );
+})()}
+```
+
 ## [0.8.11] - 2025-01-17
 
 ### 🔒 **CRITICAL: Inventory Delete Fix + Complete Multi-Tenant RBAC Coverage**

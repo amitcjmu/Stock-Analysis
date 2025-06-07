@@ -578,30 +578,35 @@ const Dependencies = () => {
                             </marker>
                           </defs>
                           
-                          {/* Render edges (connections) */}
-                          {filteredDependencyGraph.edges.map((edge, index) => {
-                            // Use a better grid layout instead of circular
-                            const sourceNode = filteredDependencyGraph.nodes.find(n => n.id === edge.source || n.label === edge.source);
-                            const targetNode = filteredDependencyGraph.nodes.find(n => n.id === edge.target || n.label === edge.target);
-                            
-                            if (!sourceNode || !targetNode) return null;
-                            
-                            // Calculate grid positions with better spacing
+                          {/* Calculate shared layout variables */}
+                          {(() => {
                             const cols = Math.ceil(Math.sqrt(filteredDependencyGraph.nodes.length));
                             const rows = Math.ceil(filteredDependencyGraph.nodes.length / cols);
+                            const nodeSpacingX = 900 / Math.max(cols - 1, 1);
+                            const nodeSpacingY = 400 / Math.max(rows - 1, 1);
                             
-                            const sourceIndex = filteredDependencyGraph.nodes.indexOf(sourceNode);
-                            const targetIndex = filteredDependencyGraph.nodes.indexOf(targetNode);
-                            
-                            const sourceCol = sourceIndex % cols;
-                            const sourceRow = Math.floor(sourceIndex / cols);
-                            const targetCol = targetIndex % cols;
-                            const targetRow = Math.floor(targetIndex / cols);
-                            
-                            const sourceX = 50 + sourceCol * nodeSpacingX;
-                            const sourceY = 50 + sourceRow * nodeSpacingY;
-                            const targetX = 50 + targetCol * nodeSpacingX;
-                            const targetY = 50 + targetRow * nodeSpacingY;
+                            return (
+                              <>
+                                {/* Render edges (connections) */}
+                                {filteredDependencyGraph.edges.map((edge, index) => {
+                                  // Use a better grid layout instead of circular
+                                  const sourceNode = filteredDependencyGraph.nodes.find(n => n.id === edge.source || n.label === edge.source);
+                                  const targetNode = filteredDependencyGraph.nodes.find(n => n.id === edge.target || n.label === edge.target);
+                                  
+                                  if (!sourceNode || !targetNode) return null;
+                                  
+                                  const sourceIndex = filteredDependencyGraph.nodes.indexOf(sourceNode);
+                                  const targetIndex = filteredDependencyGraph.nodes.indexOf(targetNode);
+                                  
+                                  const sourceCol = sourceIndex % cols;
+                                  const sourceRow = Math.floor(sourceIndex / cols);
+                                  const targetCol = targetIndex % cols;
+                                  const targetRow = Math.floor(targetIndex / cols);
+                                  
+                                  const sourceX = 50 + sourceCol * nodeSpacingX;
+                                  const sourceY = 50 + sourceRow * nodeSpacingY;
+                                  const targetX = 50 + targetCol * nodeSpacingX;
+                                  const targetY = 50 + targetRow * nodeSpacingY;
                             
                             // Calculate edge end point (stop before node)
                             const nodeRadius = 30;
@@ -666,24 +671,17 @@ const Dependencies = () => {
                                     }
                                   }}
                                 />
-                              </g>
-                            );
-                          })}
-                          
-                          {/* Render nodes */}
-                          {filteredDependencyGraph.nodes.map((node, index) => {
-                            // Calculate grid position with better spacing
-                            const cols = Math.ceil(Math.sqrt(filteredDependencyGraph.nodes.length));
-                            const rows = Math.ceil(filteredDependencyGraph.nodes.length / cols);
-                            
-                            const col = index % cols;
-                            const row = Math.floor(index / cols);
-                            
-                            const nodeSpacingX = 900 / Math.max(cols - 1, 1);
-                            const nodeSpacingY = 400 / Math.max(rows - 1, 1);
-                            
-                            const x = 50 + col * nodeSpacingX;
-                            const y = 50 + row * nodeSpacingY;
+                                  </g>
+                                );
+                              })}
+                              
+                              {/* Render nodes */}
+                              {filteredDependencyGraph.nodes.map((node, index) => {
+                                const col = index % cols;
+                                const row = Math.floor(index / cols);
+                                
+                                const x = 50 + col * nodeSpacingX;
+                                const y = 50 + row * nodeSpacingY;
                             
                             const nodeColor = node.type === 'application' ? '#3B82F6' : 
                                             node.type === 'server' ? '#10B981' : '#8B5CF6';
@@ -740,9 +738,12 @@ const Dependencies = () => {
                                     className="pointer-events-none"
                                   />
                                 )}
-                              </g>
+                                </g>
+                              );
+                            })}
+                              </>
                             );
-                          })}
+                          })()}
                         </svg>
                       )}
                       

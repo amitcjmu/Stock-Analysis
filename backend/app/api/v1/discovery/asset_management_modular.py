@@ -88,12 +88,20 @@ async def get_processed_assets_paginated(
         raise HTTPException(status_code=500, detail=f"Failed to retrieve assets: {str(e)}")
 
 @router.put("/assets/bulk")
-async def bulk_update_assets_endpoint(request: Request):
+async def bulk_update_assets_endpoint(
+    request: Request,
+    context: RequestContext = Depends(get_current_context)
+):
     """
-    Bulk update multiple assets.
+    Bulk update multiple assets with proper client/engagement scoping.
     """
     try:
         request_body = await request.json()
+        
+        # Add context information to the request
+        request_body['client_account_id'] = context.client_account_id
+        request_body['engagement_id'] = context.engagement_id
+        
         result = await crud_handler.bulk_update_assets(request_body)
         
         if result.get("status") == "error":
@@ -108,12 +116,20 @@ async def bulk_update_assets_endpoint(request: Request):
         raise HTTPException(status_code=500, detail=f"Failed to bulk update assets: {str(e)}")
 
 @router.delete("/assets/bulk")
-async def bulk_delete_assets_endpoint(request: BulkDeleteRequest):
+async def bulk_delete_assets_endpoint(
+    request: BulkDeleteRequest,
+    context: RequestContext = Depends(get_current_context)
+):
     """
-    Bulk delete multiple assets.
+    Bulk delete multiple assets with proper client/engagement scoping.
     """
     try:
-        result = await crud_handler.bulk_delete_assets(request.asset_ids)
+        # Pass context information to the CRUD handler
+        result = await crud_handler.bulk_delete_assets(
+            request.asset_ids,
+            client_account_id=context.client_account_id,
+            engagement_id=context.engagement_id
+        )
         
         if result.get("status") == "error":
             raise HTTPException(status_code=400, detail=result.get("message", "Bulk delete failed"))
@@ -162,12 +178,17 @@ async def reprocess_stored_assets():
         raise HTTPException(status_code=500, detail=f"Failed to reprocess assets: {str(e)}")
 
 @router.get("/applications")
-async def get_applications_for_analysis():
+async def get_applications_for_analysis(
+    context: RequestContext = Depends(get_current_context)
+):
     """
-    Get applications data specially formatted for 6R analysis.
+    Get applications data specially formatted for 6R analysis with proper client/engagement scoping.
     """
     try:
-        result = await processing_handler.get_applications_for_analysis()
+        result = await processing_handler.get_applications_for_analysis(
+            client_account_id=context.client_account_id,
+            engagement_id=context.engagement_id
+        )
         return result
         
     except Exception as e:
@@ -225,11 +246,16 @@ async def find_duplicate_assets_endpoint():
         raise HTTPException(status_code=500, detail=f"Failed to find duplicates: {str(e)}")
 
 @router.post("/assets/cleanup-duplicates")
-async def cleanup_duplicate_assets_endpoint():
-    """Remove duplicate assets from the inventory."""
+async def cleanup_duplicate_assets_endpoint(
+    context: RequestContext = Depends(get_current_context)
+):
+    """Remove duplicate assets from the inventory with proper client/engagement scoping."""
     try:
-        # Call the method directly - it's fast enough to not need thread pool
-        result = crud_handler.cleanup_duplicates()
+        # Call the method with context information
+        result = crud_handler.cleanup_duplicates(
+            client_account_id=context.client_account_id,
+            engagement_id=context.engagement_id
+        )
         return result
         
     except Exception as e:
