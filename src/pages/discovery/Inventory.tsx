@@ -757,17 +757,18 @@ const Inventory = () => {
   };
 
   const getTypeIcon = (type) => {
+    const iconClass = "h-5 w-5";
     switch (type) {
-      case 'Application': return Database;
-      case 'Server': return Server;
-      case 'Database': return HardDrive;
-      case 'Network Device': return Router;
-      case 'Storage Device': return HardDrive;
-      case 'Security Device': return Shield;
-      case 'Infrastructure Device': return Cpu;
-      case 'Virtualization Platform': return Cloud;
-      case 'Unknown': return Zap;
-      default: return Database;
+      case 'Application': return <Database className={iconClass} />;
+      case 'Server': return <Server className={iconClass} />;
+      case 'Database': return <HardDrive className={iconClass} />;
+      case 'Network Device': return <Router className={iconClass} />;
+      case 'Storage Device': return <HardDrive className={iconClass} />;
+      case 'Security Device': return <Shield className={iconClass} />;
+      case 'Infrastructure Device': return <Cpu className={iconClass} />;
+      case 'Virtualization Platform': return <Cloud className={iconClass} />;
+      case 'Unknown': return <Zap className={iconClass} />;
+      default: return <Database className={iconClass} />;
     }
   };
 

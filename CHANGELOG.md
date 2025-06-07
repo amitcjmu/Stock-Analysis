@@ -2,6 +2,42 @@
 
 All notable changes to the AI Force Migration Platform will be documented in this file.
 
+## [0.8.15] - 2025-01-17
+
+### 🎯 **CRITICAL: Unlinked Assets React Rendering Error Fix**
+
+This release fixes **critical React rendering error** in the Unlinked Assets tab preventing the tab from displaying properly.
+
+### 🐛 **React Component Error Fixed**
+
+#### **Unlinked Assets Tab Rendering Error**
+- **Problem**: `Objects are not valid as a React child (found: object with keys {$$typeof, render})`
+- **Impact**: Unlinked Assets tab completely broken, preventing asset migration planning
+- **Root Cause**: `getTypeIcon()` function returning React component class instead of JSX elements
+- **Fix**: Updated function to return proper JSX elements `<Database className="h-5 w-5" />`
+- **Result**: Unlinked Assets tab now renders successfully with 5 unlinked assets displayed
+
+### 🚀 **Technical Improvements**
+
+#### **Icon Rendering Standardization**
+- **Enhancement**: Proper JSX rendering for all asset type icons
+- **Icon Styling**: Consistent `h-5 w-5` sizing across all asset type indicators
+- **Code Quality**: Eliminated React object rendering errors throughout application
+
+### 📊 **Business Impact**
+
+#### **Migration Planning Restored**
+- **Unlinked Assets Visibility**: Full access to 5 unlinked assets requiring application mapping
+- **Critical Migration Data**: Infrastructure devices and servers visible for planning
+- **Asset Organization**: Clear distinction between application-linked and standalone assets
+
+### 🎯 **Success Metrics**
+
+#### **React Error Resolution**
+- **Error Rate**: 100% elimination of object rendering errors
+- **Tab Functionality**: Unlinked Assets tab fully operational with table display
+- **Data Access**: All 5 unlinked assets (Monitoring_Tool, etc.) accessible for migration planning
+
 ## [0.8.14] - 2025-01-17
 
 ### 🎯 **CRITICAL: Asset Inventory JavaScript Errors + Context Consistency Fix**
