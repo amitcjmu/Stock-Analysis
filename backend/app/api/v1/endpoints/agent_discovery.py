@@ -212,11 +212,11 @@ async def get_agent_status(
             all_classifications = agent_ui_bridge.get_classified_data_for_page(page_context)
             all_insights = agent_ui_bridge.get_insights_for_page(page_context)
             
-            # Apply client context filtering - include both client-specific data AND legacy data without client_account_id
+            # Apply strict client context filtering for proper multi-tenant isolation
             if context.client_account_id:
-                client_questions = [q for q in all_questions if q.get('client_account_id') == context.client_account_id or q.get('client_account_id') is None]
-                client_classifications = {k: v for k, v in all_classifications.items() if any(item.get('client_account_id') == context.client_account_id or item.get('client_account_id') is None for item in v)}
-                client_insights = [i for i in all_insights if i.get('client_account_id') == context.client_account_id or i.get('client_account_id') is None]
+                client_questions = [q for q in all_questions if q.get('client_account_id') == context.client_account_id]
+                client_classifications = {k: v for k, v in all_classifications.items() if any(item.get('client_account_id') == context.client_account_id for item in v)}
+                client_insights = [i for i in all_insights if i.get('client_account_id') == context.client_account_id]
             else:
                 # No client context, show all data
                 client_questions = all_questions

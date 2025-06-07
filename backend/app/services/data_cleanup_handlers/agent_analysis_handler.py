@@ -313,26 +313,26 @@ class AgentAnalysisHandler:
         score = 0.0
         max_score = 100.0
         
-        # Essential fields based on actual data structure (40 points)
-        essential_fields = ['ID', 'NAME', 'TYPE', 'ENVIRONMENT']
+        # Essential fields based on actual import data structure (40 points)
+        essential_fields = ['Name', 'Hostname', 'Environment']
         for field in essential_fields:
             value = asset.get(field)
             if value and str(value).strip() and str(value) != '<empty>':
-                score += 10.0
+                score += 13.33  # 40 points / 3 fields
         
-        # Important fields based on actual data structure (30 points)
-        important_fields = ['OS', 'IP ADDRESS', 'LOCATION']
+        # Important fields based on actual import data structure (40 points)  
+        important_fields = ['OS', 'IP_Address']
         for field in important_fields:
             value = asset.get(field)
             if value and str(value).strip() and str(value) != '<empty>':
-                score += 10.0
+                score += 20.0  # 40 points / 2 fields
         
-        # Optional fields based on actual data structure (30 points)
-        optional_fields = ['OWNER', 'CPU (CORES)', 'RAM (GB)', 'RELATED CMDB RECORDS']
+        # Optional fields that might exist (20 points)
+        optional_fields = ['ID', 'TYPE', 'LOCATION', 'OWNER', 'CPU (CORES)', 'RAM (GB)']
         for field in optional_fields:
             value = asset.get(field)
             if value and str(value).strip() and str(value) != '<empty>':
-                score += 7.5
+                score += 3.33  # 20 points / 6 fields
         
         return min(score, max_score)
     

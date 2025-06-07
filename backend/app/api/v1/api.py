@@ -190,6 +190,18 @@ if DATA_IMPORT_AVAILABLE:
         tags=["data-import"]
     )
 
+# Include data cleanup endpoints
+try:
+    from app.api.v1.endpoints import data_cleanup
+    api_router.include_router(
+        data_cleanup.router,
+        prefix="/data-cleanup",
+        tags=["data-cleanup"]
+    )
+    print("✅ Data cleanup endpoints available")
+except ImportError as e:
+    print(f"⚠️ Data cleanup endpoints not available: {e}")
+
 # Import workflow endpoints
 try:
     from app.api.v1.endpoints import asset_workflow

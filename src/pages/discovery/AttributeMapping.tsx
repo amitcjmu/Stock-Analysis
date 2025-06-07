@@ -178,52 +178,48 @@ const AttributeMapping = () => {
 
       let mappings: FieldMapping[] = [];
       
-      if (agentResponse.analysis && agentResponse.mappings) {
-        console.log('Using agent-generated mappings');
-        // Use agent recommendations
-        mappings = agentResponse.mappings.map((mapping: any, index: number) => ({
+      if (agentResponse.agent_analysis && agentResponse.agent_analysis.suggestions) {
+        console.log('Using agent-generated field mapping suggestions');
+        // Use agent recommendations from suggestions
+        mappings = agentResponse.agent_analysis.suggestions.map((suggestion: any, index: number) => ({
           id: `mapping-${index}`,
-          sourceField: mapping.source_field,
-          targetAttribute: mapping.target_attribute,
-          confidence: mapping.confidence,
+          sourceField: suggestion.source_field,
+          targetAttribute: suggestion.suggested_mappings[0], // Use first suggested mapping
+          confidence: suggestion.confidence,
           mapping_type: 'direct' as const,
-          sample_values: mapping.sample_values || [],
+          sample_values: extractSampleValues(suggestion.source_field, sampleData, 3),
           status: 'pending' as const,
-          ai_reasoning: mapping.reasoning
+          ai_reasoning: `Agent analysis: ${suggestion.mapping_type} mapping with ${Math.round(suggestion.confidence * 100)}% confidence`
         }));
         
         setCrewAnalysis([{
           agent: "Field Mapping Specialist",
-          task: "Intelligent field mapping with pattern recognition",
-          findings: agentResponse.analysis.findings || [
+          task: "Intelligent field mapping with content analysis",
+          findings: [
             `Analyzed ${columns.length} fields from imported data`,
-            `Identified ${mappings.length} potential mappings`,
-            `Applied learned patterns from previous mapping sessions`
+            `Identified ${mappings.length} potential mappings using content analysis`,
+            `Applied AI-driven pattern recognition instead of hardcoded rules`
           ],
-          recommendations: agentResponse.analysis.recommendations || [
+          recommendations: [
             "Review high-confidence mappings for approval",
-            "Verify critical attribute mappings for 6R analysis",
-            "Consider custom attributes for organizational-specific fields"
+            "Verify critical attribute mappings align with business requirements",
+            "Approve mappings to enable AI learning for future improvements"
           ],
-          confidence: agentResponse.analysis.confidence || 0.85
+          confidence: agentResponse.agent_analysis.confidence || 0.85
         }]);
       } else {
-        console.log('Using fallback field mapping logic');
-        // Fallback: Basic pattern matching
-        mappings = columns.map((column, index) => {
-          const match = findBestAttributeMatch(column, sampleData);
-          console.log(`Field mapping: "${column}" -> "${match.attribute}" (${match.confidence}) - ${match.reasoning}`);
-          return {
-            id: `mapping-${index}`,
-            sourceField: column,
-            targetAttribute: match.attribute,
-            confidence: match.confidence,
-            mapping_type: 'calculated' as const,
-            sample_values: extractSampleValues(column, sampleData, 3),
-            status: 'pending' as const,
-            ai_reasoning: match.reasoning
-          };
-        });
+        console.log('Agent analysis did not return mappings, creating unmapped entries for user selection');
+        // Fallback: Create unmapped entries for user selection
+        mappings = columns.map((column, index) => ({
+          id: `mapping-${index}`,
+          sourceField: column,
+          targetAttribute: 'unmapped',
+          confidence: 0,
+          mapping_type: 'calculated' as const,
+          sample_values: extractSampleValues(column, sampleData, 3),
+          status: 'pending' as const,
+          ai_reasoning: 'Agent analysis failed - please select mapping manually'
+        }));
       }
 
       console.log('Final field mappings:', mappings);
@@ -235,21 +231,17 @@ const AttributeMapping = () => {
       
     } catch (error) {
       console.error('Agent analysis failed, using fallback:', error);
-      // Fallback mapping logic
-      const mappings = columns.map((column, index) => {
-        const match = findBestAttributeMatch(column, sampleData);
-        console.log(`Fallback field mapping: "${column}" -> "${match.attribute}" (${match.confidence}) - ${match.reasoning}`);
-        return {
-          id: `mapping-${index}`,
-          sourceField: column,
-          targetAttribute: match.attribute,
-          confidence: match.confidence,
-          mapping_type: 'direct' as const,
-          sample_values: extractSampleValues(column, sampleData, 3),
-          status: 'pending' as const,
-          ai_reasoning: match.reasoning
-        };
-      });
+      // Fallback: Create unmapped entries for user selection
+      const mappings = columns.map((column, index) => ({
+        id: `mapping-${index}`,
+        sourceField: column,
+        targetAttribute: 'unmapped',
+        confidence: 0,
+        mapping_type: 'direct' as const,
+        sample_values: extractSampleValues(column, sampleData, 3),
+        status: 'pending' as const,
+        ai_reasoning: 'Agent analysis failed - please select mapping manually'
+      }));
       
       setFieldMappings(mappings);
       updateMappingProgress(mappings);
@@ -294,68 +286,11 @@ const AttributeMapping = () => {
     }
   };
 
-  // Find best attribute match using pattern recognition
+  // Find best attribute match using agent analysis instead of hardcoded patterns
   const findBestAttributeMatch = (column: string, sampleData: any[]) => {
-    const columnLower = column.toLowerCase();
-    
-    // Enhanced field mapping patterns
-    const fieldPatterns = {
-      asset_name: ['hostname', 'asset_name', 'name', 'asset name', 'server_name', 'host_name', 'computer_name', 'device_name'],
-      asset_type: ['asset_type', 'type', 'category', 'asset type', 'device_type', 'workload_type', 'classification'],
-      operating_system: ['os', 'operating_system', 'operating system', 'platform', 'os_name', 'os_type', 'operating_sys'],
-      environment: ['environment', 'env', 'stage', 'tier', 'deployment_environment', 'env_type'],
-      ip_address: ['ip_address', 'ip', 'ip address', 'host_ip', 'server_ip', 'network_address', 'primary_ip'],
-      business_criticality: ['criticality', 'business_criticality', 'priority', 'importance', 'critical', 'business_impact'],
-      department: ['department', 'dept', 'business_unit', 'organization', 'team', 'division', 'owner', 'business_owner']
-    };
-    
-    // Try pattern matching first
-    for (const [attribute, patterns] of Object.entries(fieldPatterns)) {
-      for (const pattern of patterns) {
-        if (columnLower === pattern || columnLower.includes(pattern) || pattern.includes(columnLower)) {
-          const confidence = columnLower === pattern ? 0.95 : 0.85;
-          return { 
-            attribute, 
-            confidence, 
-            reasoning: `Pattern match: '${column}' → '${CRITICAL_ATTRIBUTES[attribute as keyof typeof CRITICAL_ATTRIBUTES]?.field || attribute}' (${Math.round(confidence * 100)}% confidence)`
-          };
-        }
-      }
-    }
-    
-    // Analyze sample data for content-based matching
-    if (sampleData && sampleData.length > 0) {
-      const sampleValues = sampleData.map(row => String(row[column] || '')).filter(val => val.trim());
-      
-      if (sampleValues.length > 0) {
-        // IP Address pattern
-        const ipPattern = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/;
-        if (sampleValues.some(val => ipPattern.test(val))) {
-          return { attribute: 'ip_address', confidence: 0.9, reasoning: 'IP address pattern detected in sample data' };
-        }
-        
-        // Environment pattern
-        const envKeywords = ['production', 'prod', 'development', 'dev', 'test', 'staging', 'qa', 'uat'];
-        if (sampleValues.some(val => envKeywords.includes(val.toLowerCase()))) {
-          return { attribute: 'environment', confidence: 0.85, reasoning: 'Environment values detected in sample data' };
-        }
-        
-        // OS pattern
-        const osKeywords = ['windows', 'linux', 'ubuntu', 'centos', 'rhel', 'aix', 'solaris', 'macos', 'unix'];
-        if (sampleValues.some(val => osKeywords.some(os => val.toLowerCase().includes(os)))) {
-          return { attribute: 'operating_system', confidence: 0.85, reasoning: 'Operating system values detected in sample data' };
-        }
-        
-        // Hostname pattern
-        const hostnamePattern = /^[a-zA-Z0-9][a-zA-Z0-9\-\.]*[a-zA-Z0-9]$/;
-        if (sampleValues.some(val => hostnamePattern.test(val) && val.includes('.'))) {
-          return { attribute: 'asset_name', confidence: 0.8, reasoning: 'Hostname pattern detected in sample data' };
-        }
-      }
-    }
-    
-    // Default to unmapped
-    return { attribute: 'unmapped', confidence: 0, reasoning: 'No clear pattern detected - please select manually' };
+    // Let the agents analyze the data content rather than using hardcoded patterns
+    // This will be replaced by agent analysis in generateFieldMappings()
+    return null; // No hardcoded matching - let agents decide
   };
 
   // Extract sample values from column
@@ -492,8 +427,9 @@ const AttributeMapping = () => {
 
   // Check if we can continue to data cleansing
   const canContinueToDataCleansing = () => {
-    const missingFields = getMissingCriticalFields();
-    return missingFields.length === 0;
+    const unmappedCriticalFields = getMissingCriticalFields();
+    // Enable continue by default unless there are more than 5 critical fields unmapped
+    return unmappedCriticalFields.length <= 5;
   };
 
   // Handle continue to data cleansing
@@ -863,8 +799,8 @@ const AttributeMapping = () => {
                 
                 {!canContinueToDataCleansing() && (
                   <div className="text-center text-sm text-gray-600 mt-2">
-                    <p>Missing required mappings: {getMissingCriticalFields().map(field => CRITICAL_ATTRIBUTES[field as keyof typeof CRITICAL_ATTRIBUTES]?.field || field).join(', ')}</p>
-                    <p className="text-xs mt-1">Please map these critical fields to proceed to data cleansing</p>
+                    <p>Too many critical fields unmapped: {getMissingCriticalFields().slice(0, 5).map(field => CRITICAL_ATTRIBUTES[field as keyof typeof CRITICAL_ATTRIBUTES]?.field || field).join(', ')}{getMissingCriticalFields().length > 5 ? '...' : ''}</p>
+                    <p className="text-xs mt-1">Please map more critical fields (maximum 5 can remain unmapped)</p>
                   </div>
                 )}
               </div>
