@@ -26,7 +26,7 @@ class ParameterManagementHandler:
                 SixRParameterUpdateRequest, SixRAnalysisResponse, 
                 AnalysisStatus, SixRParameterBase
             )
-            from app.services.sixr_engine import SixRDecisionEngine
+            from app.services.sixr_engine_modular import SixRDecisionEngine
             
             self.SixRAnalysis = SixRAnalysis
             self.SixRParametersModel = SixRParametersModel

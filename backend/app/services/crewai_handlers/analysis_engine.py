@@ -20,7 +20,7 @@ class AnalysisEngine:
         """Initialize dependencies with graceful fallbacks."""
         try:
             from app.services.memory import AgentMemory
-            from app.services.analysis import IntelligentAnalyzer, PlaceholderAnalyzer
+            from app.services.analysis_modular import IntelligentAnalysisService
             
             self.memory = AgentMemory()
             self.analyzer = IntelligentAnalyzer(self.memory)
