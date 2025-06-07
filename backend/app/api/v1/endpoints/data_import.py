@@ -504,35 +504,155 @@ async def create_field_mapping(
 
 @router.get("/available-target-fields")
 async def get_available_target_fields():
-    """Get list of available target fields for mapping."""
-    # Standard CMDB fields
-    standard_fields = [
-        {"name": "hostname", "type": "string", "required": True, "description": "Asset hostname or server ID"},
-        {"name": "asset_name", "type": "string", "required": False, "description": "Descriptive name of application/service"},
-        {"name": "ip_address", "type": "string", "required": False, "description": "Primary IP address"},
-        {"name": "mac_address", "type": "string", "required": False, "description": "MAC address (separate from IP)"},
-        {"name": "asset_type", "type": "string", "required": True, "description": "Type of asset (Server, Database, etc.)"},
-        {"name": "operating_system", "type": "string", "required": False, "description": "Operating system"},
-        {"name": "environment", "type": "string", "required": True, "description": "Environment (Production, Test, etc.)"},
-        {"name": "cpu_cores", "type": "integer", "required": False, "description": "Number of CPU cores"},
-        {"name": "memory_gb", "type": "number", "required": False, "description": "Memory in GB"},
-        {"name": "storage_gb", "type": "number", "required": False, "description": "Storage in GB"},
-        {"name": "location", "type": "string", "required": False, "description": "Physical location or datacenter"},
-        {"name": "department", "type": "string", "required": False, "description": "Owning department"},
-        {"name": "business_criticality", "type": "string", "required": False, "description": "Business criticality level"},
-        {"name": "cost_center", "type": "string", "required": False, "description": "Cost center code"},
-        {"name": "owner", "type": "string", "required": False, "description": "Asset owner"},
-        {"name": "vendor", "type": "string", "required": False, "description": "Hardware/software vendor"},
-        {"name": "model", "type": "string", "required": False, "description": "Asset model number"},
-        {"name": "serial_number", "type": "string", "required": False, "description": "Serial number"},
-        {"name": "purchase_date", "type": "date", "required": False, "description": "Purchase date"},
-        {"name": "warranty_end", "type": "date", "required": False, "description": "Warranty end date"},
-        {"name": "application_name", "type": "string", "required": False, "description": "Primary application running on asset"},
-        {"name": "database_name", "type": "string", "required": False, "description": "Database name if applicable"},
-        {"name": "service_tier", "type": "string", "required": False, "description": "Service tier classification"}
+    """Get comprehensive list of available target fields for mapping from Asset model."""
+    
+    # Core identification fields
+    identification_fields = [
+        {"name": "name", "type": "string", "required": True, "description": "Asset name or identifier", "category": "identification"},
+        {"name": "hostname", "type": "string", "required": False, "description": "Asset hostname or server ID", "category": "identification"},
+        {"name": "asset_id", "type": "string", "required": False, "description": "Asset ID from source system", "category": "identification"},
+        {"name": "fqdn", "type": "string", "required": False, "description": "Fully qualified domain name", "category": "identification"},
+        {"name": "asset_name", "type": "string", "required": False, "description": "Descriptive asset name", "category": "identification"},
     ]
     
-    return {"fields": standard_fields}
+    # Technical specification fields
+    technical_fields = [
+        {"name": "asset_type", "type": "enum", "required": True, "description": "Type of asset (server, database, application, etc.)", "category": "technical"},
+        {"name": "operating_system", "type": "string", "required": False, "description": "Operating system", "category": "technical"},
+        {"name": "os_version", "type": "string", "required": False, "description": "Operating system version", "category": "technical"},
+        {"name": "cpu_cores", "type": "integer", "required": False, "description": "Number of CPU cores", "category": "technical"},
+        {"name": "memory_gb", "type": "number", "required": False, "description": "Memory in GB", "category": "technical"},
+        {"name": "storage_gb", "type": "number", "required": False, "description": "Storage in GB", "category": "technical"},
+        {"name": "hardware_type", "type": "string", "required": False, "description": "Hardware type or model", "category": "technical"},
+        {"name": "intelligent_asset_type", "type": "string", "required": False, "description": "AI-classified asset type", "category": "technical"},
+    ]
+    
+    # Network and connectivity fields
+    network_fields = [
+        {"name": "ip_address", "type": "string", "required": False, "description": "Primary IP address", "category": "network"},
+        {"name": "network_interfaces", "type": "json", "required": False, "description": "Network interface configuration", "category": "network"},
+    ]
+    
+    # Environment and location fields  
+    environment_fields = [
+        {"name": "environment", "type": "string", "required": True, "description": "Environment (Production, Test, Development, etc.)", "category": "environment"},
+        {"name": "datacenter", "type": "string", "required": False, "description": "Datacenter or facility", "category": "environment"},
+        {"name": "location", "type": "string", "required": False, "description": "Physical location", "category": "environment"},
+        {"name": "rack_location", "type": "string", "required": False, "description": "Rack location within datacenter", "category": "environment"},
+        {"name": "availability_zone", "type": "string", "required": False, "description": "Cloud availability zone", "category": "environment"},
+    ]
+    
+    # Business ownership fields
+    business_fields = [
+        {"name": "business_owner", "type": "string", "required": False, "description": "Business owner or stakeholder", "category": "business"},
+        {"name": "technical_owner", "type": "string", "required": False, "description": "Technical owner or administrator", "category": "business"},
+        {"name": "department", "type": "string", "required": False, "description": "Owning department", "category": "business"},
+        {"name": "business_criticality", "type": "string", "required": False, "description": "Business criticality level", "category": "business"},
+        {"name": "source_system", "type": "string", "required": False, "description": "Source system or CMDB", "category": "business"},
+    ]
+    
+    # Application and software fields
+    application_fields = [
+        {"name": "application_id", "type": "string", "required": False, "description": "Application identifier", "category": "application"},
+        {"name": "application_name", "type": "string", "required": False, "description": "Application name", "category": "application"},
+        {"name": "application_version", "type": "string", "required": False, "description": "Application version", "category": "application"},
+        {"name": "programming_language", "type": "string", "required": False, "description": "Primary programming language", "category": "application"},
+        {"name": "framework", "type": "string", "required": False, "description": "Software framework", "category": "application"},
+        {"name": "database_type", "type": "string", "required": False, "description": "Database type or engine", "category": "application"},
+        {"name": "technology_stack", "type": "string", "required": False, "description": "Technology stack details", "category": "application"},
+    ]
+    
+    # Migration planning fields
+    migration_fields = [
+        {"name": "six_r_strategy", "type": "enum", "required": False, "description": "6R migration strategy", "category": "migration"},
+        {"name": "migration_priority", "type": "integer", "required": False, "description": "Migration priority (1-10)", "category": "migration"},
+        {"name": "migration_complexity", "type": "string", "required": False, "description": "Migration complexity assessment", "category": "migration"},
+        {"name": "migration_wave", "type": "integer", "required": False, "description": "Migration wave number", "category": "migration"},
+        {"name": "cloud_readiness_score", "type": "number", "required": False, "description": "Cloud readiness score (0-10)", "category": "migration"},
+        {"name": "modernization_complexity", "type": "string", "required": False, "description": "Modernization complexity level", "category": "migration"},
+        {"name": "recommended_6r_strategy", "type": "string", "required": False, "description": "AI recommended 6R strategy", "category": "migration"},
+        {"name": "strategy_confidence", "type": "number", "required": False, "description": "Confidence in strategy recommendation", "category": "migration"},
+        {"name": "strategy_rationale", "type": "text", "required": False, "description": "Rationale for strategy selection", "category": "migration"},
+        {"name": "sixr_ready", "type": "string", "required": False, "description": "6R strategy readiness", "category": "migration"},
+        {"name": "estimated_migration_effort", "type": "string", "required": False, "description": "Estimated migration effort", "category": "migration"},
+    ]
+    
+    # Cost and financial fields
+    cost_fields = [
+        {"name": "current_monthly_cost", "type": "number", "required": False, "description": "Current monthly operating cost", "category": "cost"},
+        {"name": "estimated_cloud_cost", "type": "number", "required": False, "description": "Estimated cloud cost", "category": "cost"},
+        {"name": "estimated_monthly_cost", "type": "number", "required": False, "description": "Estimated monthly cost", "category": "cost"},
+        {"name": "license_cost", "type": "number", "required": False, "description": "Software license cost", "category": "cost"},
+        {"name": "support_cost", "type": "number", "required": False, "description": "Support and maintenance cost", "category": "cost"},
+        {"name": "cost_optimization_potential", "type": "number", "required": False, "description": "Cost optimization potential", "category": "cost"},
+    ]
+    
+    # Risk and security fields
+    risk_fields = [
+        {"name": "risk_score", "type": "number", "required": False, "description": "Overall risk score", "category": "risk"},
+        {"name": "security_classification", "type": "string", "required": False, "description": "Security classification level", "category": "risk"},
+        {"name": "vulnerability_score", "type": "number", "required": False, "description": "Security vulnerability score", "category": "risk"},
+        {"name": "tech_debt_score", "type": "number", "required": False, "description": "Technical debt score", "category": "risk"},
+        {"name": "compliance_requirements", "type": "json", "required": False, "description": "Compliance requirements", "category": "risk"},
+        {"name": "security_findings", "type": "json", "required": False, "description": "Security assessment findings", "category": "risk"},
+    ]
+    
+    # Dependencies and relationships
+    dependency_fields = [
+        {"name": "dependencies", "type": "json", "required": False, "description": "Asset dependencies", "category": "dependencies"},
+        {"name": "dependents", "type": "json", "required": False, "description": "Assets dependent on this asset", "category": "dependencies"},
+    ]
+    
+    # Performance and quality fields
+    performance_fields = [
+        {"name": "performance_metrics", "type": "json", "required": False, "description": "Performance metrics", "category": "performance"},
+        {"name": "compatibility_issues", "type": "json", "required": False, "description": "Compatibility issues", "category": "performance"},
+        {"name": "completeness_score", "type": "number", "required": False, "description": "Data completeness score", "category": "performance"},
+        {"name": "quality_score", "type": "number", "required": False, "description": "Overall data quality score", "category": "performance"},
+        {"name": "confidence_score", "type": "number", "required": False, "description": "AI confidence score", "category": "performance"},
+        {"name": "ai_confidence_score", "type": "number", "required": False, "description": "AI analysis confidence", "category": "performance"},
+    ]
+    
+    # Discovery and metadata fields
+    discovery_fields = [
+        {"name": "discovery_method", "type": "string", "required": False, "description": "Discovery method used", "category": "discovery"},
+        {"name": "discovery_source", "type": "string", "required": False, "description": "Discovery source system", "category": "discovery"},
+        {"name": "source_file", "type": "string", "required": False, "description": "Source import file", "category": "discovery"},
+        {"name": "description", "type": "text", "required": False, "description": "Asset description", "category": "discovery"},
+    ]
+    
+    # AI insights and recommendations
+    ai_fields = [
+        {"name": "ai_recommendations", "type": "json", "required": False, "description": "AI recommendations", "category": "ai_insights"},
+    ]
+    
+    # Combine all fields
+    all_fields = (
+        identification_fields + technical_fields + network_fields + 
+        environment_fields + business_fields + application_fields + 
+        migration_fields + cost_fields + risk_fields + dependency_fields +
+        performance_fields + discovery_fields + ai_fields
+    )
+    
+    return {
+        "fields": all_fields,
+        "field_count": len(all_fields),
+        "categories": {
+            "identification": len(identification_fields),
+            "technical": len(technical_fields), 
+            "network": len(network_fields),
+            "environment": len(environment_fields),
+            "business": len(business_fields),
+            "application": len(application_fields),
+            "migration": len(migration_fields),
+            "cost": len(cost_fields),
+            "risk": len(risk_fields),
+            "dependencies": len(dependency_fields),
+            "performance": len(performance_fields),
+            "discovery": len(discovery_fields),
+            "ai_insights": len(ai_fields)
+        }
+    }
 
 @router.post("/custom-fields")
 async def create_custom_field(
@@ -676,12 +796,12 @@ async def get_all_available_fields(db: AsyncSession):
         {"name": "hostname", "type": "string", "required": True, "description": "Asset hostname or server ID"},
         {"name": "asset_name", "type": "string", "required": False, "description": "Descriptive name of application/service"},
         {"name": "ip_address", "type": "string", "required": False, "description": "Primary IP address"},
-        {"name": "asset_type", "type": "string", "required": True, "description": "Type of asset"},
+        {"name": "asset_type", "type": "string", "required": True, "description": "Type of asset (Server, Database, etc.)"},
         {"name": "operating_system", "type": "string", "required": False, "description": "Operating system"},
-        {"name": "environment", "type": "string", "required": True, "description": "Environment"},
+        {"name": "environment", "type": "string", "required": True, "description": "Environment (Production, Test, etc.)"},
         {"name": "cpu_cores", "type": "integer", "required": False, "description": "Number of CPU cores"},
         {"name": "memory_gb", "type": "number", "required": False, "description": "Memory in GB"},
-        {"name": "location", "type": "string", "required": False, "description": "Physical location"},
+        {"name": "location", "type": "string", "required": False, "description": "Physical location or datacenter"},
         {"name": "department", "type": "string", "required": False, "description": "Owning department"},
         {"name": "owner", "type": "string", "required": False, "description": "Asset owner"},
         {"name": "vendor", "type": "string", "required": False, "description": "Hardware/software vendor"},
@@ -1754,3 +1874,214 @@ async def _fallback_raw_to_assets_processing(
         "agentic_intelligence": False,
         "import_session_id": import_session_id
     } 
+
+@router.get("/critical-attributes-status")
+async def get_critical_attributes_status(
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+):
+    """Get critical attributes mapping status with real-time progress."""
+    try:
+        from app.models.import_field_mapping import ImportFieldMapping
+        from sqlalchemy import select, func, and_
+        
+        # Define critical attributes framework
+        critical_attributes = {
+            "asset_name": {
+                "field": "Asset Name",
+                "category": "identification",
+                "description": "Primary identifier for the asset",
+                "required": True,
+                "migration_critical": True,
+                "business_impact": "high"
+            },
+            "hostname": {
+                "field": "Hostname",
+                "category": "identification", 
+                "description": "Network hostname or FQDN",
+                "required": True,
+                "migration_critical": True,
+                "business_impact": "high"
+            },
+            "asset_type": {
+                "field": "Asset Type",
+                "category": "technical",
+                "description": "Classification of asset (server, application, etc.)",
+                "required": True,
+                "migration_critical": True,
+                "business_impact": "high"
+            },
+            "environment": {
+                "field": "Environment",
+                "category": "environment",
+                "description": "Operating environment (Production, Test, etc.)",
+                "required": True,
+                "migration_critical": True,
+                "business_impact": "high"
+            },
+            "business_criticality": {
+                "field": "Business Criticality",
+                "category": "business",
+                "description": "Business importance level",
+                "required": False,
+                "migration_critical": True,
+                "business_impact": "high"
+            },
+            "department": {
+                "field": "Department",
+                "category": "business",
+                "description": "Owning department or business unit",
+                "required": False,
+                "migration_critical": False,
+                "business_impact": "medium"
+            },
+            "ip_address": {
+                "field": "IP Address",
+                "category": "network",
+                "description": "Primary IP address",
+                "required": False,
+                "migration_critical": False,
+                "business_impact": "medium"
+            },
+            "operating_system": {
+                "field": "Operating System",
+                "category": "technical",
+                "description": "Operating system and version",
+                "required": False,
+                "migration_critical": False,
+                "business_impact": "medium"
+            },
+            "business_owner": {
+                "field": "Business Owner",
+                "category": "business",
+                "description": "Business owner or stakeholder",
+                "required": False,
+                "migration_critical": False,
+                "business_impact": "medium"
+            },
+            "technical_owner": {
+                "field": "Technical Owner",
+                "category": "business",
+                "description": "Technical owner or administrator",
+                "required": False,
+                "migration_critical": False,
+                "business_impact": "medium"
+            }
+        }
+        
+        # Get current field mappings for critical attributes
+        query = select(ImportFieldMapping).where(
+            and_(
+                ImportFieldMapping.client_account_id == context.client_account_id,
+                ImportFieldMapping.engagement_id == context.engagement_id,
+                ImportFieldMapping.target_field.in_(list(critical_attributes.keys()))
+            )
+        )
+        
+        result = await db.execute(query)
+        mappings = result.scalars().all()
+        
+        # Process each critical attribute with current mapping status
+        attributes_status = []
+        for attr_key, attr_config in critical_attributes.items():
+            # Find current mapping for this attribute
+            current_mapping = next((m for m in mappings if m.target_field == attr_key), None)
+            
+            # Determine status and mapping details
+            if current_mapping:
+                if current_mapping.status == "approved":
+                    status = "mapped"
+                    confidence = current_mapping.confidence or 0.8
+                    quality_score = min(95, confidence * 100 + 10)
+                    completeness_percentage = 100
+                elif current_mapping.status == "pending":
+                    status = "partially_mapped"
+                    confidence = current_mapping.confidence or 0.0
+                    quality_score = confidence * 70  # Lower quality for pending
+                    completeness_percentage = 50
+                else:  # rejected
+                    status = "unmapped"
+                    confidence = None
+                    quality_score = 0
+                    completeness_percentage = 0
+                
+                mapped_to = current_mapping.source_field if status == "mapped" else None
+                mapping_type = current_mapping.mapping_type if status == "mapped" else None
+            else:
+                status = "unmapped"
+                confidence = None
+                quality_score = 0
+                completeness_percentage = 0
+                mapped_to = None
+                mapping_type = None
+            
+            # Generate AI suggestion for unmapped fields
+            ai_suggestion = None
+            if status == "unmapped":
+                if attr_key == "asset_name":
+                    ai_suggestion = "Look for fields containing 'name', 'hostname', 'asset', or 'identifier'"
+                elif attr_key == "asset_type":
+                    ai_suggestion = "Look for fields indicating server, application, database, or device type"
+                elif attr_key == "environment":
+                    ai_suggestion = "Look for fields indicating prod, test, dev, or environment classification"
+            
+            attribute_status = {
+                "name": attr_key,
+                "description": attr_config["description"],
+                "category": attr_config["category"],
+                "required": attr_config["required"],
+                "status": status,
+                "mapped_to": mapped_to,
+                "source_field": mapped_to,
+                "confidence": confidence,
+                "quality_score": quality_score,
+                "completeness_percentage": completeness_percentage,
+                "mapping_type": mapping_type,
+                "ai_suggestion": ai_suggestion,
+                "business_impact": attr_config["business_impact"],
+                "migration_critical": attr_config["migration_critical"]
+            }
+            
+            attributes_status.append(attribute_status)
+        
+        # Calculate overall statistics
+        total_attributes = len(critical_attributes)
+        mapped_count = len([a for a in attributes_status if a["status"] == "mapped"])
+        pending_count = len([a for a in attributes_status if a["status"] == "partially_mapped"])
+        unmapped_count = len([a for a in attributes_status if a["status"] == "unmapped"])
+        
+        migration_critical_count = len([a for a in attributes_status if a["migration_critical"]])
+        migration_critical_mapped = len([a for a in attributes_status if a["migration_critical"] and a["status"] == "mapped"])
+        
+        overall_completeness = round((mapped_count / total_attributes) * 100) if total_attributes > 0 else 0
+        
+        mapped_attributes = [a for a in attributes_status if a["status"] == "mapped"]
+        avg_quality_score = round(sum(a["quality_score"] for a in mapped_attributes) / len(mapped_attributes)) if mapped_attributes else 0
+        
+        # Assessment readiness check
+        assessment_ready = migration_critical_mapped >= 3  # Need at least 3 critical attributes mapped
+        
+        return {
+            "attributes": attributes_status,
+            "statistics": {
+                "total_attributes": total_attributes,
+                "mapped_count": mapped_count,
+                "pending_count": pending_count,
+                "unmapped_count": unmapped_count,
+                "migration_critical_count": migration_critical_count,
+                "migration_critical_mapped": migration_critical_mapped,
+                "overall_completeness": overall_completeness,
+                "avg_quality_score": avg_quality_score,
+                "assessment_ready": assessment_ready
+            },
+            "recommendations": {
+                "next_priority": "Map asset identification fields (name, hostname) first",
+                "assessment_readiness": f"Map {max(0, 3 - migration_critical_mapped)} more critical field(s) to proceed",
+                "quality_improvement": "Focus on high-confidence mappings for better analysis accuracy"
+            },
+            "last_updated": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get critical attributes status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

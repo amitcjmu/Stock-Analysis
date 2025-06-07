@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, CheckCircle, X, RefreshCw, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowRight, CheckCircle, X, RefreshCw, ChevronDown, ChevronLeft, ChevronRight, Tag } from 'lucide-react';
 import { apiCall, API_CONFIG } from '../../../config/api';
 
 interface FieldMapping {
@@ -19,6 +19,7 @@ interface TargetField {
   type: string;
   required: boolean;
   description: string;
+  category: string;
   is_custom?: boolean;
 }
 
@@ -31,6 +32,23 @@ interface FieldMappingsTabProps {
 
 const ITEMS_PER_PAGE = 6;
 
+// Category colors for visual organization
+const CATEGORY_COLORS: Record<string, string> = {
+  identification: 'bg-blue-100 text-blue-800',
+  technical: 'bg-green-100 text-green-800',
+  network: 'bg-purple-100 text-purple-800',
+  environment: 'bg-yellow-100 text-yellow-800',
+  business: 'bg-orange-100 text-orange-800',
+  application: 'bg-pink-100 text-pink-800',
+  migration: 'bg-indigo-100 text-indigo-800',
+  cost: 'bg-red-100 text-red-800',
+  risk: 'bg-gray-100 text-gray-800',
+  dependencies: 'bg-cyan-100 text-cyan-800',
+  performance: 'bg-teal-100 text-teal-800',
+  discovery: 'bg-lime-100 text-lime-800',
+  ai_insights: 'bg-violet-100 text-violet-800'
+};
+
 const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
   fieldMappings,
   isAnalyzing,
@@ -41,6 +59,8 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
   const [loadingFields, setLoadingFields] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Load available target fields on component mount
   useEffect(() => {
@@ -53,21 +73,58 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
       const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AVAILABLE_TARGET_FIELDS);
       if (response && response.fields) {
         setAvailableFields(response.fields);
+        console.log(`📋 Loaded ${response.fields.length} available target fields across ${Object.keys(response.categories || {}).length} categories`);
       }
     } catch (error) {
       console.error('Failed to load available target fields:', error);
-      // Fallback to basic fields if API fails
+      // Enhanced fallback with categories
       setAvailableFields([
-        { name: 'hostname', type: 'string', required: true, description: 'Asset hostname' },
-        { name: 'asset_name', type: 'string', required: false, description: 'Asset name' },
-        { name: 'asset_type', type: 'string', required: true, description: 'Asset type' },
-        { name: 'ip_address', type: 'string', required: false, description: 'IP address' },
-        { name: 'environment', type: 'string', required: true, description: 'Environment' },
-        { name: 'operating_system', type: 'string', required: false, description: 'Operating system' }
+        { name: 'name', type: 'string', required: true, description: 'Asset name or identifier', category: 'identification' },
+        { name: 'hostname', type: 'string', required: true, description: 'Asset hostname', category: 'identification' },
+        { name: 'asset_name', type: 'string', required: false, description: 'Asset name', category: 'identification' },
+        { name: 'asset_type', type: 'enum', required: true, description: 'Asset type', category: 'technical' },
+        { name: 'ip_address', type: 'string', required: false, description: 'IP address', category: 'network' },
+        { name: 'environment', type: 'string', required: true, description: 'Environment', category: 'environment' },
+        { name: 'operating_system', type: 'string', required: false, description: 'Operating system', category: 'technical' },
+        { name: 'cpu_cores', type: 'integer', required: false, description: 'CPU cores', category: 'technical' },
+        { name: 'memory_gb', type: 'number', required: false, description: 'Memory in GB', category: 'technical' },
+        { name: 'department', type: 'string', required: false, description: 'Department', category: 'business' },
+        { name: 'business_owner', type: 'string', required: false, description: 'Business owner', category: 'business' }
       ]);
     } finally {
       setLoadingFields(false);
     }
+  };
+
+  // Get unique categories from available fields
+  const getCategories = () => {
+    const categories = Array.from(new Set(availableFields.map(field => field.category))).sort();
+    return ['all', ...categories];
+  };
+
+  // Filter fields by category and search term
+  const getFilteredFields = () => {
+    let filtered = availableFields;
+    
+    if (selectedCategory !== 'all') {
+      filtered = filtered.filter(field => field.category === selectedCategory);
+    }
+    
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(field => 
+        field.name.toLowerCase().includes(term) ||
+        field.description.toLowerCase().includes(term) ||
+        field.category.toLowerCase().includes(term)
+      );
+    }
+    
+    return filtered.sort((a, b) => {
+      // Sort by required first, then by name
+      if (a.required && !b.required) return -1;
+      if (!a.required && b.required) return 1;
+      return a.name.localeCompare(b.name);
+    });
   };
 
   // Calculate pagination
@@ -88,6 +145,11 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
       ...prev, 
       [mappingId]: !prev[mappingId] 
     }));
+    // Reset filters when opening dropdown
+    if (!openDropdowns[mappingId]) {
+      setSelectedCategory('all');
+      setSearchTerm('');
+    }
   };
 
   const getConfidenceColor = (confidence: number) => {
@@ -104,10 +166,19 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
     }
   };
 
+  const getCategoryColor = (category: string) => {
+    return CATEGORY_COLORS[category] || 'bg-gray-100 text-gray-700';
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-8">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">Field Mapping Suggestions</h2>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Field Mapping Suggestions</h2>
+          <p className="text-sm text-gray-600 mt-1">
+            {availableFields.length} available target fields across {getCategories().length - 1} categories
+          </p>
+        </div>
         {isAnalyzing && (
           <div className="flex items-center space-x-2 text-blue-600">
             <RefreshCw className="h-4 w-4 animate-spin" />
@@ -126,7 +197,7 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
                   <h4 className="font-medium text-gray-900">{mapping.sourceField}</h4>
                   <ArrowRight className="h-4 w-4 text-gray-400" />
                   
-                  {/* Dropdown for target field selection */}
+                  {/* Enhanced dropdown for target field selection */}
                   <div className="relative">
                     <button
                       onClick={() => toggleDropdown(mapping.id)}
@@ -143,132 +214,166 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
                       )}
                     </button>
                     
-                    {/* Dropdown menu */}
+                    {/* Enhanced dropdown menu with categories and search */}
                     {openDropdowns[mapping.id] && mapping.status === 'pending' && (
-                      <div className="absolute z-10 mt-1 w-64 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                      <div className="absolute z-10 mt-1 w-80 bg-white border border-gray-300 rounded-lg shadow-lg max-h-96 overflow-hidden">
                         {loadingFields ? (
                           <div className="p-3 text-center text-gray-500">Loading fields...</div>
                         ) : (
-                          <div className="py-1">
-                            {availableFields.map((field) => (
-                              <button
-                                key={field.name}
-                                onClick={() => handleTargetFieldChange(mapping.id, field.name)}
-                                className={`w-full text-left px-3 py-2 hover:bg-gray-100 ${
-                                  field.name === mapping.targetAttribute ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
-                                }`}
+                          <>
+                            {/* Search and category filter */}
+                            <div className="p-3 border-b border-gray-200 space-y-2">
+                              <input
+                                type="text"
+                                placeholder="Search fields..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                              />
+                              <select
+                                value={selectedCategory}
+                                onChange={(e) => setSelectedCategory(e.target.value)}
+                                className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
                               >
-                                <div className="flex justify-between items-start">
-                                  <div>
-                                    <div className="font-medium">{field.name}</div>
-                                    <div className="text-xs text-gray-500">{field.description}</div>
-                                  </div>
-                                  <div className="flex flex-col items-end text-xs">
-                                    <span className={`px-1 rounded ${field.required ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
-                                      {field.required ? 'Required' : 'Optional'}
-                                    </span>
-                                    {field.is_custom && (
-                                      <span className="mt-1 px-1 bg-purple-100 text-purple-700 rounded">Custom</span>
-                                    )}
-                                  </div>
+                                {getCategories().map(category => (
+                                  <option key={category} value={category}>
+                                    {category === 'all' ? 'All Categories' : category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            
+                            {/* Fields list */}
+                            <div className="max-h-64 overflow-y-auto">
+                              {getFilteredFields().length === 0 ? (
+                                <div className="p-3 text-center text-gray-500 text-sm">
+                                  No fields match your search criteria
                                 </div>
-                              </button>
-                            ))}
-                          </div>
+                              ) : (
+                                <div className="py-1">
+                                  {getFilteredFields().map((field) => (
+                                    <button
+                                      key={field.name}
+                                      onClick={() => handleTargetFieldChange(mapping.id, field.name)}
+                                      className={`w-full text-left px-3 py-2 hover:bg-gray-100 ${
+                                        field.name === mapping.targetAttribute ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                                      }`}
+                                    >
+                                      <div className="flex justify-between items-start">
+                                        <div className="flex-1">
+                                          <div className="font-medium">{field.name}</div>
+                                          <div className="text-xs text-gray-500 mt-1">{field.description}</div>
+                                        </div>
+                                        <div className="flex flex-col items-end space-y-1 ml-2">
+                                          <span className={`text-xs px-1 py-0.5 rounded ${getCategoryColor(field.category)}`}>
+                                            {field.category.replace('_', ' ')}
+                                          </span>
+                                          <span className={`px-1 py-0.5 text-xs rounded ${field.required ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
+                                            {field.required ? 'Required' : 'Optional'}
+                                          </span>
+                                          {field.is_custom && (
+                                            <span className="px-1 py-0.5 bg-purple-100 text-purple-700 rounded text-xs">Custom</span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </>
                         )}
                       </div>
                     )}
                   </div>
                   
+                  {/* Show current field category if mapped */}
+                  {mapping.targetAttribute !== 'unmapped' && (
+                    <span className={`text-xs px-2 py-1 rounded ${getCategoryColor(availableFields.find(f => f.name === mapping.targetAttribute)?.category || 'unknown')}`}>
+                      {availableFields.find(f => f.name === mapping.targetAttribute)?.category?.replace('_', ' ') || 'Unknown'}
+                    </span>
+                  )}
+                </div>
+                
+                {/* Confidence and sample values */}
+                <div className="flex items-center space-x-4 mb-2">
                   <span className={`px-2 py-1 text-xs rounded-full ${getConfidenceColor(mapping.confidence)}`}>
                     {Math.round(mapping.confidence * 100)}% confidence
                   </span>
+                  {mapping.sample_values.length > 0 && (
+                    <div className="text-xs text-gray-500">
+                      Sample: {mapping.sample_values.slice(0, 3).join(', ')}
+                      {mapping.sample_values.length > 3 && '...'}
+                    </div>
+                  )}
                 </div>
                 
-                <p className="text-sm text-gray-600 mb-2">{mapping.ai_reasoning}</p>
-                <div className="text-xs text-gray-500">
-                  <strong>Sample values:</strong> {mapping.sample_values.join(', ')}
-                </div>
+                {/* AI reasoning */}
+                {mapping.ai_reasoning && (
+                  <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
+                    <strong>AI Analysis:</strong> {mapping.ai_reasoning}
+                  </div>
+                )}
               </div>
               
-              <div className="flex items-center space-x-2 ml-4">
-                {mapping.status === 'pending' && (
-                  <>
-                    <button
-                      onClick={() => onMappingAction(mapping.id, 'approve')}
-                      className="px-3 py-1 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors"
-                    >
-                      Approve
-                    </button>
-                    <button
-                      onClick={() => onMappingAction(mapping.id, 'reject')}
-                      className="px-3 py-1 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
-                    >
-                      Reject
-                    </button>
-                  </>
-                )}
-                {mapping.status === 'approved' && (
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                )}
-                {mapping.status === 'rejected' && (
-                  <X className="h-5 w-5 text-red-600" />
-                )}
-              </div>
+              {/* Action buttons */}
+              {mapping.status === 'pending' && (
+                <div className="flex items-center space-x-2 ml-4">
+                  <button
+                    onClick={() => onMappingAction(mapping.id, 'approve')}
+                    className="p-1 text-green-600 hover:bg-green-100 rounded"
+                    title="Approve mapping"
+                  >
+                    <CheckCircle className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => onMappingAction(mapping.id, 'reject')}
+                    className="p-1 text-red-600 hover:bg-red-100 rounded"
+                    title="Reject mapping"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+              
+              {/* Status indicator for completed mappings */}
+              {mapping.status !== 'pending' && (
+                <div className={`px-2 py-1 text-xs rounded-full ${
+                  mapping.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                }`}>
+                  {mapping.status}
+                </div>
+              )}
             </div>
           </div>
         ))}
       </div>
       
-      {/* Pagination Controls */}
+      {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
-          <div className="text-sm text-gray-600">
-            Showing {startIndex + 1} to {Math.min(endIndex, fieldMappings.length)} of {fieldMappings.length} results
-          </div>
+        <div className="flex items-center justify-between mt-4">
+          <button
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={currentPage === 1}
+            className="flex items-center space-x-1 px-3 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            <span>Previous</span>
+          </button>
           
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            
-            <div className="flex space-x-1">
-              {Array.from({ length: totalPages }, (_, i) => (
-                <button
-                  key={i + 1}
-                  onClick={() => setCurrentPage(i + 1)}
-                  className={`px-3 py-1 rounded-lg text-sm ${
-                    currentPage === i + 1 
-                      ? 'bg-blue-600 text-white' 
-                      : 'border border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              ))}
-            </div>
-            
-            <button
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
+          <span className="text-sm text-gray-600">
+            Page {currentPage} of {totalPages} ({fieldMappings.length} total mappings)
+          </span>
+          
+          <button
+            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            disabled={currentPage === totalPages}
+            className="flex items-center space-x-1 px-3 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+          >
+            <span>Next</span>
+            <ChevronRight className="h-4 w-4" />
+          </button>
         </div>
-      )}
-      
-      {/* Click outside to close dropdowns */}
-      {Object.values(openDropdowns).some(Boolean) && (
-        <div 
-          className="fixed inset-0 z-5" 
-          onClick={() => setOpenDropdowns({})}
-        />
       )}
     </div>
   );

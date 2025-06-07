@@ -84,6 +84,8 @@ export const API_CONFIG = {
       // Dependency Analysis endpoints
       DEPENDENCY_ANALYSIS: '/api/v1/discovery/agents/dependency-analysis',
       DEPENDENCY_FEEDBACK: '/api/v1/discovery/agents/dependency-feedback',
+      DEPENDENCIES: '/api/v1/discovery/dependencies',
+      EXPORT_VISUALIZATION: '/api/v1/discovery/dependencies/export-visualization',
       // Data cleanup endpoints  
       DATA_CLEANUP_ANALYZE: '/api/v1/discovery/data-cleanup/agent-analyze',
       DATA_CLEANUP_PROCESS: '/api/v1/discovery/data-cleanup/agent-process',
@@ -94,7 +96,8 @@ export const API_CONFIG = {
       LATEST_IMPORT_TEMP: '/api/v1/data-import/latest-import-temp',
       GET_IMPORT: '/api/v1/data-import/import',
       LIST_IMPORTS: '/api/v1/data-import/imports',
-      AVAILABLE_TARGET_FIELDS: '/api/v1/data-import/available-target-fields'
+      AVAILABLE_TARGET_FIELDS: '/api/v1/data-import/available-target-fields',
+      CRITICAL_ATTRIBUTES_STATUS: '/api/v1/data-import/critical-attributes-status'
     },
     MONITORING: {
       STATUS: '/api/v1/monitoring/status',
