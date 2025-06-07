@@ -96,5 +96,9 @@
   "Application Group": [
     "application_group",
     "department"
+  ],
+  "Version": [
+    "version/hostname",
+    "application_version"
   ]
 }

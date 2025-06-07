@@ -488,12 +488,14 @@ async def create_field_mapping(
         is_user_defined=mapping_data.get("is_user_defined", True),
         validation_rules=mapping_data.get("validation_rules"),
         transformation_logic=mapping_data.get("transformation_logic"),
-        status="approved"
+        status=mapping_data.get("status", "approved"),
+        user_feedback=mapping_data.get("user_feedback"),
+        original_ai_suggestion=mapping_data.get("original_ai_suggestion")
     )
     
     db.add(mapping)
-    db.commit()
-    db.refresh(mapping)
+    await db.commit()
+    await db.refresh(mapping)
     
     return {
         "id": str(mapping.id),
@@ -501,6 +503,82 @@ async def create_field_mapping(
         "target_field": mapping.target_field,
         "status": "created"
     }
+
+@router.post("/imports/latest/field-mappings")
+async def create_field_mapping_latest(
+    mapping_data: dict,
+    db: AsyncSession = Depends(get_db)
+):
+    """Create a new field mapping for the latest import."""
+    try:
+        # Get the latest import
+        latest_query = select(DataImport).where(
+            DataImport.status == ImportStatus.PROCESSED
+        ).order_by(desc(DataImport.completed_at)).limit(1)
+        
+        result = await db.execute(latest_query)
+        latest_import = result.scalar_one_or_none()
+        
+        if not latest_import:
+            raise HTTPException(status_code=404, detail="No import found")
+        
+        # Check if mapping already exists
+        existing_query = select(ImportFieldMapping).where(
+            and_(
+                ImportFieldMapping.data_import_id == latest_import.id,
+                ImportFieldMapping.source_field == mapping_data["source_field"],
+                ImportFieldMapping.target_field == mapping_data["target_field"]
+            )
+        )
+        existing_result = await db.execute(existing_query)
+        existing_mapping = existing_result.scalar_one_or_none()
+        
+        if existing_mapping:
+            # Update existing mapping
+            existing_mapping.status = mapping_data.get("status", "approved")
+            existing_mapping.confidence_score = mapping_data.get("confidence_score", existing_mapping.confidence_score)
+            existing_mapping.user_feedback = mapping_data.get("user_feedback")
+            existing_mapping.mapping_type = mapping_data.get("mapping_type", existing_mapping.mapping_type)
+            existing_mapping.is_user_defined = mapping_data.get("is_user_defined", True)
+            
+            await db.commit()
+            
+            return {
+                "id": str(existing_mapping.id),
+                "source_field": existing_mapping.source_field,
+                "target_field": existing_mapping.target_field,
+                "status": "updated"
+            }
+        else:
+            # Create new mapping
+            mapping = ImportFieldMapping(
+                data_import_id=latest_import.id,
+                source_field=mapping_data["source_field"],
+                target_field=mapping_data["target_field"],
+                mapping_type=mapping_data.get("mapping_type", "direct"),
+                confidence_score=mapping_data.get("confidence_score", 1.0),
+                is_user_defined=mapping_data.get("is_user_defined", True),
+                validation_rules=mapping_data.get("validation_rules"),
+                transformation_logic=mapping_data.get("transformation_logic"),
+                status=mapping_data.get("status", "approved"),
+                user_feedback=mapping_data.get("user_feedback"),
+                original_ai_suggestion=mapping_data.get("original_ai_suggestion")
+            )
+            
+            db.add(mapping)
+            await db.commit()
+            await db.refresh(mapping)
+            
+            return {
+                "id": str(mapping.id),
+                "source_field": mapping.source_field,
+                "target_field": mapping.target_field,
+                "status": "created"
+            }
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Failed to create field mapping: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create field mapping: {str(e)}")
 
 @router.get("/available-target-fields")
 async def get_available_target_fields():
@@ -1882,7 +1960,7 @@ async def get_critical_attributes_status(
 ):
     """Get critical attributes mapping status with real-time progress."""
     try:
-        from app.models.import_field_mapping import ImportFieldMapping
+        from app.models.data_import import ImportFieldMapping, DataImport
         from sqlalchemy import select, func, and_
         
         # Define critical attributes framework
@@ -1970,10 +2048,14 @@ async def get_critical_attributes_status(
         }
         
         # Get current field mappings for critical attributes
-        query = select(ImportFieldMapping).where(
+        # Note: ImportFieldMapping doesn't have client_account_id/engagement_id directly
+        # We need to join through DataImport to filter by context
+        query = select(ImportFieldMapping).join(
+            ImportFieldMapping.data_import
+        ).where(
             and_(
-                ImportFieldMapping.client_account_id == context.client_account_id,
-                ImportFieldMapping.engagement_id == context.engagement_id,
+                DataImport.client_account_id == context.client_account_id,
+                DataImport.engagement_id == context.engagement_id,
                 ImportFieldMapping.target_field.in_(list(critical_attributes.keys()))
             )
         )
@@ -1991,12 +2073,12 @@ async def get_critical_attributes_status(
             if current_mapping:
                 if current_mapping.status == "approved":
                     status = "mapped"
-                    confidence = current_mapping.confidence or 0.8
+                    confidence = current_mapping.confidence_score or 0.8
                     quality_score = min(95, confidence * 100 + 10)
                     completeness_percentage = 100
                 elif current_mapping.status == "pending":
                     status = "partially_mapped"
-                    confidence = current_mapping.confidence or 0.0
+                    confidence = current_mapping.confidence_score or 0.0
                     quality_score = confidence * 70  # Lower quality for pending
                     completeness_percentage = 50
                 else:  # rejected
