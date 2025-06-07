@@ -663,6 +663,7 @@ const Inventory = () => {
   useEffect(() => {
     if (activeTab === 'unlinked') {
       fetchUnlinkedAssets();
+      fetchAppMappings(); // Also load app mappings for linking functionality
     }
   }, [activeTab, context.client, context.engagement, context.session]);
 
@@ -785,6 +786,59 @@ const Inventory = () => {
       case 'Unknown': return 'text-gray-400';
       default: return 'text-gray-500';
     }
+  };
+
+  // Calculate migration readiness confidence percentage
+  const calculateReadinessConfidence = (asset) => {
+    let confidence = 0;
+    let factors = [];
+
+    // Basic asset info (20%)
+    if (asset.name && asset.type !== 'Unknown') {
+      confidence += 20;
+      factors.push('Basic info');
+    }
+
+    // Application mapping (25%)
+    if (asset.applicationMapped || asset.application_name) {
+      confidence += 25;
+      factors.push('App mapped');
+    }
+
+    // Environment and location (15%)
+    if (asset.environment && asset.environment !== 'Unknown' && 
+        asset.location && asset.location !== 'Unknown') {
+      confidence += 15;
+      factors.push('Environment');
+    }
+
+    // Technical details (20%)
+    if ((asset.ipAddress || asset.operatingSystem || asset.cpuCores || asset.memoryGb)) {
+      confidence += 20;
+      factors.push('Tech specs');
+    }
+
+    // Owner and criticality (10%)
+    if (asset.owner && asset.owner !== 'Unknown' && asset.criticality) {
+      confidence += 10;
+      factors.push('Ownership');
+    }
+
+    // Dependencies analyzed (10%) - placeholder for future implementation
+    if (asset.dependencies_analyzed) {
+      confidence += 10;
+      factors.push('Dependencies');
+    }
+
+    return { confidence: Math.min(confidence, 100), factors };
+  };
+
+  // Get readiness color based on confidence percentage
+  const getReadinessColor = (confidence) => {
+    if (confidence >= 80) return 'bg-green-100 text-green-800';
+    if (confidence >= 60) return 'bg-yellow-100 text-yellow-800';
+    if (confidence >= 40) return 'bg-orange-100 text-orange-800';
+    return 'bg-red-100 text-red-800';
   };
 
   // Export to CSV function
@@ -1197,6 +1251,9 @@ const Inventory = () => {
                     <option value="network device">Network Devices</option>
                     <option value="storage device">Storage Devices</option>
                     <option value="security device">Security Devices</option>
+                    <option value="infrastructure device">Infrastructure Devices</option>
+                    <option value="unknown">Unknown Devices</option>
+                    <option value="unlinked">Unlinked Assets</option>
                   </select>
                 </div>
 
@@ -1267,7 +1324,17 @@ const Inventory = () => {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Environment</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Owner</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <div className="flex items-center space-x-1">
+                          <span>Readiness</span>
+                          <div className="group relative">
+                            <span className="text-blue-500 cursor-help">ⓘ</span>
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+                              Migration readiness: mapped, cleansed, dependencies analyzed
+                            </div>
+                          </div>
+                        </div>
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -1379,15 +1446,30 @@ const Inventory = () => {
                               <div className="text-sm text-gray-900">{displayAsset.location}</div>
                             </td>
 
-                            {/* Status */}
+                            {/* Readiness Confidence */}
                             <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                displayAsset.status === 'Active' || displayAsset.status === 'Installed' ? 'bg-green-100 text-green-800' :
-                                displayAsset.status === 'Inactive' ? 'bg-red-100 text-red-800' :
-                                'bg-gray-100 text-gray-800'
-                              }`}>
-                                {displayAsset.status}
-                              </span>
+                              {(() => {
+                                const { confidence, factors } = calculateReadinessConfidence(displayAsset);
+                                return (
+                                  <div className="group relative">
+                                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getReadinessColor(confidence)}`}>
+                                      {confidence}%
+                                    </span>
+                                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded py-2 px-3 whitespace-nowrap z-10">
+                                      <div className="font-medium mb-1">Readiness Factors:</div>
+                                      {factors.length > 0 ? (
+                                        <div className="space-y-1">
+                                          {factors.map((factor, idx) => (
+                                            <div key={idx}>✓ {factor}</div>
+                                          ))}
+                                        </div>
+                                      ) : (
+                                        <div>No factors complete</div>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })()}
                             </td>
                           </tr>
                         );
@@ -1778,6 +1860,9 @@ const Inventory = () => {
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                               Details
                             </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Actions
+                            </th>
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
@@ -1834,6 +1919,36 @@ const Inventory = () => {
                                   {asset.memory_gb && (
                                     <div>RAM: {asset.memory_gb}GB</div>
                                   )}
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="flex space-x-2">
+                                  <select
+                                    className="text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    defaultValue=""
+                                    onChange={(e) => {
+                                      if (e.target.value) {
+                                        // TODO: Implement link asset to application
+                                        console.log('Link asset', asset.id, 'to app', e.target.value);
+                                        alert(`Will link ${asset.name} to application ${e.target.value}`);
+                                      }
+                                    }}
+                                  >
+                                    <option value="">Link to App...</option>
+                                    {appMappings.map(app => (
+                                      <option key={app.id} value={app.id}>{app.name}</option>
+                                    ))}
+                                  </select>
+                                  <button
+                                    className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition-colors"
+                                    onClick={() => {
+                                      // Switch to Application Portfolio tab
+                                      setActiveTab('applications');
+                                    }}
+                                    title="Go to Application Portfolio"
+                                  >
+                                    View Apps
+                                  </button>
                                 </div>
                               </td>
                             </tr>
