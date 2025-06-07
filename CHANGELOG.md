@@ -10,12 +10,16 @@ This release fixes **critical React rendering error** in the Unlinked Assets tab
 
 ### 🐛 **React Component Error Fixed**
 
-#### **Unlinked Assets Tab Rendering Error**
+#### **Asset Inventory React Rendering Errors**
 - **Problem**: `Objects are not valid as a React child (found: object with keys {$$typeof, render})`
-- **Impact**: Unlinked Assets tab completely broken, preventing asset migration planning
-- **Root Cause**: `getTypeIcon()` function returning React component class instead of JSX elements
-- **Fix**: Updated function to return proper JSX elements `<Database className="h-5 w-5" />`
-- **Result**: Unlinked Assets tab now renders successfully with 5 unlinked assets displayed
+- **Impact**: Multiple tabs broken - both main Asset table and Unlinked Assets tab failing to render
+- **Root Cause**: Multiple issues with `getTypeIcon()` function usage:
+  1. Function returning React component class instead of JSX elements
+  2. Assigning JSX elements to variables and trying to use them as components
+- **Fix**: 
+  1. Updated `getTypeIcon()` to return proper JSX elements `<Database className="h-5 w-5" />`
+  2. Removed problematic `const Icon = getTypeIcon()` pattern and called function directly
+- **Result**: All Asset Inventory tabs now render successfully with proper icons displayed
 
 ### 🚀 **Technical Improvements**
 

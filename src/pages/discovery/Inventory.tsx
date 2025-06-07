@@ -1322,8 +1322,6 @@ const Inventory = () => {
                           criticality: asset.business_criticality || asset.criticality
                         };
                         
-                        const Icon = getTypeIcon(displayAsset.type);
-                        
                         return (
                           <tr key={displayAsset.id} className={`hover:bg-gray-50 ${selectedAssets.includes(displayAsset.id) ? 'bg-blue-50' : ''}`}>
                             {/* Selection Checkbox */}
@@ -1339,7 +1337,9 @@ const Inventory = () => {
                             {/* Asset Info */}
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="flex items-center">
-                                <Icon className={`h-5 w-5 ${getTypeColor(displayAsset.type)} mr-3`} />
+                                <div className={`mr-3 ${getTypeColor(displayAsset.type)}`}>
+                                  {getTypeIcon(displayAsset.type)}
+                                </div>
                                 <div>
                                   <div className="text-sm font-medium text-gray-900">{displayAsset.name}</div>
                                   {displayAsset.ipAddress && (
