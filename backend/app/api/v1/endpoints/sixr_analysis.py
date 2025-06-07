@@ -26,6 +26,7 @@ from app.schemas.sixr_analysis import (
 from app.services.sixr_engine import SixRDecisionEngine
 from app.services.sixr_agents import SixRAnalysisAgents
 from app.services.tools.sixr_tools import get_sixr_tools
+from app.models.asset import Asset
 
 logger = logging.getLogger(__name__)
 
@@ -688,17 +689,69 @@ async def run_initial_analysis(analysis_id: int, parameters: Dict[str, Any], use
                 analysis.progress_percentage = 10.0
                 await db.commit()
                 
-                # Get application data (mock for now - would come from CMDB)
+                # Get real application data from discovery
                 application_data = []
                 for app_id in analysis.application_ids:
-                    app_data = {
-                        'id': app_id,
-                        'name': f'Application {app_id}',
-                        'technology_stack': ['Java', 'Spring', 'MySQL'],
-                        'complexity_score': 6,
-                        'business_criticality': 'high'
-                    }
-                    application_data.append(app_data)
+                    try:
+                        # Get real application data from discovery
+                        app_result = await db.execute(
+                            select(Asset).where(Asset.id == app_id)
+                        )
+                        app_asset = app_result.scalar_one_or_none()
+                        
+                        if app_asset:
+                            # Extract real application characteristics
+                            app_data = {
+                                'id': app_id,
+                                'name': app_asset.name or f'Application {app_id}',
+                                'asset_type': app_asset.asset_type,
+                                'location': app_asset.location,
+                                'environment': app_asset.environment,
+                                'department': app_asset.department,
+                                'criticality': app_asset.criticality,
+                                'technology_stack': app_asset.technology_stack or [],
+                                'complexity_score': app_asset.complexity_score or 5,
+                                'business_criticality': app_asset.criticality or 'medium',
+                                'operating_system': app_asset.operating_system,
+                                'ip_address': app_asset.ip_address,
+                                'cpu_cores': app_asset.cpu_cores,
+                                'memory_gb': app_asset.memory_gb,
+                                'storage_gb': app_asset.storage_gb,
+                                'network_dependencies': app_asset.network_dependencies or [],
+                                'database_dependencies': app_asset.database_dependencies or [],
+                                'external_integrations': app_asset.external_integrations or [],
+                                'compliance_requirements': app_asset.compliance_requirements or [],
+                                'last_patched': app_asset.last_patched,
+                                'support_model': app_asset.support_model,
+                                'backup_frequency': app_asset.backup_frequency,
+                                'dr_tier': app_asset.dr_tier
+                            }
+                        else:
+                            # Fallback for missing asset data
+                            app_data = {
+                                'id': app_id,
+                                'name': f'Application {app_id}',
+                                'asset_type': 'application',
+                                'location': 'unknown',
+                                'environment': 'production',
+                                'department': 'unknown',
+                                'criticality': 'medium',
+                                'technology_stack': [],
+                                'complexity_score': 5,
+                                'business_criticality': 'medium'
+                            }
+                        
+                        application_data.append(app_data)
+                        
+                    except Exception as e:
+                        logger.warning(f"Failed to get data for application {app_id}: {e}")
+                        # Use minimal fallback data
+                        application_data.append({
+                            'id': app_id,
+                            'name': f'Application {app_id}',
+                            'asset_type': 'application',
+                            'complexity_score': 5
+                        })
                 
                 analysis.application_data = application_data
                 analysis.progress_percentage = 30.0

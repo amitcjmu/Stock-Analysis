@@ -33,6 +33,33 @@ This release fixes critical user experience issues in the 6R Treatment Analysis 
 - **Data Quality**: Analysis includes 6+ detailed rationale points, 2+ risk factors, 3+ benefits per strategy
 - **NOT Mock Data**: Confirmed analysis contains real agent intelligence, not placeholder responses
 
+### 🔧 **CRITICAL: Parameter Passing Bug Fix**
+
+#### **Fixed Parameter Transmission to Backend**
+- **Critical Issue**: Frontend was sending `parameters` field but backend expected `initial_parameters`
+- **Impact**: ALL analyses were using default values (5.0) instead of user-selected parameters  
+- **Problem**: Users could set Business Value=8, Technical Complexity=7, etc. but backend always processed 5.0 defaults
+- **Solution**: Fixed `sixr.ts` API client to send `initial_parameters` field to match backend schema
+- **Result**: AI agents now properly use user-selected parameters in analysis and reasoning
+
+### 🚀 **MAJOR: Application Context Integration**
+
+#### **Enhanced 6R Analysis with Real Discovery Data**
+- **Critical Enhancement**: 6R agents now analyze actual application characteristics instead of just slider parameters
+- **Real Data Integration**: Replaced mock application data with actual discovery asset information
+- **Application Context Analysis**: Technology stack, infrastructure specs, dependencies, criticality, environment
+- **Intelligent Scoring**: Strategy scores now factor in CPU cores, memory, storage, technology stack, business criticality
+- **Context-Aware Rationale**: AI reasoning includes application-specific insights like "High-resource application suitable for cloud lift-and-shift"
+- **Technology Intelligence**: Modern stacks (Java, Spring Boot) vs legacy stacks (COBOL, VB6) influence strategy recommendations
+
+#### **Real Application Characteristics Analyzed**
+- **Technology Stack**: Java, Spring Boot, PHP, MySQL, etc. influence modernization strategies
+- **Infrastructure**: CPU cores, memory, storage analyzed for cloud readiness
+- **Dependencies**: Network, database, external integrations impact migration complexity  
+- **Business Criticality**: High/medium/low criticality affects risk tolerance for strategies
+- **Environment**: Production vs development affects migration approach selection
+- **Resource Utilization**: High-resource apps favor cloud migration, low-resource may suggest retirement
+
 ### 🔧 **Technical Achievements**
 
 - **Polling Efficiency**: Automatic 3-second polling with cleanup prevents memory leaks
@@ -40,6 +67,7 @@ This release fixes critical user experience issues in the 6R Treatment Analysis 
 - **Agent Data Flow**: Discovery assets → Applications endpoint → 6R analysis → Agent processing → Comprehensive recommendations
 - **UI Responsiveness**: Frontend automatically transitions from Progress to Results tab when analysis completes
 - **Real-time Updates**: Status polling ensures UI reflects actual backend completion immediately
+- **Context Integration**: 6R engine now processes 15+ application characteristics for intelligent recommendations
 
 ### 🎯 **Success Metrics**
 

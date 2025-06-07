@@ -664,16 +664,35 @@ class SixRDecisionEngine:
                 "contribution": weighted_contribution
             }
         
+        # Apply application context adjustments
+        context_adjustment = 1.0
+        context_insights = []
+        
+        if application_context:
+            context_adjustment, context_insights = self._apply_application_context_adjustments(
+                strategy, application_context, param_values
+            )
+        
         # Apply penalty factors
         penalties = self._calculate_penalties(strategy, param_values, rules)
-        final_score = base_score * penalties["total_penalty_factor"]
+        final_score = base_score * penalties["total_penalty_factor"] * context_adjustment
         
         # Generate rationale
         rationale = self._generate_rationale(strategy, param_values, parameter_contributions, penalties)
         
+        # Add context-based rationale
+        if context_insights:
+            rationale.extend(context_insights)
+        
         # Identify risk factors and benefits
         risk_factors = self._identify_risk_factors(strategy, param_values)
         benefits = self._identify_benefits(strategy, param_values)
+        
+        # Add context-specific risks and benefits
+        if application_context:
+            context_risks, context_benefits = self._analyze_context_risks_benefits(strategy, application_context)
+            risk_factors.extend(context_risks)
+            benefits.extend(context_benefits)
         
         return {
             "strategy": strategy,
@@ -683,7 +702,8 @@ class SixRDecisionEngine:
             "risk_factors": risk_factors,
             "benefits": benefits,
             "parameter_contributions": parameter_contributions,
-            "penalties": penalties
+            "penalties": penalties,
+            "context_adjustment": context_adjustment
         }
     
     def _calculate_parameter_score(self, value: float, optimal_range: Tuple[float, float]) -> float:
@@ -1106,4 +1126,219 @@ class SixRDecisionEngine:
             "total_assumptions": len(self.assumptions),
             "last_updated": datetime.utcnow().isoformat(),
             "version": "1.0"
-        } 
+        }
+    
+    def _apply_application_context_adjustments(self, strategy: SixRStrategy, 
+                                             context: Dict[str, Any], 
+                                             param_values: Dict[str, float]) -> Tuple[float, List[str]]:
+        """Apply application context-based adjustments to strategy scores."""
+        adjustment_factor = 1.0
+        insights = []
+        
+        # Technology stack analysis
+        tech_stack = context.get('technology_stack', [])
+        if tech_stack:
+            tech_adjustment, tech_insights = self._analyze_technology_stack(strategy, tech_stack)
+            adjustment_factor *= tech_adjustment
+            insights.extend(tech_insights)
+        
+        # Infrastructure analysis
+        infra_adjustment, infra_insights = self._analyze_infrastructure(strategy, context)
+        adjustment_factor *= infra_adjustment
+        insights.extend(infra_insights)
+        
+        # Dependencies analysis
+        deps_adjustment, deps_insights = self._analyze_dependencies(strategy, context)
+        adjustment_factor *= deps_adjustment
+        insights.extend(deps_insights)
+        
+        # Criticality analysis
+        crit_adjustment, crit_insights = self._analyze_criticality(strategy, context)
+        adjustment_factor *= crit_adjustment
+        insights.extend(crit_insights)
+        
+        # Environment analysis
+        env_adjustment, env_insights = self._analyze_environment(strategy, context)
+        adjustment_factor *= env_adjustment
+        insights.extend(env_insights)
+        
+        return adjustment_factor, insights
+    
+    def _analyze_technology_stack(self, strategy: SixRStrategy, tech_stack: List[str]) -> Tuple[float, List[str]]:
+        """Analyze technology stack compatibility with migration strategy."""
+        adjustment = 1.0
+        insights = []
+        
+        # Modern cloud-native technologies favor advanced strategies
+        modern_technologies = {
+            'Docker', 'Kubernetes', 'Node.js', 'React', 'Angular', 'Vue.js',
+            'Spring Boot', 'Microservices', 'REST', 'GraphQL', 'MongoDB', 'Redis',
+            'Elasticsearch', 'Kafka', 'RabbitMQ', 'Python', 'Go', 'Rust'
+        }
+        
+        # Legacy technologies favor simpler strategies
+        legacy_technologies = {
+            'COBOL', 'Fortran', 'Visual Basic', 'ASP Classic', 'Cold Fusion',
+            'Perl', 'PHP 5', 'Oracle Forms', 'PowerBuilder', 'Delphi',
+            'VB6', 'Access', 'FoxPro'
+        }
+        
+        tech_stack_str = ' '.join(tech_stack).upper()
+        modern_count = sum(1 for tech in modern_technologies if tech.upper() in tech_stack_str)
+        legacy_count = sum(1 for tech in legacy_technologies if tech.upper() in tech_stack_str)
+        
+        if strategy in [SixRStrategy.REARCHITECT, SixRStrategy.REWRITE]:
+            if modern_count > 0:
+                adjustment *= 1.2
+                insights.append(f"Modern technology stack ({', '.join(tech_stack[:3])}) well-suited for {strategy.value}")
+            if legacy_count > 0:
+                adjustment *= 0.8
+                insights.append(f"Legacy technologies may require significant effort for {strategy.value}")
+        
+        elif strategy in [SixRStrategy.REHOST, SixRStrategy.RETIRE]:
+            if legacy_count > 0:
+                adjustment *= 1.1
+                insights.append(f"Legacy technology stack supports {strategy.value} approach")
+        
+        elif strategy == SixRStrategy.REPLATFORM:
+            if modern_count > 0 and legacy_count == 0:
+                adjustment *= 1.1
+                insights.append(f"Technology stack enables effective platform optimization")
+        
+        return adjustment, insights
+    
+    def _analyze_infrastructure(self, strategy: SixRStrategy, context: Dict[str, Any]) -> Tuple[float, List[str]]:
+        """Analyze infrastructure characteristics."""
+        adjustment = 1.0
+        insights = []
+        
+        # Resource analysis
+        cpu_cores = context.get('cpu_cores', 0)
+        memory_gb = context.get('memory_gb', 0)
+        storage_gb = context.get('storage_gb', 0)
+        
+        # High-resource applications
+        if cpu_cores >= 8 or memory_gb >= 32 or storage_gb >= 1000:
+            if strategy in [SixRStrategy.REHOST, SixRStrategy.REPLATFORM]:
+                adjustment *= 1.1
+                insights.append(f"High-resource application ({cpu_cores}CPU, {memory_gb}GB RAM) suitable for cloud lift-and-shift")
+            elif strategy in [SixRStrategy.REARCHITECT, SixRStrategy.REWRITE]:
+                adjustment *= 1.2
+                insights.append(f"Resource-intensive application would benefit from cloud-native optimization")
+        
+        # Low-resource applications
+        elif cpu_cores <= 2 and memory_gb <= 4:
+            if strategy == SixRStrategy.RETIRE:
+                adjustment *= 1.3
+                insights.append("Low-resource utilization suggests potential for retirement")
+            elif strategy in [SixRStrategy.REHOST, SixRStrategy.REPLATFORM]:
+                adjustment *= 0.9
+                insights.append("Low-resource application may not justify cloud migration costs")
+        
+        return adjustment, insights
+    
+    def _analyze_dependencies(self, strategy: SixRStrategy, context: Dict[str, Any]) -> Tuple[float, List[str]]:
+        """Analyze application dependencies."""
+        adjustment = 1.0
+        insights = []
+        
+        network_deps = context.get('network_dependencies', [])
+        db_deps = context.get('database_dependencies', [])
+        external_deps = context.get('external_integrations', [])
+        
+        total_dependencies = len(network_deps) + len(db_deps) + len(external_deps)
+        
+        if total_dependencies >= 5:
+            if strategy in [SixRStrategy.REARCHITECT, SixRStrategy.REWRITE]:
+                adjustment *= 0.7
+                insights.append(f"High dependency count ({total_dependencies}) increases complexity for complete redesign")
+            elif strategy == SixRStrategy.REHOST:
+                adjustment *= 1.2
+                insights.append(f"Complex dependencies ({total_dependencies}) favor lift-and-shift approach")
+        
+        elif total_dependencies <= 1:
+            if strategy in [SixRStrategy.REARCHITECT, SixRStrategy.REWRITE]:
+                adjustment *= 1.3
+                insights.append("Low dependency count enables flexible modernization approaches")
+            elif strategy == SixRStrategy.RETIRE:
+                adjustment *= 1.2
+                insights.append("Minimal dependencies reduce retirement complexity")
+        
+        return adjustment, insights
+    
+    def _analyze_criticality(self, strategy: SixRStrategy, context: Dict[str, Any]) -> Tuple[float, List[str]]:
+        """Analyze business criticality."""
+        adjustment = 1.0
+        insights = []
+        
+        criticality = context.get('criticality', 'medium').lower()
+        environment = context.get('environment', 'production').lower()
+        
+        if criticality in ['high', 'critical'] or environment == 'production':
+            if strategy == SixRStrategy.RETIRE:
+                adjustment *= 0.3
+                insights.append("High criticality application not suitable for retirement")
+            elif strategy in [SixRStrategy.REARCHITECT, SixRStrategy.REWRITE]:
+                adjustment *= 0.8
+                insights.append("High criticality requires careful approach to avoid business disruption")
+            elif strategy in [SixRStrategy.REHOST, SixRStrategy.REPLATFORM]:
+                adjustment *= 1.2
+                insights.append("High criticality supports lower-risk migration strategies")
+        
+        elif criticality in ['low', 'non-critical']:
+            if strategy == SixRStrategy.RETIRE:
+                adjustment *= 1.5
+                insights.append("Low criticality application candidate for retirement")
+            elif strategy in [SixRStrategy.REARCHITECT, SixRStrategy.REWRITE]:
+                adjustment *= 1.1
+                insights.append("Low criticality allows for experimental modernization approaches")
+        
+        return adjustment, insights
+    
+    def _analyze_environment(self, strategy: SixRStrategy, context: Dict[str, Any]) -> Tuple[float, List[str]]:
+        """Analyze deployment environment characteristics."""
+        adjustment = 1.0
+        insights = []
+        
+        environment = context.get('environment', 'production').lower()
+        location = context.get('location', 'unknown').lower()
+        
+        if environment in ['development', 'test', 'staging']:
+            if strategy == SixRStrategy.RETIRE:
+                adjustment *= 1.4
+                insights.append(f"Non-production environment ({environment}) suitable for retirement")
+            elif strategy in [SixRStrategy.REARCHITECT, SixRStrategy.REWRITE]:
+                adjustment *= 1.2
+                insights.append(f"Non-production environment allows for experimental approaches")
+        
+        if 'cloud' in location or 'aws' in location or 'azure' in location:
+            if strategy in [SixRStrategy.REPLATFORM, SixRStrategy.REARCHITECT]:
+                adjustment *= 1.3
+                insights.append("Existing cloud deployment enables advanced cloud strategies")
+        
+        return adjustment, insights
+    
+    def _analyze_context_risks_benefits(self, strategy: SixRStrategy, 
+                                      context: Dict[str, Any]) -> Tuple[List[str], List[str]]:
+        """Analyze context-specific risks and benefits."""
+        risks = []
+        benefits = []
+        
+        # Technology-specific risks/benefits
+        tech_stack = context.get('technology_stack', [])
+        if 'database' in ' '.join(tech_stack).lower():
+            if strategy in [SixRStrategy.REARCHITECT, SixRStrategy.REWRITE]:
+                risks.append("Database migration complexity may impact timeline")
+                benefits.append("Opportunity to modernize data architecture")
+        
+        # Infrastructure-specific considerations
+        if context.get('cpu_cores', 0) >= 16:
+            if strategy in [SixRStrategy.REHOST, SixRStrategy.REPLATFORM]:
+                benefits.append("High-performance infrastructure maps well to cloud instances")
+        
+        # Dependency-specific considerations
+        external_deps = context.get('external_integrations', [])
+        if len(external_deps) > 3:
+            risks.append("Multiple external integrations require careful migration planning")
+        
+        return risks, benefits 
