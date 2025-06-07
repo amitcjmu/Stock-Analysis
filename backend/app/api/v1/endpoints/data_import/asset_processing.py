@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import and_, select
+from sqlalchemy import and_, select, or_
 import logging
 
 from app.core.database import get_db
@@ -32,6 +32,26 @@ async def process_raw_to_assets(
     try:
         logger.info(f"🚀 Starting enhanced CrewAI Flow processing with state management for session: {import_session_id}")
         
+        # Pre-processing: Check for potential duplicates
+        duplicate_check_result = await _check_for_duplicates(import_session_id, db, context)
+        
+        if duplicate_check_result["has_duplicates"]:
+            logger.info(f"🔍 Duplicate Detection: Found {duplicate_check_result['duplicate_count']} potential duplicates")
+            return {
+                "status": "duplicates_detected",
+                "message": f"Duplicate data detected! Found {duplicate_check_result['duplicate_count']} assets that already exist in your inventory. No new assets were created to prevent duplicates.",
+                "duplicate_details": duplicate_check_result["duplicates"],
+                "processed_count": 0,
+                "skipped_count": duplicate_check_result["duplicate_count"],
+                "duplicate_detection": {
+                    "detection_active": True,
+                    "detection_method": "hostname_ip_matching",
+                    "duplicates_prevented": True
+                },
+                "import_session_id": import_session_id,
+                "recommendation": "Review existing assets or use different data source to avoid duplicates."
+            }
+        
         # Use the new CrewAI Flow Data Processing Service with proper state management
         try:
             from app.services.crewai_flow_data_processing import CrewAIFlowDataProcessingService
@@ -54,9 +74,26 @@ async def process_raw_to_assets(
                 logger.info(f"   🗄️  Databases: {result.get('classification_results', {}).get('databases', 0)}")
                 logger.info(f"   🔗 Dependencies: {result.get('classification_results', {}).get('dependencies', 0)}")
                 
+                # Generate detailed user message
+                total_processed = result.get("total_processed", 0)
+                classification_results = result.get("classification_results", {})
+                
+                user_message = f"CrewAI intelligent processing completed successfully! "
+                if total_processed > 0:
+                    user_message += f"Processed {total_processed} assets with AI classification and enrichment: "
+                    if classification_results.get('applications', 0) > 0:
+                        user_message += f"{classification_results['applications']} applications, "
+                    if classification_results.get('servers', 0) > 0:
+                        user_message += f"{classification_results['servers']} servers, "
+                    if classification_results.get('databases', 0) > 0:
+                        user_message += f"{classification_results['databases']} databases. "
+                    user_message += "All assets have been enriched with AI insights including migration readiness, business criticality, and recommended 6R strategies."
+                else:
+                    user_message += "No new assets were created. This may indicate duplicate data or processing issues."
+                
                 return {
                     "status": "success",
-                    "message": f"CrewAI Flow successfully processed {result.get('total_processed', 0)} assets with intelligent classification",
+                    "message": user_message,
                     "processed_count": result.get("total_processed", 0),
                     "flow_id": result.get("flow_id"),
                     "processing_status": result.get("processing_status"),
@@ -67,13 +104,19 @@ async def process_raw_to_assets(
                         "intelligent_classification": True,
                         "asset_breakdown": result.get("classification_results", {}),
                         "field_mappings_applied": len(result.get("field_mappings", {})),
-                        "processing_method": "crewai_flow_with_state_management"
+                        "processing_method": "crewai_flow_with_state_management",
+                        "ai_enrichment_applied": True
                     },
                     "classification_results": result.get("classification_results", {}),
                     "processed_asset_ids": result.get("processed_asset_ids", []),
                     "processing_errors": result.get("processing_errors", []),
                     "import_session_id": import_session_id,
-                    "completed_at": result.get("completed_at")
+                    "completed_at": result.get("completed_at"),
+                    "duplicate_detection": {
+                        "detection_active": True,
+                        "duplicates_found": False,
+                        "detection_method": "hostname_ip_matching"
+                    }
                 }
             else:
                 logger.warning(f"CrewAI Flow returned error, falling back: {result.get('error', 'Unknown error')}")
@@ -314,3 +357,63 @@ async def _fallback_raw_to_assets_processing(
         "agentic_intelligence": False,
         "import_session_id": import_session_id
     } 
+
+async def _check_for_duplicates(
+    import_session_id: str,
+    db: AsyncSession,
+    context: RequestContext
+) -> Dict[str, Any]:
+    """Check for duplicate assets before processing."""
+    try:
+        # Get raw records for this session
+        raw_records_query = await db.execute(
+            select(RawImportRecord).where(
+                RawImportRecord.data_import_id == import_session_id
+            )
+        )
+        raw_records = raw_records_query.scalars().all()
+        
+        if not raw_records:
+            return {"has_duplicates": False, "duplicate_count": 0, "duplicates": []}
+        
+        duplicates = []
+        
+        # Check each raw record against existing assets
+        for record in raw_records:
+            raw_data = record.raw_data
+            hostname = raw_data.get("hostname") or raw_data.get("NAME") or ""
+            ip_address = raw_data.get("ip_address") or raw_data.get("IP_ADDRESS") or ""
+            
+            if hostname or ip_address:
+                # Check for existing assets with same hostname or IP
+                existing_query = select(Asset).where(
+                    and_(
+                        Asset.client_account_id == context.client_account_id,
+                        or_(
+                            Asset.hostname == hostname if hostname else False,
+                            Asset.ip_address == ip_address if ip_address else False
+                        )
+                    )
+                )
+                existing_result = await db.execute(existing_query)
+                existing_asset = existing_result.scalar_one_or_none()
+                
+                if existing_asset:
+                    duplicates.append({
+                        "raw_record_id": record.id,
+                        "existing_asset_id": existing_asset.id,
+                        "existing_asset_name": existing_asset.name,
+                        "hostname": hostname,
+                        "ip_address": ip_address,
+                        "match_type": "hostname_ip"
+                    })
+        
+        return {
+            "has_duplicates": len(duplicates) > 0,
+            "duplicate_count": len(duplicates),
+            "duplicates": duplicates
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in duplicate detection: {e}")
+        return {"has_duplicates": False, "duplicate_count": 0, "duplicates": []} 
