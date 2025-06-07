@@ -7,6 +7,7 @@ import logging
 from typing import Dict, List, Any
 from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel
+import asyncio
 
 from .asset_handlers import (
     AssetCRUDHandler,
@@ -227,7 +228,8 @@ async def find_duplicate_assets_endpoint():
 async def cleanup_duplicate_assets_endpoint():
     """Remove duplicate assets from the inventory."""
     try:
-        result = await crud_handler.cleanup_duplicates()
+        # Call the method directly - it's fast enough to not need thread pool
+        result = crud_handler.cleanup_duplicates()
         return result
         
     except Exception as e:

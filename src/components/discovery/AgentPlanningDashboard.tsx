@@ -408,24 +408,17 @@ const AgentPlanningDashboard: React.FC<AgentPlanningDashboardProps> = ({
     }
   };
 
-  // Trigger button (if no custom trigger provided)
-  const defaultTrigger = (
-    <Button 
-      onClick={() => setModalOpen(true)}
-      variant="outline" 
-      className="w-full"
-    >
-      <Brain className="h-4 w-4 mr-2" />
-      Agent Planning Dashboard
-    </Button>
-  );
-
-  // Enhanced trigger element that ensures modal opens
+  // Enhanced trigger element with proper modal control
   const enhancedTriggerElement = triggerElement ? (
     <div onClick={() => setModalOpen(true)} className="cursor-pointer">
       {triggerElement}
     </div>
-  ) : defaultTrigger;
+  ) : (
+    <Button onClick={() => setModalOpen(true)}>
+      <Brain className="h-4 w-4 mr-2" />
+      Open Agent Planning
+    </Button>
+  );
 
   return (
     <>

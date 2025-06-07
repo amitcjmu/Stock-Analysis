@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/Sidebar';
+import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
 import { 
   ParameterSliders, 
   QualifyingQuestions, 
@@ -54,26 +55,27 @@ const loadApplicationsFromBackend = async (): Promise<Application[]> => {
     const data = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.APPLICATIONS);
     
     // Transform the response to match our Application interface
-    return data.applications.map((app: any) => ({
-      id: app.id,
+    return data.applications.map((app: any, index: number) => ({
+      // Convert string IDs to integers for 6R backend compatibility
+      id: index + 1, // Use sequential integers starting from 1
       name: app.name,
       description: app.description || `${app.original_asset_type || 'Application'} - ${app.techStack || 'Unknown Technology'}`,
       department: app.department || 'Unknown',
       business_unit: app.business_unit || app.department || 'Unknown',
       criticality: (app.criticality || 'medium').toLowerCase() as 'low' | 'medium' | 'high' | 'critical',
       complexity_score: app.complexity_score || 5,
-      technology_stack: app.techStack ? app.techStack.split(', ') : ['Unknown'],
+      technology_stack: app.techStack ? app.techStack.split(', ') : [app.technology_stack || 'Unknown'],
       application_type: app.application_type || 'custom',
       environment: app.environment || 'Unknown',
       sixr_ready: app.sixr_ready,
       migration_complexity: app.migration_complexity,
       original_asset_type: app.original_asset_type,
-      asset_id: app.asset_id,
+      asset_id: app.asset_id || app.id, // Keep original string ID as reference
       analysis_status: 'not_analyzed' as const,
       user_count: undefined,
       data_volume: undefined,
-      compliance_requirements: [],
-      dependencies: [],
+      compliance_requirements: app.compliance_requirements || [],
+      dependencies: app.dependencies || [],
       last_updated: undefined,
       recommended_strategy: undefined,
       confidence_score: undefined
@@ -373,6 +375,9 @@ const Treatment = () => {
       <div className="flex-1 ml-64">
         <main className="p-8">
           <div className="max-w-7xl mx-auto">
+            {/* Context Breadcrumbs */}
+            <ContextBreadcrumbs />
+            
             {/* Header */}
             <div className="mb-8">
               <div className="flex items-center justify-between">

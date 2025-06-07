@@ -180,7 +180,10 @@ export const useSixRAnalysis = (options: UseSixRAnalysisOptions = {}): [Analysis
         iterationNumber: analysis.current_iteration || 1,
         analysisProgress: analysis.progress_percentage !== undefined ? {
           analysisId: analysis.analysis_id,
-          status: analysis.status,
+          status: analysis.status === 'in_progress' ? 'in_progress' : 
+                  analysis.status === 'completed' ? 'completed' :
+                  analysis.status === 'failed' ? 'failed' : 
+                  analysis.status === 'pending' ? 'pending' : 'pending',
           overallProgress: analysis.progress_percentage,
           currentStep: analysis.status === 'in_progress' ? 'processing' : undefined,
           steps: [
@@ -218,6 +221,43 @@ export const useSixRAnalysis = (options: UseSixRAnalysisOptions = {}): [Analysis
       setState(prev => ({ ...prev, error: errorMessage, isLoading: false }));
     }
   }, []);
+
+  // Polling mechanism for active analyses
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  
+  const startPolling = useCallback(() => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+    }
+    
+    pollingIntervalRef.current = setInterval(async () => {
+      if (state.currentAnalysisId && (state.analysisStatus === 'pending' || state.analysisStatus === 'in_progress')) {
+        console.log(`Polling analysis ${state.currentAnalysisId} for updates...`);
+        await loadAnalysis(state.currentAnalysisId);
+      }
+    }, 3000); // Poll every 3 seconds
+  }, [state.currentAnalysisId, state.analysisStatus, loadAnalysis]);
+  
+  const stopPolling = useCallback(() => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+  }, []);
+
+  // Start/stop polling based on analysis status
+  useEffect(() => {
+    if (state.currentAnalysisId && (state.analysisStatus === 'pending' || state.analysisStatus === 'in_progress')) {
+      console.log(`Starting polling for analysis ${state.currentAnalysisId}`);
+      startPolling();
+    } else {
+      console.log('Stopping polling - analysis completed or no active analysis');
+      stopPolling();
+    }
+
+    // Cleanup on unmount
+    return () => stopPolling();
+  }, [state.currentAnalysisId, state.analysisStatus, startPolling, stopPolling]);
 
   // Refresh current analysis data
   const refreshAnalysis = useCallback(async () => {
@@ -376,8 +416,9 @@ export const useSixRAnalysis = (options: UseSixRAnalysisOptions = {}): [Analysis
         analysisStatus: result.status,
         currentRecommendation: result.recommendation || null,
         analysisProgress: {
+          analysisId: state.currentAnalysisId,
           status: result.status === 'completed' ? 'completed' : 'in_progress',
-          percentage: result.progress_percentage || 0,
+          overallProgress: result.progress_percentage || 0,
           currentStep: result.status === 'completed' ? 'Analysis Complete' : 'Processing iteration...',
           estimatedCompletion: result.estimated_completion ? new Date(result.estimated_completion) : new Date(Date.now() + 5 * 60 * 1000),
           steps: [
@@ -426,7 +467,7 @@ export const useSixRAnalysis = (options: UseSixRAnalysisOptions = {}): [Analysis
     exportBulkResults: async () => {},
     clearError: () => setState(prev => ({ ...prev, error: null })),
     refreshData,
-    cleanup: () => {}
+    cleanup: () => stopPolling()
   };
 
   return [state, actions];

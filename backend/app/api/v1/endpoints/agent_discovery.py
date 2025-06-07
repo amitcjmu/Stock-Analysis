@@ -754,7 +754,7 @@ async def analyze_tech_debt(
             agent_ui_bridge.add_agent_question(
                 agent_id=tech_debt_analysis_agent.agent_id,
                 agent_name=tech_debt_analysis_agent.agent_name,
-                question_type=QuestionType.RISK_ASSESSMENT,
+                question_type=QuestionType.BUSINESS_CONTEXT,
                 page="tech-debt",
                 title=question["title"],
                 question=question["question"],

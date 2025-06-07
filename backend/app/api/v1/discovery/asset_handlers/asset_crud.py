@@ -36,7 +36,7 @@ class AssetCRUDHandler:
             self.backup_processed_assets = backup_processed_assets
             self.bulk_update_assets = bulk_update_assets
             self.bulk_delete_assets = bulk_delete_assets
-            self.cleanup_duplicates = cleanup_duplicates
+            # Don't override the cleanup_duplicates method - we'll import it when needed
             self.find_duplicate_assets = find_duplicate_assets
             
             # Initialize persistence to load existing assets
@@ -250,6 +250,7 @@ class AssetCRUDHandler:
             if not self.persistence_available:
                 return self._fallback_find_duplicates()
             
+            # Call the persistence function directly
             duplicates = self.find_duplicate_assets()
             
             return {
@@ -262,18 +263,15 @@ class AssetCRUDHandler:
             logger.error(f"Error finding duplicates: {e}")
             return self._fallback_find_duplicates()
     
-    async def cleanup_duplicates(self) -> Dict[str, Any]:
+    def cleanup_duplicates(self) -> Dict[str, Any]:
         """Remove duplicate assets from the inventory."""
         try:
             if not self.persistence_available:
                 return self._fallback_cleanup_duplicates()
             
-            # Import and call the persistence function directly to avoid recursion
-            # Run the synchronous function in a thread pool to avoid blocking
-            import asyncio
-            from app.api.v1.discovery.persistence import cleanup_duplicates as persistence_cleanup
-            loop = asyncio.get_event_loop()
-            removed_count = await loop.run_in_executor(None, persistence_cleanup)
+            # Call the persistence cleanup function with a different alias to avoid naming conflict
+            from app.api.v1.discovery.persistence import cleanup_duplicates as persistence_cleanup_func
+            removed_count = persistence_cleanup_func()
             
             return {
                 "status": "success",

@@ -26,8 +26,7 @@
     "created_at": "2025-06-02T03:49:41.415194",
     "answered_at": "2025-06-02T04:27:21.959840",
     "user_response": "no",
-    "is_resolved": true,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": true
   },
   "b3714eeb-199d-4b2b-9739-e1f89d8ec85a": {
     "id": "b3714eeb-199d-4b2b-9739-e1f89d8ec85a",
@@ -52,8 +51,7 @@
     "created_at": "2025-06-02T03:49:41.416057",
     "answered_at": "2025-06-02T13:09:04.475898",
     "user_response": "Will provide later",
-    "is_resolved": true,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": true
   },
   "ce9091c1-aaf4-4aab-b785-9878acc8b77d": {
     "id": "ce9091c1-aaf4-4aab-b785-9878acc8b77d",
@@ -78,8 +76,7 @@
     "created_at": "2025-06-02T03:49:41.416527",
     "answered_at": "2025-06-02T13:08:41.191350",
     "user_response": "Skip validation",
-    "is_resolved": true,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": true
   },
   "cfd471b4-6581-4fae-82d3-a2652083f851": {
     "id": "cfd471b4-6581-4fae-82d3-a2652083f851",
@@ -104,8 +101,7 @@
     "created_at": "2025-06-02T03:49:41.417306",
     "answered_at": "2025-06-02T13:08:14.460241",
     "user_response": "Somewhat important",
-    "is_resolved": true,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": true
   },
   "f8fb99fa-3a45-4d83-9334-79ea0710a6ff": {
     "id": "f8fb99fa-3a45-4d83-9334-79ea0710a6ff",
@@ -134,8 +130,7 @@
     "created_at": "2025-06-02T03:51:38.749963",
     "answered_at": "2025-06-04T03:14:29.867231",
     "user_response": "No",
-    "is_resolved": true,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": true
   },
   "bfef8ebe-b9d8-45b4-84d0-14ca13829fa7": {
     "id": "bfef8ebe-b9d8-45b4-84d0-14ca13829fa7",
@@ -160,8 +155,7 @@
     "created_at": "2025-06-02T03:51:38.752866",
     "answered_at": "2025-06-04T03:13:56.744608",
     "user_response": "Will provide later",
-    "is_resolved": true,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": true
   },
   "daeaec3f-ee07-4f24-921e-5318ad7fec6b": {
     "id": "daeaec3f-ee07-4f24-921e-5318ad7fec6b",
@@ -186,8 +180,7 @@
     "created_at": "2025-06-02T03:51:38.754244",
     "answered_at": "2025-06-04T03:13:49.261228",
     "user_response": "Skip validation",
-    "is_resolved": true,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": true
   },
   "eb228e3f-9497-4fce-93ff-30b8484dc141": {
     "id": "eb228e3f-9497-4fce-93ff-30b8484dc141",
@@ -212,8 +205,7 @@
     "created_at": "2025-06-02T03:51:38.755117",
     "answered_at": "2025-06-04T03:13:44.865717",
     "user_response": "Somewhat important",
-    "is_resolved": true,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": true
   },
   "af50b27e-c1f6-4519-9342-92f82c48b172": {
     "id": "af50b27e-c1f6-4519-9342-92f82c48b172",
@@ -232,8 +224,7 @@
     "created_at": "2025-06-02T04:08:38.120991",
     "answered_at": "2025-06-02T04:27:37.278517",
     "user_response": "no",
-    "is_resolved": true,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": true
   },
   "9283f7bb-60a1-4b59-a39e-5bfa5c8d955f": {
     "id": "9283f7bb-60a1-4b59-a39e-5bfa5c8d955f",
@@ -275,8 +266,7 @@
     "created_at": "2025-06-02T04:13:25.711529",
     "answered_at": "2025-06-02T04:25:04.624332",
     "user_response": "Asset identifier",
-    "is_resolved": true,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": true
   },
   "6dff4dc6-630c-44fd-981d-e2afe1416783": {
     "id": "6dff4dc6-630c-44fd-981d-e2afe1416783",
@@ -313,8 +303,7 @@
     "created_at": "2025-06-02T04:13:25.712605",
     "answered_at": "2025-06-02T04:25:38.504866",
     "user_response": "Manual review needed",
-    "is_resolved": true,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": true
   },
   "59362459-42cf-4dd0-babd-8d0d9d22979f": {
     "id": "59362459-42cf-4dd0-babd-8d0d9d22979f",
@@ -356,8 +345,7 @@
     "created_at": "2025-06-02T04:25:04.702815",
     "answered_at": "2025-06-02T04:26:01.156339",
     "user_response": "Environment info",
-    "is_resolved": true,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": true
   },
   "c3883966-ff62-49e5-96f3-daed040b7849": {
     "id": "c3883966-ff62-49e5-96f3-daed040b7849",
@@ -394,8 +382,7 @@
     "created_at": "2025-06-02T04:25:38.570746",
     "answered_at": "2025-06-02T04:26:10.107377",
     "user_response": "Manual review needed",
-    "is_resolved": true,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": true
   },
   "7d7ed396-f1b2-4e4c-a566-5d682f1ce6b7": {
     "id": "7d7ed396-f1b2-4e4c-a566-5d682f1ce6b7",
@@ -437,8 +424,7 @@
     "created_at": "2025-06-02T04:26:01.290426",
     "answered_at": "2025-06-02T13:07:35.592473",
     "user_response": "Asset identifier",
-    "is_resolved": true,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": true
   },
   "65e90950-163f-416a-899d-974997daa661": {
     "id": "65e90950-163f-416a-899d-974997daa661",
@@ -475,8 +461,7 @@
     "created_at": "2025-06-02T04:26:10.175497",
     "answered_at": "2025-06-02T04:26:44.797565",
     "user_response": "Manual review needed",
-    "is_resolved": true,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": true
   },
   "463358c2-a05e-4786-a359-95708ed925e7": {
     "id": "463358c2-a05e-4786-a359-95708ed925e7",
@@ -513,8 +498,7 @@
     "created_at": "2025-06-02T04:26:44.867392",
     "answered_at": "2025-06-02T04:27:48.719420",
     "user_response": "No, keep as-is",
-    "is_resolved": true,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": true
   },
   "0dc460a4-04b2-4f3e-96ef-f3a81d63e366": {
     "id": "0dc460a4-04b2-4f3e-96ef-f3a81d63e366",
@@ -551,8 +535,7 @@
     "created_at": "2025-06-02T04:27:48.804006",
     "answered_at": "2025-06-02T13:06:26.266711",
     "user_response": "Manual review needed",
-    "is_resolved": true,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": true
   },
   "476bcf01-fd07-475e-aeb4-a5e6306ca095": {
     "id": "476bcf01-fd07-475e-aeb4-a5e6306ca095",
@@ -571,8 +554,7 @@
     "created_at": "2025-06-02T04:47:11.465387",
     "answered_at": "2025-06-04T03:14:46.395178",
     "user_response": "Data was uploaded",
-    "is_resolved": true,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": true
   },
   "2affaa36-a5f3-45c9-a979-c03630290fa5": {
     "id": "2affaa36-a5f3-45c9-a979-c03630290fa5",
@@ -614,8 +596,7 @@
     "created_at": "2025-06-02T04:59:10.381406",
     "answered_at": "2025-06-04T03:13:39.697568",
     "user_response": "Asset identifier",
-    "is_resolved": true,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": true
   },
   "33446604-dec1-4f84-b670-963ae2bdd85e": {
     "id": "33446604-dec1-4f84-b670-963ae2bdd85e",
@@ -652,8 +633,7 @@
     "created_at": "2025-06-02T04:59:10.385457",
     "answered_at": "2025-06-04T03:13:32.307363",
     "user_response": "Manual review needed",
-    "is_resolved": true,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": true
   },
   "55d68941-0a31-45bf-90fc-3f7b7fd7d2b9": {
     "id": "55d68941-0a31-45bf-90fc-3f7b7fd7d2b9",
@@ -687,8 +667,7 @@
     "created_at": "2025-06-02T05:10:27.782532",
     "answered_at": "2025-06-02T05:13:52.429935",
     "user_response": "no",
-    "is_resolved": true,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": true
   },
   "310c51df-4286-4d2a-b3e0-64398c443734": {
     "id": "310c51df-4286-4d2a-b3e0-64398c443734",
@@ -739,8 +718,7 @@
     "created_at": "2025-06-02T05:10:27.787936",
     "answered_at": "2025-06-02T05:12:57.004648",
     "user_response": "Asset identifier",
-    "is_resolved": true,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": true
   },
   "5266ac93-3542-4802-92ee-5fe52255913e": {
     "id": "5266ac93-3542-4802-92ee-5fe52255913e",
@@ -777,8 +755,7 @@
     "created_at": "2025-06-02T05:10:27.790614",
     "answered_at": "2025-06-02T05:12:26.563700",
     "user_response": "Yes, standardize automatically",
-    "is_resolved": true,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": true
   },
   "b077610d-cbd1-4fb3-87fb-7d7ebfa4ae31": {
     "id": "b077610d-cbd1-4fb3-87fb-7d7ebfa4ae31",
@@ -803,8 +780,7 @@
     "created_at": "2025-06-02T05:10:27.792273",
     "answered_at": "2025-06-02T05:13:42.798826",
     "user_response": "Skip validation",
-    "is_resolved": true,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": true
   },
   "7171c1a4-90ae-483e-8a56-1df0a97b9071": {
     "id": "7171c1a4-90ae-483e-8a56-1df0a97b9071",
@@ -829,8 +805,7 @@
     "created_at": "2025-06-02T05:10:27.793620",
     "answered_at": "2025-06-02T05:13:19.291201",
     "user_response": "Somewhat important",
-    "is_resolved": true,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": true
   },
   "e1663c9f-8006-48b3-b3ca-dd3763f53a9a": {
     "id": "e1663c9f-8006-48b3-b3ca-dd3763f53a9a",
@@ -858,8 +833,7 @@
     "created_at": "2025-06-02T05:36:55.899796",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "8789bedd-e5cc-4065-a568-089cd0374e37": {
     "id": "8789bedd-e5cc-4065-a568-089cd0374e37",
@@ -903,8 +877,7 @@
     "created_at": "2025-06-02T05:36:55.902291",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "f2e65918-bc14-45a4-a0a1-4d75bc8a0310": {
     "id": "f2e65918-bc14-45a4-a0a1-4d75bc8a0310",
@@ -950,8 +923,7 @@
     "created_at": "2025-06-02T05:36:55.903842",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "85932585-876f-4c33-a064-b55d7a69cbcf": {
     "id": "85932585-876f-4c33-a064-b55d7a69cbcf",
@@ -976,8 +948,7 @@
     "created_at": "2025-06-02T05:36:55.905632",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "e8249e36-e47a-4c6b-9d20-371c27b27ea1": {
     "id": "e8249e36-e47a-4c6b-9d20-371c27b27ea1",
@@ -1002,8 +973,7 @@
     "created_at": "2025-06-02T05:36:55.908394",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "1c4ac452-0cf9-46dc-902f-8bc1f6b8d2c3": {
     "id": "1c4ac452-0cf9-46dc-902f-8bc1f6b8d2c3",
@@ -1031,8 +1001,7 @@
     "created_at": "2025-06-02T05:41:48.421366",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "30f76a24-3f19-42bb-a319-5115da174214": {
     "id": "30f76a24-3f19-42bb-a319-5115da174214",
@@ -1060,8 +1029,7 @@
     "created_at": "2025-06-02T05:41:48.424057",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "b0c4f2a0-1a2e-465a-84f3-3ded720e2938": {
     "id": "b0c4f2a0-1a2e-465a-84f3-3ded720e2938",
@@ -1089,8 +1057,7 @@
     "created_at": "2025-06-02T05:41:48.426786",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "25eacb71-4911-4bbe-91e1-05df8b147b98": {
     "id": "25eacb71-4911-4bbe-91e1-05df8b147b98",
@@ -1118,8 +1085,7 @@
     "created_at": "2025-06-02T05:41:48.428467",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "f6b36dd4-d18f-45b7-9485-c0f42d598e41": {
     "id": "f6b36dd4-d18f-45b7-9485-c0f42d598e41",
@@ -1147,8 +1113,7 @@
     "created_at": "2025-06-02T05:41:48.429798",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "e72077d4-bde9-4354-b4fa-9581355674d1": {
     "id": "e72077d4-bde9-4354-b4fa-9581355674d1",
@@ -1176,8 +1141,7 @@
     "created_at": "2025-06-02T05:41:48.431324",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "d4632783-57c9-4053-953e-b07475a03187": {
     "id": "d4632783-57c9-4053-953e-b07475a03187",
@@ -1211,8 +1175,7 @@
     "created_at": "2025-06-02T13:12:03.908136",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "5b238c6c-cb86-43fa-b1f3-6b9452d572d2": {
     "id": "5b238c6c-cb86-43fa-b1f3-6b9452d572d2",
@@ -1263,8 +1226,7 @@
     "created_at": "2025-06-02T13:12:03.914617",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "144c7340-9b57-4a12-85d2-ef37a04ed71f": {
     "id": "144c7340-9b57-4a12-85d2-ef37a04ed71f",
@@ -1301,8 +1263,7 @@
     "created_at": "2025-06-02T13:12:03.917659",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "3da860c3-c5c4-44fa-b94d-65f63cbb8b4d": {
     "id": "3da860c3-c5c4-44fa-b94d-65f63cbb8b4d",
@@ -1327,8 +1288,7 @@
     "created_at": "2025-06-02T13:12:03.922884",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "124d7f4a-9083-43a3-9118-3a99cc404ad9": {
     "id": "124d7f4a-9083-43a3-9118-3a99cc404ad9",
@@ -1353,8 +1313,7 @@
     "created_at": "2025-06-02T13:12:03.927237",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "08df935a-9b6a-4b1b-9352-200f885b221e": {
     "id": "08df935a-9b6a-4b1b-9352-200f885b221e",
@@ -1390,8 +1349,7 @@
     "created_at": "2025-06-02T14:11:31.935747",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "48970f1c-52f6-4fc0-a1ad-58d1dba639d7": {
     "id": "48970f1c-52f6-4fc0-a1ad-58d1dba639d7",
@@ -1419,8 +1377,7 @@
     "created_at": "2025-06-02T14:11:31.942069",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "d8283201-fea3-4534-9654-d10f956944a8": {
     "id": "d8283201-fea3-4534-9654-d10f956944a8",
@@ -1464,8 +1421,7 @@
     "created_at": "2025-06-02T14:11:31.948304",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "de18232a-e4d3-41d0-a486-f42809bde8b1": {
     "id": "de18232a-e4d3-41d0-a486-f42809bde8b1",
@@ -1490,8 +1446,7 @@
     "created_at": "2025-06-02T14:11:31.952254",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "af9965af-7fd7-4558-a91d-a44e6afd53a6": {
     "id": "af9965af-7fd7-4558-a91d-a44e6afd53a6",
@@ -1516,8 +1471,7 @@
     "created_at": "2025-06-02T14:11:31.956053",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "29e8a519-975b-447b-b466-b5e7d978a51b": {
     "id": "29e8a519-975b-447b-b466-b5e7d978a51b",
@@ -1559,8 +1513,7 @@
     "created_at": "2025-06-02T14:12:09.411600",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "82a2565c-13f6-4bca-9eee-451d2a3900ed": {
     "id": "82a2565c-13f6-4bca-9eee-451d2a3900ed",
@@ -1597,8 +1550,7 @@
     "created_at": "2025-06-02T14:12:09.416425",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "f6a348e6-414e-49f8-aa60-e9cc5ada0a90": {
     "id": "f6a348e6-414e-49f8-aa60-e9cc5ada0a90",
@@ -1623,8 +1575,7 @@
     "created_at": "2025-06-02T14:12:09.426971",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "d658ad0c-4fa3-4b84-8f0f-114da6ba6568": {
     "id": "d658ad0c-4fa3-4b84-8f0f-114da6ba6568",
@@ -1649,8 +1600,7 @@
     "created_at": "2025-06-02T14:12:09.431899",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "9290abf7-92c5-45a4-9223-ffe617ed9cce": {
     "id": "9290abf7-92c5-45a4-9223-ffe617ed9cce",
@@ -1707,8 +1657,7 @@
     "created_at": "2025-06-02T20:19:23.483136",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "b3c1976d-2d44-48c3-8e03-98229a2f8135": {
     "id": "b3c1976d-2d44-48c3-8e03-98229a2f8135",
@@ -1733,8 +1682,7 @@
     "created_at": "2025-06-03T04:55:48.359859",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "86c5cb2a-6958-464c-9705-f442b81ee9ea": {
     "id": "86c5cb2a-6958-464c-9705-f442b81ee9ea",
@@ -1764,8 +1712,7 @@
     "created_at": "2025-06-03T13:07:57.172530",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "1dfe4d71-417c-4bab-9ad6-15648d8103c6": {
     "id": "1dfe4d71-417c-4bab-9ad6-15648d8103c6",
@@ -1793,8 +1740,7 @@
     "created_at": "2025-06-06T00:22:27.080903",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "0ffaf2d0-de9c-44ca-8699-2486fbbe0d53": {
     "id": "0ffaf2d0-de9c-44ca-8699-2486fbbe0d53",
@@ -1819,8 +1765,7 @@
     "created_at": "2025-06-06T00:22:27.084645",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "a5c4b75d-1061-4c8b-b902-873cf1aa1955": {
     "id": "a5c4b75d-1061-4c8b-b902-873cf1aa1955",
@@ -1848,8 +1793,7 @@
     "created_at": "2025-06-06T03:39:33.054677",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "fbc5c0dc-3629-4ce6-9f2e-47ac5c992aa9": {
     "id": "fbc5c0dc-3629-4ce6-9f2e-47ac5c992aa9",
@@ -1885,8 +1829,7 @@
     "created_at": "2025-06-06T03:43:20.822314",
     "answered_at": "2025-06-06T03:44:11.415475",
     "user_response": "Yes",
-    "is_resolved": true,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": true
   },
   "4295cfa2-7e90-43b4-8c53-8e58ddf62de2": {
     "id": "4295cfa2-7e90-43b4-8c53-8e58ddf62de2",
@@ -1914,8 +1857,7 @@
     "created_at": "2025-06-06T03:43:20.828251",
     "answered_at": "2025-06-06T03:44:53.136096",
     "user_response": "Request additional data",
-    "is_resolved": true,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": true
   },
   "3b6e5a82-f8a8-4c95-93b1-3d37a02a45d8": {
     "id": "3b6e5a82-f8a8-4c95-93b1-3d37a02a45d8",
@@ -1959,8 +1901,7 @@
     "created_at": "2025-06-06T03:43:20.843768",
     "answered_at": "2025-06-06T03:44:31.769084",
     "user_response": "Technical spec",
-    "is_resolved": true,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": true
   },
   "4b913ed3-0661-4230-bae1-c61ea2b11381": {
     "id": "4b913ed3-0661-4230-bae1-c61ea2b11381",
@@ -1985,8 +1926,7 @@
     "created_at": "2025-06-06T03:43:20.853611",
     "answered_at": "2025-06-06T03:45:08.486562",
     "user_response": "Skip validation",
-    "is_resolved": true,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": true
   },
   "caa1f511-cd7c-4f25-8798-e8dec324e858": {
     "id": "caa1f511-cd7c-4f25-8798-e8dec324e858",
@@ -2011,8 +1951,7 @@
     "created_at": "2025-06-06T03:43:20.861647",
     "answered_at": "2025-06-06T03:45:03.597930",
     "user_response": "Somewhat important",
-    "is_resolved": true,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": true
   },
   "9a61d4f5-b76a-40d9-a0ee-aa6724e204df": {
     "id": "9a61d4f5-b76a-40d9-a0ee-aa6724e204df",
@@ -2048,8 +1987,7 @@
     "created_at": "2025-06-06T04:57:08.713124",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "b2749c01-e32d-4ac5-9f23-3265fa0db3f4": {
     "id": "b2749c01-e32d-4ac5-9f23-3265fa0db3f4",
@@ -2077,8 +2015,7 @@
     "created_at": "2025-06-06T04:57:08.721337",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "aebe4239-b020-40ad-8154-d3812ffbd427": {
     "id": "aebe4239-b020-40ad-8154-d3812ffbd427",
@@ -2122,8 +2059,7 @@
     "created_at": "2025-06-06T04:57:08.724987",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "154f9a38-dfda-4c95-8677-9842d1572331": {
     "id": "154f9a38-dfda-4c95-8677-9842d1572331",
@@ -2148,8 +2084,7 @@
     "created_at": "2025-06-06T04:57:08.728083",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "7c4a37c6-3b3a-485a-92b1-cfa77f95b4a3": {
     "id": "7c4a37c6-3b3a-485a-92b1-cfa77f95b4a3",
@@ -2174,8 +2109,7 @@
     "created_at": "2025-06-06T04:57:08.732460",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "8028a107-88c4-41e8-a32b-adb6d7a10da3": {
     "id": "8028a107-88c4-41e8-a32b-adb6d7a10da3",
@@ -2204,8 +2138,7 @@
     "created_at": "2025-06-06T11:55:06.668433",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
   },
   "2d213f20-5786-4620-b253-9ff6ce70f67b": {
     "id": "2d213f20-5786-4620-b253-9ff6ce70f67b",
@@ -2230,7 +2163,76 @@
     "created_at": "2025-06-06T11:55:06.688946",
     "answered_at": null,
     "user_response": null,
-    "is_resolved": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_resolved": false
+  },
+  "fee31c84-d29b-4494-9cfc-8fbab9f3d043": {
+    "id": "fee31c84-d29b-4494-9cfc-8fbab9f3d043",
+    "agent_id": "data_source_intelligence_001",
+    "agent_name": "Data Source Intelligence Agent",
+    "question_type": "business_context",
+    "page": "asset-inventory",
+    "title": "Asset Ownership Information",
+    "question": "No asset ownership information found. Is this available elsewhere or should migration proceed without owner details?",
+    "context": {
+      "missing_info": "ownership",
+      "migration_impact": "medium",
+      "suggestion": "may_need_additional_data"
+    },
+    "options": [
+      "Available in separate file",
+      "Not available",
+      "Will provide later"
+    ],
+    "confidence": "medium",
+    "priority": "low",
+    "created_at": "2025-06-07T02:48:17.907876",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "9faec83a-2a6c-4b1d-b104-10797787f5c8": {
+    "id": "9faec83a-2a6c-4b1d-b104-10797787f5c8",
+    "agent_id": "tech_debt_analysis",
+    "agent_name": "Tech Debt Analysis Agent",
+    "question_type": "business_context",
+    "page": "tech-debt",
+    "title": "Business Priority Assessment",
+    "question": "What are your organization's top priorities for this migration?",
+    "context": {},
+    "options": [
+      "Cost Reduction",
+      "Security Improvement",
+      "Performance Enhancement",
+      "Compliance",
+      "Innovation"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-07T03:12:22.795065",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
+  },
+  "81798685-5d30-4d9e-98af-af391025a4a5": {
+    "id": "81798685-5d30-4d9e-98af-af391025a4a5",
+    "agent_id": "tech_debt_analysis",
+    "agent_name": "Tech Debt Analysis Agent",
+    "question_type": "business_context",
+    "page": "tech-debt",
+    "title": "Migration Timeline Constraints",
+    "question": "What are your timeline constraints for addressing critical tech debt?",
+    "context": {},
+    "options": [
+      "Immediate (< 3 months)",
+      "Short-term (3-6 months)",
+      "Medium-term (6-12 months)",
+      "Long-term (> 12 months)"
+    ],
+    "confidence": "medium",
+    "priority": "medium",
+    "created_at": "2025-06-07T03:12:22.799070",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
   }
 }

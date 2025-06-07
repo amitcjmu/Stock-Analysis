@@ -368,13 +368,24 @@ export const RecommendationDisplay: React.FC<RecommendationDisplayProps> = ({
       {showComparison && renderComparisonView()}
 
       {/* Detailed Analysis Tabs */}
-      <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="recommendation">All Strategies</TabsTrigger>
-          <TabsTrigger value="rationale">Rationale</TabsTrigger>
-          <TabsTrigger value="assumptions">Assumptions</TabsTrigger>
-          <TabsTrigger value="next-steps">Next Steps</TabsTrigger>
-        </TabsList>
+      <Card className="border-blue-100 bg-blue-50/50">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center space-x-2">
+            <Info className="h-5 w-5 text-blue-600" />
+            <span>Detailed AI Agent Analysis</span>
+          </CardTitle>
+          <CardDescription>
+            Comprehensive reasoning, alternative strategies, and implementation guidance from AI agents
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <Tabs value={selectedTab} onValueChange={setSelectedTab}>
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="recommendation">All Strategies</TabsTrigger>
+              <TabsTrigger value="rationale">Rationale</TabsTrigger>
+              <TabsTrigger value="assumptions">Assumptions</TabsTrigger>
+              <TabsTrigger value="next-steps">Next Steps</TabsTrigger>
+            </TabsList>
 
         <TabsContent value="recommendation" className="space-y-4">
           <Card>
@@ -475,7 +486,9 @@ export const RecommendationDisplay: React.FC<RecommendationDisplayProps> = ({
             </CardContent>
           </Card>
         </TabsContent>
-      </Tabs>
+          </Tabs>
+        </CardContent>
+      </Card>
     </div>
   );
 };

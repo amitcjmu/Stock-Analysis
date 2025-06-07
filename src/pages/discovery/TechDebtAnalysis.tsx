@@ -70,7 +70,10 @@ const TechDebtAnalysis = () => {
   const fetchTechDebtAnalysis = async () => {
     try {
       setIsLoading(true);
-      const response = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/tech-debt-analysis`);
+      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.TECH_DEBT_ANALYSIS, {
+        method: 'POST',
+        body: JSON.stringify({})
+      });
       
       // Filter out items with unknown/invalid data
       const validItems = (response.items || []).filter((item: TechDebtItem) => {
@@ -206,31 +209,7 @@ const TechDebtAnalysis = () => {
 
   const fetchSupportTimelines = async () => {
     try {
-      const response = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/support-timelines`);
-      
-      // Filter out timelines with unknown/invalid data
-      const validTimelines = (response.timelines || []).filter((timeline: SupportTimeline) => {
-        const hasValidTechnology = timeline.technology && 
-          timeline.technology !== 'unknown' && 
-          timeline.technology !== 'Unknown' &&
-          !timeline.technology.toLowerCase().includes('unknown');
-          
-        const hasValidVersion = timeline.currentVersion && 
-          timeline.currentVersion !== 'unknown' && 
-          timeline.currentVersion !== 'Unknown' &&
-          !timeline.currentVersion.toLowerCase().includes('unknown');
-          
-        const hasValidSupportEnd = timeline.supportEnd && 
-          timeline.supportEnd !== 'unknown' && 
-          !isNaN(Date.parse(timeline.supportEnd));
-          
-        return hasValidTechnology && hasValidVersion && hasValidSupportEnd;
-      });
-      
-      setSupportTimelines(validTimelines);
-    } catch (error) {
-      console.error('Failed to fetch support timelines:', error);
-      // Set demo data with valid timelines only
+      // For now, use demo data since support-timelines endpoint doesn't exist yet
       const demoTimelines: SupportTimeline[] = [
         {
           technology: 'Windows Server 2016',
@@ -248,6 +227,9 @@ const TechDebtAnalysis = () => {
       ];
       
       setSupportTimelines(demoTimelines);
+    } catch (error) {
+      console.error('Failed to fetch support timelines:', error);
+      setSupportTimelines([]);
     }
   };
 

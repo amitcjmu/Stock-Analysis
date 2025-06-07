@@ -120,50 +120,6 @@ const DataCleansing = () => {
                   />
                 </div>
 
-                {/* Debug Panel (Development Only) */}
-                {import.meta.env.DEV && (
-                  <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <details className="mb-4">
-                      <summary className="cursor-pointer font-medium text-yellow-800 mb-2">
-                        🐛 Debug Information (Dev Mode Only)
-                      </summary>
-                      <div className="text-sm space-y-2">
-                        <div><strong>Raw Data Count:</strong> {rawData.length}</div>
-                        <div><strong>Quality Issues Count:</strong> {qualityIssues.length}</div>
-                        <div><strong>Selected Issue:</strong> {selectedIssue || 'None'}</div>
-                        <div><strong>Selected Recommendation:</strong> {selectedRecommendation || 'None'}</div>
-                        
-                        {rawData.length > 0 && (
-                          <div>
-                            <strong>Sample Asset Structure:</strong>
-                            <pre className="mt-1 p-2 bg-gray-100 rounded text-xs overflow-x-auto">
-                              {JSON.stringify(rawData[0], null, 2).substring(0, 500)}...
-                            </pre>
-                          </div>
-                        )}
-                        
-                        {qualityIssues.length > 0 && (
-                          <div>
-                            <strong>Sample Quality Issue:</strong>
-                            <pre className="mt-1 p-2 bg-gray-100 rounded text-xs overflow-x-auto">
-                              {JSON.stringify(qualityIssues[0], null, 2)}
-                            </pre>
-                          </div>
-                        )}
-                        
-                        {selectedIssue && (
-                          <div>
-                            <strong>Selected Issue Details:</strong>
-                            <pre className="mt-1 p-2 bg-red-50 rounded text-xs overflow-x-auto">
-                              {JSON.stringify(qualityIssues.find(i => i.id === selectedIssue), null, 2)}
-                            </pre>
-                          </div>
-                        )}
-                      </div>
-                    </details>
-                  </div>
-                )}
-
                 {/* Action Feedback */}
                 {actionFeedback && (
                   <ActionFeedback feedback={actionFeedback} />

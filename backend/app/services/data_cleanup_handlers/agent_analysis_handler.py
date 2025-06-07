@@ -120,11 +120,11 @@ class AgentAnalysisHandler:
             issues = self._identify_asset_quality_issues_actual_fields(asset, i)
             quality_issues.extend(issues)
         
-        # Calculate quality buckets
+        # Calculate quality buckets with more lenient thresholds
         average_quality = sum(quality_scores) / len(quality_scores) if quality_scores else 0
-        clean_data = len([q for q in quality_scores if q >= 80])
-        needs_attention = len([q for q in quality_scores if 60 <= q < 80])
-        critical_issues = len([q for q in quality_scores if q < 60])
+        clean_data = len([q for q in quality_scores if q >= 75])  # More lenient threshold
+        needs_attention = len([q for q in quality_scores if 50 <= q < 75])  # Adjusted range
+        critical_issues = len([q for q in quality_scores if q < 50])  # More critical threshold
         
         # Generate recommendations
         recommendations = self._generate_fallback_recommendations_actual_fields(quality_issues)
