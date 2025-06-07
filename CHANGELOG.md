@@ -2,6 +2,48 @@
 
 All notable changes to the AI Force Migration Platform will be documented in this file.
 
+## [0.8.11] - 2025-01-17
+
+### 🔒 **CRITICAL: Inventory Delete Fix + Complete Multi-Tenant RBAC Coverage**
+
+This release fixes **critical inventory delete failures** and completes multi-tenant RBAC coverage across ALL Assess and Plan phase pages.
+
+### 🚨 **Critical Issues Resolved**
+
+#### **Inventory Delete Operations Failing**
+- **Problem**: Bulk delete, bulk update, and cleanup operations failing with HTTP errors
+- **Root Cause**: Missing context headers in API calls - operations not scoped to client/engagement
+- **Security Risk**: Operations could potentially affect wrong client data
+- **Fix**: Added `getContextHeaders()` to all bulk operations in Inventory page
+
+#### **Assess/Plan Pages Missing Context Controls**
+- **Problem**: 6R Treatment and other Assess/Plan pages showing ALL data across clients
+- **Root Cause**: Missing ContextBreadcrumbs and context-aware API calls
+- **RBAC Violation**: Users seeing data outside their authorized scope
+- **Fix**: Added breadcrumbs and context filtering to all Assess/Plan pages
+
+### 🛡️ **Security Fixes Applied**
+
+#### **Inventory Page Operations**
+- **✅ Fixed**: `bulkUpdateAssets()` - Added context headers for proper client scoping
+- **✅ Fixed**: `bulkDeleteAssets()` - Added context headers to prevent cross-client deletions
+- **✅ Fixed**: `cleanupDuplicates()` - Added context headers for safe cleanup operations
+- **✅ Fixed**: Context change detection - Auto-refresh when client/engagement changes
+
+#### **6R Treatment Page (Critical)**
+- **✅ Fixed**: `loadApplicationsFromBackend()` - Added context headers parameter
+- **✅ Fixed**: Added `useAppContext()` hook integration
+- **✅ Fixed**: Context change detection - Refetch applications when context changes
+- **✅ Fixed**: Proper client/engagement scoping for 6R analysis
+
+#### **Complete Assess/Plan Phase Coverage**
+- **✅ Fixed**: `/assess/treatment` - Context headers + breadcrumbs + auto-refresh
+- **✅ Fixed**: `/assess/waveplanning` - Added ContextBreadcrumbs component
+- **✅ Fixed**: `/plan/index` - Added ContextBreadcrumbs + context selector
+- **✅ Fixed**: `/plan/resource` - Added ContextBreadcrumbs + context selector  
+- **✅ Fixed**: `/plan/timeline` - Added ContextBreadcrumbs + context selector
+- **✅ Fixed**: `/plan/target` - Added ContextBreadcrumbs + context selector
+
 ## [0.8.10] - 2025-01-17
 
 ### 🔒 **CRITICAL: Multi-Tenant RBAC Security Fix**

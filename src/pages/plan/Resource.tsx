@@ -1,6 +1,7 @@
 
 import React from 'react';
 import Sidebar from '../../components/Sidebar';
+import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
 import { Users, Brain, AlertTriangle, CheckCircle } from 'lucide-react';
 
 const Resource = () => {
@@ -32,6 +33,9 @@ const Resource = () => {
       <div className="flex-1 ml-64">
         <main className="p-8">
           <div className="max-w-7xl mx-auto">
+            {/* Context Breadcrumbs */}
+            <ContextBreadcrumbs showContextSelector={true} />
+            
             <div className="mb-8">
               <div className="flex items-center justify-between">
                 <div>

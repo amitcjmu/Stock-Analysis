@@ -1,6 +1,7 @@
 
 import React from 'react';
 import Sidebar from '../../components/Sidebar';
+import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
 import { Calendar, Users, Target } from 'lucide-react';
 
 const WavePlanning = () => {
@@ -46,6 +47,9 @@ const WavePlanning = () => {
       <div className="flex-1 ml-64">
         <main className="p-8">
           <div className="max-w-7xl mx-auto">
+            {/* Context Breadcrumbs */}
+            <ContextBreadcrumbs showContextSelector={true} />
+            
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-gray-900 mb-2">Wave Planning</h1>
               <p className="text-gray-600">Plan migration waves and group applications</p>

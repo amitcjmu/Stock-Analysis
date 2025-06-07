@@ -794,6 +794,7 @@ const Inventory = () => {
     
     try {
       setIsBulkOperating(true);
+      const contextHeaders = getContextHeaders();
       
       // Filter out empty values from bulkEditData
       const updates = Object.fromEntries(
@@ -809,6 +810,7 @@ const Inventory = () => {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          ...contextHeaders
         },
         body: JSON.stringify({
           asset_ids: selectedAssets,
@@ -857,11 +859,13 @@ const Inventory = () => {
     
     try {
       setIsBulkOperating(true);
+      const contextHeaders = getContextHeaders();
       
       await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS_BULK, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
+          ...contextHeaders
         },
         body: JSON.stringify({
           asset_ids: selectedAssets
@@ -900,9 +904,11 @@ const Inventory = () => {
     
     try {
       setIsBulkOperating(true);
+      const contextHeaders = getContextHeaders();
       
       const result = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS_CLEANUP, {
-        method: 'POST'
+        method: 'POST',
+        headers: contextHeaders
       });
       
       // Refresh the assets list

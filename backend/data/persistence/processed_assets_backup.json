@@ -60,26 +60,6 @@
     "migration_complexity": "Low"
   },
   {
-    "asset_name": "Backup_Service",
-    "ci_type": "Application",
-    "ci_id": "APP0008",
-    "version/hostname": "2.0.0",
-    "ip_address": "",
-    "operating_system": "",
-    "memory_gb": "8",
-    "ram_(gb)": "32",
-    "storage_gb": "4000",
-    "location": "DC1",
-    "business_owner": "Lisa Taylor",
-    "environment": "Production",
-    "status": "Installed",
-    "related_ci": "SRV0011",
-    "intelligent_asset_type": "Application",
-    "asset_type": "Application",
-    "sixr_ready": "Ready",
-    "migration_complexity": "Low"
-  },
-  {
     "asset_name": "Monitoring_Tool",
     "ci_type": "Application",
     "ci_id": "APP0009",
@@ -198,28 +178,6 @@
     "asset_type": "Server",
     "sixr_ready": "Needs Infrastructure Data",
     "migration_complexity": "Low"
-  },
-  {
-    "id": "cccdff67-73c2-4d8d-bc19-474e97f791b5",
-    "hostname": "server1",
-    "asset_type": "Server",
-    "environment": "Production",
-    "department": "Unknown",
-    "operating_system": "Unknown",
-    "ip_address": "Unknown",
-    "application_name": "Unknown",
-    "technology_stack": "Server",
-    "criticality": "Unknown",
-    "dependencies": "Unknown",
-    "six_r_readiness": "Insufficient Data",
-    "migration_complexity": "Low",
-    "discovery_source": "cmdb_import",
-    "processed_timestamp": "2025-05-29T02:44:27.532969",
-    "raw_data": {
-      "hostname": "server1",
-      "asset_type": "Server",
-      "environment": "Production"
-    }
   },
   {
     "id": "034fdb1d-d48c-4f3f-8344-9226c30a18e5",

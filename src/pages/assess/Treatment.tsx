@@ -46,14 +46,17 @@ import {
 import { toast } from 'sonner';
 import { useSixRAnalysis } from '@/hooks/useSixRAnalysis';
 import { apiCall, API_CONFIG } from '@/config/api';
+import { useAppContext } from '../../hooks/useContext';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
 import { Slider } from '../../components/ui/slider';
 import { SixRApiClient } from '../../lib/api/sixr';
 
 // Load applications from the discovery phase for 6R analysis
-const loadApplicationsFromBackend = async (): Promise<Application[]> => {
+const loadApplicationsFromBackend = async (contextHeaders: Record<string, string>): Promise<Application[]> => {
   try {
-    const data = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.APPLICATIONS);
+    const data = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.APPLICATIONS, {
+      headers: contextHeaders
+    });
     
     // Also fetch current 6R analyses to determine status for each application
     let analysisStatusMap: Record<number, { 
@@ -121,6 +124,8 @@ const loadApplicationsFromBackend = async (): Promise<Application[]> => {
 };
 
 const Treatment = () => {
+  const { getContextHeaders, context } = useAppContext();
+  
   // State management using the custom hook
   const [state, actions] = useSixRAnalysis({ autoLoadHistory: true });
   
@@ -139,11 +144,30 @@ const Treatment = () => {
   // Load applications on component mount
   useEffect(() => {
     const loadApps = async () => {
-      const apps = await loadApplicationsFromBackend();
+      const contextHeaders = getContextHeaders();
+      const apps = await loadApplicationsFromBackend(contextHeaders);
       setApplications(apps);
     };
     loadApps();
   }, []);
+
+  // Refetch applications when context changes (client/engagement/session)
+  useEffect(() => {
+    if (context.client && context.engagement) {
+      console.log('🔄 Context changed, refetching 6R applications for:', {
+        client: context.client.name,
+        engagement: context.engagement.name,
+        session: context.session?.session_display_name || 'None'
+      });
+      
+      const loadApps = async () => {
+        const contextHeaders = getContextHeaders();
+        const apps = await loadApplicationsFromBackend(contextHeaders);
+        setApplications(apps);
+      };
+      loadApps();
+    }
+  }, [context.client, context.engagement, context.session, context.viewMode]);
 
   // Auto-navigate to results when analysis completes
   useEffect(() => {
