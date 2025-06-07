@@ -36,17 +36,25 @@ const AssessIndex = () => {
       setError(null);
       const contextHeaders = getContextHeaders();
       
-      // Fetch real data from discovery metrics
-      const discoveryResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.DISCOVERY_METRICS, {
+      console.log('🔍 Assessment Overview: Fetching application data with context headers:', contextHeaders);
+      
+      // Fetch applications data from the working endpoint
+      const applicationsResponse = await apiCall('/api/v1/discovery/applications', {
         headers: contextHeaders
       });
 
-      // Calculate assessment metrics from real discovery data
-      const totalApps = discoveryResponse.metrics?.totalAssets || 0;
-      const discoveryCompleteness = discoveryResponse.metrics?.discoveryCompleteness || 0;
+      console.log('📊 Assessment Overview: Applications response:', applicationsResponse);
+
+      // Calculate assessment metrics from real applications data
+      const applications = applicationsResponse.applications || [];
+      const totalApps = applications.length;
       
-      // Estimate assessed applications based on discovery completeness
-      const assessed = Math.round(totalApps * (discoveryCompleteness / 100) * 0.4); // Conservative estimate
+      // Count applications that have been assessed (have migration recommendations)
+      const assessed = applications.filter(app => 
+        app.migration_recommendation && app.migration_recommendation !== 'Pending Analysis'
+      ).length;
+      
+      console.log(`✅ Assessment Overview: Found ${totalApps} total apps, ${assessed} assessed`);
       
       setAssessmentMetrics({
         totalApps,
@@ -56,15 +64,39 @@ const AssessIndex = () => {
       });
 
     } catch (error) {
-      console.error('Failed to fetch assessment data:', error);
-      setError('Failed to load assessment data');
-      // Fallback to basic metrics from known asset count
-      setAssessmentMetrics({
-        totalApps: 24, // From known asset count
-        assessed: 7,   // Estimated based on 80% discovery completeness
-        waves: 3,
-        groups: 4
-      });
+      console.error('❌ Assessment Overview: Failed to fetch application data:', error);
+      setError(`Failed to load application data: ${error.message || error}`);
+      
+      // Try fallback with assets count
+      try {
+        console.log('🔄 Assessment Overview: Trying fallback with assets endpoint');
+        const assetsResponse = await apiCall('/api/v1/discovery/assets', {
+          headers: contextHeaders
+        });
+        
+        const assets = assetsResponse.assets || assetsResponse || [];
+        const totalAssets = assets.length;
+        const estimatedApps = Math.ceil(totalAssets * 0.3); // Estimate ~30% of assets are applications
+        
+        setAssessmentMetrics({
+          totalApps: estimatedApps,
+          assessed: Math.ceil(estimatedApps * 0.5), // Estimate 50% assessed
+          waves: Math.max(1, Math.ceil(estimatedApps / 8)),
+          groups: Math.max(1, Math.ceil(estimatedApps / 6))
+        });
+        
+        console.log(`📊 Assessment Overview: Fallback metrics - ${estimatedApps} estimated apps from ${totalAssets} assets`);
+        
+      } catch (fallbackError) {
+        console.error('❌ Assessment Overview: Fallback also failed:', fallbackError);
+        // Final fallback to zero
+        setAssessmentMetrics({
+          totalApps: 0,
+          assessed: 0,
+          waves: 1,
+          groups: 1
+        });
+      }
     } finally {
       setIsLoading(false);
     }

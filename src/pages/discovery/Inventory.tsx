@@ -10,7 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { 
   Download, Filter, Database, Server, HardDrive, RefreshCw, Router, Shield, Cpu, Cloud, Zap,
-  ChevronLeft, ChevronRight, Search, Plus, Trash2, Eye, ArrowUpDown, Users, Brain
+  ChevronLeft, ChevronRight, Search, Plus, Trash2, Eye, ArrowUpDown, Users, Brain,
+  CheckCircle, AlertCircle
 } from 'lucide-react';
 import { apiCall, API_CONFIG } from '../../config/api';
 import { useAppContext } from '../../hooks/useContext';
