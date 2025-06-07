@@ -410,6 +410,7 @@ export class SixRApiClient {
   // Analysis Management
   async createAnalysis(request: CreateAnalysisRequest): Promise<number> {
     try {
+      console.log('🔍 API createAnalysis called with:', request);
       const response = await this.http.post<{ analysis_id: number }>('/sixr/analyze', {
         application_ids: request.application_ids,
         initial_parameters: request.parameters,

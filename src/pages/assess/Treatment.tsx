@@ -237,11 +237,13 @@ const Treatment = () => {
 
   const handleParametersChange = (newParameters: SixRParameters) => {
     // Update local state only, don't trigger reanalysis until Save is clicked
+    console.log('🔍 Parameters changed:', newParameters);
     actions.updateParametersLocal(newParameters);
   };
 
   const handleParametersSave = async () => {
     try {
+      console.log('🔍 Saving parameters:', state.parameters);
       if (state.currentAnalysisId) {
         // Update existing analysis parameters and trigger initial analysis
         await actions.updateParameters(state.parameters, true);
@@ -255,6 +257,7 @@ const Treatment = () => {
           return;
         }
         
+        console.log('🔍 Creating analysis with parameters:', state.parameters);
         const analysisId = await actions.createAnalysis({
           application_ids: selectedApplications,
           parameters: state.parameters

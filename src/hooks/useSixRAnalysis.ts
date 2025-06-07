@@ -317,10 +317,15 @@ export const useSixRAnalysis = (options: UseSixRAnalysisOptions = {}): [Analysis
   }, []);
 
   const updateParametersLocal = useCallback((parameters: Partial<SixRParameters>) => {
-    setState(prev => ({
-      ...prev,
-      parameters: { ...prev.parameters, ...parameters }
-    }));
+    console.log('🔍 updateParametersLocal called with:', parameters);
+    setState(prev => {
+      const newState = {
+        ...prev,
+        parameters: { ...prev.parameters, ...parameters }
+      };
+      console.log('🔍 Updated state parameters:', newState.parameters);
+      return newState;
+    });
   }, []);
 
   const submitQuestionResponse = useCallback((questionId: string, response: any) => {
