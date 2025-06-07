@@ -82,9 +82,12 @@ async def upload_data_file(
             except Exception as session_e:
                 logger.warning(f"Session management failed, continuing without session: {session_e}")
         
-        # Create data import record with context
+        # Create data import record with context and fallback user ID
+        # Default demo user for Marathon Petroleum testing
+        default_user_id = "eef6ea50-6550-4f14-be2c-081d4eb23038"  # Demo user John Doe
+        
         data_import = DataImport(
-            client_account_id=context.client_account_id or "bafd5b46-aaaf-4c95-8142-573699d93171",  # Complete Test Client UUID
+            client_account_id=context.client_account_id or "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990",  # Marathon Petroleum UUID
             engagement_id=context.engagement_id,
             session_id=session_id,  # Link to session if available
             import_name=import_name or f"{file.filename} Import",
@@ -95,7 +98,7 @@ async def upload_data_file(
             file_type=file.content_type,
             file_hash=file_hash,
             status=ImportStatus.UPLOADED,
-            imported_by=context.user_id,
+            imported_by=context.user_id or default_user_id,  # Use default if no user context
             is_mock=False  # This is now real data import
         )
         
@@ -139,7 +142,7 @@ async def process_uploaded_file(data_import: DataImport, content: bytes, db: Asy
         row_number = 1
         
         for row in csv_reader:
-            # Create raw import record with context
+            # Create raw import record with client context
             raw_record = RawImportRecord(
                 data_import_id=data_import.id,
                 client_account_id=context.client_account_id,
@@ -221,9 +224,6 @@ async def analyze_data_quality(data_import: DataImport, raw_records: List[RawImp
                 
                 issue = DataQualityIssue(
                     data_import_id=data_import.id,
-                    client_account_id=context.client_account_id,
-                    engagement_id=context.engagement_id,
-                    session_id=data_import.session_id,
                     raw_record_id=record.id,
                     issue_type='missing_data',
                     field_name=csv_field,  # Use the actual CSV field name
@@ -245,9 +245,6 @@ async def analyze_data_quality(data_import: DataImport, raw_records: List[RawImp
             if ip_value and ip_value not in ['<empty>', '', 'Unknown'] and not is_valid_ip(ip_value):
                 issue = DataQualityIssue(
                     data_import_id=data_import.id,
-                    client_account_id=context.client_account_id,
-                    engagement_id=context.engagement_id,
-                    session_id=data_import.session_id,
                     raw_record_id=record.id,
                     issue_type='format_error',
                     field_name=ip_field,
@@ -269,9 +266,6 @@ async def analyze_data_quality(data_import: DataImport, raw_records: List[RawImp
                 if expanded_value != type_value:
                     issue = DataQualityIssue(
                         data_import_id=data_import.id,
-                        client_account_id=context.client_account_id,
-                        engagement_id=context.engagement_id,
-                        session_id=data_import.session_id,
                         raw_record_id=record.id,
                         issue_type='format_error',
                         field_name=type_field,

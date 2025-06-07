@@ -144,6 +144,9 @@ export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${authToken}`,
+      // Add client context headers for Marathon Petroleum testing
+      'X-Client-Account-ID': '73dee5f1-6a01-43e3-b1b8-dbe6c66f2990', // Marathon Petroleum
+      'X-Engagement-ID': '', // Will be set based on available engagements
       ...options.headers,
     },
     ...options,

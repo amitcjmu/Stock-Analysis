@@ -159,6 +159,9 @@ const AttributeMapping = () => {
       setIsAnalyzing(true);
       
       // Agent-driven field mapping analysis
+      console.log('Requesting agent analysis for columns:', columns);
+      console.log('Sample data for analysis:', sampleData.slice(0, 2));
+      
       const agentResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_ANALYSIS, {
         method: 'POST',
         body: JSON.stringify({
@@ -171,9 +174,12 @@ const AttributeMapping = () => {
         })
       });
 
+      console.log('Agent analysis response:', agentResponse);
+
       let mappings: FieldMapping[] = [];
       
       if (agentResponse.analysis && agentResponse.mappings) {
+        console.log('Using agent-generated mappings');
         // Use agent recommendations
         mappings = agentResponse.mappings.map((mapping: any, index: number) => ({
           id: `mapping-${index}`,
@@ -202,9 +208,11 @@ const AttributeMapping = () => {
           confidence: agentResponse.analysis.confidence || 0.85
         }]);
       } else {
+        console.log('Using fallback field mapping logic');
         // Fallback: Basic pattern matching
         mappings = columns.map((column, index) => {
           const match = findBestAttributeMatch(column, sampleData);
+          console.log(`Field mapping: "${column}" -> "${match.attribute}" (${match.confidence}) - ${match.reasoning}`);
           return {
             id: `mapping-${index}`,
             sourceField: column,
@@ -218,6 +226,7 @@ const AttributeMapping = () => {
         });
       }
 
+      console.log('Final field mappings:', mappings);
       setFieldMappings(mappings);
       updateMappingProgress(mappings);
       
@@ -229,6 +238,7 @@ const AttributeMapping = () => {
       // Fallback mapping logic
       const mappings = columns.map((column, index) => {
         const match = findBestAttributeMatch(column, sampleData);
+        console.log(`Fallback field mapping: "${column}" -> "${match.attribute}" (${match.confidence}) - ${match.reasoning}`);
         return {
           id: `mapping-${index}`,
           sourceField: column,
@@ -243,9 +253,6 @@ const AttributeMapping = () => {
       
       setFieldMappings(mappings);
       updateMappingProgress(mappings);
-      
-      // Trigger agent panel analysis even in fallback mode
-      await triggerAgentPanelAnalysis(mappings, sampleData);
     } finally {
       setIsAnalyzing(false);
     }
@@ -291,16 +298,64 @@ const AttributeMapping = () => {
   const findBestAttributeMatch = (column: string, sampleData: any[]) => {
     const columnLower = column.toLowerCase();
     
-    // Direct name matching
-    for (const [key, attr] of Object.entries(CRITICAL_ATTRIBUTES)) {
-      const attrName = key.toLowerCase();
-      if (columnLower.includes(attrName) || attrName.includes(columnLower)) {
-        return { attribute: key, confidence: 0.9, reasoning: `Direct match with ${attr.field}` };
+    // Enhanced field mapping patterns
+    const fieldPatterns = {
+      asset_name: ['hostname', 'asset_name', 'name', 'asset name', 'server_name', 'host_name', 'computer_name', 'device_name'],
+      asset_type: ['asset_type', 'type', 'category', 'asset type', 'device_type', 'workload_type', 'classification'],
+      operating_system: ['os', 'operating_system', 'operating system', 'platform', 'os_name', 'os_type', 'operating_sys'],
+      environment: ['environment', 'env', 'stage', 'tier', 'deployment_environment', 'env_type'],
+      ip_address: ['ip_address', 'ip', 'ip address', 'host_ip', 'server_ip', 'network_address', 'primary_ip'],
+      business_criticality: ['criticality', 'business_criticality', 'priority', 'importance', 'critical', 'business_impact'],
+      department: ['department', 'dept', 'business_unit', 'organization', 'team', 'division', 'owner', 'business_owner']
+    };
+    
+    // Try pattern matching first
+    for (const [attribute, patterns] of Object.entries(fieldPatterns)) {
+      for (const pattern of patterns) {
+        if (columnLower === pattern || columnLower.includes(pattern) || pattern.includes(columnLower)) {
+          const confidence = columnLower === pattern ? 0.95 : 0.85;
+          return { 
+            attribute, 
+            confidence, 
+            reasoning: `Pattern match: '${column}' → '${CRITICAL_ATTRIBUTES[attribute as keyof typeof CRITICAL_ATTRIBUTES]?.field || attribute}' (${Math.round(confidence * 100)}% confidence)`
+          };
+        }
+      }
+    }
+    
+    // Analyze sample data for content-based matching
+    if (sampleData && sampleData.length > 0) {
+      const sampleValues = sampleData.map(row => String(row[column] || '')).filter(val => val.trim());
+      
+      if (sampleValues.length > 0) {
+        // IP Address pattern
+        const ipPattern = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/;
+        if (sampleValues.some(val => ipPattern.test(val))) {
+          return { attribute: 'ip_address', confidence: 0.9, reasoning: 'IP address pattern detected in sample data' };
+        }
+        
+        // Environment pattern
+        const envKeywords = ['production', 'prod', 'development', 'dev', 'test', 'staging', 'qa', 'uat'];
+        if (sampleValues.some(val => envKeywords.includes(val.toLowerCase()))) {
+          return { attribute: 'environment', confidence: 0.85, reasoning: 'Environment values detected in sample data' };
+        }
+        
+        // OS pattern
+        const osKeywords = ['windows', 'linux', 'ubuntu', 'centos', 'rhel', 'aix', 'solaris', 'macos', 'unix'];
+        if (sampleValues.some(val => osKeywords.some(os => val.toLowerCase().includes(os)))) {
+          return { attribute: 'operating_system', confidence: 0.85, reasoning: 'Operating system values detected in sample data' };
+        }
+        
+        // Hostname pattern
+        const hostnamePattern = /^[a-zA-Z0-9][a-zA-Z0-9\-\.]*[a-zA-Z0-9]$/;
+        if (sampleValues.some(val => hostnamePattern.test(val) && val.includes('.'))) {
+          return { attribute: 'asset_name', confidence: 0.8, reasoning: 'Hostname pattern detected in sample data' };
+        }
       }
     }
     
     // Default to unmapped
-    return { attribute: 'unmapped', confidence: 0, reasoning: 'No clear pattern detected' };
+    return { attribute: 'unmapped', confidence: 0, reasoning: 'No clear pattern detected - please select manually' };
   };
 
   // Extract sample values from column
@@ -407,9 +462,14 @@ const AttributeMapping = () => {
   const updateMappingProgress = (mappings: FieldMapping[]) => {
     const total = mappings.length;
     const mapped = mappings.filter(m => m.status === 'approved').length;
-    const criticalMapped = mappings.filter(m => 
-      m.status === 'approved' && Object.keys(CRITICAL_ATTRIBUTES).includes(m.targetAttribute)
-    ).length;
+    
+    // Define the most critical fields required for migration assessment
+    const requiredCriticalFields = ['asset_name', 'asset_type', 'environment'];
+    const mappedCriticalFields = mappings.filter(m => 
+      m.status === 'approved' && requiredCriticalFields.includes(m.targetAttribute)
+    );
+    const criticalMapped = mappedCriticalFields.length;
+    
     const accuracy = mapped > 0 ? mappings.filter(m => m.status === 'approved' && m.confidence >= 0.7).length / mapped : 0;
 
     setMappingProgress({
@@ -418,6 +478,22 @@ const AttributeMapping = () => {
       critical_mapped: criticalMapped,
       accuracy
     });
+  };
+
+  // Get missing critical fields for user guidance
+  const getMissingCriticalFields = () => {
+    const requiredCriticalFields = ['asset_name', 'asset_type', 'environment'];
+    const mappedCriticalFields = fieldMappings
+      .filter(m => m.status === 'approved' && requiredCriticalFields.includes(m.targetAttribute))
+      .map(m => m.targetAttribute);
+    
+    return requiredCriticalFields.filter(field => !mappedCriticalFields.includes(field));
+  };
+
+  // Check if we can continue to data cleansing
+  const canContinueToDataCleansing = () => {
+    const missingFields = getMissingCriticalFields();
+    return missingFields.length === 0;
   };
 
   // Handle continue to data cleansing
@@ -444,6 +520,20 @@ const AttributeMapping = () => {
                 <p className="text-gray-600 mt-1">
                   Review your imported data before setting up attribute mappings
                 </p>
+                
+                {/* Clarification about data count differences */}
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-start space-x-2">
+                    <div className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center mt-0.5">
+                      <span className="text-xs font-medium text-blue-600">i</span>
+                    </div>
+                    <div className="text-sm text-blue-800">
+                      <strong>Data vs Discovery Overview:</strong> This page shows <strong>raw import records</strong> that need field mapping. 
+                      The Discovery Overview shows <strong>processed assets</strong> that have been classified and mapped. 
+                      Some data may already be processed while new imports await mapping.
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             
@@ -759,9 +849,9 @@ const AttributeMapping = () => {
                 <div className="flex justify-center">
                   <button
                     onClick={handleContinueToDataCleansing}
-                    disabled={mappingProgress.critical_mapped < 3}
+                    disabled={!canContinueToDataCleansing()}
                     className={`flex items-center space-x-2 px-6 py-3 rounded-lg text-lg font-medium transition-colors ${
-                      mappingProgress.critical_mapped >= 3
+                      canContinueToDataCleansing()
                         ? 'bg-blue-600 text-white hover:bg-blue-700'
                         : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     }`}
@@ -771,10 +861,11 @@ const AttributeMapping = () => {
                   </button>
                 </div>
                 
-                {mappingProgress.critical_mapped < 3 && (
-                  <p className="text-center text-sm text-gray-600 mt-2">
-                    Map at least 3 critical attributes to proceed
-                  </p>
+                {!canContinueToDataCleansing() && (
+                  <div className="text-center text-sm text-gray-600 mt-2">
+                    <p>Missing required mappings: {getMissingCriticalFields().map(field => CRITICAL_ATTRIBUTES[field as keyof typeof CRITICAL_ATTRIBUTES]?.field || field).join(', ')}</p>
+                    <p className="text-xs mt-1">Please map these critical fields to proceed to data cleansing</p>
+                  </div>
                 )}
               </div>
             </main>

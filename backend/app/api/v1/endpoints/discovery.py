@@ -25,11 +25,11 @@ feedback_handler = FeedbackHandler()
 
 # Include asset management router from discovery module
 try:
-    from app.api.v1.discovery.asset_management import router as asset_management_router
+    from app.api.v1.discovery.asset_management_modular import router as asset_management_router
     router.include_router(asset_management_router, tags=["discovery-assets"])
-    logger.info("✅ Asset management router included in discovery")
+    logger.info("✅ Asset management modular router included in discovery")
 except ImportError as e:
-    logger.warning(f"⚠️ Asset management router not available: {e}")
+    logger.warning(f"⚠️ Asset management modular router not available: {e}")
 
 # Include feedback system router from discovery module
 try:

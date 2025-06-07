@@ -101,6 +101,11 @@ class RawImportRecord(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     data_import_id = Column(UUID(as_uuid=True), ForeignKey("data_imports.id", ondelete="CASCADE"), nullable=False)
     
+    # Multi-tenant context (matches database schema)
+    client_account_id = Column(UUID(as_uuid=True), ForeignKey("client_accounts.id"), nullable=True)
+    engagement_id = Column(UUID(as_uuid=True), ForeignKey("engagements.id"), nullable=True)
+    session_id = Column(UUID(as_uuid=True), ForeignKey("data_import_sessions.id"), nullable=True)
+    
     # Record identification
     row_number = Column(Integer, nullable=False)  # Original row position in source
     record_id = Column(String(255))  # Business identifier if available
@@ -116,7 +121,7 @@ class RawImportRecord(Base):
     # Status tracking
     is_processed = Column(Boolean, default=False)
     is_valid = Column(Boolean, default=True)
-    asset_id = Column(UUID(as_uuid=True), ForeignKey("assets.id"))  # Link to final asset if created
+    asset_id = Column(Integer, ForeignKey("assets.id"))  # Link to final asset if created (integer type)
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -125,6 +130,9 @@ class RawImportRecord(Base):
     # Relationships
     data_import = relationship("DataImport", back_populates="raw_records")
     asset = relationship("Asset")
+    client_account = relationship("ClientAccount")
+    engagement = relationship("Engagement")
+    session = relationship("DataImportSession")
     
     def __repr__(self):
         return f"<RawImportRecord(id={self.id}, row={self.row_number}, processed={self.is_processed})>"

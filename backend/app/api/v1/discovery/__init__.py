@@ -41,7 +41,7 @@ from .serialization import (
 
 # Import routers for modular endpoints
 from .cmdb_analysis import router as cmdb_analysis_router
-from .asset_management import router as asset_management_router
+from .asset_management_modular import router as asset_management_router
 from .feedback_system import router as feedback_system_router
 from .app_server_mappings import router as app_server_mappings_router
 from .testing_endpoints import router as testing_endpoints_router

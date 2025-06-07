@@ -236,6 +236,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       headers['X-User-Role'] = user.role;
     }
     
+    // Add client context headers for Marathon Petroleum testing
+    // This should eventually come from a client context provider/selector
+    headers['X-Client-Account-ID'] = '73dee5f1-6a01-43e3-b1b8-dbe6c66f2990'; // Marathon Petroleum
+    headers['X-Engagement-ID'] = ''; // Will be set based on available engagements
+    
     return headers;
   };
 

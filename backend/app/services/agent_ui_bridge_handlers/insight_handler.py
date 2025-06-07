@@ -23,11 +23,24 @@ class InsightHandler:
     def add_agent_insight(self, agent_id: str, agent_name: str, insight_type: str,
                          title: str, description: str, confidence: ConfidenceLevel,
                          supporting_data: Dict[str, Any], page: str = "discovery",
-                         actionable: bool = True) -> str:
+                         actionable: bool = True, client_account_id: str = None,
+                         engagement_id: str = None, session_id: str = None) -> str:
         """Add a new insight from an agent (with presentation review filtering)."""
         insight_id = str(uuid.uuid4())
         
-        # Create preliminary insight
+        # Get client context if not provided
+        if not client_account_id or not engagement_id:
+            try:
+                from app.core.context import get_current_context
+                context = get_current_context()
+                client_account_id = client_account_id or context.client_account_id
+                engagement_id = engagement_id or context.engagement_id
+                session_id = session_id or getattr(context, 'session_id', None)
+                logger.info(f"Captured client context for insight: client={client_account_id}, engagement={engagement_id}")
+            except Exception as e:
+                logger.warning(f"Could not capture client context: {e}")
+        
+        # Create preliminary insight with client context
         insight = AgentInsight(
             id=insight_id,
             agent_id=agent_id,
@@ -38,7 +51,10 @@ class InsightHandler:
             confidence=confidence,
             supporting_data=supporting_data,
             actionable=actionable,
-            page=page
+            page=page,
+            client_account_id=client_account_id,
+            engagement_id=engagement_id,
+            session_id=session_id
         )
         
         # Check for duplicates before adding - simple duplicate detection

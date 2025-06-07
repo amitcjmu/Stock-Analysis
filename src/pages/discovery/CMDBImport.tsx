@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import Sidebar from '../../components/Sidebar';
+import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
 import { Link, useNavigate } from 'react-router-dom';
 import { API_CONFIG } from '../../config/api';
 import AgentClarificationPanel from '../../components/discovery/AgentClarificationPanel';
@@ -747,6 +748,11 @@ const DataImport = () => {
               {/* Main Content Area */}
               <div className="flex-1 overflow-y-auto">
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-5xl">
+              {/* Context Breadcrumbs */}
+              <div className="mb-6">
+                <ContextBreadcrumbs />
+              </div>
+              
               <div className="mb-8">
                 <h1 className="text-3xl font-bold text-gray-900">Intelligent Data Analysis</h1>
                 <p className="mt-2 text-gray-600">

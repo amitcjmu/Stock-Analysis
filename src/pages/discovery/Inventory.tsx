@@ -126,16 +126,11 @@ const Inventory = () => {
       }
       
       console.log('🔍 Fetching assets from API:', `${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}?${params}`);
-      console.log('📊 Fetching summary from API:', `${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/summary?${summaryParams}`);
       
-      // Fetch both assets and summary in parallel for better performance
-      const [assetsResponse, summaryResponse] = await Promise.all([
-        apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}?${params}`),
-        apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}/summary?${summaryParams}`)
-      ]);
+      // Fetch assets (includes summary data in response)
+      const assetsResponse = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}?${params}`);
       
       console.log('📊 Asset API response:', assetsResponse);
-      console.log('📈 Summary API response:', summaryResponse);
       
       // Process the assets response
       let assetsData = [];
@@ -150,11 +145,32 @@ const Inventory = () => {
         assetsData = assetsResponse.data;
       }
       
-      // Use summary response for accurate totals
+      // Use summary from assets response
       let summaryData = summary;
-      if (summaryResponse && typeof summaryResponse === 'object') {
-        summaryData = summaryResponse;
-        console.log('✅ Using accurate summary from dedicated endpoint:', summaryData);
+      if (assetsResponse.summary && typeof assetsResponse.summary === 'object') {
+        // Transform backend summary to match frontend expected format
+        const backendSummary = assetsResponse.summary;
+        summaryData = {
+          total: backendSummary.total || 0,
+          filtered: backendSummary.total || 0,
+          applications: backendSummary.by_type?.Application || 0,
+          servers: backendSummary.by_type?.Server || 0,
+          databases: backendSummary.by_type?.Database || 0,
+          devices: (backendSummary.by_type?.['Infrastructure Device'] || 0) + 
+                  (backendSummary.by_type?.['Security Device'] || 0) + 
+                  (backendSummary.by_type?.['Storage Device'] || 0),
+          unknown: backendSummary.by_type?.Unknown || 0,
+          discovered: backendSummary.total || 0,
+          pending: 0,
+          device_breakdown: {
+            network: 0,
+            storage: backendSummary.by_type?.['Storage Device'] || 0,
+            security: backendSummary.by_type?.['Security Device'] || 0,
+            infrastructure: backendSummary.by_type?.['Infrastructure Device'] || 0,
+            virtualization: 0
+          }
+        };
+        console.log('✅ Using summary from assets response:', summaryData);
       }
       
       console.log('🎯 Processed data:', {

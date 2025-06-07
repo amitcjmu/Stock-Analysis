@@ -5,7 +5,7 @@ Combines robust error handling with clean modular architecture.
 
 import logging
 from typing import Dict, List, Any
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel
 
 from .asset_handlers import (
@@ -15,6 +15,7 @@ from .asset_handlers import (
     AssetAnalysisHandler,
     AssetUtilsHandler
 )
+from app.core.context import RequestContext, get_current_context
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +61,8 @@ async def get_processed_assets_paginated(
     environment: str = None,
     department: str = None,
     criticality: str = None,
-    search: str = None
+    search: str = None,
+    context: RequestContext = Depends(get_current_context)
 ):
     """
     Get paginated processed assets with filtering capabilities.
@@ -73,7 +75,8 @@ async def get_processed_assets_paginated(
             'environment': environment,
             'department': department,
             'criticality': criticality,
-            'search': search
+            'search': search,
+            'client_account_id': context.client_account_id
         }
         
         result = await crud_handler.get_assets_paginated(params)
@@ -169,6 +172,45 @@ async def get_applications_for_analysis():
     except Exception as e:
         logger.error(f"Error in get_applications_for_analysis: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get applications: {str(e)}")
+
+@router.get("/assets/discovery-metrics")
+async def get_discovery_metrics(context: RequestContext = Depends(get_current_context)):
+    """
+    Get discovery metrics for the Discovery Overview dashboard.
+    """
+    try:
+        result = await analysis_handler.get_discovery_metrics(context.client_account_id)
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error in get_discovery_metrics: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get discovery metrics: {str(e)}")
+
+@router.get("/assets/application-landscape")
+async def get_application_landscape(context: RequestContext = Depends(get_current_context)):
+    """
+    Get application landscape data for the Discovery Overview dashboard.
+    """
+    try:
+        result = await analysis_handler.get_application_landscape(context.client_account_id)
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error in get_application_landscape: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get application landscape: {str(e)}")
+
+@router.get("/assets/infrastructure-landscape") 
+async def get_infrastructure_landscape(context: RequestContext = Depends(get_current_context)):
+    """
+    Get infrastructure landscape data for the Discovery Overview dashboard.
+    """
+    try:
+        result = await analysis_handler.get_infrastructure_landscape(context.client_account_id)
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error in get_infrastructure_landscape: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get infrastructure landscape: {str(e)}")
 
 @router.get("/assets/duplicates")
 async def find_duplicate_assets_endpoint():

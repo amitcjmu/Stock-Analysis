@@ -359,7 +359,268 @@ class AssetAnalysisHandler:
         except Exception:
             return "192.168.1.100"
     
+    async def _get_assets_from_database(self, client_account_id: str = None) -> List[Dict[str, Any]]:
+        """
+        Get assets from database with client context filtering.
+        """
+        try:
+            from app.core.database import AsyncSessionLocal
+            from app.models.asset import Asset
+            from sqlalchemy import select
+            
+            async with AsyncSessionLocal() as session:
+                query = select(Asset)
+                
+                # Apply client context filter if provided
+                if client_account_id:
+                    query = query.where(Asset.client_account_id == client_account_id)
+                
+                result = await session.execute(query)
+                assets = result.scalars().all()
+                
+                # Convert to dictionaries
+                asset_dicts = []
+                for asset in assets:
+                    asset_dict = {
+                        'id': str(asset.id),
+                        'hostname': asset.hostname,
+                        'asset_type': asset.asset_type,
+                        'environment': asset.environment,
+                        'department': asset.department,
+                        'operating_system': asset.operating_system,
+                        'ip_address': asset.ip_address,
+                        'application_name': asset.application_name,
+                        'technology_stack': asset.technology_stack,
+                        'criticality': asset.criticality,
+                        'dependencies': asset.dependencies,
+                        'six_r_readiness': asset.six_r_readiness,
+                        'migration_complexity': asset.migration_complexity,
+                        'discovery_source': asset.discovery_source,
+                        'processed_timestamp': asset.processed_timestamp.isoformat() if asset.processed_timestamp else None,
+                        'name': asset.hostname or asset.application_name or f"Asset-{asset.id}",
+                        'type': asset.asset_type
+                    }
+                    asset_dicts.append(asset_dict)
+                
+                logger.info(f"Retrieved {len(asset_dicts)} assets from database for client {client_account_id}")
+                return asset_dicts
+                
+        except Exception as e:
+            logger.error(f"Error getting assets from database: {e}")
+            # Fallback to old persistence if database fails
+            if self.persistence_available:
+                return self.get_processed_assets()
+            return []
+    
+    async def get_discovery_metrics(self, client_account_id: str = None) -> Dict[str, Any]:
+        """
+        Get discovery metrics for the Discovery Overview dashboard.
+        """
+        try:
+            # Use database query with client context instead of persistence layer
+            all_assets = await self._get_assets_from_database(client_account_id)
+            
+            if not all_assets:
+                return {
+                    "metrics": {
+                        "totalAssets": 0,
+                        "totalApplications": 0,
+                        "applicationToServerMapping": 0,
+                        "dependencyMappingComplete": 0,
+                        "techDebtItems": 0,
+                        "criticalIssues": 0,
+                        "discoveryCompleteness": 0,
+                        "dataQuality": 0
+                    }
+                }
+            
+            # Count assets by type
+            total_assets = len(all_assets)
+            applications = [a for a in all_assets if 'app' in str(a.get('asset_type', '')).lower()]
+            total_applications = len(applications)
+            
+            # Calculate metrics
+            metrics = {
+                "totalAssets": total_assets,
+                "totalApplications": total_applications,
+                "applicationToServerMapping": min(total_applications * 2, total_assets),  # Rough estimate
+                "dependencyMappingComplete": 10,  # Placeholder
+                "techDebtItems": max(0, total_assets // 10),  # Rough estimate
+                "criticalIssues": 0,  # Placeholder
+                "discoveryCompleteness": min(100, (total_assets * 2.4)),  # Rough percentage
+                "dataQuality": 58  # Placeholder
+            }
+            
+            return {"metrics": metrics}
+            
+        except Exception as e:
+            logger.error(f"Error getting discovery metrics: {e}")
+            return self._fallback_get_discovery_metrics()
+    
+    async def get_application_landscape(self, client_account_id: str = None) -> Dict[str, Any]:
+        """
+        Get application landscape data for the Discovery Overview dashboard.
+        """
+        try:
+            all_assets = await self._get_assets_from_database(client_account_id)
+            applications = [a for a in all_assets if 'app' in str(a.get('asset_type', '')).lower()]
+            
+            # Transform applications to match frontend interface
+            transformed_applications = []
+            for app in applications:
+                # Extract technology stack from various fields
+                tech_stack = []
+                if app.get('technology_stack'):
+                    tech_stack.append(app['technology_stack'])
+                if app.get('operating_system') and app['operating_system'] != 'Unknown':
+                    tech_stack.append(app['operating_system'])
+                if not tech_stack:
+                    tech_stack = ['Unknown']
+                
+                transformed_app = {
+                    "id": str(app.get('id', app.get('asset_name', 'unknown'))),
+                    "name": app.get('asset_name', app.get('hostname', app.get('name', 'Unknown'))),
+                    "environment": app.get('environment', 'Unknown'),
+                    "criticality": app.get('criticality', app.get('status', 'Medium')),
+                    "techStack": tech_stack,
+                    "serverCount": 1,  # Each application counts as 1 server for now
+                    "databaseCount": 1 if 'database' in str(app.get('asset_type', '')).lower() else 0,
+                    "dependencyCount": 0,  # Placeholder
+                    "techDebtScore": 30,  # Placeholder
+                    "cloudReadiness": 75 if app.get('six_r_readiness') == 'Ready' else 
+                                    45 if app.get('six_r_readiness') == 'Type Classification Needed' else 60
+                }
+                transformed_applications.append(transformed_app)
+            
+            # Group applications by environment, criticality, and tech stack
+            by_environment = {}
+            by_criticality = {}
+            by_tech_stack = {}
+            
+            for app in transformed_applications:
+                env = app['environment']
+                by_environment[env] = by_environment.get(env, 0) + 1
+                
+                crit = app['criticality']
+                by_criticality[crit] = by_criticality.get(crit, 0) + 1
+                
+                for tech in app['techStack']:
+                    by_tech_stack[tech] = by_tech_stack.get(tech, 0) + 1
+            
+            landscape = {
+                "applications": transformed_applications[:10],  # Limit for performance
+                "summary": {
+                    "byEnvironment": by_environment,
+                    "byCriticality": by_criticality,
+                    "byTechStack": by_tech_stack
+                }
+            }
+            
+            return {"landscape": landscape}
+            
+        except Exception as e:
+            logger.error(f"Error getting application landscape: {e}")
+            return self._fallback_get_application_landscape()
+    
+    async def get_infrastructure_landscape(self, client_account_id: str = None) -> Dict[str, Any]:
+        """
+        Get infrastructure landscape data for the Discovery Overview dashboard.
+        """
+        try:
+            all_assets = await self._get_assets_from_database(client_account_id)
+            
+            # Count servers by type
+            servers = [a for a in all_assets if 'server' in str(a.get('asset_type', '')).lower()]
+            databases = [a for a in all_assets if 'database' in str(a.get('asset_type', '')).lower()]
+            networks = [a for a in all_assets if any(net in str(a.get('asset_type', '')).lower() 
+                                                   for net in ['network', 'security', 'storage'])]
+            
+            landscape = {
+                "servers": {
+                    "total": len(servers),
+                    "physical": len([s for s in servers if 'physical' in str(s.get('type', '')).lower()]),
+                    "virtual": len([s for s in servers if 'virtual' in str(s.get('type', '')).lower()]),
+                    "cloud": 0,  # Placeholder
+                    "supportedOS": len([s for s in servers if s.get('operating_system')]),
+                    "deprecatedOS": 0  # Placeholder
+                },
+                "databases": {
+                    "total": len(databases),
+                    "supportedVersions": len(databases),  # Placeholder
+                    "deprecatedVersions": 0,  # Placeholder
+                    "endOfLife": 0  # Placeholder
+                },
+                "networks": {
+                    "devices": len(networks),
+                    "securityDevices": len([n for n in networks if 'security' in str(n.get('asset_type', '')).lower()]),
+                    "storageDevices": len([n for n in networks if 'storage' in str(n.get('asset_type', '')).lower()])
+                }
+            }
+            
+            return {"landscape": landscape}
+            
+        except Exception as e:
+            logger.error(f"Error getting infrastructure landscape: {e}")
+            return self._fallback_get_infrastructure_landscape()
+
     # Fallback methods
+    def _fallback_get_discovery_metrics(self) -> Dict[str, Any]:
+        """Fallback discovery metrics method."""
+        return {
+            "metrics": {
+                "totalAssets": 0,
+                "totalApplications": 0,
+                "applicationToServerMapping": 0,
+                "dependencyMappingComplete": 0,
+                "techDebtItems": 0,
+                "criticalIssues": 0,
+                "discoveryCompleteness": 0,
+                "dataQuality": 0
+            },
+            "fallback_mode": True
+        }
+    
+    def _fallback_get_application_landscape(self) -> Dict[str, Any]:
+        """Fallback application landscape method."""
+        return {
+            "landscape": {
+                "applications": [],
+                "summary": {
+                    "byEnvironment": {},
+                    "byCriticality": {},
+                    "byTechStack": {}
+                }
+            },
+            "fallback_mode": True
+        }
+    
+    def _fallback_get_infrastructure_landscape(self) -> Dict[str, Any]:
+        """Fallback infrastructure landscape method."""
+        return {
+            "landscape": {
+                "servers": {
+                    "total": 0,
+                    "physical": 0,
+                    "virtual": 0,
+                    "cloud": 0,
+                    "supportedOS": 0,
+                    "deprecatedOS": 0
+                },
+                "databases": {
+                    "total": 0,
+                    "supportedVersions": 0,
+                    "deprecatedVersions": 0,
+                    "endOfLife": 0
+                },
+                "networks": {
+                    "devices": 0,
+                    "securityDevices": 0,
+                    "storageDevices": 0
+                }
+            },
+            "fallback_mode": True
+        }
+
     def _fallback_get_data_issues(self) -> Dict[str, Any]:
         """Fallback data issues method."""
         return {

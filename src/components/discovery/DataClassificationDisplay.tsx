@@ -84,9 +84,25 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
 
   const fetchClassifications = async () => {
     try {
-              const result = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_STATUS}?page_context=${pageContext}`, { method: 'GET' });
+      const result = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_STATUS}?page_context=${pageContext}`, { method: 'GET' });
       if (result.status === 'success' && result.page_data?.data_classifications) {
-        setClassifications(result.page_data.data_classifications);
+        const classificationData = result.page_data.data_classifications;
+        
+        // Ensure we have the expected structure with arrays
+        const safeClassifications = {
+          good_data: Array.isArray(classificationData.good_data) ? classificationData.good_data : [],
+          needs_clarification: Array.isArray(classificationData.needs_clarification) ? classificationData.needs_clarification : [],
+          unusable: Array.isArray(classificationData.unusable) ? classificationData.unusable : []
+        };
+        
+        setClassifications(safeClassifications);
+      } else {
+        // Set empty state if no data available
+        setClassifications({
+          good_data: [],
+          needs_clarification: [],
+          unusable: []
+        });
       }
       setError(null);
     } catch (err) {

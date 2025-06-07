@@ -1,22 +1,13 @@
 {
-  "data_row_0_analysis_20250606_221915": {
-    "id": "data_row_0_analysis_20250606_221915",
+  "data_row_0_analysis_20250607_022315": {
+    "id": "data_row_0_analysis_20250607_022315",
     "data_type": "asset_record",
     "content": {
-      "id": "os_risk_Windows Server 2016_srv-monitor-01",
-      "assetId": "SRV0012",
-      "assetName": "Windows Server 2016",
-      "component": "os",
-      "technology": "Windows Server 2016",
-      "currentVersion": "srv-monitor-01",
-      "latestVersion": "Windows Server 2022",
-      "supportStatus": "extended",
-      "endOfLifeDate": "2027-01-12",
-      "securityRisk": "high",
-      "migrationEffort": "medium",
-      "businessImpact": "high",
-      "recommendedAction": "Plan upgrade to current supported version",
-      "dependencies": []
+      "Name": "test-server-01",
+      "Hostname": "test01.marathon.com",
+      "IP_Address": "10.1.1.10",
+      "Environment": "Production",
+      "OS": "Linux"
     },
     "classification": "good_data",
     "agent_analysis": {

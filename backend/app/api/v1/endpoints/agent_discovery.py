@@ -194,25 +194,49 @@ async def get_agent_status(
     db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
     """
-    Current agent understanding and confidence levels.
+    Current agent understanding and confidence levels with client context.
     """
     try:
-        # Get overall agent status
+        # Get current client context
+        from app.core.context import get_current_context
+        context = get_current_context()
+        
+        # Get client-scoped agent status  
         agent_status = agent_ui_bridge.get_agent_status_summary()
         
-        # Get page-specific information if requested
+        # Get page-specific information if requested, filtered by client
         page_data = {}
         if page_context:
+            # Filter data by client account ID
+            all_questions = agent_ui_bridge.get_questions_for_page(page_context)
+            all_classifications = agent_ui_bridge.get_classified_data_for_page(page_context)
+            all_insights = agent_ui_bridge.get_insights_for_page(page_context)
+            
+            # Apply client context filtering - include both client-specific data AND legacy data without client_account_id
+            if context.client_account_id:
+                client_questions = [q for q in all_questions if q.get('client_account_id') == context.client_account_id or q.get('client_account_id') is None]
+                client_classifications = {k: v for k, v in all_classifications.items() if any(item.get('client_account_id') == context.client_account_id or item.get('client_account_id') is None for item in v)}
+                client_insights = [i for i in all_insights if i.get('client_account_id') == context.client_account_id or i.get('client_account_id') is None]
+            else:
+                # No client context, show all data
+                client_questions = all_questions
+                client_classifications = all_classifications
+                client_insights = all_insights
+            
             page_data = {
-                "pending_questions": agent_ui_bridge.get_questions_for_page(page_context),
-                "data_classifications": agent_ui_bridge.get_classified_data_for_page(page_context),
-                "agent_insights": agent_ui_bridge.get_insights_for_page(page_context)
+                "pending_questions": client_questions,
+                "data_classifications": client_classifications,
+                "agent_insights": client_insights
             }
         
         return {
             "status": "success",
             "agent_status": agent_status,
             "page_data": page_data,
+            "client_context": {
+                "client_account_id": context.client_account_id,
+                "engagement_id": context.engagement_id
+            },
             "cross_page_context": agent_ui_bridge.get_cross_page_context()
         }
         
@@ -587,7 +611,7 @@ async def analyze_dependencies(
         
         if not assets:
             # Try to get assets from the discovery system
-            from app.api.v1.discovery.asset_management import crud_handler
+            from app.api.v1.discovery.asset_management_modular import crud_handler
             assets_result = await crud_handler.get_assets_paginated({'page': 1, 'page_size': 1000})
             assets = assets_result.get('assets', [])
         
@@ -704,7 +728,7 @@ async def analyze_tech_debt(
         
         if not assets:
             # Try to get assets from the discovery system
-            from app.api.v1.discovery.asset_management import crud_handler
+            from app.api.v1.discovery.asset_management_modular import crud_handler
             assets_result = await crud_handler.get_assets_paginated({'page': 1, 'page_size': 1000})
             assets = assets_result.get('assets', [])
         
