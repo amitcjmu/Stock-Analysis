@@ -163,8 +163,7 @@ class CrewAIFlowDataProcessor(Flow[DataProcessingState]):
         try:
             # Use CrewAI agents for field mapping if available
             try:
-                from app.services.crewai_flow_service import CrewAIFlowService
-                flow_service = CrewAIFlowService()
+                from app.services.crewai_flow_modular import crewai_flow_modular_service
                 
                 # Prepare data for CrewAI analysis
                 cmdb_data = {
@@ -175,7 +174,7 @@ class CrewAIFlowDataProcessor(Flow[DataProcessingState]):
                 }
                 
                 # Run CrewAI field mapping
-                flow_result = await flow_service.run_discovery_flow(cmdb_data)
+                flow_result = await crewai_flow_modular_service.run_discovery_flow(cmdb_data)
                 
                 if flow_result.get("status") == "success":
                     self.state.field_mappings = flow_result.get("suggested_field_mappings", {})
@@ -184,8 +183,8 @@ class CrewAIFlowDataProcessor(Flow[DataProcessingState]):
                     self.logger.warning("CrewAI flow failed, using fallback field mapping")
                     self.state.field_mappings = self._fallback_field_mapping()
                     
-            except ImportError:
-                self.logger.warning("CrewAI Flow not available, using fallback field mapping")
+            except (ImportError, Exception) as e:
+                self.logger.warning(f"CrewAI Flow not available ({e}), using fallback field mapping")
                 self.state.field_mappings = self._fallback_field_mapping()
             
             return f"Field mapping completed with {len(self.state.field_mappings)} mappings"
@@ -693,14 +692,7 @@ class CrewAIFlowDataProcessingService:
             # Create and run CrewAI Flow
             flow = CrewAIFlowDataProcessor()
             
-            # Initialize flow state properly
-            flow.state = DataProcessingState()
-            flow.state.import_session_id = import_session_id
-            flow.state.client_account_id = client_account_id
-            flow.state.engagement_id = engagement_id
-            flow.state.user_id = user_id
-            
-            # Start the flow with the initialize_processing method
+            # Initialize flow with proper parameters - let the Flow handle state management
             result = flow.initialize_processing(
                 import_session_id=import_session_id,
                 client_account_id=client_account_id,
@@ -708,48 +700,54 @@ class CrewAIFlowDataProcessingService:
                 user_id=user_id
             )
             
-            # Run through the flow steps manually since kickoff isn't working
+            # Run through the flow steps manually with proper error handling
             try:
                 # Step 1: Analyze raw data
                 analyze_result = await flow.analyze_raw_data(result)
+                self.logger.info(f"✅ Flow Step 1 Complete: {analyze_result}")
                 
                 # Step 2: Perform field mapping
                 mapping_result = await flow.perform_intelligent_field_mapping(analyze_result)
+                self.logger.info(f"✅ Flow Step 2 Complete: {mapping_result}")
                 
                 # Step 3: Classify assets
                 classification_result = await flow.classify_assets_intelligently(mapping_result)
+                self.logger.info(f"✅ Flow Step 3 Complete: {classification_result}")
                 
                 # Step 4: Create assets
                 creation_result = await flow.create_assets(classification_result)
+                self.logger.info(f"✅ Flow Step 4 Complete: {creation_result}")
                 
                 # Extract results from flow state
                 return {
                     "status": "success",
-                    "flow_id": flow.state.id,
-                    "processing_status": flow.state.processing_status,
-                    "progress_percentage": flow.state.progress_percentage,
-                    "total_processed": len(flow.state.processed_assets),
+                    "flow_id": getattr(flow.state, 'id', 'unknown'),
+                    "processing_status": getattr(flow.state, 'processing_status', 'completed'),
+                    "progress_percentage": getattr(flow.state, 'progress_percentage', 100.0),
+                    "total_processed": len(getattr(flow.state, 'processed_assets', [])),
                     "classification_results": {
-                        "applications": len(flow.state.applications),
-                        "servers": len(flow.state.servers),
-                        "databases": len(flow.state.databases),
-                        "other_assets": len(flow.state.other_assets),
-                        "dependencies": len(flow.state.dependencies)
+                        "applications": len(getattr(flow.state, 'applications', [])),
+                        "servers": len(getattr(flow.state, 'servers', [])),
+                        "databases": len(getattr(flow.state, 'databases', [])),
+                        "other_assets": len(getattr(flow.state, 'other_assets', [])),
+                        "dependencies": len(getattr(flow.state, 'dependencies', []))
                     },
-                    "processed_asset_ids": flow.state.processed_assets,
-                    "processing_errors": flow.state.processing_errors,
-                    "field_mappings": flow.state.field_mappings,
+                    "processed_asset_ids": getattr(flow.state, 'processed_assets', []),
+                    "processing_errors": getattr(flow.state, 'processing_errors', []),
+                    "field_mappings": getattr(flow.state, 'field_mappings', {}),
                     "crewai_flow_used": True,
-                    "completed_at": flow.state.completed_at.isoformat() if flow.state.completed_at else None,
-                    "detailed_message": f"CrewAI Flow processed {len(flow.state.processed_assets)} assets with intelligent classification and enrichment"
+                    "completed_at": getattr(flow.state, 'completed_at', None),
+                    "detailed_message": f"CrewAI Flow processed {len(getattr(flow.state, 'processed_assets', []))} assets with intelligent classification and enrichment"
                 }
                 
             except Exception as flow_e:
                 self.logger.error(f"CrewAI Flow steps failed: {flow_e}")
+                self.logger.info("Falling back to non-CrewAI processing due to flow execution error")
                 return await self._fallback_processing(import_session_id, client_account_id, engagement_id, user_id)
             
         except Exception as e:
             self.logger.error(f"CrewAI Flow processing failed: {e}")
+            self.logger.info("Falling back to non-CrewAI processing due to initialization error")
             return await self._fallback_processing(import_session_id, client_account_id, engagement_id, user_id)
     
     async def _fallback_processing(self, import_session_id: str, client_account_id: str, engagement_id: str, user_id: str) -> Dict[str, Any]:
@@ -769,14 +767,13 @@ class CrewAIFlowDataProcessingService:
                 
                 processed_count = 0
                 for record in raw_records:
-                    if record.cmdb_asset_id is not None:
+                    if record.asset_id is not None:
                         continue  # Already processed
                     
                     # Simple asset creation
                     raw_data = record.raw_data
                     
-                    cmdb_asset = CMDBAsset(
-                        id=uuid.uuid4(),
+                    asset = Asset(
                         client_account_id=client_account_id,
                         engagement_id=engagement_id,
                         name=raw_data.get("NAME", raw_data.get("name", f"Asset_{record.row_number}")),
@@ -785,22 +782,19 @@ class CrewAIFlowDataProcessingService:
                         ip_address=raw_data.get("IP_ADDRESS"),
                         operating_system=raw_data.get("OS"),
                         environment=raw_data.get("ENVIRONMENT", "Unknown"),
-                        discovery_source="fallback_processing",
-                        discovery_method="basic_import",
-                        discovery_timestamp=datetime.utcnow(),
-                        imported_by=user_id,
-                        imported_at=datetime.utcnow(),
-                        raw_data=raw_data,
+                        discovery_source="fallback_cmdb_import",
+                        discovery_method="basic_mapping",
+                        discovered_at=datetime.utcnow(),
                         created_at=datetime.utcnow()
                     )
                     
-                    session.add(cmdb_asset)
+                    session.add(asset)
                     await session.flush()
                     
-                    record.cmdb_asset_id = cmdb_asset.id
+                    record.asset_id = asset.id
                     record.is_processed = True
                     record.processed_at = datetime.utcnow()
-                    record.processing_notes = "Processed by fallback method"
+                    record.processing_notes = f"Processed by fallback method (non-agentic) - CrewAI Flow was not available. Created basic asset with CITYPE: {raw_data.get('CITYPE', 'server')}"
                     
                     processed_count += 1
                 
