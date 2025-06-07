@@ -48,38 +48,71 @@ import { useSixRAnalysis } from '@/hooks/useSixRAnalysis';
 import { apiCall, API_CONFIG } from '@/config/api';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
 import { Slider } from '../../components/ui/slider';
+import { SixRApiClient } from '../../lib/api/sixr';
 
 // Load applications from the discovery phase for 6R analysis
 const loadApplicationsFromBackend = async (): Promise<Application[]> => {
   try {
     const data = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.APPLICATIONS);
     
+    // Also fetch current 6R analyses to determine status for each application
+    let analysisStatusMap: Record<number, { 
+      status: 'not_analyzed' | 'in_progress' | 'completed' | 'failed',
+      recommended_strategy?: string,
+      confidence_score?: number 
+    }> = {};
+    
+    try {
+      const sixrClient = new SixRApiClient();
+      const analyses = await sixrClient.listAnalyses();
+      
+      // Create a map of application ID to analysis status
+      analyses.forEach(analysis => {
+        analysis.applications.forEach(app => {
+          analysisStatusMap[app.id] = {
+            status: analysis.status as 'not_analyzed' | 'in_progress' | 'completed' | 'failed',
+            recommended_strategy: analysis.recommendation?.recommended_strategy,
+            confidence_score: analysis.recommendation?.confidence_score
+          };
+        });
+      });
+    } catch (error) {
+      console.warn('Could not fetch 6R analysis status, using default status:', error);
+      // Gracefully continue with default 'not_analyzed' status
+      // Don't throw the error to prevent breaking the entire application load
+    }
+    
     // Transform the response to match our Application interface
-    return data.applications.map((app: any, index: number) => ({
-      // Convert string IDs to integers for 6R backend compatibility
-      id: index + 1, // Use sequential integers starting from 1
-      name: app.name,
-      description: app.description || `${app.original_asset_type || 'Application'} - ${app.techStack || 'Unknown Technology'}`,
-      department: app.department || 'Unknown',
-      business_unit: app.business_unit || app.department || 'Unknown',
-      criticality: (app.criticality || 'medium').toLowerCase() as 'low' | 'medium' | 'high' | 'critical',
-      complexity_score: app.complexity_score || 5,
-      technology_stack: app.techStack ? app.techStack.split(', ') : [app.technology_stack || 'Unknown'],
-      application_type: app.application_type || 'custom',
-      environment: app.environment || 'Unknown',
-      sixr_ready: app.sixr_ready,
-      migration_complexity: app.migration_complexity,
-      original_asset_type: app.original_asset_type,
-      asset_id: app.asset_id || app.id, // Keep original string ID as reference
-      analysis_status: 'not_analyzed' as const,
-      user_count: undefined,
-      data_volume: undefined,
-      compliance_requirements: app.compliance_requirements || [],
-      dependencies: app.dependencies || [],
-      last_updated: undefined,
-      recommended_strategy: undefined,
-      confidence_score: undefined
-    }));
+    return data.applications.map((app: any, index: number) => {
+      const appId = index + 1;
+      const analysisInfo = analysisStatusMap[appId] || { status: 'not_analyzed' };
+      
+      return {
+        // Convert string IDs to integers for 6R backend compatibility
+        id: appId, // Use sequential integers starting from 1
+        name: app.name,
+        description: app.description || `${app.original_asset_type || 'Application'} - ${app.techStack || 'Unknown Technology'}`,
+        department: app.department || 'Unknown',
+        business_unit: app.business_unit || app.department || 'Unknown',
+        criticality: (app.criticality || 'medium').toLowerCase() as 'low' | 'medium' | 'high' | 'critical',
+        complexity_score: app.complexity_score || 5,
+        technology_stack: app.techStack ? app.techStack.split(', ') : [app.technology_stack || 'Unknown'],
+        application_type: app.application_type || 'custom',
+        environment: app.environment || 'Unknown',
+        sixr_ready: app.sixr_ready,
+        migration_complexity: app.migration_complexity,
+        original_asset_type: app.original_asset_type,
+        asset_id: app.asset_id || app.id, // Keep original string ID as reference
+        analysis_status: analysisInfo.status, // Use actual analysis status from 6R API
+        user_count: undefined,
+        data_volume: undefined,
+        compliance_requirements: app.compliance_requirements || [],
+        dependencies: app.dependencies || [],
+        last_updated: undefined,
+        recommended_strategy: analysisInfo.recommended_strategy,
+        confidence_score: analysisInfo.confidence_score
+      };
+    });
   } catch (error) {
     console.error('Failed to load applications:', error);
     // Return empty array so UI shows no data state instead of crashing
@@ -371,6 +404,38 @@ const Treatment = () => {
   const currentApplication = selectedApplications.length > 0 
     ? applications.find(app => app.id === selectedApplications[0])
     : null;
+
+  // Poll for status updates when on selection tab or when analysis is running
+  // TEMPORARILY DISABLED to prevent infinite error loops
+  useEffect(() => {
+    // TODO: Re-enable once API validation issues are resolved
+    console.log('🚧 Polling temporarily disabled to prevent console errors');
+    return;
+    
+    if (currentTab === 'selection' || state.analysisProgress?.status === 'in_progress') {
+      const pollInterval = setInterval(async () => {
+        try {
+          const updatedApplications = await loadApplicationsFromBackend();
+          setApplications(updatedApplications);
+        } catch (error) {
+          console.warn('Failed to refresh application status:', error);
+          // Stop polling on persistent errors to prevent infinite loops
+          clearInterval(pollInterval);
+        }
+      }, 5000); // Increased to 5 seconds to reduce error frequency
+
+      return () => clearInterval(pollInterval);
+    }
+  }, [currentTab, state.analysisProgress?.status]);
+
+  // Auto-refresh applications when component mounts and when returning to selection tab
+  useEffect(() => {
+    if (currentTab === 'selection') {
+      loadApplicationsFromBackend().then(setApplications).catch(error => {
+        console.warn('Failed to load applications:', error);
+      });
+    }
+  }, [currentTab]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex">

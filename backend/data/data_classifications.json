@@ -1,13 +1,29 @@
 {
-  "data_row_0_analysis_20250607_031644": {
-    "id": "data_row_0_analysis_20250607_031644",
+  "data_row_0_analysis_20250607_062000": {
+    "id": "data_row_0_analysis_20250607_062000",
     "data_type": "asset_record",
     "content": {
-      "Name": "test-server-01",
-      "Hostname": "test01.marathon.com",
-      "IP_Address": "10.1.1.10",
-      "Environment": "Production",
-      "OS": "Linux"
+      "asset_name": "Inventory_Mgmt",
+      "ci_type": "Application",
+      "ci_id": "APP0004",
+      "version/hostname": "3.2.5",
+      "ip_address": "",
+      "operating_system": "",
+      "memory_gb": "4",
+      "ram_(gb)": "16",
+      "storage_gb": "500",
+      "location": "DC1",
+      "business_owner": "Sarah Lee",
+      "environment": "Production",
+      "status": "Installed",
+      "related_ci": "SRV0006",
+      "intelligent_asset_type": "Unknown",
+      "asset_type": "Application",
+      "sixr_ready": "Type Classification Needed",
+      "migration_complexity": "Medium",
+      "id": "APP0004",
+      "name": "Inventory_Mgmt",
+      "type": "Application"
     },
     "classification": "good_data",
     "agent_analysis": {

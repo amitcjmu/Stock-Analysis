@@ -113,14 +113,15 @@ class SixRDecisionEngine:
     
     def _initialize_parameter_weights(self) -> Dict[str, float]:
         """Initialize global parameter weights for normalization."""
+        # Weights should sum to 1.0 for proper normalization
         return {
-            "business_value": 1.0,
-            "technical_complexity": 1.0,
-            "migration_urgency": 1.0,
-            "compliance_requirements": 1.0,
-            "cost_sensitivity": 1.0,
-            "risk_tolerance": 1.0,
-            "innovation_priority": 1.0
+            "business_value": 0.20,          # 20% - Business impact
+            "technical_complexity": 0.15,    # 15% - Technical difficulty
+            "migration_urgency": 0.15,       # 15% - Timeline pressure
+            "compliance_requirements": 0.10, # 10% - Regulatory constraints
+            "cost_sensitivity": 0.15,        # 15% - Budget constraints
+            "risk_tolerance": 0.15,          # 15% - Risk appetite
+            "innovation_priority": 0.10      # 10% - Innovation focus
         }
     
     def _initialize_scoring_rules(self) -> Dict[SixRStrategy, Dict[str, Any]]:
@@ -676,6 +677,9 @@ class SixRDecisionEngine:
         # Apply penalty factors
         penalties = self._calculate_penalties(strategy, param_values, rules)
         final_score = base_score * penalties["total_penalty_factor"] * context_adjustment
+        
+        # Ensure score doesn't exceed 100 (safety cap)
+        final_score = min(final_score, 100.0)
         
         # Generate rationale
         rationale = self._generate_rationale(strategy, param_values, parameter_contributions, penalties)

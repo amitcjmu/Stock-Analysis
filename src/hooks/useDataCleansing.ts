@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { apiCall, API_CONFIG } from '../config/api';
+import { useAppContext } from './useContext';
 import { QualityIssue } from '../components/discovery/data-cleansing/QualityIssuesSummary';
 import { AgentRecommendation } from '../components/discovery/data-cleansing/RecommendationsSummary';
 import { ActionFeedback } from '../components/discovery/data-cleansing/ActionFeedback';
@@ -32,6 +33,7 @@ interface AgentAnalysisResult {
 
 export const useDataCleansing = () => {
   const location = useLocation();
+  const { getContextHeaders } = useAppContext();
 
   // State management
   const [rawData, setRawData] = useState<any[]>([]);
@@ -124,10 +126,14 @@ export const useDataCleansing = () => {
   // Load data from database or backend
   const loadDataFromStorage = async () => {
     try {
+      const contextHeaders = getContextHeaders();
+      
       // Priority 1: Try to get latest import from database
       console.log('Loading latest import from database for data cleansing');
       try {
-        const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.LATEST_IMPORT);
+        const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.LATEST_IMPORT, {
+          headers: contextHeaders
+        });
         if (response && response.success && response.data && Array.isArray(response.data) && response.data.length > 0) {
           console.log(`Loaded ${response.data.length} records from latest import session ${response.import_session_id}`);
           setRawData(response.data);
@@ -142,7 +148,9 @@ export const useDataCleansing = () => {
 
       // Priority 2: Fallback to existing assets in backend
       try {
-        const assetsResponse = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}?page=1&page_size=1000`);
+        const assetsResponse = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}?page=1&page_size=1000`, {
+          headers: contextHeaders
+        });
         if (assetsResponse && assetsResponse.assets && Array.isArray(assetsResponse.assets) && assetsResponse.assets.length > 0) {
           console.log(`Loaded ${assetsResponse.assets.length} assets from backend inventory`);
           setRawData(assetsResponse.assets);
@@ -199,59 +207,57 @@ export const useDataCleansing = () => {
   const performAgentQualityAnalysis = async (data: any[]) => {
     try {
       setIsAnalyzing(true);
+      const contextHeaders = getContextHeaders();
       
-      // Call agent quality analysis endpoint
-      const analysisResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.DATA_CLEANUP_ANALYZE, {
+      console.log('Starting agent-driven quality analysis for', data.length, 'records');
+
+      const analysisRequest = {
+        assets: data,
+        analysis_type: 'data_quality',
+        settings: {
+          run_full_analysis: true,
+          include_recommendations: true,
+          include_agent_insights: true,
+          confidence_threshold: 0.7
+        }
+      };
+
+      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_ANALYZE, {
         method: 'POST',
-        body: JSON.stringify({
-          asset_data: data.slice(0, 100), // Sample for analysis
-          page_context: 'data-cleansing',
-          client_account_id: null, // TODO: Add client context
-          engagement_id: null
-        })
+        headers: {
+          'Content-Type': 'application/json',
+          ...contextHeaders
+        },
+        body: JSON.stringify(analysisRequest)
       });
 
-      if (analysisResponse && analysisResponse.analysis_type) {
-        setAgentAnalysis(analysisResponse);
-        processAgentAnalysisResults(analysisResponse, data);
+      if (response && response.success) {
+        console.log('✅ Agent analysis completed successfully:', response.analysis);
+        
+        // Process the comprehensive agent analysis results
+        processAgentAnalysisResults(response.analysis, data);
         
         setActionFeedback({
           type: 'success',
-          message: 'Agent analysis completed successfully',
-          details: `Analyzed ${data.length} assets with ${analysisResponse.analysis_type} approach`
+          message: 'Quality analysis completed',
+          details: `Analyzed ${data.length} assets with ${response.analysis.agent_confidence}% confidence`
         });
       } else {
-        console.warn('Invalid agent analysis response, using backend-only results');
-        // Don't generate frontend fallback - let backend handle all analysis
-        setQualityMetrics({
-          total_assets: data.length,
-          clean_data: Math.floor(data.length * 0.6),
-          needs_attention: Math.floor(data.length * 0.3), 
-          critical_issues: Math.floor(data.length * 0.1),
-          completion_percentage: 60,
-          average_quality: 60
-        });
-        setQualityIssues([]);
-        setAgentRecommendations([]);
+        console.warn('⚠️ Agent analysis failed, using fallback rules');
+        throw new Error(response?.error || 'Agent analysis returned no results');
       }
     } catch (error) {
       console.error('Agent analysis failed:', error);
+      console.log('🔄 Falling back to rule-based quality analysis');
+      
+      // Fallback to simplified analysis
+      performFallbackQualityAnalysis(data);
+      
       setActionFeedback({
-        type: 'error',
-        message: 'Quality analysis failed',
-        details: 'Backend analysis unavailable. Please check server connection.'
+        type: 'warning',
+        message: 'Used fallback quality analysis',
+        details: 'Agent-driven analysis unavailable, using rule-based assessment'
       });
-      // Set empty state when backend fails
-      setQualityMetrics({
-        total_assets: data.length,
-        clean_data: 0,
-        needs_attention: 0,
-        critical_issues: data.length,
-        completion_percentage: 0,
-        average_quality: 0
-      });
-      setQualityIssues([]);
-      setAgentRecommendations([]);
     } finally {
       setIsAnalyzing(false);
     }
@@ -387,79 +393,44 @@ export const useDataCleansing = () => {
     setAgentRecommendations([]);
   };
 
-  // Trigger agent panel analysis for auto-population
+  // Trigger agent panel analysis with context
   const triggerAgentPanelAnalysis = async (data: any[]) => {
     try {
-      console.log('Triggering agent panel analysis for data-cleansing context');
+      const contextHeaders = getContextHeaders();
       
-      // Trigger standard agent analysis for data-cleansing context
-      // This will populate all agent panels: clarifications, classifications, and insights
-      const agentAnalysisRequest = {
-        data_source: {
-          file_data: data.slice(0, 20), // Send actual data records (not just sample)
-          columns: data.length > 0 ? Object.keys(data[0]) : [],
-          sample_data: data.slice(0, 10), // Keep for backward compatibility
-          metadata: {
-            source: "data-cleansing-page",
-            file_name: "data_cleansing_analysis.csv",
-            total_records: data.length,
-            context: "quality_analysis_and_cleansing",
-            mapping_context: "data-cleansing"
-          }
-        },
-        analysis_type: "data_source_analysis",
-        page_context: "data-cleansing"
+      console.log('Triggering agent panel analysis for data cleansing context');
+      
+      // Prepare analysis data for cleansing-specific insights
+      const analysisData = {
+        assets: data,
+        analysis_context: 'data_cleansing',
+        focus_areas: ['data_quality', 'normalization', 'dependencies'],
+        additional_context: {
+          phase: 'data_cleansing',
+          previous_steps: ['import', 'attribute_mapping'],
+          user_workflow: 'discovery_pipeline'
+        }
       };
 
-      try {
-        const agentResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_ANALYSIS, {
-          method: 'POST',
-          body: JSON.stringify(agentAnalysisRequest)
-        });
+      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_ANALYSIS, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...contextHeaders
+        },
+        body: JSON.stringify(analysisData)
+      });
 
-        if (agentResponse) {
-          console.log('✅ Agent analysis completed for data-cleansing context');
-        }
-      } catch (error) {
-        console.warn('Standard agent analysis failed:', error);
+      if (response && response.agent_analysis) {
+        console.log('✅ Agent panel analysis completed for data cleansing');
+        // The agent analysis will automatically trigger the agent panel components
+        // via the global agent state management
+      } else {
+        console.warn('Agent panel analysis returned no results');
       }
-      
-      // Also check for relatedCMDBrecords that should be mapped as dependencies
-      const assetsWithRelatedRecords = data.filter(asset => 
-        asset.relatedCMDBrecords || asset.related_cmdb_records || asset.dependencies
-      );
-
-      if (assetsWithRelatedRecords.length > 0) {
-        // Generate specific clarifications for unmapped dependencies  
-        const clarificationRequest = {
-          page_context: 'data-cleansing',
-          analysis_type: 'dependency_mapping_review',
-          data_source: {
-            assets_with_dependencies: assetsWithRelatedRecords,
-            total_assets: data.length,
-            context: 'data_cleansing_review'
-          }
-        };
-
-        try {
-          const clarificationResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_CLARIFICATION, {
-            method: 'POST',
-            body: JSON.stringify(clarificationRequest)
-          });
-
-          if (clarificationResponse.status === 'success') {
-            console.log('✅ Agent clarifications generated for dependency mapping');
-          }
-        } catch (error) {
-          console.warn('Agent clarification endpoint failed:', error);
-        }
-      }
-
-      // Trigger agent panel refresh
-      setAgentRefreshTrigger(prev => prev + 1);
-      
     } catch (error) {
-      console.error('Failed to trigger agent panel analysis:', error);
+      console.warn('Agent panel analysis failed:', error);
+      // Non-critical - continue without agent insights
     }
   };
 

@@ -6,6 +6,7 @@ import DataClassificationDisplay from '../../components/discovery/DataClassifica
 import AgentInsightsSection from '../../components/discovery/AgentInsightsSection';
 import { Network, Database, Server, ArrowRight, RefreshCw, Filter, Search, MapPin, Activity, AlertTriangle, CheckCircle, Clock, Settings, Eye } from 'lucide-react';
 import { apiCall, API_CONFIG } from '../../config/api';
+import { useAppContext } from '../../hooks/useContext';
 
 interface DependencyItem {
   id: string;
@@ -97,6 +98,7 @@ interface DependencyAnalysisData {
 }
 
 const Dependencies = () => {
+  const { getContextHeaders, context } = useAppContext();
   const [isLoading, setIsLoading] = useState(false);
   const [dependencyData, setDependencyData] = useState<DependencyAnalysisData | null>(null);
   const [agentRefreshTrigger, setAgentRefreshTrigger] = useState(0);
@@ -117,18 +119,37 @@ const Dependencies = () => {
     }, 1000);
   }, []);
 
+  // Refetch data when context changes (client/engagement/session)
+  useEffect(() => {
+    if (context.client && context.engagement) {
+      console.log('🔄 Context changed, refetching dependencies data for:', {
+        client: context.client.name,
+        engagement: context.engagement.name,
+        session: context.session?.session_display_name || 'None'
+      });
+      
+      // Refetch dependency analysis for new context
+      fetchDependencyAnalysis();
+    }
+  }, [context.client, context.engagement, context.session, context.viewMode]);
+
   const fetchDependencyAnalysis = async () => {
     try {
       setIsLoading(true);
+      const contextHeaders = getContextHeaders();
       
       // Get assets for dependency analysis
-      const assetsResponse = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}?page=1&page_size=1000`);
+      const assetsResponse = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}?page=1&page_size=1000`, {
+        headers: contextHeaders
+      });
       const assets = assetsResponse?.assets || [];
       
       // Get applications for cross-app mapping
       let applications = [];
       try {
-        const applicationsResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.APPLICATIONS);
+        const applicationsResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.APPLICATIONS, {
+          headers: contextHeaders
+        });
         applications = applicationsResponse?.applications || [];
       } catch (appError) {
         console.warn('Could not fetch applications for dependency analysis:', appError);
@@ -149,6 +170,10 @@ const Dependencies = () => {
       // Perform dependency analysis
       const dependencyAnalysis = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.DEPENDENCY_ANALYSIS, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...contextHeaders
+        },
         body: JSON.stringify({
           assets: assets,
           applications: applications,
@@ -572,9 +597,6 @@ const Dependencies = () => {
                             const sourceRow = Math.floor(sourceIndex / cols);
                             const targetCol = targetIndex % cols;
                             const targetRow = Math.floor(targetIndex / cols);
-                            
-                            const nodeSpacingX = 900 / Math.max(cols - 1, 1);
-                            const nodeSpacingY = 400 / Math.max(rows - 1, 1);
                             
                             const sourceX = 50 + sourceCol * nodeSpacingX;
                             const sourceY = 50 + sourceRow * nodeSpacingY;

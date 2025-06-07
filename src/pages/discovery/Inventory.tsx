@@ -13,8 +13,11 @@ import {
   ChevronLeft, ChevronRight, Search, Plus, Trash2, Eye, ArrowUpDown, Users, Brain
 } from 'lucide-react';
 import { apiCall, API_CONFIG } from '../../config/api';
+import { useAppContext } from '../../hooks/useContext';
 
 const Inventory = () => {
+  const { getContextHeaders, context } = useAppContext();
+  
   // Filtering and pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
@@ -96,6 +99,8 @@ const Inventory = () => {
       setIsLoading(true);
       setError(null);
       
+      const contextHeaders = getContextHeaders();
+      
       // Build query parameters for both assets and summary requests
       const params = new URLSearchParams({
         page: page.toString(),
@@ -126,9 +131,12 @@ const Inventory = () => {
       }
       
       console.log('🔍 Fetching assets from API:', `${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}?${params}`);
+      console.log('🔒 Using context headers:', contextHeaders);
       
       // Fetch assets (includes summary data in response)
-      const assetsResponse = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}?${params}`);
+      const assetsResponse = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}?${params}`, {
+        headers: contextHeaders
+      });
       
       console.log('📊 Asset API response:', assetsResponse);
       
@@ -410,9 +418,12 @@ const Inventory = () => {
   const fetchAppMappings = async () => {
     try {
       setMappingLoading(true);
+      const contextHeaders = getContextHeaders();
       console.log('Fetching app mappings from:', API_CONFIG.ENDPOINTS.DISCOVERY.APP_MAPPINGS);
       
-      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.APP_MAPPINGS);
+      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.APP_MAPPINGS, {
+        headers: contextHeaders
+      });
       
       console.log('App mappings response:', response);
       console.log('Applications found:', response.applications?.length || 0);
@@ -435,10 +446,13 @@ const Inventory = () => {
   // Fetch applications count for summary - separate from app mappings
   const fetchApplicationsCount = async () => {
     try {
+      const contextHeaders = getContextHeaders();
       console.log('🔍 Fetching applications count from:', API_CONFIG.ENDPOINTS.DISCOVERY.APPLICATIONS);
       
       // Try the applications endpoint
-      const applicationsResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.APPLICATIONS);
+      const applicationsResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.APPLICATIONS, {
+        headers: contextHeaders
+      });
       console.log('📊 Applications API response:', applicationsResponse);
       
       let applicationsCount = 0;
@@ -467,7 +481,9 @@ const Inventory = () => {
       // Try the application portfolio endpoint as backup
       try {
         console.log('🔄 Trying application portfolio endpoint as backup');
-        const portfolioResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.APPLICATION_PORTFOLIO);
+        const portfolioResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.APPLICATION_PORTFOLIO, {
+          headers: contextHeaders
+        });
         console.log('📊 Application portfolio response:', portfolioResponse);
         
         let portfolioCount = 0;
@@ -494,6 +510,7 @@ const Inventory = () => {
   // Trigger agent analysis for asset inventory context
   const triggerAgentAnalysis = async (assetsData: any[]) => {
     try {
+      const contextHeaders = getContextHeaders();
       console.log('Triggering agent analysis for asset-inventory context');
       
       // Prepare data for agent analysis
@@ -517,6 +534,10 @@ const Inventory = () => {
       // Trigger agent analysis
       const agentResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_ANALYSIS, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...contextHeaders
+        },
         body: JSON.stringify(agentAnalysisRequest)
       });
 
@@ -547,6 +568,29 @@ const Inventory = () => {
     // Also fetch applications count for accurate summary
     fetchApplicationsCount();
   }, [currentPage, pageSize, selectedFilter, selectedEnv, selectedDept, selectedCriticality, searchTerm]);
+
+  // Refetch data when context changes (client/engagement/session)
+  useEffect(() => {
+    if (context.client && context.engagement) {
+      const filters = {
+        asset_type: selectedFilter,
+        environment: selectedEnv,
+        department: selectedDept,
+        criticality: selectedCriticality,
+        search: searchTerm
+      };
+      
+      console.log('🔄 Context changed, refetching inventory data for:', {
+        client: context.client.name,
+        engagement: context.engagement.name,
+        session: context.session?.session_display_name || 'None'
+      });
+      
+      // Force reload from API when context changes (bypass cache)
+      fetchAssets(currentPage, filters);
+      fetchApplicationsCount();
+    }
+  }, [context.client, context.engagement, context.session, context.viewMode]);
 
   // Trigger initial agent panel refresh on component mount
   useEffect(() => {

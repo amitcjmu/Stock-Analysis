@@ -222,28 +222,6 @@
     }
   },
   {
-    "id": "3b4ca06f-84de-42eb-9246-80964d558952",
-    "hostname": "app1",
-    "asset_type": "Application",
-    "environment": "Test",
-    "department": "Unknown",
-    "operating_system": "Unknown",
-    "ip_address": "Unknown",
-    "application_name": "Unknown",
-    "technology_stack": "Application",
-    "criticality": "Unknown",
-    "dependencies": "Unknown",
-    "six_r_readiness": "Insufficient Data",
-    "migration_complexity": "Low",
-    "discovery_source": "cmdb_import",
-    "processed_timestamp": "2025-05-29T02:44:27.535445",
-    "raw_data": {
-      "hostname": "app1",
-      "asset_type": "Application",
-      "environment": "Test"
-    }
-  },
-  {
     "id": "034fdb1d-d48c-4f3f-8344-9226c30a18e5",
     "hostname": "DBServ01",
     "asset_type": "Server",

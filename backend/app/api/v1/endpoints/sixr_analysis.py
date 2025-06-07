@@ -155,14 +155,12 @@ async def get_analysis(
     if not current_params:
         raise HTTPException(status_code=404, detail="Analysis parameters not found")
     
-    # Get latest recommendation for current iteration
+    # Get latest recommendation for this analysis
     rec_result = await db.execute(
         select(SixRRecommendationModel)
-        .where(
-            SixRRecommendationModel.analysis_id == analysis_id,
-            SixRRecommendationModel.iteration_number == analysis.current_iteration
-        )
-        .order_by(SixRRecommendationModel.created_at.desc())
+        .where(SixRRecommendationModel.analysis_id == analysis_id)
+        .order_by(SixRRecommendationModel.iteration_number.desc())
+        .limit(1)  # Ensure we only get one row
     )
     latest_recommendation = rec_result.scalar_one_or_none()
     
@@ -530,7 +528,7 @@ async def list_sixr_analyses(
         # Convert to response format
         analysis_responses = []
         for analysis in analyses:
-            # Get current parameters
+            # Get parameters for this analysis
             params_result = await db.execute(
                 select(SixRParametersModel)
                 .where(SixRParametersModel.analysis_id == analysis.id)
@@ -556,6 +554,32 @@ async def list_sixr_analyses(
             else:
                 params = SixRParameters()
             
+            # Get latest recommendation for this analysis
+            rec_result = await db.execute(
+                select(SixRRecommendationModel)
+                .where(SixRRecommendationModel.analysis_id == analysis.id)
+                .order_by(SixRRecommendationModel.iteration_number.desc())
+                .limit(1)  # Ensure we only get one row
+            )
+            latest_recommendation = rec_result.scalar_one_or_none()
+            
+            recommendation = None
+            if latest_recommendation:
+                recommendation = SixRRecommendation(
+                    recommended_strategy=latest_recommendation.recommended_strategy,
+                    confidence_score=latest_recommendation.confidence_score,
+                    strategy_scores=latest_recommendation.strategy_scores or [],
+                    key_factors=latest_recommendation.key_factors or [],
+                    assumptions=latest_recommendation.assumptions or [],
+                    next_steps=latest_recommendation.next_steps or [],
+                    estimated_effort=latest_recommendation.estimated_effort,
+                    estimated_timeline=latest_recommendation.estimated_timeline,
+                    estimated_cost_impact=latest_recommendation.estimated_cost_impact,
+                    risk_factors=latest_recommendation.risk_factors or [],
+                    business_benefits=latest_recommendation.business_benefits or [],
+                    technical_benefits=latest_recommendation.technical_benefits or []
+                )
+            
             analysis_responses.append(SixRAnalysisResponse(
                 analysis_id=analysis.id,
                 status=analysis.status,
@@ -563,7 +587,7 @@ async def list_sixr_analyses(
                 applications=analysis.application_data or [{"id": app_id} for app_id in analysis.application_ids],
                 parameters=params,
                 qualifying_questions=[],
-                recommendation=None,  # TODO: Get latest recommendation
+                recommendation=recommendation,  # Now includes actual recommendation data
                 progress_percentage=analysis.progress_percentage,
                 estimated_completion=analysis.estimated_completion,
                 created_at=analysis.created_at,

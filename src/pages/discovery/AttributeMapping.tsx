@@ -12,6 +12,7 @@ import CrewAnalysisPanel from '../../components/discovery/attribute-mapping/Crew
 import FieldMappingsTab from '../../components/discovery/attribute-mapping/FieldMappingsTab';
 import NavigationTabs from '../../components/discovery/attribute-mapping/NavigationTabs';
 import { apiCall, API_CONFIG } from '../../config/api';
+import { useAppContext } from '../../hooks/useContext';
 
 // Interface definitions
 interface FieldMapping {
@@ -54,6 +55,7 @@ const CRITICAL_ATTRIBUTES = {
 const AttributeMapping = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { getContextHeaders, context } = useAppContext();
 
   // State management
   const [importedData, setImportedData] = useState<any[]>([]);
@@ -74,9 +76,24 @@ const AttributeMapping = () => {
     fetchImportedData();
   }, []);
 
+  // Refetch data when context changes (client/engagement/session)
+  useEffect(() => {
+    if (context.client && context.engagement) {
+      console.log('🔄 Context changed, refetching attribute mapping data for:', {
+        client: context.client.name,
+        engagement: context.engagement.name,
+        session: context.session?.session_display_name || 'None'
+      });
+      
+      // Refetch imported data for new context
+      fetchImportedData();
+    }
+  }, [context.client, context.engagement, context.session, context.viewMode]);
+
   // Fetch imported data from database or previous step
   const fetchImportedData = async () => {
     try {
+      const contextHeaders = getContextHeaders();
       const state = location.state as any;
       
       // Priority 1: Direct data from navigation state
@@ -94,7 +111,9 @@ const AttributeMapping = () => {
       if (state?.import_session_id) {
         console.log('Loading data from database using session ID:', state.import_session_id);
         try {
-          const response = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.GET_IMPORT}/${state.import_session_id}`);
+          const response = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.GET_IMPORT}/${state.import_session_id}`, {
+            headers: contextHeaders
+          });
           if (response.success && response.data.length > 0) {
             setImportedData(response.data);
             const columns = Object.keys(response.data[0] || {});
@@ -111,7 +130,9 @@ const AttributeMapping = () => {
       // Priority 3: Load latest import from database
       console.log('Loading latest import from database');
       try {
-        const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.LATEST_IMPORT);
+        const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.LATEST_IMPORT, {
+          headers: contextHeaders
+        });
         if (response.success && response.data.length > 0) {
           console.log(`Loaded ${response.data.length} records from latest import session ${response.import_session_id}`);
           setImportedData(response.data);
@@ -157,6 +178,7 @@ const AttributeMapping = () => {
   const generateFieldMappings = async (columns: string[], sampleData: any[]) => {
     try {
       setIsAnalyzing(true);
+      const contextHeaders = getContextHeaders();
       
       // Agent-driven field mapping analysis
       console.log('Requesting agent analysis for columns:', columns);
@@ -164,6 +186,10 @@ const AttributeMapping = () => {
       
       const agentResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_ANALYSIS, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...contextHeaders
+        },
         body: JSON.stringify({
           data_source: {
             columns: columns,
