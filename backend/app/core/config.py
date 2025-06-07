@@ -100,9 +100,9 @@ class Settings(BaseSettings):
     CREWAI_TIMEOUT_DATA_VALIDATION: float = 15.0
     CREWAI_TIMEOUT_FIELD_MAPPING: float = 20.0  
     CREWAI_TIMEOUT_ASSET_CLASSIFICATION: float = 15.0
-    CREWAI_LLM_MODEL: str = "meta-llama/Llama-3.3-70B-Instruct"
-    CREWAI_LLM_TEMPERATURE: float = 0.1
-    CREWAI_LLM_MAX_TOKENS: int = 4000
+    CREWAI_LLM_MODEL: str = "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
+    CREWAI_LLM_TEMPERATURE: float = 0.0
+    CREWAI_LLM_MAX_TOKENS: int = 1500
     CREWAI_LLM_BASE_URL: str = "https://api.deepinfra.com/v1/openai"
     CREWAI_RETRY_ATTEMPTS: int = 3
     CREWAI_RETRY_WAIT_SECONDS: int = 2

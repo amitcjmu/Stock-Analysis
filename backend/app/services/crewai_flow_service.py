@@ -83,7 +83,7 @@ class CrewAIFlowConfig:
     @property
     def llm_config(self) -> Dict[str, Any]:
         return {
-            "model": getattr(self.settings, 'CREWAI_LLM_MODEL', "meta-llama/Llama-3.3-70B-Instruct"),
+            "model": getattr(self.settings, 'CREWAI_LLM_MODEL', "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"),
             "temperature": getattr(self.settings, 'CREWAI_LLM_TEMPERATURE', 0.1),
             "max_tokens": getattr(self.settings, 'CREWAI_LLM_MAX_TOKENS', 4000),
             "base_url": getattr(self.settings, 'CREWAI_LLM_BASE_URL', "https://api.deepinfra.com/v1/openai")
