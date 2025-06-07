@@ -83,7 +83,7 @@ class AssetProcessingHandler:
             logger.error(f"Error reprocessing assets: {e}")
             return self._fallback_reprocess()
     
-    async def get_applications_for_analysis(self) -> Dict[str, Any]:
+    async def get_applications_for_analysis(self, client_account_id: Optional[int] = None, engagement_id: Optional[int] = None) -> Dict[str, Any]:
         """
         Get applications data specially formatted for 6R analysis.
         """
@@ -91,7 +91,11 @@ class AssetProcessingHandler:
             if not self.persistence_available:
                 return self._fallback_get_applications()
             
-            all_assets = self.get_processed_assets()
+            # Get assets with client/engagement scoping if available
+            if client_account_id and hasattr(self, 'get_processed_assets_scoped'):
+                all_assets = self.get_processed_assets_scoped(client_account_id, engagement_id)
+            else:
+                all_assets = self.get_processed_assets()
             
             if not all_assets:
                 return {
@@ -125,6 +129,163 @@ class AssetProcessingHandler:
         except Exception as e:
             logger.error(f"Error getting applications for analysis: {e}")
             return self._fallback_get_applications()
+    
+    async def get_unlinked_assets(self, client_account_id: Optional[int] = None, engagement_id: Optional[int] = None) -> Dict[str, Any]:
+        """
+        Get assets that are NOT tied to any application - critical for migration planning.
+        """
+        try:
+            if not self.persistence_available:
+                return self._fallback_get_unlinked_assets()
+            
+            # Get all assets with client/engagement scoping if available
+            if client_account_id and hasattr(self, 'get_processed_assets_scoped'):
+                all_assets = self.get_processed_assets_scoped(client_account_id, engagement_id)
+            else:
+                all_assets = self.get_processed_assets()
+            
+            if not all_assets:
+                return {
+                    "unlinked_assets": [],
+                    "summary": {
+                        "total_unlinked": 0,
+                        "by_type": {},
+                        "by_environment": {},
+                        "by_criticality": {},
+                        "migration_impact": "low"
+                    }
+                }
+            
+            # Filter out application-type assets - these are the ones that get applications
+            unlinked_assets = []
+            application_names = set()
+            
+            # First pass: collect all application names
+            for asset in all_assets:
+                asset_type = str(asset.get('asset_type', '')).lower()
+                if 'app' in asset_type or 'service' in asset_type or 'application' in asset_type:
+                    app_name = asset.get('asset_name', '').lower()
+                    if app_name:
+                        application_names.add(app_name)
+            
+            # Second pass: find assets not linked to applications
+            for asset in all_assets:
+                asset_type = str(asset.get('asset_type', '')).lower()
+                
+                # Skip application assets themselves
+                if 'app' in asset_type or 'service' in asset_type or 'application' in asset_type:
+                    continue
+                
+                # Check if this asset is linked to any application
+                asset_name = asset.get('asset_name', '').lower()
+                is_linked = False
+                
+                # Check various ways assets might be linked to applications
+                for app_name in application_names:
+                    if app_name in asset_name or asset_name in app_name:
+                        is_linked = True
+                        break
+                    
+                    # Check hostname/IP relationships
+                    hostname = asset.get('hostname', '').lower()
+                    ip_address = asset.get('ip_address', '')
+                    if (hostname and app_name in hostname) or (ip_address and app_name in ip_address):
+                        is_linked = True
+                        break
+                
+                # If not linked, add to unlinked assets
+                if not is_linked:
+                    unlinked_asset = self._transform_asset_for_unlinked_analysis(asset)
+                    unlinked_assets.append(unlinked_asset)
+            
+            # Generate summary statistics
+            summary = self._generate_unlinked_summary(unlinked_assets)
+            
+            return {
+                "unlinked_assets": unlinked_assets,
+                "summary": summary
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting unlinked assets: {e}")
+            return self._fallback_get_unlinked_assets()
+    
+    def _transform_asset_for_unlinked_analysis(self, asset: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Transform raw asset data for unlinked asset analysis.
+        """
+        transformed = {
+            "id": asset.get('id') or asset.get('ci_id') or asset.get('asset_id', 'unknown'),
+            "name": asset.get('asset_name') or asset.get('hostname', 'Unknown Asset'),
+            "type": asset.get('asset_type', 'Unknown'),
+            "environment": asset.get('environment', 'Unknown'),
+            "department": asset.get('department') or asset.get('business_owner', 'Unknown'),
+            "criticality": self._map_criticality(asset.get('status') or asset.get('criticality', 'Medium')),
+            "hostname": asset.get('hostname', ''),
+            "ip_address": asset.get('ip_address', ''),
+            "operating_system": asset.get('operating_system', ''),
+            "cpu_cores": self._extract_numeric_value(asset.get('cpu_cores')),
+            "memory_gb": self._extract_numeric_value(asset.get('memory_gb')),
+            "storage_gb": self._extract_numeric_value(asset.get('storage_gb')),
+            "location": asset.get('location', ''),
+            "last_updated": asset.get('updated_timestamp') or asset.get('reprocessed_timestamp', ''),
+            "migration_consideration": self._assess_unlinked_migration_consideration(asset)
+        }
+        
+        return transformed
+    
+    def _assess_unlinked_migration_consideration(self, asset: Dict[str, Any]) -> str:
+        """
+        Assess what to consider for unlinked assets during migration.
+        """
+        asset_type = str(asset.get('asset_type', '')).lower()
+        
+        if 'server' in asset_type:
+            return "May require application mapping or could be infrastructure-only"
+        elif 'database' in asset_type:
+            return "Critical - requires application dependency analysis"
+        elif 'network' in asset_type:
+            return "Infrastructure dependency - assess network requirements"
+        elif 'storage' in asset_type:
+            return "Storage dependency - assess data migration needs"
+        elif 'security' in asset_type:
+            return "Security infrastructure - assess compliance requirements"
+        else:
+            return "Requires classification and dependency analysis"
+    
+    def _generate_unlinked_summary(self, unlinked_assets: List[Dict]) -> Dict[str, Any]:
+        """
+        Generate summary statistics for unlinked assets.
+        """
+        if not unlinked_assets:
+            return {
+                "total_unlinked": 0,
+                "by_type": {},
+                "by_environment": {},
+                "by_criticality": {},
+                "migration_impact": "none"
+            }
+        
+        # Calculate migration impact based on asset types and criticality
+        critical_count = len([a for a in unlinked_assets if a.get('criticality', '').lower() == 'high'])
+        database_count = len([a for a in unlinked_assets if 'database' in a.get('type', '').lower()])
+        
+        if critical_count > 5 or database_count > 3:
+            migration_impact = "high"
+        elif critical_count > 2 or database_count > 1:
+            migration_impact = "medium"
+        else:
+            migration_impact = "low"
+        
+        summary = {
+            "total_unlinked": len(unlinked_assets),
+            "by_type": self._group_by_field(unlinked_assets, 'type'),
+            "by_environment": self._group_by_field(unlinked_assets, 'environment'),
+            "by_criticality": self._group_by_field(unlinked_assets, 'criticality'),
+            "migration_impact": migration_impact
+        }
+        
+        return summary
     
     def _enhance_asset_data(self, asset: Dict[str, Any]) -> None:
         """
@@ -564,6 +725,20 @@ class AssetProcessingHandler:
                 "by_environment": {},
                 "by_department": {},
                 "technology_distribution": {}
+            },
+            "fallback_mode": True
+        }
+    
+    def _fallback_get_unlinked_assets(self) -> Dict[str, Any]:
+        """Fallback get unlinked assets method."""
+        return {
+            "unlinked_assets": [],
+            "summary": {
+                "total_unlinked": 0,
+                "by_type": {},
+                "by_environment": {},
+                "by_criticality": {},
+                "migration_impact": "none"
             },
             "fallback_mode": True
         } 

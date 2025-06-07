@@ -195,6 +195,24 @@ async def get_applications_for_analysis(
         logger.error(f"Error in get_applications_for_analysis: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get applications: {str(e)}")
 
+@router.get("/assets/unlinked")
+async def get_unlinked_assets(
+    context: RequestContext = Depends(get_current_context)
+):
+    """
+    Get assets that are NOT tied to any application - critical for migration planning.
+    """
+    try:
+        result = await processing_handler.get_unlinked_assets(
+            client_account_id=context.client_account_id,
+            engagement_id=context.engagement_id
+        )
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error in get_unlinked_assets: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get unlinked assets: {str(e)}")
+
 @router.get("/assets/discovery-metrics")
 async def get_discovery_metrics(context: RequestContext = Depends(get_current_context)):
     """

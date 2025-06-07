@@ -82,6 +82,17 @@ const Inventory = () => {
   const [selectedApp, setSelectedApp] = useState('');
   const [mappingLoading, setMappingLoading] = useState(false);
   
+  // Unlinked assets state
+  const [unlinkedAssets, setUnlinkedAssets] = useState([]);
+  const [unlinkedSummary, setUnlinkedSummary] = useState({
+    total_unlinked: 0,
+    by_type: {},
+    by_environment: {},
+    by_criticality: {},
+    migration_impact: 'none'
+  });
+  const [unlinkedLoading, setUnlinkedLoading] = useState(false);
+  
 
 
   // Define filter interface
@@ -507,6 +518,44 @@ const Inventory = () => {
     }
   };
 
+  // Fetch unlinked assets - assets not tied to any application
+  const fetchUnlinkedAssets = async () => {
+    try {
+      setUnlinkedLoading(true);
+      const contextHeaders = getContextHeaders();
+      
+      console.log('🔍 Fetching unlinked assets from API');
+      console.log('🔒 Using context headers:', contextHeaders);
+      
+      const response = await apiCall('/api/v1/discovery/assets/unlinked', {
+        headers: contextHeaders
+      });
+      
+      console.log('📊 Unlinked assets API response:', response);
+      
+      if (response && response.unlinked_assets) {
+        setUnlinkedAssets(response.unlinked_assets);
+        setUnlinkedSummary(response.summary);
+        console.log(`✅ Found ${response.unlinked_assets.length} unlinked assets`);
+      } else {
+        console.log('⚠️ No unlinked assets found in response');
+        setUnlinkedAssets([]);
+        setUnlinkedSummary({
+          total_unlinked: 0,
+          by_type: {},
+          by_environment: {},
+          by_criticality: {},
+          migration_impact: 'none'
+        });
+      }
+    } catch (err) {
+      console.error('❌ Error fetching unlinked assets:', err);
+      setUnlinkedAssets([]);
+    } finally {
+      setUnlinkedLoading(false);
+    }
+  };
+
   // Trigger agent analysis for asset inventory context
   const triggerAgentAnalysis = async (assetsData: any[]) => {
     try {
@@ -608,6 +657,13 @@ const Inventory = () => {
       fetchAppMappings();
     }
   }, [showAppMapping]);
+
+  // Load unlinked assets when unlinked tab is selected
+  useEffect(() => {
+    if (activeTab === 'unlinked') {
+      fetchUnlinkedAssets();
+    }
+  }, [activeTab, context.client, context.engagement, context.session]);
 
   // Add persistence helper functions
   const getCacheKey = (page: number, filters: FilterParams) => {
@@ -1066,7 +1122,7 @@ const Inventory = () => {
 
             {/* Tab Navigation */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsList className="grid w-full grid-cols-3 mb-6">
                 <TabsTrigger value="assets" className="flex items-center gap-2">
                   <Database className="h-4 w-4" />
                   Asset Inventory
@@ -1074,6 +1130,10 @@ const Inventory = () => {
                 <TabsTrigger value="applications" className="flex items-center gap-2">
                   <Users className="h-4 w-4" />
                   Application Portfolio
+                </TabsTrigger>
+                <TabsTrigger value="unlinked" className="flex items-center gap-2">
+                  <Shield className="h-4 w-4" />
+                  Unlinked Assets
                 </TabsTrigger>
               </TabsList>
 
@@ -1566,6 +1626,221 @@ const Inventory = () => {
                     console.log('Application validation submitted:', applicationId, validation);
                   }}
                 />
+              </TabsContent>
+
+              <TabsContent value="unlinked" className="space-y-6">
+                {/* Unlinked Assets Header */}
+                <div className="bg-white rounded-lg shadow p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                        <Shield className="h-5 w-5 text-orange-600" />
+                        Unlinked Assets
+                      </h2>
+                      <p className="text-gray-600 mt-1">
+                        Assets not tied to any application - critical for migration planning
+                      </p>
+                    </div>
+                    <button
+                      onClick={fetchUnlinkedAssets}
+                      disabled={unlinkedLoading}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 disabled:opacity-50"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${unlinkedLoading ? 'animate-spin' : ''}`} />
+                      <span>Refresh</span>
+                    </button>
+                  </div>
+
+                  {/* Migration Impact Alert */}
+                  {unlinkedSummary.migration_impact !== 'none' && (
+                    <div className={`p-4 rounded-lg border-2 mb-4 ${
+                      unlinkedSummary.migration_impact === 'high' 
+                        ? 'bg-red-50 border-red-200 text-red-800'
+                        : unlinkedSummary.migration_impact === 'medium'
+                        ? 'bg-yellow-50 border-yellow-200 text-yellow-800'
+                        : 'bg-blue-50 border-blue-200 text-blue-800'
+                    }`}>
+                      <div className="flex items-center">
+                        <AlertCircle className="h-5 w-5 mr-2" />
+                        <div>
+                          <h3 className="font-medium">
+                            {unlinkedSummary.migration_impact === 'high' ? 'High Migration Impact' :
+                             unlinkedSummary.migration_impact === 'medium' ? 'Medium Migration Impact' :
+                             'Low Migration Impact'}
+                          </h3>
+                          <p className="text-sm mt-1">
+                            {unlinkedSummary.migration_impact === 'high' 
+                              ? 'These unlinked assets may significantly impact migration planning. Review and map to applications.'
+                              : unlinkedSummary.migration_impact === 'medium'
+                              ? 'Some unlinked assets require attention for migration planning.'
+                              : 'Unlinked assets have minimal impact on migration planning.'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Summary Cards */}
+                  <div className="grid grid-cols-4 gap-4 mb-6">
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <div className="flex items-center">
+                        <Shield className="h-8 w-8 text-orange-600 mr-3" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">Total Unlinked</p>
+                          <p className="text-2xl font-bold text-gray-900">{unlinkedSummary.total_unlinked}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <div className="flex items-center">
+                        <Server className="h-8 w-8 text-blue-600 mr-3" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">Servers</p>
+                          <p className="text-2xl font-bold text-gray-900">{unlinkedSummary.by_type?.Server || 0}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <div className="flex items-center">
+                        <Database className="h-8 w-8 text-purple-600 mr-3" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">Databases</p>
+                          <p className="text-2xl font-bold text-gray-900">{unlinkedSummary.by_type?.Database || 0}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <div className="flex items-center">
+                        <Router className="h-8 w-8 text-green-600 mr-3" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">Infrastructure</p>
+                          <p className="text-2xl font-bold text-gray-900">
+                            {(unlinkedSummary.by_type?.['Infrastructure Device'] || 0) + 
+                             (unlinkedSummary.by_type?.['Network Device'] || 0) + 
+                             (unlinkedSummary.by_type?.['Storage Device'] || 0)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Unlinked Assets Table */}
+                {unlinkedLoading ? (
+                  <div className="bg-white rounded-lg shadow p-8">
+                    <div className="flex items-center justify-center">
+                      <RefreshCw className="animate-spin h-8 w-8 text-gray-400 mr-3" />
+                      <span className="text-gray-600">Loading unlinked assets...</span>
+                    </div>
+                  </div>
+                ) : unlinkedAssets.length === 0 ? (
+                  <div className="bg-white rounded-lg shadow p-8">
+                    <div className="text-center">
+                      <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">All Assets Linked!</h3>
+                      <p className="text-gray-600">
+                        Great! All assets are properly linked to applications. This will make migration planning much easier.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-lg shadow overflow-hidden">
+                    <div className="px-6 py-4 border-b border-gray-200">
+                      <h3 className="text-lg font-medium text-gray-900">
+                        Unlinked Assets ({unlinkedAssets.length})
+                      </h3>
+                      <p className="text-sm text-gray-600 mt-1">
+                        These assets need to be mapped to applications for proper migration planning
+                      </p>
+                    </div>
+                    
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Asset
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Type
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Environment
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Criticality
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Migration Consideration
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Details
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {unlinkedAssets.map((asset) => (
+                            <tr key={asset.id} className="hover:bg-gray-50">
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="flex items-center">
+                                  {getTypeIcon(asset.type)}
+                                  <div className="ml-3">
+                                    <div className="text-sm font-medium text-gray-900">{asset.name}</div>
+                                    {asset.hostname && (
+                                      <div className="text-sm text-gray-500">{asset.hostname}</div>
+                                    )}
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(asset.type)}`}>
+                                  {asset.type}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                  asset.environment === 'Production' ? 'bg-red-100 text-red-800' :
+                                  asset.environment === 'Test' ? 'bg-yellow-100 text-yellow-800' :
+                                  asset.environment === 'Development' ? 'bg-green-100 text-green-800' :
+                                  'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {asset.environment}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                  asset.criticality === 'High' ? 'bg-red-100 text-red-800' :
+                                  asset.criticality === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-green-100 text-green-800'
+                                }`}>
+                                  {asset.criticality}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="text-sm text-gray-900 max-w-xs">
+                                  {asset.migration_consideration}
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <div className="space-y-1">
+                                  {asset.ip_address && (
+                                    <div>IP: {asset.ip_address}</div>
+                                  )}
+                                  {asset.operating_system && (
+                                    <div>OS: {asset.operating_system}</div>
+                                  )}
+                                  {asset.memory_gb && (
+                                    <div>RAM: {asset.memory_gb}GB</div>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
               </div>
