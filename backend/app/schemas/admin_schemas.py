@@ -158,6 +158,9 @@ class ClientAccountResponse(BaseModel):
     total_engagements: int = 0
     active_engagements: int = 0
 
+    class Config:
+        from_attributes = True
+
 # =========================
 # Engagement Management Schemas
 # =========================
@@ -269,6 +272,9 @@ class EngagementResponse(BaseModel):
     total_sessions: int = 0
     total_assets: int = 0
 
+    class Config:
+        from_attributes = True
+
 # =========================
 # Session Management Schemas
 # =========================
@@ -329,6 +335,9 @@ class SessionResponse(BaseModel):
     created_at: datetime
     updated_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
 
 # =========================
 # Bulk Operations Schemas
