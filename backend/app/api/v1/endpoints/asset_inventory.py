@@ -7,6 +7,13 @@ import logging
 from typing import Dict, List, Any, Optional
 from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.services.asset_processing_service import asset_processing_service
+from app.services.crewai_flow_service import crewai_flow_service
+from app.schemas.asset_schemas import AssetCreate, AssetUpdate, AssetResponse, PaginatedAssetResponse
+from app.core.context import get_user_id, get_current_context, RequestContext
+from app.repositories.asset_repository import AssetRepository
+from app.core.database import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -412,7 +419,6 @@ async def get_asset_intelligence_status(
         logger.error(f"Failed to get intelligence status: {e}")
         raise HTTPException(status_code=500, detail=f"Intelligence status failed: {str(e)}")
 
-# Legacy compatibility endpoints
 @router.get("/")
 async def list_assets(
     page: int = Query(1, ge=1),
@@ -420,67 +426,99 @@ async def list_assets(
     asset_type: Optional[str] = None,
     environment: Optional[str] = None
 ):
-    """
-    List assets with pagination and filtering.
-    Enhanced with agentic intelligence capabilities.
-    """
-    try:
-        # Get asset data
-        all_assets = await get_asset_data()
-        
-        # Apply filters
-        filtered_assets = all_assets
-        if asset_type:
-            filtered_assets = [a for a in filtered_assets if a.get('asset_type') == asset_type]
-        if environment:
-            filtered_assets = [a for a in filtered_assets if a.get('environment') == environment]
-        
-        # Pagination
-        start_idx = (page - 1) * page_size
-        end_idx = start_idx + page_size
-        paginated_assets = filtered_assets[start_idx:end_idx]
-        
-        return {
-            "assets": paginated_assets,
-            "pagination": {
-                "page": page,
-                "page_size": page_size,
-                "total_assets": len(filtered_assets),
-                "total_pages": (len(filtered_assets) + page_size - 1) // page_size
-            },
-            "enhanced_capabilities": {
-                "intelligent_analysis": "Available via /analyze endpoint",
-                "bulk_operations": "Available via /bulk-update-plan endpoint", 
-                "auto_classification": "Available via /auto-classify endpoint"
-            }
-        }
-        
-    except Exception as e:
-        logger.error(f"Asset listing failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Asset listing failed: {str(e)}")
+    # This is a placeholder for the agentic, non-DB endpoint
+    # The main paginated endpoint is below
+    return {"message": "Use the paginated endpoint for database queries."}
 
-@router.get("/{asset_id}")
-async def get_asset(asset_id: str):
-    """Get a specific asset by ID with intelligence enhancement opportunities."""
-    try:
-        assets = await get_asset_data([asset_id])
-        
-        if not assets:
-            raise HTTPException(status_code=404, detail=f"Asset {asset_id} not found")
-        
-        asset = assets[0]
-        
-        # Enhance with intelligence suggestions
-        asset["enhancement_opportunities"] = {
-            "intelligent_analysis": f"Analyze this asset via POST /analyze with asset_ids=['{asset_id}']",
-            "classification_check": f"Auto-classify via POST /auto-classify with asset_ids=['{asset_id}']",
-            "quality_assessment": "Available through intelligent analysis"
-        }
-        
-        return asset
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Asset retrieval failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Asset retrieval failed: {str(e)}") 
+@router.get("/{asset_id}", response_model=AssetResponse)
+async def get_asset(
+    asset_id: str,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+):
+    repo = AssetRepository(db, context.client_account_id)
+    asset = await repo.get_asset_by_id(asset_id)
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    return asset
+
+@router.post("/", response_model=AssetResponse, status_code=201)
+async def create_asset(
+    asset: AssetCreate,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+    user_id: str = Depends(get_user_id)
+):
+    repo = AssetRepository(db, context.client_account_id)
+    new_asset = await repo.create_asset(asset, user_id, context.engagement_id)
+    return new_asset
+
+@router.get("/list/paginated", response_model=PaginatedAssetResponse)
+async def list_assets_paginated(
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+    page: int = 1,
+    page_size: int = 20
+):
+    repo = AssetRepository(db, context.client_account_id)
+    return await repo.list_assets(page, page_size)
+
+@router.put("/{asset_id}", response_model=AssetResponse)
+async def update_asset(
+    asset_id: str,
+    asset: AssetUpdate,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+):
+    repo = AssetRepository(db, context.client_account_id)
+    updated_asset = await repo.update_asset(asset_id, asset.dict(exclude_unset=True))
+    if not updated_asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    return updated_asset
+
+@router.delete("/{asset_id}", status_code=204)
+async def delete_asset(
+    asset_id: str,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+):
+    repo = AssetRepository(db, context.client_account_id)
+    success = await repo.delete_asset(asset_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    return None
+
+@router.post("/bulk-create", response_model=Dict[str, Any])
+async def bulk_create_assets(
+    assets: List[AssetCreate],
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+    user_id: str = Depends(get_user_id)
+):
+    repo = AssetRepository(db, context.client_account_id)
+    result = await repo.bulk_create_assets(assets, user_id, context.engagement_id)
+    return result
+
+@router.get("/analysis/overview", response_model=Dict[str, Any])
+async def get_asset_overview(
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+):
+    repo = AssetRepository(db, context.client_account_id)
+    return await repo.get_asset_overview()
+
+@router.get("/analysis/by-type", response_model=Dict[str, int])
+async def get_assets_by_type(
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+):
+    repo = AssetRepository(db, context.client_account_id)
+    return await repo.get_assets_by_type()
+
+@router.get("/analysis/by-status", response_model=Dict[str, int])
+async def get_assets_by_status(
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+):
+    repo = AssetRepository(db, context.client_account_id)
+    return await repo.get_assets_by_status() 

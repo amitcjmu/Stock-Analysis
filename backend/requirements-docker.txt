@@ -67,14 +67,16 @@ openai>=1.0.0
 crewai>=0.121.0
 litellm>=1.55.0
 
-# LangChain ecosystem (core only - no OpenAI specific)
+# LangChain ecosystem
 langchain>=0.3.0
 langchain-core>=0.3.0
 langchain-community>=0.3.0
+langchain-openai>=0.1.8
 
 # Data processing
 pandas>=2.1.0
 numpy>=1.24.0
+openpyxl
 
 # HTTP and requests
 aiohttp>=3.9.0
@@ -103,4 +105,24 @@ selenium>=4.0.0
 
 # Utilities
 python-dateutil>=2.8.2
-structlog>=24.4.0 
+structlog>=24.4.0
+lark
+Levenshtein
+pypdf
+langsmith
+langchain-groq
+langchain-experimental
+sentence-transformers
+chromadb
+tenacity
+sse-starlette
+coverage
+loguru
+watchdog
+orjson
+redis
+celery
+flower
+boto3
+networkx
+emails 

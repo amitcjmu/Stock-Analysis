@@ -6,7 +6,8 @@ import logging
 from typing import Dict, Any
 from fastapi import HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
+from datetime import datetime, timedelta
 
 from app.schemas.admin_schemas import (
     ClientAccountCreate, ClientAccountUpdate, ClientAccountResponse,
@@ -15,7 +16,7 @@ from app.schemas.admin_schemas import (
 
 # Import models with fallback
 try:
-    from app.models.client_account import ClientAccount
+    from app.models.client_account import ClientAccount, Engagement
     CLIENT_MODELS_AVAILABLE = True
 except ImportError:
     CLIENT_MODELS_AVAILABLE = False
@@ -201,11 +202,122 @@ class ClientCRUDHandler:
             raise HTTPException(status_code=500, detail=f"Failed to delete client account: {str(e)}")
 
     @staticmethod
+    async def list_clients(
+        db: AsyncSession,
+        pagination: Dict[str, Any],
+        filters: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """List all client accounts with pagination and filtering."""
+        try:
+            if not CLIENT_MODELS_AVAILABLE:
+                raise HTTPException(status_code=503, detail="Client models not available")
+
+            query = select(ClientAccount)
+            
+            # Apply filters (example)
+            if filters.get('is_active') is not None:
+                query = query.where(ClientAccount.is_active == filters['is_active'])
+            if filters.get('account_name'):
+                query = query.where(ClientAccount.name.ilike(f"%{filters['account_name']}%"))
+
+            # Get total items for pagination
+            total_items_query = select(func.count()).select_from(query.alias())
+            total_items_result = await db.execute(total_items_query)
+            total_items = total_items_result.scalar_one()
+
+            # Apply pagination
+            page = pagination.get('page', 1)
+            page_size = pagination.get('page_size', 20)
+            query = query.offset((page - 1) * page_size).limit(page_size)
+            
+            # Execute query
+            result = await db.execute(query)
+            clients = result.scalars().all()
+
+            # Convert to response format
+            client_responses = [await ClientCRUDHandler._convert_client_to_response(c, db) for c in clients]
+            
+            total_pages = (total_items + page_size - 1) // page_size
+            
+            return {
+                "items": client_responses,
+                "total_items": total_items,
+                "total_pages": total_pages,
+                "current_page": page,
+                "page_size": page_size,
+                "has_next": page < total_pages,
+                "has_previous": page > 1
+            }
+
+        except Exception as e:
+            logger.error(f"Error listing clients: {e}")
+            return {"error": "Failed to list client accounts"}
+
+    @staticmethod
+    async def get_dashboard_stats(db: AsyncSession) -> Dict[str, Any]:
+        """Get dashboard statistics for client accounts."""
+        try:
+            if not CLIENT_MODELS_AVAILABLE:
+                raise HTTPException(status_code=503, detail="Client models not available")
+
+            # Total clients
+            total_clients_query = select(func.count()).select_from(ClientAccount)
+            total_clients_result = await db.execute(total_clients_query)
+            total_clients = total_clients_result.scalar_one()
+
+            # Active clients
+            active_clients_query = select(func.count()).select_from(ClientAccount).where(ClientAccount.is_active == True)
+            active_clients_result = await db.execute(active_clients_query)
+            active_clients = active_clients_result.scalar_one()
+
+            # Clients by industry
+            industry_query = select(ClientAccount.industry, func.count()).group_by(ClientAccount.industry)
+            industry_result = await db.execute(industry_query)
+            clients_by_industry = {row[0]: row[1] for row in industry_result.all() if row[0]}
+
+            # Clients by company size
+            size_query = select(ClientAccount.company_size, func.count()).group_by(ClientAccount.company_size)
+            size_result = await db.execute(size_query)
+            clients_by_company_size = {row[0]: row[1] for row in size_result.all() if row[0]}
+            
+            # Recent registrations (last 7 days)
+            seven_days_ago = datetime.utcnow() - timedelta(days=7)
+            recent_clients_query = select(ClientAccount).where(ClientAccount.created_at >= seven_days_ago).order_by(ClientAccount.created_at.desc()).limit(5)
+            recent_clients_result = await db.execute(recent_clients_query)
+            recent_clients = recent_clients_result.scalars().all()
+
+            return {
+                "total_clients": total_clients,
+                "active_clients": active_clients,
+                "clients_by_industry": clients_by_industry,
+                "clients_by_company_size": clients_by_company_size,
+                "clients_by_cloud_provider": {}, # Placeholder
+                "recent_client_registrations": recent_clients
+            }
+        except Exception as e:
+            logger.error(f"Error getting client dashboard stats: {e}")
+            raise HTTPException(status_code=500, detail="Failed to retrieve dashboard stats")
+
+    @staticmethod
     async def _convert_client_to_response(client: Any, db: AsyncSession) -> Dict[str, Any]:
         """Convert client model to response format"""
         if not CLIENT_MODELS_AVAILABLE or not client:
             return {}
         
+        # Count engagements
+        total_engagements_query = select(func.count()).select_from(Engagement).where(Engagement.client_account_id == client.id)
+        total_engagements_result = await db.execute(total_engagements_query)
+        total_engagements = total_engagements_result.scalar_one()
+
+        active_engagements_query = select(func.count()).select_from(Engagement).where(
+            Engagement.client_account_id == client.id,
+            Engagement.is_active == True
+        )
+        active_engagements_result = await db.execute(active_engagements_query)
+        active_engagements = active_engagements_result.scalar_one()
+        
+        business_objectives = client.business_objectives or {}
+
         return {
             "id": str(client.id),
             "account_name": client.name,
@@ -217,13 +329,13 @@ class ClientCRUDHandler:
             "primary_contact_phone": client.primary_contact_phone,
             "description": client.description,
             "subscription_tier": client.subscription_tier,
-            "created_at": client.created_at.isoformat() if client.created_at else None,
-            "updated_at": client.updated_at.isoformat() if client.updated_at else None,
+            "created_at": client.created_at,
+            "updated_at": client.updated_at,
             "is_active": getattr(client, 'is_active', True),
-            "total_engagements": 0,  # Would be calculated from relationships
-            "active_engagements": 0,  # Would be calculated from relationships
-            "business_objectives": getattr(client, 'business_objectives', {}),
-            "target_cloud_providers": [],  # Would be extracted from business_objectives
-            "business_priorities": [],  # Would be extracted from business_objectives
-            "compliance_requirements": []  # Would be extracted from business_objectives
+            "total_engagements": total_engagements,
+            "active_engagements": active_engagements,
+            "business_objectives": business_objectives.get("primary_goals", []),
+            "target_cloud_providers": business_objectives.get("target_cloud_providers", []),
+            "business_priorities": business_objectives.get("business_priorities", []),
+            "compliance_requirements": business_objectives.get("compliance_requirements", [])
         } 

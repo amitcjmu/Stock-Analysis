@@ -163,7 +163,7 @@ class CrewAIFlowDataProcessor(Flow[DataProcessingState]):
         try:
             # Use CrewAI agents for field mapping if available
             try:
-                from app.services.crewai_flow_modular import crewai_flow_modular_service
+                from app.services.crewai_flow_service import crewai_flow_service
                 
                 # Prepare data for CrewAI analysis
                 cmdb_data = {
@@ -174,7 +174,7 @@ class CrewAIFlowDataProcessor(Flow[DataProcessingState]):
                 }
                 
                 # Run CrewAI field mapping
-                flow_result = await crewai_flow_modular_service.run_discovery_flow(cmdb_data)
+                flow_result = await crewai_flow_service.run_discovery_flow(cmdb_data)
                 
                 if flow_result.get("status") == "success":
                     self.state.field_mappings = flow_result.get("suggested_field_mappings", {})

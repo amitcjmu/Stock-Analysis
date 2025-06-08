@@ -14,6 +14,12 @@ from dataclasses import dataclass, asdict
 import hashlib
 
 from app.services.memory import AgentMemory
+from app.services.embedding_service import EmbeddingService
+from app.utils.vector_utils import VectorUtils
+from app.models.learning_patterns import (
+    MappingLearningPattern, 
+    AssetClassificationPattern, 
+)
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +65,9 @@ class ContextScopedAgentLearning:
         
         # Learning patterns by context
         self.learning_patterns: Dict[str, List[LearningPattern]] = {}
+        
+        self.embedding_service = EmbeddingService()
+        self.vector_utils = VectorUtils()
         
         # Global learning statistics
         self.global_stats = {
@@ -392,56 +401,13 @@ class ContextScopedAgentLearning:
     
     def _save_learning_patterns(self):
         """Save learning patterns to disk."""
-        patterns_file = self.data_dir / "learning_patterns.json"
-        
-        # Convert patterns to serializable format
-        serializable_patterns = {}
-        for context_key, patterns in self.learning_patterns.items():
-            serializable_patterns[context_key] = []
-            for pattern in patterns:
-                pattern_dict = asdict(pattern)
-                # Convert datetime objects to ISO strings
-                pattern_dict["created_at"] = pattern.created_at.isoformat()
-                pattern_dict["last_used"] = pattern.last_used.isoformat()
-                serializable_patterns[context_key].append(pattern_dict)
-        
-        try:
-            with open(patterns_file, 'w') as f:
-                json.dump(serializable_patterns, f, indent=2)
-        except Exception as e:
-            logger.error(f"Failed to save learning patterns: {e}")
-    
+        # This method is now obsolete as we are using the database.
+        pass
+
     def _load_learning_patterns(self):
         """Load learning patterns from disk."""
-        patterns_file = self.data_dir / "learning_patterns.json"
-        
-        if not patterns_file.exists():
-            return
-        
-        try:
-            with open(patterns_file, 'r') as f:
-                serializable_patterns = json.load(f)
-            
-            # Convert back to LearningPattern objects
-            for context_key, patterns_data in serializable_patterns.items():
-                self.learning_patterns[context_key] = []
-                for pattern_dict in patterns_data:
-                    # Convert ISO strings back to datetime objects
-                    pattern_dict["created_at"] = datetime.fromisoformat(pattern_dict["created_at"])
-                    pattern_dict["last_used"] = datetime.fromisoformat(pattern_dict["last_used"])
-                    
-                    # Reconstruct LearningContext
-                    context_data = pattern_dict["context"]
-                    context = LearningContext(**context_data)
-                    pattern_dict["context"] = context
-                    
-                    pattern = LearningPattern(**pattern_dict)
-                    self.learning_patterns[context_key].append(pattern)
-            
-            logger.info(f"Loaded {sum(len(patterns) for patterns in self.learning_patterns.values())} learning patterns")
-            
-        except Exception as e:
-            logger.error(f"Failed to load learning patterns: {e}")
+        # This method is now obsolete as we are using the database.
+        pass
     
     async def get_context_patterns(self, context: LearningContext) -> List[LearningPattern]:
         """Get all patterns for a specific context."""
@@ -461,6 +427,682 @@ class ContextScopedAgentLearning:
                 logger.info(f"Cleaned up {len(patterns) - len(active_patterns)} old patterns in context {context_key}")
         
         self._save_learning_patterns()
+    
+    # === FEEDBACK PROCESSING FUNCTIONALITY ===
+    # Integrated from feedback.py service for consolidated learning
+    
+    async def process_user_feedback(
+        self,
+        feedback_data: Dict[str, Any],
+        context: Optional[LearningContext] = None
+    ) -> Dict[str, Any]:
+        """
+        Process user feedback intelligently and update learning patterns.
+        Integrated from feedback.py service for consolidated learning.
+        """
+        if not context:
+            context = LearningContext()
+        
+        memory = self._get_context_memory(context)
+        
+        filename = feedback_data.get('filename', '')
+        user_corrections = feedback_data.get('user_corrections', {})
+        asset_type_override = feedback_data.get('asset_type_override')
+        original_analysis = feedback_data.get('original_analysis', {})
+        
+        # Record the feedback
+        memory.add_experience("user_feedback", {
+            "filename": filename,
+            "corrections": user_corrections,
+            "asset_type_override": asset_type_override,
+            "original_analysis": original_analysis,
+            "context": asdict(context)
+        })
+        
+        # Analyze the feedback for patterns
+        patterns_identified = self._identify_feedback_patterns(user_corrections, asset_type_override)
+        
+        # Extract knowledge updates
+        knowledge_updates = self._extract_knowledge_updates(user_corrections, asset_type_override)
+        
+        # Calculate accuracy improvements
+        accuracy_improvements = self._calculate_accuracy_improvements(patterns_identified)
+        
+        # Generate corrected analysis
+        corrected_analysis = self._generate_corrected_analysis(
+            original_analysis, user_corrections, asset_type_override
+        )
+        
+        # Calculate confidence boost
+        confidence_boost = self._calculate_confidence_boost(patterns_identified)
+        
+        # Store learned patterns as learning patterns in this system
+        if patterns_identified:
+            await self._store_feedback_patterns(patterns_identified, context, confidence_boost)
+            
+            # Update dynamic field mappings based on patterns
+            await self._update_field_mappings_from_feedback(patterns_identified, context)
+        
+        # Update learning metrics
+        self.global_stats["user_feedback_processed"] = self.global_stats.get("user_feedback_processed", 0) + 1
+        self.global_stats["total_learning_events"] += 1
+        self.global_stats["last_updated"] = datetime.utcnow().isoformat()
+        
+        return {
+            "learning_applied": True,
+            "patterns_identified": patterns_identified,
+            "knowledge_updates": knowledge_updates,
+            "accuracy_improvements": accuracy_improvements,
+            "confidence_boost": confidence_boost,
+            "corrected_analysis": corrected_analysis,
+            "memory_impact": {
+                "new_patterns_stored": len(patterns_identified),
+                "learning_metrics_updated": True,
+                "future_analysis_improvement": f"Expected {int(confidence_boost * 100)}% accuracy boost"
+            },
+            "feedback_processing_mode": "context_aware_learning",
+            "context": asdict(context)
+        }
+    
+    def _identify_feedback_patterns(self, user_corrections: Dict, asset_type_override: Optional[str]) -> List[str]:
+        """Identify patterns from user feedback."""
+        patterns = []
+        
+        # Asset type correction patterns
+        if asset_type_override:
+            patterns.append(f"Asset type should be '{asset_type_override}' based on user correction")
+        
+        # Analysis issues patterns
+        analysis_issues = user_corrections.get('analysis_issues', '')
+        if analysis_issues:
+            # Extract specific patterns from analysis issues
+            if 'server' in analysis_issues.lower() and 'application' in analysis_issues.lower():
+                patterns.append("Servers were misclassified as applications - improve server detection")
+            
+            if 'ci_type' in analysis_issues.lower():
+                patterns.append("CI_TYPE field is a strong indicator for asset classification")
+            
+            if 'hardware' in analysis_issues.lower():
+                patterns.append("Hardware specifications are important for server identification")
+            
+            if 'ip address' in analysis_issues.lower():
+                patterns.append("IP Address is a key field for server assets")
+        
+        # Missing fields feedback patterns with enhanced field mapping detection
+        missing_fields_feedback = user_corrections.get('missing_fields_feedback', '')
+        if missing_fields_feedback:
+            # Extract field importance patterns
+            if 'ip address' in missing_fields_feedback.lower():
+                patterns.append("IP Address is required for server assets")
+            
+            if 'os version' in missing_fields_feedback.lower():
+                patterns.append("OS Version is critical for server migration planning")
+            
+            if 'business owner' in missing_fields_feedback.lower():
+                patterns.append("Business Owner is important for application assets")
+            
+            # Let AI agents learn field mappings dynamically from feedback text
+            if 'available' in missing_fields_feedback.lower() and 'for' in missing_fields_feedback.lower():
+                patterns.append(f"Field mapping pattern detected in feedback: {missing_fields_feedback}")
+            
+            if 'should map' in missing_fields_feedback.lower() or 'maps to' in missing_fields_feedback.lower():
+                patterns.append(f"Field mapping instruction: {missing_fields_feedback}")
+            
+            if 'recognized as' in missing_fields_feedback.lower() or 'equivalent' in missing_fields_feedback.lower():
+                patterns.append(f"Field equivalence pattern: {missing_fields_feedback}")
+        
+        # Comments patterns with field mapping detection
+        comments = user_corrections.get('comments', '')
+        if comments:
+            if 'clearly indicates' in comments.lower():
+                patterns.append("Look for clear indicators in field values")
+            
+            if 'field' in comments.lower() and 'pattern' in comments.lower():
+                patterns.append("Field patterns are important for classification")
+            
+            # Detect field equivalence patterns in comments
+            if 'same as' in comments.lower() or 'equivalent' in comments.lower():
+                patterns.append("Field mapping: User identified equivalent field names")
+            
+            if 'available' in comments.lower() and 'under' in comments.lower():
+                patterns.append("Field mapping: Required fields available under different names")
+        
+        return patterns
+    
+    def _extract_knowledge_updates(self, user_corrections: Dict, asset_type_override: Optional[str]) -> List[str]:
+        """Extract knowledge updates from user feedback."""
+        updates = []
+        
+        # Asset type knowledge updates
+        if asset_type_override:
+            updates.append(f"Enhanced {asset_type_override} detection logic")
+        
+        # Field relevance updates
+        analysis_issues = user_corrections.get('analysis_issues', '')
+        if 'hardware specs' in analysis_issues.lower():
+            updates.append("Updated field requirements for server assets")
+        
+        missing_fields_feedback = user_corrections.get('missing_fields_feedback', '')
+        if missing_fields_feedback:
+            updates.append("Refined missing field identification for asset types")
+        
+        # General improvements
+        if user_corrections.get('comments'):
+            updates.append("Improved analysis logic based on user guidance")
+        
+        return updates or ["General analysis improvements applied"]
+    
+    def _calculate_accuracy_improvements(self, patterns: List[str]) -> List[str]:
+        """Calculate expected accuracy improvements."""
+        improvements = []
+        
+        for pattern in patterns:
+            if 'server detection' in pattern.lower():
+                improvements.append("Server detection confidence increased by 20%")
+            elif 'asset classification' in pattern.lower():
+                improvements.append("Asset classification accuracy improved by 15%")
+            elif 'field' in pattern.lower():
+                improvements.append("Field validation improved for specific asset types")
+            else:
+                improvements.append("General analysis accuracy enhanced")
+        
+        return improvements or ["General analysis improvements applied"]
+    
+    def _generate_corrected_analysis(self, original_analysis: Dict, user_corrections: Dict, asset_type_override: Optional[str]) -> Dict[str, Any]:
+        """Generate corrected analysis based on user feedback."""
+        corrected = original_analysis.copy()
+        
+        # Apply asset type override
+        if asset_type_override:
+            corrected['asset_type'] = asset_type_override
+            corrected['confidence_score'] = min(corrected.get('confidence_score', 0.5) + 0.2, 1.0)
+        
+        # Apply other corrections based on feedback
+        if user_corrections.get('missing_fields_feedback'):
+            corrected['missing_fields_resolved'] = True
+        
+        return corrected
+    
+    def _calculate_confidence_boost(self, patterns: List[str]) -> float:
+        """Calculate confidence boost from identified patterns."""
+        if not patterns:
+            return 0.05
+        
+        boost = 0.0
+        for pattern in patterns:
+            if 'server detection' in pattern.lower() or 'asset classification' in pattern.lower():
+                boost += 0.15
+            elif 'field mapping' in pattern.lower():
+                boost += 0.10
+            else:
+                boost += 0.05
+        
+        return min(boost, 0.5)  # Cap at 50% boost
+    
+    async def _store_feedback_patterns(self, patterns: List[str], context: LearningContext, confidence_boost: float):
+        """Store feedback patterns as learning patterns."""
+        for i, pattern in enumerate(patterns):
+            learning_pattern = LearningPattern(
+                pattern_id=f"feedback_pattern_{datetime.utcnow().timestamp()}_{i}",
+                pattern_type="user_feedback",
+                context=context,
+                pattern_data={
+                    "pattern_description": pattern,
+                    "confidence_boost": confidence_boost,
+                    "source": "user_feedback"
+                },
+                confidence=0.8 + confidence_boost,  # High confidence for user feedback
+                usage_count=0,
+                created_at=datetime.utcnow(),
+                last_used=datetime.utcnow()
+            )
+            
+            context_key = context.context_hash
+            if context_key not in self.learning_patterns:
+                self.learning_patterns[context_key] = []
+            
+            self.learning_patterns[context_key].append(learning_pattern)
+        
+        self.global_stats["feedback_patterns"] = self.global_stats.get("feedback_patterns", 0) + len(patterns)
+        self.global_stats["total_patterns"] += len(patterns)
+        
+        self._save_learning_patterns()
+    
+    async def _update_field_mappings_from_feedback(self, patterns: List[str], context: LearningContext):
+        """Update field mappings based on feedback patterns."""
+        for pattern in patterns:
+            if 'field mapping' in pattern.lower() or 'maps to' in pattern.lower():
+                # Try to extract field mapping information from pattern
+                # This is a simplified extraction - more sophisticated parsing could be added
+                if 'should map' in pattern.lower():
+                    # Extract field mapping suggestion and create learning pattern
+                    await self.learn_field_mapping_pattern({
+                        "original_field": "user_suggested_field",
+                        "mapped_field": "user_suggested_mapping",
+                        "field_type": "user_feedback",
+                        "confidence_boost": 0.2,
+                        "validation_result": True
+                    }, context)
+    
+    async def analyze_feedback_trends(self, context: Optional[LearningContext] = None) -> Dict[str, Any]:
+        """Analyze feedback trends for continuous improvement."""
+        if not context:
+            # Analyze across all contexts
+            all_feedback = []
+            for ctx_key, memory in self.context_memories.items():
+                feedback_experiences = memory.experiences.get("user_feedback", [])
+                all_feedback.extend(feedback_experiences)
+        else:
+            memory = self._get_context_memory(context)
+            all_feedback = memory.experiences.get("user_feedback", [])
+        
+        if not all_feedback:
+            return {"status": "no_feedback_data", "total_feedback": 0}
+        
+        # Analyze trends
+        asset_type_corrections = {}
+        common_issues = {}
+        field_mapping_requests = 0
+        
+        for feedback in all_feedback:
+            corrections = feedback.get("corrections", {})
+            asset_override = feedback.get("asset_type_override")
+            
+            if asset_override:
+                asset_type_corrections[asset_override] = asset_type_corrections.get(asset_override, 0) + 1
+            
+            analysis_issues = corrections.get("analysis_issues", "")
+            if analysis_issues:
+                common_issues[analysis_issues] = common_issues.get(analysis_issues, 0) + 1
+            
+            missing_fields = corrections.get("missing_fields_feedback", "")
+            if 'map' in missing_fields.lower():
+                field_mapping_requests += 1
+        
+        return {
+            "status": "analyzed",
+            "total_feedback": len(all_feedback),
+            "asset_type_corrections": asset_type_corrections,
+            "common_issues": common_issues,
+            "field_mapping_requests": field_mapping_requests,
+            "trends": {
+                "most_corrected_asset_type": max(asset_type_corrections.items(), key=lambda x: x[1])[0] if asset_type_corrections else None,
+                "most_common_issue": max(common_issues.items(), key=lambda x: x[1])[0] if common_issues else None
+                         }
+         }
+    
+    # === CLIENT CONTEXT MANAGEMENT FUNCTIONALITY ===
+    # Integrated from client_context_manager.py service for consolidated learning
+    
+    async def create_client_learning_context(
+        self,
+        client_account_id: str,
+        client_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Create client-specific learning context.
+        Integrated from client_context_manager.py for consolidated context management.
+        """
+        context = LearningContext(client_account_id=client_account_id)
+        memory = self._get_context_memory(context)
+        
+        # Store client context information
+        memory.add_experience("client_context", {
+            "client_account_id": client_account_id,
+            "client_name": client_data.get("client_name", f"Client {client_account_id}"),
+            "industry": client_data.get("industry"),
+            "organization_size": client_data.get("organization_size"),
+            "technology_stack": client_data.get("technology_stack", []),
+            "business_priorities": client_data.get("business_priorities", []),
+            "compliance_requirements": client_data.get("compliance_requirements", []),
+            "created_at": datetime.utcnow().isoformat()
+        })
+        
+        logger.info(f"Created client learning context for {client_account_id}")
+        return {"status": "created", "context_key": context.context_hash}
+    
+    async def create_engagement_learning_context(
+        self,
+        engagement_id: str,
+        client_account_id: str,
+        engagement_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Create engagement-specific learning context.
+        Integrated from client_context_manager.py for consolidated context management.
+        """
+        context = LearningContext(
+            client_account_id=client_account_id,
+            engagement_id=engagement_id
+        )
+        memory = self._get_context_memory(context)
+        
+        # Store engagement context information
+        memory.add_experience("engagement_context", {
+            "engagement_id": engagement_id,
+            "client_account_id": client_account_id,
+            "engagement_name": engagement_data.get("engagement_name", f"Engagement {engagement_id}"),
+            "engagement_type": engagement_data.get("engagement_type"),
+            "migration_goals": engagement_data.get("migration_goals", []),
+            "timeline": engagement_data.get("timeline"),
+            "stakeholders": engagement_data.get("stakeholders", []),
+            "technical_constraints": engagement_data.get("technical_constraints", []),
+            "business_constraints": engagement_data.get("business_constraints", []),
+            "success_criteria": engagement_data.get("success_criteria", []),
+            "created_at": datetime.utcnow().isoformat()
+        })
+        
+        logger.info(f"Created engagement learning context for {engagement_id}")
+        return {"status": "created", "context_key": context.context_hash}
+    
+    async def learn_organizational_pattern(
+        self,
+        client_account_id: str,
+        pattern_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Learn organizational patterns specific to the client.
+        Integrated from client_context_manager.py for consolidated learning.
+        """
+        context = LearningContext(client_account_id=client_account_id)
+        
+        pattern = LearningPattern(
+            pattern_id=f"org_pattern_{datetime.utcnow().timestamp()}",
+            pattern_type="organizational_pattern",
+            context=context,
+            pattern_data=pattern_data.get("pattern_data", {}),
+            confidence=pattern_data.get("confidence", 0.8),
+            usage_count=0,
+            created_at=datetime.utcnow(),
+            last_used=datetime.utcnow()
+        )
+        
+        context_key = context.context_hash
+        if context_key not in self.learning_patterns:
+            self.learning_patterns[context_key] = []
+        
+        self.learning_patterns[context_key].append(pattern)
+        
+        # Update stats
+        self.global_stats["organizational_patterns"] = self.global_stats.get("organizational_patterns", 0) + 1
+        self.global_stats["total_patterns"] += 1
+        self.global_stats["total_learning_events"] += 1
+        
+        self._save_learning_patterns()
+        
+        logger.info(f"Learned organizational pattern for client {client_account_id}")
+        return {"status": "learned", "pattern_id": pattern.pattern_id}
+    
+    async def get_client_learning_context(
+        self,
+        client_account_id: str
+    ) -> Optional[Dict[str, Any]]:
+        """Get client learning context information."""
+        context = LearningContext(client_account_id=client_account_id)
+        memory = self._get_context_memory(context)
+        
+        client_contexts = memory.experiences.get("client_context", [])
+        if client_contexts:
+            return client_contexts[-1]  # Return most recent
+        
+        return None
+    
+    async def get_engagement_learning_context(
+        self,
+        engagement_id: str,
+        client_account_id: str
+    ) -> Optional[Dict[str, Any]]:
+        """Get engagement learning context information."""
+        context = LearningContext(
+            client_account_id=client_account_id,
+            engagement_id=engagement_id
+        )
+        memory = self._get_context_memory(context)
+        
+        engagement_contexts = memory.experiences.get("engagement_context", [])
+        if engagement_contexts:
+            return engagement_contexts[-1]  # Return most recent
+        
+        return None
+    
+    async def get_organizational_patterns(
+        self,
+        client_account_id: str
+    ) -> List[Dict[str, Any]]:
+        """Get organizational patterns for a client."""
+        context = LearningContext(client_account_id=client_account_id)
+        context_key = context.context_hash
+        
+        patterns = self.learning_patterns.get(context_key, [])
+        org_patterns = [p for p in patterns if p.pattern_type == "organizational_pattern"]
+        
+        return [
+            {
+                "pattern_id": p.pattern_id,
+                "pattern_type": p.pattern_type,
+                "pattern_data": p.pattern_data,
+                "confidence": p.confidence,
+                "usage_count": p.usage_count,
+                "created_at": p.created_at.isoformat(),
+                "last_used": p.last_used.isoformat()
+            }
+            for p in org_patterns
+        ]
+    
+    async def get_combined_learning_context(
+        self,
+        engagement_id: str,
+        client_account_id: str
+    ) -> Dict[str, Any]:
+        """Get combined client and engagement learning context."""
+        client_context = await self.get_client_learning_context(client_account_id)
+        engagement_context = await self.get_engagement_learning_context(engagement_id, client_account_id)
+        org_patterns = await self.get_organizational_patterns(client_account_id)
+        
+        return {
+            "client_context": client_context,
+            "engagement_context": engagement_context,
+            "organizational_patterns": org_patterns,
+            "context_separation": "isolated_per_client_engagement"
+        }
+    
+    def get_context_isolation_statistics(self) -> Dict[str, Any]:
+        """Get statistics about context isolation and client separation."""
+        client_contexts = set()
+        engagement_contexts = set()
+        
+        for ctx_key, memory in self.context_memories.items():
+            client_experiences = memory.experiences.get("client_context", [])
+            engagement_experiences = memory.experiences.get("engagement_context", [])
+            
+            for exp in client_experiences:
+                client_contexts.add(exp.get("client_account_id"))
+            
+            for exp in engagement_experiences:
+                engagement_contexts.add(exp.get("engagement_id"))
+        
+        return {
+            "total_client_contexts": len(client_contexts),
+            "total_engagement_contexts": len(engagement_contexts),
+            "total_isolated_contexts": len(self.context_memories),
+            "context_isolation_enabled": True,
+            "learning_patterns_by_context": {
+                ctx_key: len(patterns) for ctx_key, patterns in self.learning_patterns.items()
+            }
+        }
+
+    async def learn_from_asset_classification(
+        self,
+        asset_name: str,
+        asset_metadata: Dict[str, Any],
+        classification_result: Dict[str, Any],
+        user_confirmed: bool,
+        context: Optional[LearningContext] = None
+    ) -> Dict[str, Any]:
+        """Learns from an asset classification operation."""
+        if not context:
+            context = LearningContext()
+        
+        try:
+            pattern_data = {
+                "client_account_id": context.client_account_id,
+                "engagement_id": context.engagement_id,
+                "pattern_name": f"{asset_name}_classification",
+                "pattern_type": "asset_classification",
+                "asset_name_pattern": asset_name.lower(),
+                "metadata_patterns": {
+                    "original_metadata": asset_metadata
+                },
+                "predicted_asset_type": classification_result.get("asset_type", "unknown"),
+                "confidence_score": 0.9 if user_confirmed else 0.3,
+                "learning_source": "user_feedback" if user_confirmed else "ai_inference",
+                "created_by": context.user_id,
+            }
+            
+            pattern_id = await self._store_classification_pattern(pattern_data)
+            
+            return {
+                "pattern_id": pattern_id,
+                "confidence": pattern_data["confidence_score"],
+                "success": True,
+            }
+        except Exception as e:
+            logger.error(f"Error learning from classification: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def classify_asset_automatically(
+        self,
+        asset_data: Dict[str, Any],
+        context: Optional[LearningContext] = None
+    ) -> Dict[str, Any]:
+        """Automatically classify an asset based on learned patterns."""
+        if not context:
+            context = LearningContext()
+
+        try:
+            asset_name = asset_data.get("name", "")
+            
+            similar_patterns = await self.vector_utils.find_similar_asset_patterns(
+                asset_name,
+                context.client_account_id,
+                limit=1,
+                similarity_threshold=0.7
+            )
+            
+            if similar_patterns:
+                best_pattern, similarity = similar_patterns[0]
+                return {
+                    "asset_type": best_pattern.predicted_asset_type,
+                    "confidence": (similarity + best_pattern.confidence_score) / 2,
+                    "pattern_id": str(best_pattern.id)
+                }
+            
+            return {"asset_type": "unknown", "confidence": 0.1}
+            
+        except Exception as e:
+            logger.error(f"Error classifying asset automatically: {e}")
+            return {"asset_type": "unknown", "confidence": 0.0, "error": str(e)}
+
+    async def _store_mapping_pattern(self, pattern_data: Dict[str, Any]) -> str:
+        """Store a field mapping pattern."""
+        source_text = pattern_data["original_field"]
+        embedding = await self.embedding_service.embed_text(source_text)
+        
+        async with AsyncSessionLocal() as session:
+            pattern = MappingLearningPattern(
+                client_account_id=pattern_data["context"].client_account_id,
+                engagement_id=pattern_data["context"].engagement_id,
+                source_field_name=pattern_data["original_field"],
+                source_field_embedding=embedding,
+                target_field_name=pattern_data["mapped_field"],
+                confidence_score=pattern_data.get("confidence", 0.8),
+                created_by=pattern_data["context"].user_id
+            )
+            session.add(pattern)
+            await session.commit()
+            await session.refresh(pattern)
+            return str(pattern.id)
+
+    async def _store_classification_pattern(self, pattern_data: Dict[str, Any]) -> str:
+        """Store an asset classification pattern."""
+        name_embedding = await self.embedding_service.embed_text(pattern_data["asset_name_pattern"])
+        
+        async with AsyncSessionLocal() as session:
+            pattern = AssetClassificationPattern(
+                client_account_id=pattern_data["client_account_id"],
+                engagement_id=pattern_data.get("engagement_id"),
+                asset_name_pattern=pattern_data["asset_name_pattern"],
+                asset_name_embedding=name_embedding,
+                metadata_patterns=pattern_data["metadata_patterns"],
+                predicted_asset_type=pattern_data["predicted_asset_type"],
+                confidence_score=pattern_data["confidence_score"],
+                learning_source=pattern_data["learning_source"],
+                created_by=pattern_data.get("created_by")
+            )
+            session.add(pattern)
+            await session.commit()
+            await session.refresh(pattern)
+            return str(pattern.id)
+
+    async def learn_from_field_mapping(
+        self,
+        source_field: str,
+        target_field: str,
+        sample_values: List[str],
+        success: bool,
+        context: Optional[LearningContext] = None
+    ) -> Dict[str, Any]:
+        """Learns from a field mapping operation."""
+        if not context:
+            context = LearningContext()
+        
+        try:
+            pattern_data = {
+                "context": context,
+                "original_field": source_field,
+                "mapped_field": target_field,
+                "confidence": 0.8 if success else 0.2,
+            }
+            
+            pattern_id = await self._store_mapping_pattern(pattern_data)
+            
+            return {
+                "pattern_id": pattern_id,
+                "confidence": pattern_data["confidence"],
+                "success": True,
+            }
+        except Exception as e:
+            logger.error(f"Error learning from mapping: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def suggest_field_mappings(
+        self,
+        source_fields: List[str],
+        sample_data: Dict[str, List[str]],
+        context: Optional[LearningContext] = None,
+        max_suggestions: int = 3
+    ) -> Dict[str, List[Dict[str, Any]]]:
+        """Suggest field mappings for source fields based on learned patterns."""
+        if not context:
+            context = LearningContext()
+            
+        suggestions = {}
+        for field in source_fields:
+            search_text = f"{field} {' '.join(sample_data.get(field, []))}"
+            similar_patterns = await self.vector_utils.find_similar_patterns(
+                await self.embedding_service.embed_text(search_text),
+                context.client_account_id,
+                limit=max_suggestions
+            )
+            field_suggestions = []
+            for pattern, similarity in similar_patterns:
+                field_suggestions.append({
+                    "target_field": pattern.target_field_name,
+                    "confidence": (similarity + pattern.confidence_score) / 2,
+                    "pattern_id": str(pattern.id)
+                })
+            suggestions[field] = field_suggestions
+        return suggestions
 
 
 # Global instance

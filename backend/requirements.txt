@@ -6,7 +6,7 @@ starlette>=0.27.0
 
 # Database
 sqlalchemy>=2.0.0
-# psycopg2-binary>=2.9.0  # Commented out - use asyncpg instead
+psycopg2-binary>=2.9.0
 alembic>=1.12.0
 pgvector>=0.2.4
 
@@ -15,24 +15,30 @@ openai>=1.0.0
 
 # CrewAI and AI frameworks
 crewai>=0.121.0
+crewai-tools
 litellm>=1.55.0
 
 # Local embeddings for CrewAI memory (replaces OpenAI embeddings)
 sentence-transformers>=2.2.0
 chromadb>=0.4.0
 
-# LangChain ecosystem (core only - no OpenAI specific)
+# LangChain ecosystem
 langchain>=0.3.0
 langchain-core>=0.3.0
 langchain-community>=0.3.0
+langchain-openai>=0.1.8
 
 # Data processing
 pandas>=2.1.0
 numpy>=1.24.0
+scikit-learn
+openpyxl
+pypdf
 
 # HTTP and requests
 aiohttp>=3.9.0
 requests>=2.31.0
+tenacity>=2.2.0
 
 # Environment and configuration
 python-dotenv>=1.0.0
@@ -42,10 +48,10 @@ pydantic-settings>=2.0.0
 # Authentication and security
 python-jose[cryptography]>=3.3.0
 passlib[bcrypt]>=1.7.4
-python-multipart>=0.0.6
 
 # WebSocket support
 websockets>=12.0
+sse-starlette>=1.2.0
 
 # Async support
 asyncpg>=0.29.0
@@ -55,12 +61,32 @@ aiofiles>=23.0.0
 pytest>=7.0.0
 pytest-asyncio>=0.21.0
 httpx>=0.24.0
+coverage>=6.5.0
 
 # Logging and monitoring
 structlog>=24.4.0
+loguru>=0.6.0
+watchdog>=2.5.0
 
 # Date and time handling
 python-dateutil>=2.8.2
 
 # JSON handling
-orjson>=3.8.0 
+orjson>=3.8.0
+
+# Celery and Redis
+redis>=4.5.0
+celery>=5.2.0
+flower>=1.3.0
+
+# Other
+boto3>=1.26.0
+networkx>=3.0.0
+emails>=0.1.0
+
+# New additions
+langchain-experimental==0.0.61
+langchain-groq==0.1.5
+langsmith==0.1.75
+lark==1.1.9
+Levenshtein==0.25.1 

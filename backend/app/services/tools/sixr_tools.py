@@ -13,8 +13,10 @@ try:
     from crewai.tools import BaseTool
     from pydantic import BaseModel, Field
     from app.services.field_mapper_modular import FieldMapperService
-    from app.services.sixr_engine import SixRDecisionEngine
+    from app.services.sixr_engine_modular import SixRDecisionEngine
+    from app.services.tech_debt_analysis_service import TechDebtAnalysisService as TechDebtService
     from app.schemas.sixr_analysis import SixRParameterBase, SixRStrategy
+    SIXR_AVAILABLE = True
 except ImportError as e:
     logging.warning(f"Tool imports failed: {e}")
     # Fallback classes for testing

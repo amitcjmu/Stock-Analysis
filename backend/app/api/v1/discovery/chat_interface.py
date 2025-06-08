@@ -4,11 +4,16 @@ Handles AI chat interactions with context awareness.
 """
 
 import logging
-from typing import Dict, Any
-from fastapi import APIRouter, HTTPException
+from typing import Dict, Any, List
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.database import get_db
+from app.core.context import get_user_id
+from app.services.multi_model_service import multi_model_service
 
 from app.api.v1.discovery.persistence import get_processed_assets
-from app.services.crewai_service_modular import CrewAIService
+from app.services.crewai_flow_service import crewai_flow_service, CrewAIFlowService
+from app.models.client_account import User
 
 logger = logging.getLogger(__name__)
 
@@ -41,25 +46,29 @@ User Question: {user_message}"""
 
         try:
             # Use multi-model service for proper chat with Gemma-3-4b
-            from app.services.multi_model_service import multi_model_service
-            
             response = await multi_model_service.generate_response(
                 prompt=user_message,
-                task_type="chat",  # This ensures Gemma-3-4b is used
-                system_message=system_prompt
+                task_type="chat",  # Specify task type for model selection
+                system_message="You are a helpful AI assistant for the AI Force migration platform."
             )
             
-            if response and response.get("status") == "success":
-                return {
-                    "status": "success",
-                    "chat_response": response["response"],
-                    "model_used": response["model_used"],
-                    "timestamp": response["timestamp"],
-                    "context_used": context,
-                    "multi_model_service_available": True
-                }
+            # Store message and response
+            await save_chat_message(user_id, user_message, "user")
+            await save_chat_message(
+                user_id, 
+                response.get("content", "No response"),
+                "assistant"
+            )
+            
+            # Send response to WebSocket
+            await websocket.send_text(json.dumps(response))
+            
         except Exception as e:
-            logger.warning(f"Multi-model chat failed: {e}, using fallback response")
+            logger.error(f"Chat processing error: {e}")
+            await websocket.send_text(json.dumps({
+                "error": "Failed to process chat message",
+                "details": str(e)
+            }))
         
         # Fallback response with context awareness
         fallback_response = _generate_fallback_response(user_message, context)
@@ -76,6 +85,18 @@ User Question: {user_message}"""
     except Exception as e:
         logger.error(f"Chat test error: {e}")
         raise HTTPException(status_code=500, detail=f"Chat failed: {str(e)}")
+
+@router.websocket("/ws/{client_id}")
+async def websocket_endpoint(
+    websocket: WebSocket,
+    client_id: str,
+    user_id: str = Depends(get_user_id)
+):
+    # This is a placeholder - in production, you'd fetch this from a database
+    return [
+        {"role": "user", "content": "Hello"},
+        {"role": "assistant", "content": "Hi there! How can I help you today?"}
+    ]
 
 # Helper functions
 def _build_asset_context(assets: list) -> str:
@@ -133,4 +154,27 @@ def _generate_fallback_response(user_message: str, context: str) -> str:
     
     # General help
     else:
-        return f"I'm here to help with your cloud migration planning! Here's what I can assist with:\n\n**Current Status:**\n{context}\n\n**My Capabilities:**\n- 📊 **Asset Analysis**: Review your inventory and identify migration candidates\n- 🎯 **6R Strategy**: Recommend optimal migration approaches (Rehost, Refactor, etc.)\n- 🔍 **Complexity Assessment**: Evaluate technical challenges and dependencies\n- 📈 **Migration Planning**: Help prioritize applications and plan phases\n\nWhat specific area would you like to explore?" 
+        return f"I'm here to help with your cloud migration planning! Here's what I can assist with:\n\n**Current Status:**\n{context}\n\n**My Capabilities:**\n- 📊 **Asset Analysis**: Review your inventory and identify migration candidates\n- 🎯 **6R Strategy**: Recommend optimal migration approaches (Rehost, Refactor, etc.)\n- 🔍 **Complexity Assessment**: Evaluate technical challenges and dependencies\n- 📈 **Migration Planning**: Help prioritize applications and plan phases\n\nWhat specific area would you like to explore?"
+
+async def get_instance(
+    current_user: User = Depends(get_user_id)
+) -> "ChatInterface":
+    if not ChatInterface.is_crewai_available():
+        raise WebSocketDisconnect(code=1008, reason="CrewAI service not available")
+    
+    instance = ChatInterface(crewai_flow_service)
+    instance.current_user = current_user
+    return instance 
+
+async def get_chat_history(user_id: str, limit: int = 10) -> List[Dict[str, str]]:
+    """Retrieve chat history for a user."""
+    # This is a placeholder - in production, you'd fetch this from a database
+    return [
+        {"role": "user", "content": "Hello"},
+        {"role": "assistant", "content": "Hi there! How can I help you today?"}
+    ]
+
+async def save_chat_message(user_id: str, message: str, role: str):
+    """Save a chat message."""
+    # This is a placeholder - in production, you'd save this to a database
+    logger.info(f"Saving message for user {user_id}: ({role}) {message}")

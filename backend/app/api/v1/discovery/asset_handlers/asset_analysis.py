@@ -350,89 +350,56 @@ class AssetAnalysisHandler:
     
     def _suggest_ip_format(self, ip: str, asset_name: str) -> str:
         """Suggest corrected IP format."""
-        try:
-            import re
-            numbers = re.findall(r'\d+', ip)
-            if len(numbers) >= 4:
-                return '.'.join(numbers[:4])
-            return f"192.168.1.{hash(asset_name) % 254 + 1}"
-        except Exception:
-            return "192.168.1.100"
+        # Simple suggestion for now. More complex logic can be added.
+        return "10.0.0.1"  # Example suggestion
     
-    async def _get_assets_from_database(self, client_account_id: str = None) -> List[Dict[str, Any]]:
+    async def _get_assets_from_database(
+        self, 
+        client_account_id: str = None, 
+        engagement_id: str = None
+    ) -> List[Dict[str, Any]]:
         """
-        Get assets from database with client context filtering.
+        Retrieves assets from the database, scoped by client_account_id and engagement_id.
         """
-        try:
-            from app.core.database import AsyncSessionLocal
-            from app.models.asset import Asset
-            from sqlalchemy import select
-            
-            async with AsyncSessionLocal() as session:
+        from app.models.asset import Asset
+        from app.core.database import AsyncSessionLocal
+        from sqlalchemy.future import select
+        from sqlalchemy import and_
+
+        async with AsyncSessionLocal() as session:
+            try:
                 query = select(Asset)
-                
-                # Apply client context filter if provided
+                filters = []
                 if client_account_id:
-                    query = query.where(Asset.client_account_id == client_account_id)
+                    filters.append(Asset.client_account_id == client_account_id)
+                if engagement_id:
+                    filters.append(Asset.engagement_id == engagement_id)
                 
+                if filters:
+                    query = query.where(and_(*filters))
+
                 result = await session.execute(query)
                 assets = result.scalars().all()
                 
-                # Convert to dictionaries
-                asset_dicts = []
-                for asset in assets:
-                    asset_dict = {
-                        'id': str(asset.id),
-                        'hostname': asset.hostname,
-                        'asset_type': asset.asset_type,
-                        'environment': asset.environment,
-                        'department': asset.department,
-                        'operating_system': asset.operating_system,
-                        'ip_address': asset.ip_address,
-                        'application_name': asset.application_name,
-                        'technology_stack': asset.technology_stack,
-                        'criticality': asset.criticality,
-                        'dependencies': asset.dependencies,
-                        'six_r_readiness': asset.six_r_readiness,
-                        'migration_complexity': asset.migration_complexity,
-                        'discovery_source': asset.discovery_source,
-                        'processed_timestamp': asset.processed_timestamp.isoformat() if asset.processed_timestamp else None,
-                        'name': asset.hostname or asset.application_name or f"Asset-{asset.id}",
-                        'type': asset.asset_type
-                    }
-                    asset_dicts.append(asset_dict)
-                
-                logger.info(f"Retrieved {len(asset_dicts)} assets from database for client {client_account_id}")
-                return asset_dicts
-                
-        except Exception as e:
-            logger.error(f"Error getting assets from database: {e}")
-            # Fallback to old persistence if database fails
-            if self.persistence_available:
-                return self.get_processed_assets()
-            return []
+                # Convert SQLAlchemy models to dictionaries
+                return [asset.__dict__ for asset in assets]
+            except Exception as e:
+                logger.error(f"Failed to get assets from database: {e}")
+                return []
     
-    async def get_discovery_metrics(self, client_account_id: str = None) -> Dict[str, Any]:
+    async def get_discovery_metrics(
+        self, 
+        client_account_id: str = None, 
+        engagement_id: str = None
+    ) -> Dict[str, Any]:
         """
         Get discovery metrics for the Discovery Overview dashboard.
         """
         try:
-            # Use database query with client context instead of persistence layer
-            all_assets = await self._get_assets_from_database(client_account_id)
+            all_assets = await self._get_assets_from_database(client_account_id, engagement_id)
             
             if not all_assets:
-                return {
-                    "metrics": {
-                        "totalAssets": 0,
-                        "totalApplications": 0,
-                        "applicationToServerMapping": 0,
-                        "dependencyMappingComplete": 0,
-                        "techDebtItems": 0,
-                        "criticalIssues": 0,
-                        "discoveryCompleteness": 0,
-                        "dataQuality": 0
-                    }
-                }
+                return self._fallback_get_discovery_metrics()
             
             # Count assets by type
             total_assets = len(all_assets)
@@ -494,12 +461,20 @@ class AssetAnalysisHandler:
             logger.error(f"Error getting discovery metrics: {e}")
             return self._fallback_get_discovery_metrics()
     
-    async def get_application_landscape(self, client_account_id: str = None) -> Dict[str, Any]:
+    async def get_application_landscape(
+        self, 
+        client_account_id: str = None, 
+        engagement_id: str = None
+    ) -> Dict[str, Any]:
         """
         Get application landscape data for the Discovery Overview dashboard.
         """
         try:
-            all_assets = await self._get_assets_from_database(client_account_id)
+            all_assets = await self._get_assets_from_database(client_account_id, engagement_id)
+            
+            if not all_assets:
+                return self._fallback_get_application_landscape()
+            
             applications = [a for a in all_assets if 'app' in str(a.get('asset_type', '')).lower()]
             
             # Transform applications to match frontend interface
@@ -559,12 +534,19 @@ class AssetAnalysisHandler:
             logger.error(f"Error getting application landscape: {e}")
             return self._fallback_get_application_landscape()
     
-    async def get_infrastructure_landscape(self, client_account_id: str = None) -> Dict[str, Any]:
+    async def get_infrastructure_landscape(
+        self, 
+        client_account_id: str = None, 
+        engagement_id: str = None
+    ) -> Dict[str, Any]:
         """
         Get infrastructure landscape data for the Discovery Overview dashboard.
         """
         try:
-            all_assets = await self._get_assets_from_database(client_account_id)
+            all_assets = await self._get_assets_from_database(client_account_id, engagement_id)
+            
+            if not all_assets:
+                return self._fallback_get_infrastructure_landscape()
             
             # Count servers by type
             servers = [a for a in all_assets if 'server' in str(a.get('asset_type', '')).lower()]

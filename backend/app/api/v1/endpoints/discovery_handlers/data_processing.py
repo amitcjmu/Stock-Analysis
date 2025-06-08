@@ -5,6 +5,7 @@ Handles CMDB data processing operations.
 
 import logging
 from typing import Dict, Any
+from app.services.crewai_flow_service import crewai_flow_service
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +20,7 @@ class DataProcessingHandler:
         """Initialize optional dependencies with graceful fallbacks."""
         try:
             from app.api.v1.discovery.processor import CMDBDataProcessor
-            self.processor = CMDBDataProcessor()
+            self.processor = CMDBDataProcessor(crewai_service=crewai_flow_service)
             self.processor_available = True
             logger.info("Data processor initialized successfully")
         except ImportError as e:

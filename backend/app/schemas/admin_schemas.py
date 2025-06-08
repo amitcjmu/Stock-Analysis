@@ -408,11 +408,10 @@ class EngagementDashboardStats(BaseModel):
     """Schema for engagement dashboard statistics."""
     total_engagements: int
     active_engagements: int
-    engagements_by_phase: Dict[str, int]
-    engagements_by_scope: Dict[str, int]
-    completion_rate_average: float
-    budget_utilization_average: float
-    recent_engagement_activity: List[EngagementResponse]
+    engagements_by_type: Dict[str, int]
+    engagements_by_status: Dict[str, int]
+    avg_engagement_duration_days: float
+    recent_engagements: List[EngagementResponse]
 
 class SessionDashboardStats(BaseModel):
     """Schema for session dashboard statistics."""
@@ -423,6 +422,10 @@ class SessionDashboardStats(BaseModel):
     average_completion_time_hours: float
     total_assets_processed: int
     recent_session_activity: List[SessionResponse]
+
+class UserDashboardStats(BaseModel):
+    total_users: int
+    active_users: int
 
 # =========================
 # Error Response Schemas

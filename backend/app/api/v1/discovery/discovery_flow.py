@@ -10,7 +10,7 @@ from typing import Dict, List, Any, Optional
 from datetime import datetime
 
 # Import the modular service
-from app.services.crewai_flow_modular import crewai_flow_modular_service
+from app.services.crewai_flow_service import crewai_flow_service
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +63,7 @@ async def run_discovery_flow(request: DiscoveryFlowRequest):
         }
         
         # Execute discovery flow
-        result = await crewai_flow_modular_service.run_discovery_flow(cmdb_data)
+        result = await crewai_flow_service.run_discovery_flow(cmdb_data)
         
         return {
             "status": "success",
@@ -99,7 +99,7 @@ async def get_flow_service_health():
     - Performance capabilities
     """
     try:
-        health_status = crewai_flow_modular_service.get_health_status()
+        health_status = crewai_flow_service.get_health_status()
         
         return {
             "status": "healthy",
@@ -138,7 +138,7 @@ async def get_flow_status(flow_id: str):
     - Results (if completed)
     """
     try:
-        status = crewai_flow_modular_service.get_flow_status(flow_id)
+        status = crewai_flow_service.get_flow_status(flow_id)
         
         if status.get("status") == "not_found":
             raise HTTPException(status_code=404, detail=f"Flow {flow_id} not found")
@@ -165,7 +165,7 @@ async def get_active_flows():
     - Individual flow summaries with progress
     """
     try:
-        active_flows = crewai_flow_modular_service.get_active_flows()
+        active_flows = crewai_flow_service.get_active_flows()
         
         return {
             "status": "success",
@@ -189,7 +189,7 @@ async def get_performance_metrics():
     - Resource utilization data
     """
     try:
-        metrics = crewai_flow_modular_service.get_performance_metrics()
+        metrics = crewai_flow_service.get_performance_metrics()
         
         return {
             "status": "success",
@@ -220,7 +220,7 @@ async def validate_data_only(request: DiscoveryFlowRequest):
         }
         
         # Use validation handler directly
-        validation_handler = crewai_flow_modular_service.validation_handler
+        validation_handler = crewai_flow_service.validation_handler
         validation_handler.validate_input_data(cmdb_data)
         quality_metrics = validation_handler.assess_data_quality(cmdb_data)
         
@@ -252,7 +252,7 @@ async def cleanup_resources():
     - Debugging memory issues
     """
     try:
-        cleaned_count = crewai_flow_modular_service.cleanup_resources()
+        cleaned_count = crewai_flow_service.cleanup_resources()
         
         return {
             "status": "success",
@@ -278,7 +278,7 @@ async def get_service_configuration():
     - Handler configurations
     """
     try:
-        config_summary = crewai_flow_modular_service.config.get_summary()
+        config_summary = crewai_flow_service.config.get_summary()
         
         return {
             "status": "success",
@@ -303,7 +303,7 @@ async def get_service_capabilities():
     - Performance optimizations
     """
     try:
-        health = crewai_flow_modular_service.get_health_status()
+        health = crewai_flow_service.get_health_status()
         
         capabilities = {
             "discovery_workflow": {

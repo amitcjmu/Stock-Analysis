@@ -11,7 +11,7 @@ import io
 from datetime import datetime
 import re
 
-from app.services.crewai_service_modular import CrewAIService
+from app.services.crewai_flow_service import CrewAIFlowService, crewai_flow_service
 from .models import AssetCoverage
 
 logger = logging.getLogger(__name__)
@@ -20,8 +20,8 @@ logger = logging.getLogger(__name__)
 class CMDBDataProcessor:
     """Handles intelligent data processing and validation."""
     
-    def __init__(self):
-        self.crewai_service = CrewAIService()
+    def __init__(self, crewai_service: CrewAIFlowService):
+        self.crewai_service = crewai_service
         
     def parse_file_content(self, content: str, file_type: str, filename: str = "") -> Tuple[Optional[pd.DataFrame], Dict[str, Any]]:
         """Parse file content intelligently based on file type and content."""

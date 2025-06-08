@@ -1,0 +1,20 @@
+{
+  "data_row_0_analysis_20250607_221926": {
+    "id": "data_row_0_analysis_20250607_221926",
+    "data_type": "asset_record",
+    "content": {
+      "Asset Name": "CRM-PROD-01",
+      "Asset Type": "Application",
+      "Environment": "Production",
+      "Business Owner": "Finance Team",
+      "Criticality": "Critical",
+      "Operating System": "Windows Server 2019",
+      "CPU Cores": "8",
+      "Memory GB": "32",
+      "Storage GB": "500",
+      "Location": "DC-East",
+      "Dependencies": "DB-PROD-01"
+    },
+    "classification": "good_data",
+    "agent_analysis": {
+      "overall_classification": 

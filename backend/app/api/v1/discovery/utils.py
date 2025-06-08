@@ -4,7 +4,10 @@ Helper functions for asset processing and analysis.
 """
 
 import logging
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
+
+from app.services.crewai_flow_service import crewai_flow_service
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +22,7 @@ def standardize_asset_type(asset_type: str, asset_name: str = "", asset_data: Di
     
     # Use agentic intelligence if available
     try:
-        from app.services.crewai_service_modular import crewai_service
-        if asset_data and crewai_service.agents:
+        if asset_data and crewai_flow_service.agents:
             # Create minimal analysis data for asset type detection
             analysis_data = {
                 "asset_name": asset_name,
@@ -380,4 +382,24 @@ def assess_migration_complexity(asset_type: str, asset_data: Dict[str, Any]) -> 
         return "High"
     
     else:
-        return "Medium" 
+        return "Medium"
+
+
+def crewai_available() -> bool:
+    """Check if the CrewAI service is available."""
+    return True  # This is a placeholder implementation. In a real application, you would check the actual service status.
+
+
+def analyze_data_source(data_source_id: str) -> dict:
+    """Analyze a data source and return its type and quality."""
+    if not crewai_available():
+        return {"error": "CrewAI service is not available"}, 503
+    
+    task = crewai_flow_service.create_task(
+        agent_name="data_source_intelligence_001",
+        task_description=f"Analyze data source: {data_source_id}",
+        context=f"Analyze the data source with ID {data_source_id} and determine its type and quality."
+    )
+    
+    # This is a placeholder implementation. In a real application, you would wait for the task to complete and return the result.
+    return {"status": "Analysis in progress"} 

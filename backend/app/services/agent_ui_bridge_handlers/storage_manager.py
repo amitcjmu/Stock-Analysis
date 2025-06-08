@@ -348,4 +348,13 @@ class StorageManager:
             
         except Exception as e:
             logger.error(f"Error importing data: {e}")
-            return False 
+            return False
+
+# Instantiate storage managers for different data types
+classification_storage = StorageManager(storage_path="/tmp/agent_ui_bridge/classifications")
+question_storage = StorageManager(storage_path="/tmp/agent_ui_bridge/questions")
+insight_storage = StorageManager(storage_path="/tmp/agent_ui_bridge/insights")
+context_storage = StorageManager(storage_path="/tmp/agent_ui_bridge/context")
+
+# Default storage manager
+storage_manager = StorageManager() 

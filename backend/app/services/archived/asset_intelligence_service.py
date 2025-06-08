@@ -10,6 +10,13 @@ import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy import select, and_
+from app.services.multi_model_service import MultiModelService
+from app.models.asset import Asset
+from app.services.memory import VectorMemory
+from app.services.crewai_flow_service import crewai_flow_service
+from app.services.agent_registry import AgentRegistry
+from app.services.tools.asset_intelligence_tools import AssetAnalysisTool, BulkOperationsTool
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +25,10 @@ class AssetIntelligenceService:
     AI-powered asset intelligence for migration readiness assessment
     """
     
-    def __init__(self):
+    def __init__(self, memory_instance, agent_registry, multi_model_service):
+        self.crewai_service = None
+        self.agent_registry = agent_registry
+        self.multi_model_service = multi_model_service
         self.crewai_available = False
         self._initialize_services()
     
@@ -27,7 +37,11 @@ class AssetIntelligenceService:
         try:
             from app.services.crewai_service_modular import crewai_service
             self.crewai_service = crewai_service
-            self.crewai_available = crewai_service.is_available()
+            self.agent_registry = agent_registry
+            self.multi_model_service = multi_model_service
+            self.crewai_available = self.crewai_service and self.crewai_service.is_available()
+            if not self.crewai_available:
+                logger.warning("CrewAI service is not available. AssetIntelligenceService will have limited functionality.")
             logger.info("Asset Intelligence Service initialized with CrewAI support")
         except ImportError:
             logger.warning("CrewAI service not available for Asset Intelligence")
@@ -490,4 +504,9 @@ class AssetIntelligenceService:
             await db.rollback()
 
 # Global service instance
-asset_intelligence_service = AssetIntelligenceService() 
+asset_intelligence_service = AssetIntelligenceService(
+    memory_instance,
+    crewai_flow_service,
+    agent_registry,
+    multi_model_service
+) 

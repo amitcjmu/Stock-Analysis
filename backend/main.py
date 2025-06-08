@@ -119,6 +119,8 @@ try:
         
 except Exception as e:
     print(f"⚠️  API routes could not be loaded: {e}")
+    with open("api_routes_error.log", "w") as f:
+        traceback.print_exc(file=f)
     print(f"📋 Traceback: {traceback.format_exc()}")
     API_ROUTES_ENABLED = False
     API_ROUTES_ERROR = str(e)

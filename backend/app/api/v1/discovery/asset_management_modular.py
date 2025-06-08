@@ -21,7 +21,7 @@ from app.core.context import RequestContext, get_current_context
 logger = logging.getLogger(__name__)
 
 # Create main router
-router = APIRouter()
+router = APIRouter(prefix="/assets", tags=["Assets"])
 
 # Initialize handlers
 crud_handler = AssetCRUDHandler()
@@ -38,7 +38,7 @@ class BulkUpdateRequest(BaseModel):
 class BulkDeleteRequest(BaseModel):
     asset_ids: List[str]
 
-@router.get("/health")
+@router.get("/health_check")
 async def asset_management_health_check():
     """Health check endpoint for asset management module."""
     return {
@@ -54,7 +54,7 @@ async def asset_management_health_check():
         }
     }
 
-@router.get("/assets")
+@router.get("/")
 async def get_processed_assets_paginated(
     page: int = 1,
     page_size: int = 50,
@@ -87,7 +87,7 @@ async def get_processed_assets_paginated(
         logger.error(f"Error in get_processed_assets_paginated: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve assets: {str(e)}")
 
-@router.put("/assets/bulk")
+@router.put("/bulk")
 async def bulk_update_assets_endpoint(
     request: Request,
     context: RequestContext = Depends(get_current_context)
@@ -115,7 +115,7 @@ async def bulk_update_assets_endpoint(
         logger.error(f"Error in bulk_update_assets_endpoint: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to bulk update assets: {str(e)}")
 
-@router.delete("/assets/bulk")
+@router.delete("/bulk")
 async def bulk_delete_assets_endpoint(
     request: BulkDeleteRequest,
     context: RequestContext = Depends(get_current_context)
@@ -142,7 +142,7 @@ async def bulk_delete_assets_endpoint(
         logger.error(f"Error in bulk_delete_assets_endpoint: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to bulk delete assets: {str(e)}")
 
-@router.put("/assets/{asset_id}")
+@router.put("/{asset_id}")
 async def update_asset(asset_id: str, asset_data: Dict[str, Any]):
     """
     Update an existing asset.
@@ -164,7 +164,7 @@ async def update_asset(asset_id: str, asset_data: Dict[str, Any]):
         logger.error(f"Error in update_asset: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to update asset: {str(e)}")
 
-@router.post("/reprocess-assets")
+@router.post("/reprocess")
 async def reprocess_stored_assets():
     """
     Reprocess stored assets with updated algorithms.
@@ -195,7 +195,7 @@ async def get_applications_for_analysis(
         logger.error(f"Error in get_applications_for_analysis: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get applications: {str(e)}")
 
-@router.get("/assets/unlinked")
+@router.get("/unlinked")
 async def get_unlinked_assets(
     context: RequestContext = Depends(get_current_context)
 ):
@@ -213,46 +213,55 @@ async def get_unlinked_assets(
         logger.error(f"Error in get_unlinked_assets: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get unlinked assets: {str(e)}")
 
-@router.get("/assets/discovery-metrics")
+@router.get("/discovery-metrics")
 async def get_discovery_metrics(context: RequestContext = Depends(get_current_context)):
     """
     Get discovery metrics for the Discovery Overview dashboard.
     """
     try:
-        result = await analysis_handler.get_discovery_metrics(context.client_account_id)
+        result = await analysis_handler.get_discovery_metrics(
+            client_account_id=context.client_account_id,
+            engagement_id=context.engagement_id
+        )
         return result
         
     except Exception as e:
         logger.error(f"Error in get_discovery_metrics: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get discovery metrics: {str(e)}")
 
-@router.get("/assets/application-landscape")
+@router.get("/application-landscape")
 async def get_application_landscape(context: RequestContext = Depends(get_current_context)):
     """
     Get application landscape data for the Discovery Overview dashboard.
     """
     try:
-        result = await analysis_handler.get_application_landscape(context.client_account_id)
+        result = await analysis_handler.get_application_landscape(
+            client_account_id=context.client_account_id,
+            engagement_id=context.engagement_id
+        )
         return result
         
     except Exception as e:
         logger.error(f"Error in get_application_landscape: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get application landscape: {str(e)}")
 
-@router.get("/assets/infrastructure-landscape") 
+@router.get("/infrastructure-landscape") 
 async def get_infrastructure_landscape(context: RequestContext = Depends(get_current_context)):
     """
     Get infrastructure landscape data for the Discovery Overview dashboard.
     """
     try:
-        result = await analysis_handler.get_infrastructure_landscape(context.client_account_id)
+        result = await analysis_handler.get_infrastructure_landscape(
+            client_account_id=context.client_account_id,
+            engagement_id=context.engagement_id
+        )
         return result
         
     except Exception as e:
         logger.error(f"Error in get_infrastructure_landscape: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get infrastructure landscape: {str(e)}")
 
-@router.get("/assets/duplicates")
+@router.get("/duplicates")
 async def find_duplicate_assets_endpoint():
     """Find potential duplicate assets in the inventory."""
     try:
@@ -263,7 +272,7 @@ async def find_duplicate_assets_endpoint():
         logger.error(f"Error in find_duplicate_assets_endpoint: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to find duplicates: {str(e)}")
 
-@router.post("/assets/cleanup-duplicates")
+@router.post("/cleanup-duplicates")
 async def cleanup_duplicate_assets_endpoint(
     context: RequestContext = Depends(get_current_context)
 ):

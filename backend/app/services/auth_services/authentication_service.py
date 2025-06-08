@@ -9,7 +9,7 @@ from datetime import datetime
 import uuid
 import bcrypt
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, func
 from fastapi import HTTPException
 
 from app.models.client_account import User
@@ -190,4 +190,37 @@ class AuthenticationService:
             return result.scalar_one_or_none()
         except Exception as e:
             logger.error(f"Error in get_user_by_id: {e}")
-            return None 
+            return None
+
+    async def get_dashboard_stats(self) -> Dict[str, Any]:
+        """Get dashboard statistics for users."""
+        try:
+            # Total users
+            total_users_query = select(func.count()).select_from(User)
+            total_users_result = await self.db.execute(total_users_query)
+            total_users = total_users_result.scalar_one()
+
+            # Active users
+            active_users_query = select(func.count()).select_from(User).where(User.is_active == True)
+            active_users_result = await self.db.execute(active_users_query)
+            active_users = active_users_result.scalar_one()
+
+            # Pending approvals
+            pending_approvals_query = select(func.count()).select_from(UserProfile).where(UserProfile.status == 'pending')
+            pending_approvals_result = await self.db.execute(pending_approvals_query)
+            pending_approvals = pending_approvals_result.scalar_one()
+
+            # Users by role
+            roles_query = select(UserRole.role_type, func.count()).group_by(UserRole.role_type)
+            roles_result = await self.db.execute(roles_query)
+            users_by_role = {row[0]: row[1] for row in roles_result.all() if row[0]}
+
+            return {
+                "total_users": total_users,
+                "active_users": active_users,
+                "pending_approvals": pending_approvals,
+                "users_by_role": users_by_role
+            }
+        except Exception as e:
+            logger.error(f"Error getting user dashboard stats: {e}")
+            raise HTTPException(status_code=500, detail="Failed to retrieve user dashboard stats") 

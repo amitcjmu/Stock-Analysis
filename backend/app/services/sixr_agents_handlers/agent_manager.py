@@ -23,8 +23,8 @@ class AgentManagerHandler:
         """Initialize dependencies with graceful fallbacks."""
         try:
             from crewai import Agent
-            from app.services.deepinfra_llm import DeepInfraLLM
-            from app.services.sixr_engine import SixRDecisionEngine
+            from app.services.deepinfra_llm import DeepInfraLlama4LLM as DeepInfraLLM
+            from app.services.sixr_engine_modular import SixRDecisionEngine
             
             self.llm = DeepInfraLLM()
             self.decision_engine = SixRDecisionEngine()

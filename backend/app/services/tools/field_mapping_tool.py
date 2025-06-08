@@ -92,9 +92,10 @@ class FieldMappingTool:
                 "message": "Column analysis failed"
             }
     
-    def analyze_data_patterns(self, columns: List[str], sample_data: List[List[Any]], asset_type: str = "server") -> Dict[str, Any]:
+    def analyze_data_and_learn(self, columns: List[str], sample_data: List[List[Any]], asset_type: str = "server") -> Dict[str, Any]:
         """
-        Analyze data patterns using both column names and actual data content.
+        Analyze data patterns and auto-learn high-confidence mappings.
+        This replaces the old `analyze_data_patterns` method.
         
         Args:
             columns: List of column names from the data
@@ -105,29 +106,31 @@ class FieldMappingTool:
             Comprehensive analysis with suggested field mappings based on patterns
         """
         try:
-            result = self.field_mapper.analyze_data_patterns(columns, sample_data, asset_type)
+            # Use the correct method on the field_mapper service
+            result = self.field_mapper.agent_analyze_columns(columns, asset_type)
             logger.info(f"Agent analyzed data patterns for {len(columns)} columns with {len(sample_data)} sample rows")
             
-            # Auto-learn high-confidence mappings
-            column_analysis = result.get("column_analysis", {})
-            confidence_scores = result.get("confidence_scores", {})
-            
+            # Auto-learn high-confidence mappings from the analysis result
+            suggested_mappings = result.get("suggested_mappings", {})
             learned_mappings = []
-            for column, suggested_field in column_analysis.items():
-                confidence = confidence_scores.get(column, 0.0)
-                if confidence > 0.75:  # Auto-learn high-confidence mappings
-                    learn_result = self.learn_field_mapping(column, suggested_field, f"auto_pattern_analysis_{asset_type}")
-                    if learn_result.get("success"):
-                        learned_mappings.append(f"{column} → {suggested_field} (confidence: {confidence:.2f})")
+
+            for column, suggestion in suggested_mappings.items():
+                confidence = suggestion.get("confidence", 0.0)
+                if confidence > 0.85:  # Auto-learn high-confidence mappings
+                    target_field = suggestion.get("canonical_field")
+                    if target_field:
+                        learn_result = self.learn_field_mapping(column, target_field, f"auto_pattern_analysis_{asset_type}")
+                        if learn_result.get("success"):
+                            learned_mappings.append(f"{column} → {target_field} (confidence: {confidence:.2f})")
             
             result["auto_learned_mappings"] = learned_mappings
             return result
             
         except Exception as e:
-            logger.error(f"Data pattern analysis failed: {e}")
+            logger.error(f"Data pattern analysis and learning failed: {e}", exc_info=True)
             return {
                 "error": str(e),
-                "message": "Data pattern analysis failed",
+                "message": "Data pattern analysis and learning failed",
                 "column_analysis": {},
                 "confidence_scores": {}
             }
@@ -271,8 +274,8 @@ class FieldMappingTool:
                     "parameters": ["columns", "asset_type"]
                 },
                 {
-                    "name": "analyze_data_patterns",
-                    "description": "Analyze data patterns using both column names and actual data content",
+                    "name": "analyze_data_and_learn",
+                    "description": "Analyze data patterns and auto-learn high-confidence mappings",
                     "parameters": ["columns", "sample_data", "asset_type"]
                 },
                 {

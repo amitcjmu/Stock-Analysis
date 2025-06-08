@@ -25,7 +25,11 @@ class IterationHandler:
                 SixRAnalysis, SixRParameters as SixRParametersModel, SixRIteration
             )
             from app.schemas.sixr_analysis import AnalysisStatus, SixRParameterBase
-            from app.services.sixr_engine import SixRDecisionEngine
+            try:
+                from app.services.sixr_engine_modular import SixRDecisionEngine
+                SIXR_ENGINE_AVAILABLE = True
+            except ImportError:
+                SIXR_ENGINE_AVAILABLE = False
             
             self.SixRAnalysis = SixRAnalysis
             self.SixRParametersModel = SixRParametersModel

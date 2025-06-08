@@ -26,7 +26,7 @@ feedback_handler = FeedbackHandler()
 # Include asset management router from discovery module
 try:
     from app.api.v1.discovery.asset_management_modular import router as asset_management_router
-    router.include_router(asset_management_router, tags=["discovery-assets"])
+    router.include_router(asset_management_router)
     logger.info("✅ Asset management modular router included in discovery")
 except ImportError as e:
     logger.warning(f"⚠️ Asset management modular router not available: {e}")
@@ -55,12 +55,12 @@ except ImportError as e:
     logger.warning(f"⚠️ Chat interface router not available: {e}")
 
 # Include database test router for Railway deployment verification
-try:
-    from app.api.v1.discovery.database_test import router as database_test_router
-    router.include_router(database_test_router, tags=["discovery-database"])
-    logger.info("✅ Database test router included in discovery")
-except ImportError as e:
-    logger.warning(f"⚠️ Database test router not available: {e}")
+# try:
+#     from app.api.v1.discovery.database_test import router as database_test_router
+#     router.include_router(database_test_router, tags=["discovery-database"])
+#     logger.info("✅ Database test router included in discovery")
+# except ImportError as e:
+#     logger.warning(f"⚠️ Database test router not available: {e}")
 
 # Include data cleanup router for agentic data quality assessment
 try:

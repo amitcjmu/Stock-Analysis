@@ -7,6 +7,7 @@ import logging
 import math
 from typing import Dict, Any, Optional, List
 import uuid
+from app.services.crewai_flow_service import crewai_flow_service
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,7 @@ class CMDBAnalysisHandler:
         
         try:
             from app.api.v1.discovery.processor import CMDBDataProcessor
-            self.processor = CMDBDataProcessor()
+            self.processor = CMDBDataProcessor(crewai_service=crewai_flow_service)
             self.processor_available = True
         except ImportError as e:
             logger.warning(f"CMDB processor not available: {e}")

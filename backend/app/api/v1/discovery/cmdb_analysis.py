@@ -6,7 +6,7 @@ Handles AI-powered CMDB data validation and processing.
 import logging
 import uuid
 from typing import Dict, List, Any, Optional
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, File, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 import pandas as pd
 
@@ -36,17 +36,25 @@ from app.api.v1.discovery.persistence import (
 from app.api.v1.discovery.serialization import clean_for_json_serialization
 from app.services.tools.field_mapping_tool import field_mapping_tool
 from app.core.database import get_db
+from app.services.crewai_flow_service import crewai_flow_service
+from app.core.context import RequestContext, get_current_context
+from app.services.agent_ui_bridge import agent_ui_bridge
+from app.schemas.auth_schemas import UserRoleInfo
+from app.api.v1.auth.auth_utils import get_current_active_user, get_current_user
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-processor = CMDBDataProcessor()
+processor = CMDBDataProcessor(crewai_service=crewai_flow_service)
 
 # Initialize feedback store
 feedback_store = load_from_file("feedback_store", [])
 
 @router.post("/analyze-cmdb", response_model=CMDBAnalysisResponse)
-async def analyze_cmdb_data(request: CMDBAnalysisRequest):
+async def analyze_cmdb_data(
+    request: CMDBAnalysisRequest,
+    context: RequestContext = Depends(get_current_context)
+):
     """
     Analyze data intelligently using CrewAI agents with enhanced monitoring.
     Handles both structured data (CSV, JSON) and unstructured content (PDF, docs).
@@ -72,7 +80,7 @@ async def analyze_cmdb_data(request: CMDBAnalysisRequest):
         try:
             # Handle structured data (traditional CMDB processing)
             if df is not None and len(df) > 0:
-                return await _process_structured_data(df, request, task_id)
+                return await _process_structured_data(df, request, task_id, context)
             
             # Handle unstructured content (documents, PDFs, etc.)
             elif parsing_info['type'] in ['unstructured', 'unknown', 'error']:
@@ -91,7 +99,12 @@ async def analyze_cmdb_data(request: CMDBAnalysisRequest):
             raise
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
-async def _process_structured_data(df: pd.DataFrame, request: CMDBAnalysisRequest, task_id: str) -> CMDBAnalysisResponse:
+async def _process_structured_data(
+    df: pd.DataFrame, 
+    request: CMDBAnalysisRequest, 
+    task_id: str,
+    context: RequestContext
+) -> CMDBAnalysisResponse:
     """Process structured data (CSV, JSON, Excel) using traditional CMDB analysis."""
     
     # Update task status
@@ -109,7 +122,7 @@ async def _process_structured_data(df: pd.DataFrame, request: CMDBAnalysisReques
     
     # Get intelligent field mapping analysis
     agent_monitor.update_task_status(task_id, TaskStatus.RUNNING, "Analyzing field patterns with AI")
-    mapping_analysis = field_mapping_tool.analyze_data_patterns(columns, sample_rows, "server")
+    mapping_analysis = field_mapping_tool.analyze_data_and_learn(columns, sample_rows, "server")
     
     # Prepare enhanced data for analysis
     cmdb_data = {
@@ -127,7 +140,14 @@ async def _process_structured_data(df: pd.DataFrame, request: CMDBAnalysisReques
     # Run CrewAI analysis (this is the core agentic intelligence)
     agent_monitor.update_task_status(task_id, TaskStatus.WAITING_LLM, "Starting AI analysis")
     try:
-        crewai_result = await processor.crewai_service.analyze_cmdb_data(cmdb_data)
+        # Correctly call the main discovery flow execution method
+        crewai_result = await processor.crewai_service.execute_discovery_flow(
+            flow_type="cmdb_analysis",
+            cmdb_data=cmdb_data,
+            page_context="data-import",
+            client_account_id=context.client_account_id,
+            engagement_id=context.engagement_id
+        )
         logger.info(f"CrewAI analysis completed: {crewai_result}")
     except Exception as e:
         logger.warning(f"CrewAI analysis failed: {e}, continuing with enhanced fallback analysis")

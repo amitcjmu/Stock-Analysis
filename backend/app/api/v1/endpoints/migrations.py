@@ -33,7 +33,6 @@ from app.schemas.migration import (
     MigrationResponse,
     MigrationListResponse
 )
-from app.services.crewai_service_modular import crewai_service
 from app.websocket.manager import ConnectionManager
 
 router = APIRouter()
@@ -296,54 +295,75 @@ async def generate_ai_assessment(
     migration_id: int,
     db: AsyncSession = Depends(get_db)
 ):
-    """Generate AI-powered assessment for a migration project."""
-    query = select(Migration).where(Migration.id == migration_id).options(
-        selectinload(Migration.assets)
+    """
+    Trigger AI-powered assessment for a migration project using CrewAI.
+    """
+    # This endpoint is temporarily disabled pending service refactoring
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail="AI assessment service is currently under maintenance. Please try again later."
     )
-    result = await db.execute(query)
-    migration = result.scalar_one_or_none()
+    # query = select(Migration).where(Migration.id == migration_id).options(
+    #     selectinload(Migration.assets)
+    # )
+    # result = await db.execute(query)
+    # migration = result.scalar_one_or_none()
     
-    if not migration:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Migration with ID {migration_id} not found"
-        )
+    # if not migration:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_404_NOT_FOUND,
+    #         detail=f"Migration with ID {migration_id} not found"
+    #     )
     
-    # Prepare migration data for AI analysis
-    migration_data = {
-        "name": migration.name,
-        "total_assets": migration.total_assets,
-        "source_environment": migration.source_environment,
-        "target_environment": migration.target_environment,
-        "timeline_days": (migration.target_completion_date - migration.start_date).days if migration.target_completion_date and migration.start_date else 90,
-        "business_criticality": "medium"  # Default, could be enhanced
-    }
+    # if not migration.assets:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_400_BAD_REQUEST,
+    #         detail="Migration has no assets to assess."
+    #     )
+        
+    # # Construct asset data for CrewAI service
+    # asset_data = [
+    #     {
+    #         "id": asset.id,
+    #         "name": asset.name,
+    #         "asset_type": asset.asset_type,
+    #         "technology_stack": asset.technology_stack
+    #     }
+    #     for asset in migration.assets
+    # ]
     
-    # Generate AI assessment
-    ai_assessment = await crewai_service.assess_migration_risks(migration_data)
-    
-    # Update migration with AI insights
-    migration.ai_recommendations = ai_assessment
-    migration.risk_assessment = {
-        "overall_risk": ai_assessment.get("overall_risk", "medium"),
-        "risk_score": ai_assessment.get("risk_score", 50),
-        "generated_at": ai_assessment.get("timestamp")
-    }
-    
-    await db.commit()
-    
-    # Send real-time AI insight
-    await manager.send_ai_insight({
-        "type": "migration_assessment",
-        "migration_id": migration_id,
-        "assessment": ai_assessment
-    })
-    
-    return {
-        "message": "AI assessment generated successfully",
-        "migration_id": migration_id,
-        "assessment": ai_assessment
-    }
+    # # Asynchronously run the CrewAI assessment flow
+    # try:
+    #     assessment_results = await crewai_service.run_assessment_flow(
+    #         migration_id=migration_id,
+    #         asset_data=asset_data
+    #     )
+        
+    #     # Update the migration project with assessment results (simplified)
+    #     # A more robust implementation would update individual assessments
+    #     migration.status = MigrationStatus.ASSESSED
+    #     await db.commit()
+        
+    #     await manager.send_migration_update(
+    #         migration.id,
+    #         {
+    #             "action": "assessment_completed",
+    #             "migration_id": migration_id,
+    #             "status": "success",
+    #             "results_summary": f"Assessed {len(assessment_results)} assets."
+    #         }
+    #     )
+        
+    #     return {
+    #         "message": "AI assessment completed successfully.",
+    #         "migration_id": migration_id,
+    #         "assessment_results": assessment_results
+    #     }
+    # except Exception as e:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    #         detail=f"An error occurred during AI assessment: {str(e)}"
+    #     )
 
 
 @router.get("/{migration_id}/progress")

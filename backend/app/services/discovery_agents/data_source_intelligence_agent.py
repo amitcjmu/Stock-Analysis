@@ -4,12 +4,18 @@ Analyzes incoming data (CMDB, migration tools, documentation) to understand form
 """
 
 import logging
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, TYPE_CHECKING
 from datetime import datetime
+from langchain.tools import tool
+from pydantic import BaseModel, Field
+from crewai import Agent
+import asyncio
 
-from app.services.agent_ui_bridge import (
-    agent_ui_bridge, QuestionType, ConfidenceLevel, DataClassification
-)
+if TYPE_CHECKING:
+    from app.services.crewai_flow_handlers.flow_state_handler import DiscoveryFlowState
+
+from app.models.agent_communication import ConfidenceLevel, DataClassification, QuestionType, AgentInsight
+from app.services.crewai_flow_service import crewai_flow_service
 from .data_source_handlers import (
     SourceTypeAnalyzer,
     DataStructureAnalyzer,
@@ -17,6 +23,7 @@ from .data_source_handlers import (
     InsightGenerator,
     QuestionGenerator
 )
+from app.services.tools.field_mapping_tool import field_mapping_tool
 
 logger = logging.getLogger(__name__)
 
@@ -29,12 +36,14 @@ class DataSourceIntelligenceAgent:
     def __init__(self):
         self.agent_id = "data_source_intelligence_001"
         self.agent_name = "Data Source Intelligence Agent"
+        self.tools = {}
+        self._load_tools()
         self.analysis_history: List[Dict[str, Any]] = []
         
         # Initialize specialized handlers
         self.source_type_analyzer = SourceTypeAnalyzer()
-        self.data_structure_analyzer = DataStructureAnalyzer()
         self.quality_analyzer = QualityAnalyzer()
+        self.data_structure_analyzer = DataStructureAnalyzer()
         self.insight_generator = InsightGenerator()
         self.question_generator = QuestionGenerator()
         
@@ -47,15 +56,49 @@ class DataSourceIntelligenceAgent:
             "data_quality_indicators": []
         }
         
-        logger.info(f"Initialized {self.agent_name} with modular handlers")
+        self.agent = self._create_agent()
+        
+        logger.info("Initialized Data Source Intelligence Agent and its handlers successfully.")
     
-    async def analyze_data_source(self, data_source: Dict[str, Any], 
+    def _create_agent(self):
+        """Create the CrewAI agent."""
+        try:
+            agent = Agent(
+                role="Data Source Intelligence Specialist",
+                goal="Analyze and understand any given data source, including its structure, quality, and potential value for migration",
+                backstory=(
+                    "You are an expert AI assistant designed to be the first point of contact for new data sources. "
+                    "Your primary function is to perform a comprehensive, agentic analysis without relying on predefined rules. "
+                    "You intelligently assess data formats, structures, and content to provide actionable insights. "
+                    "You learn from user feedback to continuously improve your analytical capabilities."
+                ),
+                llm=crewai_flow_service.llm,
+                allow_delegation=False,
+                verbose=True,
+                memory=True
+            )
+            agent.tools = list(self.tools.values())
+            return agent
+        except Exception as e:
+            logger.error(f"Failed to create agent: {e}")
+            return None
+    
+    def _load_tools(self):
+        """Load required tools for the agent."""
+        # Directly use the imported tool instance
+        self.tools['field_mapping_tool'] = field_mapping_tool
+        logger.info("Loaded tools for DataSourceIntelligenceAgent")
+    
+    async def analyze_data_source(self, 
+                                data_source: Dict[str, Any], 
+                                flow_state: "DiscoveryFlowState",
                                 page_context: str = "data-import") -> Dict[str, Any]:
         """
         Main entry point for analyzing any data source.
         
         Args:
             data_source: Contains file_data, metadata, upload_context
+            flow_state: Current flow state
             page_context: UI page where this analysis is happening
             
         Returns:
@@ -67,7 +110,6 @@ class DataSourceIntelligenceAgent:
             # Extract data for analysis
             file_data = data_source.get('file_data', [])
             metadata = data_source.get('metadata', {})
-            upload_context = data_source.get('upload_context', {})
             
             logger.info(f"Starting data source analysis: {analysis_id}")
             
@@ -75,10 +117,10 @@ class DataSourceIntelligenceAgent:
             analysis_result = {
                 "analysis_id": analysis_id,
                 "agent_analysis": await self._perform_comprehensive_analysis(
-                    file_data, metadata, upload_context
+                    file_data, metadata
                 ),
-                "data_classification": await self.quality_analyzer.classify_data_quality(file_data),
-                "agent_insights": await self.insight_generator.generate_intelligent_insights(file_data, metadata),
+                "data_classification": await self.quality_analyzer.analyze(file_data),
+                "agent_insights": await self.insight_generator.generate(file_data),
                 "clarification_questions": await self.question_generator.generate_clarification_questions(
                     file_data, metadata, page_context
                 ),
@@ -106,7 +148,7 @@ class DataSourceIntelligenceAgent:
                 
                 # Store each data item with classification
                 for i, row in enumerate(file_data[:10]):  # Sample first 10 rows for classification
-                    agent_ui_bridge.classify_data_item(
+                    crewai_flow_service.ui_interaction_handler.classification_handler.classify_data_item(
                         item_id=f"data_row_{i}_{analysis_id}",
                         data_type="asset_record",
                         content=row,
@@ -121,7 +163,8 @@ class DataSourceIntelligenceAgent:
             # Add insights to UI bridge
             for insight in analysis_result["agent_insights"]:
                 logger.info(f"Adding insight with page_context: {page_context}")
-                agent_ui_bridge.add_agent_insight(
+                crewai_flow_service.ui_interaction_handler.add_agent_insight(
+                    flow_state=flow_state,
                     agent_id=self.agent_id,
                     agent_name=self.agent_name,
                     insight_type=insight["type"],
@@ -136,7 +179,8 @@ class DataSourceIntelligenceAgent:
             # Add clarification questions to UI bridge
             for question in analysis_result["clarification_questions"]:
                 logger.info(f"Adding question with page_context: {page_context}")
-                agent_ui_bridge.add_agent_question(
+                crewai_flow_service.ui_interaction_handler.add_agent_question(
+                    flow_state=flow_state,
                     agent_id=self.agent_id,
                     agent_name=self.agent_name,
                     question_type=QuestionType(question["type"]),
@@ -152,27 +196,28 @@ class DataSourceIntelligenceAgent:
             return analysis_result
             
         except Exception as e:
-            logger.error(f"Error in data source analysis: {e}")
-            return {
-                "error": f"Analysis failed: {str(e)}",
-                "agent_fallback": True
-            }
+            logger.error(f"Critical error in data source analysis: {e}", exc_info=True)
+            # Re-raising the exception to ensure the frontend knows the analysis truly failed.
+            # This will result in a 500 error on the API endpoint, which is the correct behavior.
+            raise
     
-    async def _perform_comprehensive_analysis(self, data: List[Dict[str, Any]], 
-                                            metadata: Dict[str, Any], 
-                                            context: Dict[str, Any]) -> Dict[str, Any]:
-        """Perform comprehensive data analysis using specialized handlers."""
+    async def _perform_comprehensive_analysis(self, data: Any, metadata: Dict[str, Any]) -> Dict[str, Any]:
+        """Perform a comprehensive analysis of the data using all available handlers."""
         
-        analysis = {
-            "data_source_type": await self.source_type_analyzer.identify_data_source_type(data, metadata),
-            "structure_analysis": await self.data_structure_analyzer.analyze_data_structure(data),
-            "content_patterns": await self.data_structure_analyzer.analyze_content_patterns(data),
-            "migration_value": await self.data_structure_analyzer.assess_migration_value(data),
-            "quality_indicators": await self.quality_analyzer.identify_quality_indicators(data),
-            "relationship_hints": await self._detect_relationship_patterns(data)
+        source_type_result = await self.source_type_analyzer.analyze(data)
+        quality_result = await self.quality_analyzer.analyze(data)
+        content_result = await self.data_structure_analyzer.analyze(data)
+        insights_result = await self.insight_generator.generate(data)
+
+        # Combine results into a structured response
+        analysis_summary = {
+            "source_type_analysis": source_type_result,
+            "quality_analysis": quality_result,
+            "data_structure_analysis": content_result,
+            "insights": insights_result
         }
         
-        return analysis
+        return analysis_summary
     
     async def _assess_analysis_confidence(self, data: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Assess confidence in the analysis results."""
@@ -225,7 +270,7 @@ class DataSourceIntelligenceAgent:
             return recommendations
         
         # Get quality assessment
-        quality_result = await self.quality_analyzer.classify_data_quality(data)
+        quality_result = await self.quality_analyzer.analyze(data)
         quality_classification = quality_result.get("overall_classification")
         
         if quality_classification == DataClassification.GOOD_DATA.value:
@@ -359,7 +404,7 @@ class DataSourceIntelligenceAgent:
             "agent_id": self.agent_id
         }
         
-        agent_ui_bridge.set_cross_page_context(
+        crewai_flow_service.ui_interaction_handler.set_cross_page_context(
             f"learning_experience_{datetime.utcnow().timestamp()}", 
             learning_experience,
             "data_source_intelligence"
@@ -414,6 +459,16 @@ class DataSourceIntelligenceAgent:
                 "insight_generator": self.insight_generator.generator_id,
                 "question_generator": self.question_generator.generator_id
             }
+        }
+
+    def _get_page_context_summary(self, page_context: str) -> Dict[str, Any]:
+        """
+        Get a summary of the current page context from the agent UI bridge.
+        (This method is now deprecated)
+        """
+        return {
+            "status": "deprecated",
+            "message": "Direct page context summary is no longer available in the new flow-based service."
         }
 
 # Global instance for use across the application

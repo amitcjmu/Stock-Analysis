@@ -27,7 +27,11 @@ class BackgroundTasksHandler:
                 SixRRecommendation as SixRRecommendationModel
             )
             from app.schemas.sixr_analysis import AnalysisStatus, SixRParameterBase
-            from app.services.sixr_engine import SixRDecisionEngine
+            try:
+                from app.services.sixr_engine_modular import SixRDecisionEngine
+                SIXR_ENGINE_AVAILABLE = True
+            except ImportError:
+                SIXR_ENGINE_AVAILABLE = False
             
             self.AsyncSessionLocal = AsyncSessionLocal
             self.SixRAnalysis = SixRAnalysis

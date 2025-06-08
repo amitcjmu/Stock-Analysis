@@ -90,6 +90,7 @@ interface UploadedFile {
   analysisSteps?: string[];
   currentStep?: number;
   processingMessages?: string[];
+  analysisError?: string;
 }
 
 const DataImport = () => {
@@ -220,11 +221,49 @@ const DataImport = () => {
         prev.map(f => f.file === fileUpload.file ? { 
           ...f, 
           status: 'analyzing',
+          analysisError: undefined,
           processingMessages: ['🤖 AI crew initializing...']
         } : f)
       );
       
       try {
+        // Send to the unified agent analysis endpoint
+        const fileContent = await readFileContent(fileUpload.file);
+        console.log('Sending file to AI crew for intelligent analysis:', fileUpload.file.name);
+        
+        const requestBody = {
+          analysis_type: 'data_source_analysis',
+          page_context: 'data-import',
+          data_source: {
+            file_data: btoa(fileContent), // Base64 encode the file content
+            metadata: {
+              filename: fileUpload.file.name,
+              size: fileUpload.file.size,
+              type: fileUpload.file.type,
+              source: 'file_upload',
+            },
+            upload_context: { 
+              intended_type: fileUpload.type 
+            }
+          }
+        };
+
+        const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_ANALYSIS}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ detail: 'Unknown error occurred' }));
+          throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.detail}`);
+        }
+
+        const analysisResult = await response.json();
+        console.log('AI crew intelligent analysis result:', analysisResult);
+        
         // Simplified processing with single agentic workflow
         const steps = fileUpload.analysisSteps || [];
         const processingMessages = [
@@ -248,107 +287,22 @@ const DataImport = () => {
           await new Promise(resolve => setTimeout(resolve, 800));
         }
         
-        // Prepare file for intelligent backend analysis
-        const fileContent = await readFileContent(fileUpload.file);
-        const analysisRequest = {
-          filename: fileUpload.file.name,
-          fileType: fileUpload.file.type || 'text/csv',
-          content: fileContent,
-          intendedType: fileUpload.type, // Pass intended type as context for AI crew
-          uploadContext: getUploadAreaInfo(fileUpload.type) // Additional context
-        };
-        
-        // Update progress
-        setUploadedFiles(prev => 
-          prev.map(f => f.file === fileUpload.file ? {
-            ...f,
-            currentStep: 2,
-            processingMessages: processingMessages.slice(0, 3)
-          } : f)
-        );
-        
-        console.log('Sending file to AI crew for intelligent analysis:', analysisRequest.filename);
-        
-        // Call new agent-driven analysis API
-        const agentResponse = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_ANALYSIS}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            data_source: {
-              file_data: parseFileContent(fileContent, fileUpload.file.name),
-              metadata: {
-                filename: fileUpload.file.name,
-                size: fileUpload.file.size,
-                type: fileUpload.file.type
-              },
-              upload_context: {
-                intended_type: fileUpload.type,
-                user_context: getUploadAreaInfo(fileUpload.type)
-              }
-            },
-            analysis_type: 'data_source_analysis',
-            page_context: 'data-import'
-          })
-        });
-
-        // Fallback to original API if agent analysis fails
-        const response = agentResponse.ok ? agentResponse : await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.DISCOVERY.ANALYZE_CMDB}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(analysisRequest)
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Analysis failed: ${response.statusText}`);
-        }
-        
-        const analysisResult = await response.json();
-        console.log('AI crew intelligent analysis result:', analysisResult);
-        
-        // Continue with processing animation
-        for (let i = 3; i < steps.length; i++) {
-          setUploadedFiles(prev => 
-            prev.map(f => f.file === fileUpload.file ? {
-              ...f,
-              currentStep: i,
-              processingMessages: processingMessages.slice(0, i + 1)
-            } : f)
-          );
-          await new Promise(resolve => setTimeout(resolve, 600));
-        }
-        
-        // Generate insights from intelligent AI analysis
-        const intelligentInsights = await generateIntelligentInsights(analysisResult, fileUpload.type, {
+        // Generate insights from the successful analysis
+        await generateIntelligentInsights(analysisResult, fileUpload.type, {
           filename: fileUpload.file.name,
           fileType: fileUpload.file.type
-        }, fileContent); // Pass full file content for complete data parsing
-        
-        console.log('Intelligent AI analysis complete for:', fileUpload.file.name);
-        setUploadedFiles(prev => 
-          prev.map(f => f.file === fileUpload.file ? {
-            ...f,
-            status: 'processed',
-            aiSuggestions: intelligentInsights.suggestions,
-            nextSteps: intelligentInsights.nextSteps,
-            confidence: intelligentInsights.confidence,
-            currentStep: steps.length - 1,
-            processingMessages: [...processingMessages, '🎉 Intelligent analysis complete!']
-          } : f)
-        );
+        });
         
         // Trigger agent refresh after processing completion
         setAgentRefreshTrigger(prev => prev + 1);
       } catch (error) {
-        console.error('Intelligent analysis error for:', fileUpload.file.name, error);
+        console.error('Error during AI analysis:', error);
+        const errorMessage = 'Analysis failed due to an internal agent error. Please check the system status or contact support.';
         setUploadedFiles(prev => 
           prev.map(f => f.file === fileUpload.file ? { 
             ...f, 
             status: 'error',
-            processingMessages: [`❌ Analysis failed: ${error.message}`]
+            analysisError: errorMessage
           } : f)
         );
       }

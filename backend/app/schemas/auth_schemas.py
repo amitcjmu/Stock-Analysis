@@ -35,6 +35,19 @@ class RoleTypeEnum(str, Enum):
     VIEWER = "viewer"
 
 # =========================
+# Token Schemas
+# =========================
+
+class Token(BaseModel):
+    """Schema for the access token."""
+    access_token: str
+    token_type: str
+
+class TokenPayload(BaseModel):
+    """Schema for the JWT payload."""
+    sub: Optional[str] = None # Subject (user_id)
+
+# =========================
 # User Registration Schemas
 # =========================
 
@@ -48,7 +61,7 @@ class LoginResponse(BaseModel):
     status: str
     message: str
     user: Optional[Dict[str, Any]] = None
-    token: Optional[str] = None
+    token: Optional[Token] = None
 
 class PasswordChangeRequest(BaseModel):
     """Schema for password change request."""
@@ -237,6 +250,9 @@ class UserProfileInfo(BaseModel):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
+# Alias for backward compatibility or simpler imports
+User = UserProfileInfo
+
 class UserRoleInfo(BaseModel):
     """Schema for user role information."""
     id: str
@@ -361,4 +377,14 @@ class FilterParams(BaseModel):
     organization: Optional[str] = None
     role_type: Optional[RoleTypeEnum] = None
     date_from: Optional[datetime] = None
-    date_to: Optional[datetime] = None 
+    date_to: Optional[datetime] = None
+
+class UserProfileUpdateRequest(BaseModel):
+    """Schema for updating user profile information."""
+    full_name: Optional[str] = Field(None, min_length=2, max_length=100)
+    organization: Optional[str] = Field(None, min_length=2, max_length=255)
+    role_description: Optional[str] = Field(None, min_length=5, max_length=255)
+    phone_number: Optional[str] = Field(None, pattern=r'^\+?[1-9]\d{1,14}$')
+    manager_email: Optional[str] = Field(None, pattern=r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+    linkedin_profile: Optional[str] = Field(None, max_length=255)
+    notification_preferences: Optional[Dict[str, bool]] = None 

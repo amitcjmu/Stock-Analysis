@@ -10,6 +10,8 @@ import {
   CheckCircle, X, Info, GraduationCap, RotateCcw
 } from 'lucide-react';
 import { apiCall, API_CONFIG } from '../../config/api';
+import { useClient } from '../../contexts/ClientContext';
+import { useEngagement } from '../../contexts/EngagementContext';
 
 interface TechDebtItem {
   id: string;
@@ -37,6 +39,8 @@ interface SupportTimeline {
 }
 
 const TechDebtAnalysis = () => {
+  const { client, setClient } = useClient();
+  const { engagement, setEngagement } = useEngagement();
   const [techDebtItems, setTechDebtItems] = useState<TechDebtItem[]>([]);
   const [supportTimelines, setSupportTimelines] = useState<SupportTimeline[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -54,9 +58,11 @@ const TechDebtAnalysis = () => {
   const [agentRefreshTrigger, setAgentRefreshTrigger] = useState(0);
 
   useEffect(() => {
-    fetchTechDebtAnalysis();
-    fetchSupportTimelines();
-  }, []);
+    if (client?.id && engagement?.id) {
+      fetchTechDebtAnalysis();
+      fetchSupportTimelines();
+    }
+  }, [client, engagement]);
 
   // Trigger initial agent panel refresh on component mount
   useEffect(() => {
@@ -68,11 +74,19 @@ const TechDebtAnalysis = () => {
   }, []);
 
   const fetchTechDebtAnalysis = async () => {
+    if (!client?.id || !engagement?.id) {
+      console.warn("Client or engagement not selected, skipping tech debt analysis fetch.");
+      return;
+    }
+
     try {
       setIsLoading(true);
       const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.TECH_DEBT_ANALYSIS, {
         method: 'POST',
-        body: JSON.stringify({})
+        body: JSON.stringify({
+          client_account_id: client.id,
+          engagement_id: engagement.id,
+        })
       });
       
       // Filter out items with unknown/invalid data

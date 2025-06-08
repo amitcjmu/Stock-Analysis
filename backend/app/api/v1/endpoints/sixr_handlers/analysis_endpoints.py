@@ -27,7 +27,7 @@ class AnalysisEndpointsHandler:
                 SixRAnalysisRequest, SixRAnalysisResponse, SixRAnalysisListResponse,
                 BulkAnalysisRequest, BulkAnalysisResponse, AnalysisStatus, SixRParameterBase
             )
-            from app.services.sixr_engine import SixRDecisionEngine
+            from app.services.sixr_engine_modular import SixRDecisionEngine
             
             self.SixRAnalysis = SixRAnalysis
             self.SixRParametersModel = SixRParametersModel

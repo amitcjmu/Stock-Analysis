@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     # Server settings
     HOST: str = Field(default="0.0.0.0", env="HOST")
     PORT: int = Field(default=8000, env="PORT")
+    API_V1_STR: str = "/api/v1"
     
     # Frontend URL
     FRONTEND_URL: str = Field(default="http://localhost:5173", env="FRONTEND_URL")

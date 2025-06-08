@@ -7,11 +7,15 @@ Implements agentic-first discovery workflow with CrewAI Flow state management.
 import logging
 import asyncio
 import uuid
+import json
 from typing import Dict, List, Any, Optional
 from datetime import datetime, timedelta
 from tenacity import retry, stop_after_attempt, wait_fixed
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
+import base64
+import csv
+import io
 
 # Import handlers
 from .crewai_flow_handlers import (
@@ -19,66 +23,55 @@ from .crewai_flow_handlers import (
     ParsingHandler, 
     ExecutionHandler,
     ValidationHandler, 
-    FlowStateHandler
+    FlowStateHandler,
+    UIInteractionHandler,
+    DataCleanupHandler
 )
 from app.models.asset import Asset, AssetType
-from app.models.raw_import_record import RawImportRecord
+from app.models.data_import import RawImportRecord
 from app.core.database import AsyncSessionLocal
+from app.services.llm_usage_tracker import LLMUsageTracker
+from app.schemas.agent_schemas import CrewTask, Agent, Crew, TaskOutput, CrewProcess, TaskContext
+from app.schemas.discovery_schemas import CMDBData, FieldMapping, DiscoveredAsset
+from app.core.context import RequestContext
 
 logger = logging.getLogger(__name__)
 
 class DiscoveryFlowState(BaseModel):
     """Enhanced state for Discovery phase workflow with CrewAI Flow state management."""
-    # Flow identification
     id: str = Field(default_factory=lambda: f"discovery_{uuid.uuid4().hex[:8]}")
-    
-    # Input data state
     cmdb_data: Dict[str, Any] = {}
     filename: str = ""
     headers: List[str] = []
     sample_data: List[Dict[str, Any]] = []
     import_session_id: str = ""
-    
-    # Workflow progression state (managed by CrewAI Flow)
     current_phase: str = "initialization"
     workflow_phases: List[str] = Field(default_factory=lambda: [
-        "initialization", "data_validation", "field_mapping", 
+        "initialization", "data_validation", "data_quality_analysis", "field_mapping", 
         "asset_classification", "readiness_assessment", "database_integration",
         "workflow_progression", "completion"
     ])
     phase_progress: Dict[str, float] = Field(default_factory=dict)
-    
-    # Analysis completion state
     data_validation_complete: bool = False
     field_mapping_complete: bool = False
     asset_classification_complete: bool = False
     readiness_assessment_complete: bool = False
     database_integration_complete: bool = False
     workflow_progression_complete: bool = False
-    
-    # Analysis results state
     validated_structure: Dict[str, Any] = {}
     suggested_field_mappings: Dict[str, str] = {}
     asset_classifications: List[Dict[str, Any]] = []
     readiness_scores: Dict[str, float] = {}
-    
-    # Database integration results state
-    processed_assets: List[str] = []  # Asset IDs created
-    updated_records: List[str] = []  # Raw record IDs updated
-    workflow_records: List[str] = []  # Workflow progress records
-    
-    # Workflow metrics state
+    processed_assets: List[str] = []
+    updated_records: List[str] = []
+    workflow_records: List[str] = []
     progress_percentage: float = 0.0
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
-    
-    # Agent outputs and AI-driven features state
     agent_insights: Dict[str, Any] = {}
     recommendations: List[str] = []
     error_analysis: Dict[str, Any] = {}
     feedback_processed: List[Dict[str, Any]] = []
-    
-    # CrewAI Flow state management
     flow_context: Dict[str, Any] = Field(default_factory=dict)
     agent_memory: Dict[str, Any] = Field(default_factory=dict)
     learning_patterns: List[Dict[str, Any]] = Field(default_factory=list)
@@ -94,18 +87,19 @@ class CrewAIFlowService:
         self.agents = {}
         self.active_flows = {}
         
-        # Initialize handlers
         self.parsing_handler = None
         self.execution_handler = None
         self.validation_handler = None
         self.flow_state_handler = None
+        self.ui_interaction_handler = None
+        self.data_cleanup_handler = None
+        self.llm_usage_tracker = LLMUsageTracker()
         
         self._initialize_services()
     
     def _initialize_services(self):
         """Initialize CrewAI Flow components with enhanced configuration."""
         try:
-            # Import CrewAI components
             from crewai import Agent, Task, Crew, Process
             
             self.Agent = Agent
@@ -113,15 +107,17 @@ class CrewAIFlowService:
             self.Crew = Crew
             self.Process = Process
             
-            # Initialize LLM with configuration
             self._initialize_llm()
             
-            # Initialize handlers
             if self.llm:
-                self._initialize_handlers()
                 self._create_discovery_agents()
                 self.service_available = True
                 logger.info("Unified CrewAI Flow Service initialized successfully")
+            else:
+                logger.warning("LLM not available. CrewAI Flow Service running in limited capacity.")
+            
+            # Handlers must be initialized after agents are potentially created
+            self._initialize_handlers()
             
         except ImportError as e:
             logger.warning(f"CrewAI Flow not available: {e}")
@@ -148,12 +144,18 @@ class CrewAIFlowService:
     
     def _initialize_handlers(self):
         """Initialize modular handlers."""
+        # These handlers are essential for state and UI, and do not depend on an LLM.
+        # They must be available even in fallback mode.
+        self.ui_interaction_handler = UIInteractionHandler(self.config)
+        self.flow_state_handler = FlowStateHandler(self.config)
+
         if self.llm:
-            self.parsing_handler = ParsingHandler(self.config)
-            self.execution_handler = ExecutionHandler(self.config)
-            self.validation_handler = ValidationHandler(self.config)
-            self.flow_state_handler = FlowStateHandler(self.config)
-            logger.info("Modular handlers initialized")
+            self.parsing_handler = ParsingHandler()
+            self.execution_handler = ExecutionHandler(self.config, self.agents)
+            self.validation_handler = ValidationHandler()
+            logger.info("Initialized core agentic handlers.")
+        else:
+            logger.warning("LLM not configured. Core agentic handlers are disabled.")
     
     def _create_discovery_agents(self):
         """Create specialized discovery agents."""
@@ -161,7 +163,6 @@ class CrewAIFlowService:
             return
             
         try:
-            # Data Validation Agent
             self.agents['data_validator'] = self.Agent(
                 role='CMDB Data Quality Specialist',
                 goal='Validate and assess the quality of CMDB import data',
@@ -170,8 +171,6 @@ class CrewAIFlowService:
                 allow_delegation=False,
                 llm=self.llm
             )
-            
-            # Field Mapping Agent
             self.agents['field_mapper'] = self.Agent(
                 role='Intelligent Field Mapping Specialist',
                 goal='Create optimal field mappings between source data and target schema',
@@ -180,8 +179,6 @@ class CrewAIFlowService:
                 allow_delegation=False,
                 llm=self.llm
             )
-            
-            # Asset Classification Agent
             self.agents['asset_classifier'] = self.Agent(
                 role='AI Asset Classification Expert',
                 goal='Intelligently classify assets and determine migration strategies',
@@ -190,7 +187,6 @@ class CrewAIFlowService:
                 allow_delegation=False,
                 llm=self.llm
             )
-            
             logger.info(f"Created {len(self.agents)} specialized discovery agents")
             
         except Exception as e:
@@ -209,7 +205,6 @@ class CrewAIFlowService:
         if not self.service_available:
             return await self._run_fallback_discovery_flow(cmdb_data, client_account_id, engagement_id, user_id)
         
-        # Initialize flow state
         flow_state = DiscoveryFlowState(
             cmdb_data=cmdb_data,
             import_session_id=cmdb_data.get("import_session_id", ""),
@@ -217,7 +212,6 @@ class CrewAIFlowService:
         )
         
         try:
-            # Execute agentic flow with state management
             return await self._execute_agentic_flow_with_state(
                 flow_state, cmdb_data, client_account_id, engagement_id, user_id
             )
@@ -233,89 +227,51 @@ class CrewAIFlowService:
         client_account_id: str,
         engagement_id: str,
         user_id: str
-    ) -> Dict[str, Any]:
-        """Execute the full agentic flow with proper state management."""
+    ):
+        # LATE IMPORTS TO PREVENT CIRCULAR DEPENDENCIES
+        from app.services.asset_processing_service import asset_processing_service
+        from app.services.agent_learning_system import get_agent_learning_system
+
+        agent_learning_system = get_agent_learning_system()
+
+        # Phase 1: Data Validation
+        self._update_flow_phase(flow_state, "data_validation")
+        flow_state.validated_structure = await self._run_data_validation_async(cmdb_data)
+        flow_state.data_validation_complete = True
         
-        try:
-            # Load data from import session if provided
-            if flow_state.import_session_id:
-                await self._load_raw_data_from_session(flow_state, client_account_id)
-            
-            # Phase 1: Data Validation
-            self._update_flow_phase(flow_state, "data_validation")
-            validation_result = await self._run_data_validation_async(flow_state.cmdb_data)
-            flow_state.validated_structure = validation_result
-            flow_state.data_validation_complete = True
-            
-            # Phase 2: Field Mapping
-            self._update_flow_phase(flow_state, "field_mapping")
-            mapping_result = await self._run_field_mapping_async(flow_state.cmdb_data)
-            flow_state.suggested_field_mappings = mapping_result.get("suggested_mappings", {})
-            flow_state.field_mapping_complete = True
-            
-            # Phase 3: Asset Classification
-            self._update_flow_phase(flow_state, "asset_classification")
-            classification_result = await self._run_asset_classification_async(flow_state)
-            flow_state.asset_classifications = classification_result.get("classifications", [])
-            flow_state.asset_classification_complete = True
-            
-            # Phase 4: Database Integration (Create Assets)
-            if client_account_id and engagement_id:
-                self._update_flow_phase(flow_state, "database_integration")
-                db_result = await self._create_assets_with_workflow(
-                    flow_state, client_account_id, engagement_id, user_id
-                )
-                flow_state.processed_assets = db_result.get("created_asset_ids", [])
-                flow_state.database_integration_complete = True
-            
-            # Phase 5: Workflow Progression
-            if flow_state.processed_assets:
-                self._update_flow_phase(flow_state, "workflow_progression")
-                workflow_result = await self._progress_workflow_agentic(
-                    flow_state, client_account_id, engagement_id, user_id
-                )
-                flow_state.workflow_progression_complete = True
-            
-            # Complete the flow
-            flow_state.completed_at = datetime.utcnow()
-            self._update_flow_phase(flow_state, "completion")
-            
-            return self._format_flow_state_results(flow_state)
-            
-        except Exception as e:
-            logger.error(f"Agentic flow execution failed: {e}")
-            return await self._execute_fallback_flow_with_state(flow_state, cmdb_data)
-    
+        # Phase 2: Field Mapping
+        self._update_flow_phase(flow_state, "field_mapping")
+        flow_state.suggested_field_mappings = await self._run_field_mapping_async(cmdb_data)
+        flow_state.field_mapping_complete = True
+        
+        # Phase 3: Asset Classification
+        self._update_flow_phase(flow_state, "asset_classification")
+        flow_state.asset_classifications = await self._run_asset_classification_async(flow_state)
+        flow_state.asset_classification_complete = True
+        
+        # Phase 4: Database Integration
+        self._update_flow_phase(flow_state, "database_integration")
+        await self._create_assets_with_workflow(flow_state, client_account_id, engagement_id, user_id)
+        flow_state.database_integration_complete = True
+
+        # Final Phase
+        self._update_flow_phase(flow_state, "completion")
+        flow_state.completed_at = datetime.utcnow()
+        
+        # Agentic Analysis (if enabled)
+        if self.llm:
+            analysis_result = await data_source_intelligence_agent.analyze_data_source(
+                data_source=cmdb_data,
+                flow_state=flow_state,
+                page_context=flow_state.page_context,
+            )
+            flow_state.agent_analysis = analysis_result
+        
+        return self._format_flow_state_results(flow_state)
+
     async def _load_raw_data_from_session(self, flow_state: DiscoveryFlowState, client_account_id: str):
-        """Load raw data from import session for processing."""
-        try:
-            async with AsyncSessionLocal() as session:
-                from sqlalchemy import select
-                
-                raw_records_query = await session.execute(
-                    select(RawImportRecord).where(
-                        RawImportRecord.data_import_id == flow_state.import_session_id
-                    )
-                )
-                raw_records = raw_records_query.scalars().all()
-                
-                if raw_records:
-                    # Convert raw records to flow state data
-                    sample_data = [record.raw_data for record in raw_records[:10]]
-                    headers = list(sample_data[0].keys()) if sample_data else []
-                    
-                    flow_state.cmdb_data.update({
-                        "headers": headers,
-                        "sample_data": sample_data,
-                        "total_records": len(raw_records),
-                        "raw_records": [record.raw_data for record in raw_records]
-                    })
-                    
-                    logger.info(f"Loaded {len(raw_records)} raw records for processing")
-                
-        except Exception as e:
-            logger.error(f"Failed to load raw data from session: {e}")
-    
+        pass
+
     async def _create_assets_with_workflow(
         self, 
         flow_state: DiscoveryFlowState, 
@@ -323,60 +279,22 @@ class CrewAIFlowService:
         engagement_id: str,
         user_id: str
     ) -> Dict[str, Any]:
-        """Create assets with enhanced workflow integration."""
-        created_asset_ids = []
-        
-        try:
-            async with AsyncSessionLocal() as session:
-                # Create assets from classifications
-                for classification in flow_state.asset_classifications:
-                    asset = Asset(
-                        client_account_id=client_account_id,
-                        engagement_id=engagement_id,
-                        name=classification.get("name", "Unknown Asset"),
-                        hostname=classification.get("hostname"),
-                        asset_type=classification.get("asset_type", "server"),
-                        ip_address=classification.get("ip_address"),
-                        operating_system=classification.get("operating_system"),
-                        environment=classification.get("environment", "Unknown"),
-                        discovery_source="crewai_flow_unified",
-                        discovery_method="agentic_classification",
-                        discovered_at=datetime.utcnow(),
-                        intelligent_asset_type=classification.get("intelligent_asset_type"),
-                        ai_recommendations=classification.get("ai_insights", {}),
-                        confidence_score=classification.get("confidence_score", 0.8),
-                        created_at=datetime.utcnow()
-                    )
-                    
-                    session.add(asset)
-                    await session.flush()
-                    created_asset_ids.append(str(asset.id))
-                
-                # Update raw records
-                if flow_state.import_session_id:
-                    from sqlalchemy import select, update
-                    raw_records_query = await session.execute(
-                        select(RawImportRecord).where(
-                            RawImportRecord.data_import_id == flow_state.import_session_id
-                        )
-                    )
-                    raw_records = raw_records_query.scalars().all()
-                    
-                    for i, record in enumerate(raw_records):
-                        if i < len(created_asset_ids):
-                            record.asset_id = created_asset_ids[i]
-                            record.is_processed = True
-                            record.processed_at = datetime.utcnow()
-                            record.processing_notes = "Processed by unified CrewAI Flow with agentic classification and workflow integration"
-                
-                await session.commit()
-                logger.info(f"Created {len(created_asset_ids)} assets with enhanced workflow")
-                
-        except Exception as e:
-            logger.error(f"Asset creation failed: {e}")
-        
-        return {"created_asset_ids": created_asset_ids}
-    
+        # LATE IMPORT TO PREVENT CIRCULAR DEPENDENCIES
+        from app.services.asset_processing_service import asset_processing_service
+
+        created_assets = []
+        for asset_data in flow_state.asset_classifications:
+            asset_create_data = {
+                "client_account_id": client_account_id,
+                "engagement_id": engagement_id,
+                "created_by": user_id,
+                **asset_data
+            }
+            created_asset = await asset_processing_service.create_asset(asset_create_data)
+            created_assets.append(created_asset)
+        flow_state.processed_assets = [asset.id for asset in created_assets]
+        return {"created_assets": len(created_assets)}
+
     async def _progress_workflow_agentic(
         self, 
         flow_state: DiscoveryFlowState,
@@ -384,142 +302,78 @@ class CrewAIFlowService:
         engagement_id: str,
         user_id: str
     ) -> Dict[str, Any]:
-        """Progress assets through workflow phases using AI agents."""
-        # Basic workflow progression
-        return {
-            "progression_complete": True,
-            "phases_progressed": 1,
-            "progression_results": [{
-                "phase": "mapping",
-                "assets_progressed": len(flow_state.processed_assets),
-                "asset_ids": flow_state.processed_assets
-            }],
-            "total_assets_progressed": len(flow_state.processed_assets)
-        }
-    
+        pass
+
     def _update_flow_phase(self, flow_state: DiscoveryFlowState, phase: str):
-        """Update flow phase and progress tracking."""
         flow_state.current_phase = phase
-        if phase in flow_state.workflow_phases:
-            phase_index = flow_state.workflow_phases.index(phase)
-            flow_state.progress_percentage = (phase_index / len(flow_state.workflow_phases)) * 100
-            logger.info(f"Flow phase: {phase} ({flow_state.progress_percentage:.1f}%)")
-    
+        num_phases = len(flow_state.workflow_phases)
+        current_index = flow_state.workflow_phases.index(phase)
+        flow_state.progress_percentage = (current_index + 1) / num_phases * 100
+
     @retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
     async def _run_data_validation_async(self, cmdb_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Run data validation with retry logic."""
-        if self.validation_handler:
-            return await self.validation_handler.validate_data_async(cmdb_data)
-        else:
-            # Fallback validation
-            return {"validation_status": "completed", "ready": True, "quality_score": 7.0}
-    
+        task = self.Task(
+            description="Analyze the provided CMDB data structure, validate its quality, and identify any structural issues.",
+            agent=self.agents['data_validator'],
+            expected_output="A JSON object summarizing data quality, including column analysis and validation status."
+        )
+        crew = self.Crew(agents=[self.agents['data_validator']], tasks=[task], verbose=1)
+        result = crew.kickoff(inputs={'cmdb_data': cmdb_data})
+        return json.loads(result)
+
     @retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
     async def _run_field_mapping_async(self, cmdb_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Run field mapping with retry logic."""
-        if self.parsing_handler:
-            return await self.parsing_handler.suggest_field_mappings_async(cmdb_data)
-        else:
-            # Fallback mapping
-            headers = cmdb_data.get("headers", [])
-            return {"suggested_mappings": {h: h.lower() for h in headers}}
-    
+        task = self.Task(
+            description="Based on the source columns, suggest the best field mappings to the target asset schema.",
+            agent=self.agents['field_mapper'],
+            expected_output="A JSON object with suggested field mappings from source to target."
+        )
+        crew = self.Crew(agents=[self.agents['field_mapper']], tasks=[task], verbose=1)
+        result = crew.kickoff(inputs={'cmdb_data': cmdb_data})
+        return json.loads(result)
+
     @retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
     async def _run_asset_classification_async(self, flow_state: DiscoveryFlowState) -> Dict[str, Any]:
-        """Run asset classification with retry logic."""
-        if self.execution_handler:
-            return await self.execution_handler.classify_assets_async(flow_state.cmdb_data)
-        else:
-            # Fallback classification
-            sample_data = flow_state.cmdb_data.get("sample_data", [])
-            classifications = []
-            
-            for i, record in enumerate(sample_data):
-                classifications.append({
-                    "name": record.get("NAME", f"Asset_{i}"),
-                    "asset_type": "server",
-                    "confidence_score": 0.5,
-                    "intelligent_asset_type": "compute_server"
-                })
-            
-            return {"classifications": classifications}
-    
+        task = self.Task(
+            description="Classify each asset based on its properties and suggest a 6R migration strategy.",
+            agent=self.agents['asset_classifier'],
+            expected_output="A list of JSON objects, each representing an asset with its classification and recommended 6R strategy."
+        )
+        crew = self.Crew(agents=[self.agents['asset_classifier']], tasks=[task], verbose=1)
+        result = crew.kickoff(inputs={'validated_data': flow_state.validated_structure})
+        return json.loads(result)
+
     async def _execute_fallback_flow_with_state(
         self, 
         flow_state: DiscoveryFlowState, 
         cmdb_data: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Execute fallback flow when CrewAI is not available."""
-        logger.warning("Using fallback flow - CrewAI agents not available")
-        
-        # Basic processing without agents
-        flow_state.data_validation_complete = True
-        flow_state.field_mapping_complete = True
-        flow_state.asset_classification_complete = True
+        """Execute a basic, non-agentic fallback flow."""
+        logger.warning("Executing discovery flow in fallback mode")
+        # Simulate basic processing
+        flow_state.validated_structure = {"status": "ok", "message": "Fallback validation"}
         flow_state.completed_at = datetime.utcnow()
         
         return self._format_flow_state_results(flow_state)
-    
+
     def _format_flow_state_results(self, flow_state: DiscoveryFlowState) -> Dict[str, Any]:
-        """Format flow state results for API response."""
-        duration = None
-        if flow_state.started_at and flow_state.completed_at:
-            duration = (flow_state.completed_at - flow_state.started_at).total_seconds()
-        
+        """Formats the final state into a structured response."""
         return {
-            "status": "success",
             "flow_id": flow_state.id,
-            "processing_status": "completed",
-            "progress_percentage": 100.0,
-            "duration_seconds": duration,
-            "phases_completed": sum([
-                flow_state.data_validation_complete,
-                flow_state.field_mapping_complete,
-                flow_state.asset_classification_complete,
-                flow_state.database_integration_complete,
-                flow_state.workflow_progression_complete
-            ]),
-            "total_processed": len(flow_state.processed_assets),
-            "classification_results": {
-                "applications": len([c for c in flow_state.asset_classifications if c.get("asset_type") == "application"]),
-                "servers": len([c for c in flow_state.asset_classifications if c.get("asset_type") == "server"]),
-                "databases": len([c for c in flow_state.asset_classifications if c.get("asset_type") == "database"]),
-                "other_assets": len([c for c in flow_state.asset_classifications if c.get("asset_type") not in ["application", "server", "database"]])
-            },
-            "suggested_field_mappings": flow_state.suggested_field_mappings,
-            "processed_asset_ids": flow_state.processed_assets,
-            "workflow_progression": {
-                "progression_complete": flow_state.workflow_progression_complete,
-                "phases_progressed": len(flow_state.workflow_records)
-            },
+            "status": "completed" if flow_state.completed_at else "in_progress",
+            "progress": flow_state.progress_percentage,
+            "current_phase": flow_state.current_phase,
             "results": {
-                "data_validation": {
-                    "completed": flow_state.data_validation_complete,
-                    "structure": flow_state.validated_structure
-                },
-                "field_mapping": {
-                    "completed": flow_state.field_mapping_complete,
-                    "mappings": flow_state.suggested_field_mappings
-                },
-                "asset_classification": {
-                    "completed": flow_state.asset_classification_complete,
-                    "classifications": flow_state.asset_classifications
-                },
-                "database_integration": {
-                    "completed": flow_state.database_integration_complete,
-                    "assets_created": len(flow_state.processed_assets)
-                },
-                "workflow_progression": {
-                    "completed": flow_state.workflow_progression_complete,
-                    "workflow_records": len(flow_state.workflow_records)
-                }
+                "validated_structure": flow_state.validated_structure,
+                "suggested_mappings": flow_state.suggested_field_mappings,
+                "classified_assets": flow_state.asset_classifications,
+                "processed_asset_count": len(flow_state.processed_assets)
             },
-            "recommendations": flow_state.recommendations,
-            "completed_at": flow_state.completed_at.isoformat() if flow_state.completed_at else None,
-            "crewai_flow_used": self.service_available
+            "started_at": flow_state.started_at,
+            "completed_at": flow_state.completed_at,
+            "error_analysis": flow_state.error_analysis
         }
-    
-    # Legacy compatibility methods
+
     async def run_discovery_flow(
         self, 
         cmdb_data: Dict[str, Any],
@@ -527,11 +381,9 @@ class CrewAIFlowService:
         engagement_id: str = None,
         user_id: str = None
     ) -> Dict[str, Any]:
-        """Legacy compatibility method - routes to enhanced flow."""
-        return await self.run_discovery_flow_with_state(
-            cmdb_data, client_account_id, engagement_id, user_id
-        )
-    
+        # This is now a wrapper for the stateful flow
+        return await self.run_discovery_flow_with_state(cmdb_data, client_account_id, engagement_id, user_id)
+
     async def _run_fallback_discovery_flow(
         self, 
         cmdb_data: Dict[str, Any],
@@ -539,44 +391,95 @@ class CrewAIFlowService:
         engagement_id: str = None,
         user_id: str = None
     ) -> Dict[str, Any]:
-        """Fallback discovery flow when CrewAI is not available."""
+        logger.warning("Running fallback discovery flow due to unavailable CrewAI service.")
+        # Basic, non-AI processing
         return {
-            "status": "success",
-            "processing_status": "completed",
-            "total_processed": 0,
-            "crewai_flow_used": False,
-            "fallback_used": True,
-            "message": "Discovery flow completed using fallback processing"
+            "status": "completed_fallback",
+            "message": "CrewAI service is not available. Only basic data processing was performed.",
+            "processed_record_count": len(cmdb_data.get("records", [])),
         }
-    
+
     def _initialize_fallback_service(self):
-        """Initialize fallback service when CrewAI unavailable."""
+        """Initialize a non-agentic fallback service."""
         self.service_available = False
-        logger.info("Unified CrewAI Flow Service running in fallback mode")
+        # Ensure handlers that don't depend on LLM are still available
+        self.parsing_handler = ParsingHandler()
+        self.ui_interaction_handler = UIInteractionHandler(self.config)
+        self.data_cleanup_handler = None
+        self.llm_usage_tracker = LLMUsageTracker()
+        logger.warning("CrewAI Flow Service running in fallback mode. Limited functionality.")
     
     def get_flow_status(self, flow_id: str) -> Dict[str, Any]:
-        """Get status of a specific flow."""
+        """Get the status of an active discovery flow."""
         return self.active_flows.get(flow_id, {"status": "not_found"})
-    
+
     def get_health_status(self) -> Dict[str, Any]:
-        """Get service health status."""
+        """Get health status of the CrewAI service."""
         return {
             "service_available": self.service_available,
-            "llm_configured": self.llm is not None,
-            "agents_created": len(self.agents),
+            "llm_initialized": self.llm is not None,
+            "agents_created": len(self.agents) > 0,
             "active_flows": len(self.active_flows),
-            "handlers_initialized": all([
-                self.parsing_handler is not None,
-                self.execution_handler is not None,
-                self.validation_handler is not None,
-                self.flow_state_handler is not None
-            ]) if self.service_available else False
+            "llm_config": self.config.llm_config if self.config else "Not configured",
         }
-    
+
     def is_available(self) -> bool:
-        """Check if the service is available."""
         return self.service_available
 
+    async def initiate_data_source_analysis(
+        self,
+        data_source: Dict[str, Any],
+        context: RequestContext,
+        page_context: str
+    ) -> Dict[str, Any]:
+        """Initiate data source analysis with the specialized agent."""
+        if not self.service_available:
+            return {"error": "CrewAI service is not available for data source analysis"}
 
-# Create global service instance
+        # Late import to break circular dependency
+        from app.services.discovery_agents.data_source_intelligence_agent import data_source_intelligence_agent
+
+        try:
+            # --- Robust Data Parsing Logic ---
+            raw_file_data = data_source.get("file_data")
+            metadata = data_source.get("metadata", {})
+            file_name = metadata.get("fileName", "")
+            
+            # Check if the data is a string and appears to be a CSV that needs parsing.
+            if isinstance(raw_file_data, str) and file_name.lower().endswith('.csv'):
+                logger.info(f"CSV file detected ('{file_name}'). Attempting to parse.")
+                try:
+                    # The raw_file_data is expected to be a base64 encoded string from the frontend.
+                    decoded_data = base64.b64decode(raw_file_data).decode('utf-8-sig') # Use utf-8-sig to handle potential BOM
+                    csv_reader = csv.DictReader(io.StringIO(decoded_data))
+                    parsed_data = [row for row in csv_reader]
+                    
+                    if parsed_data:
+                        data_source["file_data"] = parsed_data
+                        logger.info(f"Successfully parsed '{file_name}' into {len(parsed_data)} records.")
+                    else:
+                        logger.warning(f"CSV file '{file_name}' was parsed but resulted in no data records.")
+
+                except (base64.binascii.Error, UnicodeDecodeError) as e:
+                    logger.error(f"Failed to decode base64/UTF-8 for '{file_name}': {e}. Passing raw data to agent.", exc_info=True)
+                except Exception as e:
+                    logger.error(f"An unexpected error occurred during CSV parsing for '{file_name}': {e}. Passing raw data to agent.", exc_info=True)
+            
+            logger.info("Delegating data source analysis to Data Source Intelligence Agent")
+            
+            # Find the relevant flow state or create a placeholder if none exists
+            flow_state = self.get_flow_status(context.session_id) if context.session_id and self.flow_state_handler.get_flow(context.session_id) else {}
+
+            # The agent's analyze_data_source method manages its own state
+            analysis_result = await data_source_intelligence_agent.analyze_data_source(
+                data_source=data_source, 
+                flow_state=flow_state,
+                page_context=page_context
+            )
+            return analysis_result
+
+        except Exception as e:
+            logger.error(f"Error during data source analysis delegation: {e}", exc_info=True)
+            return {"error": f"Failed to perform data source analysis: {e}"}
+
 crewai_flow_service = CrewAIFlowService() 

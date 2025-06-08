@@ -51,11 +51,12 @@ export const API_CONFIG = {
   BASE_URL: getBackendUrl(),
   ENDPOINTS: {
     DISCOVERY: {
+      AGENT_ANALYSIS: '/api/v1/discovery/agents/agent-analysis',
       ANALYZE_CMDB: '/api/v1/discovery/analyze-cmdb',
       PROCESS_CMDB: '/api/v1/discovery/process-cmdb',
       CMDB_TEMPLATES: '/api/v1/discovery/cmdb-templates',
       CMDB_FEEDBACK: '/api/v1/discovery/cmdb-feedback',
-      ASSETS: '/api/v1/discovery/assets',
+      ASSETS: '/api/v1/assets/list/paginated',
       ASSETS_BULK: '/api/v1/discovery/assets/bulk',
       ASSETS_CLEANUP: '/api/v1/discovery/assets/cleanup-duplicates',
       APPLICATIONS: '/api/v1/discovery/applications',
@@ -67,7 +68,6 @@ export const API_CONFIG = {
       APPLICATION_LANDSCAPE: '/api/v1/discovery/assets/application-landscape',
       INFRASTRUCTURE_LANDSCAPE: '/api/v1/discovery/assets/infrastructure-landscape',
       // Agent endpoints
-      AGENT_ANALYSIS: '/api/v1/discovery/agents/agent-analysis',
       AGENT_CLARIFICATION: '/api/v1/discovery/agents/agent-clarification',
       AGENT_STATUS: '/api/v1/discovery/agents/agent-status',
       AGENT_LEARNING: '/api/v1/discovery/agents/agent-learning',
@@ -90,7 +90,7 @@ export const API_CONFIG = {
       DATA_CLEANUP_ANALYZE: '/api/v1/discovery/data-cleanup/agent-analyze',
       DATA_CLEANUP_PROCESS: '/api/v1/discovery/data-cleanup/agent-process',
       // Data import persistence endpoints
-      STORE_IMPORT: '/api/v1/data-import/store-import',
+      STORE_IMPORT: '/api/v1/assets/bulk-create',
       STORE_IMPORT_TEMP: '/api/v1/data-import/store-import-temp',
       LATEST_IMPORT: '/api/v1/data-import/latest-import',
       LATEST_IMPORT_TEMP: '/api/v1/data-import/latest-import-temp',
@@ -116,7 +116,7 @@ export const API_CONFIG = {
       ENGAGEMENT_ACCESS: '/api/v1/admin/engagement-access'
     },
     AGENT_LEARNING: {
-      LEARNING_STATISTICS: '/api/v1/agent-learning/learning/statistics',
+      LEARNING_STATISTICS: '/api/v1/agent-learning/learning/stats',
       FIELD_MAPPING_LEARN: '/api/v1/agent-learning/learning/field-mapping',
       FIELD_MAPPING_SUGGEST: '/api/v1/agent-learning/learning/field-mapping/suggest',
       DATA_SOURCE_PATTERN: '/api/v1/agent-learning/learning/data-source-pattern',
@@ -125,7 +125,9 @@ export const API_CONFIG = {
       AGENT_PERFORMANCE: '/api/v1/agent-learning/learning/agent-performance',
       HEALTH: '/api/v1/agent-learning/health'
     },
-    HEALTH: '/health'
+    HEALTH: '/health',
+    // SIXR Endpoints
+    SIXR_ANALYSIS: '/api/v1/sixr/analyze'
   }
 };
 

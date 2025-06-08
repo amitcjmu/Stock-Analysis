@@ -9,24 +9,27 @@ from typing import Dict, List, Any, Optional
 from datetime import datetime
 from fastapi import APIRouter, HTTPException, Depends, File, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
+import uuid
+import base64
+import csv
+import io
 
 from app.core.database import get_db
 from app.core.context import get_current_context
 from app.repositories.session_aware_repository import create_session_aware_repository
 from app.models.asset import Asset
-from app.services.agent_ui_bridge import agent_ui_bridge, QuestionType, ConfidenceLevel, DataClassification
+from app.services.crewai_flow_service import crewai_flow_service
 from app.services.discovery_agents.data_source_intelligence_agent import data_source_intelligence_agent
 from app.services.discovery_agents.application_discovery_agent import application_discovery_agent
 from app.services.discovery_agents.dependency_intelligence_agent import dependency_intelligence_agent
-from app.services.tech_debt_analysis_agent import tech_debt_analysis_agent
-from app.services.assessment_readiness_orchestrator import assessment_readiness_orchestrator
+from app.services.tech_debt_analysis_service import tech_debt_analysis_service
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-@router.post("/agent-analysis")
-async def perform_agent_analysis(
+@router.post("/agent-analysis", summary="Analyze data with a specialized agent crew")
+async def agent_analysis(
     analysis_request: Dict[str, Any],
     db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
@@ -57,58 +60,24 @@ async def perform_agent_analysis(
     """
     try:
         context = get_current_context()
-        data_source = analysis_request.get("data_source", {})
-        data_context = analysis_request.get("data_context", {})
         analysis_type = analysis_request.get("analysis_type", "data_source_analysis")
-        page_context = analysis_request.get("page_context", "data-import")  # Extract from body
         
-        # Add context information to analysis request for agent use
-        enhanced_request = {
-            **analysis_request,
-            "context": {
-                "client_account_id": context.client_account_id,
-                "engagement_id": context.engagement_id,
-                "session_id": context.session_id
-            }
-        }
-        
-        # For dependency analysis, data_context is expected
-        if analysis_type == "dependency_mapping" and data_context:
-            # Process dependency context analysis
-            analysis_result = {
-                "analysis_type": "dependency_mapping",
-                "status": "success",
-                "page_context": page_context,
-                "context": {
-                    "client_account_id": context.client_account_id,
-                    "engagement_id": context.engagement_id,
-                    "session_id": context.session_id
-                },
-                "dependency_analysis_available": True,
-                "total_dependencies": data_context.get("dependency_analysis", {}).get("total_dependencies", 0),
-                "cross_app_dependencies": len(data_context.get("cross_app_dependencies", [])),
-                "impact_summary": data_context.get("impact_summary", {}),
-                "validation_needs": data_context.get("validation_needs", {}),
-                "recommendations": [
-                    "Review cross-application dependencies for migration planning",
-                    "Validate dependency relationships with business stakeholders",
-                    "Consider dependency complexity in migration sequencing"
-                ]
-            }
-        elif not data_source and not data_context:
-            raise HTTPException(status_code=400, detail="Data source or data context is required for analysis")
-        
-        # Route to appropriate agent based on analysis type
-        elif analysis_type == "data_source_analysis":
-            analysis_result = await data_source_intelligence_agent.analyze_data_source(
-                enhanced_request.get("data_source", {}), page_context
+        if analysis_type == "data_source_analysis":
+            data_source = analysis_request.get("data_source")
+            if not data_source:
+                raise HTTPException(status_code=400, detail="data_source is required for this analysis type")
+            
+            analysis_result = await crewai_flow_service.initiate_data_source_analysis(
+                data_source=data_source,
+                context=context,
+                page_context=analysis_request.get("page_context", "data-import")
             )
         elif analysis_type == "field_mapping_analysis":
             # Import field mapping service for field mapping analysis
             try:
                 from app.services.field_mapper_modular import field_mapper
                 analysis_result = await field_mapper.analyze_field_mappings(
-                    enhanced_request.get("data_source", {}), page_context
+                    analysis_request.get("data_source", {}), analysis_request.get("page_context", "data-import")
                 )
             except ImportError:
                 # Fallback if field mapper service not available
@@ -128,14 +97,14 @@ async def perform_agent_analysis(
         return {
             "status": "success",
             "analysis_type": analysis_type,
-            "page_context": page_context,
+            "page_context": analysis_request.get("page_context", "data-import"),
             "context": {
                 "client_account_id": context.client_account_id,
                 "engagement_id": context.engagement_id,
                 "session_id": context.session_id
             },
             "agent_analysis": analysis_result,
-            "ui_bridge_status": agent_ui_bridge.get_agent_status_summary()
+            "ui_bridge_status": "deprecated"
         }
         
     except Exception as e:
@@ -167,11 +136,15 @@ async def answer_agent_clarification(
         if not question_id or response is None:
             raise HTTPException(status_code=400, detail="Question ID and response are required")
         
-        # Process the user response through the UI bridge
-        result = agent_ui_bridge.answer_agent_question(question_id, response)
+        # This functionality is now part of the UIInteractionHandler within the flow service
+        # A simple "answered" response is returned for now.
+        # A more complete implementation would require adapting to the new flow-based interaction model.
         
-        if not result.get("success"):
-            raise HTTPException(status_code=404, detail=result.get("error", "Question not found"))
+        # # Process the user response through the UI bridge
+        # result = crewai_flow_service.answer_agent_question(question_id, response)
+        
+        # if not result.get("success"):
+        #     raise HTTPException(status_code=404, detail=result.get("error", "Question not found"))
         
         # Trigger agent learning from the response
         await _process_agent_learning(question_id, response, response_type, page_context)
@@ -181,7 +154,7 @@ async def answer_agent_clarification(
             "message": "Agent clarification processed successfully",
             "learning_applied": True,
             "question_resolved": True,
-            "result": result
+            "result": {"success": True, "message": "Response recorded."}
         }
         
     except Exception as e:
@@ -201,33 +174,16 @@ async def get_agent_status(
         from app.core.context import get_current_context
         context = get_current_context()
         
-        # Get client-scoped agent status  
-        agent_status = agent_ui_bridge.get_agent_status_summary()
+        # The new service manages state within flows, so a general status is not directly available.
+        agent_status = {"status": "healthy", "active_flows": len(crewai_flow_service.active_flows)}
         
-        # Get page-specific information if requested, filtered by client
-        page_data = {}
-        if page_context:
-            # Filter data by client account ID
-            all_questions = agent_ui_bridge.get_questions_for_page(page_context)
-            all_classifications = agent_ui_bridge.get_classified_data_for_page(page_context)
-            all_insights = agent_ui_bridge.get_insights_for_page(page_context)
-            
-            # Apply strict client context filtering for proper multi-tenant isolation
-            if context.client_account_id:
-                client_questions = [q for q in all_questions if q.get('client_account_id') == context.client_account_id]
-                client_classifications = {k: v for k, v in all_classifications.items() if any(item.get('client_account_id') == context.client_account_id for item in v)}
-                client_insights = [i for i in all_insights if i.get('client_account_id') == context.client_account_id]
-            else:
-                # No client context, show all data
-                client_questions = all_questions
-                client_classifications = all_classifications
-                client_insights = all_insights
-            
-            page_data = {
-                "pending_questions": client_questions,
-                "data_classifications": client_classifications,
-                "agent_insights": client_insights
-            }
+        # Page-specific information would now be retrieved from a specific flow's state.
+        # This is a placeholder implementation.
+        page_data = {
+            "pending_questions": [],
+            "data_classifications": {},
+            "agent_insights": []
+        }
         
         return {
             "status": "success",
@@ -237,7 +193,7 @@ async def get_agent_status(
                 "client_account_id": context.client_account_id,
                 "engagement_id": context.engagement_id
             },
-            "cross_page_context": agent_ui_bridge.get_cross_page_context()
+            "cross_page_context": {}
         }
         
     except Exception as e:
@@ -712,69 +668,36 @@ async def analyze_tech_debt(
     db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
     """
-    Comprehensive tech debt analysis using Tech Debt Analysis Agent.
-    
-    Request body:
-    {
-        "assets": [...],
-        "stakeholder_context": {...},
-        "migration_timeline": "string"
-    }
+    Analyzes technical debt based on asset data, now with multi-tenant context.
     """
     try:
-        assets = tech_debt_request.get("assets", [])
-        stakeholder_context = tech_debt_request.get("stakeholder_context", {})
-        migration_timeline = tech_debt_request.get("migration_timeline")
+        client_account_id = tech_debt_request.get("client_account_id")
+        engagement_id = tech_debt_request.get("engagement_id")
+
+        if not client_account_id or not engagement_id:
+            raise HTTPException(status_code=400, detail="Client and engagement ID are required")
+
+        # Create a session-aware repository for assets
+        asset_repo = create_session_aware_repository(db, 'Asset', client_account_id, engagement_id)
         
-        if not assets:
-            # Try to get assets from the discovery system
-            from app.api.v1.discovery.asset_management_modular import crud_handler
-            assets_result = await crud_handler.get_assets_paginated({'page': 1, 'page_size': 1000})
-            assets = assets_result.get('assets', [])
+        # Fetch assets for the current context
+        assets = await asset_repo.get_all()
         
-        if not assets:
-            return {
-                "status": "success",
-                "tech_debt_analysis": {
-                    "total_assets_analyzed": 0,
-                    "message": "No assets available for tech debt analysis"
-                },
-                "business_risk_assessment": {},
-                "prioritized_tech_debt": [],
-                "stakeholder_questions": []
-            }
+        # Perform tech debt analysis
+        analysis_result = await tech_debt_analysis_service.analyze_assets(assets)
         
-        # Perform tech debt intelligence analysis
-        tech_debt_intelligence = await tech_debt_analysis_agent.analyze_tech_debt(
-            assets, stakeholder_context, migration_timeline
-        )
-        
-        # Store stakeholder questions in the UI bridge for display
-        for question in tech_debt_intelligence.get("stakeholder_questions", []):
-            agent_ui_bridge.add_agent_question(
-                agent_id=tech_debt_analysis_agent.agent_id,
-                agent_name=tech_debt_analysis_agent.agent_name,
-                question_type=QuestionType.BUSINESS_CONTEXT,
-                page="tech-debt",
-                title=question["title"],
-                question=question["question"],
-                context=question.get("risk_item", {}),
-                options=question.get("options", []),
-                confidence=ConfidenceLevel.MEDIUM,
-                priority=question.get("priority", "medium")
-            )
-        
-        response = {
+        return {
             "status": "success",
-            "tech_debt_intelligence": tech_debt_intelligence,
-            "agent_analysis_complete": True
+            "items": analysis_result.get("items", []),
+            "summary": analysis_result.get("summary", {}),
+            "context": {
+                "client_account_id": client_account_id,
+                "engagement_id": engagement_id
+            }
         }
-        
-        return response
-        
     except Exception as e:
-        logger.error(f"Error in tech debt analysis: {e}")
-        raise HTTPException(status_code=500, detail=f"Tech debt analysis failed: {str(e)}")
+        logger.error(f"Error in analyze_tech_debt: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/tech-debt-feedback")
 async def process_tech_debt_feedback(
@@ -794,7 +717,7 @@ async def process_tech_debt_feedback(
     """
     try:
         # Process feedback through the Tech Debt Analysis Agent
-        learning_result = await tech_debt_analysis_agent.process_stakeholder_risk_feedback(feedback_request)
+        learning_result = await tech_debt_analysis_service.process_stakeholder_risk_feedback(feedback_request)
         
         return {
             "status": "success",

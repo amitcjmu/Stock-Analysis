@@ -89,7 +89,7 @@ class Asset(Base):
     __tablename__ = "assets"
     
     # Primary identification - matches database exactly
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     migration_id = Column(Integer, ForeignKey("migrations.id"), nullable=True)  # Made nullable for testing
     name = Column(String(255), nullable=False, index=True)
     asset_type = Column(SQLEnum(AssetType, name='assettype'), nullable=False)

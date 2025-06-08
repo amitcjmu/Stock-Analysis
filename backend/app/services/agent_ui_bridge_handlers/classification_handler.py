@@ -10,6 +10,8 @@ from typing import Dict, List, Any, Optional
 from dataclasses import asdict
 
 from ..models.agent_communication import DataItem, DataClassification, ConfidenceLevel
+from app.services.agent_ui_bridge_handlers.storage_manager import classification_storage
+from app.models.agent_communication import AgentInsight, AgentQuestion
 
 logger = logging.getLogger(__name__)
 
@@ -20,27 +22,29 @@ class ClassificationHandler:
         self.storage_manager = storage_manager
         self.data_classifications: Dict[str, DataItem] = {}
     
-    def classify_data_item(self, item_id: str, data_type: str, content: Dict[str, Any],
-                          classification: DataClassification, agent_analysis: Dict[str, Any],
-                          confidence: ConfidenceLevel, page: str = "discovery",
-                          issues: List[str] = None, recommendations: List[str] = None) -> None:
-        """Classify a data item with agent analysis."""
-        data_item = DataItem(
-            id=item_id,
-            data_type=data_type,
-            classification=classification,
-            content=content,
-            agent_analysis=agent_analysis,
-            confidence=confidence,
-            page=page,
-            issues=issues or [],
-            recommendations=recommendations or []
-        )
+    def classify_data_item(self, item_id: str, data_type: str, content: Any, 
+                             classification: DataClassification, 
+                             agent_analysis: Dict, confidence: ConfidenceLevel,
+                             page: str, issues: List[str], recommendations: List[str]):
         
-        self.data_classifications[item_id] = data_item
-        self.storage_manager.save_classifications(self.data_classifications)
+        classification_entry = {
+            "id": item_id,
+            "type": data_type,
+            "content": content,
+            "classification": classification.value,
+            "agent_analysis": agent_analysis,
+            "confidence": confidence.value,
+            "page": page,
+            "issues": issues,
+            "recommendations": recommendations,
+            "timestamp": datetime.utcnow().isoformat()
+        }
         
-        logger.info(f"Classified {data_type} item {item_id} as {classification.value}")
+        try:
+            classification_storage.save_classification(classification_entry)
+            logger.info(f"Classified {data_type} item {item_id} as {classification.value}")
+        except Exception as e:
+            logger.error(f"Error saving classifications: {e}")
     
     def get_classified_data_for_page(self, page: str) -> Dict[str, List[Dict[str, Any]]]:
         """Get classified data grouped by classification type for a page."""

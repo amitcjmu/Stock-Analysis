@@ -13,8 +13,8 @@ from app.schemas.sixr_analysis import (
     SixRParameters, SixRAnalysisRequest, SixRRecommendationResponse,
     QualifyingQuestion, QuestionResponse, SixRStrategy, ApplicationType
 )
-from app.services.sixr_engine import SixRDecisionEngine
-from app.services.sixr_agents import SixRAgentOrchestrator
+from app.services.sixr_engine_modular import SixRDecisionEngine
+from app.services.sixr_agents_modular import SixRAgentOrchestrator
 from app.services.tools.sixr_tools import (
     CMDBAnalysisTool, ParameterScoringTool, QuestionGenerationTool,
     CodeAnalysisTool, RecommendationValidationTool

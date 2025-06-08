@@ -14,6 +14,7 @@ from app.schemas.auth_schemas import (
     LoginRequest, LoginResponse, 
     PasswordChangeRequest, PasswordChangeResponse
 )
+from app.schemas.admin_schemas import UserDashboardStats
 from app.services.auth_services.authentication_service import AuthenticationService
 
 logger = logging.getLogger(__name__)
@@ -73,6 +74,21 @@ async def change_password(
     except Exception as e:
         logger.error(f"Error in change_password: {e}")
         raise HTTPException(status_code=500, detail=f"Password change failed: {str(e)}")
+
+
+@authentication_router.get("/admin/dashboard-stats", response_model=UserDashboardStats)
+async def get_user_dashboard_stats(
+    db: AsyncSession = Depends(get_db)
+    # In a real scenario, you'd add admin access dependency here
+):
+    """Get user-related dashboard statistics."""
+    try:
+        auth_service = AuthenticationService(db)
+        stats_data = await auth_service.get_dashboard_stats()
+        return UserDashboardStats(**stats_data)
+    except Exception as e:
+        logger.error(f"Error getting user dashboard stats: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get user dashboard stats: {str(e)}")
 
 
 @authentication_router.get("/health")

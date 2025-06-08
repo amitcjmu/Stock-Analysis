@@ -9,7 +9,6 @@ from typing import Dict, List, Any, Optional
 import logging
 
 from app.services.agent_monitor import agent_monitor, TaskStatus
-from app.services.crewai_service_modular import crewai_service
 
 # Import the new agent registry
 from app.services.agent_registry import agent_registry, AgentPhase, AgentStatus
@@ -39,8 +38,6 @@ async def get_agent_status():
         
         # Get system status from CrewAI service (fallback)
         system_status = {}
-        if crewai_service.agent_manager:
-            system_status = crewai_service.agent_manager.get_system_status()
         
         return {
             "success": True,
@@ -283,8 +280,6 @@ async def get_system_health():
         
         # Get system status from CrewAI service
         system_status = {}
-        if crewai_service.agent_manager:
-            system_status = crewai_service.agent_manager.get_system_status()
         
         # Get monitoring status
         status_report = agent_monitor.get_status_report()

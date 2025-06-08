@@ -13,12 +13,7 @@ from datetime import datetime
 from enum import Enum
 
 # Import LLM Usage Tracker
-try:
-    from app.services.llm_usage_tracker import llm_tracker
-    LLM_TRACKING_AVAILABLE = True
-except ImportError:
-    LLM_TRACKING_AVAILABLE = False
-    logging.warning("LLM usage tracking not available")
+from app.services.llm_usage_tracker import LLMUsageTracker
 
 try:
     from openai import OpenAI
@@ -57,6 +52,7 @@ class MultiModelService:
     def __init__(self):
         self.openai_client = None  # For Gemma-3
         self.crewai_llm = None     # For Llama 4
+        self.llm_usage_tracker = LLMUsageTracker()
         self.model_configs = {
             ModelType.LLAMA_4_MAVERICK: {
                 "model_name": "deepinfra/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
@@ -189,7 +185,7 @@ class MultiModelService:
         
         # Use LLM tracking if available
         if LLM_TRACKING_AVAILABLE:
-            async with llm_tracker.track_llm_call(
+            async with self.llm_usage_tracker.track_llm_call(
                 provider="deepinfra",
                 model=model_config["model_name"],
                 feature_context=task_type,
@@ -310,7 +306,7 @@ class MultiModelService:
         
         # Use LLM tracking if available
         if LLM_TRACKING_AVAILABLE:
-            async with llm_tracker.track_llm_call(
+            async with self.llm_usage_tracker.track_llm_call(
                 provider="deepinfra",
                 model=model_config["model_name"],
                 feature_context=task_type,
@@ -473,5 +469,9 @@ class MultiModelService:
             }
         }
 
-# Global service instance
-multi_model_service = MultiModelService() 
+# Global instance of the service
+multi_model_service = MultiModelService()
+
+# Conditional global instance of the tracker
+llm_tracker = multi_model_service.llm_usage_tracker
+LLM_TRACKING_AVAILABLE = True 

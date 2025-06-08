@@ -23,8 +23,8 @@ from app.schemas.sixr_analysis import (
     BulkAnalysisResponse, SixRAnalysisError, AnalysisStatus,
     SixRParameterBase, ApplicationType, SixRParameters, SixRRecommendation
 )
-from app.services.sixr_engine import SixRDecisionEngine
-from app.services.sixr_agents import SixRAnalysisAgents
+from app.services.sixr_engine_modular import SixRDecisionEngine
+from app.services.sixr_agents_modular import SixRAnalysisAgents
 from app.services.tools.sixr_tools import get_sixr_tools
 
 logger = logging.getLogger(__name__)
