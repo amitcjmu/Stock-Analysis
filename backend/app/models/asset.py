@@ -289,11 +289,11 @@ class AssetDependency(Base):
     """
     __tablename__ = "asset_dependencies"
     
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     
     # Source and target assets
-    source_asset_id = Column(Integer, ForeignKey('assets.id'), nullable=False)
-    target_asset_id = Column(Integer, ForeignKey('assets.id'), nullable=False)
+    source_asset_id = Column(UUID(as_uuid=True), ForeignKey('assets.id'), nullable=False)
+    target_asset_id = Column(UUID(as_uuid=True), ForeignKey('assets.id'), nullable=False)
     
     # Dependency details
     dependency_type = Column(String(100), nullable=False)  # database, service, network, etc.
@@ -328,8 +328,8 @@ class WorkflowProgress(Base):
     """
     __tablename__ = "workflow_progress"
     
-    id = Column(Integer, primary_key=True, index=True)
-    asset_id = Column(Integer, ForeignKey('assets.id'), nullable=False)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    asset_id = Column(UUID(as_uuid=True), ForeignKey('assets.id'), nullable=False)
     
     # Workflow phases
     phase = Column(String(50), nullable=False)  # discovery, mapping, cleanup, assessment
