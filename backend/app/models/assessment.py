@@ -3,7 +3,7 @@ Assessment models for 6R analysis and migration planning.
 """
 
 try:
-    from sqlalchemy import Column, Integer, String, DateTime, Text, JSON, Enum, Boolean, ForeignKey, Float
+    from sqlalchemy import Column, Integer, String, DateTime, Text, JSON, Enum, Boolean, ForeignKey, Float, UUID
     from sqlalchemy.orm import relationship
     from sqlalchemy.sql import func
     SQLALCHEMY_AVAILABLE = True
@@ -19,6 +19,7 @@ except ImportError:
             return None
 
 import enum
+import uuid
 
 try:
     from app.core.database import Base
@@ -60,9 +61,9 @@ class Assessment(Base):
     
     __tablename__ = "assessments"
     
-    id = Column(Integer, primary_key=True, index=True)
-    migration_id = Column(Integer, ForeignKey("migrations.id"), nullable=False)
-    asset_id = Column(Integer, ForeignKey("assets.id"), nullable=True)  # Null for migration-wide assessments
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    migration_id = Column(UUID(as_uuid=True), ForeignKey("migrations.id"), nullable=False)
+    asset_id = Column(UUID(as_uuid=True), ForeignKey("assets.id"), nullable=True)  # Null for migration-wide assessments
     
     # Assessment metadata
     assessment_type = Column(Enum(AssessmentType), nullable=False)
