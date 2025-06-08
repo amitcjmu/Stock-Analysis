@@ -11,13 +11,13 @@ from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
-from app.models.learning_patterns import (
-    MappingLearningPattern, 
-    AssetClassificationPattern, 
-    ConfidenceThreshold,
-    UserFeedbackEvent,
-    LearningStatistics
-)
+from app.models.data_import import MappingLearningPattern
+# from app.models.learning_patterns import (
+#     AssetClassificationPattern,
+#     ConfidenceThreshold,
+#     UserFeedbackEvent,
+#     LearningStatistics
+# )
 from app.services.embedding_service import EmbeddingService
 from app.utils.vector_utils import VectorUtils
 

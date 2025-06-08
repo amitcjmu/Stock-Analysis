@@ -16,10 +16,10 @@ import hashlib
 from app.services.memory import AgentMemory
 from app.services.embedding_service import EmbeddingService
 from app.utils.vector_utils import VectorUtils
-from app.models.learning_patterns import (
-    MappingLearningPattern, 
-    AssetClassificationPattern, 
-)
+from app.models.data_import import MappingLearningPattern
+# from app.models.learning_patterns import (
+#     AssetClassificationPattern,
+# )
 
 logger = logging.getLogger(__name__)
 

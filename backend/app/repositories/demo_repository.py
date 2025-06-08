@@ -19,7 +19,7 @@ except ImportError:
     CLIENT_ACCOUNT_AVAILABLE = False
     ClientAccount = None
 
-from app.models.cmdb_asset import CMDBAsset, MigrationWave
+from app.models.asset import Asset, MigrationWave
 from app.models.sixr_analysis import SixRAnalysis
 from app.models.tags import Tag, AssetTag
 from app.repositories.base import ContextAwareRepository
@@ -37,18 +37,18 @@ class DemoRepository(ContextAwareRepository):
         limit: int = 100, 
         offset: int = 0,
         filters: Optional[Dict[str, Any]] = None
-    ) -> List[CMDBAsset]:
+    ) -> List[Asset]:
         """Get demo assets with optional filtering."""
-        stmt = select(CMDBAsset).where(CMDBAsset.is_mock == True)
+        stmt = select(Asset).where(Asset.is_mock == True)
         
         # Apply context filtering
-        stmt = self._apply_context_filter_stmt(stmt, CMDBAsset)
+        stmt = self._apply_context_filter_stmt(stmt, Asset)
         
         # Apply additional filters
         if filters:
             for key, value in filters.items():
-                if hasattr(CMDBAsset, key) and value is not None:
-                    stmt = stmt.where(getattr(CMDBAsset, key) == value)
+                if hasattr(Asset, key) and value is not None:
+                    stmt = stmt.where(getattr(Asset, key) == value)
         
         # Apply pagination
         stmt = stmt.offset(offset).limit(limit)
@@ -56,22 +56,22 @@ class DemoRepository(ContextAwareRepository):
         result = await self.db.execute(stmt)
         return result.scalars().all()
     
-    async def get_demo_asset_by_id(self, asset_id: str) -> Optional[CMDBAsset]:
+    async def get_demo_asset_by_id(self, asset_id: str) -> Optional[Asset]:
         """Get a specific demo asset by ID."""
-        stmt = select(CMDBAsset).where(
+        stmt = select(Asset).where(
             and_(
-                CMDBAsset.id == asset_id,
-                CMDBAsset.is_mock == True
+                Asset.id == asset_id,
+                Asset.is_mock == True
             )
         )
         
         # Apply context filtering
-        stmt = self._apply_context_filter_stmt(stmt, CMDBAsset)
+        stmt = self._apply_context_filter_stmt(stmt, Asset)
         
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
     
-    async def create_demo_asset(self, asset_data: Dict[str, Any]) -> CMDBAsset:
+    async def create_demo_asset(self, asset_data: Dict[str, Any]) -> Asset:
         """Create a new demo asset."""
         # Ensure it's marked as mock data
         asset_data['is_mock'] = True
@@ -82,7 +82,7 @@ class DemoRepository(ContextAwareRepository):
         if self.engagement_id:
             asset_data['engagement_id'] = self.engagement_id
         
-        asset = CMDBAsset(**asset_data)
+        asset = Asset(**asset_data)
         self.db.add(asset)
         await self.db.commit()
         await self.db.refresh(asset)
@@ -90,7 +90,7 @@ class DemoRepository(ContextAwareRepository):
         logger.info(f"Created demo asset: {asset.name} (ID: {asset.id})")
         return asset
     
-    async def update_demo_asset(self, asset_id: str, asset_data: Dict[str, Any]) -> Optional[CMDBAsset]:
+    async def update_demo_asset(self, asset_id: str, asset_data: Dict[str, Any]) -> Optional[Asset]:
         """Update an existing demo asset."""
         asset = await self.get_demo_asset_by_id(asset_id)
         if not asset:
@@ -122,53 +122,53 @@ class DemoRepository(ContextAwareRepository):
     async def get_demo_assets_summary(self) -> Dict[str, Any]:
         """Get summary statistics for demo assets."""
         # Total assets count
-        count_stmt = select(func.count(CMDBAsset.id)).where(CMDBAsset.is_mock == True)
-        count_stmt = self._apply_context_filter_stmt(count_stmt, CMDBAsset)
+        count_stmt = select(func.count(Asset.id)).where(Asset.is_mock == True)
+        count_stmt = self._apply_context_filter_stmt(count_stmt, Asset)
         
         result = await self.db.execute(count_stmt)
         total_assets = result.scalar()
         
         # Asset type distribution
         type_stmt = select(
-            CMDBAsset.asset_type,
-            func.count(CMDBAsset.id).label('count')
-        ).where(CMDBAsset.is_mock == True).group_by(CMDBAsset.asset_type)
+            Asset.asset_type,
+            func.count(Asset.id).label('count')
+        ).where(Asset.is_mock == True).group_by(Asset.asset_type)
         
-        type_stmt = self._apply_context_filter_stmt(type_stmt, CMDBAsset)
+        type_stmt = self._apply_context_filter_stmt(type_stmt, Asset)
         
         result = await self.db.execute(type_stmt)
         asset_types = {row.asset_type: row.count for row in result}
         
         # Environment distribution
         env_stmt = select(
-            CMDBAsset.environment,
-            func.count(CMDBAsset.id).label('count')
-        ).where(CMDBAsset.is_mock == True).group_by(CMDBAsset.environment)
+            Asset.environment,
+            func.count(Asset.id).label('count')
+        ).where(Asset.is_mock == True).group_by(Asset.environment)
         
-        env_stmt = self._apply_context_filter_stmt(env_stmt, CMDBAsset)
+        env_stmt = self._apply_context_filter_stmt(env_stmt, Asset)
         
         result = await self.db.execute(env_stmt)
         environments = {row.environment: row.count for row in result}
         
         # Business criticality distribution
         criticality_stmt = select(
-            CMDBAsset.criticality,
-            func.count(CMDBAsset.id).label('count')
-        ).where(CMDBAsset.is_mock == True).group_by(CMDBAsset.criticality)
+            Asset.criticality,
+            func.count(Asset.id).label('count')
+        ).where(Asset.is_mock == True).group_by(Asset.criticality)
         
-        criticality_stmt = self._apply_context_filter_stmt(criticality_stmt, CMDBAsset)
+        criticality_stmt = self._apply_context_filter_stmt(criticality_stmt, Asset)
         
         result = await self.db.execute(criticality_stmt)
         business_criticality = {row.criticality: row.count for row in result}
         
         # Total resource calculations
         resource_stmt = select(
-            func.sum(CMDBAsset.cpu_cores).label('total_cpu'),
-            func.sum(CMDBAsset.memory_gb).label('total_memory'),
-            func.sum(CMDBAsset.storage_gb).label('total_storage')
-        ).where(CMDBAsset.is_mock == True)
+            func.sum(Asset.cpu_cores).label('total_cpu'),
+            func.sum(Asset.memory_gb).label('total_memory'),
+            func.sum(Asset.storage_gb).label('total_storage')
+        ).where(Asset.is_mock == True)
         
-        resource_stmt = self._apply_context_filter_stmt(resource_stmt, CMDBAsset)
+        resource_stmt = self._apply_context_filter_stmt(resource_stmt, Asset)
         
         result = await self.db.execute(resource_stmt)
         resources = result.first()
@@ -269,15 +269,15 @@ class DemoRepository(ContextAwareRepository):
         client = result.scalar_one_or_none()
         
         # Get asset count
-        count_stmt = select(func.count(CMDBAsset.id)).where(
+        count_stmt = select(func.count(Asset.id)).where(
             and_(
-                CMDBAsset.client_account_id == self.client_account_id,
-                CMDBAsset.is_mock == True
+                Asset.client_account_id == self.client_account_id,
+                Asset.is_mock == True
             )
         )
         
         if self.engagement_id:
-            count_stmt = count_stmt.where(CMDBAsset.engagement_id == self.engagement_id)
+            count_stmt = count_stmt.where(Asset.engagement_id == self.engagement_id)
         
         result = await self.db.execute(count_stmt)
         assets_count = result.scalar()

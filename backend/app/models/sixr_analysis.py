@@ -3,7 +3,7 @@
 """
 
 try:
-    from sqlalchemy import Column, Integer, String, DateTime, Text, JSON, Enum, Boolean, ForeignKey, Float
+    from sqlalchemy import Column, Integer, String, DateTime, Text, JSON, Enum, Boolean, ForeignKey, Float, UUID
     from sqlalchemy.orm import relationship
     from sqlalchemy.sql import func
     SQLALCHEMY_AVAILABLE = True
@@ -21,6 +21,7 @@ except ImportError:
 import enum
 from datetime import datetime
 from typing import Dict, Any, List, Optional
+import uuid
 
 try:
     from app.core.database import Base
@@ -64,8 +65,8 @@ class SixRAnalysis(Base):
     
     __tablename__ = "sixr_analyses"
     
-    id = Column(Integer, primary_key=True, index=True)
-    migration_id = Column(Integer, ForeignKey("migrations.id"), nullable=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    migration_id = Column(UUID(as_uuid=True), ForeignKey("migrations.id"), nullable=True)
     
     # Analysis metadata
     name = Column(String(255), nullable=False, index=True)
@@ -144,8 +145,8 @@ class SixRParameters(Base):
     
     __tablename__ = "sixr_parameters"
     
-    id = Column(Integer, primary_key=True, index=True)
-    analysis_id = Column(Integer, ForeignKey("sixr_analyses.id"), nullable=False)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    analysis_id = Column(UUID(as_uuid=True), ForeignKey("sixr_analyses.id"), nullable=False)
     iteration_number = Column(Integer, nullable=False, default=1)
     
     # 7 core parameters (1-10 scale)
@@ -230,8 +231,8 @@ class SixRIteration(Base):
     
     __tablename__ = "sixr_iterations"
     
-    id = Column(Integer, primary_key=True, index=True)
-    analysis_id = Column(Integer, ForeignKey("sixr_analyses.id"), nullable=False)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    analysis_id = Column(UUID(as_uuid=True), ForeignKey("sixr_analyses.id"), nullable=False)
     iteration_number = Column(Integer, nullable=False)
     
     # Iteration metadata
@@ -303,8 +304,8 @@ class SixRRecommendation(Base):
     """6R analysis recommendation results."""
     __tablename__ = "sixr_recommendations"
     
-    id = Column(Integer, primary_key=True, index=True)
-    analysis_id = Column(Integer, ForeignKey("sixr_analyses.id"), nullable=False)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    analysis_id = Column(UUID(as_uuid=True), ForeignKey("sixr_analyses.id"), nullable=False)
     iteration_number = Column(Integer, default=1)
     
     # Core recommendation
@@ -403,7 +404,7 @@ class SixRQuestion(Base):
     
     __tablename__ = "sixr_questions"
     
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     
     # Question definition
     question_id = Column(String(100), unique=True, nullable=False, index=True)
@@ -458,8 +459,8 @@ class SixRQuestionResponse(Base):
     
     __tablename__ = "sixr_question_responses"
     
-    id = Column(Integer, primary_key=True, index=True)
-    analysis_id = Column(Integer, ForeignKey("sixr_analyses.id"), nullable=False)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    analysis_id = Column(UUID(as_uuid=True), ForeignKey("sixr_analyses.id"), nullable=False)
     iteration_number = Column(Integer, nullable=False)
     question_id = Column(String(100), ForeignKey("sixr_questions.question_id"), nullable=False)
     

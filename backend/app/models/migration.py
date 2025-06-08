@@ -4,7 +4,7 @@ Defines database schema for migration projects and related entities.
 """
 
 try:
-    from sqlalchemy import Column, Integer, String, DateTime, Text, JSON, Enum, Boolean, ForeignKey
+    from sqlalchemy import Column, Integer, String, DateTime, Text, JSON, Enum, Boolean, ForeignKey, UUID
     from sqlalchemy.orm import relationship
     from sqlalchemy.sql import func
     SQLALCHEMY_AVAILABLE = True
@@ -21,6 +21,7 @@ except ImportError:
 
 from datetime import datetime
 import enum
+import uuid
 
 try:
     from app.core.database import Base
@@ -54,7 +55,7 @@ class Migration(Base):
     
     __tablename__ = "migrations"
     
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     name = Column(String(255), nullable=False, index=True)
     description = Column(Text)
     
@@ -119,7 +120,7 @@ class MigrationLog(Base):
     __tablename__ = "migration_logs"
     
     id = Column(Integer, primary_key=True, index=True)
-    migration_id = Column(Integer, ForeignKey("migrations.id"), nullable=False)
+    migration_id = Column(UUID(as_uuid=True), ForeignKey("migrations.id"), nullable=False)
     
     # Log details
     timestamp = Column(DateTime(timezone=True), server_default=func.now())

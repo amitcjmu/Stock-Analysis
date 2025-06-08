@@ -286,7 +286,7 @@ class ClientCRUDHandler:
             recent_clients_result = await db.execute(recent_clients_query)
             recent_clients = recent_clients_result.scalars().all()
             
-            recent_client_responses = [ClientAccountResponse.model_validate(c, from_attributes=True) for c in recent_clients]
+            recent_client_responses = [await ClientCRUDHandler._convert_client_to_response(c, db) for c in recent_clients]
 
             return {
                 "total_clients": total_clients,
@@ -301,43 +301,26 @@ class ClientCRUDHandler:
             raise HTTPException(status_code=500, detail="Failed to retrieve dashboard stats")
 
     @staticmethod
-    async def _convert_client_to_response(client: Any, db: AsyncSession) -> Dict[str, Any]:
-        """Convert client model to response format"""
-        if not CLIENT_MODELS_AVAILABLE or not client:
-            return {}
-        
-        # Count engagements
-        total_engagements_query = select(func.count()).select_from(Engagement).where(Engagement.client_account_id == client.id)
-        total_engagements_result = await db.execute(total_engagements_query)
-        total_engagements = total_engagements_result.scalar_one()
+    async def _convert_client_to_response(client: Any, db: AsyncSession) -> ClientAccountResponse:
+        """Converts a ClientAccount ORM object to a Pydantic response model."""
+        if not CLIENT_MODELS_AVAILABLE:
+            # This should ideally not be reached if checks are done in public methods
+            return ClientAccountResponse() 
 
-        active_engagements_query = select(func.count()).select_from(Engagement).where(
+        # Correctly serialize the model using Pydantic's from_attributes
+        response = ClientAccountResponse.model_validate(client, from_attributes=True)
+        
+        # Calculate engagement counts and add them to the response
+        total_engagements_query = select(func.count()).where(Engagement.client_account_id == client.id)
+        active_engagements_query = select(func.count()).where(
             Engagement.client_account_id == client.id,
             Engagement.is_active == True
         )
-        active_engagements_result = await db.execute(active_engagements_query)
-        active_engagements = active_engagements_result.scalar_one()
         
-        business_objectives = client.business_objectives or {}
-
-        return {
-            "id": str(client.id),
-            "account_name": client.name,
-            "industry": client.industry,
-            "company_size": client.company_size,
-            "headquarters_location": client.headquarters_location,
-            "primary_contact_name": client.primary_contact_name,
-            "primary_contact_email": client.primary_contact_email,
-            "primary_contact_phone": client.primary_contact_phone,
-            "description": client.description,
-            "subscription_tier": client.subscription_tier,
-            "created_at": client.created_at,
-            "updated_at": client.updated_at,
-            "is_active": getattr(client, 'is_active', True),
-            "total_engagements": total_engagements,
-            "active_engagements": active_engagements,
-            "business_objectives": business_objectives.get("primary_goals", []),
-            "target_cloud_providers": business_objectives.get("target_cloud_providers", []),
-            "business_priorities": business_objectives.get("business_priorities", []),
-            "compliance_requirements": business_objectives.get("compliance_requirements", [])
-        } 
+        total_engagements_result = await db.execute(total_engagements_query)
+        active_engagements_result = await db.execute(active_engagements_query)
+        
+        response.total_engagements = total_engagements_result.scalar_one()
+        response.active_engagements = active_engagements_result.scalar_one()
+        
+        return response 

@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, and_
 
 from app.core.database import AsyncSessionLocal
-from app.models.learning_patterns import ConfidenceThreshold, UserFeedbackEvent
+# from app.models.learning_patterns import ConfidenceThreshold, UserFeedbackEvent
 
 logger = logging.getLogger(__name__)
 

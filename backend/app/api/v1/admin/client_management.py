@@ -69,6 +69,29 @@ async def create_client_account(
     
     return await ClientCRUDHandler.create_client(client_data, db, admin_user)
 
+@router.get("/", response_model=PaginatedResponse)
+async def list_client_accounts(
+    pagination: AdminPaginationParams = Depends(),
+    filters: ClientSearchFilters = Depends(),
+    db: AsyncSession = Depends(get_db),
+    admin_user: str = Depends(require_admin_access)
+):
+    """List client accounts with pagination and filtering."""
+    try:
+        if not HANDLERS_AVAILABLE:
+            raise HTTPException(status_code=503, detail="Client handlers not available")
+
+        paginated_result = await ClientCRUDHandler.list_clients(
+            db=db,
+            pagination=pagination.dict(),
+            filters=filters.dict(exclude_none=True)
+        )
+        return PaginatedResponse(**paginated_result)
+        
+    except Exception as e:
+        logger.error(f"Error listing client accounts: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to list client accounts: {str(e)}")
+
 @router.get("/{client_id}", response_model=AdminSuccessResponse)
 async def get_client_account(
     client_id: str,
@@ -107,26 +130,6 @@ async def delete_client_account(
         raise HTTPException(status_code=503, detail="Client handlers not available")
     
     return await ClientCRUDHandler.delete_client(client_id, db, admin_user)
-
-@router.get("/", response_model=PaginatedResponse)
-async def list_client_accounts(
-    pagination: AdminPaginationParams = Depends(),
-    filters: ClientSearchFilters = Depends(),
-    db: AsyncSession = Depends(get_db),
-    admin_user: str = Depends(require_admin_access)
-):
-    """List client accounts with pagination and filtering."""
-    try:
-        paginated_result = await ClientCRUDHandler.list_clients(
-            db=db,
-            pagination=pagination.dict(),
-            filters=filters.dict(exclude_none=True)
-        )
-        return PaginatedResponse(**paginated_result)
-        
-    except Exception as e:
-        logger.error(f"Error listing client accounts: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to list client accounts: {str(e)}")
 
 @router.get("/dashboard/stats", response_model=ClientDashboardStats)
 async def get_client_dashboard_stats(

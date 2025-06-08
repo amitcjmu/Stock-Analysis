@@ -12,7 +12,8 @@ from sqlalchemy import text, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db, AsyncSessionLocal
-from app.models.learning_patterns import MappingLearningPattern, AssetClassificationPattern
+from app.models.data_import import MappingLearningPattern
+# from app.models.learning_patterns import AssetClassificationPattern
 from app.services.embedding_service import EmbeddingService
 
 logger = logging.getLogger(__name__)
@@ -164,7 +165,7 @@ class VectorUtils:
         client_account_id: str,
         limit: int = 5,
         similarity_threshold: float = 0.7
-    ) -> List[Tuple[AssetClassificationPattern, float]]:
+    ) -> List:
         """
         Find similar asset classification patterns.
         
@@ -177,83 +178,7 @@ class VectorUtils:
         Returns:
             List of (pattern, similarity_score) tuples
         """
-        try:
-            # Generate embedding for asset name
-            query_embedding = await self.embedding_service.embed_text(asset_name)
-            
-            async with AsyncSessionLocal() as session:
-                # Use pgvector cosine similarity search
-                query = text("""
-                    SELECT 
-                        id,
-                        client_account_id,
-                        engagement_id,
-                        pattern_name,
-                        pattern_type,
-                        asset_name_pattern,
-                        predicted_asset_type,
-                        predicted_application_type,
-                        predicted_technology_stack,
-                        confidence_score,
-                        success_count,
-                        failure_count,
-                        accuracy_rate,
-                        learning_source,
-                        created_at,
-                        updated_at,
-                        (asset_name_embedding <=> $1::vector) as similarity_distance
-                    FROM migration.asset_classification_patterns 
-                    WHERE client_account_id = $2
-                    AND asset_name_embedding IS NOT NULL
-                    AND (asset_name_embedding <=> $1::vector) < $3
-                    ORDER BY asset_name_embedding <=> $1::vector
-                    LIMIT $4
-                """)
-                
-                # Convert similarity threshold to distance threshold
-                distance_threshold = 1.0 - similarity_threshold
-                
-                # Convert embedding to string format for pgvector
-                embedding_str = '[' + ','.join(map(str, query_embedding)) + ']'
-                
-                result = await session.execute(
-                    query,
-                    (embedding_str, client_account_id, distance_threshold, limit)
-                )
-                
-                patterns_with_similarity = []
-                for row in result.fetchall():
-                    # Convert distance back to similarity
-                    similarity = 1.0 - row.similarity_distance
-                    
-                    # Create pattern object from row data
-                    pattern = AssetClassificationPattern(
-                        id=row.id,
-                        client_account_id=row.client_account_id,
-                        engagement_id=row.engagement_id,
-                        pattern_name=row.pattern_name,
-                        pattern_type=row.pattern_type,
-                        asset_name_pattern=row.asset_name_pattern,
-                        predicted_asset_type=row.predicted_asset_type,
-                        predicted_application_type=row.predicted_application_type,
-                        predicted_technology_stack=row.predicted_technology_stack,
-                        confidence_score=row.confidence_score,
-                        success_count=row.success_count,
-                        failure_count=row.failure_count,
-                        accuracy_rate=row.accuracy_rate,
-                        learning_source=row.learning_source,
-                        created_at=row.created_at,
-                        updated_at=row.updated_at
-                    )
-                    
-                    patterns_with_similarity.append((pattern, similarity))
-                
-                logger.debug(f"Found {len(patterns_with_similarity)} similar asset patterns for '{asset_name}'")
-                return patterns_with_similarity
-                
-        except Exception as e:
-            logger.error(f"Error finding similar asset patterns: {e}")
-            return []
+        return []
     
     def calculate_cosine_similarity(self, vec1: List[float], vec2: List[float]) -> float:
         """
@@ -301,18 +226,17 @@ class VectorUtils:
                         logger.debug(f"Updated mapping pattern {pattern_id} performance: success={was_successful}")
                 
                 elif pattern_type == "classification":
-                    pattern = await session.get(AssetClassificationPattern, pattern_id)
+                    pattern = await session.get(MappingLearningPattern, pattern_id)
                     if pattern:
                         if was_successful:
                             pattern.success_count += 1
                         else:
                             pattern.failure_count += 1
                         
-                        # Recalculate accuracy rate
+                        # Recalculate confidence score
                         total_uses = pattern.success_count + pattern.failure_count
                         if total_uses > 0:
-                            pattern.accuracy_rate = pattern.success_count / total_uses
-                            pattern.confidence_score = pattern.accuracy_rate
+                            pattern.confidence_score = pattern.success_count / total_uses
                         
                         await session.commit()
                         logger.debug(f"Updated classification pattern {pattern_id} performance: success={was_successful}")
@@ -361,7 +285,7 @@ class VectorUtils:
                 
                 # Find poorly performing classification patterns
                 classification_query = text("""
-                    DELETE FROM migration.asset_classification_patterns
+                    DELETE FROM migration.mapping_learning_patterns
                     WHERE client_account_id = :client_account_id
                     AND (success_count + failure_count) >= :min_uses
                     AND (failure_count::float / (success_count + failure_count)) > :max_failure_rate

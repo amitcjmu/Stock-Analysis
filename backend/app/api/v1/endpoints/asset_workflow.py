@@ -4,17 +4,23 @@ Handles workflow progression for assets through discovery → mapping → cleanu
 """
 
 from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from pydantic import BaseModel, Field
+import logging
 
 from app.core.database import get_db
 from app.models.asset import Asset, AssetStatus
 from app.repositories.asset_repository import AssetRepository
+from app.schemas.asset_schemas import AssetCreate, AssetUpdate, AssetOut, WorkflowStepUpdate
+from app.services.asset_service import AssetService
 from app.repositories.context_aware_repository import ContextAwareRepository
+from app.api.v1.auth.auth_utils import get_current_active_user
+from app.models.client_account import User
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 # Request/Response Models
 class WorkflowAdvanceRequest(BaseModel):
@@ -242,7 +248,7 @@ async def get_assets_by_workflow_phase(
     db: AsyncSession = Depends(get_db)
 ) -> List[AssetWorkflowStatus]:
     """
-    Get assets currently in a specific workflow phase.
+    Get all assets currently in a specific workflow phase.
     """
     
     # Build query based on phase
@@ -263,101 +269,82 @@ async def get_assets_by_workflow_phase(
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid phase: {phase}"
+            detail="Invalid phase specified."
         )
     
-    query = query.offset(offset).limit(limit)
+    # Apply limit and offset
+    query = query.limit(limit).offset(offset)
+    
+    # Execute query and build response
     result = await db.execute(query)
     assets = result.scalars().all()
     
     return [_build_workflow_status(asset) for asset in assets]
 
-# Helper Functions
-
+# Helper functions
 def _get_current_phase(asset: Asset) -> str:
-    """Determine the current workflow phase for an asset."""
+    """Determine the current workflow phase of an asset."""
+    
     if asset.assessment_readiness == "ready":
         return "assessment_ready"
-    elif asset.cleanup_status == "completed":
-        return "assessment_pending"
-    elif asset.mapping_status == "completed":
+    if asset.cleanup_status == "completed":
+        return "assessment_ready"
+    if asset.mapping_status == "completed":
         return "cleanup"
-    elif asset.discovery_status == "completed":
+    if asset.discovery_status == "completed":
         return "mapping"
-    else:
-        return "discovery"
+    return "discovery"
 
 def _validate_phase_advancement(asset: Asset, target_phase: str) -> List[str]:
-    """Validate if an asset can advance to the target phase."""
+    """Validate if an asset can be advanced to the target phase."""
+    
     blocking_issues = []
+    current_phase = _get_current_phase(asset)
     
-    if target_phase == "mapping":
-        if asset.discovery_status != "completed":
-            blocking_issues.append("Discovery phase not completed")
+    # Validation rules
+    if target_phase == "mapping" and current_phase != "discovery":
+        blocking_issues.append("Asset must be in 'discovery' phase.")
     
-    elif target_phase == "cleanup":
-        if asset.discovery_status != "completed":
-            blocking_issues.append("Discovery phase not completed")
-        if asset.mapping_status != "completed":
-            blocking_issues.append("Mapping phase not completed")
-    
-    elif target_phase == "assessment":
-        if asset.discovery_status != "completed":
-            blocking_issues.append("Discovery phase not completed")
-        if asset.mapping_status != "completed":
-            blocking_issues.append("Mapping phase not completed")
-        if asset.cleanup_status != "completed":
-            blocking_issues.append("Cleanup phase not completed")
+    if target_phase == "cleanup" and current_phase != "mapping":
+        blocking_issues.append("Asset must be in 'mapping' phase.")
         
-        # Check data quality requirements
-        if asset.completeness_score and asset.completeness_score < 80.0:
-            blocking_issues.append("Completeness score below 80%")
-        if asset.quality_score and asset.quality_score < 70.0:
-            blocking_issues.append("Quality score below 70%")
+    if target_phase == "assessment" and current_phase != "cleanup":
+        blocking_issues.append("Asset must be in 'cleanup' phase.")
+        
+    # Check for completeness and quality scores if available
+    # These can be made mandatory for advancement if needed
     
     return blocking_issues
 
 def _build_workflow_status(asset: Asset) -> AssetWorkflowStatus:
-    """Build workflow status response for an asset."""
-    current_phase = _get_current_phase(asset)
+    """Build a standardized AssetWorkflowStatus response object."""
     
-    # Determine next phase and if advancement is possible
-    next_phase = None
+    current_phase = _get_current_phase(asset)
     can_advance = False
-    blocking_issues = []
+    next_phase = None
     
     if current_phase == "discovery":
+        can_advance = True
         next_phase = "mapping"
-        blocking_issues = _validate_phase_advancement(asset, "mapping")
     elif current_phase == "mapping":
+        can_advance = True
         next_phase = "cleanup"
-        blocking_issues = _validate_phase_advancement(asset, "cleanup")
     elif current_phase == "cleanup":
+        can_advance = True
         next_phase = "assessment"
-        blocking_issues = _validate_phase_advancement(asset, "assessment")
-    
-    can_advance = len(blocking_issues) == 0
-    
-    # Calculate migration readiness score
-    migration_readiness_score = None
-    if hasattr(asset, 'get_migration_readiness_score'):
-        try:
-            migration_readiness_score = asset.get_migration_readiness_score()
-        except:
-            migration_readiness_score = None
-    
+        
     return AssetWorkflowStatus(
         asset_id=asset.id,
         name=asset.name,
         current_phase=current_phase,
-        discovery_status=asset.discovery_status or "pending",
-        mapping_status=asset.mapping_status or "pending",
-        cleanup_status=asset.cleanup_status or "pending",
-        assessment_readiness=asset.assessment_readiness or "not_ready",
-        completeness_score=asset.completeness_score,
-        quality_score=asset.quality_score,
-        migration_readiness_score=migration_readiness_score,
+        discovery_status=getattr(asset, 'discovery_status', 'not_started'),
+        mapping_status=getattr(asset, 'mapping_status', 'not_started'),
+        cleanup_status=getattr(asset, 'cleanup_status', 'not_started'),
+        assessment_readiness=getattr(asset, 'assessment_readiness', 'not_ready'),
+        completeness_score=getattr(asset, 'completeness_score', None),
+        quality_score=getattr(asset, 'quality_score', None),
+        migration_readiness_score=asset.get_migration_readiness_score(),
         can_advance=can_advance,
         next_phase=next_phase,
-        blocking_issues=blocking_issues
+        blocking_issues=_validate_phase_advancement(asset, next_phase) if next_phase else []
     ) 

@@ -413,6 +413,9 @@ class ClientDashboardStats(BaseModel):
     clients_by_cloud_provider: Dict[str, int]
     recent_client_registrations: List[ClientAccountResponse]
 
+    class Config:
+        from_attributes = True
+
 class EngagementDashboardStats(BaseModel):
     """Schema for engagement dashboard statistics."""
     total_engagements: int
@@ -421,6 +424,9 @@ class EngagementDashboardStats(BaseModel):
     engagements_by_status: Dict[str, int]
     avg_engagement_duration_days: float
     recent_engagements: List[EngagementResponse]
+
+    class Config:
+        from_attributes = True
 
 class SessionDashboardStats(BaseModel):
     """Schema for session dashboard statistics."""
@@ -432,13 +438,16 @@ class SessionDashboardStats(BaseModel):
     total_assets_processed: int
     recent_session_activity: List[SessionResponse]
 
+    class Config:
+        from_attributes = True
+
 class UserDashboardStats(BaseModel):
     total_users: int
     active_users: int
 
-# =========================
-# Error Response Schemas
-# =========================
+# ==================================
+# Generic/Utility Schemas for Admin
+# ==================================
 
 class AdminErrorResponse(BaseModel):
     """Schema for admin error responses."""
@@ -453,10 +462,6 @@ class AdminSuccessResponse(BaseModel):
     status: str = "success"
     message: str
     data: Optional[Union[ClientAccountResponse, EngagementResponse, SessionResponse, Dict[str, Any]]] = None
-
-# =========================
-# Pagination Schemas
-# =========================
 
 class AdminPaginationParams(BaseModel):
     """Schema for admin pagination parameters."""
@@ -473,4 +478,7 @@ class PaginatedResponse(BaseModel):
     current_page: int
     page_size: int
     has_next: bool
-    has_previous: bool 
+    has_previous: bool
+
+    class Config:
+        from_attributes = True 

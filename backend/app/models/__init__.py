@@ -4,11 +4,11 @@ Imports all models to ensure they are registered with SQLAlchemy.
 """
 
 from .migration import Migration, MigrationLog, MigrationStatus, MigrationPhase
-from .asset import Asset, AssetDependency, AssetType as LegacyAssetType, AssetStatus as LegacyAssetStatus, SixRStrategy as LegacySixRStrategy
+from .asset import Asset, AssetDependency, AssetType, AssetStatus, SixRStrategy, MigrationWave, WorkflowProgress
 from .assessment import Assessment, WavePlan, AssessmentType, AssessmentStatus, RiskLevel
 from .sixr_analysis import (
-    SixRAnalysis as LegacySixRAnalysis, SixRParameters, SixRIteration, SixRRecommendation,
-    SixRQuestion, SixRQuestionResponse
+    SixRParameters, SixRIteration, SixRRecommendation,
+    SixRQuestion, SixRQuestionResponse, SixRAnalysis
 )
 
 # New multi-tenant models (primary imports)
@@ -22,14 +22,17 @@ except ImportError:
     User = None
     UserAccountAssociation = None
 
-from .asset import Asset, AssetType, AssetStatus, SixRStrategy
-# Removed CMDBAsset imports - now using unified Asset model
 from .tags import Tag, AssetEmbedding, AssetTag
 from .data_import import (
-    DataImport, RawImportRecord, ImportProcessingStep, ImportFieldMapping, 
-    DataQualityIssue, ImportStatus, ImportType
+    DataImportSession,
+    DataImport,
+    RawImportRecord,
+    ImportProcessingStep,
+    ImportFieldMapping,
+    DataQualityIssue,
+    ImportStatus,
+    ImportType
 )
-from .data_import_session import DataImportSession
 from .feedback import Feedback, FeedbackSummary
 
 # RBAC models (conditional import)
@@ -65,20 +68,7 @@ except ImportError:
     LLMModelPricing = None
     LLMUsageSummary = None
 
-# Learning Pattern models (conditional import)
-try:
-    from .learning_patterns import (
-        MappingLearningPattern, AssetClassificationPattern, ConfidenceThreshold,
-        UserFeedbackEvent, LearningStatistics
-    )
-    LEARNING_PATTERNS_AVAILABLE = True
-except ImportError:
-    LEARNING_PATTERNS_AVAILABLE = False
-    MappingLearningPattern = None
-    AssetClassificationPattern = None
-    ConfidenceThreshold = None
-    UserFeedbackEvent = None
-    LearningStatistics = None
+# Learning Pattern models are now part of data_import
 
 __all__ = [
     # Migration models
@@ -87,12 +77,14 @@ __all__ = [
     "MigrationStatus",
     "MigrationPhase",
     
-    # Legacy Asset models
+    # Asset models
     "Asset",
     "AssetDependency",
-    "LegacyAssetType", 
-    "LegacyAssetStatus",
-    "LegacySixRStrategy",
+    "AssetType", 
+    "AssetStatus",
+    "SixRStrategy",
+    "MigrationWave",
+    "WorkflowProgress",
     
     # Assessment models
     "Assessment",
@@ -101,19 +93,13 @@ __all__ = [
     "AssessmentStatus", 
     "RiskLevel",
     
-    # Legacy 6R Analysis models
-    "LegacySixRAnalysis",
+    # 6R Analysis models
+    "SixRAnalysis",
     "SixRParameters",
     "SixRIteration",
     "SixRRecommendation",
     "SixRQuestion",
     "SixRQuestionResponse",
-    
-    # CMDB models (always available)
-    "Asset",         # Unified asset model
-    "AssetType",     # From unified Asset model
-    "AssetStatus",   # From unified Asset model
-    "SixRStrategy",  # From unified Asset model
     
     # Tags and embeddings
     "Tag",
@@ -132,7 +118,7 @@ __all__ = [
     
     # Feedback models
     "Feedback",
-    "FeedbackSummary"
+    "FeedbackSummary",
 ]
 
 # Add client account models only if available
@@ -169,14 +155,4 @@ if LLM_USAGE_AVAILABLE:
         "LLMUsageLog",
         "LLMModelPricing", 
         "LLMUsageSummary"
-    ])
-
-# Add Learning Pattern models only if available
-if LEARNING_PATTERNS_AVAILABLE:
-    __all__.extend([
-        "MappingLearningPattern",
-        "AssetClassificationPattern",
-        "ConfidenceThreshold",
-        "UserFeedbackEvent",
-        "LearningStatistics"
     ]) 

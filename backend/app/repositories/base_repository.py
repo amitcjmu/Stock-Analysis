@@ -319,59 +319,59 @@ class ContextAwareRepository(Generic[ModelType], ABC):
             return False
 
 
-class CMDBAssetRepository(ContextAwareRepository):
-    """Repository for CMDB Asset operations with context awareness."""
+class AssetRepository(ContextAwareRepository):
+    """Repository for Asset operations with context awareness."""
     
     async def find_by_asset_type(self, asset_type: str) -> List:
         """Find assets by asset type."""
-        from app.models.cmdb_asset import CMDBAsset, AssetType
+        from app.models.asset import Asset, AssetType
         
         return await self.find_by_criteria(
-            CMDBAsset,
+            Asset,
             {"asset_type": AssetType(asset_type)}
         )
     
     async def find_by_six_r_strategy(self, strategy: str) -> List:
         """Find assets by 6R migration strategy."""
-        from app.models.cmdb_asset import CMDBAsset, SixRStrategy
+        from app.models.asset import Asset, SixRStrategy
         
         return await self.find_by_criteria(
-            CMDBAsset,
+            Asset,
             {"six_r_strategy": SixRStrategy(strategy)}
         )
     
     async def find_by_migration_wave(self, wave_number: int) -> List:
         """Find assets by migration wave."""
-        from app.models.cmdb_asset import CMDBAsset
+        from app.models.asset import Asset
         
         return await self.find_by_criteria(
-            CMDBAsset,
+            Asset,
             {"migration_wave": wave_number}
         )
     
     async def find_critical_assets(self) -> List:
         """Find assets marked as critical."""
-        from app.models.cmdb_asset import CMDBAsset
+        from app.models.asset import Asset
         
         return await self.find_by_criteria(
-            CMDBAsset,
+            Asset,
             {"criticality": "Critical"}
         )
     
     async def get_asset_summary(self) -> Dict[str, Any]:
         """Get summary statistics for assets."""
-        from app.models.cmdb_asset import CMDBAsset, AssetType, SixRStrategy
+        from app.models.asset import Asset, AssetType, SixRStrategy
         
         try:
             # Get total count
-            total_assets = await self.count(CMDBAsset)
+            total_assets = await self.count(Asset)
             
             # Get counts by asset type
             type_counts = {}
             for asset_type in AssetType:
                 count = await self.count(
-                    CMDBAsset,
-                    [CMDBAsset.asset_type == asset_type]
+                    Asset,
+                    [Asset.asset_type == asset_type]
                 )
                 type_counts[asset_type.value] = count
             
@@ -379,23 +379,23 @@ class CMDBAssetRepository(ContextAwareRepository):
             strategy_counts = {}
             for strategy in SixRStrategy:
                 count = await self.count(
-                    CMDBAsset,
-                    [CMDBAsset.six_r_strategy == strategy]
+                    Asset,
+                    [Asset.six_r_strategy == strategy]
                 )
                 strategy_counts[strategy.value] = count
             
             # Get cost summary
-            filters = self._get_base_filters(CMDBAsset)
-            if self.demo_mode and hasattr(CMDBAsset, 'is_mock'):
-                has_real = await self._has_real_data(CMDBAsset)
+            filters = self._get_base_filters(Asset)
+            if self.demo_mode and hasattr(Asset, 'is_mock'):
+                has_real = await self._has_real_data(Asset)
                 if not has_real:
-                    filters.append(CMDBAsset.is_mock == True)
+                    filters.append(Asset.is_mock == True)
                 else:
-                    filters.append(CMDBAsset.is_mock == False)
+                    filters.append(Asset.is_mock == False)
             
             cost_query = select(
-                func.sum(CMDBAsset.current_monthly_cost).label('total_current_cost'),
-                func.sum(CMDBAsset.estimated_cloud_cost).label('total_estimated_cost')
+                func.sum(Asset.current_monthly_cost).label('total_current_cost'),
+                func.sum(Asset.estimated_cloud_cost).label('total_estimated_cost')
             )
             
             if filters:

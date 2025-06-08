@@ -13,8 +13,9 @@ import logging
 from app.core.database import get_db
 from app.core.context import get_current_context, RequestContext
 from app.models.data_import import (
-    DataImport, RawImportRecord, ImportFieldMapping, CustomTargetField, MappingLearningPattern, ImportStatus
+    DataImport, RawImportRecord, ImportFieldMapping, ImportStatus
 )
+from app.models.learning_patterns import MappingLearningPattern
 from app.models.asset import Asset
 from .utilities import (
     check_content_pattern_match, apply_matching_rules, matches_data_type,

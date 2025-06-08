@@ -32,8 +32,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, text
 from app.core.database import AsyncSessionLocal
 from app.models.asset import Asset
-from app.models.data_import import DataImport, RawImportRecord
-from app.models.learning_patterns import MappingLearningPattern, AssetClassificationPattern
+from app.models.data_import import DataImport, RawImportRecord, MappingLearningPattern
 
 class DiscoveryWorkflowTester:
     """Comprehensive end-to-end discovery workflow tester."""
@@ -113,15 +112,11 @@ class DiscoveryWorkflowTester:
                 mapping_count = await session.execute(select(func.count(MappingLearningPattern.id)))
                 total_mapping_patterns = mapping_count.scalar()
                 
-                classification_count = await session.execute(select(func.count(AssetClassificationPattern.id)))
-                total_classification_patterns = classification_count.scalar()
-                
                 baseline = {
                     "assets": total_assets,
                     "data_imports": total_imports,
                     "raw_import_records": total_raw,
                     "mapping_patterns": total_mapping_patterns,
-                    "classification_patterns": total_classification_patterns,
                     "timestamp": datetime.now().isoformat()
                 }
                 
@@ -132,7 +127,6 @@ class DiscoveryWorkflowTester:
                 print(f"   Data Imports: {total_imports}")
                 print(f"   Raw Import Records: {total_raw}")
                 print(f"   Mapping Patterns: {total_mapping_patterns}")
-                print(f"   Classification Patterns: {total_classification_patterns}")
                 
         except Exception as e:
             error_msg = f"Failed to capture database baseline: {e}"

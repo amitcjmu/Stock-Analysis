@@ -78,6 +78,8 @@ except Exception as e:
 # Try to import database components
 try:
     from app.core.database import engine, Base, SQLALCHEMY_AVAILABLE
+    from app.models.client_account import ClientAccount
+    from app.models.data_import import *
     DATABASE_ENABLED = SQLALCHEMY_AVAILABLE
     print("✅ Database components loaded")
 except Exception as e:
@@ -243,61 +245,42 @@ async def health_check():
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize database and services on startup."""
-    print("🚀 AI Force Migration Platform API starting...")
+    """
+    Application startup event.
+    Initializes services and creates database tables.
+    """
+    print("🚀 Application starting up...")
     
-    if DATABASE_ENABLED and engine:
+    # Initialize services here if needed
+    
+    print("✅ Startup logic completed.")
+
+    # Create database tables
+    if DATABASE_ENABLED:
         try:
-            # Create database tables
-            async with engine.begin() as conn:
-                await conn.run_sync(Base.metadata.create_all)
-            print("✅ Database tables created successfully!")
+            print("🔧 Initializing database schema...")
+            # Enable detailed SQLAlchemy logging
+            import logging
+            logging.basicConfig()
+            logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
             
-            # Run post-deploy schema fix if on Railway
-            try:
-                import sys
-                import os
-                sys.path.append(os.path.join(os.path.dirname(__file__), 'scripts'))
-                from post_deploy_fix import fix_railway_schema
-                
-                # Only run schema fix if DATABASE_URL is present (Railway environment)
-                if os.getenv('DATABASE_URL'):
-                    print("🔧 Running Railway schema fix...")
-                    schema_success = await fix_railway_schema()
-                    if schema_success:
-                        print("✅ Railway schema fix completed successfully!")
-                    else:
-                        print("⚠️  Railway schema fix had issues - check logs")
-                else:
-                    print("ℹ️  Localhost environment - skipping Railway schema fix")
-            except Exception as schema_e:
-                print(f"⚠️  Schema fix failed: {schema_e}")
-                # Don't fail startup - this is optional
+            # Check what tables SQLAlchemy knows about
+            table_names = list(Base.metadata.tables.keys())
+            print(f"SQLAlchemy metadata has {len(table_names)} tables registered.")
+            print(f"Registered tables: {table_names}")
+
+            # Use a synchronous connection to create tables
+            # The async version was causing issues during initial setup
+            from sqlalchemy import create_engine
+            sync_engine = create_engine(settings.DATABASE_URL.replace("postgresql+asyncpg", "postgresql"))
+            Base.metadata.create_all(bind=sync_engine)
             
-            # Resolve demo client context (Task 1.2.4)
-            try:
-                from app.core.database import AsyncSessionLocal
-                from app.core.context import resolve_demo_client_ids
-                
-                async with AsyncSessionLocal() as session:
-                    await resolve_demo_client_ids(session)
-                print("✅ Demo client context resolved")
-            except Exception as context_e:
-                print(f"⚠️  Demo client context resolution failed: {context_e}")
-                
+            print("✅✅✅ Database schema initialization command executed successfully.")
+            
         except Exception as e:
-            print(f"⚠️  Database initialization failed: {e}")
-            # Don't fail startup, just log the error
-    else:
-        print("⚠️  Database not available - running in limited mode")
-    
-    print(f"📊 Components Status:")
-    print(f"   - Database: {'Enabled' if DATABASE_ENABLED else 'Disabled'}")
-    print(f"   - WebSocket: {'Enabled' if WEBSOCKET_ENABLED else 'Disabled'}")
-    print(f"   - API Routes: {'Enabled' if API_ROUTES_ENABLED else 'Disabled'}")
-    print(f"🌐 Frontend URL: {getattr(settings, 'FRONTEND_URL', 'Not configured')}")
-    print(f"📝 API Documentation: http://localhost:8000/docs")
-    print("✅ Startup completed successfully!")
+            print(f"❌❌❌ Database schema initialization failed: {e}")
+            import traceback
+            traceback.print_exc()
 
 if WEBSOCKET_ENABLED:
     @app.websocket("/ws/{client_id}")

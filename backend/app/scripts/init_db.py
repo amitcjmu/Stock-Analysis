@@ -11,17 +11,18 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Any
 import json
 import uuid
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text, select
 
 # Add the parent directory to the path so we can import our app modules
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
 try:
-    from sqlalchemy.ext.asyncio import AsyncSession
     from app.core.database import engine, AsyncSessionLocal, init_db
     from app.models.client_account import ClientAccount, Engagement, User, UserAccountAssociation
-    from app.models.cmdb_asset import CMDBAsset, AssetType, AssetStatus, SixRStrategy, MigrationWave
-    from app.models.sixr_analysis import SixRAnalysis
-    from app.models.tags import Tag, CMDBAssetEmbedding, AssetTag
+    from app.models.asset import Asset, AssetType, AssetStatus, SixRStrategy, MigrationWave
+    # from app.models.sixr_analysis import SixRAnalysis
+    from app.models.tags import Tag, AssetEmbedding, AssetTag
     import bcrypt
     import numpy as np
     DEPENDENCIES_AVAILABLE = True
@@ -111,8 +112,8 @@ MOCK_DATA = {
         {"name": "Compliance Required", "category": "migration", "description": "Regulatory compliance requirements"}
     ],
     
-    # CMDB Assets based on typical enterprise infrastructure
-    "cmdb_assets": [
+    # Assets based on typical enterprise infrastructure
+    "assets": [
         # Servers
         {
             "name": "DC-WEB-01",
@@ -248,617 +249,416 @@ MOCK_DATA = {
             "migration_wave": 1,
             "sixr_ready": "Needs Analysis",
             "discovery_method": "manual_entry",
-            "discovery_source": "Security Audit"
+            "discovery_source": "Manual Entry"
         },
-        # Storage Systems
+        # Storage
         {
-            "name": "SAN-01",
-            "hostname": "san-01.democorp.local",
+            "name": "SAN-STORAGE-01",
+            "hostname": "san-01",
             "asset_type": AssetType.STORAGE,
-            "description": "Primary SAN storage for database systems",
-            "ip_address": "192.168.1.50",
+            "description": "Primary storage area network for VMs",
+            "ip_address": "192.168.1.5",
             "environment": "Production",
             "location": "Data Center 1",
-            "operating_system": "NetApp ONTAP",
-            "storage_gb": 10000,
+            "operating_system": "Dell EMC PowerStoreOS",
             "business_owner": "Storage Team",
-            "department": "Infrastructure", 
-            "technology_stack": "NetApp FAS2750",
-            "criticality": "Critical",
+            "department": "Infrastructure",
+            "technology_stack": "Dell EMC PowerStore 9200T",
+            "criticality": "High",
             "status": AssetStatus.DISCOVERED,
             "six_r_strategy": SixRStrategy.REPLATFORM,
             "migration_complexity": "High",
             "migration_wave": 2,
             "sixr_ready": "Needs Analysis",
-            "discovery_method": "agent_scan",
-            "discovery_source": "Storage Discovery Tool"
-        },
-        # Legacy Systems
-        {
-            "name": "LEGACY-ERP-01",
-            "hostname": "legacy-erp-01",
-            "asset_type": AssetType.APPLICATION,
-            "description": "Legacy ERP system requiring modernization",
-            "ip_address": "192.168.2.10",
-            "environment": "Production",
-            "location": "Data Center 2",
-            "operating_system": "Windows Server 2012 R2",
-            "cpu_cores": 12,
-            "memory_gb": 48,
-            "storage_gb": 1500,
-            "business_owner": "Finance Team",
-            "department": "Finance",
-            "application_name": "Legacy ERP",
-            "technology_stack": "Oracle Forms, Oracle Database",
-            "criticality": "High",
-            "status": AssetStatus.DISCOVERED,
-            "six_r_strategy": SixRStrategy.REARCHITECT,
-            "migration_complexity": "High",
-            "migration_wave": 4,
-            "sixr_ready": "Complex Analysis Required",
-            "cpu_utilization_percent": 25.4,
-            "memory_utilization_percent": 55.8,
-            "current_monthly_cost": 3000.0,
-            "estimated_cloud_cost": 2200.0,
-            "discovery_method": "manual_entry",
-            "discovery_source": "Application Portfolio Review"
-        },
-        # Virtual Infrastructure
-        {
-            "name": "VMWARE-VCENTER",
-            "hostname": "vcenter.democorp.local",
-            "asset_type": AssetType.OTHER,
-            "description": "VMware vCenter managing virtual infrastructure",
-            "ip_address": "192.168.1.60",
-            "environment": "Production",
-            "location": "Data Center 1",
-            "operating_system": "VMware vSphere 7.0",
-            "cpu_cores": 8,
-            "memory_gb": 32,
-            "storage_gb": 500,
-            "business_owner": "Virtualization Team",
-            "department": "Infrastructure",
-            "technology_stack": "VMware vSphere 7.0, vCenter",
-            "criticality": "Critical",
-            "status": AssetStatus.DISCOVERED,
-            "six_r_strategy": SixRStrategy.REPLATFORM,
-            "migration_complexity": "High",
-            "migration_wave": 1,
-            "sixr_ready": "Complex Analysis Required",
-            "discovery_method": "api_discovery",
-            "discovery_source": "VMware API"
-        },
-        # Development/Test Systems
-        {
-            "name": "DEV-WEB-01",
-            "hostname": "dev-web-01.democorp.local",
-            "asset_type": AssetType.SERVER,
-            "description": "Development web server for testing",
-            "ip_address": "192.168.3.10",
-            "environment": "Development",
-            "location": "Data Center 1",
-            "operating_system": "Ubuntu 20.04",
-            "cpu_cores": 4,
-            "memory_gb": 8,
-            "storage_gb": 100,
-            "business_owner": "Development Team",
-            "department": "Engineering",
-            "application_name": "Dev Portal",
-            "technology_stack": "Node.js, React, MongoDB",
-            "criticality": "Low",
-            "status": AssetStatus.DISCOVERED,
-            "six_r_strategy": SixRStrategy.REHOST,
-            "migration_complexity": "Low",
-            "migration_wave": 1,
-            "sixr_ready": "Ready",
-            "cpu_utilization_percent": 15.2,
-            "memory_utilization_percent": 45.6,
-            "current_monthly_cost": 300.0,
-            "estimated_cloud_cost": 180.0,
-            "discovery_method": "agent_scan",
-            "discovery_source": "Azure Migrate"
-        },
-        # Monitoring and Management
-        {
-            "name": "MONITORING-01",
-            "hostname": "monitoring-01.democorp.local",
-            "asset_type": AssetType.APPLICATION,
-            "description": "Infrastructure monitoring and alerting system",
-            "ip_address": "192.168.1.70",
-            "environment": "Production",
-            "location": "Data Center 1",
-            "operating_system": "CentOS 8",
-            "cpu_cores": 6,
-            "memory_gb": 24,
-            "storage_gb": 750,
-            "business_owner": "Operations Team",
-            "department": "IT Operations",
-            "application_name": "Monitoring System",
-            "technology_stack": "Prometheus, Grafana, AlertManager",
-            "criticality": "High",
-            "status": AssetStatus.DISCOVERED,
-            "six_r_strategy": SixRStrategy.REHOST,
-            "migration_complexity": "Medium",
-            "migration_wave": 1,
-            "sixr_ready": "Ready",
-            "cpu_utilization_percent": 42.1,
-            "memory_utilization_percent": 67.8,
-            "current_monthly_cost": 600.0,
-            "estimated_cloud_cost": 450.0,
-            "discovery_method": "agent_scan",
-            "discovery_source": "Custom Discovery"
+            "discovery_method": "api_integration",
+            "discovery_source": "Dell EMC CloudIQ"
         }
     ]
 }
 
-# Mock embeddings for demonstration (in production, these would be generated by DeepInfra)
+
 def generate_mock_embedding(text: str) -> List[float]:
-    """Generate a mock embedding vector for demo purposes."""
-    # Use text hash to create consistent mock embeddings
-    text_hash = hash(text) 
-    np.random.seed(abs(text_hash) % 2**32)
-    return np.random.normal(0, 1, 1536).tolist()
+    """Generates a consistent, fake vector embedding for mock data."""
+    # Use a simple hashing method to create a deterministic "random" vector
+    np.random.seed(abs(hash(text)) % (2**32 - 1))
+    return np.random.rand(1536).tolist()
+
 
 async def create_mock_client_account(session: AsyncSession) -> str:
-    """Create mock client account and return its ID."""
+    """Creates mock client account if it doesn't exist."""
+    
     client_data = MOCK_DATA["client_accounts"][0]
     
-    client_account = ClientAccount(
-        name=client_data["name"],
-        slug=client_data["slug"],
-        description=client_data["description"],
-        industry=client_data["industry"],
-        company_size=client_data["company_size"],
-        subscription_tier=client_data["subscription_tier"],
-        billing_contact_email=client_data["billing_contact_email"],
-        is_mock=True
+    existing_client_result = await session.execute(
+        text(f"SELECT id FROM client_accounts WHERE slug = '{client_data['slug']}'")
     )
+    existing_client_row = existing_client_result.first()
+    if existing_client_row:
+        logger.info(f"Client account '{client_data['name']}' already exists.")
+        return str(existing_client_row[0])
     
-    session.add(client_account)
-    await session.flush()  # Get the ID
-    logger.info(f"Created mock client account: {client_account.name}")
-    return str(client_account.id)
+    new_client = ClientAccount(**client_data, is_mock=True)
+    session.add(new_client)
+    await session.flush()
+    await session.refresh(new_client)
+    
+    logger.info(f"Created mock client account: {new_client.name}")
+    return str(new_client.id)
+
 
 async def create_mock_users(session: AsyncSession, client_account_id: str) -> List[str]:
-    """Create mock users and return their IDs."""
-    user_ids = []
+    """Creates mock users and associates them with the client account."""
+    user_ids = {}
     
     for user_data in MOCK_DATA["users"]:
-        # Hash password
-        password_hash = bcrypt.hashpw(user_data["password"].encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        
+        existing_user_result = await session.execute(
+            text(f"SELECT id FROM users WHERE email = '{user_data['email']}'")
+        )
+        existing_user_row = existing_user_result.first()
+        if existing_user_row:
+            user_id = str(existing_user_row[0])
+            user_ids[user_data['email']] = user_id
+            logger.info(f"User with email '{user_data['email']}' already exists.")
+            
+            # Check for association
+            assoc_stmt = text(f"SELECT 1 FROM user_account_associations WHERE user_id = '{user_id}' AND client_account_id = '{client_account_id}'")
+            existing_assoc = await session.execute(assoc_stmt)
+            if not existing_assoc.first():
+                 association = UserAccountAssociation(
+                    user_id=user_id,
+                    client_account_id=client_account_id,
+                    role="admin" if "admin" in user_data["email"] else "member"
+                )
+                 session.add(association)
+            continue
+
+        hashed_password = bcrypt.hashpw(
+            user_data["password"].encode('utf-8'), 
+            bcrypt.gensalt()
+        ).decode('utf-8')
         
         user = User(
             email=user_data["email"],
-            password_hash=password_hash,
+            password_hash=hashed_password,
             first_name=user_data["first_name"],
             last_name=user_data["last_name"],
-            is_verified=user_data["is_verified"],
+            is_verified=user_data.get("is_verified", False),
+            is_active=True,
             is_mock=True
         )
         
         session.add(user)
-        await session.flush()
+        await session.flush() # Flush to get the user.id
+        await session.refresh(user)
         
-        # Create user-account association
+        # Associate user with the client account
         association = UserAccountAssociation(
             user_id=user.id,
             client_account_id=client_account_id,
-            role="admin" if "admin" in user_data["email"] else "member",
-            is_mock=True
+            role="admin" if "admin" in user.email else "member"
         )
         session.add(association)
         
-        user_ids.append(str(user.id))
+        user_ids[user_data['email']] = str(user.id)
         logger.info(f"Created mock user: {user.email}")
     
     return user_ids
 
+
 async def create_mock_engagement(session: AsyncSession, client_account_id: str, user_id: str) -> str:
-    """Create mock engagement and return its ID."""
+    """Creates a mock engagement for the demo client."""
     engagement_data = MOCK_DATA["engagements"][0]
     
+    # Check if engagement already exists
+    existing_engagement_id = await session.execute(
+        select(Engagement.id).where(
+            Engagement.slug == engagement_data["slug"],
+            Engagement.client_account_id == uuid.UUID(client_account_id)
+        )
+    )
+    if existing_engagement_id.scalar_one_or_none():
+        logger.info(f"Mock engagement '{engagement_data['name']}' already exists.")
+        return str(existing_engagement_id.scalar_one())
+
     engagement = Engagement(
-        client_account_id=client_account_id,
+        id=uuid.uuid4(),
+        client_account_id=uuid.UUID(client_account_id),
         name=engagement_data["name"],
         slug=engagement_data["slug"],
         description=engagement_data["description"],
         engagement_type=engagement_data["engagement_type"],
         status=engagement_data["status"],
         priority=engagement_data["priority"],
-        start_date=datetime.utcnow(),
-        target_completion_date=datetime.utcnow() + timedelta(days=365),
-        engagement_lead_id=user_id,
         client_contact_name=engagement_data["client_contact_name"],
         client_contact_email=engagement_data["client_contact_email"],
-        is_mock=True,
-        created_by=user_id
+        created_by=uuid.UUID(user_id) if user_id else None,
+        is_mock=True
     )
-    
     session.add(engagement)
     await session.flush()
     logger.info(f"Created mock engagement: {engagement.name}")
     return str(engagement.id)
 
-async def create_mock_tags(session: AsyncSession) -> Dict[str, str]:
-    """Create mock tags and return mapping of names to IDs."""
+
+async def create_mock_tags(session: AsyncSession, client_account_id: str) -> Dict[str, str]:
+    """Creates mock tags based on predefined list."""
     tag_ids = {}
-    
     for tag_data in MOCK_DATA["tags"]:
-        # Generate mock embedding for the tag
-        embedding_text = f"{tag_data['name']} {tag_data['description']}"
-        mock_embedding = generate_mock_embedding(embedding_text)
-        
+        # Check if tag exists
+        existing_tag_id = await session.execute(
+            select(Tag.id).where(Tag.name == tag_data["name"])
+        )
+        if existing_tag_id.scalar_one_or_none():
+            logger.info(f"Mock tag '{tag_data['name']}' already exists.")
+            tag_ids[tag_data["name"]] = str(existing_tag_id.scalar_one())
+            continue
+            
         tag = Tag(
+            id=uuid.uuid4(),
+            client_account_id=uuid.UUID(client_account_id),
             name=tag_data["name"],
             category=tag_data["category"],
             description=tag_data["description"],
-            reference_embedding=json.dumps(mock_embedding),  # Convert list to JSON string
-            confidence_threshold=0.7,
-            is_active=True,
-            usage_count=0
+            is_mock=True,
+            # Placeholder for embedding - ensure it is not a string
+            reference_embedding=generate_mock_embedding(tag_data["name"]),
         )
-        
         session.add(tag)
         await session.flush()
-        tag_ids[tag.name] = str(tag.id)
-        logger.info(f"Created mock tag: {tag.name}")
-    
+        tag_ids[tag_data["name"]] = str(tag.id)
+    logger.info(f"Created {len(tag_ids)} mock tags.")
     return tag_ids
 
-async def create_mock_cmdb_assets(session: AsyncSession, client_account_id: str, engagement_id: str, user_id: str, tag_ids: Dict[str, str]) -> List[str]:
-    """Create mock CMDB assets with embeddings and tags."""
+
+async def create_mock_assets(session: AsyncSession, client_account_id: str, engagement_id: str, user_id: str, tag_ids: Dict[str, str]) -> List[str]:
     asset_ids = []
     
-    for asset_data in MOCK_DATA["cmdb_assets"]:
-        # Create the asset
-        asset = CMDBAsset(
-            client_account_id=client_account_id,
-            engagement_id=engagement_id,
-            name=asset_data["name"],
-            hostname=asset_data.get("hostname"),
-            asset_type=asset_data["asset_type"],
-            description=asset_data["description"],
-            ip_address=asset_data.get("ip_address"),
-            fqdn=asset_data.get("fqdn"),
-            environment=asset_data["environment"],
-            location=asset_data.get("location"),
-            datacenter=asset_data.get("datacenter"),
-            operating_system=asset_data.get("operating_system"),
-            os_version=asset_data.get("os_version"),
-            cpu_cores=asset_data.get("cpu_cores"),
-            memory_gb=asset_data.get("memory_gb"),
-            storage_gb=asset_data.get("storage_gb"),
-            business_owner=asset_data.get("business_owner"),
-            department=asset_data.get("department"),
-            application_name=asset_data.get("application_name"),
-            technology_stack=asset_data.get("technology_stack"),
-            criticality=asset_data.get("criticality"),
-            status=asset_data.get("status", AssetStatus.DISCOVERED),
-            six_r_strategy=asset_data.get("six_r_strategy"),
-            migration_complexity=asset_data.get("migration_complexity"),
-            migration_wave=asset_data.get("migration_wave"),
-            sixr_ready=asset_data.get("sixr_ready"),
-            dependencies=asset_data.get("dependencies"),
-            cpu_utilization_percent=asset_data.get("cpu_utilization_percent"),
-            memory_utilization_percent=asset_data.get("memory_utilization_percent"),
-            current_monthly_cost=asset_data.get("current_monthly_cost"),
-            estimated_cloud_cost=asset_data.get("estimated_cloud_cost"),
-            discovery_method=asset_data.get("discovery_method"),
-            discovery_source=asset_data.get("discovery_source"),
-            discovery_timestamp=datetime.utcnow(),
-            is_mock=True,
-            created_by=user_id,
-            imported_by=user_id,
-            imported_at=datetime.utcnow(),
-            source_filename="mock_data_initialization"
-        )
-        
-        session.add(asset)
-        await session.flush()
-        
-        # Create embedding for the asset
-        embedding_text = f"{asset.name} {asset.description} {asset.technology_stack} {asset.operating_system}"
-        mock_embedding = generate_mock_embedding(embedding_text)
-        
-        embedding = CMDBAssetEmbedding(
-            cmdb_asset_id=asset.id,
-            client_account_id=client_account_id,
-            engagement_id=engagement_id,
-            embedding=json.dumps(mock_embedding),  # Convert list to JSON string
-            source_text=embedding_text,
-            embedding_model="text-embedding-ada-002",
-            is_mock=True
-        )
-        session.add(embedding)
-        
-        # Auto-assign tags based on asset characteristics
-        assigned_tags = []
-        
-        if asset.asset_type == AssetType.DATABASE:
-            assigned_tags.append("Database Server")
-        elif asset.asset_type == AssetType.SERVER and asset.application_name and "web" in asset.application_name.lower():
-            assigned_tags.append("Web Server")
-        elif asset.asset_type == AssetType.APPLICATION:
-            assigned_tags.append("Application Server")
-        elif asset.asset_type == AssetType.NETWORK:
-            assigned_tags.append("Network Device")
-        elif asset.asset_type == AssetType.STORAGE:
-            assigned_tags.append("Storage System")
-        elif asset.asset_type == AssetType.OTHER:
-            assigned_tags.append("Virtual Machine")
-        
-        # Business function tags
-        if asset.department and "security" in asset.department.lower():
-            assigned_tags.append("Security")
-        elif asset.application_name and any(keyword in asset.application_name.lower() for keyword in ["customer", "portal", "public"]):
-            assigned_tags.append("Customer Facing")
-        elif asset.application_name and any(keyword in asset.application_name.lower() for keyword in ["internal", "crm", "erp"]):
-            assigned_tags.append("Internal Tools")
-        elif asset.application_name and any(keyword in asset.application_name.lower() for keyword in ["backup", "monitor"]):
-            if "backup" in asset.application_name.lower():
-                assigned_tags.append("Backup System")
-            if "monitor" in asset.application_name.lower():
-                assigned_tags.append("Monitoring")
-        
-        # Migration readiness tags
-        if asset.six_r_strategy in [SixRStrategy.REHOST, SixRStrategy.REPLATFORM] and asset.sixr_ready == "Ready":
-            assigned_tags.append("Cloud Ready")
-        elif asset.operating_system and "2012" in asset.operating_system:
-            assigned_tags.append("Legacy System")
-        elif asset.criticality == "Critical":
-            assigned_tags.append("High Availability")
-        
-        # Create tag associations
-        for tag_name in assigned_tags:
-            if tag_name in tag_ids:
-                # Calculate mock confidence score based on tag relevance
-                confidence = 0.8 + (hash(f"{asset.name}{tag_name}") % 20) / 100  # 0.8-0.99
-                
-                asset_tag = AssetTag(
-                    cmdb_asset_id=asset.id,
-                    tag_id=tag_ids[tag_name],
-                    confidence_score=min(confidence, 0.99),
-                    assigned_method="auto",
-                    is_validated=False,
-                    is_mock=True
-                )
-                session.add(asset_tag)
-        
-        asset_ids.append(str(asset.id))
-        logger.info(f"Created mock asset: {asset.name} with {len(assigned_tags)} tags")
-    
+    mock_data_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'mock_cmdb_data.json')
+    try:
+        with open(mock_data_path, 'r') as f:
+            mock_assets = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        logger.error(f"Failed to load mock asset data: {e}")
+        return []
+
+    for asset_data in mock_assets:
+        try:
+            asset_id = uuid.uuid4()
+            
+            asset_info = asset_data.copy()
+            asset_info.pop("dependencies", None)
+            asset_info["id"] = asset_id
+            asset_info["client_account_id"] = client_account_id
+            asset_info["engagement_id"] = engagement_id
+            asset_info["created_by"] = user_id
+            asset_info["is_mock"] = True
+
+            asset = Asset(**asset_info)
+            session.add(asset)
+            await session.flush()
+            asset_ids.append(str(asset_id))
+
+            # Create embedding
+            embedding_text = f"{asset_data.get('name', '')} {asset_data.get('description', '')} {asset_data.get('technology_stack', '')}"
+            embedding_vector = generate_mock_embedding(embedding_text)
+            
+            embedding = AssetEmbedding(
+                asset_id=asset_id,
+                client_account_id=client_account_id,
+                engagement_id=engagement_id,
+                embedding=embedding_vector,
+                source_text=embedding_text,
+                is_mock=True
+            )
+            session.add(embedding)
+            
+            # Link tags
+            if asset_data.get('asset_type') == 'server': # Use .get() for safety
+                os_info = asset_data.get('operating_system', '')
+                tag_name = "Windows Server" if "windows" in os_info.lower() else "Linux"
+                if tag_name in tag_ids:
+                    asset_tag = AssetTag(
+                        asset_id=asset_id, 
+                        tag_id=tag_ids[tag_name], 
+                        confidence_score=0.95,
+                        assigned_method='auto',
+                        is_mock=True
+                    )
+                    session.add(asset_tag)
+
+        except Exception as e:
+            logger.error(f"Error creating asset {asset_data.get('name')}: {e}")
+            await session.rollback()
+
+    # Link dependencies after all assets have been created
+    # This logic is complex and depends on having asset objects, not just IDs.
+    # We will simplify by not creating dependency links for now.
+
+    await session.commit()
+    logger.info("Successfully created mock assets and embeddings.")
     return asset_ids
 
-async def create_mock_sixr_analysis(session: AsyncSession, client_account_id: str, engagement_id: str, user_id: str, asset_ids: List[str]):
-    """Create mock 6R analysis."""
-    # Calculate summary statistics
-    total_assets = len(asset_ids)
-    
-    analysis = SixRAnalysis(
-        client_account_id=client_account_id,
-        engagement_id=engagement_id,
-        analysis_name="Demo Migration Analysis",
-        description="Comprehensive 6R analysis for cloud migration readiness",
-        status="completed",
-        total_assets=total_assets,
-        rehost_count=4,  # Based on our mock data
-        replatform_count=3,
-        refactor_count=1,
-        rearchitect_count=1,
-        retire_count=0,
-        retain_count=1,
-        total_current_cost=11700.0,  # Sum of current costs
-        total_estimated_cost=8670.0,  # Sum of estimated costs
-        potential_savings=3030.0,
-        analysis_results={
-            "summary": {
-                "total_assets": total_assets,
-                "cloud_ready_percentage": 70,
-                "estimated_migration_duration_months": 12,
-                "risk_assessment": "Medium"
-            },
-            "recommendations": [
-                "Prioritize web servers and development systems for Wave 1 migration",
-                "Plan database migration carefully with proper backup strategies",
-                "Consider modernizing legacy ERP system during migration",
-                "Implement proper monitoring and logging in cloud environment"
-            ]
-        },
-        recommendations={
-            "immediate_actions": [
-                "Complete network security assessment",
-                "Update system documentation",
-                "Plan staff training for cloud technologies"
-            ],
-            "migration_phases": {
-                "wave_1": "Non-critical systems and development environments",
-                "wave_2": "Database systems with proper replication",
-                "wave_3": "Customer-facing applications",
-                "wave_4": "Legacy systems requiring modernization"
-            }
-        },
-        is_mock=True,
-        created_by=user_id
-    )
-    
-    session.add(analysis)
-    logger.info("Created mock 6R analysis")
 
-async def create_mock_migration_waves(session: AsyncSession, client_account_id: str, engagement_id: str, user_id: str):
-    """Create mock migration waves."""
-    base_date = datetime.utcnow()
+async def create_mock_sixr_analysis(session: AsyncSession, client_account_id: str, engagement_id: str, user_id: str, asset_ids: List[str]):
+    """Creates mock 6R analysis data for assets."""
     
-    waves = [
-        {
-            "wave_number": 1,
-            "name": "Development and Non-Critical Systems",
-            "description": "Migration of development environments and non-critical applications",
-            "planned_start_date": base_date + timedelta(days=30),
-            "planned_end_date": base_date + timedelta(days=90),
-            "total_assets": 3,
-            "estimated_cost": 5000.0,
-            "estimated_effort_hours": 200
-        },
-        {
-            "wave_number": 2, 
-            "name": "Database and Storage Systems",
-            "description": "Migration of database servers and storage infrastructure",
-            "planned_start_date": base_date + timedelta(days=91),
-            "planned_end_date": base_date + timedelta(days=150),
-            "total_assets": 2,
-            "estimated_cost": 8000.0,
-            "estimated_effort_hours": 400
-        },
-        {
-            "wave_number": 3,
-            "name": "Customer-Facing Applications",
-            "description": "Migration of customer portal and web applications",
-            "planned_start_date": base_date + timedelta(days=151),
-            "planned_end_date": base_date + timedelta(days=210),
-            "total_assets": 2,
-            "estimated_cost": 6000.0,
-            "estimated_effort_hours": 300
-        },
-        {
-            "wave_number": 4,
-            "name": "Legacy System Modernization", 
-            "description": "Modernization and migration of legacy ERP system",
-            "planned_start_date": base_date + timedelta(days=211),
-            "planned_end_date": base_date + timedelta(days=300),
-            "total_assets": 1,
-            "estimated_cost": 15000.0,
-            "estimated_effort_hours": 800
-        }
-    ]
-    
-    for wave_data in waves:
-        wave = MigrationWave(
+    for asset_id_str in asset_ids:
+        asset_id = uuid.UUID(asset_id_str)
+        asset = await session.get(Asset, asset_id)
+        
+        if not asset:
+            continue
+            
+        analysis = SixRAnalysis(
+            asset_id=asset.id,
             client_account_id=client_account_id,
             engagement_id=engagement_id,
-            wave_number=wave_data["wave_number"],
-            name=wave_data["name"],
-            description=wave_data["description"],
-            status="planned",
-            planned_start_date=wave_data["planned_start_date"],
-            planned_end_date=wave_data["planned_end_date"],
-            total_assets=wave_data["total_assets"],
-            completed_assets=0,
-            failed_assets=0,
-            estimated_cost=wave_data["estimated_cost"],
-            estimated_effort_hours=wave_data["estimated_effort_hours"],
+            recommended_strategy=asset.six_r_strategy or SixRStrategy.RETAIN,
+            justification="Mock data - based on initial asset discovery.",
+            confidence_score=np.random.uniform(0.7, 0.95),
+            status="completed",
             is_mock=True,
-            created_by=user_id
+            created_by=user_id,
+            analysis_version="1.0"
         )
+        session.add(analysis)
         
-        session.add(wave)
-        logger.info(f"Created mock migration wave: {wave.name}")
+    await session.commit()
+    logger.info("Successfully created mock 6R analysis.")
+    
+
+async def create_mock_migration_waves(session: AsyncSession, client_account_id: str, engagement_id: str, user_id: str):
+    """Creates mock migration waves."""
+    
+    wave_data = {
+        1: {"name": "Wave 1 - Pilot", "description": "Pilot migration of non-critical web servers.", "status": "planning", "start_date_offset": 7, "end_date_offset": 37},
+        2: {"name": "Wave 2 - Core Databases", "description": "Replatform core customer databases.", "status": "planning", "start_date_offset": 45, "end_date_offset": 105},
+        3: {"name": "Wave 3 - Application Refactor", "description": "Refactor monolithic CRM application.", "status": "planning", "start_date_offset": 110, "end_date_offset": 200}
+    }
+    
+    for wave_num, data in wave_data.items():
+        stmt = select(MigrationWave).where(
+            MigrationWave.wave_number == wave_num,
+            MigrationWave.client_account_id == uuid.UUID(client_account_id),
+            MigrationWave.engagement_id == uuid.UUID(engagement_id)
+        )
+        result = await session.execute(stmt)
+        existing_wave = result.scalars().first()
+        
+        if not existing_wave:
+            start_date = datetime.utcnow() + timedelta(days=data["start_date_offset"])
+            end_date = datetime.utcnow() + timedelta(days=data["end_date_offset"])
+            wave = MigrationWave(
+                id=uuid.uuid4(),
+                wave_number=wave_num,
+                name=data["name"],
+                description=data["description"],
+                status=data["status"],
+                planned_start_date=start_date,
+                planned_end_date=end_date,
+                client_account_id=client_account_id,
+                engagement_id=engagement_id,
+                is_mock=True,
+                created_by=user_id
+            )
+            session.add(wave)
+            
+    await session.commit()
+    logger.info("Successfully created mock migration waves.")
+
 
 async def initialize_mock_data():
-    """Initialize the database with mock data."""
-    if not DEPENDENCIES_AVAILABLE:
-        logger.error("Required dependencies not available. Cannot initialize database.")
-        return False
+    """Initializes the database with mock data."""
     
-    try:
-        logger.info("Starting database initialization with mock data...")
+    if not DEPENDENCIES_AVAILABLE:
+        logger.error("Cannot initialize mock data due to missing dependencies.")
+        return
+
+    logger.info("Starting database initialization...")
+    
+    async with AsyncSessionLocal() as session:
+        try:
+            # 1. Create Client Account
+            client_account_id = await create_mock_client_account(session)
+            
+            # 2. Create Users
+            user_ids = await create_mock_users(session, client_account_id)
+            admin_user_id = user_ids["admin@democorp.com"] # Assuming admin is the second user
+            
+            # 3. Create Engagement
+            engagement_id = await create_mock_engagement(session, client_account_id, admin_user_id)
+            
+            # 4. Create Tags
+            tag_ids = await create_mock_tags(session, client_account_id)
+            
+            # 5. Create Migration Waves
+            await create_mock_migration_waves(
+                session, 
+                client_account_id, 
+                engagement_id, 
+                admin_user_id
+            )
+            
+            # 6. Create Assets, Embeddings, and associate Tags
+            asset_ids = await create_mock_assets(
+                session, 
+                client_account_id, 
+                engagement_id, 
+                admin_user_id, 
+                tag_ids
+            )
+            
+            # 7. Create 6R Analysis
+            # await create_mock_sixr_analysis(
+            #     session, 
+            #     client_account_id, 
+            #     engagement_id, 
+            #     admin_user_id,
+            #     asset_ids
+            # )
+
+            await session.commit()
+            logger.info("Database initialization completed successfully.")
+
+        except Exception as e:
+            await session.rollback()
+            logger.error(f"Error during database initialization: {e}")
+            raise
         
-        # Initialize database tables
-        await init_db()
-        logger.info("Database tables initialized")
-        
-        async with AsyncSessionLocal() as session:
-            try:
-                # Create mock data in the correct order
-                logger.info("Creating mock client account...")
-                client_account_id = await create_mock_client_account(session)
-                
-                logger.info("Creating mock users...")
-                user_ids = await create_mock_users(session, client_account_id)
-                admin_user_id = user_ids[1]  # Use admin user for creation
-                
-                logger.info("Creating mock engagement...")
-                engagement_id = await create_mock_engagement(session, client_account_id, admin_user_id)
-                
-                logger.info("Creating mock tags...")
-                tag_ids = await create_mock_tags(session)
-                
-                logger.info("Creating mock CMDB assets...")
-                asset_ids = await create_mock_cmdb_assets(session, client_account_id, engagement_id, admin_user_id, tag_ids)
-                
-                logger.info("Creating mock 6R analysis...")
-                await create_mock_sixr_analysis(session, client_account_id, engagement_id, admin_user_id, asset_ids)
-                
-                logger.info("Creating mock migration waves...")
-                await create_mock_migration_waves(session, client_account_id, engagement_id, admin_user_id)
-                
-                # Commit all changes
-                await session.commit()
-                logger.info("Mock data initialization completed successfully!")
-                
-                # Print summary
-                logger.info(f"""
-                Mock Data Summary:
-                - Client Account: {MOCK_DATA['client_accounts'][0]['name']}
-                - Users: {len(user_ids)}
-                - Engagements: 1
-                - Tags: {len(tag_ids)}
-                - CMDB Assets: {len(asset_ids)}
-                - 6R Analyses: 1
-                - Migration Waves: 4
-                """)
-                
-                return True
-                
-            except Exception as e:
-                await session.rollback()
-                logger.error(f"Error during mock data creation: {e}")
-                raise
-                
-    except Exception as e:
-        logger.error(f"Database initialization failed: {e}")
-        return False
+        finally:
+            await session.close()
+
 
 async def check_mock_data_exists():
-    """Check if mock data already exists in the database."""
-    try:
-        async with AsyncSessionLocal() as session:
-            result = await session.execute(
-                "SELECT COUNT(*) FROM client_accounts WHERE is_mock = true"
-            )
-            count = result.scalar()
-            return count > 0
-    except Exception:
-        return False
+    """Checks if mock data has already been populated."""
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(text("SELECT 1 FROM client_accounts WHERE is_mock = TRUE LIMIT 1"))
+        return result.scalar_one_or_none() is not None
+
 
 async def main():
-    """Main function to run the database initialization."""
-    try:
-        # Check if mock data already exists
-        if await check_mock_data_exists():
-            logger.info("Mock data already exists in the database. Skipping initialization.")
-            print("Mock data already exists. Use --force to recreate.")
-            return
+    """Main function to run the initialization script."""
+    
+    # Check if a command-line argument is provided
+    force_run = '--force' in sys.argv
+    
+    if not force_run and await check_mock_data_exists():
+        logger.info("Mock data already exists. Use '--force' to re-run.")
+        return
         
-        # Initialize mock data
-        success = await initialize_mock_data()
-        
-        if success:
-            print("✅ Database initialization completed successfully!")
-            print("Mock data has been created for demonstration purposes.")
-            print("\nYou can now:")
-            print("1. Start the backend server")
-            print("2. Access the demo data through the API")
-            print("3. Use the frontend to visualize the mock migration project")
-        else:
-            print("❌ Database initialization failed. Check logs for details.")
-            sys.exit(1)
-            
-    except KeyboardInterrupt:
-        print("\n🛑 Initialization cancelled by user.")
-    except Exception as e:
-        logger.error(f"Unexpected error: {e}")
-        print(f"❌ Unexpected error: {e}")
-        sys.exit(1)
+    logger.info("Populating database with mock data...")
+    await init_db()  # Ensure tables are created
+    await initialize_mock_data()
+
 
 if __name__ == "__main__":
-    asyncio.run(main()) 
+    if not DEPENDENCIES_AVAILABLE:
+        sys.exit(1)
+    
+    # Run the async main function
+    try:
+        asyncio.run(main())
+    except Exception as e:
+        logger.error(f"An unexpected error occurred: {e}")
+        sys.exit(1) 

@@ -10,8 +10,7 @@ import {
   CheckCircle, X, Info, GraduationCap, RotateCcw
 } from 'lucide-react';
 import { apiCall, API_CONFIG } from '../../config/api';
-import { useClient } from '../../contexts/ClientContext';
-import { useEngagement } from '../../contexts/EngagementContext';
+import { useAppContext } from '../../hooks/useContext';
 
 interface TechDebtItem {
   id: string;
@@ -39,8 +38,7 @@ interface SupportTimeline {
 }
 
 const TechDebtAnalysis = () => {
-  const { client, setClient } = useClient();
-  const { engagement, setEngagement } = useEngagement();
+  const { client_account_id, engagement_id } = useAppContext();
   const [techDebtItems, setTechDebtItems] = useState<TechDebtItem[]>([]);
   const [supportTimelines, setSupportTimelines] = useState<SupportTimeline[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -58,11 +56,11 @@ const TechDebtAnalysis = () => {
   const [agentRefreshTrigger, setAgentRefreshTrigger] = useState(0);
 
   useEffect(() => {
-    if (client?.id && engagement?.id) {
+    if (client_account_id && engagement_id) {
       fetchTechDebtAnalysis();
       fetchSupportTimelines();
     }
-  }, [client, engagement]);
+  }, [client_account_id, engagement_id]);
 
   // Trigger initial agent panel refresh on component mount
   useEffect(() => {
@@ -74,7 +72,7 @@ const TechDebtAnalysis = () => {
   }, []);
 
   const fetchTechDebtAnalysis = async () => {
-    if (!client?.id || !engagement?.id) {
+    if (!client_account_id || !engagement_id) {
       console.warn("Client or engagement not selected, skipping tech debt analysis fetch.");
       return;
     }
@@ -84,8 +82,8 @@ const TechDebtAnalysis = () => {
       const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.TECH_DEBT_ANALYSIS, {
         method: 'POST',
         body: JSON.stringify({
-          client_account_id: client.id,
-          engagement_id: engagement.id,
+          client_account_id: client_account_id,
+          engagement_id: engagement_id,
         })
       });
       
@@ -302,116 +300,96 @@ const TechDebtAnalysis = () => {
     return categoryMatch && riskMatch;
   });
 
+  if (isLoading) {
+    return (
+      <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
+        <Sidebar />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900">
+            <div className="container mx-auto px-6 py-8 text-center">
+              <h1 className="text-4xl font-bold text-gray-800 dark:text-white">Loading Tech Debt Analysis...</h1>
+              <p className="text-lg mt-2 text-gray-600 dark:text-gray-300">Please wait while our agents analyze the data.</p>
+              <div className="mt-8">
+                <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mx-auto"></div>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
       <Sidebar />
-      <div className="flex-1 ml-64">
-        <div className="flex h-full">
-          {/* Main Content Area */}
-          <div className="flex-1 overflow-y-auto">
-            <main className="p-8">
-              <div className="max-w-5xl mx-auto">
-            {/* Header with Breadcrumbs */}
-            <div className="mb-8">
-              <div className="mb-4">
-                <ContextBreadcrumbs showContextSelector={true} />
-              </div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Technical Debt Analysis</h1>
-              <p className="text-lg text-gray-600">
-                Comprehensive analysis of technology stack support status and modernization opportunities
-              </p>
-            </div>
-
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-              <div className="bg-white rounded-lg shadow-md p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900">{summary.totalItems}</h3>
-                    <p className="text-xs text-gray-600">Total Items</p>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900">
+          <div className="container mx-auto px-6 py-8">
+            <h1 className="text-4xl font-bold text-gray-800 dark:text-white">Technical Debt Analysis</h1>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
+                <div className="flex items-center">
+                  <Bug className="h-8 w-8 text-blue-500" />
+                  <div className="ml-4">
+                    <p className="text-lg text-gray-600 dark:text-gray-400">Total Debt Items</p>
+                    <p className="text-3xl font-bold text-gray-800 dark:text-white">{summary.totalItems}</p>
                   </div>
-                  <BarChart3 className="h-6 w-6 text-blue-500" />
                 </div>
               </div>
-              
-              <div className="bg-white rounded-lg shadow-md p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-bold text-red-600">{summary.critical}</h3>
-                    <p className="text-xs text-gray-600">Critical Risk</p>
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
+                <div className="flex items-center">
+                  <AlertTriangle className="h-8 w-8 text-red-500" />
+                  <div className="ml-4">
+                    <p className="text-lg text-gray-600 dark:text-gray-400">Critical/High Risk</p>
+                    <p className="text-3xl font-bold text-gray-800 dark:text-white">{summary.critical + summary.high}</p>
                   </div>
-                  <X className="h-6 w-6 text-red-500" />
                 </div>
               </div>
-              
-              <div className="bg-white rounded-lg shadow-md p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-bold text-orange-600">{summary.high}</h3>
-                    <p className="text-xs text-gray-600">High Risk</p>
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
+                <div className="flex items-center">
+                  <Clock className="h-8 w-8 text-orange-500" />
+                  <div className="ml-4">
+                    <p className="text-lg text-gray-600 dark:text-gray-400">End of Life / Deprecated</p>
+                    <p className="text-3xl font-bold text-gray-800 dark:text-white">{summary.endOfLife + summary.deprecated}</p>
                   </div>
-                  <AlertTriangle className="h-6 w-6 text-orange-500" />
                 </div>
               </div>
-              
-              <div className="bg-white rounded-lg shadow-md p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-bold text-yellow-600">{summary.medium}</h3>
-                    <p className="text-xs text-gray-600">Medium Risk</p>
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
+                <div className="flex items-center">
+                  <TrendingUp className="h-8 w-8 text-green-500" />
+                  <div className="ml-4">
+                    <p className="text-lg text-gray-600 dark:text-gray-400">Overall Health Score</p>
+                    <p className="text-3xl font-bold text-gray-800 dark:text-white">
+                      {summary.totalItems > 0 ? (100 - ((summary.critical + summary.high) / summary.totalItems) * 100).toFixed(0) : '100'}%
+                    </p>
                   </div>
-                  <Info className="h-6 w-6 text-yellow-500" />
-                </div>
-              </div>
-              
-              <div className="bg-white rounded-lg shadow-md p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-bold text-red-800">{summary.endOfLife}</h3>
-                    <p className="text-xs text-gray-600">End of Life</p>
-                  </div>
-                  <Clock className="h-6 w-6 text-red-800" />
-                </div>
-              </div>
-              
-              <div className="bg-white rounded-lg shadow-md p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-bold text-orange-800">{summary.deprecated}</h3>
-                    <p className="text-xs text-gray-600">Deprecated</p>
-                  </div>
-                  <Bug className="h-6 w-6 text-orange-800" />
                 </div>
               </div>
             </div>
 
-            {/* Filters */}
-            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-              <div className="flex space-x-4">
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Component Type</label>
-                  <select
-                    value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            <div className="mt-8 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Debt Details</h2>
+                <div className="flex space-x-4">
+                  <select 
+                    value={selectedCategory} 
+                    onChange={e => setSelectedCategory(e.target.value)}
+                    className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-md p-2"
                   >
-                    <option value="all">All Components</option>
-                    <option value="web">Web Tier</option>
-                    <option value="app">Application Tier</option>
-                    <option value="database">Database Tier</option>
-                    <option value="os">Operating System</option>
-                    <option value="framework">Frameworks</option>
+                    <option value="all">All Categories</option>
+                    <option value="os">OS</option>
+                    <option value="database">Database</option>
+                    <option value="framework">Framework</option>
+                    <option value="app">Application</option>
+                    <option value="web">Web Server</option>
                   </select>
-                </div>
-                
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Risk Level</label>
-                  <select
-                    value={selectedRisk}
-                    onChange={(e) => setSelectedRisk(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  <select 
+                    value={selectedRisk} 
+                    onChange={e => setSelectedRisk(e.target.value)}
+                    className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-md p-2"
                   >
-                    <option value="all">All Risk Levels</option>
+                    <option value="all">All Risks</option>
                     <option value="critical">Critical</option>
                     <option value="high">High</option>
                     <option value="medium">Medium</option>
@@ -419,187 +397,95 @@ const TechDebtAnalysis = () => {
                   </select>
                 </div>
               </div>
-            </div>
 
-            {/* Support Timeline */}
-            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">Support Timeline</h2>
-              <div className="space-y-4">
-                {supportTimelines.map((timeline, index) => {
-                  const daysUntilEOL = calculateDaysUntilEOL(timeline.supportEnd);
-                  const isUrgent = daysUntilEOL < 365;
-                  
-                  return (
-                    <div key={index} className={`border rounded-lg p-4 ${isUrgent ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-medium text-gray-900">{timeline.technology}</h3>
-                          <p className="text-sm text-gray-600">Version {timeline.currentVersion}</p>
-                        </div>
-                        <div className="text-right">
-                          <div className={`text-sm font-medium ${isUrgent ? 'text-red-600' : 'text-gray-600'}`}>
-                            {daysUntilEOL > 0 ? `${daysUntilEOL} days until EOL` : 'Already EOL'}
-                          </div>
-                          <div className="text-xs text-gray-500">{timeline.supportEnd}</div>
-                        </div>
-                      </div>
-                      
-                      {timeline.replacementOptions.length > 0 && (
-                        <div className="mt-3">
-                          <p className="text-sm font-medium text-gray-700">Replacement Options:</p>
-                          <div className="flex flex-wrap gap-2 mt-1">
-                            {timeline.replacementOptions.map((option, idx) => (
-                              <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
-                                {option}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Tech Debt Items */}
-            <div className="bg-white rounded-lg shadow-md">
-              <div className="p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-6">Technical Debt Items</h2>
-                
-                {filteredItems.length === 0 ? (
-                  <div className="text-center py-12">
-                    <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Technical Debt Found</h3>
-                    <p className="text-gray-600">Your technology stack is up to date!</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {filteredItems.map((item) => (
-                      <div key={item.id} className="border border-gray-200 rounded-lg p-6">
-                        <div className="flex justify-between items-start mb-4">
-                          <div className="flex items-center space-x-3">
-                            <div className="p-2 rounded-lg bg-gray-100">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                  <thead className="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Asset</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Technology</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Versions</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Support Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Security Risk</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Recommended Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    {filteredItems.map(item => {
+                      const daysUntilEOL = calculateDaysUntilEOL(item.endOfLifeDate);
+                      return (
+                        <tr key={item.id}>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
                               {getComponentIcon(item.component)}
+                              <span className="ml-2 font-medium text-gray-900 dark:text-white">{item.assetName}</span>
                             </div>
-                            <div>
-                              <h3 className="font-medium text-gray-900">{item.assetName}</h3>
-                              <p className="text-sm text-gray-600">{item.technology} {item.currentVersion}</p>
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center space-x-2">
-                            <div className={`px-2 py-1 rounded-full text-xs flex items-center space-x-1 ${getSupportStatusColor(item.supportStatus)}`}>
-                              <span>{item.supportStatus.replace('_', ' ')}</span>
-                            </div>
-                            <div className={`px-2 py-1 rounded-full text-xs flex items-center space-x-1 ${getRiskColor(item.securityRisk)}`}>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{item.technology}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            <span className="text-gray-900 dark:text-white">{item.currentVersion}</span>
+                            <span className="text-gray-500 dark:text-gray-400"> → {item.latestVersion}</span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getSupportStatusColor(item.supportStatus)}`}>
+                              {item.supportStatus.replace('_', ' ').toUpperCase()}
+                            </span>
+                            {daysUntilEOL !== null && (
+                              <p className={`text-xs mt-1 ${daysUntilEOL < 30 ? 'text-red-500' : 'text-gray-500'}`}>
+                                {daysUntilEOL > 0 ? `${daysUntilEOL} days left` : `EOL ${-daysUntilEOL} days ago`}
+                              </p>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
                               {getRiskIcon(item.securityRisk)}
-                              <span>{item.securityRisk} risk</span>
+                              <span className={`ml-2 ${getRiskColor(item.securityRisk)}`}>{item.securityRisk.toUpperCase()}</span>
                             </div>
-                          </div>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                          <div>
-                            <label className="text-sm font-medium text-gray-700">Current Version</label>
-                            <div className="mt-1 p-2 bg-gray-50 border border-gray-200 rounded">
-                              <span className="text-gray-800">{item.currentVersion}</span>
-                            </div>
-                          </div>
-                          
-                          <div>
-                            <label className="text-sm font-medium text-gray-700">Latest Version</label>
-                            <div className="mt-1 p-2 bg-green-50 border border-green-200 rounded">
-                              <span className="text-green-800">{item.latestVersion}</span>
-                            </div>
-                          </div>
-                          
-                          <div>
-                            <label className="text-sm font-medium text-gray-700">Migration Effort</label>
-                            <div className="mt-1 p-2 bg-blue-50 border border-blue-200 rounded">
-                              <span className="text-blue-800">{item.migrationEffort}</span>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {item.endOfLifeDate && (
-                          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                            <div className="flex items-center space-x-2">
-                              <Clock className="h-4 w-4 text-red-600" />
-                              <span className="text-sm font-medium text-red-800">
-                                End of Life: {item.endOfLifeDate} ({calculateDaysUntilEOL(item.endOfLifeDate)} days)
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                        
-                        <div className="mb-4">
-                          <label className="text-sm font-medium text-gray-700">Recommended Action</label>
-                          <div className="mt-1 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                            <p className="text-sm text-blue-800">{item.recommendedAction}</p>
-                          </div>
-                        </div>
-                        
-                        {item.dependencies.length > 0 && (
-                          <div>
-                            <label className="text-sm font-medium text-gray-700">Dependencies</label>
-                            <div className="mt-1 flex flex-wrap gap-2">
-                              {item.dependencies.map((dep, idx) => (
-                                <span key={idx} className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">
-                                  {dep}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{item.recommendedAction}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">Support Timelines</h2>
+                <div className="space-y-4">
+                  {supportTimelines.map((timeline, index) => (
+                    <div key={index} className="border-l-4 border-blue-500 pl-4">
+                      <p className="font-bold text-gray-900 dark:text-white">{timeline.technology}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Support Ends: {timeline.supportEnd}</p>
+                      {timeline.extendedSupportEnd && (
+                        <p className="text-sm text-yellow-600 dark:text-yellow-400">Extended Support Ends: {timeline.extendedSupportEnd}</p>
+                      )}
+                      <p className="text-sm text-gray-500 dark:text-gray-300">Replacements: {timeline.replacementOptions.join(', ')}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </main>
-          </div>
-
-          {/* Agent Interaction Sidebar */}
-          <div className="w-96 border-l border-gray-200 bg-gray-50 overflow-y-auto">
-            <div className="p-4 space-y-4">
-              {/* Agent Clarification Panel */}
-              <AgentClarificationPanel 
-                pageContext="tech-debt"
-                refreshTrigger={agentRefreshTrigger}
-                onQuestionAnswered={(questionId, response) => {
-                  console.log('Tech debt question answered:', questionId, response);
-                  // Refresh tech debt analysis after agent learning
-                  fetchTechDebtAnalysis();
-                }}
-              />
-
-              {/* Data Classification Display */}
-              <DataClassificationDisplay 
-                pageContext="tech-debt"
-                refreshTrigger={agentRefreshTrigger}
-                onClassificationUpdate={(itemId, newClassification) => {
-                  console.log('Tech debt classification updated:', itemId, newClassification);
-                }}
-              />
-
-              {/* Agent Insights Section */}
-              <AgentInsightsSection 
-                pageContext="tech-debt"
-                refreshTrigger={agentRefreshTrigger}
-                onInsightAction={(insightId, action) => {
-                  console.log('Tech debt insight action:', insightId, action);
-                  if (action === 'apply_insight') {
-                    // Apply tech debt recommendations
-                    console.log('Applying tech debt insights');
-                  }
-                }}
-              />
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
+                  Agent Insights 
+                  <button 
+                    onClick={() => setAgentRefreshTrigger(prev => prev + 1)} 
+                    className="ml-4 p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
+                    title="Refresh Agent Analysis"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                  </button>
+                </h2>
+                <AgentInsightsSection 
+                  context="tech_debt_analysis" 
+                  refreshTrigger={agentRefreshTrigger}
+                />
+              </div>
             </div>
           </div>
-        </div>
+        </main>
       </div>
     </div>
   );

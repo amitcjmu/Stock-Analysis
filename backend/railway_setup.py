@@ -124,7 +124,6 @@ async def create_database_tables():
         try:
             from app.models.migration import Migration
             from app.models.asset import Asset
-            from app.models.cmdb_asset import CMDBAsset
             logger.info("✅ All models imported successfully")
         except ImportError as e:
             logger.warning(f"Some optional models not available: {e}")

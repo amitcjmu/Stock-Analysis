@@ -17,14 +17,14 @@ from enum import Enum
 
 try:
     from app.models.data_import_session import DataImportSession
-    from app.models.cmdb_asset import CMDBAsset
+    from app.models.asset import Asset
     from app.models.raw_import_record import RawImportRecord
     from app.repositories.session_aware_repository import SessionAwareRepository
     from app.core.context import get_current_context
     SESSION_MODELS_AVAILABLE = True
 except ImportError:
     SESSION_MODELS_AVAILABLE = False
-    DataImportSession = CMDBAsset = RawImportRecord = SessionAwareRepository = None
+    DataImportSession = Asset = RawImportRecord = SessionAwareRepository = None
 
 logger = logging.getLogger(__name__)
 
@@ -174,7 +174,7 @@ class SessionComparisonService:
         # Create session-aware repository for assets
         asset_repo = SessionAwareRepository(
             db=self.db,
-            model_class=CMDBAsset,
+            model_class=Asset,
             client_account_id=session.client_account_id,
             engagement_id=session.engagement_id,
             session_id=session_id,
@@ -761,7 +761,7 @@ class SessionComparisonService:
         if not SESSION_MODELS_AVAILABLE:
             return []
         
-        query = select(CMDBAsset).where(CMDBAsset.session_id == session_id)
+        query = select(Asset).where(Asset.session_id == session_id)
         result = await self.db.execute(query)
         return result.scalars().all()
     

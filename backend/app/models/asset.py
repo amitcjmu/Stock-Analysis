@@ -1,18 +1,16 @@
 """
-Asset models for infrastructure discovery and inventory management.
-Comprehensive Asset Inventory Model for Migration Assessment
+CMDB Asset models for multi-tenant asset management.
 """
 
 try:
-    from sqlalchemy import Column, Integer, String, DateTime, Text, JSON, Enum as SQLEnum, Boolean, ForeignKey, Float
-    from sqlalchemy.dialects.postgresql import UUID
+    from sqlalchemy import Column, Integer, String, DateTime, Text, JSON, Enum, Boolean, ForeignKey, Float
     from sqlalchemy.orm import relationship
     from sqlalchemy.sql import func
+    from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
     SQLALCHEMY_AVAILABLE = True
 except ImportError:
     SQLALCHEMY_AVAILABLE = False
-    # Create dummy classes for type hints
-    Column = Integer = String = DateTime = Text = JSON = SQLEnum = Boolean = ForeignKey = Float = UUID = object
+    Column = Integer = String = DateTime = Text = JSON = Enum = Boolean = ForeignKey = Float = object
     def relationship(*args, **kwargs):
         return None
     class func:
@@ -22,7 +20,6 @@ except ImportError:
 
 import enum
 import uuid
-from datetime import datetime
 
 try:
     from app.core.database import Base
@@ -31,21 +28,32 @@ except ImportError:
 
 
 class AssetType(str, enum.Enum):
-    """Asset type enumeration matching database assettype enum."""
+    """Asset type enumeration based on Azure Migrate metadata."""
+    # Core Infrastructure
     SERVER = "server"
     DATABASE = "database"
     APPLICATION = "application"
+    
+    # Network Devices
     NETWORK = "network"
-    STORAGE = "storage"
-    CONTAINER = "container"
-    VIRTUAL_MACHINE = "virtual_machine"
     LOAD_BALANCER = "load_balancer"
+    
+    # Storage Devices
+    STORAGE = "storage"
+    
+    # Security Devices
     SECURITY_GROUP = "security_group"
+    
+    # Virtualization
+    VIRTUAL_MACHINE = "virtual_machine"
+    CONTAINER = "container"
+    
+    # Other/Unknown
     OTHER = "other"
 
 
 class AssetStatus(str, enum.Enum):
-    """Asset migration status enumeration matching database assetstatus enum."""
+    """Asset discovery and migration status."""
     DISCOVERED = "discovered"
     ASSESSED = "assessed"
     PLANNED = "planned"
@@ -56,159 +64,114 @@ class AssetStatus(str, enum.Enum):
 
 
 class SixRStrategy(str, enum.Enum):
-    """6R migration strategy enumeration matching database sixrstrategy enum."""
-    REHOST = "rehost"
-    REPLATFORM = "replatform"
-    REFACTOR = "refactor"
-    REARCHITECT = "rearchitect"
-    RETIRE = "retire"
-    RETAIN = "retain"
-
-
-class WorkflowStatus(str, enum.Enum):
-    """Workflow phase status enumeration."""
-    PENDING = "pending"
-    IN_PROGRESS = "in_progress"
-    COMPLETED = "completed"
-    FAILED = "failed"
-
-
-class AssessmentReadiness(str, enum.Enum):
-    """Assessment readiness status enumeration."""
-    NOT_READY = "not_ready"
-    PARTIAL = "partial"
-    READY = "ready"
+    """6R migration strategy based on AWS/Azure/GCP recommendations."""
+    REHOST = "rehost"          # Lift and shift
+    REPLATFORM = "replatform"  # Lift, tinker, and shift
+    REFACTOR = "refactor"      # Re-architect
+    REARCHITECT = "rearchitect" # Rebuild
+    REPLACE = "replace"        # Replace with SaaS or cloud-native
+    RETIRE = "retire"          # Decommission
+    RETAIN = "retain"          # Keep as-is
 
 
 class Asset(Base):
-    """
-    Comprehensive asset inventory model for migration assessment.
-    Aligned with actual database schema (74 columns).
-    """
+    """Unified Asset model with multi-tenant support and Azure Migrate compatibility."""
     
     __tablename__ = "assets"
     
-    # Primary identification - matches database exactly
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    migration_id = Column(Integer, ForeignKey("migrations.id"), nullable=True)  # Made nullable for testing
+    # Primary Key
+    id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    
+    # Multi-tenant isolation
+    client_account_id = Column(PostgresUUID(as_uuid=True), ForeignKey('client_accounts.id', ondelete='CASCADE'), nullable=False, index=True)
+    engagement_id = Column(PostgresUUID(as_uuid=True), ForeignKey('engagements.id', ondelete='CASCADE'), nullable=False, index=True)
+    
+    # Session tracking (Task 1.1.5)
+    session_id = Column(PostgresUUID(as_uuid=True), ForeignKey('data_import_sessions.id', ondelete='CASCADE'), nullable=True, index=True)
+    migration_id = Column(PostgresUUID(as_uuid=True), ForeignKey('migrations.id'), nullable=True)
+    
+    # Basic asset information (based on Azure Migrate metadata)
     name = Column(String(255), nullable=False, index=True)
-    asset_type = Column(SQLEnum(AssetType, name='assettype'), nullable=False)
-    description = Column(Text, nullable=True)
-    hostname = Column(String(255), nullable=True)
-    ip_address = Column(String(45), nullable=True)
-    fqdn = Column(String(255), nullable=True)
-    asset_id = Column(String(100), nullable=True)
+    hostname = Column(String(255), index=True)
+    asset_type = Column(Enum(AssetType), nullable=False, index=True)
+    description = Column(Text)
     
-    # Environment and location
-    environment = Column(String(50), nullable=True)
-    datacenter = Column(String(100), nullable=True)
-    location = Column(String(100), nullable=True)  # Added for compatibility
-    rack_location = Column(String(50), nullable=True)
-    availability_zone = Column(String(50), nullable=True)
+    # Network information
+    ip_address = Column(String(45))  # Supports IPv6
+    fqdn = Column(String(255))
+    mac_address = Column(String(17))
     
-    # Technical specifications
-    operating_system = Column(String(100), nullable=True)
-    os_version = Column(String(50), nullable=True)
-    cpu_cores = Column(Integer, nullable=True)
-    memory_gb = Column(Float, nullable=True)  # double precision
-    storage_gb = Column(Float, nullable=True)  # double precision
-    network_interfaces = Column(JSON, nullable=True)  # JSON field
+    # Location and environment
+    environment = Column(String(50), index=True)  # Production, Development, Test, etc.
+    location = Column(String(100))
+    datacenter = Column(String(100))
+    rack_location = Column(String(50))
+    availability_zone = Column(String(50))
     
-    # Asset status and migration
-    status = Column(SQLEnum(AssetStatus, name='assetstatus'), nullable=True)
-    six_r_strategy = Column(SQLEnum(SixRStrategy, name='sixrstrategy'), nullable=True)
-    migration_priority = Column(Integer, nullable=True)
-    migration_complexity = Column(String(20), nullable=True)
-    migration_wave = Column(Integer, nullable=True)
+    # Technical specifications (from Azure Migrate)
+    operating_system = Column(String(100))
+    os_version = Column(String(50))
+    cpu_cores = Column(Integer)
+    memory_gb = Column(Float)
+    storage_gb = Column(Float)
     
-    # Dependencies - JSON fields
-    dependencies = Column(JSON, nullable=True)
-    dependents = Column(JSON, nullable=True)
+    # Business information
+    business_owner = Column(String(255))
+    department = Column(String(100))
+    application_name = Column(String(255))
+    technology_stack = Column(String(255))
+    criticality = Column(String(20))  # Low, Medium, High, Critical
+    
+    # Migration assessment
+    status = Column(Enum(AssetStatus), default=AssetStatus.DISCOVERED, index=True)
+    six_r_strategy = Column(Enum(SixRStrategy))
+    migration_priority = Column(Integer, default=5)  # 1-10 scale
+    migration_complexity = Column(String(20))  # Low, Medium, High
+    migration_wave = Column(Integer)
+    sixr_ready = Column(String(50))  # Ready, Needs Analysis, etc.
+    
+    # Dependencies and relationships
+    dependencies = Column(JSON)  # List of dependent asset IDs or names
+    related_assets = Column(JSON)  # Related CI items
     
     # Discovery metadata
-    discovered_at = Column(DateTime(timezone=True), server_default=func.now())
-    last_scanned = Column(DateTime(timezone=True), nullable=True)
-    discovery_method = Column(String(50), nullable=True)
-    discovery_source = Column(String(100), nullable=True)
+    discovery_method = Column(String(50))  # network_scan, agent, manual, import
+    discovery_source = Column(String(100))  # Tool or system that discovered the asset
+    discovery_timestamp = Column(DateTime(timezone=True))
     
-    # Risk and security
-    risk_score = Column(Float, nullable=True)
-    business_criticality = Column(String(20), nullable=True)
-    compliance_requirements = Column(JSON, nullable=True)  # JSON field
+    # Performance and utilization (from Azure Migrate)
+    cpu_utilization_percent = Column(Float)
+    memory_utilization_percent = Column(Float)
+    disk_iops = Column(Float)
+    network_throughput_mbps = Column(Float)
     
-    # Cost analysis  
-    current_monthly_cost = Column(Float, nullable=True)
-    estimated_cloud_cost = Column(Float, nullable=True)
-    cost_optimization_potential = Column(Float, nullable=True)
+    # Cost information
+    current_monthly_cost = Column(Float)
+    estimated_cloud_cost = Column(Float)
     
-    # Performance and quality
-    performance_metrics = Column(JSON, nullable=True)  # JSON field
-    security_findings = Column(JSON, nullable=True)    # JSON field
-    compatibility_issues = Column(JSON, nullable=True) # JSON field
+    # Import and processing metadata
+    imported_by = Column(PostgresUUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
+    imported_at = Column(DateTime(timezone=True))
+    source_filename = Column(String(255))
+    raw_data = Column(JSON)  # Original imported data
+    field_mappings_used = Column(JSON)  # Field mappings applied during import
     
-    # AI insights
-    ai_recommendations = Column(JSON, nullable=True)    # JSON field
-    confidence_score = Column(Float, nullable=True)
+    # Mock data flag
+    is_mock = Column(Boolean, default=False, nullable=False, index=True)
     
     # Audit fields
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), nullable=True)
-    
-    # Multi-tenant support
-    client_account_id = Column(UUID(as_uuid=True), nullable=True)
-    engagement_id = Column(UUID(as_uuid=True), ForeignKey('engagements.id'), nullable=True)
-    session_id = Column(UUID(as_uuid=True), nullable=True)  # Added for compatibility
-    
-    # Workflow status fields (added by migration)
-    discovery_status = Column(String(50), server_default='discovered', nullable=True)
-    mapping_status = Column(String(50), server_default='pending', nullable=True)
-    cleanup_status = Column(String(50), server_default='pending', nullable=True)
-    assessment_readiness = Column(String(50), server_default='not_ready', nullable=True)
-    completeness_score = Column(Float, nullable=True)
-    quality_score = Column(Float, nullable=True)
-    
-    # Additional database fields to match schema exactly
-    source_system = Column(String(100), nullable=True)
-    asset_name = Column(String(255), nullable=True)
-    intelligent_asset_type = Column(String(100), nullable=True)
-    hardware_type = Column(String(100), nullable=True)
-    business_owner = Column(String(100), nullable=True)
-    technical_owner = Column(String(100), nullable=True)
-    department = Column(String(100), nullable=True)
-    application_id = Column(String(100), nullable=True)
-    application_name = Column(String(255), nullable=True)  # Added for compatibility
-    application_version = Column(String(50), nullable=True)
-    programming_language = Column(String(100), nullable=True)
-    framework = Column(String(100), nullable=True)
-    database_type = Column(String(100), nullable=True)
-    technology_stack = Column(String(255), nullable=True)  # Added for compatibility
-    cloud_readiness_score = Column(Float, nullable=True)
-    modernization_complexity = Column(String(20), nullable=True)
-    tech_debt_score = Column(Float, nullable=True)
-    estimated_monthly_cost = Column(Float, nullable=True)
-    license_cost = Column(Float, nullable=True)
-    support_cost = Column(Float, nullable=True)
-    security_classification = Column(String(50), nullable=True)
-    vulnerability_score = Column(Float, nullable=True)
-    sixr_ready = Column(String(20), nullable=True)
-    estimated_migration_effort = Column(String(20), nullable=True)
-    recommended_6r_strategy = Column(String(20), nullable=True)
-    strategy_confidence = Column(Float, nullable=True)
-    strategy_rationale = Column(Text, nullable=True)
-    ai_confidence_score = Column(Float, nullable=True)
-    last_ai_analysis = Column(DateTime(timezone=True), nullable=True)
-    source_file = Column(String(255), nullable=True)
-    import_batch_id = Column(String(100), nullable=True)
-    created_by = Column(String(100), nullable=True)
-    updated_by = Column(String(100), nullable=True)
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_by = Column(PostgresUUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
+    updated_by = Column(PostgresUUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
     
     # Relationships
+    client_account = relationship("ClientAccount")
     migration = relationship("Migration", back_populates="assets")
-    workflow_progress = relationship("WorkflowProgress", back_populates="asset")
     engagement = relationship("Engagement", back_populates="assets")
     
     def __repr__(self):
-        return f"<Asset(id={self.id}, name='{self.name}', type='{self.asset_type}')>"
+        return f"<Asset(id={self.id}, name='{self.name}', type='{self.asset_type}', is_mock={self.is_mock})>"
     
     @property
     def is_migrated(self) -> bool:
@@ -216,142 +179,149 @@ class Asset(Base):
         return self.status == AssetStatus.MIGRATED
     
     @property
-    def criticality(self) -> str:
-        """Alias for business_criticality for backward compatibility."""
-        return self.business_criticality
-    
-    @property
     def has_dependencies(self) -> bool:
-        """Check if asset has any dependencies."""
-        return bool(self.dependencies)
-    
-    @property
-    def has_dependents(self) -> bool:
-        """Check if asset has any dependents."""
-        return bool(self.dependents)
+        """Check if asset has dependencies."""
+        return bool(self.dependencies and len(self.dependencies) > 0)
     
     def get_migration_readiness_score(self) -> float:
-        """
-        Calculate overall migration readiness score.
-        Combines completeness, quality, and assessment readiness.
-        """
-        scores = []
+        """Calculate migration readiness score based on various factors."""
+        score = 100.0
         
-        # Completeness score (0-100)
-        if self.completeness_score is not None:
-            scores.append(self.completeness_score)
+        # Reduce score based on complexity
+        complexity_penalties = {"high": 30, "medium": 15, "low": 5}
+        if self.migration_complexity and self.migration_complexity.lower() in complexity_penalties:
+            score -= complexity_penalties[self.migration_complexity.lower()]
         
-        # Quality score (0-100)  
-        if self.quality_score is not None:
-            scores.append(self.quality_score)
-            
-        # Assessment readiness as score
-        readiness_scores = {
-            'not_ready': 0,
-            'partial': 50,
-            'ready': 100
-        }
-        if self.assessment_readiness in readiness_scores:
-            scores.append(readiness_scores[self.assessment_readiness])
+        # Reduce score based on dependencies
+        if self.has_dependencies:
+            score -= 10
         
-        return sum(scores) / len(scores) if scores else 0.0
-    
-    def to_dict(self):
-        """Convert to dictionary for JSON serialization."""
-        return {
-            'id': self.id,
-            'migration_id': self.migration_id,
-            'name': self.name,
-            'asset_type': self.asset_type.value if self.asset_type else None,
-            'description': self.description,
-            'hostname': self.hostname,
-            'ip_address': self.ip_address,
-            'fqdn': self.fqdn,
-            'status': self.status.value if self.status else None,
-            'six_r_strategy': self.six_r_strategy.value if self.six_r_strategy else None,
-            'discovery_status': self.discovery_status,
-            'mapping_status': self.mapping_status,
-            'cleanup_status': self.cleanup_status,
-            'assessment_readiness': self.assessment_readiness,
-            'completeness_score': self.completeness_score,
-            'quality_score': self.quality_score,
-            'migration_readiness_score': self.get_migration_readiness_score(),
-            'client_account_id': str(self.client_account_id) if self.client_account_id else None,
-            'engagement_id': str(self.engagement_id) if self.engagement_id else None,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-        }
+        # Reduce score if no 6R strategy assigned
+        if not self.six_r_strategy:
+            score -= 20
+        
+        # Reduce score for unknown asset types
+        if self.asset_type == AssetType.OTHER:
+            score -= 25
+        
+        return max(0.0, min(100.0, score))
 
 
 class AssetDependency(Base):
-    """
-    Asset dependency mapping for application-to-server relationships
-    """
-    __tablename__ = "asset_dependencies"
-    
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    
-    # Source and target assets
-    source_asset_id = Column(UUID(as_uuid=True), ForeignKey('assets.id'), nullable=False)
-    target_asset_id = Column(UUID(as_uuid=True), ForeignKey('assets.id'), nullable=False)
-    
-    # Dependency details
-    dependency_type = Column(String(100), nullable=False)  # database, service, network, etc.
-    dependency_strength = Column(String(50), nullable=True)  # Critical, Important, Optional
-    port_number = Column(Integer, nullable=True)
-    protocol = Column(String(50), nullable=True)
+    """Defines the relationship between two assets."""
+    __tablename__ = 'asset_dependencies'
+    id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    asset_id = Column(PostgresUUID(as_uuid=True), ForeignKey('assets.id', ondelete='CASCADE'), nullable=False)
+    depends_on_asset_id = Column(PostgresUUID(as_uuid=True), ForeignKey('assets.id', ondelete='CASCADE'), nullable=False)
+    dependency_type = Column(String(50), nullable=False)  # e.g., 'database', 'application', 'storage'
     description = Column(Text)
-    criticality = Column(String(20))  # "low", "medium", "high", "critical"
-    
-    # Multi-tenant support
-    client_account_id = Column(UUID(as_uuid=True), ForeignKey('client_accounts.id'), nullable=True)
-    engagement_id = Column(UUID(as_uuid=True), ForeignKey('engagements.id'), nullable=True)
-    
-    # Discovery metadata
-    discovered_at = Column(DateTime(timezone=True), server_default=func.now())
-    discovery_method = Column(String(50))
-    confidence_level = Column(Float)  # 0-1 confidence in dependency accuracy
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    created_by = Column(String(255), nullable=True)
-    
-    # Relationships
-    source_asset = relationship("Asset", foreign_keys=[source_asset_id])
-    target_asset = relationship("Asset", foreign_keys=[target_asset_id])
-    
-    def __repr__(self):
-        return f"<AssetDependency(source={self.source_asset_id}, target={self.target_asset_id}, type='{self.dependency_type}')>"
+    is_mock = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+    asset = relationship("Asset", foreign_keys=[asset_id])
+    depends_on = relationship("Asset", foreign_keys=[depends_on_asset_id])
 
 class WorkflowProgress(Base):
-    """
-    Track workflow progress for assets through migration phases
-    """
-    __tablename__ = "workflow_progress"
+    """Tracks the workflow progress of an asset through different stages."""
+    __tablename__ = 'workflow_progress'
+    id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    asset_id = Column(PostgresUUID(as_uuid=True), ForeignKey('assets.id', ondelete='CASCADE'), nullable=False)
+    stage = Column(String(50), nullable=False)  # e.g., 'Discovery', 'Assessment', 'Migration'
+    status = Column(String(50), nullable=False)  # e.g., 'Not Started', 'In Progress', 'Completed'
+    notes = Column(Text)
+    is_mock = Column(Boolean, default=False, nullable=False)
+    started_at = Column(DateTime(timezone=True))
+    completed_at = Column(DateTime(timezone=True))
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    asset_id = Column(UUID(as_uuid=True), ForeignKey('assets.id'), nullable=False)
+    asset = relationship("Asset")
+
+class CMDBSixRAnalysis(Base):
+    """6R Analysis results for CMDB assets."""
     
-    # Workflow phases
-    phase = Column(String(50), nullable=False)  # discovery, mapping, cleanup, assessment
-    status = Column(String(50), nullable=False)  # pending, in_progress, completed, failed
-    progress_percentage = Column(Float, default=0.0)  # 0.0 to 100.0
+    __tablename__ = "cmdb_sixr_analyses"
     
-    # Details
-    started_at = Column(DateTime, nullable=True)
-    completed_at = Column(DateTime, nullable=True)
-    notes = Column(Text, nullable=True)
-    errors = Column(JSON, nullable=True)  # Any errors encountered
+    id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     
-    # Multi-tenant support
-    client_account_id = Column(UUID(as_uuid=True), ForeignKey('client_accounts.id'), nullable=True)
-    engagement_id = Column(UUID(as_uuid=True), ForeignKey('engagements.id'), nullable=True)
+    # Multi-tenant isolation
+    client_account_id = Column(PostgresUUID(as_uuid=True), ForeignKey('client_accounts.id', ondelete='CASCADE'), nullable=False, index=True)
+    engagement_id = Column(PostgresUUID(as_uuid=True), ForeignKey('engagements.id', ondelete='CASCADE'), nullable=False, index=True)
+    
+    # Analysis metadata
+    analysis_name = Column(String(255), nullable=False)
+    description = Column(Text)
+    status = Column(String(50), default='in_progress', index=True)
+    
+    # Analysis results
+    total_assets = Column(Integer, default=0)
+    rehost_count = Column(Integer, default=0)
+    replatform_count = Column(Integer, default=0)
+    refactor_count = Column(Integer, default=0)
+    rearchitect_count = Column(Integer, default=0)
+    retire_count = Column(Integer, default=0)
+    retain_count = Column(Integer, default=0)
+    
+    # Cost estimates
+    total_current_cost = Column(Float)
+    total_estimated_cost = Column(Float)
+    potential_savings = Column(Float)
+    
+    # Analysis details
+    analysis_results = Column(JSON)  # Detailed results per asset
+    recommendations = Column(JSON)  # Overall recommendations
+    
+    # Mock data flag
+    is_mock = Column(Boolean, default=False, nullable=False, index=True)
     
     # Audit
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
-    
-    # Relationships
-    asset = relationship("Asset", back_populates="workflow_progress")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_by = Column(PostgresUUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
     
     def __repr__(self):
-        return f"<WorkflowProgress(asset_id={self.asset_id}, phase='{self.phase}', status='{self.status}')>" 
+        return f"<CMDBSixRAnalysis(id={self.id}, name='{self.analysis_name}', total_assets={self.total_assets}, is_mock={self.is_mock})>"
+
+
+class MigrationWave(Base):
+    """Migration wave planning for phased migrations."""
+    
+    __tablename__ = "migration_waves"
+    
+    id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    
+    # Multi-tenant isolation
+    client_account_id = Column(PostgresUUID(as_uuid=True), ForeignKey('client_accounts.id', ondelete='CASCADE'), nullable=False, index=True)
+    engagement_id = Column(PostgresUUID(as_uuid=True), ForeignKey('engagements.id', ondelete='CASCADE'), nullable=False, index=True)
+    
+    # Wave information
+    wave_number = Column(Integer, nullable=False, index=True)
+    name = Column(String(255), nullable=False)
+    description = Column(Text)
+    status = Column(String(50), default='planned', index=True)
+    
+    # Timeline
+    planned_start_date = Column(DateTime(timezone=True))
+    planned_end_date = Column(DateTime(timezone=True))
+    actual_start_date = Column(DateTime(timezone=True))
+    actual_end_date = Column(DateTime(timezone=True))
+    
+    # Wave details
+    total_assets = Column(Integer, default=0)
+    completed_assets = Column(Integer, default=0)
+    failed_assets = Column(Integer, default=0)
+    
+    # Cost and effort
+    estimated_cost = Column(Float)
+    actual_cost = Column(Float)
+    estimated_effort_hours = Column(Float)
+    actual_effort_hours = Column(Float)
+    
+    # Mock data flag
+    is_mock = Column(Boolean, default=False, nullable=False, index=True)
+    
+    # Audit
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_by = Column(PostgresUUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
+    
+    def __repr__(self):
+        return f"<MigrationWave(id={self.id}, wave_number={self.wave_number}, name='{self.name}', is_mock={self.is_mock})>" 

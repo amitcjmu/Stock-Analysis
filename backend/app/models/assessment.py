@@ -175,8 +175,8 @@ class WavePlan(Base):
     
     __tablename__ = "wave_plans"
     
-    id = Column(Integer, primary_key=True, index=True)
-    migration_id = Column(Integer, ForeignKey("migrations.id"), nullable=False)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    migration_id = Column(UUID(as_uuid=True), ForeignKey("migrations.id"), nullable=False)
     
     # Wave details
     wave_number = Column(Integer, nullable=False)

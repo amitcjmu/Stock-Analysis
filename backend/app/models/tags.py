@@ -42,6 +42,7 @@ class Tag(Base):
     __tablename__ = "tags"
     
     id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    client_account_id = Column(PostgresUUID(as_uuid=True), ForeignKey('client_accounts.id', ondelete='CASCADE'), nullable=False, index=True)
     name = Column(String(100), unique=True, nullable=False, index=True)
     category = Column(String(50), nullable=False, index=True)  # Technology, Business, Infrastructure, etc.
     description = Column(Text)
@@ -52,6 +53,7 @@ class Tag(Base):
     # Tag metadata
     confidence_threshold = Column(Float, default=0.7)  # Minimum similarity score for auto-assignment
     is_active = Column(Boolean, default=True, index=True)
+    is_mock = Column(Boolean, default=False, nullable=False, index=True)
     
     # Usage statistics
     usage_count = Column(Integer, default=0)
