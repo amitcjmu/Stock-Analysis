@@ -23,34 +23,54 @@ class EngagementCRUDHandler:
         pagination: Dict[str, Any]
     ) -> Dict[str, Any]:
         """List all engagements for a client with pagination."""
-        page = pagination.get('page', 1)
-        page_size = pagination.get('page_size', 20)
+        try:
+            page = pagination.get('page', 1)
+            page_size = pagination.get('page_size', 20)
 
-        query = select(Engagement)
-        if client_account_id:
-             query = query.where(Engagement.client_account_id == client_account_id)
-        
-        total_items_query = select(func.count()).select_from(query.alias())
-        total_items_result = await db.execute(total_items_query)
-        total_items = total_items_result.scalar_one()
-
-        query = query.offset((page - 1) * page_size).limit(page_size)
-        result = await db.execute(query)
-        engagements = result.scalars().all()
-
-        engagement_responses = [EngagementResponse.model_validate(eng, from_attributes=True) for eng in engagements]
+            query = select(Engagement)
+            if client_account_id:
+                 query = query.where(Engagement.client_account_id == client_account_id)
             
-        total_pages = (total_items + page_size - 1) // page_size
-        
-        return {
-            "items": engagement_responses,
-            "total_items": total_items,
-            "total_pages": total_pages,
-            "current_page": page,
-            "page_size": page_size,
-            "has_next": page < total_pages,
-            "has_previous": page > 1
-        }
+            total_items_query = select(func.count()).select_from(query.alias())
+            total_items_result = await db.execute(total_items_query)
+            total_items = total_items_result.scalar_one()
+
+            query = query.offset((page - 1) * page_size).limit(page_size)
+            result = await db.execute(query)
+            engagements = result.scalars().all()
+
+            engagement_responses = []
+            for eng in engagements:
+                eng_dict = {
+                    "id": str(eng.id),
+                    "client_account_id": str(eng.client_account_id),
+                    "engagement_name": eng.name,
+                    "engagement_description": eng.description,
+                    "migration_scope": eng.migration_scope,
+                    "target_cloud_provider": eng.engagement_type,
+                    "planned_start_date": eng.start_date,
+                    "planned_end_date": eng.target_completion_date,
+                    "created_at": eng.created_at,
+                    "updated_at": eng.updated_at,
+                    "is_active": eng.is_active,
+                    "current_phase": eng.status
+                }
+                engagement_responses.append(EngagementResponse(**eng_dict))
+            
+            total_pages = (total_items + page_size - 1) // page_size
+            
+            return {
+                "items": engagement_responses,
+                "total_items": total_items,
+                "total_pages": total_pages,
+                "current_page": page,
+                "page_size": page_size,
+                "has_next": page < total_pages,
+                "has_previous": page > 1
+            }
+        except Exception as e:
+            logger.error(f"Error listing engagements for client {client_account_id}: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"An unexpected error occurred while listing engagements.")
 
     @staticmethod
     async def get_dashboard_stats(db: AsyncSession) -> Dict[str, Any]:

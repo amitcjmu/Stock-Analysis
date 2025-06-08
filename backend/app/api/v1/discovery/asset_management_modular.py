@@ -9,13 +9,12 @@ from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel
 import asyncio
 
-from .asset_handlers import (
-    AssetCRUDHandler,
-    AssetProcessingHandler,
-    AssetValidationHandler,
-    AssetAnalysisHandler,
-    AssetUtilsHandler
-)
+from app.api.v1.discovery.asset_handlers.asset_crud import AssetCRUDHandler
+from app.api.v1.discovery.asset_handlers.asset_processing import AssetProcessingHandler
+from app.api.v1.discovery.asset_handlers.asset_validation import AssetValidationHandler
+from app.api.v1.discovery.asset_handlers.asset_analysis import AssetAnalysisHandler
+from app.api.v1.discovery.asset_handlers.asset_utils import AssetUtilsHandler
+
 from app.core.context import RequestContext, get_current_context
 
 logger = logging.getLogger(__name__)

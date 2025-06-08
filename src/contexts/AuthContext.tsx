@@ -92,7 +92,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       // First try to authenticate against the database
       try {
-        const response = await fetch('/api/v1/auth/login', {
+        const apiUrl = import.meta.env.VITE_BACKEND_URL || '';
+        const response = await fetch(`${apiUrl}/api/v1/auth/login`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -119,12 +120,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       // Fall back to demo authentication if database auth fails
-      if (email === 'admin@aiforce.com' && password === 'admin123') {
+      if (email === 'admin@democorp.com' && password === 'admin123') {
         // Use the real admin UUID from the database for demo auth
         const adminUser: User = {
-          id: '2a0de3df-7484-4fab-98b9-2ca126e2ab21', // Real admin UUID from database
+          id: 'c8dd279c-ec', // This should be the real admin ID from the database
           username: 'admin',
-          email: 'admin@aiforce.com',
+          email: 'admin@democorp.com',
           full_name: 'Admin User',
           role: 'admin',
           status: 'approved'
@@ -138,12 +139,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         setUser(adminUser);
         setIsAuthenticated(true);
-      } else if (email === 'user@demo.com' && password === 'user123') {
+      } else if (email === 'demo@democorp.com' && password === 'user123') {
         // Generate a proper UUID for demo user instead of "user-1"
         const demoUser: User = {
-          id: 'demo-user-12345678-1234-5678-9012-123456789012', // Valid UUID format
+          id: 'a769ca2c-1b', // This should be the real demo user ID
           username: 'demo_user',
-          email: 'user@demo.com',
+          email: 'demo@democorp.com',
           full_name: 'Demo User',
           role: 'user',
           status: 'approved',
@@ -195,8 +196,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       };
 
+      const apiUrl = import.meta.env.VITE_BACKEND_URL || '';
       // Make API call to register user
-      const response = await fetch('/api/v1/auth/register', {
+      const response = await fetch(`${apiUrl}/api/v1/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -230,17 +232,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
-    
+
+    const clientAccountId = localStorage.getItem('selectedClientAccountId');
+    const engagementId = localStorage.getItem('selectedEngagementId');
+
     if (user) {
       headers['X-User-ID'] = user.id;
       headers['X-User-Role'] = user.role;
     }
     
-    // Add client context headers for Marathon Petroleum testing
-    // This should eventually come from a client context provider/selector
-    headers['X-Client-Account-ID'] = '73dee5f1-6a01-43e3-b1b8-dbe6c66f2990'; // Marathon Petroleum
-    headers['X-Engagement-ID'] = ''; // Will be set based on available engagements
-    
+    if (clientAccountId) {
+      headers['X-Client-Account-ID'] = clientAccountId;
+    }
+
+    if (engagementId) {
+      headers['X-Engagement-ID'] = engagementId;
+    }
+        
     return headers;
   };
 

@@ -3,7 +3,7 @@ Client Account models for multi-tenant data segregation.
 """
 
 try:
-    from sqlalchemy import Column, String, Text, Boolean, DateTime, UUID, JSON, ForeignKey
+    from sqlalchemy import Column, String, Text, Boolean, DateTime, UUID, JSON, ForeignKey, UniqueConstraint
     from sqlalchemy.orm import relationship
     from sqlalchemy.sql import func
     from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
@@ -102,7 +102,7 @@ class ClientAccount(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     created_by = Column(PostgresUUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
-    is_active = Column(Boolean, default=True, index=True)
+    is_active = Column(Boolean, default=True, nullable=False, index=True)
     
     # Core relationships only
     engagements = relationship("Engagement", back_populates="client_account", cascade="all, delete-orphan")
@@ -119,7 +119,7 @@ class ClientAccount(Base):
     llm_usage_summaries = relationship("LLMUsageSummary", back_populates="client_account", cascade="all, delete-orphan", lazy="select")
     
     def __repr__(self):
-        return f"<ClientAccount(id={self.id}, name='{self.name}', slug='{self.slug}', is_mock={self.is_mock})>"
+        return f"<ClientAccount(id={self.id}, name='{self.name}')>"
 
 
 class Engagement(Base):
@@ -231,6 +231,9 @@ class User(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     last_login = Column(DateTime(timezone=True))
     
+    # Relationships
+    user_associations = relationship("UserAccountAssociation", foreign_keys="[UserAccountAssociation.user_id]", back_populates="user", cascade="all, delete-orphan")
+    
     def __repr__(self):
         return f"<User(id={self.id}, email='{self.email}', is_mock={self.is_mock})>"
 
@@ -256,9 +259,14 @@ class UserAccountAssociation(Base):
     created_by = Column(PostgresUUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
     
     # Relationships
-    user = relationship("User", foreign_keys=[user_id])
+    user = relationship("User", back_populates="user_associations", foreign_keys=[user_id])
     client_account = relationship("ClientAccount", back_populates="user_associations")
     created_by_user = relationship("User", foreign_keys=[created_by])
     
+    # Unique constraint for user_id and client_account_id
+    __table_args__ = (
+        UniqueConstraint('user_id', 'client_account_id', name='_user_client_account_uc'),
+    )
+    
     def __repr__(self):
-        return f"<UserAccountAssociation(user_id={self.user_id}, client_account_id={self.client_account_id}, role='{self.role}', is_mock={self.is_mock})>" 
+        return f"<UserAccountAssociation(user_id={self.user_id}, client_account_id={self.client_account_id}, role='{self.role}')>" 

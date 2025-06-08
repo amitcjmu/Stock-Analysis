@@ -124,9 +124,9 @@ class ClientAccountResponse(BaseModel):
     account_name: str
     industry: str
     company_size: str
-    headquarters_location: str
-    primary_contact_name: str
-    primary_contact_email: str
+    headquarters_location: Optional[str] = None
+    primary_contact_name: Optional[str] = None
+    primary_contact_email: Optional[str] = None
     primary_contact_phone: Optional[str] = None
     
     # Missing database fields in response
@@ -237,9 +237,9 @@ class EngagementResponse(BaseModel):
     id: str
     engagement_name: str
     client_account_id: str
-    engagement_description: str
-    migration_scope: str
-    target_cloud_provider: str
+    engagement_description: Optional[str] = None
+    migration_scope: Optional[Union[str, Dict[str, Any]]] = None
+    target_cloud_provider: Optional[str] = None
     
     # Migration Planning
     planned_start_date: Optional[datetime] = None
@@ -251,17 +251,17 @@ class EngagementResponse(BaseModel):
     actual_budget: Optional[float] = None
     
     # Team and Process
-    engagement_manager: str
-    technical_lead: str
-    team_preferences: Dict[str, Any]
+    engagement_manager: Optional[str] = None
+    technical_lead: Optional[str] = None
+    team_preferences: Optional[Dict[str, Any]] = None
     
     # Configuration
-    agent_configuration: Dict[str, Any]
-    discovery_preferences: Dict[str, Any]
-    assessment_criteria: Dict[str, Any]
+    agent_configuration: Optional[Dict[str, Any]] = None
+    discovery_preferences: Optional[Dict[str, Any]] = None
+    assessment_criteria: Optional[Dict[str, Any]] = None
     
     # Status and Progress
-    current_phase: str = "planning"
+    current_phase: Optional[str] = "planning"
     completion_percentage: float = 0.0
     current_session_id: Optional[str] = None
     

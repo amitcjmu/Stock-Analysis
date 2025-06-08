@@ -123,18 +123,29 @@ class StorageManager:
     
     def load_classifications(self) -> Dict[str, Any]:
         """Load data classifications from storage."""
+        file_path = os.path.join(self.storage_path, "data_classifications.json")
+        if not os.path.exists(file_path):
+            return {}
+            
         try:
-            file_path = os.path.join(self.storage_path, "data_classifications.json")
-            if os.path.exists(file_path):
-                with open(file_path, 'r') as f:
-                    classifications = json.load(f)
-                self._classifications_cache = classifications
-                logger.info(f"Loaded {len(classifications)} classifications from storage")
-                return classifications
+            with open(file_path, 'r') as f:
+                classifications = json.load(f)
+            self._classifications_cache = classifications
+            logger.info(f"Loaded {len(classifications)} classifications from storage")
+            return classifications
+        except json.JSONDecodeError as e:
+            logger.warning(f"Could not parse data_classifications.json: {e}. Returning empty classifications.")
+            # Optionally, move or rename the corrupted file
+            try:
+                corrupted_path = f"{file_path}.corrupted.{datetime.now().strftime('%Y%m%d%H%M%S')}"
+                os.rename(file_path, corrupted_path)
+                logger.info(f"Renamed corrupted classifications file to {corrupted_path}")
+            except Exception as rename_e:
+                logger.error(f"Could not rename corrupted classifications file: {rename_e}")
+            return {}
         except Exception as e:
             logger.error(f"Error loading classifications: {e}")
-        
-        return {}
+            return {}
     
     def save_insights(self, insights: Dict[str, Any]) -> bool:
         """Save agent insights to storage."""

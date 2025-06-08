@@ -44,8 +44,8 @@ class SourceTypeAnalyzer:
             r'.*bandwidth.*', r'.*performance.*'
         ]
     
-    async def identify_data_source_type(self, data: List[Dict[str, Any]], 
-                                       metadata: Dict[str, Any]) -> Dict[str, Any]:
+    async def analyze(self, data: List[Dict[str, Any]], 
+                      metadata: Dict[str, Any]) -> Dict[str, Any]:
         """Intelligently identify the type of data source."""
         
         # Analyze filename and metadata clues
