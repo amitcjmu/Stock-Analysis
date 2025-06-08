@@ -38,7 +38,7 @@ class EngagementCRUDHandler:
         result = await db.execute(query)
         engagements = result.scalars().all()
 
-        engagement_responses = [EngagementResponse.model_validate(eng) for eng in engagements]
+        engagement_responses = [EngagementResponse.model_validate(eng, from_attributes=True) for eng in engagements]
             
         total_pages = (total_items + page_size - 1) // page_size
         
@@ -82,13 +82,15 @@ class EngagementCRUDHandler:
             recent_result = await db.execute(recent_query)
             recent_engagements = recent_result.scalars().all()
 
+            recent_engagement_responses = [EngagementResponse.model_validate(e, from_attributes=True) for e in recent_engagements]
+
             return {
                 "total_engagements": total_engagements,
                 "active_engagements": active_engagements,
                 "engagements_by_type": engagements_by_type,
                 "engagements_by_status": engagements_by_status,
                 "avg_engagement_duration_days": 0, # Placeholder
-                "recent_engagements": recent_engagements
+                "recent_engagements": recent_engagement_responses
             }
         except Exception as e:
             logger.error(f"Error getting engagement dashboard stats: {e}")

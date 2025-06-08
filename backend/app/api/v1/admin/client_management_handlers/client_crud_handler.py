@@ -280,19 +280,21 @@ class ClientCRUDHandler:
             size_result = await db.execute(size_query)
             clients_by_company_size = {row[0]: row[1] for row in size_result.all() if row[0]}
             
-            # Recent registrations (last 7 days)
+            # Recent client registrations (last 7 days)
             seven_days_ago = datetime.utcnow() - timedelta(days=7)
             recent_clients_query = select(ClientAccount).where(ClientAccount.created_at >= seven_days_ago).order_by(ClientAccount.created_at.desc()).limit(5)
             recent_clients_result = await db.execute(recent_clients_query)
             recent_clients = recent_clients_result.scalars().all()
+            
+            recent_client_responses = [ClientAccountResponse.model_validate(c, from_attributes=True) for c in recent_clients]
 
             return {
                 "total_clients": total_clients,
                 "active_clients": active_clients,
-                "clients_by_industry": clients_by_industry,
-                "clients_by_company_size": clients_by_company_size,
+                "clients_by_industry": dict(clients_by_industry),
+                "clients_by_company_size": dict(clients_by_company_size),
                 "clients_by_cloud_provider": {}, # Placeholder
-                "recent_client_registrations": recent_clients
+                "recent_client_registrations": recent_client_responses
             }
         except Exception as e:
             logger.error(f"Error getting client dashboard stats: {e}")
