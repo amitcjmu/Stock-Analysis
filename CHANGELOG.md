@@ -211,3 +211,27 @@ This release fixes a critical circular import issue that was causing the backend
 - **[Change Type]**: [Refactor]
 - **[Impact]**: [The backend now starts up correctly]
 - **[Technical Details]**: [Removed the AssetIntelligenceHandler from the asset_processing_handlers package and imported it directly in the asset_processing_service.py file to break a circular dependency.]
+
+## [0.2.6] - 2024-07-12
+
+### 🐛 **[FIX] - Critical Platform Stability and Authentication**
+
+This release resolves a cascade of critical issues that were preventing the backend from starting, including multiple circular dependencies, module import errors, and a broken authentication implementation.
+
+### 🚀 **[Primary Changes]**
+
+#### **[Architectural Fixes]**
+- **[Change Type]**: [Refactor]
+- **[Impact]**: The backend now starts up correctly and is stable.
+- **[Technical Details]**: 
+    - Resolved a complex circular dependency involving `crewai_flow_service` and `asset_intelligence_handler` using `importlib` for lazy loading.
+    - Fixed numerous `ModuleNotFoundError` and `ImportError` issues by correcting model, schema, and service import paths across the application. This included consolidating a duplicate `DataImportSession` model and correcting exports in various `__init__.py` files.
+    - Created missing Pydantic schemas required by the `field_mapping` endpoint.
+
+#### **[Authentication and Authorization]**
+- **[Change Type]**: [Fix]
+- **[Impact]**: API endpoints are now correctly protected, and user authentication works as intended.
+- **[Technical Details]**:
+    - Removed a flawed, custom-built authentication service that was causing startup failures.
+    - Implemented a new, correct authentication dependency (`get_current_user_id`) in `app.core.auth` that properly uses the existing `AuthenticationService` and `validate_token` method.
+    - Updated API endpoints to use the new, secure dependency, ensuring that user context is correctly established via bearer token validation.
