@@ -52,6 +52,7 @@ async def upload_data_file(
     db: AsyncSession = Depends(get_db)
 ):
     """Upload and create a new data import session with automatic session management."""
+    data_import = None
     try:
         # Get current context from middleware
         context = get_current_context()
@@ -75,14 +76,14 @@ async def upload_data_file(
             except Exception as session_e:
                 logger.warning(f"Session management failed, continuing without session: {session_e}")
         
-        # Create data import record with context and fallback user ID
-        # Default demo user for Marathon Petroleum testing
-        default_user_id = "eef6ea50-6550-4f14-be2c-081d4eb23038"  # Demo user John Doe
-        
+        # Default user for testing if not in context
+        default_user_id = "eef6ea50-6550-4f14-be2c-081d4eb23038" # John Doe
+
+        # Create DataImport object but don't commit yet
         data_import = DataImport(
-            client_account_id=context.client_account_id or "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990",  # Marathon Petroleum UUID
+            client_account_id=context.client_account_id or "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990",
             engagement_id=context.engagement_id,
-            session_id=session_id,  # Link to session if available
+            session_id=session_id,
             import_name=import_name or f"{file.filename} Import",
             import_type=import_type,
             description=description,
@@ -90,81 +91,92 @@ async def upload_data_file(
             file_size_bytes=len(content),
             file_type=file.content_type,
             file_hash=file_hash,
-            status=ImportStatus.UPLOADED,
-            imported_by=context.user_id or default_user_id,  # Use default if no user context
-            is_mock=False  # This is now real data import
+            status=ImportStatus.UPLOADING, # New status for atomicity
+            imported_by=context.user_id or default_user_id,
+            is_mock=False
         )
-        
         db.add(data_import)
-        await db.commit()
-        await db.refresh(data_import)
-        
-        # Process the file content
+        await db.flush() # Flush to get ID for relationships
+
+        # Process the file and create raw records within the same transaction
         await process_uploaded_file(data_import, content, db, context)
         
+        # Final commit for the entire operation
+        await db.commit()
+        await db.refresh(data_import)
+
         return {
             "import_id": str(data_import.id),
             "session_id": session_id,
             "client_account_id": context.client_account_id,
             "engagement_id": context.engagement_id,
-            "status": "uploaded",
+            "status": data_import.status,
             "filename": file.filename,
             "size_bytes": len(content),
-            "message": "File uploaded and processing started"
+            "message": "File uploaded and processed successfully"
         }
         
     except Exception as e:
+        logger.error(f"Data import failed: {e}", exc_info=True)
         await db.rollback()
+        # Update status if data_import object was created
+        if data_import:
+            try:
+                # Need a separate session to update status after rollback
+                async with get_db() as new_db_session:
+                    data_import.status = ImportStatus.FAILED
+                    new_db_session.add(data_import)
+                    await new_db_session.commit()
+            except Exception as update_e:
+                logger.error(f"Failed to update import status to FAILED: {update_e}")
+
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
 async def process_uploaded_file(data_import: DataImport, content: bytes, db: AsyncSession, context: RequestContext):
     """Process uploaded file and create raw import records with context awareness."""
-    try:
-        # Update status to processing
-        data_import.status = ImportStatus.PROCESSING
-        await db.commit()
-        
-        # Parse file content (assuming CSV for demo)
-        content_str = content.decode('utf-8')
-        csv_reader = csv.DictReader(io.StringIO(content_str))
-        
-        raw_records = []
-        row_number = 1
-        
-        for row in csv_reader:
-            # Create raw import record with client context
-            raw_record = RawImportRecord(
-                data_import_id=data_import.id,
-                client_account_id=context.client_account_id,
-                engagement_id=context.engagement_id,
-                session_id=data_import.session_id,
-                row_number=row_number,
-                record_id=row.get('ID') or row.get('id') or f"ROW_{row_number}",
-                raw_data=dict(row),  # Store exactly as imported
-                is_processed=False,
-                is_valid=True
-            )
-            raw_records.append(raw_record)
-            row_number += 1
-        
-        # Bulk insert raw records
+    # This function now operates within the transaction of upload_data_file
+    # It should not commit or handle exceptions that need to roll back the whole import.
+    
+    # Update status to processing in memory
+    data_import.status = ImportStatus.PROCESSING
+    
+    # Parse file content
+    content_str = content.decode('utf-8')
+    csv_reader = csv.DictReader(io.StringIO(content_str))
+    
+    raw_records = []
+    row_number = 1
+    
+    for row in csv_reader:
+        raw_record = RawImportRecord(
+            data_import_id=data_import.id,
+            client_account_id=context.client_account_id,
+            engagement_id=context.engagement_id,
+            session_id=data_import.session_id,
+            row_number=row_number,
+            record_id=row.get('ID') or row.get('id') or f"ROW_{row_number}",
+            raw_data=dict(row),
+            is_processed=False,
+            is_valid=True
+        )
+        raw_records.append(raw_record)
+        row_number += 1
+    
+    # Bulk add raw records to the session
+    if raw_records:
         db.add_all(raw_records)
-        
-        # Update import statistics
-        data_import.total_records = len(raw_records)
-        data_import.status = ImportStatus.PROCESSED
-        data_import.completed_at = datetime.utcnow()
-        
-        await db.commit()
-        
-        # Import quality analysis to trigger analysis
-        from .quality_analysis import analyze_data_quality
-        await analyze_data_quality(data_import, raw_records, db, context)
-        
-    except Exception as e:
-        data_import.status = ImportStatus.FAILED
-        await db.commit()
-        raise e
+    
+    # Update import statistics in memory
+    data_import.total_records = len(raw_records)
+    data_import.completed_at = datetime.utcnow()
+    
+    # Trigger quality analysis (runs in the same transaction)
+    from .quality_analysis import analyze_data_quality
+    await analyze_data_quality(data_import, raw_records, db, context)
+
+    # Final status update in memory
+    # The commit in the parent function will persist this.
+    data_import.status = ImportStatus.PROCESSED
 
 @router.get("/imports")
 async def get_data_imports(

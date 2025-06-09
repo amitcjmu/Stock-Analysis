@@ -12,6 +12,7 @@ from datetime import datetime
 import base64
 import csv
 import io
+import os
 
 # Pydantic and Core Components
 from pydantic import BaseModel, Field
@@ -20,49 +21,67 @@ from app.core.context import RequestContext, get_current_context
 from app.services.llm_usage_tracker import LLMUsageTracker
 from app.schemas.flow_schemas import DiscoveryFlowState
 
-# CrewAI and Langchain
-from langchain_openai import ChatOpenAI
-from crewai import Agent, Task, Crew, Process
+# Conditional import for LangChain components
+try:
+    from langchain_openai import ChatOpenAI
+    from crewai import Agent
+    LANGCHAIN_AVAILABLE = True
+except ImportError:
+    LANGCHAIN_AVAILABLE = False
+
+# Conditional import for LiteLLM
+try:
+    from litellm import completion as litellm_completion
+    LITELLM_AVAILABLE = True
+except ImportError:
+    LITELLM_AVAILABLE = False
 
 # Local Imports
-from .crewai_flow_handlers.discovery_handlers.discovery_workflow_manager import DiscoveryWorkflowManager
+from app.services.crewai_flow_handlers.discovery_handlers.discovery_workflow_manager import DiscoveryWorkflowManager
 
 logger = logging.getLogger(__name__)
 
 class CrewAIFlowService:
     """A stateful service registry for core CrewAI components and active flows."""
     
-    def __init__(self):
-        logger.info("Initializing CrewAIFlowService...")
-        self.settings = settings
-        self.llm = self._initialize_llm()
-        self.agents = self._initialize_agents() if self.llm else {}
-        self.service_available = bool(self.llm and self.agents)
-        
-        # State management for active workflows
-        self.active_flows: Dict[str, DiscoveryFlowState] = {}
-        
-        if self.service_available:
-            logger.info("CrewAIFlowService initialized successfully with state management.")
-        else:
-            logger.warning("CrewAI Flow Service running in limited capacity due to missing configuration.")
-    
-    def _initialize_llm(self):
-        if not self.settings.DEEPINFRA_API_KEY:
-            logger.error("DEEPINFRA_API_KEY not found in settings.")
-            return None
-        try:
-            return ChatOpenAI(
-                model="meta-llama/Llama-3-70b-chat-hf",
-                temperature=0.1,
-                max_tokens=4096,
-                base_url="https://api.deepinfra.com/v1/openai",
-                api_key=self.settings.DEEPINFRA_API_KEY
-            )
-        except Exception as e:
-            logger.error(f"Failed to initialize LLM: {e}")
-            return None
+    _instance = None
 
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            cls._instance = super(CrewAIFlowService, cls).__new__(cls)
+        return cls._instance
+
+    def __init__(self):
+        if not hasattr(self, 'initialized'):
+            self.active_flows = {}
+            self.service_available = LANGCHAIN_AVAILABLE and LITELLM_AVAILABLE
+            
+            if self.service_available:
+                # Configure LLM for DeepInfra
+                self.llm = ChatOpenAI(
+                    api_key=os.getenv("DEEPINFRA_API_KEY"),
+                    base_url="https://api.deepinfra.com/v1/openai",
+                    model_name="openai/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+                    temperature=0.1,
+                    max_tokens=4096
+                )
+            else:
+                self.llm = None
+
+            self.settings = settings
+            self.agents = self._initialize_agents() if self.llm else {}
+            
+            # Initialize the workflow manager AFTER agents are initialized
+            self.manager = DiscoveryWorkflowManager(self)
+            self.initialized = True
+
+            logger.info("Initializing CrewAIFlowService...")
+            
+            if self.service_available:
+                logger.info("CrewAIFlowService initialized successfully with state management.")
+            else:
+                logger.warning("CrewAI Flow Service running in limited capacity due to missing configuration.")
+    
     def _initialize_agents(self):
         agents = {
             'data_validator': self._create_agent("Data Quality Analyst", "Ensures data quality and consistency."),
@@ -185,6 +204,30 @@ class CrewAIFlowService:
         Returns a list of all active workflow states.
         """
         return list(self.active_flows.values())
+
+    def _get_llm(self):
+        return self.llm
+
+    async def call_ai_agent(self, prompt: str) -> str:
+        if not self.service_available:
+            logger.warning("CrewAI/LiteLLM not available. Skipping agentic call.")
+            return {"error": "AI services not available"}
+
+        try:
+            # Use LiteLLM's completion for provider-agnostic calls
+            response = await litellm_completion(
+                model="openai/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+                messages=[{"role": "user", "content": prompt}],
+                api_key=os.getenv("DEEPINFRA_API_KEY"),
+                base_url="https://api.deepinfra.com/v1/openai"
+            )
+            # Assuming the response format is consistent with OpenAI's
+            if response.choices and response.choices[0].message:
+                return response.choices[0].message.content
+            return None
+        except Exception as e:
+            logger.error(f"Error calling LiteLLM: {e}")
+            raise
 
 # Singleton instance
 crewai_flow_service = CrewAIFlowService() 

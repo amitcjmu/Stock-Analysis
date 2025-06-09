@@ -2,6 +2,41 @@
 
 All notable changes to the AI Force Migration Platform will be documented in this file.
 
+## [0.1.1] - 2025-06-09
+
+### 🎯 **PLATFORM HARDENING & AGENTIC CORE STABILIZATION**
+
+This release resolves a deep-seated cascade of bugs that affected the entire data import lifecycle, from initial file upload to the agentic analysis core. The platform's session management, logging, and external service configurations have been significantly hardened, resulting in a more stable, predictable, and debuggable system.
+
+### 🚀 **Primary Changes**
+
+#### **Data Import & Agentic Workflow**
+- **[Fix]**: Corrected a critical `500 Internal Server Error` on the attribute mapping page by fixing a broken SQLAlchemy relationship between the `DataImport` and `DataImportSession` models.
+- **[Fix]**: Resolved a silent data loss issue where imported records were not being saved. The entire import process was wrapped in a single, atomic database transaction to ensure data integrity.
+- **[Fix]** Corrected multiple `AttributeError` crashes in the `DiscoveryFlowState` Pydantic model by adding missing fields (`log_entry`, `status_message`, `processed_data`), allowing the agentic workflow to proceed past the initialization phase.
+- **[Fix]**: Resolved a critical `litellm.BadRequestError` that was causing the agentic workflow to fail. The LLM provider configuration was corrected to properly connect to DeepInfra's API, which involved prefixing the model name with `openai/` to use the correct provider logic within `litellm`.
+
+#### **Core Platform & Middleware**
+- **[Fix]**: Eliminated a severe bug that generated a new session ID for every API request. The `SessionMiddleware` was completely rewritten to use standard, secure, and persistent HTTP-only cookies, ensuring stable session management across the application.
+- **[Fix]**: Resolved a `404 Not Found` error on the "Agent Monitoring" page by correcting malformed API request URLs in the `AgentMonitor.tsx` frontend component.
+- **[Fix]**: Addressed multiple Docker build failures and hangs by correcting a `healthcheck` typo in `docker-compose.yml` and fixing `NameError` and `AttributeError` initialization bugs in `crewai_flow_service.py`.
+- **[Improvement]**: Silenced excessive and unnecessary log noise. Health check (`/health`) requests are now completely excluded from session, context, and request logging.
+- **[Improvement]**: Introduced a `DB_ECHO_LOG` environment variable to provide granular control over verbose SQLAlchemy query logging, disabling it by default to keep production logs clean.
+
+### 📊 **Technical Achievements**
+- **[Root Cause Analysis]**: Successfully debugged a complex chain of failures spanning the frontend, backend API, database models, Pydantic schemas, and external service configurations.
+- **[Architectural Hardening]**: Overhauled the session management to align with web standards, making the application significantly more robust and secure.
+- **[Configuration Management]**: Centralized and corrected LLM provider settings, making the agentic core more reliable and easier to configure.
+- **[Observability]**: Substantially improved the signal-to-noise ratio in application logs, making future debugging efforts much more efficient.
+
+### 🎯 **Success Metrics**
+- **[Functionality]**: The data import and attribute mapping flow is now 100% functional.
+- **[Stability]**: Backend startup is stable, and Docker builds are reliable and fast.
+- **[Performance]**: Session management is now efficient, eliminating the creation of thousands of pointless session records.
+- **[Usability]**: Logs are clean and focused on actionable information.
+
+---
+
 ## [0.1.0] - 2025-06-08
 
 ### 🎯 **STABILIZATION & DATABASE SEEDING**

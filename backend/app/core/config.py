@@ -36,6 +36,7 @@ class Settings(BaseSettings):
         default="postgresql://postgres:password@localhost:5432/migration_db",
         env="DATABASE_URL"
     )
+    DB_ECHO_LOG: bool = Field(default=False, env="DB_ECHO_LOG")
     
     # Railway.app specific database URL (if available)
     @property

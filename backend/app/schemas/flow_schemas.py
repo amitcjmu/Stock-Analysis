@@ -2,7 +2,8 @@
 Pydantic schemas for Agentic Flow State Management.
 """
 from pydantic import BaseModel, Field
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
+from datetime import datetime
 
 class DiscoveryFlowState(BaseModel):
     """Represents the state of a single discovery workflow run."""
@@ -27,6 +28,20 @@ class DiscoveryFlowState(BaseModel):
     completion_complete: bool = False
     # Data artifacts from the workflow
     validated_structure: Dict[str, Any] = {}
+    processed_data: Dict[str, Any] = {}
     suggested_field_mappings: Dict[str, str] = {}
     asset_classifications: List[Dict[str, Any]] = []
-    agent_insights: Dict[str, Any] = {} 
+    agent_insights: Dict[str, Any] = {}
+
+    # New fields for logging and status
+    status_message: Optional[str] = None
+    workflow_log: List[Dict[str, Any]] = Field(default_factory=list)
+
+    def log_entry(self, message: str, phase: str = None, extra_data: Dict = None):
+        """Adds a log entry to the workflow state."""
+        self.workflow_log.append({
+            "timestamp": datetime.utcnow().isoformat(),
+            "message": message,
+            "phase": phase or self.current_phase,
+            "extra_data": extra_data or {}
+        }) 

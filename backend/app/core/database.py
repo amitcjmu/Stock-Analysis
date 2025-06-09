@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 if SQLALCHEMY_AVAILABLE:
     engine = create_async_engine(
         get_database_url(),
-        echo=settings.DEBUG,  # Log SQL queries in debug mode
+        echo=settings.DB_ECHO_LOG,  # Use dedicated setting for SQL logging
         poolclass=NullPool if settings.ENVIRONMENT == "development" else None,
         pool_pre_ping=True,
         pool_recycle=300,

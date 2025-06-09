@@ -69,7 +69,7 @@ class DataImport(Base):
     
     # Relationships
     raw_records = relationship("RawImportRecord", back_populates="data_import", cascade="all, delete-orphan")
-    session = relationship("DataImportSession", back_populates="imports")
+    session = relationship("DataImportSession", back_populates="data_imports")
     
     user = relationship("User")
     client_account = relationship("ClientAccount")

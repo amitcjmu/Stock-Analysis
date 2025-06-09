@@ -188,7 +188,10 @@ try:
     # To ensure session_id is available for context, SessionMiddleware must be added LAST.
     
     # 1. This will run third
-    app.add_middleware(RequestLoggingMiddleware)
+    app.add_middleware(
+        RequestLoggingMiddleware,
+        excluded_paths=["/health"]
+    )
     
     # 2. This will run second
     app.add_middleware(
@@ -267,10 +270,10 @@ async def startup_event():
     if DATABASE_ENABLED:
         try:
             print("🔧 Initializing database schema...")
-            # Enable detailed SQLAlchemy logging
-            import logging
-            logging.basicConfig()
-            logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+            # The following logging is now controlled by the DB_ECHO_LOG env var
+            # import logging
+            # logging.basicConfig()
+            # logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
             
             # Check what tables SQLAlchemy knows about
             table_names = list(Base.metadata.tables.keys())

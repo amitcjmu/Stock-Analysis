@@ -3,7 +3,7 @@ FastAPI middleware for automatic context injection.
 Extracts multi-tenant context from request headers and makes it available via context variables.
 """
 
-from typing import Callable, Optional
+from typing import Callable, Optional, List
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -78,6 +78,9 @@ class ContextMiddleware(BaseHTTPMiddleware):
         # Check if path is exempt from context requirements
         path = request.url.path
         is_exempt = any(path.startswith(exempt_path) for exempt_path in self.exempt_paths)
+
+        if is_exempt:
+            return await call_next(request)
         
         # Initialize context variable
         context = RequestContext()
@@ -147,8 +150,9 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
     Additional middleware for detailed request logging with context.
     """
     
-    def __init__(self, app: Callable):
+    def __init__(self, app: Callable, excluded_paths: List[str] = None):
         super().__init__(app)
+        self.excluded_paths = excluded_paths or ["/health"]
     
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         """
@@ -161,6 +165,9 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         Returns:
             Response from downstream handler
         """
+        if request.url.path in self.excluded_paths:
+            return await call_next(request)
+
         start_time = time.time()
         
         # Extract basic request info
