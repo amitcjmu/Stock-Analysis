@@ -69,8 +69,7 @@ async def agent_analysis(
             
             analysis_result = await crewai_flow_service.initiate_data_source_analysis(
                 data_source=data_source,
-                context=context,
-                page_context=analysis_request.get("page_context", "data-import")
+                context=context
             )
         elif analysis_type == "field_mapping_analysis":
             # Import field mapping service for field mapping analysis
@@ -163,42 +162,47 @@ async def answer_agent_clarification(
 
 @router.get("/agent-status")
 async def get_agent_status(
-    page_context: Optional[str] = None,
     db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
     """
-    Current agent understanding and confidence levels with client context.
+    Returns the status of the active discovery flow for the current session.
+    If no flow is active, returns an idle status.
     """
     try:
-        # Get current client context
-        from app.core.context import get_current_context
         context = get_current_context()
+        session_id = context.session_id
         
-        # The new service manages state within flows, so a general status is not directly available.
-        agent_status = {"status": "healthy", "active_flows": len(crewai_flow_service.active_flows)}
+        active_flow_state = None
+        if session_id:
+            active_flow_state = crewai_flow_service.get_flow_state_by_session(session_id)
         
-        # Page-specific information would now be retrieved from a specific flow's state.
-        # This is a placeholder implementation.
-        page_data = {
-            "pending_questions": [],
-            "data_classifications": {},
-            "agent_insights": []
-        }
+        if active_flow_state:
+            agent_status = {
+                "status": "in_progress",
+                "current_phase": active_flow_state.current_phase,
+                "confidence_score": active_flow_state.confidence_score,
+                "details": active_flow_state.status_message,
+                "session_id": active_flow_state.session_id
+            }
+        else:
+            agent_status = {
+                "status": "idle",
+                "current_phase": None,
+                "confidence_score": 0,
+                "details": "No active discovery flow for this session.",
+                "session_id": session_id
+            }
         
-        return {
-            "status": "success",
-            "agent_status": agent_status,
-            "page_data": page_data,
-            "client_context": {
-                "client_account_id": context.client_account_id,
-                "engagement_id": context.engagement_id
-            },
-            "cross_page_context": {}
-        }
-        
+        return agent_status
+
     except Exception as e:
-        logger.error(f"Error getting agent status: {e}")
-        raise HTTPException(status_code=500, detail=f"Agent status retrieval failed: {str(e)}")
+        logger.error(f"Error getting agent status for session {context.session_id}: {e}", exc_info=True)
+        # To prevent UI crashes, always return a valid structure
+        return {
+            "status": "error",
+            "details": f"An unexpected error occurred: {str(e)}",
+            "session_id": context.session_id
+        }
 
 @router.post("/agent-learning")
 async def process_agent_learning(

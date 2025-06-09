@@ -51,12 +51,18 @@ const Login: React.FC = () => {
     setLoading(true);
 
     try {
-      await login(loginData.email, loginData.password);
+      const loggedInUser = await login(loginData.email, loginData.password);
       toast({
         title: "Login Successful",
         description: "Welcome to AI Force Migration Platform",
       });
-      navigate(from, { replace: true });
+
+      // Redirect admin to admin dashboard, others to their intended destination
+      if (loggedInUser.role === 'admin') {
+        navigate('/admin', { replace: true });
+      } else {
+        navigate(from, { replace: true });
+      }
     } catch (error) {
       toast({
         title: "Login Failed",

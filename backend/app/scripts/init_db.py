@@ -13,6 +13,7 @@ import json
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text, select
+import argparse
 
 # Add the parent directory to the path so we can import our app modules
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -568,18 +569,27 @@ async def create_mock_migration_waves(session: AsyncSession, client_account_id: 
     logger.info("Successfully created mock migration waves.")
 
 
-async def initialize_mock_data():
+async def initialize_mock_data(force: bool = False):
     """Initializes the database with mock data."""
-    
-    if not DEPENDENCIES_AVAILABLE:
-        logger.error("Cannot initialize mock data due to missing dependencies.")
-        return
-
-    logger.info("Starting database initialization...")
-    
     async with AsyncSessionLocal() as session:
-        try:
-            # 1. Create Client Account
+        async with session.begin():
+            if force:
+                logger.info("Force option enabled. Deleting existing mock data...")
+                # Use 'in_bulk' to handle relationships and delete in correct order
+                await session.execute(text("DELETE FROM user_account_associations WHERE is_mock = TRUE"))
+                await session.execute(text("DELETE FROM engagements WHERE is_mock = TRUE"))
+                await session.execute(text("DELETE FROM assets WHERE is_mock = TRUE"))
+                await session.execute(text("DELETE FROM tags WHERE is_mock = TRUE"))
+                await session.execute(text("DELETE FROM users WHERE is_mock = TRUE"))
+                await session.execute(text("DELETE FROM client_accounts WHERE is_mock = TRUE"))
+                logger.info("Mock data deleted.")
+
+            exists = await check_mock_data_exists(session)
+            if exists and not force:
+                logger.info("Mock data already exists. Use '--force' to re-run.")
+                return
+
+            logger.info("Creating mock data...")
             client_account_id = await create_mock_client_account(session)
             
             # 2. Create Users
@@ -621,44 +631,32 @@ async def initialize_mock_data():
             await session.commit()
             logger.info("Database initialization completed successfully.")
 
-        except Exception as e:
-            await session.rollback()
-            logger.error(f"Error during database initialization: {e}")
-            raise
-        
-        finally:
-            await session.close()
 
-
-async def check_mock_data_exists():
+async def check_mock_data_exists(session: AsyncSession) -> bool:
     """Checks if mock data has already been populated."""
-    async with AsyncSessionLocal() as session:
-        result = await session.execute(text("SELECT 1 FROM client_accounts WHERE is_mock = TRUE LIMIT 1"))
-        return result.scalar_one_or_none() is not None
+    result = await session.execute(text("SELECT 1 FROM client_accounts WHERE is_mock = TRUE LIMIT 1"))
+    return result.scalar_one_or_none() is not None
 
 
 async def main():
-    """Main function to run the initialization script."""
-    
-    # Check if a command-line argument is provided
-    force_run = '--force' in sys.argv
-    
-    if not force_run and await check_mock_data_exists():
-        logger.info("Mock data already exists. Use '--force' to re-run.")
-        return
-        
-    logger.info("Populating database with mock data...")
-    await init_db()  # Ensure tables are created
-    await initialize_mock_data()
+    """Main function to run the initialization."""
+    parser = argparse.ArgumentParser(description="Initialize the database with mock data.")
+    parser.add_argument(
+        '--force',
+        action='store_true',
+        help='Force re-creation of mock data if it already exists.'
+    )
+    args = parser.parse_args()
+
+    try:
+        await init_db()
+        await initialize_mock_data(force=args.force)
+    except Exception as e:
+        logger.error(f"An unexpected error occurred: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 if __name__ == "__main__":
-    if not DEPENDENCIES_AVAILABLE:
-        sys.exit(1)
-    
-    # Run the async main function
-    try:
-        asyncio.run(main())
-    except Exception as e:
-        logger.error(f"An unexpected error occurred: {e}")
-        sys.exit(1) 
+    if DEPENDENCIES_AVAILABLE:
+        asyncio.run(main()) 

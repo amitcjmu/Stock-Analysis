@@ -84,11 +84,18 @@ def extract_context_from_request(request: Request) -> RequestContext:
         headers.get("engagement-id")
     )
     
-    session_id = (
-        headers.get("x-session-id") or
-        headers.get("x-context-session-id") or
-        headers.get("session-id")
-    )
+    # Prioritize session_id from request.state set by SessionMiddleware
+    session_id_from_state = getattr(request.state, "session_id", None)
+    logger.info(f"✅ ContextExtractor: Session ID from request.state: {session_id_from_state}")
+    
+    session_id = session_id_from_state
+    if not session_id:
+        logger.warning("ContextExtractor: Session ID not in state, trying headers...")
+        session_id = (
+            headers.get("x-session-id") or
+            headers.get("x-context-session-id") or
+            headers.get("session-id")
+        )
     
     user_id = (
         headers.get("x-user-id") or
@@ -113,6 +120,7 @@ def extract_context_from_request(request: Request) -> RequestContext:
     )
     
     logger.debug(f"Extracted context from request: {context}")
+    logger.info(f"✅ ContextExtractor: Final context created with Session ID: {context.session_id}")
     return context
 
 

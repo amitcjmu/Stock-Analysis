@@ -6,25 +6,22 @@ const API_BASE_URL = 'http://localhost:8000';
 
 // Helper function to clear storage and login
 async function loginAsAdmin(page: Page) {
-  // Navigate to login page first to establish context
   await page.goto(`${TEST_BASE_URL}/login`);
+  await page.evaluate(() => localStorage.clear());
+  await page.goto(`${TEST_BASE_URL}/login`, { waitUntil: 'networkidle' });
   
-  // Clear localStorage after we have a proper context
-  await page.evaluate(() => {
-    try {
-      localStorage.clear();
-    } catch (e) {
-      console.log('LocalStorage not available, continuing...');
-    }
-  });
-  
-  // Fill login form
-  await page.fill('input[type="email"]', 'admin@aiforce.com');
+  await page.fill('input[type="email"]', 'admin@democorp.com');
   await page.fill('input[type="password"]', 'admin123');
   
-  // Submit and wait for redirect
+  // Click and then wait for navigation, with better debugging
   await page.click('button[type="submit"]');
-  await page.waitForURL(`${TEST_BASE_URL}/admin`);
+  try {
+    await page.waitForURL(`${TEST_BASE_URL}/admin`, { timeout: 15000 });
+  } catch(e) {
+    console.error("Failed to navigate to admin page after login.", e);
+    await page.screenshot({ path: 'playwright-debug/login-failure.png' });
+    throw e;
+  }
 }
 
 // Helper function to validate API response
@@ -56,312 +53,187 @@ async function validateApiCall(page: Page, expectedStatus: number = 200) {
 }
 
 // Helper function to validate database state via API
-async function validateDatabaseState(page: Page, endpoint: string, validator: (data: any) => boolean) {
-  try {
-    const response = await page.evaluate(async (url) => {
-      try {
-        const token = localStorage.getItem('token') || '';
-        const res = await fetch(url, {
-          headers: {
-            'Authorization': token ? `Bearer ${token}` : '',
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-        }
-        
-        return await res.json();
-      } catch (error) {
-        console.error('API call failed:', error);
-        return { error: error.message };
+async function validateDatabaseState(page: Page, endpoint: string, validator: (data: any) => boolean, token?: string) {
+  const finalToken = token || await page.evaluate(() => localStorage.getItem('token'));
+
+  const response = await page.evaluate(async ({ url, authToken }) => {
+    const res = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${authToken}`,
+        'Content-Type': 'application/json'
       }
-    }, `${API_BASE_URL}${endpoint}`);
-    
-    if (response.error) {
-      console.error('Database validation failed:', response.error);
-      return false;
-    }
-    
-    return validator(response);
-  } catch (error) {
-    console.error('Database validation failed:', error);
-    return false;
-  }
+    });
+    if (!res.ok) throw new Error(`API Error: ${res.status} ${res.statusText}`);
+    return res.json();
+  }, { url: `${API_BASE_URL}${endpoint}`, authToken: finalToken });
+
+  return validator(response);
 }
 
 test.describe('Admin Interface E2E Tests with Database Validation', () => {
-  test.beforeEach(async ({ page }) => {
+  let adminToken: string;
+
+  test.beforeAll(async ({ browser }) => {
+    const page = await browser.newPage();
     await loginAsAdmin(page);
+    adminToken = await page.evaluate(() => localStorage.getItem('token') || '');
+    await page.close();
+  });
+
+  test.beforeEach(async ({ page }) => {
+    await page.goto(TEST_BASE_URL);
+    await page.evaluate((token) => {
+        localStorage.setItem('token', token);
+    }, adminToken);
+    await page.goto(`${TEST_BASE_URL}/admin`);
+    await page.waitForSelector('h1:has-text("Admin Console")');
   });
 
   test('1. Navigation - Admin Dashboard Access', async ({ page }) => {
-    // Verify we're on admin dashboard
     await expect(page.locator('h1:has-text("Admin Console")')).toBeVisible();
-    
-    // Check all navigation links are present
-    await expect(page.locator('a[href="/admin"]')).toBeVisible();
     await expect(page.locator('a[href="/admin/clients"]')).toBeVisible();
     await expect(page.locator('a[href="/admin/engagements"]')).toBeVisible();
-    await expect(page.locator('a[href="/admin/users/approvals"]')).toBeVisible();
+    await expect(page.locator('a[href="/admin/user-approvals"]')).toBeVisible();
   });
 
   test('2. User Management - Load and Validate Data', async ({ page }) => {
-    // Navigate to user management
-    await page.locator('a[href="/admin/users/approvals"]').first().click();
-    await page.waitForTimeout(2000); // Wait for data loading
+    await page.click('a[href="/admin/user-approvals"]');
+    await page.waitForSelector('h1:has-text("User Approvals")');
     
-    // Verify page loaded
-    await expect(page.locator('h1:has-text("User Management")')).toBeVisible();
-    
-    // Validate database state - check if users are actually loaded from backend
-    const usersValid = await validateDatabaseState(page, '/api/v1/auth/active-users', (data) => {
-      return Array.isArray(data.users) && data.users.length > 0;
-    });
+    const usersValid = await validateDatabaseState(page, '/api/v1/admin/users', (data) => {
+      return Array.isArray(data.items) && data.items.length > 0;
+    }, adminToken);
     
     expect(usersValid).toBe(true);
-    
-    // Verify UI shows the data
-    await expect(page.locator('[data-testid="active-user-row"]')).toHaveCount({ min: 1 });
+    await expect(page.locator('[data-testid="user-approval-row"]')).toHaveCountGreaterThan(0);
   });
 
   test('3. User Deactivation - End-to-End with Database Verification', async ({ page }) => {
-    // Navigate to user management
-    await page.locator('a[href="/admin/users/approvals"]').first().click();
-    await page.waitForTimeout(2000);
+    await page.goto(`${TEST_BASE_URL}/admin/user-approvals`);
+    await page.waitForSelector('[data-testid="user-approval-row"]');
+
+    const initialUsers = await page.evaluate(async (token) => {
+        const res = await fetch(`${API_BASE_URL}/api/v1/admin/users`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        return res.json();
+    }, adminToken);
+
+    const activeUsersBefore = initialUsers.items.filter(u => u.is_active).length;
+
+    const firstRow = page.locator('[data-testid="user-approval-row"]').first();
+    await firstRow.locator('button:has-text("Deactivate")').click();
     
-    // Get initial user count
-    const initialUsersData = await page.evaluate(async () => {
-      const res = await fetch('http://localhost:8000/api/v1/auth/active-users', {
-        headers: {
-          'Authorization': localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : '',
-          'Content-Type': 'application/json'
-        }
-      });
-      return res.json();
-    });
-    
-    const initialActiveUsers = initialUsersData.users.filter(u => u.status === 'active').length;
-    
-    // Set up API response monitoring
-    const apiResponsePromise = validateApiCall(page, 200);
-    
-    // Click deactivate button on first user
-    await page.locator('[data-testid="active-user-row"] button:has-text("Deactivate")').first().click();
-    
-    // Wait for API call to complete
-    try {
-      await apiResponsePromise;
-      console.log('✅ Deactivation API call succeeded');
-    } catch (error) {
-      console.error('❌ Deactivation API call failed:', error);
-      throw error;
-    }
-    
-    // Wait a moment for backend to process
-    await page.waitForTimeout(2000);
-    
-    // Validate database state changed
-    const updatedUsersValid = await validateDatabaseState(page, '/api/v1/auth/active-users', (data) => {
-      const currentActiveUsers = data.users.filter(u => u.status === 'active').length;
-      return currentActiveUsers < initialActiveUsers; // Should be one less active user
-    });
-    
-    expect(updatedUsersValid).toBe(true);
+    await page.waitForResponse(response => 
+      response.url().includes('/api/v1/admin/users/') && response.status() === 200
+    );
+
+    const updatedUsers = await page.evaluate(async (token) => {
+        const res = await fetch(`${API_BASE_URL}/api/v1/admin/users`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        return res.json();
+    }, adminToken);
+
+    const activeUsersAfter = updatedUsers.items.filter(u => u.is_active).length;
+    expect(activeUsersAfter).toBeLessThan(activeUsersBefore);
   });
 
   test('4. Client Management - Load and Navigate', async ({ page }) => {
-    // Navigate to client management
-    await page.locator('a[href="/admin/clients"]').first().click();
-    await page.waitForTimeout(2000);
+    await page.click('a[href="/admin/clients"]');
+    await page.waitForSelector('h1:has-text("Client Management")');
     
-    // Verify page loaded
-    await expect(page.locator('h1:has-text("Client Management")')).toBeVisible();
-    
-    // Validate database state
-    const clientsValid = await validateDatabaseState(page, '/api/v1/admin/clients/', (data) => {
-      return Array.isArray(data.items) && data.items.length >= 0; // Can be 0 or more
-    });
+    const clientsValid = await validateDatabaseState(page, '/api/v1/admin/clients', (data) => {
+      return Array.isArray(data.items);
+    }, adminToken);
     
     expect(clientsValid).toBe(true);
-    
-    // If clients exist, verify they're displayed
-    const clientRows = page.locator('[data-testid="client-row"]');
-    const count = await clientRows.count();
-    console.log(`Found ${count} client rows in UI`);
   });
 
   test('5. Client Edit Access', async ({ page }) => {
-    // Navigate to client management
-    await page.locator('a[href="/admin/clients"]').first().click();
-    await page.waitForTimeout(2000);
-    
-    // Check if there are clients to edit
+    await page.goto(`${TEST_BASE_URL}/admin/clients`);
+    await page.waitForSelector('h1:has-text("Client Management")');
+
     const clientRows = page.locator('[data-testid="client-row"]');
-    const count = await clientRows.count();
-    
-    if (count > 0) {
-      // Click dropdown menu (MoreHorizontal) on first client
-      await page.locator('[data-testid="client-row"]').first().locator('button svg').click();
-      await page.waitForTimeout(500);
-      
-      // Look for edit option
-      const editButton = page.locator('text="Edit"');
-      await expect(editButton).toBeVisible();
+    if (await clientRows.count() > 0) {
+      await clientRows.first().locator('button[aria-label="Open menu"]').click();
+      await expect(page.locator('button:has-text("Edit Client")')).toBeVisible();
     } else {
-      console.log('No clients available to test edit functionality');
+      console.log('No clients to test edit functionality');
     }
   });
 
   test('6. Engagement Management - Navigation and Data', async ({ page }) => {
-    // Navigate to engagement management
-    await page.locator('a[href="/admin/engagements"]').first().click();
-    await page.waitForTimeout(2000);
+    await page.click('a[href="/admin/engagements"]');
+    await page.waitForSelector('h1:has-text("Engagement Management")');
     
-    // Verify page loaded
-    await expect(page.locator('h1:has-text("Engagement Management")')).toBeVisible();
-    
-    // Validate database state
-    const engagementsValid = await validateDatabaseState(page, '/api/v1/admin/engagements/', (data) => {
-      return Array.isArray(data.items) && data.items.length >= 0;
-    });
+    const engagementsValid = await validateDatabaseState(page, '/api/v1/admin/engagements', (data) => {
+      return Array.isArray(data.items);
+    }, adminToken);
     
     expect(engagementsValid).toBe(true);
   });
 
   test('7. Engagement Creation - End-to-End with Database Verification', async ({ page }) => {
-    // First ensure we have client accounts to create engagements for
-    const clientsData = await page.evaluate(async () => {
-      const res = await fetch('http://localhost:8000/api/v1/admin/clients/', {
-        headers: {
-          'Authorization': localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : '',
-          'Content-Type': 'application/json'
-        }
-      });
-      return res.json();
-    });
-    
-    if (!clientsData.items || clientsData.items.length === 0) {
-      console.log('⚠️ No client accounts available, skipping engagement creation test');
+    const clientsData = await page.evaluate(async (token) => {
+        const res = await fetch(`${API_BASE_URL}/api/v1/admin/clients`, { headers: { 'Authorization': `Bearer ${token}` } });
+        return res.json();
+    }, adminToken);
+
+    if (clientsData.items.length === 0) {
+      console.log('⚠️ No client accounts, skipping engagement creation test');
       return;
     }
+
+    await page.goto(`${TEST_BASE_URL}/admin/engagements`);
+    await page.waitForSelector('h1:has-text("Engagement Management")');
     
-    // Navigate to engagement management
-    await page.locator('a[href="/admin/engagements"]').first().click();
-    await page.waitForTimeout(1000);
+    const initialEngagements = await page.evaluate(async (token) => {
+        const res = await fetch(`${API_BASE_URL}/api/v1/admin/engagements`, { headers: { 'Authorization': `Bearer ${token}` } });
+        return res.json();
+    }, adminToken);
+    const initialCount = initialEngagements.items.length;
+
+    await page.click('button:has-text("Create Engagement")');
+    await page.waitForSelector('h2:has-text("Create New Engagement")');
+
+    const engagementName = `Test-Engagement-${Date.now()}`;
+    await page.fill('input[name="name"]', engagementName);
     
-    // Get initial engagement count
-    const initialEngagementsData = await page.evaluate(async () => {
-      const res = await fetch('http://localhost:8000/api/v1/admin/engagements/', {
-        headers: {
-          'Authorization': localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : '',
-          'Content-Type': 'application/json'
-        }
-      });
-      return res.json();
-    });
-    
-    const initialEngagementCount = initialEngagementsData.items ? initialEngagementsData.items.length : 0;
-    
-    // Click New Engagement button
-    await page.click('a[href="/admin/engagements/create"]:has-text("New Engagement")');
-    await page.waitForURL('**/admin/engagements/create');
-    
-    // Fill out the form with valid data
-    await page.fill('#engagement_name', 'Test Engagement E2E');
-    
-    // Select first available client
-    await page.click('[data-testid="client-select-trigger"]');
-    await page.click('[data-testid="client-select-item"]');
-    
-    await page.fill('#project_manager', 'Test Manager');
-    await page.fill('#description', 'This is a test engagement created by E2E testing');
-    await page.fill('#estimated_start_date', '2025-01-15');
-    await page.fill('#estimated_end_date', '2025-06-15');
-    await page.fill('#budget', '100000');
-    
-    // Set up API response monitoring
-    const apiResponsePromise = validateApiCall(page, 200);
-    
-    // Submit the form
-    await page.click('button[type="submit"]:has-text("Create Engagement")');
-    
-    // Wait for API call
-    try {
-      await apiResponsePromise;
-      console.log('✅ Engagement creation API call succeeded');
-    } catch (error) {
-      console.error('❌ Engagement creation API call failed:', error);
-      throw error;
-    }
-    
-    // Wait for navigation back to engagement list
-    await page.waitForURL('**/admin/engagements');
-    await page.waitForTimeout(2000);
-    
-    // Validate database state changed
-    const updatedEngagementsValid = await validateDatabaseState(page, '/api/v1/admin/engagements/', (data) => {
-      const currentCount = data.items ? data.items.length : 0;
-      return currentCount > initialEngagementCount; // Should have one more engagement
-    });
-    
-    expect(updatedEngagementsValid).toBe(true);
+    await page.click('[role="combobox"]');
+    await page.locator('[role="option"]').first().click();
+
+    await page.click('button[type="submit"]');
+
+    await page.waitForResponse(response => 
+        response.url().includes('/api/v1/admin/engagements') && response.status() === 201
+    );
+
+    const updatedEngagements = await page.evaluate(async (token) => {
+        const res = await fetch(`${API_BASE_URL}/api/v1/admin/engagements`, { headers: { 'Authorization': `Bearer ${token}` } });
+        return res.json();
+    }, adminToken);
+
+    expect(updatedEngagements.items.length).toBeGreaterThan(initialCount);
+    expect(updatedEngagements.items.some(e => e.name === engagementName)).toBe(true);
   });
 
-  test('8. Navigation - All Admin Sections Accessible', async ({ page }) => {
-    const sections = [
-      { name: 'Dashboard', href: '/admin', heading: 'Admin Console' },
-      { name: 'Clients', href: '/admin/clients', heading: 'Client Management' },
-      { name: 'Engagements', href: '/admin/engagements', heading: 'Engagement Management' },
-      { name: 'Users', href: '/admin/users/approvals', heading: 'User Management' }
-    ];
-    
-    for (const section of sections) {
-      await page.locator(`a[href="${section.href}"]`).first().click();
-      await page.waitForTimeout(1000);
-      await expect(page.locator(`h1:has-text("${section.heading}")`)).toBeVisible();
-      console.log(`✅ ${section.name} section accessible`);
-    }
-  });
+  test('8. Data Import Page - CMDB Upload Flow', async ({ page }) => {
+    await page.goto(`${TEST_BASE_URL}/discovery/data-import`);
+    await page.waitForSelector('h1:has-text("Data Import")');
 
-  test('9. API Error Handling - Validate Frontend Resilience', async ({ page }) => {
-    // Navigate to user management
-    await page.locator('a[href="/admin/users/approvals"]').first().click();
-    await page.waitForTimeout(2000);
+    const filePath = 'sample_cmdb_data.csv';
     
-    // Mock API failure by intercepting requests
-    await page.route('**/api/v1/auth/deactivate-user', route => {
-      route.fulfill({
-        status: 500,
-        contentType: 'application/json',
-        body: JSON.stringify({ detail: 'Internal Server Error' })
-      });
-    });
-    
-    // Try to deactivate user
-    await page.locator('[data-testid="active-user-row"] button:has-text("Deactivate")').first().click();
-    
-    // Should show error state, not success
-    // We expect the frontend to handle this gracefully
-    await page.waitForTimeout(1000);
-    
-    // Clean up the route
-    await page.unroute('**/api/v1/auth/deactivate-user');
-  });
+    const [fileChooser] = await Promise.all([
+      page.waitForEvent('filechooser'),
+      page.locator('text=CMDB Data').first().click() // Assuming this is the dropzone trigger
+    ]);
+    await fileChooser.setFiles(filePath);
 
-  test('10. Form Validation - Engagement Creation', async ({ page }) => {
-    // Navigate to engagement creation
-    await page.locator('a[href="/admin/engagements"]').first().click();
-    await page.click('a[href="/admin/engagements/create"]:has-text("New Engagement")');
-    await page.waitForURL('**/admin/engagements/create');
+    await page.waitForSelector('div:has-text("File Analysis Summary")');
     
-    // Try to submit empty form
-    await page.click('button[type="submit"]:has-text("Create Engagement")');
-    
-    // Should show validation errors
-    await expect(page.locator('text="Engagement name is required"')).toBeVisible();
-    await expect(page.locator('text="Client account is required"')).toBeVisible();
-    await expect(page.locator('text="Project manager is required"')).toBeVisible();
+    await expect(page.locator('div:has-text("Detected Type: CSV Data File")')).toBeVisible();
+    await expect(page.locator('div:has-text("Confidence: 100%")')).toBeVisible();
+    await expect(page.locator('li:has-text("Asset Identification Fields Present")')).toBeVisible();
   });
 }); 

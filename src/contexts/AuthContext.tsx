@@ -16,7 +16,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isAdmin: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
   logout: () => void;
   register: (userData: RegisterData) => Promise<void>;
   getAuthHeaders: () => Record<string, string>;
@@ -88,7 +88,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(false); // Always set loading to false after checking
   }, []);
 
-  const login = async (email: string, password: string): Promise<void> => {
+  const login = async (email: string, password: string): Promise<User> => {
     try {
       // First try to authenticate against the database
       try {
@@ -112,7 +112,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             
             setUser(result.user);
             setIsAuthenticated(true);
-            return; // Successful database authentication
+            return result.user; // Successful database authentication
           }
         }
       } catch (dbError) {
@@ -139,6 +139,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         setUser(adminUser);
         setIsAuthenticated(true);
+        return adminUser;
       } else if (email === 'demo@democorp.com' && password === 'user123') {
         // Generate a proper UUID for demo user instead of "user-1"
         const demoUser: User = {
@@ -159,6 +160,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         setUser(demoUser);
         setIsAuthenticated(true);
+        return demoUser;
       } else {
         throw new Error('Invalid email or password');
       }

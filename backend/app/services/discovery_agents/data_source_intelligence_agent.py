@@ -119,7 +119,7 @@ class DataSourceIntelligenceAgent:
                 "agent_analysis": await self._perform_comprehensive_analysis(
                     file_data, metadata
                 ),
-                "data_classification": await self.quality_analyzer.analyze(file_data),
+                "data_classification": await self.quality_analyzer.classify_data_quality(file_data),
                 "agent_insights": await self.insight_generator.generate(file_data),
                 "clarification_questions": await self.question_generator.generate_clarification_questions(
                     file_data, metadata, page_context
@@ -204,10 +204,10 @@ class DataSourceIntelligenceAgent:
     async def _perform_comprehensive_analysis(self, data: Any, metadata: Dict[str, Any]) -> Dict[str, Any]:
         """Perform a comprehensive analysis of the data using all available handlers."""
         
-        source_type_result = await self.source_type_analyzer.analyze(data)
-        quality_result = await self.quality_analyzer.analyze(data)
-        content_result = await self.data_structure_analyzer.analyze(data)
-        insights_result = await self.insight_generator.generate(data)
+        source_type_result = await self.source_type_analyzer.analyze(data, metadata)
+        quality_result = await self.quality_analyzer.classify_data_quality(data)
+        content_result = await self.data_structure_analyzer.analyze_data_structure(data)
+        insights_result = await self.insight_generator.generate_intelligent_insights(data, metadata)
 
         # Combine results into a structured response
         analysis_summary = {
@@ -270,7 +270,7 @@ class DataSourceIntelligenceAgent:
             return recommendations
         
         # Get quality assessment
-        quality_result = await self.quality_analyzer.analyze(data)
+        quality_result = await self.quality_analyzer.classify_data_quality(data)
         quality_classification = quality_result.get("overall_classification")
         
         if quality_classification == DataClassification.GOOD_DATA.value:
