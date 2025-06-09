@@ -198,3 +198,16 @@ This release fixes a critical crash on the data import page and refactors the da
 - **[Architecture]**: The frontend-to-backend data flow now adheres to the agentic-first principles outlined in the platform documentation.
 
 ## [0.4.2] - 2024-07-25
+
+## [0.2.5] - 2024-07-12
+
+### 🐛 **[FIX] - Platform Stability**
+
+This release fixes a critical circular import issue that was causing the backend to fail on startup.
+
+### 🚀 **[Primary Changes Category]**
+
+#### **[Circular Import Fix]**
+- **[Change Type]**: [Refactor]
+- **[Impact]**: [The backend now starts up correctly]
+- **[Technical Details]**: [Removed the AssetIntelligenceHandler from the asset_processing_handlers package and imported it directly in the asset_processing_service.py file to break a circular dependency.]

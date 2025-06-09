@@ -3,10 +3,11 @@ Asset Intelligence Handler
 Handles AI-powered analysis of asset readiness for migration assessment.
 """
 import logging
-from typing import Dict, List, Any
+from typing import Dict, List, Any, TYPE_CHECKING
 from app.services.tools.asset_intelligence_tools import AssetAnalysisTool, BulkOperationsTool
-from app.services.agent_registry import AgentRegistry
-from app.services.crewai_flow_service import crewai_flow_service
+if TYPE_CHECKING:
+    from app.services.agent_registry import AgentRegistry
+    from app.services.crewai_flow_service import crewai_flow_service
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,8 @@ class AssetIntelligenceHandler:
         self.crewai_service_available = False
         self.agent_registry = None
         try:
+            from app.services.agent_registry import AgentRegistry
+            from app.services.crewai_flow_service import crewai_flow_service
             self.agent_registry = AgentRegistry()
             if crewai_flow_service and crewai_flow_service.is_available():
                 self.crewai_service_available = True

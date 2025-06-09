@@ -6,19 +6,19 @@ import logging
 from typing import Dict, List, Any, Optional
 
 from .asset_processing_handlers import (
-    AssetIntelligenceHandler,
     AssetWorkflowHandler,
     AssetValidationHandler
 )
+from .asset_processing_handlers.asset_intelligence_handler import AssetIntelligenceHandler
 
 logger = logging.getLogger(__name__)
 
 class AssetProcessingService:
     def __init__(self, config=None):
         self.config = config
-        self.intelligence_handler = AssetIntelligenceHandler()
         self.workflow_handler = AssetWorkflowHandler()
         self.validation_handler = AssetValidationHandler()
+        self.intelligence_handler = AssetIntelligenceHandler()
 
     async def process_new_asset(self, asset_data: Dict[str, Any], client_account_id: str, engagement_id: str) -> Dict[str, Any]:
         """
