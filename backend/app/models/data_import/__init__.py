@@ -7,6 +7,7 @@ from .mapping import ImportFieldMapping
 from .learning import MappingLearningPattern
 from .enums import ImportStatus, ImportType
 from .quality import DataQualityIssue
+from .custom_fields import CustomTargetField
 
 __all__ = [
     "DataImport",
@@ -15,5 +16,6 @@ __all__ = [
     "MappingLearningPattern",
     "ImportStatus",
     "ImportType",
-    "DataQualityIssue"
+    "DataQualityIssue",
+    "CustomTargetField"
 ] 
