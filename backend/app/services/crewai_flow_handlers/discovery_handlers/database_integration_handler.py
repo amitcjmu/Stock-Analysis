@@ -5,7 +5,7 @@ import logging
 from typing import Dict, Any, TYPE_CHECKING
 
 # LATE IMPORTS to prevent circular dependencies
-# from app.services.asset_processing_service import asset_processing_service
+from app.services.asset_processing_service import asset_processing_service
 from app.schemas.flow_schemas import DiscoveryFlowState
 
 if TYPE_CHECKING:
@@ -24,20 +24,15 @@ class DatabaseIntegrationHandler:
         """
         logger.info("Executing Database Integration phase.")
         
-        # This is where you would call the asset_processing_service
-        # For now, we simulate the action
+        await asset_processing_service.process_and_store_assets(
+            session_id=flow_state.session_id,
+            import_session_id=flow_state.import_session_id,
+            asset_data=flow_state.asset_classifications,
+            client_account_id=client_account_id,
+            engagement_id=engagement_id,
+            user_id=user_id
+        )
         
-        # from app.services.asset_processing_service import asset_processing_service
-        # await asset_processing_service.process_and_store_assets(
-        #     session_id=flow_state.session_id,
-        #     import_session_id=flow_state.import_session_id,
-        #     asset_data=flow_state.asset_classifications,
-        #     client_account_id=client_account_id,
-        #     engagement_id=engagement_id,
-        #     user_id=user_id
-        # )
-        
-        # Simulate success
         flow_state.database_integration_complete = True
         logger.info("Database Integration phase complete.")
         return flow_state 
