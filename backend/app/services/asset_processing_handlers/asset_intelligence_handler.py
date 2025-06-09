@@ -17,12 +17,16 @@ class AssetIntelligenceHandler:
         self.agent_registry = None
         try:
             from app.services.agent_registry import AgentRegistry
-            from app.services.crewai_flow_service import crewai_flow_service
             self.agent_registry = AgentRegistry()
+
+            import importlib
+            crewai_flow_service_module = importlib.import_module("app.services.crewai_flow_service")
+            crewai_flow_service = getattr(crewai_flow_service_module, "crewai_flow_service")
+            
             if crewai_flow_service and crewai_flow_service.is_available():
                 self.crewai_service_available = True
                 logger.info("CrewAI service is available for AssetIntelligenceHandler")
-        except Exception as e:
+        except ImportError as e:
             logger.warning(f"CrewAI service not available for AssetIntelligenceHandler: {e}")
 
     async def enrich_asset(self, asset_data: Dict[str, Any], client_account_id: str) -> Dict[str, Any]:

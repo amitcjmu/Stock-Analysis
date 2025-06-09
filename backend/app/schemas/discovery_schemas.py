@@ -16,6 +16,23 @@ class FieldMapping(BaseModel):
     target_field: str
     confidence: float
 
+class FieldMappingUpdate(BaseModel):
+    source_field: str
+    target_field: str
+
+class FieldMappingSuggestion(BaseModel):
+    source_field: str
+    suggested_target: str
+    confidence: float
+
+class FieldMappingAnalysis(BaseModel):
+    unmapped_fields: List[str]
+    suggestions: List[FieldMappingSuggestion]
+
+class FieldMappingResponse(BaseModel):
+    mappings: List[FieldMapping]
+    analysis: FieldMappingAnalysis
+
 class DiscoveredAsset(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     asset_name: str

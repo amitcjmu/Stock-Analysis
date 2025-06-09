@@ -245,79 +245,90 @@ class CMDBAnalysisHandler:
 
     def _identify_missing_fields(self, df) -> List[str]:
         """Identify missing critical fields."""
-        critical_fields = ['hostname', 'asset_type', 'environment', 'department']
-        missing = []
-        
-        for field in critical_fields:
-            if field not in df.columns:
-                # Check for common variations
-                variations = {
-                    'hostname': ['host', 'server_name', 'machine_name'],
-                    'asset_type': ['type', 'category', 'workload_type'],
-                    'environment': ['env', 'tier', 'stage'],
-                    'department': ['dept', 'organization', 'business_unit']
-                }
-                
-                found = False
-                for variant in variations.get(field, []):
-                    if variant in df.columns:
-                        found = True
-                        break
-                
-                if not found:
-                    missing.append(field)
-        
+        critical_fields = ['hostname', 'asset_type', 'environment', 'department', 'business_criticality']
+        missing = [field for field in critical_fields if field not in df.columns]
         return missing
 
-    def _identify_data_issues(self, df) -> List[str]:
-        """Identify data quality issues."""
+    def _identify_data_issues(self, df) -> List[Dict[str, Any]]:
+        """Identify specific data quality issues with examples."""
         issues = []
         
-        # Check for high null percentages with safe calculation
-        if len(df) > 0:
-            null_percentages = df.isnull().sum() / len(df) * 100
-            # Clean any invalid values (NaN, inf) from the series
-            null_percentages = null_percentages.replace([float('inf'), float('-inf')], 0.0)
-            null_percentages = null_percentages.fillna(0.0)
-            
-            high_null_cols = null_percentages[null_percentages > 50].index.tolist()
-            
-            if high_null_cols:
-                issues.append(f"High missing data in columns: {', '.join(high_null_cols[:3])}")
+        # Check for high null percentages in columns
+        null_percentages = (df.isnull().sum() / len(df)) * 100
+        high_null_cols = null_percentages[null_percentages > 30]
+        if not high_null_cols.empty:
+            for col, perc in high_null_cols.items():
+                issues.append({
+                    "type": "High Null Count",
+                    "field": col,
+                    "description": f"Over {int(perc)}% of values are missing.",
+                    "severity": "high",
+                    "recommendation": "Consider enriching this data from another source or removing the column if irrelevant."
+                })
         
-        # Check for duplicate rows
-        if len(df) > 0:
-            duplicates = df.duplicated().sum()
-            if duplicates > 0:
-                issues.append(f"Found {duplicates} duplicate rows")
-        
+        # Check for inconsistent categorical values (example for 'environment')
+        if 'environment' in df.columns:
+            unique_envs = df['environment'].dropna().unique()
+            if len(unique_envs) > 5: # Arbitrary threshold for high cardinality
+                 issues.append({
+                    "type": "Inconsistent Values",
+                    "field": "environment",
+                    "description": f"High number of unique values ({len(unique_envs)}) suggests inconsistent naming.",
+                    "examples": list(unique_envs[:3]),
+                    "severity": "medium",
+                    "recommendation": "Standardize values (e.g., 'prod' and 'Production' to a single standard)."
+                })
+
         return issues
 
-    def _generate_recommendations(self, df) -> List[str]:
-        """Generate data improvement recommendations."""
+    def _generate_recommendations(self, df) -> List[Dict[str, Any]]:
+        """Generate more detailed and actionable recommendations."""
         recommendations = []
         
-        if df.isnull().sum().sum() > 0:
-            recommendations.append("Consider filling missing values for better analysis")
+        # Overall data completeness
+        total_cells = df.size
+        missing_cells = df.isnull().sum().sum()
+        completeness = 100 - (missing_cells / total_cells * 100) if total_cells > 0 else 0
         
-        if len(df.columns) > 20:
-            recommendations.append("Consider focusing on critical fields for migration analysis")
-        
-        recommendations.append("Data structure appears suitable for migration planning")
+        recommendations.append({
+            "area": "Data Completeness",
+            "message": f"Your dataset is approximately {int(completeness)}% complete.",
+            "action": "Address high-null columns first to maximize impact.",
+            "severity": "high" if completeness < 70 else "low"
+        })
+
+        # Critical field check
+        missing_critical = self._identify_missing_fields(df)
+        if missing_critical:
+            recommendations.append({
+                "area": "Critical Fields",
+                "message": f"Your data is missing critical columns: {', '.join(missing_critical)}.",
+                "action": "These fields are essential for migration planning. Ensure they are mapped.",
+                "severity": "high"
+            })
+            
+        # Asset type standardization
+        if 'asset_type' in df.columns:
+            recommendations.append({
+                "area": "Asset Classification",
+                "message": "Asset classification is key for 6R analysis.",
+                "action": "Ensure the 'asset_type' field is cleaned and standardized.",
+                "severity": "medium"
+            })
         
         return recommendations
 
     def _sanitize_for_json(self, obj):
-        """Recursively sanitize an object to ensure JSON serialization compatibility."""
+        """
+        Recursively sanitize an object for JSON serialization.
+        """
         if isinstance(obj, dict):
             return {key: self._sanitize_for_json(value) for key, value in obj.items()}
         elif isinstance(obj, list):
             return [self._sanitize_for_json(item) for item in obj]
         elif isinstance(obj, float):
             if math.isnan(obj) or math.isinf(obj):
-                return None
-            return obj
-        elif obj is None:
-            return None
-        else:
-            return obj 
+                return None  # Replace NaN/Infinity with null
+        elif hasattr(obj, 'isoformat'): # Handle datetime objects
+            return obj.isoformat()
+        return obj 

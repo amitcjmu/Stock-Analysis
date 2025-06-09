@@ -9,18 +9,22 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import and_, select
 import logging
+from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.context import get_current_context, RequestContext
 from app.models.data_import import (
-    DataImport, RawImportRecord, ImportFieldMapping, ImportStatus
+    DataImport, RawImportRecord, ImportFieldMapping, ImportStatus, MappingLearningPattern
 )
-from app.models.learning_patterns import MappingLearningPattern
 from app.models.asset import Asset
 from .utilities import (
     check_content_pattern_match, apply_matching_rules, matches_data_type,
     is_in_range, is_potential_new_field, infer_field_type
 )
+from app.schemas.discovery_schemas import FieldMappingUpdate, FieldMappingSuggestion, FieldMappingAnalysis, FieldMappingResponse
+from app.services.field_mapper_modular import field_mapper
+from app.services.agents import AgentManager
+from app.core.auth import get_current_user_id
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -549,4 +553,49 @@ def calculate_pattern_match(source_field: str, sample_value: str, all_values: li
     base_confidence = pattern.get("confidence", 0.0)
     confidence = confidence * (0.5 + base_confidence * 0.5)
     
-    return min(confidence, 1.0) 
+    return min(confidence, 1.0)
+
+@router.post("/{import_id}/suggest-mappings", response_model=FieldMappingResponse)
+async def suggest_mappings_for_import(
+    import_id: str, 
+    db: AsyncSession = Depends(get_db),
+    user_id: str = Depends(get_current_user_id)
+):
+    """Generate and return field mapping suggestions for a given import."""
+    try:
+        # 1. Get the data import session
+        data_import = await db.get(DataImport, import_id)
+        if not data_import:
+            raise HTTPException(status_code=404, detail="Data import not found")
+
+        # 2. Get source columns from the first raw record
+        first_record_query = select(RawImportRecord).where(RawImportRecord.data_import_id == import_id).limit(1)
+        result = await db.execute(first_record_query)
+        first_record = result.scalar_one_or_none()
+        if not first_record:
+            raise HTTPException(status_code=404, detail="No raw data found for this import")
+        
+        source_columns = list(first_record.raw_data.keys())
+
+        # 3. Use the field_mapper service
+        analysis_result = await field_mapper.analyze_and_suggest_mappings(
+            source_columns=source_columns,
+            client_account_id=data_import.client_account_id,
+            db=db
+        )
+
+        # 4. Get existing mappings to avoid re-suggesting
+        existing_mappings_query = select(ImportFieldMapping).where(ImportFieldMapping.data_import_id == import_id)
+        result = await db.execute(existing_mappings_query)
+        existing_mappings = result.scalars().all()
+
+        response = FieldMappingResponse(
+            mappings=existing_mappings,
+            analysis=analysis_result
+        )
+        
+        return response
+
+    except Exception as e:
+        logger.error(f"Error suggesting mappings for import {import_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to suggest field mappings") 

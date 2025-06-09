@@ -24,15 +24,11 @@ except ImportError:
 
 from .tags import Tag, AssetEmbedding, AssetTag
 from .data_import import (
-    DataImportSession,
     DataImport,
     RawImportRecord,
-    ImportProcessingStep,
     ImportFieldMapping,
-    DataQualityIssue,
-    ImportStatus,
-    ImportType
 )
+from .data_import_session import DataImportSession
 from .feedback import Feedback, FeedbackSummary
 
 # RBAC models (conditional import)
@@ -109,11 +105,7 @@ __all__ = [
     # Data Import models
     "DataImport",
     "RawImportRecord",
-    "ImportProcessingStep",
     "ImportFieldMapping",
-    "DataQualityIssue",
-    "ImportStatus",
-    "ImportType",
     "DataImportSession",
     
     # Feedback models

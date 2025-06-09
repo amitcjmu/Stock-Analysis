@@ -11,6 +11,7 @@ from . import monitoring
 from . import chat
 from . import websocket
 from . import agent_learning_endpoints
+from . import data_import
 
 # Expose the routers for the main api.py to collect
 sixr_router = sixr_analysis.router
@@ -21,4 +22,5 @@ agent_discovery_router = agent_discovery.router
 monitoring_router = monitoring.router
 chat_router = chat.router
 websocket_router = websocket.router
-agent_learning_router = agent_learning_endpoints.router 
+agent_learning_router = agent_learning_endpoints.router
+data_import_router = data_import.router 
