@@ -15,7 +15,7 @@ import io
 import os
 
 # Pydantic and Core Components
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 from app.core.config import settings
 from app.core.context import RequestContext, get_current_context
 from app.services.llm_usage_tracker import LLMUsageTracker
@@ -163,6 +163,14 @@ class CrewAIFlowService:
             logger.info(f"Initiated discovery workflow for session_id: {flow_state.session_id}")
             return flow_state.dict()
 
+        except ValidationError as e:
+            logger.error(f"Failed to create discovery flow state due to validation error: {e}")
+            error_details = [f"{err['loc'][0]}: {err['msg']}" for err in e.errors()]
+            return {
+                "status": "error",
+                "message": "Failed to start analysis due to missing context. Please ensure you are logged in and have selected a client and engagement.",
+                "details": error_details
+            }
         except Exception as e:
             logger.critical(f"Critical error in discovery workflow orchestration: {e}", exc_info=True)
             return {"status": "error", "message": f"An unexpected error occurred: {str(e)}"}
@@ -174,7 +182,6 @@ class CrewAIFlowService:
             user_id = f"anonymous_user_{uuid.uuid4().hex[:8]}"
 
         return DiscoveryFlowState(
-            flow_id=str(uuid.uuid4()),
             session_id=context.session_id,
             client_account_id=context.client_account_id,
             engagement_id=context.engagement_id,
@@ -228,6 +235,65 @@ class CrewAIFlowService:
         except Exception as e:
             logger.error(f"Error calling LiteLLM: {e}")
             raise
+            
+    def get_health_status(self) -> Dict[str, Any]:
+        """
+        Get the health status of the CrewAI Flow Service.
+        
+        Returns:
+            Dict containing health status information including:
+            - status: Overall service status (healthy, degraded, unhealthy)
+            - components: Status of individual components
+            - active_flows: Number of currently active flows
+            - service_available: Whether the service is available
+            - llm_configured: Whether the LLM is properly configured
+        """
+        try:
+            components = {
+                "llm_configured": self.llm is not None,
+                "langchain_available": LANGCHAIN_AVAILABLE,
+                "litellm_available": LITELLM_AVAILABLE,
+                "agents_initialized": len(self.agents) > 0 if hasattr(self, 'agents') else False,
+                "workflow_manager_initialized": hasattr(self, 'manager') and self.manager is not None
+            }
+            
+            # Determine overall status
+            critical_components = [
+                components["llm_configured"],
+                components["langchain_available"],
+                components["litellm_available"]
+            ]
+            
+            if all(critical_components):
+                status = "healthy"
+            elif any(critical_components):
+                status = "degraded"
+            else:
+                status = "unhealthy"
+            
+            return {
+                "status": status,
+                "timestamp": datetime.utcnow().isoformat(),
+                "service": "crewai_flow_service",
+                "version": "1.0.0",
+                "components": components,
+                "active_flows": len(self.active_flows) if hasattr(self, 'active_flows') else 0,
+                "service_available": self.service_available,
+                "llm_configured": components["llm_configured"],
+                "missing_configuration": [
+                    k for k, v in {
+                        "DEEPINFRA_API_KEY": bool(os.getenv("DEEPINFRA_API_KEY")),
+                    }.items() if not v
+                ]
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting health status: {e}", exc_info=True)
+            return {
+                "status": "error",
+                "error": str(e),
+                "timestamp": datetime.utcnow().isoformat()
+            }
 
 # Singleton instance
 crewai_flow_service = CrewAIFlowService() 

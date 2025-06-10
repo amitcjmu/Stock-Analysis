@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import Sidebar from '../../components/Sidebar';
 import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
 import { Link, useNavigate } from 'react-router-dom';
-import { API_CONFIG } from '../../config/api';
+import { apiCall, API_CONFIG } from '../../config/api';
 import AgentClarificationPanel from '../../components/discovery/AgentClarificationPanel';
 import DataClassificationDisplay from '../../components/discovery/DataClassificationDisplay';
 import AgentInsightsSection from '../../components/discovery/AgentInsightsSection';
@@ -236,56 +236,61 @@ const uploadAreas: UploadArea[] = [
           data_source: {
             file_data: btoa(fileContent), // Base64 encode the file content
             metadata: {
-          filename: fileUpload.file.name,
+              filename: fileUpload.file.name,
               size: fileUpload.file.size,
               type: fileUpload.file.type,
               lastModified: fileUpload.file.lastModified,
-              import_session_id: fileUpload.id // Use the unique ID for this upload session
-            }
-          }
+              import_session_id: fileUpload.id, // Use the unique ID for this upload session
+            },
+          },
         };
 
-        const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_ANALYSIS}`, {
+        const result = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_ANALYSIS, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
           body: JSON.stringify(requestBody),
         });
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ detail: 'Unknown error occurred' }));
-          throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.detail}`);
+        console.log('AI crew intelligent analysis result:', result);
+
+        if (result.agent_analysis?.status === 'error') {
+          const errorMessage = result.agent_analysis.message || 'An unknown error occurred during analysis.';
+          const errorDetails = result.agent_analysis.details ? `Details: ${result.agent_analysis.details.join(', ')}` : '';
+          throw new Error(`${errorMessage} ${errorDetails}`);
         }
 
-        const analysisResult = await response.json();
-        console.log('AI crew intelligent analysis result:', analysisResult);
-        
-        // Simplified processing with single agentic workflow
-        if (analysisResult.status === 'error') {
-            throw new Error(analysisResult.message || 'Analysis failed on the backend.');
-        } else {
-            // Update file status to processed with analysis results
-        setUploadedFiles(prev => prev.map(f => f.file === fileUpload.file ? { 
-            ...f, 
-            status: 'processed', 
-              aiSuggestions: analysisResult.agent_analysis?.insights?.map((i: any) => i.description) || [],
-              nextSteps: analysisResult.agent_analysis?.next_steps?.map((action: any) => ({ label: action })) || [],
-              confidence: analysisResult.agent_analysis?.confidence_assessment?.overall_confidence,
-              processingMessages: [...(f.processingMessages || []), '✅ Intelligent analysis complete!']
-        } : f));
+        // Simulate processing steps for better UX
+        const messages = ['✅ AI crew analysis complete.'];
+        for (let i = 0; i < messages.length; i++) {
+          await new Promise(resolve => setTimeout(resolve, 700));
+          setUploadedFiles(prev =>
+            prev.map(f => f.file === fileUpload.file ? {
+              ...f,
+              currentStep: i + 1,
+              processingMessages: [...(f.processingMessages || []), messages[i]]
+            } : f)
+          );
         }
+
+        setUploadedFiles(prev =>
+          prev.map(f => f.file === fileUpload.file ? {
+            ...f,
+            status: 'processed',
+            aiSuggestions: result.agent_analysis?.suggestions || [],
+            nextSteps: result.agent_analysis?.next_steps || [],
+            confidence: result.agent_analysis?.confidence || 0
+          } : f)
+        );
         
-        // Trigger agent refresh after processing completion
+        // Refresh agent panels after analysis
         setAgentRefreshTrigger(prev => prev + 1);
+
       } catch (error) {
-        console.error('Error during AI analysis:', error);
-        const errorMessage = 'Analysis failed due to an internal agent error. Please check the system status or contact support.';
-        setUploadedFiles(prev => 
-          prev.map(f => f.file === fileUpload.file ? { 
-            ...f, 
-            status: 'error', 
-            analysisError: errorMessage
+        console.error("Error analyzing file:", error);
+        setUploadedFiles(prev =>
+          prev.map(f => f.file === fileUpload.file ? {
+            ...f,
+            status: 'error',
+            analysisError: error instanceof Error ? error.message : 'An unknown error occurred.'
           } : f)
         );
       }

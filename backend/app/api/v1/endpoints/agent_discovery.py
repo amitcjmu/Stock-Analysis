@@ -15,7 +15,7 @@ import csv
 import io
 
 from app.core.database import get_db
-from app.core.context import get_current_context
+from app.core.context import get_current_context, RequestContext
 from app.repositories.deduplicating_repository import create_deduplicating_repository
 from app.models.asset import Asset
 from app.services.crewai_flow_service import crewai_flow_service
@@ -31,7 +31,8 @@ router = APIRouter()
 @router.post("/agent-analysis", summary="Analyze data with a specialized agent crew")
 async def agent_analysis(
     analysis_request: Dict[str, Any],
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
 ) -> Dict[str, Any]:
     """
     Multi-agent data analysis for different page contexts and analysis types.
@@ -59,7 +60,6 @@ async def agent_analysis(
     }
     """
     try:
-        context = get_current_context()
         analysis_type = analysis_request.get("analysis_type", "data_source_analysis")
         
         if analysis_type == "data_source_analysis":
@@ -161,19 +161,35 @@ async def answer_agent_clarification(
 
 @router.get("/agent-status")
 async def get_agent_status(
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
 ) -> Dict[str, Any]:
     """
     Returns the status of the active discovery flow.
-    NOTE: Session-based tracking is disabled. This endpoint currently returns a static 'idle' status.
     """
-    return {
-        "status": "idle",
-        "current_phase": None,
-        "confidence_score": 0,
-        "details": "Session-based flow tracking is currently disabled.",
-        "session_id": None
-    }
+    session_id = context.session_id
+    if not session_id:
+        logger.warning("Agent status requested without session ID.")
+        return {
+            "status": "error",
+            "current_phase": "unknown",
+            "details": "Session ID is missing from the request context.",
+            "session_id": None
+        }
+
+    flow_state = crewai_flow_service.get_flow_state_by_session(session_id)
+
+    if not flow_state:
+        logger.info(f"No active flow found for session_id: {session_id}")
+        return {
+            "status": "idle",
+            "current_phase": None,
+            "details": "No active workflow found for this session.",
+            "session_id": session_id
+        }
+    
+    logger.debug(f"Returning flow state for session {session_id}: {flow_state.current_phase}")
+    return flow_state.dict()
 
 @router.post("/agent-learning")
 async def process_agent_learning(

@@ -4,9 +4,11 @@ Pydantic schemas for Agentic Flow State Management.
 from pydantic import BaseModel, Field
 from typing import Dict, List, Any, Optional
 from datetime import datetime
+import uuid
 
 class DiscoveryFlowState(BaseModel):
     """Represents the state of a single discovery workflow run."""
+    flow_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     session_id: str
     client_account_id: str
     engagement_id: str

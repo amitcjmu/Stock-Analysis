@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 import uvicorn
 import os
 from dotenv import load_dotenv
+from sqlalchemy import create_engine
 
 # Load environment variables
 load_dotenv()
@@ -265,20 +266,18 @@ async def startup_event():
     if DATABASE_ENABLED:
         try:
             print("🔧 Initializing database schema...")
-            # The following logging is now controlled by the DB_ECHO_LOG env var
-            # import logging
-            # logging.basicConfig()
-            # logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
-            
-            # Check what tables SQLAlchemy knows about
-            table_names = list(Base.metadata.tables.keys())
-            print(f"SQLAlchemy metadata has {len(table_names)} tables registered.")
-            print(f"Registered tables: {table_names}")
+            # Create a synchronous engine for migrations or sync operations
+            sync_engine_url = settings.DATABASE_URL.replace("postgresql+asyncpg", "postgresql+psycopg")
+            sync_engine = create_engine(sync_engine_url)
+
+            # Log registered tables
+            if hasattr(Base, 'metadata'):
+                table_names = list(Base.metadata.tables.keys())
+                print(f"SQLAlchemy metadata has {len(table_names)} tables registered.")
+                print(f"Registered tables: {table_names}")
 
             # Use a synchronous connection to create tables
             # The async version was causing issues during initial setup
-            from sqlalchemy import create_engine
-            sync_engine = create_engine(settings.DATABASE_URL.replace("postgresql+asyncpg", "postgresql"))
             Base.metadata.create_all(bind=sync_engine)
             
             print("✅✅✅ Database schema initialization command executed successfully.")

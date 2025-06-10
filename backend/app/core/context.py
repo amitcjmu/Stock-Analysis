@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 _client_account_id: ContextVar[Optional[str]] = ContextVar('client_account_id', default=None)
 _engagement_id: ContextVar[Optional[str]] = ContextVar('engagement_id', default=None) 
 _user_id: ContextVar[Optional[str]] = ContextVar('user_id', default=None)
+_session_id: ContextVar[Optional[str]] = ContextVar('session_id', default=None)
 
 # Demo client configuration with proper UUIDs (using existing client from database)
 DEMO_CLIENT_CONFIG = {
@@ -32,22 +33,25 @@ class RequestContext:
         self,
         client_account_id: Optional[str] = None,
         engagement_id: Optional[str] = None,
-        user_id: Optional[str] = None
+        user_id: Optional[str] = None,
+        session_id: Optional[str] = None
     ):
         self.client_account_id = client_account_id
         self.engagement_id = engagement_id
         self.user_id = user_id
+        self.session_id = session_id
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert context to dictionary."""
         return {
             "client_account_id": self.client_account_id,
             "engagement_id": self.engagement_id,
-            "user_id": self.user_id
+            "user_id": self.user_id,
+            "session_id": self.session_id
         }
     
     def __repr__(self):
-        return f"RequestContext(client={self.client_account_id}, engagement={self.engagement_id}, user={self.user_id})"
+        return f"RequestContext(client={self.client_account_id}, engagement={self.engagement_id}, user={self.user_id}, session={self.session_id})"
 
 
 def extract_context_from_request(request: Request) -> RequestContext:
@@ -85,6 +89,17 @@ def extract_context_from_request(request: Request) -> RequestContext:
         headers.get("x-context-user-id") or
         headers.get("user-id")
     )
+
+    session_id = (
+        headers.get("x-session-id") or
+        headers.get("x-context-session-id") or
+        headers.get("session-id")
+    )
+    
+    # Generate a session ID if not provided
+    if not session_id:
+        session_id = str(uuid.uuid4())
+        logger.debug(f"No session ID in headers, generated new one: {session_id}")
     
     # Apply demo client defaults if no context provided
     if not client_account_id:
@@ -98,7 +113,8 @@ def extract_context_from_request(request: Request) -> RequestContext:
     context = RequestContext(
         client_account_id=client_account_id,
         engagement_id=engagement_id,
-        user_id=user_id
+        user_id=user_id,
+        session_id=session_id
     )
     
     logger.debug(f"Extracted context from request: {context}")
@@ -115,6 +131,7 @@ def set_context(context: RequestContext) -> None:
     _client_account_id.set(context.client_account_id)
     _engagement_id.set(context.engagement_id)
     _user_id.set(context.user_id)
+    _session_id.set(context.session_id)
 
 
 def get_current_context() -> RequestContext:
@@ -127,7 +144,8 @@ def get_current_context() -> RequestContext:
     return RequestContext(
         client_account_id=_client_account_id.get(),
         engagement_id=_engagement_id.get(),
-        user_id=_user_id.get()
+        user_id=_user_id.get(),
+        session_id=_session_id.get()
     )
 
 
@@ -144,6 +162,11 @@ def get_engagement_id() -> Optional[str]:
 def get_user_id() -> Optional[str]:
     """Get current user ID."""
     return _user_id.get()
+
+
+def get_session_id() -> Optional[str]:
+    """Get current session ID."""
+    return _session_id.get()
 
 
 def validate_context(context: RequestContext, require_client: bool = True, require_engagement: bool = False) -> None:
@@ -207,6 +230,9 @@ def create_context_headers(context: RequestContext) -> Dict[str, str]:
         
     if context.user_id:
         headers["X-User-Id"] = context.user_id
+
+    if context.session_id:
+        headers["X-Session-Id"] = context.session_id
     
     return headers
 
