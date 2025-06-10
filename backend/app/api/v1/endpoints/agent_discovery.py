@@ -16,7 +16,7 @@ import io
 
 from app.core.database import get_db
 from app.core.context import get_current_context
-from app.repositories.session_aware_repository import create_session_aware_repository
+from app.repositories.deduplicating_repository import create_deduplicating_repository
 from app.models.asset import Asset
 from app.services.crewai_flow_service import crewai_flow_service
 from app.services.discovery_agents.data_source_intelligence_agent import data_source_intelligence_agent
@@ -99,8 +99,7 @@ async def agent_analysis(
             "page_context": analysis_request.get("page_context", "data-import"),
             "context": {
                 "client_account_id": context.client_account_id,
-                "engagement_id": context.engagement_id,
-                "session_id": context.session_id
+                "engagement_id": context.engagement_id
             },
             "agent_analysis": analysis_result,
             "ui_bridge_status": "deprecated"
@@ -165,44 +164,16 @@ async def get_agent_status(
     db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
     """
-    Returns the status of the active discovery flow for the current session.
-    If no flow is active, returns an idle status.
+    Returns the status of the active discovery flow.
+    NOTE: Session-based tracking is disabled. This endpoint currently returns a static 'idle' status.
     """
-    try:
-        context = get_current_context()
-        session_id = context.session_id
-        
-        active_flow_state = None
-        if session_id:
-            active_flow_state = crewai_flow_service.get_flow_state_by_session(session_id)
-        
-        if active_flow_state:
-            agent_status = {
-                "status": "in_progress",
-                "current_phase": active_flow_state.current_phase,
-                "confidence_score": active_flow_state.confidence_score,
-                "details": active_flow_state.status_message,
-                "session_id": active_flow_state.session_id
-            }
-        else:
-            agent_status = {
-                "status": "idle",
-                "current_phase": None,
-                "confidence_score": 0,
-                "details": "No active discovery flow for this session.",
-                "session_id": session_id
-            }
-        
-        return agent_status
-
-    except Exception as e:
-        logger.error(f"Error getting agent status for session {context.session_id}: {e}", exc_info=True)
-        # To prevent UI crashes, always return a valid structure
-        return {
-            "status": "error",
-            "details": f"An unexpected error occurred: {str(e)}",
-            "session_id": context.session_id
-        }
+    return {
+        "status": "idle",
+        "current_phase": None,
+        "confidence_score": 0,
+        "details": "Session-based flow tracking is currently disabled.",
+        "session_id": None
+    }
 
 @router.post("/agent-learning")
 async def process_agent_learning(
@@ -262,153 +233,36 @@ async def get_application_portfolio(
     include_confidence_levels: bool = True,
     include_business_intelligence: bool = True,
     business_context: Optional[str] = None,
-    view_mode: str = "engagement_view",
     db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
     """
-    Comprehensive application portfolio analysis with business intelligence.
-    
-    Enhanced with Application Intelligence Agent for business-aligned analysis and context awareness.
+    Provides a comprehensive overview of the application portfolio.
+    This is an agent-driven alternative to discovery/assets/application-landscape.
     """
+    context = get_current_context()
+    logger.info(f"Generating application portfolio for engagement {context.engagement_id}")
+
     try:
-        context = get_current_context()
-        
-        # Use session-aware repository for context-aware asset access
-        asset_repo = create_session_aware_repository(db, CMDBAsset, view_mode=view_mode)
-        assets_list = await asset_repo.get_all(limit=1000)
-        
-        # Convert to dict format expected by agents
-        assets = []
-        for asset in assets_list:
-            asset_dict = {
-                "id": str(asset.id),
-                "hostname": asset.hostname,
-                "ip_address": asset.ip_address,
-                "asset_type": asset.asset_type,
-                "environment": asset.environment,
-                "operating_system": asset.operating_system,
-                "application_name": asset.business_service,  # Map business_service to application_name
-                "technical_service": asset.technical_service,
-                "owner": asset.owner,
-                "department": asset.department,
-                "session_id": asset.session_id
-            }
-            assets.append(asset_dict)
-        
+        # Use the deduplicating repository to get the latest state of assets
+        asset_repo = create_deduplicating_repository(db, Asset)
+        assets = await asset_repo.get_all(limit=1000) # Capping for performance
+
         if not assets:
-            return {
-                "status": "success",
-                "application_portfolio": {
-                    "applications": [],
-                    "discovery_confidence": 0.0,
-                    "clarification_questions": [],
-                    "discovery_metadata": {
-                        "total_assets_analyzed": 0,
-                        "applications_discovered": 0,
-                        "high_confidence_apps": 0,
-                        "needs_clarification": 0,
-                        "analysis_timestamp": datetime.utcnow().isoformat()
-                    }
-                },
-                "business_intelligence": None,
-                "message": "No assets available for application discovery"
-            }
-        
-        # Step 1: Use Application Discovery Agent for basic application discovery
-        discovery_result = await application_discovery_agent.discover_applications(assets)
-        applications = discovery_result.get("applications", [])
-        
-        # Step 2: If business intelligence is requested and applications found, use Application Intelligence Agent
-        business_intelligence = None
-        if include_business_intelligence and applications:
-            try:
-                from app.services.discovery_agents.application_intelligence_agent import application_intelligence_agent
-                
-                # Parse business context if provided
-                parsed_business_context = None
-                if business_context:
-                    try:
-                        import json
-                        parsed_business_context = json.loads(business_context)
-                    except:
-                        parsed_business_context = {"notes": business_context}
-                
-                # Perform comprehensive business intelligence analysis
-                business_intelligence = await application_intelligence_agent.analyze_application_portfolio(
-                    applications, parsed_business_context
-                )
-                
-                logger.info(f"Application Intelligence Agent analyzed {len(applications)} applications")
-                
-            except Exception as e:
-                logger.warning(f"Application Intelligence Agent error: {e}")
-                business_intelligence = {
-                    "portfolio_analysis": {"applications": applications, "portfolio_health": {}, "assessment_readiness": {}},
-                    "strategic_recommendations": [],
-                    "business_insights": [],
-                    "error": f"Application Intelligence Agent error: {str(e)}",
-                    "fallback_mode": True
-                }
-        
-        # Store clarification questions in the UI bridge for display
-        for question in discovery_result.get("clarification_questions", []):
-            agent_ui_bridge.add_agent_question(
-                agent_id=application_discovery_agent.agent_id,
-                agent_name=application_discovery_agent.agent_name,
-                question_type=QuestionType.APPLICATION_BOUNDARY,
-                page="asset-inventory",
-                title=f"Application Validation: {question['application_name']}",
-                question=question["question"],
-                context=question["context"],
-                options=question["options"],
-                confidence=ConfidenceLevel.MEDIUM,
-                priority="medium"
-            )
-        
-        # Add intelligence insights to UI bridge if available
-        if business_intelligence and not business_intelligence.get("error"):
-            for insight in business_intelligence.get("business_insights", []):
-                agent_ui_bridge.add_agent_insight(
-                    agent_id="application_intelligence",
-                    agent_name="Application Intelligence Agent",
-                    insight_type=insight.get("category", "business_insight"),
-                    title=insight.get("title", "Business Insight"),
-                    description=insight.get("description", ""),
-                    confidence=ConfidenceLevel.HIGH if insight.get("confidence", 0) >= 0.8 else ConfidenceLevel.MEDIUM,
-                    supporting_data=insight.get("details", {}),
-                    page="asset-inventory"
-                )
-        
-        # Construct comprehensive response with context
-        response = {
-            "status": "success",
-            "application_portfolio": discovery_result,
-            "agent_analysis_complete": True,
-            "context": {
-                "client_account_id": context.client_account_id,
-                "engagement_id": context.engagement_id,
-                "session_id": context.session_id,
-                "view_mode": view_mode,
-                "total_assets_analyzed": len(assets)
-            }
-        }
-        
-        if include_business_intelligence:
-            response["business_intelligence"] = business_intelligence
-            response["intelligence_features"] = {
-                "business_criticality_assessment": business_intelligence is not None and not business_intelligence.get("error"),
-                "migration_readiness_evaluation": business_intelligence is not None and not business_intelligence.get("error"),
-                "strategic_recommendations": business_intelligence is not None and not business_intelligence.get("error"),
-                "assessment_readiness": business_intelligence is not None and not business_intelligence.get("error"),
-                "multi_tenant_context": True,
-                "session_awareness": True
-            }
-        
-        return response
-        
+            return {"portfolio": [], "summary": "No assets found for this engagement."}
+
+        # Convert assets to a list of dictionaries for the agent
+        asset_data = [asset.to_dict() for asset in assets]
+
+        # Call the Application Discovery Agent
+        portfolio_analysis = await application_discovery_agent.generate_application_portfolio(
+            asset_data, include_confidence_levels, include_business_intelligence, business_context
+        )
+
+        return portfolio_analysis
+
     except Exception as e:
-        logger.error(f"Error getting application portfolio: {e}")
-        raise HTTPException(status_code=500, detail=f"Application portfolio retrieval failed: {str(e)}")
+        logger.error(f"Error generating application portfolio: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to generate portfolio: {str(e)}")
 
 @router.post("/application-validation")
 async def validate_application_groupings(
@@ -672,36 +526,27 @@ async def analyze_tech_debt(
     db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
     """
-    Analyzes technical debt based on asset data, now with multi-tenant context.
+    Analyzes technical debt across the application portfolio using an agent.
     """
+    context = get_current_context()
+    client_account_id = context.client_account_id
+    engagement_id = context.engagement_id
+
+    logger.info(f"Analyzing tech debt for {client_account_id}/{engagement_id}")
+
     try:
-        client_account_id = tech_debt_request.get("client_account_id")
-        engagement_id = tech_debt_request.get("engagement_id")
+        analysis_result = await tech_debt_analysis_service.analyze_portfolio(
+            client_account_id, engagement_id
+        )
 
-        if not client_account_id or not engagement_id:
-            raise HTTPException(status_code=400, detail="Client and engagement ID are required")
-
-        # Create a session-aware repository for assets
-        asset_repo = create_session_aware_repository(db, 'Asset', client_account_id, engagement_id)
-        
-        # Fetch assets for the current context
-        assets = await asset_repo.get_all()
-        
-        # Perform tech debt analysis
-        analysis_result = await tech_debt_analysis_service.analyze_assets(assets)
-        
         return {
             "status": "success",
-            "items": analysis_result.get("items", []),
-            "summary": analysis_result.get("summary", {}),
-            "context": {
-                "client_account_id": client_account_id,
-                "engagement_id": engagement_id
-            }
+            "message": "Technical debt analysis completed.",
+            "analysis": analysis_result
         }
     except Exception as e:
-        logger.error(f"Error in analyze_tech_debt: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error in tech debt analysis: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Tech debt analysis failed: {str(e)}")
 
 @router.post("/tech-debt-feedback")
 async def process_tech_debt_feedback(

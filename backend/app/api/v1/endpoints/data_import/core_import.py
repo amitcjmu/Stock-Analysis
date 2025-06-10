@@ -37,7 +37,7 @@ except ImportError:
     SESSION_MANAGEMENT_AVAILABLE = False
     SessionManagementService = None
 
-from app.repositories.session_aware_repository import create_session_aware_repository
+from app.repositories.deduplicating_repository import create_deduplicating_repository
 from .utilities import import_to_dict
 
 router = APIRouter()
@@ -182,23 +182,20 @@ async def process_uploaded_file(data_import: DataImport, content: bytes, db: Asy
 async def get_data_imports(
     limit: int = 10,
     offset: int = 0,
-    view_mode: str = "engagement_view",  # "session_view" or "engagement_view"
     db: AsyncSession = Depends(get_db)
 ):
     """Get list of data imports with context-aware filtering."""
     context = get_current_context()
     
-    # Use session-aware repository for context-aware data access
-    import_repo = create_session_aware_repository(db, DataImport, view_mode=view_mode)
+    # Use deduplicating repository for context-aware data access
+    import_repo = create_deduplicating_repository(db, DataImport)
     imports = await import_repo.get_all(limit=limit, offset=offset)
     
     return {
         "imports": [import_to_dict(imp) for imp in imports],
         "context": {
             "client_account_id": context.client_account_id,
-            "engagement_id": context.engagement_id,
-            "session_id": context.session_id,
-            "view_mode": view_mode
+            "engagement_id": context.engagement_id
         }
     }
 
@@ -207,14 +204,15 @@ async def get_raw_import_records(
     import_id: str,
     limit: int = 100,
     offset: int = 0,
-    view_mode: str = "engagement_view",
     db: AsyncSession = Depends(get_db)
 ):
     """Get raw import records for a specific import with context awareness."""
     context = get_current_context()
     
-    # Use session-aware repository for context-aware data access
-    record_repo = create_session_aware_repository(db, RawImportRecord, view_mode=view_mode)
+    # Use deduplicating repository for context-aware data access
+    record_repo = create_deduplicating_repository(db, RawImportRecord)
+    # Since this is for a specific import_id, deduplication is not the main concern,
+    # but the repository correctly applies context filters.
     records = await record_repo.get_by_filters(data_import_id=import_id)
     
     # Apply pagination
@@ -239,7 +237,6 @@ async def get_raw_import_records(
         "context": {
             "client_account_id": context.client_account_id,
             "engagement_id": context.engagement_id,
-            "view_mode": view_mode,
             "total_records": len(records),
             "paginated_count": len(paginated_records)
         }
@@ -247,29 +244,27 @@ async def get_raw_import_records(
 
 @router.get("/imports/latest")
 async def get_latest_import(
-    view_mode: str = "engagement_view",
     db: AsyncSession = Depends(get_db)
 ):
-    """Get the latest data import for the current context."""
+    """Get the latest data import for the current engagement."""
     context = get_current_context()
+
+    # Create a subquery to get the latest import for the current engagement context.
+    # The repository will handle the context filtering.
+    import_repo = create_deduplicating_repository(db, DataImport)
     
-    # Use session-aware repository for context-aware data access
-    import_repo = create_session_aware_repository(db, DataImport, view_mode=view_mode)
-    imports = await import_repo.get_all(limit=1)
+    # The get_all() method of the repository doesn't support ordering,
+    # so we construct a query here.
+    query = select(DataImport).order_by(desc(DataImport.created_at))
+    query = import_repo._apply_context_filter(query) # Apply context from repo
     
-    if not imports:
-        raise HTTPException(status_code=404, detail="No imports found for current context")
-    
-    latest = imports[0]
-    result = import_to_dict(latest)
-    result["context"] = {
-        "client_account_id": context.client_account_id,
-        "engagement_id": context.engagement_id,
-        "session_id": context.session_id,
-        "view_mode": view_mode
-    }
-    
-    return result
+    result = await db.execute(query.limit(1))
+    latest_import = result.scalar_one_or_none()
+
+    if not latest_import:
+        raise HTTPException(status_code=404, detail="No data imports found for this engagement")
+
+    return import_to_dict(latest_import)
 
 @router.post("/store-import")
 async def store_import_data(

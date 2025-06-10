@@ -14,7 +14,6 @@ logger = logging.getLogger(__name__)
 # Context variables for request-scoped data
 _client_account_id: ContextVar[Optional[str]] = ContextVar('client_account_id', default=None)
 _engagement_id: ContextVar[Optional[str]] = ContextVar('engagement_id', default=None) 
-_session_id: ContextVar[Optional[str]] = ContextVar('session_id', default=None)
 _user_id: ContextVar[Optional[str]] = ContextVar('user_id', default=None)
 
 # Demo client configuration with proper UUIDs (using existing client from database)
@@ -33,12 +32,10 @@ class RequestContext:
         self,
         client_account_id: Optional[str] = None,
         engagement_id: Optional[str] = None,
-        session_id: Optional[str] = None,
         user_id: Optional[str] = None
     ):
         self.client_account_id = client_account_id
         self.engagement_id = engagement_id
-        self.session_id = session_id
         self.user_id = user_id
     
     def to_dict(self) -> Dict[str, Any]:
@@ -46,12 +43,11 @@ class RequestContext:
         return {
             "client_account_id": self.client_account_id,
             "engagement_id": self.engagement_id,
-            "session_id": self.session_id,
             "user_id": self.user_id
         }
     
     def __repr__(self):
-        return f"RequestContext(client={self.client_account_id}, engagement={self.engagement_id}, session={self.session_id}, user={self.user_id})"
+        return f"RequestContext(client={self.client_account_id}, engagement={self.engagement_id}, user={self.user_id})"
 
 
 def extract_context_from_request(request: Request) -> RequestContext:
@@ -59,7 +55,7 @@ def extract_context_from_request(request: Request) -> RequestContext:
     Extract context from request headers with demo client fallback.
     
     Header precedence:
-    1. X-Client-Account-Id, X-Engagement-Id, X-Session-Id (explicit)
+    1. X-Client-Account-Id, X-Engagement-Id (explicit)
     2. X-Context-* headers (alternative naming)
     3. Demo client defaults (Pujyam Corp)
     
@@ -84,19 +80,6 @@ def extract_context_from_request(request: Request) -> RequestContext:
         headers.get("engagement-id")
     )
     
-    # Prioritize session_id from request.state set by SessionMiddleware
-    session_id_from_state = getattr(request.state, "session_id", None)
-    logger.info(f"✅ ContextExtractor: Session ID from request.state: {session_id_from_state}")
-    
-    session_id = session_id_from_state
-    if not session_id:
-        logger.warning("ContextExtractor: Session ID not in state, trying headers...")
-        session_id = (
-            headers.get("x-session-id") or
-            headers.get("x-context-session-id") or
-            headers.get("session-id")
-        )
-    
     user_id = (
         headers.get("x-user-id") or
         headers.get("x-context-user-id") or
@@ -115,12 +98,10 @@ def extract_context_from_request(request: Request) -> RequestContext:
     context = RequestContext(
         client_account_id=client_account_id,
         engagement_id=engagement_id,
-        session_id=session_id,
         user_id=user_id
     )
     
     logger.debug(f"Extracted context from request: {context}")
-    logger.info(f"✅ ContextExtractor: Final context created with Session ID: {context.session_id}")
     return context
 
 
@@ -133,7 +114,6 @@ def set_context(context: RequestContext) -> None:
     """
     _client_account_id.set(context.client_account_id)
     _engagement_id.set(context.engagement_id)
-    _session_id.set(context.session_id)
     _user_id.set(context.user_id)
 
 
@@ -147,7 +127,6 @@ def get_current_context() -> RequestContext:
     return RequestContext(
         client_account_id=_client_account_id.get(),
         engagement_id=_engagement_id.get(),
-        session_id=_session_id.get(),
         user_id=_user_id.get()
     )
 
@@ -160,11 +139,6 @@ def get_client_account_id() -> Optional[str]:
 def get_engagement_id() -> Optional[str]:
     """Get current engagement ID.""" 
     return _engagement_id.get()
-
-
-def get_session_id() -> Optional[str]:
-    """Get current session ID."""
-    return _session_id.get()
 
 
 def get_user_id() -> Optional[str]:
@@ -230,9 +204,6 @@ def create_context_headers(context: RequestContext) -> Dict[str, str]:
     
     if context.engagement_id:
         headers["X-Engagement-Id"] = context.engagement_id
-        
-    if context.session_id:
-        headers["X-Session-Id"] = context.session_id
         
     if context.user_id:
         headers["X-User-Id"] = context.user_id

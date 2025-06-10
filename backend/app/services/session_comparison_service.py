@@ -19,12 +19,12 @@ try:
     from app.models.data_import_session import DataImportSession
     from app.models.asset import Asset
     from app.models.raw_import_record import RawImportRecord
-    from app.repositories.session_aware_repository import SessionAwareRepository
+    from app.repositories.deduplicating_repository import DeduplicatingRepository
     from app.core.context import get_current_context
     SESSION_MODELS_AVAILABLE = True
 except ImportError:
     SESSION_MODELS_AVAILABLE = False
-    DataImportSession = Asset = RawImportRecord = SessionAwareRepository = None
+    DataImportSession = Asset = RawImportRecord = DeduplicatingRepository = None
 
 logger = logging.getLogger(__name__)
 
@@ -172,13 +172,12 @@ class SessionComparisonService:
             raise ValueError(f"Session not found: {session_id}")
         
         # Create session-aware repository for assets
-        asset_repo = SessionAwareRepository(
+        asset_repo = DeduplicatingRepository(
             db=self.db,
             model_class=Asset,
             client_account_id=session.client_account_id,
             engagement_id=session.engagement_id,
-            session_id=session_id,
-            view_mode="session_view"
+            session_id=session_id
         )
         
         # Get all assets for this session

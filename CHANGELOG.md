@@ -2,7 +2,37 @@
 
 All notable changes to the AI Force Migration Platform will be documented in this file.
 
-## [0.1.1] - 2025-06-09
+## [0.8.26] - 2025-06-09
+
+### 🔧 **[REFACTOR] - User Session Management Removal**
+
+This release removes the browser-based user session management system, which was causing significant instability and performance issues due to the creation of a new session for every API request. The refactoring carefully distinguishes between user sessions (now removed) and data import sessions (retained), which are critical for tracking data lineage and comparison analysis.
+
+### 🚀 **Primary Changes**
+
+#### **Session Middleware & Context**
+- **[Removal]**: Deleted the `SessionMiddleware` responsible for creating and managing user sessions.
+- **[Refactor]**: Removed all user `session_id` logic from the core `RequestContext` and its related utility functions. The application no longer creates or depends on user-specific session cookies.
+- **[Fix]**: Eliminated the "multiple session IDs" bug that was generating hundreds of spurious session records on each page load.
+
+#### **Repository Layer**
+- **[Refactor]**: Renamed `SessionAwareRepository` to `DeduplicatingRepository` to more accurately reflect its purpose.
+- **[Enhancement]**: The new `DeduplicatingRepository` now defaults to an engagement-wide, deduplicated view of data while still allowing for explicit filtering by a `data_import_session_id` when needed (e.g., for session comparison).
+- **[Fix]**: Updated all services and API endpoints that previously used the session-aware repository to use the new deduplicating version, ensuring no loss of functionality.
+
+### 📊 **Business Impact**
+- **[Stability]**: The platform is significantly more stable and predictable without the faulty session management system.
+- **[Performance]**: Eliminates the database overhead of creating and storing thousands of unnecessary session records.
+- **[Clarity]**: The distinction between user sessions and data import sessions is now clear in the codebase, reducing architectural ambiguity.
+
+### 🎯 **Success Metrics**
+- **[Functionality]**: All API endpoints are functional after the refactoring.
+- **[Stability]**: The "multiple session IDs" bug is 100% resolved.
+- **[Code Quality]**: The repository layer is now more explicit and easier to understand.
+
+---
+
+## [0.8.25] - 2025-06-09
 
 ### 🎯 **PLATFORM HARDENING & AGENTIC CORE STABILIZATION**
 
@@ -37,7 +67,7 @@ This release resolves a deep-seated cascade of bugs that affected the entire dat
 
 ---
 
-## [0.1.0] - 2025-06-08
+## [0.8.24] - 2025-06-08
 
 ### 🎯 **STABILIZATION & DATABASE SEEDING**
 

@@ -182,10 +182,8 @@ app.add_middleware(
 # Add context middleware (Task 1.2.3)
 try:
     from app.core.middleware import ContextMiddleware, RequestLoggingMiddleware
-    from app.core.session_middleware import SessionMiddleware
     
     # CRITICAL: Middleware is executed in REVERSE order of addition.
-    # To ensure session_id is available for context, SessionMiddleware must be added LAST.
     
     # 1. This will run third
     app.add_middleware(
@@ -208,9 +206,6 @@ try:
             "/static"
         ]
     )
-
-    # 3. This will run FIRST
-    app.add_middleware(SessionMiddleware)
 
     print("✅ Context middleware loaded successfully in correct order.")
 except Exception as e:
