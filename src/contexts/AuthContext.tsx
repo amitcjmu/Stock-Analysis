@@ -1,48 +1,156 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
+import { apiCall } from '@/lib/api';
 
 interface User {
   id: string;
-  username: string;
+  name: string;
   email: string;
-  full_name: string;
-  role: 'admin' | 'user';
-  status: 'approved' | 'pending' | 'rejected' | 'suspended';
-  client_accounts?: string[];
-  engagements?: string[];
-  default_engagement_id?: string;
+  role: string;
+  permissions: string[];
 }
 
 interface AuthContextType {
   user: User | null;
-  isAuthenticated: boolean;
-  isAdmin: boolean;
   isLoading: boolean;
-  currentEngagementId: string | null;
-  currentSessionId: string | null;
-  login: (email: string, password: string) => Promise<User>;
-  logout: () => void;
-  register: (userData: RegisterData) => Promise<void>;
-  getAuthHeaders: () => Record<string, string>;
-  setCurrentEngagementId: (engagementId: string | null) => void;
-  setCurrentSessionId: (sessionId: string | null) => void;
-}
-
-interface RegisterData {
-  email: string;
-  password: string;
-  full_name: string;
-  username: string;
-  organization: string;
-  role_description: string;
-  justification?: string;
-  requested_access: {
-    client_accounts: string[];
-    engagements: string[];
-    access_level: string;
-  };
+  error: Error | null;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  getContextHeaders: () => Record<string, string>;
+  checkPermission: (permission: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const TOKEN_KEY = 'auth_token';
+const USER_KEY = 'auth_user';
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    const initializeAuth = async () => {
+      try {
+        const token = sessionStorage.getItem(TOKEN_KEY);
+        if (!token) {
+          setIsLoading(false);
+          return;
+        }
+
+        const storedUser = sessionStorage.getItem(USER_KEY);
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+        }
+
+        // Verify token and refresh user data
+        const response = await apiCall('/api/v1/auth/verify', {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        if (response.user) {
+          setUser(response.user);
+          sessionStorage.setItem(USER_KEY, JSON.stringify(response.user));
+        } else {
+          // Token invalid
+          sessionStorage.removeItem(TOKEN_KEY);
+          sessionStorage.removeItem(USER_KEY);
+          setUser(null);
+        }
+      } catch (err) {
+        console.error('Auth initialization error:', err);
+        sessionStorage.removeItem(TOKEN_KEY);
+        sessionStorage.removeItem(USER_KEY);
+        setUser(null);
+        setError(err instanceof Error ? err : new Error('Authentication failed'));
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initializeAuth();
+  }, []);
+
+  const login = async (email: string, password: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const response = await apiCall('/api/v1/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password })
+      });
+
+      const { token, user } = response;
+
+      sessionStorage.setItem(TOKEN_KEY, token);
+      sessionStorage.setItem(USER_KEY, JSON.stringify(user));
+      setUser(user);
+
+      // Redirect to dashboard or last attempted page
+      const redirectPath = sessionStorage.getItem('auth_redirect') || '/dashboard';
+      sessionStorage.removeItem('auth_redirect');
+      router.push(redirectPath);
+    } catch (err) {
+      console.error('Login error:', err);
+      setError(err instanceof Error ? err : new Error('Login failed'));
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const logout = async () => {
+    try {
+      const token = sessionStorage.getItem(TOKEN_KEY);
+      if (token) {
+        await apiCall('/api/v1/auth/logout', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+      }
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      sessionStorage.removeItem(TOKEN_KEY);
+      sessionStorage.removeItem(USER_KEY);
+      setUser(null);
+      router.push('/login');
+    }
+  };
+
+  const getContextHeaders = () => {
+    const token = sessionStorage.getItem(TOKEN_KEY);
+    return {
+      Authorization: token ? `Bearer ${token}` : '',
+      'Content-Type': 'application/json'
+    };
+  };
+
+  const checkPermission = (permission: string): boolean => {
+    if (!user) return false;
+    return user.permissions.includes(permission);
+  };
+
+  const value = {
+    user,
+    isLoading,
+    error,
+    login,
+    logout,
+    getContextHeaders,
+    checkPermission
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -52,271 +160,57 @@ export const useAuth = () => {
   return context;
 };
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
+export const withAuth = <P extends object>(
+  WrappedComponent: React.ComponentType<P>,
+  requiredPermissions: string[] = []
+) => {
+  return function WithAuthComponent(props: P) {
+    const { user, isLoading, checkPermission } = useAuth();
+    const router = useRouter();
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [currentEngagementId, setCurrentEngagementId] = useState<string | null>(null);
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-
-  useEffect(() => {
-    // Check if user is already logged in (check localStorage for token)
-    const token = localStorage.getItem('auth_token');
-    const userData = localStorage.getItem('user_data');
-    
-    if (token && userData) {
-      try {
-        const parsedUser = JSON.parse(userData);
-        
-        // Handle migration from old user ID format to UUID format
-        if (parsedUser.id === 'admin-1' && parsedUser.email === 'admin@aiforce.com') {
-          parsedUser.id = '2a0de3df-7484-4fab-98b9-2ca126e2ab21'; // Update to real admin UUID
-          localStorage.setItem('user_data', JSON.stringify(parsedUser));
-          localStorage.setItem('auth_source', 'demo');
-        } else if (parsedUser.id === 'user-1' && parsedUser.email === 'user@demo.com') {
-          parsedUser.id = 'demo-user-12345678-1234-5678-9012-123456789012'; // Update to UUID format
-          localStorage.setItem('user_data', JSON.stringify(parsedUser));
-          localStorage.setItem('auth_source', 'demo');
-        }
-        
-        setUser(parsedUser);
-        setIsAuthenticated(true);
-
-        // Set initial engagement and session from localStorage or user defaults
-        const storedEngagementId = localStorage.getItem('selectedEngagementId');
-        if (storedEngagementId) {
-          setCurrentEngagementId(storedEngagementId);
-        } else if (parsedUser.default_engagement_id) {
-          setCurrentEngagementId(parsedUser.default_engagement_id);
-        }
-        
-        const storedSessionId = localStorage.getItem('selectedSessionId');
-        if (storedSessionId) {
-          setCurrentSessionId(storedSessionId);
-        }
-
-      } catch (error) {
-        console.error('Error parsing stored user data:', error);
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user_data');
-        localStorage.removeItem('auth_source');
-      }
-    }
-    setIsLoading(false); // Always set loading to false after checking
-  }, []);
-
-  const login = async (email: string, password: string): Promise<User> => {
-    try {
-      // First try to authenticate against the database
-      try {
-        const apiUrl = import.meta.env.VITE_BACKEND_URL || '';
-        const response = await fetch(`${apiUrl}/api/v1/auth/login`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ email, password })
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          
-          if (result.status === 'success' && result.user) {
-            // Store auth token and user data
-            localStorage.setItem('auth_token', result.token);
-            localStorage.setItem('user_data', JSON.stringify(result.user));
-            localStorage.setItem('auth_source', 'database'); // Track the auth source
-            
-            setUser(result.user);
-            setIsAuthenticated(true);
-            return result.user; // Successful database authentication
-          }
-        }
-      } catch (dbError) {
-        console.log('Database authentication failed, trying demo credentials');
-      }
-
-      // Fall back to demo authentication if database auth fails
-      if (email === 'admin@democorp.com' && password === 'admin123') {
-        // Use the real admin UUID from the database for demo auth
-        const adminUser: User = {
-          id: 'c8dd279c-ec', // This should be the real admin ID from the database
-          username: 'admin',
-          email: 'admin@democorp.com',
-          full_name: 'Admin User',
-          role: 'admin',
-          status: 'approved'
-        };
-        
-        // Store auth token and user data
-        const token = 'demo-admin-token-' + Date.now();
-        localStorage.setItem('auth_token', token);
-        localStorage.setItem('user_data', JSON.stringify(adminUser));
-        localStorage.setItem('auth_source', 'demo'); // Track the auth source
-        
-        setUser(adminUser);
-        setIsAuthenticated(true);
-        return adminUser;
-      } else if (email === 'demo@democorp.com' && password === 'user123') {
-        // Generate a proper UUID for demo user instead of "user-1"
-        const demoUser: User = {
-          id: 'a769ca2c-1b', // This should be the real demo user ID
-          username: 'demo_user',
-          email: 'demo@democorp.com',
-          full_name: 'Demo User',
-          role: 'user',
-          status: 'approved',
-          client_accounts: ['client-1'],
-          engagements: ['engagement-1']
-        };
-        
-        const token = 'demo-user-token-' + Date.now();
-        localStorage.setItem('auth_token', token);
-        localStorage.setItem('user_data', JSON.stringify(demoUser));
-        localStorage.setItem('auth_source', 'demo'); // Track the auth source
-        
-        setUser(demoUser);
-        setIsAuthenticated(true);
-        return demoUser;
-      } else {
-        throw new Error('Invalid email or password');
-      }
-    } catch (error) {
-      throw new Error('Login failed: ' + (error as Error).message);
-    }
-  };
-
-  const logout = () => {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_data');
-    localStorage.removeItem('auth_source');
-    localStorage.removeItem('selectedEngagementId');
-    localStorage.removeItem('selectedSessionId');
-    setUser(null);
-    setIsAuthenticated(false);
-    setCurrentEngagementId(null);
-    setCurrentSessionId(null);
-  };
-
-  const register = async (userData: RegisterData): Promise<void> => {
-    try {
-      // Transform frontend data structure to match backend expectations
-      const registrationPayload = {
-        email: userData.email,
-        full_name: userData.full_name,
-        organization: userData.organization || "User Organization",
-        role_description: userData.role_description || "Platform User",
-        registration_reason: userData.justification || "User registration for platform access",
-        requested_access_level: userData.requested_access.access_level,
-        phone_number: null,
-        manager_email: null,
-        linkedin_profile: null,
-        notification_preferences: {
-          email_notifications: true,
-          system_alerts: true,
-          learning_updates: false,
-          weekly_reports: true
-        }
-      };
-
-      const apiUrl = import.meta.env.VITE_BACKEND_URL || '';
-      // Make API call to register user
-      const response = await fetch(`${apiUrl}/api/v1/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(registrationPayload)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Registration failed');
-      }
-
-      // Registration successful - user needs approval
-      const result = await response.json();
-      
-      if (result.status === 'success') {
-        // Registration successful, pending approval
+    useEffect(() => {
+      if (!isLoading && !user) {
+        sessionStorage.setItem('auth_redirect', router.asPath);
+        router.push('/login');
         return;
-      } else {
-        throw new Error(result.message || 'Registration failed');
       }
-    } catch (error) {
-      throw new Error('Registration failed: ' + (error as Error).message);
+
+      if (!isLoading && user && requiredPermissions.length > 0) {
+        const hasAllPermissions = requiredPermissions.every(permission =>
+          checkPermission(permission)
+        );
+
+        if (!hasAllPermissions) {
+          router.push('/unauthorized');
+        }
+      }
+    }, [user, isLoading, router]);
+
+    if (isLoading) {
+      return (
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+            <p className="text-gray-600">Loading...</p>
+          </div>
+        </div>
+      );
     }
+
+    if (!user) {
+      return null;
+    }
+
+    if (requiredPermissions.length > 0) {
+      const hasAllPermissions = requiredPermissions.every(permission =>
+        checkPermission(permission)
+      );
+
+      if (!hasAllPermissions) {
+        return null;
+      }
+    }
+
+    return <WrappedComponent {...props} />;
   };
-
-  const getAuthHeaders = (): Record<string, string> => {
-    const token = localStorage.getItem('auth_token');
-    const headers: Record<string, string> = {};
-    
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    if (user) {
-      headers['X-User-ID'] = user.id;
-      headers['X-User-Role'] = user.role;
-    }
-
-    if (currentEngagementId) {
-      headers['X-Engagement-ID'] = currentEngagementId;
-    }
-    
-    if (currentSessionId) {
-      headers['X-Session-ID'] = currentSessionId;
-    }
-
-    return headers;
-  };
-
-  const handleSetCurrentEngagementId = (engagementId: string | null) => {
-    setCurrentEngagementId(engagementId);
-    if (engagementId) {
-      localStorage.setItem('selectedEngagementId', engagementId);
-    } else {
-      localStorage.removeItem('selectedEngagementId');
-    }
-    // When engagement changes, clear the session
-    setCurrentSessionId(null);
-    localStorage.removeItem('selectedSessionId');
-  };
-
-  const handleSetCurrentSessionId = (sessionId: string | null) => {
-    setCurrentSessionId(sessionId);
-    if (sessionId) {
-      localStorage.setItem('selectedSessionId', sessionId);
-    } else {
-      localStorage.removeItem('selectedSessionId');
-    }
-  };
-
-  const isAdmin = user?.role === 'admin';
-
-  const value = {
-    user,
-    isAuthenticated,
-    isAdmin,
-    isLoading,
-    currentEngagementId,
-    currentSessionId,
-    login,
-    logout,
-    register,
-    getAuthHeaders,
-    setCurrentEngagementId: handleSetCurrentEngagementId,
-    setCurrentSessionId: handleSetCurrentSessionId,
-  };
-
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
 }; 

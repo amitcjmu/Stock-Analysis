@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { apiCall } from '@/config/api';
+
 import { CreateEngagementData, ClientAccount } from './types';
 import { EngagementBasicInfo } from './EngagementBasicInfo';
 import { EngagementTimeline } from './EngagementTimeline';
@@ -15,8 +16,76 @@ export const CreateEngagementMain: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { getAuthHeaders } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [clientAccounts, setClientAccounts] = useState<ClientAccount[]>([]);
+  // Fetch client accounts with React Query
+  const clientAccountsQuery = useQuery<ClientAccount[]>({
+    queryKey: ['client-accounts'],
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/v1/admin/clients/', {
+          headers: getAuthHeaders()
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.items && Array.isArray(data.items)) {
+            return data.items.map((client: any) => ({
+              id: client.id,
+              account_name: client.account_name,
+              industry: client.industry
+            }));
+          } else {
+            throw new Error('Invalid response format');
+          }
+        } else {
+          throw new Error('API request failed');
+        }
+      } catch (error) {
+        // Enhanced fallback to demo data including the real backend client
+        return [
+          { id: 'd838573d-f461-44e4-81b5-5af510ef83b7', account_name: 'Acme Corporation', industry: 'Technology' },
+          { id: 'demo-client-2', account_name: 'TechCorp Solutions', industry: 'Information Technology' },
+          { id: 'demo-client-3', account_name: 'Global Systems Inc', industry: 'Financial Services' },
+          { id: 'demo-client-4', account_name: 'HealthSystem Partners', industry: 'Healthcare' }
+        ];
+      }
+    },
+    initialData: [],
+  });
+  const clientAccounts = clientAccountsQuery.data || [];
+  const accountsLoading = clientAccountsQuery.isLoading;
+  const accountsError = clientAccountsQuery.isError;
+
+  // Server state: useMutation for API interaction
+  const createEngagementMutation = useMutation({
+    mutationFn: async (submissionData: any) => {
+      const response = await fetch('/api/v1/admin/engagements/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify(submissionData)
+      });
+      if (!response.ok) {
+        throw new Error('Failed to create engagement');
+      }
+      return response.json();
+    },
+    // Pass engagement name via context for toast
+    onSuccess: (_data, variables) => {
+      toast({
+        title: "Engagement Created Successfully",
+        description: `Engagement ${variables.engagement_name} has been created and is now active.`,
+      });
+      navigate('/admin/engagements');
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to create engagement. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
 
   const [formData, setFormData] = useState<CreateEngagementData>({
     engagement_name: '',
@@ -41,45 +110,7 @@ export const CreateEngagementMain: React.FC = () => {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Load client accounts on component mount
-  useEffect(() => {
-    fetchClientAccounts();
-  }, []);
 
-  const fetchClientAccounts = async () => {
-    try {
-      const response = await fetch('/api/v1/admin/clients/', {
-        headers: getAuthHeaders()
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Clients API response:', data);
-        
-        // Backend returns data.items array, not data.client_accounts
-        if (data.items && Array.isArray(data.items)) {
-          setClientAccounts(data.items.map((client: any) => ({
-            id: client.id,
-            account_name: client.account_name,
-            industry: client.industry
-          })));
-        } else {
-          throw new Error('Invalid response format');
-        }
-      } else {
-        throw new Error('API request failed');
-      }
-    } catch (error) {
-      console.error('Error fetching client accounts:', error);
-      // Enhanced fallback to demo data including the real backend client
-      setClientAccounts([
-        { id: 'd838573d-f461-44e4-81b5-5af510ef83b7', account_name: 'Acme Corporation', industry: 'Technology' },
-        { id: 'demo-client-2', account_name: 'TechCorp Solutions', industry: 'Information Technology' },
-        { id: 'demo-client-3', account_name: 'Global Systems Inc', industry: 'Financial Services' },
-        { id: 'demo-client-4', account_name: 'HealthSystem Partners', industry: 'Healthcare' }
-      ]);
-    }
-  };
 
   // Simple form handler - no useCallback to prevent re-renders
   const handleFormChange = (field: keyof CreateEngagementData, value: any) => {
@@ -110,7 +141,7 @@ export const CreateEngagementMain: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!validateForm()) {
       toast({
         title: "Validation Error",
@@ -119,68 +150,24 @@ export const CreateEngagementMain: React.FC = () => {
       });
       return;
     }
-
-    try {
-      setLoading(true);
-      
-      // Format data for submission - map frontend fields to backend fields
-      const submissionData = {
-        engagement_name: formData.engagement_name,
-        client_account_id: formData.client_account_id,
-        engagement_description: formData.description,
-        migration_scope: 'full_datacenter', // Default scope
-        target_cloud_provider: formData.target_cloud_provider || 'aws',
-        engagement_manager: formData.project_manager,
-        technical_lead: formData.project_manager, // Use same person as default
-        planned_start_date: formData.estimated_start_date ? new Date(formData.estimated_start_date).toISOString() : null,
-        planned_end_date: formData.estimated_end_date ? new Date(formData.estimated_end_date).toISOString() : null,
-        estimated_budget: formData.budget ? parseFloat(formData.budget.toString()) : null,
-        team_preferences: {},
-        agent_configuration: {},
-        discovery_preferences: {},
-        assessment_criteria: {}
-      };
-      
-      // Try to call the real API first
-      try {
-        const response = await apiCall('/api/v1/admin/engagements/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...getAuthHeaders()
-          },
-          body: JSON.stringify(submissionData)
-        });
-
-        if (response.status === 'success') {
-          toast({
-            title: "Engagement Created Successfully",
-            description: `Engagement ${formData.engagement_name} has been created and is now active.`,
-          });
-        } else {
-          throw new Error(response.message || 'API call failed');
-        }
-      } catch (apiError) {
-        // Fallback to demo mode
-        console.log('API call failed, using demo mode');
-        toast({
-          title: "Engagement Created Successfully",
-          description: `Engagement ${formData.engagement_name} has been created and is now active.`,
-        });
-      }
-
-      // Navigate back to engagement management
-      navigate('/admin/engagements');
-    } catch (error) {
-      console.error('Error creating engagement:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create engagement. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
+    // Format data for submission - map frontend fields to backend fields
+    const submissionData = {
+      engagement_name: formData.engagement_name,
+      client_account_id: formData.client_account_id,
+      engagement_description: formData.description,
+      migration_scope: 'full_datacenter', // Default scope
+      target_cloud_provider: formData.target_cloud_provider || 'aws',
+      engagement_manager: formData.project_manager,
+      technical_lead: formData.project_manager, // Use same person as default
+      planned_start_date: formData.estimated_start_date ? new Date(formData.estimated_start_date).toISOString() : null,
+      planned_end_date: formData.estimated_end_date ? new Date(formData.estimated_end_date).toISOString() : null,
+      estimated_budget: formData.budget ? parseFloat(formData.budget.toString()) : null,
+      team_preferences: {},
+      agent_configuration: {},
+      discovery_preferences: {},
+      assessment_criteria: {}
+    };
+    createEngagementMutation.mutate(submissionData);
   };
 
   const handleCancel = () => {
@@ -226,7 +213,7 @@ export const CreateEngagementMain: React.FC = () => {
             <EngagementSummary
               formData={formData}
               clientAccounts={clientAccounts}
-              loading={loading}
+              loading={createEngagementMutation.isPending}
               onCancel={handleCancel}
               onSubmit={handleSubmit}
             />
@@ -235,4 +222,4 @@ export const CreateEngagementMain: React.FC = () => {
       </form>
     </div>
   );
-}; 
+};

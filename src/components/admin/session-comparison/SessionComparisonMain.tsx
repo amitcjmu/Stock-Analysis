@@ -113,7 +113,7 @@ interface SessionForComparison {
 }
 
 interface SessionComparisonProps {
-  engagementId: string;
+  engagementId?: string;
   onComparisonComplete?: (comparison: SessionComparison) => void;
 }
 
@@ -523,4 +523,6 @@ export const SessionComparisonMain: React.FC<SessionComparisonProps> = ({
       )}
     </div>
   );
-}; 
+};
+
+export default SessionComparisonMain; 

@@ -203,8 +203,9 @@ try:
             "/docs", 
             "/redoc",
             "/openapi.json",
-            "/debug",
-            "/static"
+            "/debug/routes",
+            "/static",
+            "/api/v1/assets/list/paginated"  # allow unauthenticated inventory preview
         ]
     )
 

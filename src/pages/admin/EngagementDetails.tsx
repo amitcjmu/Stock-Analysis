@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Calendar, 
@@ -49,65 +50,65 @@ const EngagementDetails: React.FC = () => {
   const { engagementId } = useParams<{ engagementId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [engagement, setEngagement] = useState<Engagement | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (engagementId) {
-      fetchEngagementDetails(engagementId);
-    }
-  }, [engagementId]);
-
-  const fetchEngagementDetails = async (id: string) => {
-    try {
-      setLoading(true);
-      const response = await fetch(`/api/v1/admin/engagements/${id}`, {
-        headers: {
-          'X-Demo-Mode': 'true',
-          'X-User-ID': 'demo-admin-user',
-          'Authorization': 'Bearer demo-admin-token'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch engagement details');
+  const fetchEngagementDetails = async (id: string): Promise<Engagement> => {
+    const response = await fetch(`/api/v1/admin/engagements/${id}`, {
+      headers: {
+        'X-Demo-Mode': 'true',
+        'X-User-ID': 'demo-admin-user',
+        'Authorization': 'Bearer demo-admin-token'
       }
-
-      const data = await response.json();
-      setEngagement(data);
-    } catch (error) {
-      console.error('Error fetching engagement details:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch engagement details. Using demo data.",
-        variant: "destructive"
-      });
-      
-      // Demo data fallback
-      setEngagement({
-        id: id,
-        engagement_name: 'Cloud Migration Initiative 2024',
-        client_account_id: 'client-123',
-        client_account_name: 'Pujyam Corp',
-        migration_scope: 'full_datacenter',
-        target_cloud_provider: 'aws',
-        migration_phase: 'execution',
-        engagement_manager: 'Sarah Johnson',
-        technical_lead: 'Mike Chen',
-        start_date: '2024-01-15T00:00:00Z',
-        end_date: '2024-12-31T00:00:00Z',
-        budget: 850000,
-        budget_currency: 'USD',
-        progress_percentage: 65,
-        total_applications: 45,
-        migrated_applications: 29,
-        created_at: '2024-01-10T10:30:00Z',
-        is_active: true
-      });
-    } finally {
-      setLoading(false);
+    });
+    if (!response.ok) {
+      throw new Error('Failed to fetch engagement details');
     }
+    return response.json();
   };
+
+  const {
+    data: engagement,
+    isLoading: loading,
+    isError,
+    error
+  } = useQuery<Engagement>(
+    ['engagement-details', engagementId],
+    () => fetchEngagementDetails(engagementId!),
+    {
+      enabled: !!engagementId,
+      retry: 1,
+      onError: () => {
+        toast({
+          title: "Error",
+          description: "Failed to fetch engagement details. Using demo data.",
+          variant: "destructive"
+        });
+      },
+      // fallback: handled below
+    }
+  );
+
+  // Demo data fallback
+  const demoEngagement: Engagement = {
+    id: engagementId || 'demo-id',
+    engagement_name: 'Cloud Migration Initiative 2024',
+    client_account_id: 'client-123',
+    client_account_name: 'Pujyam Corp',
+    migration_scope: 'full_datacenter',
+    target_cloud_provider: 'aws',
+    migration_phase: 'execution',
+    engagement_manager: 'Sarah Johnson',
+    technical_lead: 'Mike Chen',
+    start_date: '2024-01-15T00:00:00Z',
+    end_date: '2024-12-31T00:00:00Z',
+    budget: 850000,
+    budget_currency: 'USD',
+    progress_percentage: 65,
+    total_applications: 45,
+    migrated_applications: 29,
+    created_at: '2024-01-10T10:30:00Z',
+    is_active: true
+  };
+
 
   const formatDate = (dateString: string) => {
     if (!dateString) return 'Not set';

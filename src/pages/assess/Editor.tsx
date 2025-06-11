@@ -1,33 +1,80 @@
-
-import React, { useState } from 'react';
-import Sidebar from '../../components/Sidebar';
+import React from 'react';
+import { useParams } from 'react-router-dom';
 import { Save, User, Shield, Database, Settings } from 'lucide-react';
+import { toast } from 'sonner';
+import Sidebar from '../../components/Sidebar';
+import { useAuth } from '@/contexts/AuthContext';
+import { useApplication, useUpdateApplication } from '@/hooks/useApplication';
 
 const Editor = () => {
-  const [formData, setFormData] = useState({
-    scope: 'In Scope',
-    appStrategy: 'No Strategy Assigned',
-    grTreatment: 'No Strategy Assigned',
-    wave: 'Wave 7',
-    function: 'Business Application',
-    type: 'Choose an App Type',
-    piiData: true,
-    businessCritical: false,
-    appOwner: 'Enter App Owner',
-    email: ''
-  });
+  const { applicationId } = useParams<{ applicationId: string }>();
+  const { isAuthenticated } = useAuth();
 
-  const handleInputChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+  // Fetch application data
+  const { 
+    data: application,
+    isLoading,
+    error
+  } = useApplication(applicationId || '');
+
+  // Update application mutation
+  const { mutate: updateApplication, isPending: isUpdating } = useUpdateApplication();
+
+  // Handle input changes
+  const handleInputChange = (field: string, value: any) => {
+    if (!applicationId) return;
+    
+    updateApplication(
+      {
+        applicationId,
+        data: { [field]: value }
+      },
+      {
+        onSuccess: () => {
+          toast.success('Application updated successfully');
+        },
+        onError: (error) => {
+          toast.error('Failed to update application: ' + error.message);
+        }
+      }
+    );
   };
 
-  const handleSave = () => {
-    console.log('Saving application data:', formData);
-    // TODO: Replace with CloudBridge API call
-  };
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex">
+        <Sidebar />
+        <div className="flex-1 ml-64">
+          <main className="p-8">
+            <div className="max-w-4xl mx-auto">
+              <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex">
+        <Sidebar />
+        <div className="flex-1 ml-64">
+          <main className="p-8">
+            <div className="max-w-4xl mx-auto">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-red-800">Error loading application: {error.message}</p>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -62,7 +109,7 @@ const Editor = () => {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Migration Scope</label>
                       <select
-                        value={formData.scope}
+                        value={application?.scope || 'In Scope'}
                         onChange={(e) => handleInputChange('scope', e.target.value)}
                         className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
@@ -83,7 +130,7 @@ const Editor = () => {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">App Strategy</label>
                       <select
-                        value={formData.appStrategy}
+                        value={application?.appStrategy || 'No Strategy Assigned'}
                         onChange={(e) => handleInputChange('appStrategy', e.target.value)}
                         className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
@@ -96,7 +143,7 @@ const Editor = () => {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">6R Treatment</label>
                       <select
-                        value={formData.grTreatment}
+                        value={application?.grTreatment || 'No Strategy Assigned'}
                         onChange={(e) => handleInputChange('grTreatment', e.target.value)}
                         className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
@@ -112,7 +159,7 @@ const Editor = () => {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Migration Wave</label>
                       <select
-                        value={formData.wave}
+                        value={application?.wave || 'Wave 7'}
                         onChange={(e) => handleInputChange('wave', e.target.value)}
                         className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
@@ -136,7 +183,7 @@ const Editor = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-2">Function</label>
                       <input
                         type="text"
-                        value={formData.function}
+                        value={application?.function || 'Business Application'}
                         onChange={(e) => handleInputChange('function', e.target.value)}
                         className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
@@ -144,7 +191,7 @@ const Editor = () => {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
                       <select
-                        value={formData.type}
+                        value={application?.type || 'Choose an App Type'}
                         onChange={(e) => handleInputChange('type', e.target.value)}
                         className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
@@ -167,7 +214,7 @@ const Editor = () => {
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input
                           type="checkbox"
-                          checked={formData.piiData}
+                          checked={application?.piiData || false}
                           onChange={(e) => handleInputChange('piiData', e.target.checked)}
                           className="sr-only peer"
                         />
@@ -179,7 +226,7 @@ const Editor = () => {
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input
                           type="checkbox"
-                          checked={formData.businessCritical}
+                          checked={application?.businessCritical || false}
                           onChange={(e) => handleInputChange('businessCritical', e.target.checked)}
                           className="sr-only peer"
                         />
@@ -200,7 +247,7 @@ const Editor = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-2">App Owner</label>
                       <input
                         type="text"
-                        value={formData.appOwner}
+                        value={application?.appOwner || 'Enter App Owner'}
                         onChange={(e) => handleInputChange('appOwner', e.target.value)}
                         placeholder="Enter App Owner"
                         className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -210,7 +257,7 @@ const Editor = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
                       <input
                         type="email"
-                        value={formData.email}
+                        value={application?.email || ''}
                         onChange={(e) => handleInputChange('email', e.target.value)}
                         placeholder="owner@company.com"
                         className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -222,11 +269,28 @@ const Editor = () => {
                 {/* Save Button */}
                 <div className="flex justify-end">
                   <button
-                    onClick={handleSave}
-                    className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 flex items-center space-x-2 transition-colors duration-200"
+                    onClick={() => {
+                      if (!applicationId || !application) return;
+                      updateApplication(
+                        {
+                          applicationId,
+                          data: application
+                        },
+                        {
+                          onSuccess: () => {
+                            toast.success('All changes saved successfully');
+                          },
+                          onError: (error) => {
+                            toast.error('Failed to save changes: ' + error.message);
+                          }
+                        }
+                      );
+                    }}
+                    disabled={isUpdating}
+                    className={`bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 flex items-center space-x-2 transition-colors duration-200 ${isUpdating ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     <Save className="h-5 w-5" />
-                    <span>Save Configuration</span>
+                    <span>{isUpdating ? 'Saving...' : 'Save Configuration'}</span>
                   </button>
                 </div>
               </div>

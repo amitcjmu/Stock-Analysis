@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { 
   Users, 
@@ -20,8 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { apiCall, API_CONFIG } from '@/config/api';
-import { useAppContext } from '@/hooks/useContext';
+import { apiCall } from '@/lib/api'; 
 import { useAuth } from '@/contexts/AuthContext';
 
 interface DashboardStats {
@@ -49,107 +49,89 @@ interface DashboardStats {
   };
 }
 
+// Fallback demo data if API fails
+const demoStats: DashboardStats = {
+  clients: {
+    total: 12,
+    active: 10,
+    byIndustry: { "Technology": 4, "Healthcare": 3, "Finance": 3, "Manufacturing": 2 },
+    bySize: { "Enterprise": 6, "Large": 4, "Medium": 2 },
+    recentRegistrations: []
+  },
+  engagements: {
+    total: 25,
+    active: 18,
+    byPhase: { "Discovery": 8, "Assessment": 5, "Planning": 3, "Migration": 2 },
+    byScope: { "Full Datacenter": 5, "Application Portfolio": 12, "Selected Apps": 8 },
+    completionRate: 72.5,
+    budgetUtilization: 65.8,
+    recentActivity: []
+  },
+  users: {
+    total: 45,
+    pending: 8,
+    approved: 37,
+    recentRequests: []
+  }
+};
+
 const AdminDashboard: React.FC = () => {
-  const { context, getContextHeaders } = useAppContext();
-  const { getAuthHeaders, user } = useAuth();
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { getAuthHeaders } = useAuth();
 
-  useEffect(() => {
-    fetchDashboardStats();
-  }, [context]);
-
-  const fetchDashboardStats = async () => {
+  const fetchDashboardStats = async (): Promise<DashboardStats> => {
+    const headers = getAuthHeaders();
     try {
-      setLoading(true);
-      const headers = {
-        ...getContextHeaders(),
-        ...getAuthHeaders()
-      };
+      const [clientsData, engagementsData, usersData] = await Promise.all([
+        apiCall('/api/v1/admin/clients/dashboard/stats', { headers }),
+        apiCall('/api/v1/admin/engagements/dashboard/stats', { headers }),
+        apiCall('/api/v1/auth/admin/dashboard-stats', { headers })
+      ]);
       
-      // Try to fetch dashboard statistics with real authentication
-      try {
-        const [clientsData, engagementsData, usersData] = await Promise.all([
-          apiCall('/api/v1/admin/clients/dashboard/stats', { headers }),
-          apiCall('/api/v1/admin/engagements/dashboard/stats', { headers }),
-          apiCall('/api/v1/auth/admin/dashboard-stats', { headers })
-        ]);
-
-        // Transform API response to match frontend interface
-        const transformedClients = clientsData.dashboard_stats || clientsData;
-        const transformedEngagements = engagementsData.dashboard_stats || engagementsData;
-        setStats({
-          clients: {
-            total: transformedClients.total_clients || 0,
-            active: transformedClients.active_clients || 0,
-            byIndustry: transformedClients.clients_by_industry || {},
-            bySize: transformedClients.clients_by_company_size || {},
-            recentRegistrations: transformedClients.recent_client_registrations || []
-          },
-          engagements: {
-            total: transformedEngagements.total_engagements || 0,
-            active: transformedEngagements.active_engagements || 0,
-            byPhase: transformedEngagements.engagements_by_phase || {},
-            byScope: transformedEngagements.engagements_by_scope || {},
-            completionRate: transformedEngagements.completion_rate_average || 0,
-            budgetUtilization: transformedEngagements.budget_utilization_average || 0,
-            recentActivity: transformedEngagements.recent_engagement_activity || []
-          },
-          users: usersData.dashboard_stats || usersData
-        });
-        setError(null); // Clear any previous errors
-        return;
-      } catch (apiError) {
-        console.warn('API endpoints not available, using demo data:', apiError);
-        setError(`Admin services not fully available - using demo data. Authenticated as: ${user?.full_name} (${user?.role})`);
-      }
+      const transformedClients = clientsData.dashboard_stats || clientsData;
+      const transformedEngagements = engagementsData.dashboard_stats || engagementsData;
       
-      // Fallback demo data
-      setStats({
+      return {
         clients: {
-          total: 12,
-          active: 10,
-          byIndustry: { "Technology": 4, "Healthcare": 3, "Finance": 3, "Manufacturing": 2 },
-          bySize: { "Enterprise": 6, "Large": 4, "Medium": 2 },
-          recentRegistrations: []
+          total: transformedClients.total_clients || 0,
+          active: transformedClients.active_clients || 0,
+          byIndustry: transformedClients.clients_by_industry || {},
+          bySize: transformedClients.clients_by_company_size || {},
+          recentRegistrations: transformedClients.recent_client_registrations || []
         },
         engagements: {
-          total: 25,
-          active: 18,
-          byPhase: { "discovery": 8, "assessment": 5, "planning": 3, "migration": 2 },
-          byScope: { "full_datacenter": 5, "application_portfolio": 12, "selected_applications": 8 },
-          completionRate: 72.5,
-          budgetUtilization: 65.8,
-          recentActivity: []
+          total: transformedEngagements.total_engagements || 0,
+          active: transformedEngagements.active_engagements || 0,
+          byPhase: transformedEngagements.engagements_by_phase || {},
+          byScope: transformedEngagements.engagements_by_scope || {},
+          completionRate: transformedEngagements.completion_rate_average || 0,
+          budgetUtilization: transformedEngagements.budget_utilization_average || 0,
+          recentActivity: transformedEngagements.recent_engagement_activity || []
         },
-        users: {
-          total: 45,
-          pending: 8,
-          approved: 37,
-          recentRequests: []
-        }
-      });
-    } catch (err) {
-      console.error('Error fetching dashboard stats:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch dashboard data');
-      
-      // Final fallback
-      setStats({
-        clients: { total: 0, active: 0, byIndustry: {}, bySize: {}, recentRegistrations: [] },
-        engagements: { total: 0, active: 0, byPhase: {}, byScope: {}, completionRate: 0, budgetUtilization: 0, recentActivity: [] },
-        users: { total: 0, pending: 0, approved: 0, recentRequests: [] }
-      });
-    } finally {
-      setLoading(false);
+        users: usersData.dashboard_stats || usersData
+      };
+    } catch (apiError) {
+      console.warn('API endpoints not available, using demo data:', apiError);
+      throw apiError; // Rethrow to let useQuery handle the error state
     }
   };
 
-  if (loading) {
+  const { data, isLoading, isError, error } = useQuery<DashboardStats>(
+    ['adminDashboardStats'], 
+    fetchDashboardStats,
+    {
+      retry: 1,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    }
+  );
+
+  const stats = isError ? demoStats : data;
+
+  if (isLoading && !stats) {
     return (
       <div className="container mx-auto p-6">
         <div className="flex items-center justify-center min-h-96">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <p className="ml-4 text-muted-foreground">Loading Dashboard...</p>
         </div>
       </div>
     );
@@ -159,15 +141,12 @@ const AdminDashboard: React.FC = () => {
     return (
       <div className="container mx-auto p-6">
         <div className="text-center">
-          <p className="text-red-500">Failed to load dashboard data</p>
-          <Button onClick={fetchDashboardStats} className="mt-4">
-            Retry
-          </Button>
+          <p className="text-red-500">Failed to load dashboard data. Please try again later.</p>
         </div>
       </div>
     );
   }
-
+  
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
@@ -198,13 +177,13 @@ const AdminDashboard: React.FC = () => {
         </div>
       </div>
 
-      {error && (
+      {isError && (
         <Card className="border-orange-200 bg-orange-50">
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 text-orange-800">
               <Settings className="w-4 h-4" />
               <span className="text-sm">
-                Note: {error}. Currently showing demo data for development purposes.
+                There was an issue fetching live data. Showing demo statistics. Error: {error instanceof Error ? error.message : 'Unknown Error'}
               </span>
             </div>
           </CardContent>

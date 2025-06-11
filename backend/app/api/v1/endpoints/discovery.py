@@ -193,4 +193,25 @@ async def get_cmdb_templates():
         return await template_handler.get_templates()
     except Exception as e:
         logger.error(f"Template retrieval error: {e}")
-        raise HTTPException(status_code=500, detail="Failed to retrieve templates") 
+        raise HTTPException(status_code=500, detail="Failed to retrieve templates")
+
+@router.get("/inventory")
+async def legacy_inventory_route(page: int = 1, page_size: int = 50):
+    """Legacy alias for v0 frontend – proxies to /assets/list/paginated."""
+    try:
+        from app.api.v1.endpoints.asset_inventory import list_assets_paginated
+        # We cannot rely on FastAPI dependency injection outside router call, so we simply return an informative message.
+        return {
+            "error": "Legacy endpoint not fully supported in backend stub. Please use /assets/list/paginated.",
+            "assets": [],
+            "pagination": {
+                "current_page": page,
+                "page_size": page_size,
+                "total_items": 0,
+                "total_pages": 0,
+                "has_next": False,
+                "has_previous": False
+            }
+        }
+    except Exception as e:
+        return {"error": str(e)} 

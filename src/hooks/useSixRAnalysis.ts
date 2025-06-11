@@ -20,6 +20,9 @@ import {
   BulkAnalysisResult,
   BulkAnalysisSummary
 } from '../components/sixr';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { api } from '@/lib/api';
+import { AnalysisProgress, Analysis } from '@/types/assessment';
 
 // State interfaces
 export interface AnalysisState {
@@ -135,6 +138,18 @@ export const useSixRAnalysis = (options: UseSixRAnalysisOptions = {}): [Analysis
     autoLoadHistory = false,
     maxIterationHistory = 10
   } = options;
+
+  const queryClient = useQueryClient();
+
+  const {
+    data: analysisState = {},
+    isLoading,
+    error
+  } = useQuery<AnalysisState>({
+    queryKey: ['sixr-analysis'],
+    queryFn: () => api.get('/api/v1/analysis/state').then(res => res.data),
+    enabled: true
+  });
 
   // Simple state - no complex dependencies
   const [state, setState] = useState<AnalysisState>({
@@ -476,4 +491,59 @@ export const useSixRAnalysis = (options: UseSixRAnalysisOptions = {}): [Analysis
   };
 
   return [state, actions];
-}; 
+};
+
+export function useSixRAnalysis(applicationIds: string[]) {
+  const queryClient = useQueryClient();
+
+  const {
+    data: analysisState = {},
+    isLoading,
+    error
+  } = useQuery<AnalysisState>({
+    queryKey: ['sixr-analysis', applicationIds],
+    queryFn: () => api.get('/api/v1/analysis/state', { params: { applicationIds } }).then(res => res.data),
+    enabled: applicationIds.length > 0
+  });
+
+  const initializeAnalysis = async () => {
+    const response = await api.post('/api/v1/analysis/initialize', { applicationIds });
+    await queryClient.invalidateQueries({ queryKey: ['sixr-analysis'] });
+    return response.data;
+  };
+
+  const updateParameters = async (params: SixRParameters) => {
+    const response = await api.put('/api/v1/analysis/parameters', params);
+    await queryClient.invalidateQueries({ queryKey: ['sixr-analysis'] });
+    return response.data;
+  };
+
+  const answerQuestions = async (responses: QuestionResponse[]) => {
+    const response = await api.post('/api/v1/analysis/questions', { responses });
+    await queryClient.invalidateQueries({ queryKey: ['sixr-analysis'] });
+    return response.data;
+  };
+
+  const acceptRecommendation = async () => {
+    const response = await api.post('/api/v1/analysis/accept');
+    await queryClient.invalidateQueries({ queryKey: ['sixr-analysis'] });
+    return response.data;
+  };
+
+  const iterateAnalysis = async () => {
+    const response = await api.post('/api/v1/analysis/iterate');
+    await queryClient.invalidateQueries({ queryKey: ['sixr-analysis'] });
+    return response.data;
+  };
+
+  return {
+    analysisState,
+    isLoading,
+    error,
+    initializeAnalysis,
+    updateParameters,
+    answerQuestions,
+    acceptRecommendation,
+    iterateAnalysis
+  };
+} 

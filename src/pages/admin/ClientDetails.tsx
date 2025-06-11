@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Building2, 
@@ -63,8 +64,31 @@ const ClientDetails: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { getAuthHeaders } = useAuth();
-  const [client, setClient] = useState<Client | null>(null);
-  const [loading, setLoading] = useState(true);
+
+  const demoClient: Client = {
+    id: clientId || 'demo-id',
+    account_name: 'Pujyam Corp',
+    industry: 'Technology',
+    company_size: 'Enterprise (5000+)',
+    headquarters_location: 'San Francisco, CA',
+    primary_contact_name: 'John Smith',
+    primary_contact_email: 'john.smith@pujyam.com',
+    primary_contact_phone: '+1-555-0123',
+    business_objectives: ['Cost Reduction', 'Modernization', 'Cloud Migration'],
+    target_cloud_providers: ['aws', 'azure'],
+    business_priorities: ['cost_reduction', 'agility_speed', 'security_compliance'],
+    compliance_requirements: ['SOC2', 'GDPR', 'HIPAA'],
+    created_at: '2024-01-15T10:30:00Z',
+    is_active: true,
+    total_engagements: 3,
+    active_engagements: 2
+  };
+
+ 
+
+  // Use demoClient as fallback if error or no data
+  const client: Client = !loading && (isError || !data) ? demoClient : (data as Client);
+
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [formData, setFormData] = useState({
     account_name: '',
@@ -83,11 +107,7 @@ const ClientDetails: React.FC = () => {
     compliance_requirements: [] as string[]
   });
 
-  useEffect(() => {
-    if (clientId) {
-      fetchClientDetails(clientId);
-    }
-  }, [clientId]);
+
 
   const fetchClientDetails = async (id: string) => {
     try {
@@ -111,8 +131,9 @@ const ClientDetails: React.FC = () => {
       });
       
       // Demo data fallback
-      setClient({
-        id: id,
+      // Demo data fallback
+      const demoClient: Client = {
+        id: clientId || 'demo-id',
         account_name: 'Pujyam Corp',
         industry: 'Technology',
         company_size: 'Enterprise (5000+)',
@@ -128,7 +149,7 @@ const ClientDetails: React.FC = () => {
         is_active: true,
         total_engagements: 3,
         active_engagements: 2
-      });
+      };
     } finally {
       setLoading(false);
     }

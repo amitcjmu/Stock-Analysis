@@ -1,22 +1,26 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useCallback, useMemo } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowRight, ArrowLeft } from 'lucide-react';
-import Sidebar from '../../components/Sidebar';
-import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
-import RawDataTable from '../../components/discovery/RawDataTable';
-import AgentClarificationPanel from '../../components/discovery/AgentClarificationPanel';
-import DataClassificationDisplay from '../../components/discovery/DataClassificationDisplay';
-import AgentInsightsSection from '../../components/discovery/AgentInsightsSection';
-import QualityDashboard from '../../components/discovery/data-cleansing/QualityDashboard';
-import DataCleansingHeader from '../../components/discovery/data-cleansing/DataCleansingHeader';
-import QualityIssuesSummary from '../../components/discovery/data-cleansing/QualityIssuesSummary';
-import RecommendationsSummary from '../../components/discovery/data-cleansing/RecommendationsSummary';
-import ActionFeedback from '../../components/discovery/data-cleansing/ActionFeedback';
-import { useDataCleansing } from '../../hooks/useDataCleansing';
-import { getFieldHighlight } from '../../utils/dataCleansingUtils';
+import { useAuth } from '@/contexts/AuthContext';
+import Sidebar from '@/components/Sidebar';
+import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
+import RawDataTable from '@/components/discovery/RawDataTable';
+import AgentClarificationPanel from '@/components/discovery/AgentClarificationPanel';
+import DataClassificationDisplay from '@/components/discovery/DataClassificationDisplay';
+import AgentInsightsSection from '@/components/discovery/AgentInsightsSection';
+import QualityDashboard from '@/components/discovery/data-cleansing/QualityDashboard';
+import DataCleansingHeader from '@/components/discovery/data-cleansing/DataCleansingHeader';
+import QualityIssuesSummary from '@/components/discovery/data-cleansing/QualityIssuesSummary';
+import RecommendationsSummary from '@/components/discovery/data-cleansing/RecommendationsSummary';
+import ActionFeedback from '@/components/discovery/data-cleansing/ActionFeedback';
+import { useDataCleansing } from '@/hooks/useDataCleansing';
+import { getFieldHighlight } from '@/utils/dataCleansingUtils';
+import { logger } from '@/utils/logger';
 
-const DataCleansing = () => {
+const DataCleansing: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { isAuthenticated } = useAuth();
   
   // Use the custom hook for all business logic
   const {
@@ -28,7 +32,7 @@ const DataCleansing = () => {
     agentAnalysis,
     isLoading,
     isAnalyzing,
-    agentRefreshTrigger,
+    fromAttributeMapping,
     selectedIssue,
     selectedRecommendation,
     actionFeedback,
@@ -38,27 +42,17 @@ const DataCleansing = () => {
     setSelectedRecommendation,
     handleFixIssue,
     handleApplyRecommendation,
-    handleRefreshAnalysis
+    handleRefreshAnalysis,
+    handleContinueToInventory
   } = useDataCleansing();
 
-  // Navigation handlers
-  const handleContinueToInventory = () => {
-    navigate('/discovery/inventory', {
-      state: {
-        fromDataCleansing: true,
-        cleanedData: rawData,
-        qualityMetrics: qualityMetrics,
-        agentAnalysis: agentAnalysis
-      }
-    });
-  };
-
-  const handleBackToAttributeMapping = () => {
+  // Navigation handler
+  const handleBackToAttributeMapping = useCallback(() => {
     navigate('/discovery/attribute-mapping');
-  };
+  }, [navigate]);
 
-  // Enhanced field highlighting function that passes all necessary data
-  const getEnhancedFieldHighlight = (fieldName: string, assetId: string) => {
+  // Memoized field highlighting function
+  const getEnhancedFieldHighlight = useCallback((fieldName: string, assetId: string) => {
     return getFieldHighlight(
       fieldName,
       assetId,
@@ -68,34 +62,32 @@ const DataCleansing = () => {
       selectedIssue,
       selectedRecommendation
     );
-  };
+  }, [rawData, qualityIssues, agentRecommendations, selectedIssue, selectedRecommendation]);
 
   // Agent panel handlers
-  const handleQuestionAnswered = (questionId: string, response: string) => {
-    console.log('Cleansing question answered:', questionId, response);
+  const handleQuestionAnswered = useCallback((questionId: string, response: string) => {
+    logger.info('Cleansing question answered:', { questionId, response });
     // Handle dependency mapping clarifications
     if (response.includes('dependency') || response.includes('related')) {
-      // Update raw data to include dependency mappings
-      // This would typically trigger a re-analysis
-      console.log('Dependency mapping confirmed, would trigger re-analysis');
+      logger.debug('Dependency mapping confirmed, would trigger re-analysis');
+      // In a real implementation, this would trigger a re-analysis
+      handleRefreshAnalysis();
     }
-  };
+  }, [handleRefreshAnalysis]);
 
-  const handleClassificationUpdate = (itemId: string, newClassification: string) => {
-    console.log('Data classification updated:', itemId, newClassification);
-    // Update quality metrics based on classification
-    if (newClassification === 'good_data') {
-      console.log('Asset marked as good data, would update metrics');
-    }
-  };
+  const handleClassificationUpdate = useCallback((itemId: string, newClassification: string) => {
+    logger.info('Data classification updated:', { itemId, newClassification });
+    // In a real implementation, this would update the classification
+    // and potentially trigger a re-analysis
+  }, []);
 
-  const handleInsightAction = (insightId: string, action: string) => {
-    console.log('Cleansing insight action:', insightId, action);
+  const handleInsightAction = useCallback((insightId: string, action: string) => {
+    logger.info('Cleansing insight action:', { insightId, action });
     // Apply agent recommendations for data quality improvement
     if (action === 'helpful') {
-      console.log('Applying agent recommendations for quality improvement');
+      logger.debug('Applying agent recommendations for quality improvement');
     }
-  };
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 flex">

@@ -1,53 +1,64 @@
-
 import React from 'react';
-import Sidebar from '../../components/Sidebar';
-import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
-import { Target, Cloud, Layers, Zap, Shield, Globe, Brain } from 'lucide-react';
+import { Cloud, Loader2, AlertTriangle, Plus, DollarSign, Shield, Server } from 'lucide-react';
+import { useTarget } from '@/hooks/useTarget';
+import { Sidebar } from '@/components/ui/sidebar';
+import { Alert } from '@/components/ui/alert';
+import { Card } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 
-const TargetArchitecture = () => {
-  const architectureOptions = [
-    {
-      title: 'Cloud-Native Design',
-      description: 'Microservices architecture with containerization using Kubernetes',
-      icon: Cloud,
-      benefits: ['Scalability', 'Resilience', 'DevOps Integration'],
-      complexity: 'High',
-      cost: 'Medium',
-      aiRecommendation: true
-    },
-    {
-      title: 'Hybrid Architecture',
-      description: 'Combination of cloud and on-premises components',
-      icon: Layers,
-      benefits: ['Flexibility', 'Compliance', 'Cost Control'],
-      complexity: 'Medium',
-      cost: 'Low',
-      aiRecommendation: false
-    },
-    {
-      title: 'Serverless Computing',
-      description: 'Event-driven architecture with serverless functions',
-      icon: Zap,
-      benefits: ['Auto-scaling', 'Pay-per-use', 'No Infrastructure'],
-      complexity: 'Low',
-      cost: 'Variable',
-      aiRecommendation: false
-    }
-  ];
+const Target = () => {
+  const { data, isLoading, isError, error } = useTarget();
 
-  const designPatterns = [
-    { name: 'Auto-scaling', description: 'Dynamic resource allocation based on demand', icon: Target },
-    { name: 'Multi-region', description: 'Global deployment for high availability', icon: Globe },
-    { name: 'Security First', description: 'Zero-trust security model implementation', icon: Shield }
-  ];
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex">
+        <Sidebar />
+        <div className="flex-1 ml-64 flex items-center justify-center">
+          <div className="flex flex-col items-center space-y-4">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            <p className="text-gray-600">Loading target environment data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-  const getComplexityColor = (complexity) => {
-    switch (complexity) {
-      case 'High': return 'bg-red-100 text-red-800';
-      case 'Medium': return 'bg-yellow-100 text-yellow-800';
-      case 'Low': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex">
+        <Sidebar />
+        <div className="flex-1 ml-64 p-8">
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <p>Error loading target environment data: {error?.message}</p>
+          </Alert>
+        </div>
+      </div>
+    );
+  }
+
+  const getStatusColor = (status: string) => {
+    const colors = {
+      'Planning': 'bg-blue-100 text-blue-800',
+      'In Progress': 'bg-yellow-100 text-yellow-800',
+      'Ready': 'bg-green-100 text-green-800',
+      'Active': 'bg-purple-100 text-purple-800',
+      'Complete': 'bg-green-100 text-green-800',
+      'Not Started': 'bg-gray-100 text-gray-800',
+      'Compliant': 'bg-green-100 text-green-800',
+      'Non-Compliant': 'bg-red-100 text-red-800'
+    };
+    return colors[status] || 'bg-gray-100 text-gray-800';
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount);
   };
 
   return (
@@ -56,126 +67,188 @@ const TargetArchitecture = () => {
       <div className="flex-1 ml-64">
         <main className="p-8">
           <div className="max-w-7xl mx-auto">
-            {/* Context Breadcrumbs */}
-            <ContextBreadcrumbs showContextSelector={true} />
-            
             <div className="mb-8">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2">Target Architecture Design</h1>
-                  <p className="text-gray-600">Design optimal cloud architecture patterns</p>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">Target Environment Planning</h1>
+                  <p className="text-lg text-gray-600">
+                    Design and prepare target environments for migration
+                  </p>
                 </div>
-                <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
-                  <Brain className="h-5 w-5" />
-                  <span>AI Recommend</span>
-                </button>
-              </div>
-              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-blue-800 text-sm">
-                  <strong>AI Insight:</strong> Cloud-Native architecture recommended for cost efficiency and scalability
-                </p>
+                <Button variant="primary">
+                  <Plus className="h-5 w-5 mr-2" />
+                  New Environment
+                </Button>
               </div>
             </div>
 
-            {/* Architecture Options */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-              {architectureOptions.map((option, index) => {
-                const Icon = option.icon;
-                return (
-                  <div key={index} className={`bg-white rounded-lg shadow-md p-6 relative ${
-                    option.aiRecommendation ? 'ring-2 ring-blue-500' : ''
-                  }`}>
-                    {option.aiRecommendation && (
-                      <div className="absolute top-4 right-4">
-                        <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full flex items-center space-x-1">
-                          <Brain className="h-3 w-3" />
-                          <span>AI Pick</span>
-                        </span>
-                      </div>
-                    )}
-                    
-                    <div className="flex items-center space-x-3 mb-4">
-                      <Icon className="h-8 w-8 text-blue-500" />
-                      <h3 className="text-lg font-semibold text-gray-900">{option.title}</h3>
-                    </div>
-                    
-                    <p className="text-gray-600 mb-4">{option.description}</p>
-                    
-                    <div className="space-y-3">
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-700 mb-2">Benefits</h4>
-                        <div className="flex flex-wrap gap-1">
-                          {option.benefits.map((benefit, idx) => (
-                            <span key={idx} className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
-                              {benefit}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                      
-                      <div className="flex justify-between">
+            {/* Overview Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+              <Card className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Environments</p>
+                    <h3 className="text-2xl font-bold text-gray-900">{data.metrics.environments_count}</h3>
+                  </div>
+                  <Cloud className="h-8 w-8 text-blue-600" />
+                </div>
+              </Card>
+
+              <Card className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Avg. Readiness</p>
+                    <h3 className="text-2xl font-bold text-gray-900">{data.metrics.average_readiness}%</h3>
+                  </div>
+                  <Server className="h-8 w-8 text-green-600" />
+                </div>
+              </Card>
+
+              <Card className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Compliance Rate</p>
+                    <h3 className="text-2xl font-bold text-gray-900">{data.metrics.compliance_rate}%</h3>
+                  </div>
+                  <Shield className="h-8 w-8 text-purple-600" />
+                </div>
+              </Card>
+
+              <Card className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Monthly Cost</p>
+                    <h3 className="text-2xl font-bold text-gray-900">{formatCurrency(data.metrics.total_monthly_cost)}</h3>
+                  </div>
+                  <DollarSign className="h-8 w-8 text-yellow-600" />
+                </div>
+              </Card>
+            </div>
+
+            {/* Recommendations */}
+            <Card className="mb-8">
+              <div className="p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Environment Recommendations</h2>
+                <div className="space-y-4">
+                  {data.recommendations.map((rec, index) => (
+                    <Alert key={index} variant="info">
+                      <div className="flex items-center justify-between">
                         <div>
-                          <span className="text-sm text-gray-600">Complexity</span>
-                          <span className={`ml-2 px-2 py-1 text-xs rounded ${getComplexityColor(option.complexity)}`}>
-                            {option.complexity}
+                          <span className="font-medium">{rec.category}:</span>
+                          <span className="ml-2">{rec.description}</span>
+                        </div>
+                        <Badge className={`${rec.priority === 'High' ? 'bg-red-100 text-red-800' : rec.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>
+                          {rec.priority}
+                        </Badge>
+                      </div>
+                    </Alert>
+                  ))}
+                </div>
+              </div>
+            </Card>
+
+            {/* Environments Table */}
+            <Card>
+              <div className="p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-6">Target Environments</h2>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Environment</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Readiness</TableHead>
+                      <TableHead>Compliance</TableHead>
+                      <TableHead>Cost</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {data.environments.map((env) => (
+                      <TableRow key={env.id}>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{env.name}</div>
+                            <div className="text-sm text-gray-500">{env.id}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{env.type}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(env.status)}`}>
+                            {env.status}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="w-32">
+                            <div className="flex justify-between text-sm mb-1">
+                              <span>{env.readiness}%</span>
+                            </div>
+                            <Progress value={env.readiness} />
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-2">
+                            {env.compliance.map((item, index) => (
+                              <div key={index} className="flex items-center justify-between">
+                                <span className="text-sm">{item.framework}</span>
+                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(item.status)}`}>
+                                  {item.status}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            <div className="text-sm">
+                              <span className="text-gray-600">Est. Monthly:</span>
+                              <span className="ml-2 font-medium">{formatCurrency(env.costs.estimated_monthly)}</span>
+                            </div>
+                            {env.costs.actual_monthly && (
+                              <div className="text-sm">
+                                <span className="text-gray-600">Actual:</span>
+                                <span className="ml-2 font-medium">{formatCurrency(env.costs.actual_monthly)}</span>
+                              </div>
+                            )}
+                            <div className="text-sm text-green-600">
+                              Potential Savings: {formatCurrency(env.costs.savings_potential)}
+                            </div>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </Card>
+
+            {/* Components Section */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+              {data.environments.map((env) => (
+                <Card key={env.id} className="p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">{env.name} Components</h3>
+                  <div className="space-y-4">
+                    {env.components.map((component, index) => (
+                      <div key={index} className="border-b border-gray-200 pb-4 last:border-0 last:pb-0">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-medium">{component.name}</span>
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(component.status)}`}>
+                            {component.status}
                           </span>
                         </div>
-                        <div>
-                          <span className="text-sm text-gray-600">Cost: </span>
-                          <span className="font-medium">{option.cost}</span>
-                        </div>
+                        {component.dependencies.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {component.dependencies.map((dep, i) => (
+                              <Badge key={i} variant="outline">{dep}</Badge>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    </div>
+                    ))}
                   </div>
-                );
-              })}
-            </div>
-
-            {/* Design Patterns */}
-            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">Core Design Patterns</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {designPatterns.map((pattern, index) => {
-                  const Icon = pattern.icon;
-                  return (
-                    <div key={index} className="text-center p-4 border border-gray-200 rounded-lg hover:border-blue-500 transition-colors">
-                      <Icon className="h-12 w-12 text-blue-500 mx-auto mb-3" />
-                      <h4 className="font-semibold text-gray-900 mb-2">{pattern.name}</h4>
-                      <p className="text-sm text-gray-600">{pattern.description}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Implementation Timeline */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Implementation Timeline</h2>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 border-l-4 border-blue-500 bg-blue-50">
-                  <div>
-                    <h3 className="font-medium text-gray-900">Phase 1: Foundation Setup</h3>
-                    <p className="text-sm text-gray-600">Core infrastructure and security baseline</p>
-                  </div>
-                  <span className="text-sm font-medium text-blue-600">Weeks 1-4</span>
-                </div>
-                
-                <div className="flex items-center justify-between p-4 border-l-4 border-green-500 bg-green-50">
-                  <div>
-                    <h3 className="font-medium text-gray-900">Phase 2: Service Migration</h3>
-                    <p className="text-sm text-gray-600">Application containerization and deployment</p>
-                  </div>
-                  <span className="text-sm font-medium text-green-600">Weeks 5-12</span>
-                </div>
-                
-                <div className="flex items-center justify-between p-4 border-l-4 border-purple-500 bg-purple-50">
-                  <div>
-                    <h3 className="font-medium text-gray-900">Phase 3: Optimization</h3>
-                    <p className="text-sm text-gray-600">Performance tuning and monitoring setup</p>
-                  </div>
-                  <span className="text-sm font-medium text-purple-600">Weeks 13-16</span>
-                </div>
-              </div>
+                </Card>
+              ))}
             </div>
           </div>
         </main>
@@ -184,4 +257,4 @@ const TargetArchitecture = () => {
   );
 };
 
-export default TargetArchitecture;
+export default Target;

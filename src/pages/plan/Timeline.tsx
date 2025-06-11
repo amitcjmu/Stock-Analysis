@@ -1,43 +1,64 @@
-
 import React from 'react';
-import Sidebar from '../../components/Sidebar';
-import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
-import { Calendar, CheckCircle, Clock, AlertCircle, Brain } from 'lucide-react';
+import { Calendar, Loader2, AlertTriangle, Clock, Flag, AlertCircle, ChevronRight } from 'lucide-react';
+import { useTimeline } from '@/hooks/useTimeline';
+import { Sidebar } from '@/components/ui/sidebar';
+import { Alert } from '@/components/ui/alert';
+import { Card } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 const Timeline = () => {
-  const milestones = [
-    { name: 'Architecture Review', date: '2025-01-10', status: 'completed', wave: 'W1', duration: '3 days' },
-    { name: 'Security Assessment', date: '2025-01-20', status: 'in-progress', wave: 'W1', duration: '5 days' },
-    { name: 'Resource Allocation', date: '2025-02-01', status: 'pending', wave: 'W1', duration: '2 days' },
-    { name: 'Testing Environment Setup', date: '2025-02-15', status: 'pending', wave: 'W1', duration: '7 days' },
-    { name: 'Production Migration', date: '2025-03-15', status: 'pending', wave: 'W1', duration: '14 days' },
-    { name: 'Wave 2 Assessment', date: '2025-04-01', status: 'planned', wave: 'W2', duration: '10 days' },
-    { name: 'Wave 2 Migration', date: '2025-05-01', status: 'planned', wave: 'W2', duration: '21 days' }
-  ];
+  const { data, isLoading, isError, error } = useTimeline();
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
-      case 'in-progress':
-        return <Clock className="h-5 w-5 text-blue-500" />;
-      case 'pending':
-        return <AlertCircle className="h-5 w-5 text-yellow-500" />;
-      case 'planned':
-        return <Calendar className="h-5 w-5 text-gray-400" />;
-      default:
-        return <AlertCircle className="h-5 w-5 text-gray-400" />;
-    }
-  };
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex">
+        <Sidebar />
+        <div className="flex-1 ml-64 flex items-center justify-center">
+          <div className="flex flex-col items-center space-y-4">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            <p className="text-gray-600">Loading timeline data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-  const getStatusColor = (status) => {
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex">
+        <Sidebar />
+        <div className="flex-1 ml-64 p-8">
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <p>Error loading timeline data: {error?.message}</p>
+          </Alert>
+        </div>
+      </div>
+    );
+  }
+
+  const getStatusColor = (status: string) => {
     const colors = {
-      'completed': 'bg-green-100 text-green-800',
-      'in-progress': 'bg-blue-100 text-blue-800',
-      'pending': 'bg-yellow-100 text-yellow-800',
-      'planned': 'bg-gray-100 text-gray-800'
+      'Not Started': 'bg-gray-100 text-gray-800',
+      'In Progress': 'bg-blue-100 text-blue-800',
+      'Completed': 'bg-green-100 text-green-800',
+      'Delayed': 'bg-red-100 text-red-800',
+      'At Risk': 'bg-yellow-100 text-yellow-800',
+      'Pending': 'bg-purple-100 text-purple-800',
+      'On Track': 'bg-green-100 text-green-800'
     };
     return colors[status] || 'bg-gray-100 text-gray-800';
+  };
+
+  const getImpactColor = (impact: string) => {
+    const colors = {
+      'High': 'bg-red-100 text-red-800',
+      'Medium': 'bg-yellow-100 text-yellow-800',
+      'Low': 'bg-green-100 text-green-800'
+    };
+    return colors[impact] || 'bg-gray-100 text-gray-800';
   };
 
   return (
@@ -46,92 +67,163 @@ const Timeline = () => {
       <div className="flex-1 ml-64">
         <main className="p-8">
           <div className="max-w-7xl mx-auto">
-            {/* Context Breadcrumbs */}
-            <ContextBreadcrumbs showContextSelector={true} />
-            
             <div className="mb-8">
               <div className="flex items-center justify-between">
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900 mb-2">Migration Timeline</h1>
-                  <p className="text-gray-600">Comprehensive project timeline with AI-optimized milestones</p>
+                  <p className="text-lg text-gray-600">
+                    Track and manage the migration schedule and milestones
+                  </p>
                 </div>
-                <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
-                  <Brain className="h-5 w-5" />
-                  <span>AI Optimize</span>
-                </button>
-              </div>
-              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-blue-800 text-sm">
-                  <strong>AI Insight:</strong> Timeline optimized with 1-week buffer for Wave 1 critical applications
-                </p>
+                <Button variant="outline" className="bg-white">
+                  <Calendar className="h-5 w-5 mr-2" />
+                  Export Schedule
+                </Button>
               </div>
             </div>
 
-            {/* Timeline Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Total Duration</h3>
-                <p className="text-3xl font-bold text-blue-600">120</p>
-                <p className="text-sm text-gray-600">Days</p>
-              </div>
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Completed</h3>
-                <p className="text-3xl font-bold text-green-600">1</p>
-                <p className="text-sm text-gray-600">Milestones</p>
-              </div>
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">In Progress</h3>
-                <p className="text-3xl font-bold text-blue-600">1</p>
-                <p className="text-sm text-gray-600">Milestones</p>
-              </div>
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Upcoming</h3>
-                <p className="text-3xl font-bold text-orange-600">5</p>
-                <p className="text-sm text-gray-600">Milestones</p>
-              </div>
+            {/* Overview Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <Card className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Duration</p>
+                    <h3 className="text-2xl font-bold text-gray-900">{data.metrics.total_duration_weeks} weeks</h3>
+                  </div>
+                  <Clock className="h-8 w-8 text-blue-600" />
+                </div>
+              </Card>
+
+              <Card className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Progress</p>
+                    <h3 className="text-2xl font-bold text-gray-900">{data.metrics.overall_progress}%</h3>
+                  </div>
+                  <Progress value={data.metrics.overall_progress} className="w-24" />
+                </div>
+              </Card>
+
+              <Card className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Schedule Health</p>
+                    <h3 className="text-2xl font-bold text-gray-900">{data.schedule_health.status}</h3>
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(data.schedule_health.status)}`}>
+                    {data.metrics.delayed_milestones} delays
+                  </span>
+                </div>
+              </Card>
             </div>
 
-            {/* Detailed Timeline */}
-            <div className="bg-white rounded-lg shadow-md">
-              <div className="p-6 border-b border-gray-200">
-                <h2 className="text-xl font-semibold text-gray-900">Project Milestones</h2>
-              </div>
+            {/* Schedule Health */}
+            <Card className="mb-8">
               <div className="p-6">
-                <div className="space-y-6">
-                  {milestones.map((milestone, index) => (
-                    <div key={index} className="relative">
-                      <div className="flex items-start space-x-4">
-                        <div className="flex-shrink-0 mt-1">
-                          {getStatusIcon(milestone.status)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <h3 className="text-lg font-medium text-gray-900">{milestone.name}</h3>
-                              <div className="flex items-center space-x-4 mt-1">
-                                <span className="text-sm text-gray-600">{milestone.date}</span>
-                                <span className="text-sm text-gray-500">Duration: {milestone.duration}</span>
-                                <span className={`px-2 py-1 text-xs rounded-full ${
-                                  milestone.wave === 'W1' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
-                                }`}>
-                                  {milestone.wave}
-                                </span>
-                              </div>
-                            </div>
-                            <span className={`px-3 py-1 text-sm rounded-full ${getStatusColor(milestone.status)}`}>
-                              {milestone.status.replace('-', ' ')}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {index < milestones.length - 1 && (
-                        <div className="absolute left-2.5 top-8 w-0.5 h-8 bg-gray-200"></div>
-                      )}
-                    </div>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Schedule Health Analysis</h2>
+                <div className="space-y-4">
+                  {data.schedule_health.issues.map((issue, index) => (
+                    <Alert key={index} variant="warning">
+                      <AlertCircle className="h-4 w-4" />
+                      <p>{issue}</p>
+                    </Alert>
+                  ))}
+                  {data.schedule_health.recommendations.map((rec, index) => (
+                    <Alert key={index} variant="info">
+                      <p>{rec}</p>
+                    </Alert>
                   ))}
                 </div>
               </div>
+            </Card>
+
+            {/* Critical Path */}
+            <Card className="mb-8">
+              <div className="p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Critical Path</h2>
+                <div className="flex items-center space-x-2">
+                  {data.critical_path.map((phase, index) => (
+                    <React.Fragment key={index}>
+                      <Badge variant="outline">{phase}</Badge>
+                      {index < data.critical_path.length - 1 && (
+                        <ChevronRight className="h-4 w-4 text-gray-400" />
+                      )}
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
+            </Card>
+
+            {/* Timeline Phases */}
+            <div className="space-y-6">
+              {data.phases.map((phase) => (
+                <Card key={phase.id}>
+                  <div className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900">{phase.name}</h3>
+                        <p className="text-sm text-gray-600">
+                          {new Date(phase.start_date).toLocaleDateString()} - {new Date(phase.end_date).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="flex items-center space-x-4">
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(phase.status)}`}>
+                          {phase.status}
+                        </span>
+                        <div className="w-32">
+                          <Progress value={phase.progress} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Dependencies */}
+                    {phase.dependencies.length > 0 && (
+                      <div className="mb-4">
+                        <p className="text-sm font-medium text-gray-600 mb-2">Dependencies</p>
+                        <div className="flex flex-wrap gap-2">
+                          {phase.dependencies.map((dep, index) => (
+                            <Badge key={index} variant="outline">{dep}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Milestones */}
+                    <div className="space-y-3">
+                      {phase.milestones.map((milestone, index) => (
+                        <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                          <div>
+                            <div className="font-medium">{milestone.name}</div>
+                            <div className="text-sm text-gray-600">{milestone.description}</div>
+                            <div className="text-sm text-gray-500">{new Date(milestone.date).toLocaleDateString()}</div>
+                          </div>
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(milestone.status)}`}>
+                            {milestone.status}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Risks */}
+                    {phase.risks.length > 0 && (
+                      <div className="mt-4">
+                        <p className="text-sm font-medium text-gray-600 mb-2">Risks</p>
+                        <div className="space-y-2">
+                          {phase.risks.map((risk, index) => (
+                            <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                              <div>
+                                <div className="text-sm">{risk.description}</div>
+                                <div className="text-sm text-gray-600">Mitigation: {risk.mitigation}</div>
+                              </div>
+                              <Badge className={getImpactColor(risk.impact)}>{risk.impact} Impact</Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              ))}
             </div>
           </div>
         </main>

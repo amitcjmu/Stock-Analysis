@@ -167,3 +167,5 @@ export const SessionSelector: React.FC = () => {
         </div>
     );
 };
+
+export default SessionSelector;

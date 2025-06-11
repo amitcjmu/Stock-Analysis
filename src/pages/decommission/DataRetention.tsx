@@ -1,133 +1,75 @@
-
 import React, { useState } from 'react';
 import Sidebar from '../../components/Sidebar';
 import { Database, Shield, Archive, Download, Calendar, AlertTriangle, CheckCircle, FileText, HardDrive } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useDataRetention, useCreateArchiveJob, useUpdateRetentionPolicy } from '@/hooks/decommission/useDataRetention';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Spinner } from '@/components/ui/spinner';
 
 const DataRetention = () => {
+  const { isAuthenticated } = useAuth();
   const [selectedPolicy, setSelectedPolicy] = useState('all');
   
-  const retentionMetrics = [
-    { label: 'Data Archived', value: '2.4 TB', color: 'text-blue-600', icon: Database },
-    { label: 'Active Policies', value: '12', color: 'text-green-600', icon: Shield },
-    { label: 'Compliance Requirements', value: '8', color: 'text-purple-600', icon: FileText },
-    { label: 'Storage Saved', value: '$180K', color: 'text-orange-600', icon: HardDrive },
-  ];
+  const {
+    data: retentionData,
+    isLoading,
+    error
+  } = useDataRetention();
 
-  const retentionPolicies = [
-    {
-      id: 'POL001',
-      name: 'Financial Data Retention',
-      description: 'SOX compliance for financial records',
-      retentionPeriod: '7 years',
-      complianceReqs: ['SOX', 'IRS'],
-      dataTypes: ['Transaction Records', 'Audit Logs', 'Financial Reports'],
-      storageLocation: 'S3 Glacier Deep Archive',
-      status: 'Active',
-      affectedSystems: 8
-    },
-    {
-      id: 'POL002',
-      name: 'Customer Data Retention',
-      description: 'GDPR compliance for customer information',
-      retentionPeriod: '5 years',
-      complianceReqs: ['GDPR', 'CCPA'],
-      dataTypes: ['Customer Records', 'Communications', 'Preferences'],
-      storageLocation: 'Encrypted Cloud Storage',
-      status: 'Active',
-      affectedSystems: 12
-    },
-    {
-      id: 'POL003',
-      name: 'Healthcare Data Retention',
-      description: 'HIPAA compliance for health records',
-      retentionPeriod: '10 years',
-      complianceReqs: ['HIPAA', 'HITECH'],
-      dataTypes: ['Patient Records', 'Medical Images', 'Treatment Plans'],
-      storageLocation: 'HIPAA Compliant Archive',
-      status: 'Under Review',
-      affectedSystems: 5
-    },
-    {
-      id: 'POL004',
-      name: 'Technical Documentation',
-      description: 'System documentation and logs',
-      retentionPeriod: '3 years',
-      complianceReqs: ['Internal Policy'],
-      dataTypes: ['System Logs', 'Documentation', 'Configuration Files'],
-      storageLocation: 'S3 Standard',
-      status: 'Draft',
-      affectedSystems: 15
-    },
-  ];
+  const { mutate: createArchiveJob } = useCreateArchiveJob();
+  const { mutate: updatePolicy } = useUpdateRetentionPolicy();
 
-  const archiveJobs = [
-    {
-      id: 'JOB001',
-      systemName: 'Legacy CRM Database',
-      dataSize: '450 GB',
-      status: 'In Progress',
-      progress: 65,
-      startDate: '2025-01-15',
-      estimatedCompletion: '2025-01-20',
-      priority: 'High',
-      policy: 'Customer Data Retention'
-    },
-    {
-      id: 'JOB002',
-      systemName: 'Financial Reporting System',
-      dataSize: '1.2 TB',
+  if (!isAuthenticated) {
+    return (
+      <Alert variant="destructive">
+        <AlertTitle>Authentication Required</AlertTitle>
+        <AlertDescription>
+          Please log in to access the data retention management.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Spinner className="w-8 h-8" />
+        <span className="ml-2">Loading data retention information...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>
+          {error instanceof Error ? error.message : 'Failed to load data retention information'}
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  const { metrics: retentionMetrics, policies: retentionPolicies, archiveJobs, retentionSteps: dataRetentionSteps } = retentionData || {
+    metrics: [],
+    policies: [],
+    archiveJobs: [],
+    retentionSteps: []
+  };
+
+  const handleCreateArchiveJob = () => {
+    // Implementation for creating a new archive job
+    createArchiveJob({
+      systemName: 'New System',
+      dataSize: '0 GB',
       status: 'Queued',
       progress: 0,
-      startDate: '2025-01-22',
-      estimatedCompletion: '2025-01-28',
-      priority: 'High',
-      policy: 'Financial Data Retention'
-    },
-    {
-      id: 'JOB003',
-      systemName: 'Old Email Server',
-      dataSize: '800 GB',
-      status: 'Completed',
-      progress: 100,
-      startDate: '2025-01-10',
-      estimatedCompletion: '2025-01-14',
-      priority: 'Medium',
-      policy: 'Technical Documentation'
-    },
-  ];
-
-  const dataRetentionSteps = [
-    {
-      step: 1,
-      title: 'Data Classification',
-      description: 'Classify data based on compliance requirements',
-      status: 'completed'
-    },
-    {
-      step: 2,
-      title: 'Policy Definition',
-      description: 'Define retention policies for each data type',
-      status: 'completed'
-    },
-    {
-      step: 3,
-      title: 'Archive Preparation',
-      description: 'Prepare data for archival storage',
-      status: 'in-progress'
-    },
-    {
-      step: 4,
-      title: 'Data Migration',
-      description: 'Move data to compliant archive storage',
-      status: 'in-progress'
-    },
-    {
-      step: 5,
-      title: 'Verification',
-      description: 'Verify data integrity and accessibility',
-      status: 'pending'
-    }
-  ];
+      startDate: new Date().toISOString(),
+      estimatedCompletion: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      priority: selectedPolicy
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -147,14 +89,22 @@ const DataRetention = () => {
                   </p>
                 </div>
                 <div className="flex space-x-3">
-                  <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2">
+                  <Button
+                    variant="secondary"
+                    className="flex items-center space-x-2"
+                    onClick={() => {/* Export functionality */}}
+                  >
                     <Download className="h-5 w-5" />
                     <span>Export Policies</span>
-                  </button>
-                  <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
+                  </Button>
+                  <Button
+                    variant="default"
+                    className="flex items-center space-x-2"
+                    onClick={handleCreateArchiveJob}
+                  >
                     <Archive className="h-5 w-5" />
                     <span>Create Archive Job</span>
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -162,7 +112,10 @@ const DataRetention = () => {
             {/* Retention Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
               {retentionMetrics.map((metric, index) => {
-                const Icon = metric.icon;
+                const Icon = metric.icon === 'Database' ? Database :
+                           metric.icon === 'Shield' ? Shield :
+                           metric.icon === 'FileText' ? FileText :
+                           HardDrive;
                 return (
                   <div key={index} className="bg-white rounded-lg shadow-md p-6">
                     <div className="flex items-center justify-between">
@@ -248,11 +201,9 @@ const DataRetention = () => {
                             </div>
                           </div>
                         )}
-                        <div className="text-sm text-gray-600">
-                          <div className="flex justify-between">
-                            <span>Started: {job.startDate}</span>
-                            <span>ETC: {job.estimatedCompletion}</span>
-                          </div>
+                        <div className="flex justify-between text-sm text-gray-600">
+                          <span>Started: {new Date(job.startDate).toLocaleDateString()}</span>
+                          <span>ETA: {new Date(job.estimatedCompletion).toLocaleDateString()}</span>
                         </div>
                       </div>
                     ))}
@@ -263,31 +214,14 @@ const DataRetention = () => {
               {/* Retention Policies */}
               <div className="bg-white rounded-lg shadow-md">
                 <div className="p-6 border-b border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-gray-900">Retention Policies</h3>
-                    <select
-                      value={selectedPolicy}
-                      onChange={(e) => setSelectedPolicy(e.target.value)}
-                      className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="all">All Policies</option>
-                      <option value="active">Active</option>
-                      <option value="review">Under Review</option>
-                      <option value="draft">Draft</option>
-                    </select>
-                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">Retention Policies</h3>
                 </div>
                 <div className="p-6">
                   <div className="space-y-4">
-                    {retentionPolicies
-                      .filter(policy => selectedPolicy === 'all' || policy.status.toLowerCase().includes(selectedPolicy))
-                      .map((policy) => (
+                    {retentionPolicies.map((policy) => (
                       <div key={policy.id} className="border rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <div>
-                            <h4 className="font-medium text-gray-900">{policy.name}</h4>
-                            <p className="text-sm text-gray-600">{policy.description}</p>
-                          </div>
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-medium text-gray-900">{policy.name}</h4>
                           <span className={`px-2 py-1 text-xs rounded-full ${
                             policy.status === 'Active' ? 'bg-green-100 text-green-800' :
                             policy.status === 'Under Review' ? 'bg-yellow-100 text-yellow-800' :
@@ -296,25 +230,18 @@ const DataRetention = () => {
                             {policy.status}
                           </span>
                         </div>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Retention Period:</span>
-                            <span className="font-medium">{policy.retentionPeriod}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Affected Systems:</span>
-                            <span className="font-medium">{policy.affectedSystems}</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-600">Compliance:</span>
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {policy.complianceReqs.map((req, index) => (
-                                <span key={index} className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded">
-                                  {req}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
+                        <p className="text-sm text-gray-600 mb-2">{policy.description}</p>
+                        <div className="text-sm text-gray-600">
+                          <p>Retention Period: {policy.retentionPeriod}</p>
+                          <p>Storage: {policy.storageLocation}</p>
+                          <p>Affected Systems: {policy.affectedSystems}</p>
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {policy.complianceReqs.map((req, i) => (
+                            <span key={i} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                              {req}
+                            </span>
+                          ))}
                         </div>
                       </div>
                     ))}

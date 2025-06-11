@@ -1,179 +1,92 @@
+import React, { Suspense, lazy } from "react";
+import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ChatFeedbackProvider } from "./contexts/ChatFeedbackContext";
 import { AuthProvider } from "./contexts/AuthContext";
-import { AppContextProvider } from "./hooks/useContext";
 import GlobalChatFeedback from "./components/GlobalChatFeedback";
 import { SessionProvider } from "./contexts/SessionContext";
-import SessionManagement from "./pages/session/Index";
-import SessionFormPage from "./pages/session/Form";
-import Index from "./pages/Index";
-import Login from "./pages/Login";
-import Assess from "./pages/Assess";
-import Discovery from "./pages/Discovery";
-import DiscoveryIndex from "./pages/discovery/Index";
-import DataImport from "./pages/discovery/CMDBImport";
-import Inventory from "./pages/discovery/Inventory";
-import Dependencies from "./pages/discovery/Dependencies";
-import DataCleansing from "./pages/discovery/DataCleansing";
-import AttributeMapping from "./pages/discovery/AttributeMapping";
-import TechDebtAnalysis from "./pages/discovery/TechDebtAnalysis";
-import DiscoveryDashboard from "./pages/discovery/DiscoveryDashboard";
-import AssessIndex from "./pages/assess/Index";
-import Treatment from "./pages/assess/Treatment";
-import WavePlanning from "./pages/assess/WavePlanning";
-import Roadmap from "./pages/assess/Roadmap";
-import Editor from "./pages/assess/Editor";
-import Plan from "./pages/Plan";
-import PlanIndex from "./pages/plan/Index";
-import Timeline from "./pages/plan/Timeline";
-import Resource from "./pages/plan/Resource";
-import Target from "./pages/plan/Target";
-import Execute from "./pages/Execute";
-import ExecuteIndex from "./pages/execute/Index";
-import Rehost from "./pages/execute/Rehost";
-import Replatform from "./pages/execute/Replatform";
-import Cutovers from "./pages/execute/Cutovers";
-import Reports from "./pages/execute/Reports";
-import Modernize from "./pages/Modernize";
-import ModernizeIndex from "./pages/modernize/Index";
-import Refactor from "./pages/modernize/Refactor";
-import Rearchitect from "./pages/modernize/Rearchitect";
-import Rewrite from "./pages/modernize/Rewrite";
-import Progress from "./pages/modernize/Progress";
-import Decommission from "./pages/Decommission";
-import DecommissionIndex from "./pages/decommission/Index";
-import DecommissionPlanning from "./pages/decommission/Planning";
-import DataRetention from "./pages/decommission/DataRetention";
-import DecommissionExecution from "./pages/decommission/Execution";
-import DecommissionValidation from "./pages/decommission/Validation";
-import FinOps from "./pages/FinOps";
-import CloudComparison from "./pages/finops/CloudComparison";
-import SavingsAnalysis from "./pages/finops/SavingsAnalysis";
-import CostAnalysis from "./pages/finops/CostAnalysis";
-import LLMCosts from "./pages/finops/LLMCosts";
-import WaveBreakdown from "./pages/finops/WaveBreakdown";
-import CostTrends from "./pages/finops/CostTrends";
-import BudgetAlerts from "./pages/finops/BudgetAlerts";
-import Observability from "./pages/Observability";
-import AgentMonitoring from "./pages/AgentMonitoring";
-import FeedbackView from "./pages/FeedbackView";
-import NotFound from "./pages/NotFound";
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import ClientManagement from "./pages/admin/ClientManagement";
-import ClientDetails from "./pages/admin/ClientDetails";
-import EngagementManagement from "./pages/admin/EngagementManagement";
-import EngagementDetails from "./pages/admin/EngagementDetails";
-import UserApprovals from "./pages/admin/UserApprovals";
-import CreateUser from "./pages/admin/CreateUser";
-import CreateClient from "./pages/admin/CreateClient";
-import CreateEngagement from "./pages/admin/CreateEngagement";
-import UserProfile from "./pages/admin/UserProfile";
-import PlatformAdmin from "./pages/admin/PlatformAdmin";
-import AdminLayout from "./components/admin/AdminLayout";
-import AdminRoute from "./components/admin/AdminRoute";
-import { AppRoutes } from './AppRoutes';
+import { useAuth } from "./contexts/AuthContext";
 
-const queryClient = new QueryClient();
+// Lazy-loaded components
+const PageLoader = () => <div>Loading...</div>;
+const LoginPage = lazy(() => import('./pages/Login'));
+const SessionSelectionPage = lazy(() => import('./components/session/SessionSelector'));
+const AssetInventoryPage = lazy(() => import('./pages/discovery/Inventory'));
+const CMDBImport = lazy(() => import('./pages/discovery/CMDBImport'));
+const AttributeMappingPage = lazy(() => import('./pages/discovery/AttributeMapping'));
+const AssessmentReadinessPage = lazy(() => import('./pages/discovery/AssessmentReadiness'));
+const DataCleansingPage = lazy(() => import('./pages/discovery/DataCleansing'));
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const UserApprovals = lazy(() => import('./pages/admin/UserApprovals'));
+const ClientManagement = lazy(() => import('./pages/admin/ClientManagement'));
+const EngagementManagement = lazy(() => import('./pages/admin/EngagementManagement'));
+const EngagementCreation = lazy(() => import('./pages/admin/CreateEngagement'));
+const SessionComparison = lazy(() => import('./components/admin/session-comparison/SessionComparisonMain'));
+const PlatformAdmin = lazy(() => import('./pages/admin/PlatformAdmin'));
+const NotFoundPage = lazy(() => import('./pages/NotFound'));
+const DiscoveryDashboard = lazy(() => import('./pages/discovery/DiscoveryDashboard'));
+const IndexPage = lazy(() => import('./pages/Index'));
+const ProtectedRoute = () => {
+    const { isAuthenticated, isLoading } = useAuth();
+    if (isLoading) {
+        return <div>Loading...</div>;
+    }
+    if (!isAuthenticated) {
+        return <Navigate to="/login" replace />;
+    }
+    return <Outlet />;
+};
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <AuthProvider>
-        <AppContextProvider>
-          <ChatFeedbackProvider>
-            <SessionProvider>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/discovery" element={<Discovery />} />
-                <Route path="/discovery/overview" element={<DiscoveryDashboard />} />
-                <Route path="/discovery/dashboard" element={<DiscoveryDashboard />} />
-                <Route path="/discovery/data-import" element={<DataImport />} />
-                <Route path="/discovery/inventory" element={<Inventory />} />
-                <Route path="/discovery/data-cleansing" element={<DataCleansing />} />
-                <Route path="/discovery/attribute-mapping" element={<AttributeMapping />} />
-                <Route path="/discovery/tech-debt-analysis" element={<TechDebtAnalysis />} />
-                <Route path="/discovery/dependencies" element={<Dependencies />} />
-                <Route path="/assess" element={<Assess />} />
-                <Route path="/assess/overview" element={<AssessIndex />} />
-                <Route path="/assess/treatment" element={<Treatment />} />
-                <Route path="/assess/waveplanning" element={<WavePlanning />} />
-                <Route path="/assess/roadmap" element={<Roadmap />} />
-                <Route path="/assess/editor" element={<Editor />} />
-                <Route path="/plan" element={<Plan />} />
-                <Route path="/plan/overview" element={<PlanIndex />} />
-                <Route path="/plan/timeline" element={<Timeline />} />
-                <Route path="/plan/resource" element={<Resource />} />
-                <Route path="/plan/target" element={<Target />} />
-                <Route path="/execute" element={<Execute />} />
-                <Route path="/execute/overview" element={<ExecuteIndex />} />
-                <Route path="/execute/rehost" element={<Rehost />} />
-                <Route path="/execute/replatform" element={<Replatform />} />
-                <Route path="/execute/cutovers" element={<Cutovers />} />
-                <Route path="/execute/reports" element={<Reports />} />
-                <Route path="/modernize" element={<Modernize />} />
-                <Route path="/modernize/overview" element={<ModernizeIndex />} />
-                <Route path="/modernize/refactor" element={<Refactor />} />
-                <Route path="/modernize/rearchitect" element={<Rearchitect />} />
-                <Route path="/modernize/rewrite" element={<Rewrite />} />
-                <Route path="/modernize/progress" element={<Progress />} />
-                <Route path="/decommission" element={<Decommission />} />
-                <Route path="/decommission/overview" element={<DecommissionIndex />} />
-                <Route path="/decommission/planning" element={<DecommissionPlanning />} />
-                <Route path="/decommission/dataretention" element={<DataRetention />} />
-                <Route path="/decommission/execution" element={<DecommissionExecution />} />
-                <Route path="/decommission/validation" element={<DecommissionValidation />} />
-                <Route path="/finops" element={<FinOps />} />
-                <Route path="/finops/cloud-comparison" element={<CloudComparison />} />
-                <Route path="/finops/savings-analysis" element={<SavingsAnalysis />} />
-                <Route path="/finops/cost-analysis" element={<CostAnalysis />} />
-                <Route path="/finops/llm-costs" element={<LLMCosts />} />
-                <Route path="/finops/wave-breakdown" element={<WaveBreakdown />} />
-                <Route path="/finops/cost-trends" element={<CostTrends />} />
-                <Route path="/finops/budget-alerts" element={<BudgetAlerts />} />
-                <Route path="/observability" element={<Observability />} />
-                <Route path="/observability/agent-monitoring" element={<AgentMonitoring />} />
-                <Route path="/feedback-view" element={<FeedbackView />} />
-                <Route path="/profile" element={<UserProfile />} />
-                {/* Admin Routes - Protected */}
-                <Route path="/admin" element={<AdminRoute><AdminLayout><AdminDashboard /></AdminLayout></AdminRoute>} />
-                <Route path="/admin/dashboard" element={<AdminRoute><AdminLayout><AdminDashboard /></AdminLayout></AdminRoute>} />
-                <Route path="/admin/clients" element={<AdminRoute><AdminLayout><ClientManagement /></AdminLayout></AdminRoute>} />
-                <Route path="/admin/clients/new" element={<AdminRoute><AdminLayout><ClientManagement /></AdminLayout></AdminRoute>} />
-                <Route path="/admin/clients/:clientId" element={<AdminRoute><AdminLayout><ClientDetails /></AdminLayout></AdminRoute>} />
-                <Route path="/admin/engagements" element={<AdminRoute><AdminLayout><EngagementManagement /></AdminLayout></AdminRoute>} />
-                <Route path="/admin/engagements/:engagementId" element={<AdminRoute><AdminLayout><EngagementDetails /></AdminLayout></AdminRoute>} />
-                <Route path="/admin/users/approvals" element={<AdminRoute><AdminLayout><UserApprovals /></AdminLayout></AdminRoute>} />
-                <Route path="/admin/users/create" element={<AdminRoute><AdminLayout><CreateUser /></AdminLayout></AdminRoute>} />
-                <Route path="/admin/users" element={<AdminRoute><AdminLayout><UserApprovals /></AdminLayout></AdminRoute>} />
-                <Route path="/admin/users/access" element={<AdminRoute><AdminLayout><UserApprovals /></AdminLayout></AdminRoute>} />
-                <Route path="/admin/reports" element={<AdminRoute><AdminLayout><Reports /></AdminLayout></AdminRoute>} />
-                <Route path="/admin/clients/create" element={<AdminRoute><AdminLayout><CreateClient /></AdminLayout></AdminRoute>} />
-                <Route path="/admin/engagements/create" element={<AdminRoute><AdminLayout><CreateEngagement /></AdminLayout></AdminRoute>} />
-                <Route path="/admin/platform" element={<AdminRoute><AdminLayout><PlatformAdmin /></AdminLayout></AdminRoute>} />
-                <Route path="/admin/profile" element={<AdminRoute><AdminLayout><UserProfile /></AdminLayout></AdminRoute>} />
-                
-                {/* Session Management Routes */}
-                <Route path="/sessions" element={<SessionManagement />} />
-                <Route path="/sessions/new" element={<SessionFormPage />} />
-                <Route path="/sessions/:id/edit" element={<SessionFormPage />} />
-                
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-              <GlobalChatFeedback />
-            </SessionProvider>
-          </ChatFeedbackProvider>
-        </AppContextProvider>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
+    <AuthProvider>
+        <SessionProvider>
+            <ChatFeedbackProvider>
+                <TooltipProvider>
+                    <Toaster />
+                    <Sonner />
+                    <Suspense fallback={<PageLoader />}>
+                        <Routes>
+                            <Route path="/login" element={<LoginPage />} />
+                            <Route path="/session/select" element={<SessionSelectionPage />} />
+
+                            <Route element={<ProtectedRoute />}>
+                                <Route path="/" element={<IndexPage />} />
+                                
+                                <Route path="/discovery" element={<DiscoveryDashboard />} />
+                                <Route path="/discovery/assessment" element={<AssessmentReadinessPage />} />
+                                <Route path="/discovery/asset-inventory" element={<AssetInventoryPage />} />
+                                <Route path="/discovery/inventory" element={<AssetInventoryPage />} />
+                                <Route path="/discovery/import" element={<CMDBImport />} />
+                                <Route path="/discovery/attribute-mapping" element={<AttributeMappingPage />} />
+                                <Route path="/discovery/assessment-readiness" element={<AssessmentReadinessPage />} />
+                                <Route path="/discovery/data-cleansing/:fileId" element={<DataCleansingPage />} />
+
+                                <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                                <Route path="/admin/user-approvals" element={<UserApprovals />} />
+                                <Route path="/admin/client-management" element={<ClientManagement />} />
+                                <Route path="/admin/engagements" element={<EngagementManagement />} />
+                                <Route path="/admin/engagements/new" element={<EngagementCreation />} />
+                                <Route path="/admin/sessions" element={<SessionComparison />} />
+                                <Route path="/admin/platform" element={<PlatformAdmin />} />
+                                
+                                <Route path="/plan/*" element={<div>Plan Section</div>} />
+                                <Route path="/execute/*" element={<div>Execute Section</div>} />
+                                <Route path="/modernize/*" element={<div>Modernize Section</div>} />
+                                <Route path="/assess/*" element={<div>Assess Section</div>} />
+                                <Route path="/finops/*" element={<div>FinOps Section</div>} />
+                                <Route path="/decommission/*" element={<div>Decommission Section</div>} />
+                            </Route>
+
+                            <Route path="*" element={<NotFoundPage />} />
+                        </Routes>
+                    </Suspense>
+                    <GlobalChatFeedback />
+                </TooltipProvider>
+            </ChatFeedbackProvider>
+        </SessionProvider>
+    </AuthProvider>
 );
 
 export default App;

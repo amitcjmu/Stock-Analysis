@@ -1,29 +1,15 @@
-
 import React from 'react';
 import Sidebar from '../../components/Sidebar';
 import { Calendar, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { useRoadmap } from '@/hooks/useRoadmap';
+import { useAuth } from '@/contexts/AuthContext';
+import { Spinner } from '@/components/ui/spinner';
 
 const Roadmap = () => {
-  const roadmapData = [
-    {
-      wave: 'W1',
-      phases: [
-        { name: 'Assess', start: '2025-09-01', end: '2025-09-15', status: 'completed' },
-        { name: 'Migrate', start: '2025-10-01', end: '2025-10-15', status: 'in-progress' },
-        { name: 'Validate', start: '2025-10-16', end: '2025-10-30', status: 'planned' }
-      ]
-    },
-    {
-      wave: 'W2', 
-      phases: [
-        { name: 'Assess', start: '2025-10-15', end: '2025-10-30', status: 'in-progress' },
-        { name: 'Migrate', start: '2025-11-01', end: '2025-11-20', status: 'planned' },
-        { name: 'Decommission', start: '2025-11-21', end: '2025-12-05', status: 'planned' }
-      ]
-    }
-  ];
+  const { isAuthenticated } = useAuth();
+  const { data: roadmapData, isLoading, error } = useRoadmap();
 
-  const getStatusIcon = (status) => {
+  const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
@@ -36,7 +22,7 @@ const Roadmap = () => {
     }
   };
 
-  const getStatusColor = (status) => {
+  const getStatusColor = (status: string) => {
     const colors = {
       'completed': 'bg-green-500',
       'in-progress': 'bg-blue-500',
@@ -45,7 +31,7 @@ const Roadmap = () => {
     return colors[status] || 'bg-gray-300';
   };
 
-  const getProgressWidth = (status) => {
+  const getProgressWidth = (status: string) => {
     switch (status) {
       case 'completed':
         return 'w-full';
@@ -57,6 +43,36 @@ const Roadmap = () => {
         return 'w-0';
     }
   };
+
+  if (!isAuthenticated) {
+    return <div>Please log in to view the roadmap.</div>;
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex">
+        <Sidebar />
+        <div className="flex-1 ml-64 flex items-center justify-center">
+          <Spinner size="lg" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex">
+        <Sidebar />
+        <div className="flex-1 ml-64 p-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-red-800">Error loading roadmap data. Please try again later.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -76,7 +92,7 @@ const Roadmap = () => {
 
             {/* Roadmap Timeline */}
             <div className="space-y-8">
-              {roadmapData.map((wave) => (
+              {roadmapData?.waves.map((wave) => (
                 <div key={wave.wave} className="bg-white rounded-lg shadow p-6">
                   <h2 className="text-xl font-semibold text-gray-900 mb-6">{wave.wave} Migration Timeline</h2>
                   
@@ -118,7 +134,7 @@ const Roadmap = () => {
                     <p className="text-sm text-gray-600">Wave 1 & 2 Migration</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-semibold text-gray-900">20 Apps</p>
+                    <p className="text-lg font-semibold text-gray-900">{roadmapData?.totalApps || 0} Apps</p>
                     <p className="text-sm text-gray-600">Scheduled</p>
                   </div>
                 </div>
@@ -129,7 +145,7 @@ const Roadmap = () => {
                     <p className="text-sm text-gray-600">Wave 3 Planning</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-semibold text-gray-900">15 Apps</p>
+                    <p className="text-lg font-semibold text-gray-900">{roadmapData?.plannedApps || 0} Apps</p>
                     <p className="text-sm text-gray-600">In Planning</p>
                   </div>
                 </div>

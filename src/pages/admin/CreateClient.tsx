@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, AlertCircle, Building2, Mail, MapPin } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -55,7 +56,39 @@ const CompanySizes = [
 const CreateClient: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
+  // Server state: useMutation for API interaction
+  const createClientMutation = useMutation({
+    mutationFn: async (payload: CreateClientData) => {
+      const response = await fetch('/api/v1/admin/clients/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Demo-Mode': 'true',
+          'X-User-ID': 'demo-admin-user',
+          'Authorization': 'Bearer demo-admin-token'
+        },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) {
+        throw new Error('Failed to create client');
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Client Created Successfully",
+        description: `Client ${formData.account_name} has been created and is now active.`,
+      });
+      navigate('/admin/clients');
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to create client. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
 
   const [formData, setFormData] = useState<CreateClientData>({
     account_name: '',
@@ -102,9 +135,8 @@ const CreateClient: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!validateForm()) {
       toast({
         title: "Validation Error",
@@ -113,52 +145,7 @@ const CreateClient: React.FC = () => {
       });
       return;
     }
-
-    try {
-      setLoading(true);
-      
-      // Try to call the real API first
-      try {
-        const response = await fetch('/api/v1/admin/clients/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Demo-Mode': 'true',
-            'X-User-ID': 'demo-admin-user',
-            'Authorization': 'Bearer demo-admin-token'
-          },
-          body: JSON.stringify(formData)
-        });
-
-        if (response.ok) {
-          toast({
-            title: "Client Created Successfully",
-            description: `Client ${formData.account_name} has been created and is now active.`,
-          });
-        } else {
-          throw new Error('API call failed');
-        }
-      } catch (apiError) {
-        // Fallback to demo mode
-        console.log('API call failed, using demo mode');
-        toast({
-          title: "Client Created Successfully",
-          description: `Client ${formData.account_name} has been created and is now active.`,
-        });
-      }
-
-      // Navigate back to client management
-      navigate('/admin/clients');
-    } catch (error) {
-      console.error('Error creating client:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create client. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
+    createClientMutation.mutate(formData);
   };
 
   return (
@@ -458,10 +445,10 @@ const CreateClient: React.FC = () => {
                   </Button>
                   <Button
                     type="submit"
-                    disabled={loading}
+                    disabled={createClientMutation.isLoading}
                     className="flex-1"
                   >
-                    {loading ? (
+                    {createClientMutation.isLoading ? (
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                     ) : (
                       <>

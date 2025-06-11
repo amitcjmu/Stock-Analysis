@@ -1,456 +1,204 @@
-import React, { useState, useEffect } from 'react';
-import { Activity, Clock, AlertCircle, CheckCircle, Bot, Brain, Zap, Users, RefreshCw, ChevronRight, ChevronDown, History, User } from 'lucide-react';
-import { API_CONFIG } from '../config/api';
+import React from 'react';
+import { Bot, Loader2, AlertTriangle, Activity, Clock, Memory, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { useAgentMonitor } from '@/hooks/useAgentMonitor';
+import { Alert } from '@/components/ui/alert';
+import { Card } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
 
-interface AgentStatus {
-  agent_id: string;
-  name: string;
-  role: string;
-  expertise: string;
-  specialization: string;
-  key_skills: string[];
-  capabilities: string[];
-  api_endpoints: string[];
-  description: string;
-  version: string;
-  status: {
-    current_status: string;
-    available: boolean;
-    currently_working: boolean;
-    health: string;
-  };
-  features: {
-    learning_enabled: boolean;
-    cross_page_communication: boolean;
-    modular_handlers: boolean;
-  };
-  performance: {
-    tasks_completed: number;
-    success_rate: string;
-    avg_execution_time: string;
-  };
-  registration_time?: string;
-  last_heartbeat?: string;
-}
+const AgentMonitor = () => {
+  const { data, isLoading, isError, error } = useAgentMonitor();
 
-interface PhaseData {
-  phase_name: string;
-  total_agents: number;
-  active_agents: number;
-  agents: AgentStatus[];
-}
-
-interface TaskHistory {
-  task_id: string;
-  agent: string;
-  description: string;
-  status: string;
-  start_time: string;
-  end_time?: string;
-  duration?: number;
-  llm_calls: number;
-  thinking_phases: number;
-  result_preview?: string;
-  error?: string;
-}
-
-interface ActiveTask {
-  task_id: string;
-  agent: string;
-  status: string;
-  elapsed: string;
-  since_activity: string;
-  description: string;
-  is_hanging: boolean;
-  hanging_reason: string;
-  llm_calls: number;
-  thinking_phases: number;
-  progress_indicators: {
-    has_started: boolean;
-    making_progress: boolean;
-    llm_active: boolean;
-    thinking_active: boolean;
-  };
-}
-
-interface MonitoringData {
-  success: boolean;
-  timestamp: string;
-  monitoring: {
-    active: boolean;
-    active_tasks: number;
-    completed_tasks: number;
-    hanging_tasks: number;
-  };
-  agents: {
-    total_registered: number;
-    active_agents: number;
-    learning_enabled: number;
-    cross_page_communication: number;
-    modular_handlers: number;
-    phase_distribution: Record<string, any>;
-  };
-  tasks: {
-    active: ActiveTask[];
-    hanging: any[];
-  };
-  registry_status: any;
-}
-
-interface AgentsByPhase {
-  [phase: string]: PhaseData;
-}
-
-const AgentMonitor: React.FC = () => {
-  const [monitoringData, setMonitoringData] = useState<MonitoringData | null>(null);
-  const [agentsByPhase, setAgentsByPhase] = useState<AgentsByPhase>({});
-  const [selectedPhase, setSelectedPhase] = useState<string>('discovery');
-  const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
-  const [selectedAgentTab, setSelectedAgentTab] = useState<'details' | 'tasks'>('details');
-  const [agentTaskHistory, setAgentTaskHistory] = useState<TaskHistory[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
-  const [loadingTaskHistory, setLoadingTaskHistory] = useState(false);
-  const [expandedPhases, setExpandedPhases] = useState<Record<string, boolean>>({
-    discovery: true,
-    assessment: false,
-    planning: false,
-    migration: false,
-    modernization: false,
-    decommission: false,
-    finops: false,
-    learning_context: true,
-    observability: true
-  });
-
-  const fetchMonitoringData = async () => {
-    try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/v1/monitoring/status`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      setMonitoringData(data);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch monitoring data');
-    }
-  };
-
-  const fetchAgentsByPhase = async () => {
-    try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/v1/monitoring/agents`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      setAgentsByPhase(data.agents_by_phase || {});
-      
-      // Auto-select first phase if none selected
-      if (!selectedPhase && Object.keys(data.agents_by_phase || {}).length > 0) {
-        setSelectedPhase(Object.keys(data.agents_by_phase)[0]);
-      }
-    } catch (err) {
-      console.error('Failed to fetch agents by phase:', err);
-    }
-  };
-
-  const fetchAgentTaskHistory = async (agentName: string) => {
-    setLoadingTaskHistory(true);
-    try {
-      // Try to fetch task history for the specific agent
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/v1/monitoring/tasks?agent_id=${encodeURIComponent(agentName)}&limit=10`);
-      if (response.ok) {
-        const data = await response.json();
-        setAgentTaskHistory(data.tasks || []);
-      } else {
-        // If no specific endpoint, generate mock task history for demo
-        const mockHistory: TaskHistory[] = [
-          {
-            task_id: `${agentName.toLowerCase().replace(/\s+/g, '_')}_task_001`,
-            agent: agentName,
-            description: 'Analyzed CMDB data for asset type detection and migration readiness',
-            status: 'completed',
-            start_time: new Date(Date.now() - 300000).toISOString(),
-            end_time: new Date(Date.now() - 280000).toISOString(),
-            duration: 20,
-            llm_calls: 3,
-            thinking_phases: 2,
-            result_preview: 'Successfully classified 15 assets with 92% confidence'
-          },
-          {
-            task_id: `${agentName.toLowerCase().replace(/\s+/g, '_')}_task_002`,
-            agent: agentName,
-            description: 'Processed user feedback for learning improvement',
-            status: 'completed',
-            start_time: new Date(Date.now() - 180000).toISOString(),
-            end_time: new Date(Date.now() - 165000).toISOString(),
-            duration: 15,
-            llm_calls: 2,
-            thinking_phases: 1,
-            result_preview: 'Learning patterns updated, confidence boost: +0.15'
-          },
-          {
-            task_id: `${agentName.toLowerCase().replace(/\s+/g, '_')}_task_003`,
-            agent: agentName,
-            description: 'Field mapping analysis with organizational pattern recognition',
-            status: 'completed',
-            start_time: new Date(Date.now() - 120000).toISOString(),
-            end_time: new Date(Date.now() - 105000).toISOString(),
-            duration: 15,
-            llm_calls: 4,
-            thinking_phases: 3,
-            result_preview: 'Mapped 8 fields to critical attributes with learned patterns'
-          }
-        ];
-        setAgentTaskHistory(mockHistory);
-      }
-    } catch (err) {
-      console.error('Failed to fetch agent task history:', err);
-      setAgentTaskHistory([]);
-    } finally {
-      setLoadingTaskHistory(false);
-    }
-  };
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    try {
-      await Promise.all([fetchMonitoringData(), fetchAgentsByPhase()]);
-      if (selectedAgent) {
-        await fetchAgentTaskHistory(selectedAgent);
-      }
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
-  const handleAgentClick = async (agentId: string, agentName: string) => {
-    if (selectedAgent === agentId) {
-      setSelectedAgent(null);
-      setAgentTaskHistory([]);
-    } else {
-      setSelectedAgent(agentId);
-      setSelectedAgentTab('details');
-      await fetchAgentTaskHistory(agentName);
-    }
-  };
-
-  const togglePhaseExpansion = (phase: string) => {
-    setExpandedPhases(prev => ({
-      ...prev,
-      [phase]: !prev[phase]
-    }));
-  };
-
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      await Promise.all([fetchMonitoringData(), fetchAgentsByPhase()]);
-      setLoading(false);
-    };
-
-    fetchData();
-  }, []);
-
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'active':
-      case 'healthy':
-      case 'available':
-        return 'text-green-500';
-      case 'idle':
-      case 'standby':
-        return 'text-yellow-500';
-      case 'error':
-      case 'degraded':
-      case 'unavailable':
-        return 'text-red-500';
-      case 'working':
-      case 'processing':
-        return 'text-blue-500';
-      default:
-        return 'text-gray-500';
-    }
-  };
-
-  const getTaskStatusIcon = (task: ActiveTask) => {
-    if (task.is_hanging) {
-      return <AlertCircle className="text-red-500" />;
-    }
-    if (task.status === 'completed') {
-      return <CheckCircle className="text-green-500" />;
-    }
-    return <Activity className="text-blue-500" />;
-  };
-
-  const getPhaseIcon = (phase: string) => {
-    switch(phase) {
-      case 'discovery': return <Brain className="h-5 w-5 mr-2 text-purple-500" />;
-      case 'assessment': return <Zap className="h-5 w-5 mr-2 text-yellow-500" />;
-      case 'planning': return <Users className="h-5 w-5 mr-2 text-blue-500" />;
-      case 'migration': return <RefreshCw className="h-5 w-5 mr-2 text-green-500" />;
-      case 'learning_context': return <Bot className="h-5 w-5 mr-2 text-indigo-500" />;
-      default: return <Bot className="h-5 w-5 mr-2 text-gray-500" />;
-    }
-  };
-
-  if (loading && !refreshing) {
-    return <div className="p-4 text-center">Loading agent monitoring data...</div>;
-  }
-
-  if (error) {
+  if (isLoading) {
     return (
-      <div className="p-4 text-center text-red-500">
-        <p>Agent Monitoring Error</p>
-        <p>{error}</p>
-        <button
-          onClick={handleRefresh}
-          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          Retry
-        </button>
+      <div className="flex items-center justify-center p-8">
+        <div className="flex flex-col items-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          <p className="text-gray-600">Loading agent status...</p>
+        </div>
       </div>
     );
   }
 
+  if (isError) {
+    return (
+      <div className="p-8">
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <p>Error loading agent data: {error?.message}</p>
+        </Alert>
+      </div>
+    );
+  }
+
+  const getStatusColor = (status: string) => {
+    const colors = {
+      'Active': 'bg-green-100 text-green-800',
+      'Idle': 'bg-yellow-100 text-yellow-800',
+      'Error': 'bg-red-100 text-red-800',
+      'Offline': 'bg-gray-100 text-gray-800',
+      'Success': 'bg-green-100 text-green-800',
+      'Failed': 'bg-red-100 text-red-800',
+      'In Progress': 'bg-blue-100 text-blue-800',
+      'Healthy': 'bg-green-100 text-green-800',
+      'Warning': 'bg-yellow-100 text-yellow-800',
+      'Critical': 'bg-red-100 text-red-800'
+    };
+    return colors[status] || 'bg-gray-100 text-gray-800';
+  };
+
+  const formatBytes = (bytes: number) => {
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let value = bytes;
+    let unitIndex = 0;
+    
+    while (value >= 1024 && unitIndex < units.length - 1) {
+      value /= 1024;
+      unitIndex++;
+    }
+    
+    return `${value.toFixed(1)} ${units[unitIndex]}`;
+  };
+
+  const formatTime = (timestamp: string) => {
+    return new Date(timestamp).toLocaleTimeString();
+  };
+
   return (
-    <div className="p-4 bg-gray-50 min-h-screen">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold text-gray-800">Agent Monitoring</h1>
-        <button
-          onClick={handleRefresh}
-          className={`px-4 py-2 flex items-center bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 ${refreshing ? 'animate-spin' : ''}`}
-          disabled={refreshing}
-        >
-          <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-          {refreshing ? 'Refreshing...' : 'Refresh'}
-        </button>
+    <div className="space-y-6">
+      {/* System Health Alert */}
+      {data.metrics.system_health.status !== 'Healthy' && (
+        <Alert variant={data.metrics.system_health.status === 'Critical' ? 'destructive' : 'warning'}>
+          <AlertCircle className="h-4 w-4" />
+          <div className="ml-2">
+            <p className="font-medium">System Health: {data.metrics.system_health.status}</p>
+            <ul className="mt-1 text-sm list-disc list-inside">
+              {data.metrics.system_health.issues.map((issue, index) => (
+                <li key={index}>{issue}</li>
+              ))}
+            </ul>
+          </div>
+        </Alert>
+      )}
+
+      {/* Metrics Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Active Agents</p>
+              <h3 className="text-2xl font-bold text-gray-900">{data.metrics.active_agents}/{data.metrics.total_agents}</h3>
+            </div>
+            <Bot className="h-8 w-8 text-blue-600" />
+          </div>
+        </Card>
+
+        <Card className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Tasks Completed</p>
+              <h3 className="text-2xl font-bold text-gray-900">{data.metrics.total_tasks_completed}</h3>
+            </div>
+            <CheckCircle className="h-8 w-8 text-green-600" />
+          </div>
+        </Card>
+
+        <Card className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Success Rate</p>
+              <h3 className="text-2xl font-bold text-gray-900">{data.metrics.average_success_rate}%</h3>
+            </div>
+            <Activity className="h-8 w-8 text-purple-600" />
+          </div>
+        </Card>
+
+        <Card className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">System Health</p>
+              <h3 className="text-2xl font-bold text-gray-900">{data.metrics.system_health.status}</h3>
+            </div>
+            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(data.metrics.system_health.status)}`}>
+              {data.metrics.system_health.status}
+            </span>
+          </div>
+        </Card>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {/* ... Card JSX ... */}
-      </div>
+      {/* Agent Status Grid */}
+      <Card>
+        <div className="p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Agent Status</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {data.agents.map((agent) => (
+              <Card key={agent.id} className="p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="font-medium text-gray-900">{agent.name}</h3>
+                    <p className="text-sm text-gray-500">ID: {agent.id}</p>
+                  </div>
+                  <Badge className={getStatusColor(agent.status)}>{agent.status}</Badge>
+                </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Agents by Phase Column */}
-        <div className="lg:col-span-1 bg-white p-4 rounded-lg shadow">
-          <h2 className="text-lg font-semibold mb-3">Agents by Phase</h2>
-          <div className="space-y-2">
-            {Object.entries(agentsByPhase).map(([phase, data]) => (
-              <div key={phase} className="border rounded-md">
-                <button
-                  className="w-full flex justify-between items-center p-3 text-left"
-                  onClick={() => togglePhaseExpansion(phase)}
-                >
-                  <div className="flex items-center">
-                    {getPhaseIcon(phase)}
-                    <span className="font-medium capitalize">{phase.replace('_', ' ')}</span>
+                <div className="space-y-3">
+                  {agent.current_task && (
+                    <div className="text-sm">
+                      <span className="text-gray-600">Current Task:</span>
+                      <span className="ml-2">{agent.current_task}</span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center text-sm">
+                    <Clock className="h-4 w-4 text-gray-400 mr-2" />
+                    <span>Last Active: {formatTime(agent.last_active)}</span>
                   </div>
-                  <div className="flex items-center">
-                    <span className="text-sm text-gray-500 mr-2">{data.active_agents}/{data.total_agents} active</span>
-                    {expandedPhases[phase] ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Success Rate</span>
+                      <span>{agent.performance.success_rate}%</span>
+                    </div>
+                    <Progress value={agent.performance.success_rate} />
                   </div>
-                </button>
-                {expandedPhases[phase] && (
-                  <div className="p-3 border-t">
-                    {data.agents.map(agent => (
-                      <div
-                        key={agent.agent_id}
-                        className={`p-2 rounded cursor-pointer ${selectedAgent === agent.agent_id ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
-                        onClick={() => handleAgentClick(agent.agent_id, agent.name)}
-                      >
-                        <div className="flex justify-between items-center">
-                          <span className="font-medium text-sm">{agent.name}</span>
-                          <span className={`text-xs font-semibold ${getStatusColor(agent.status.current_status)}`}>
-                            {agent.status.current_status}
-                          </span>
-                        </div>
-                        <p className="text-xs text-gray-500">{agent.role}</p>
-                      </div>
-                    ))}
+
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center">
+                      <Memory className="h-4 w-4 text-gray-400 mr-2" />
+                      <span>Memory Usage</span>
+                    </div>
+                    <span>{formatBytes(agent.memory_usage.current)} / {formatBytes(agent.memory_usage.peak)}</span>
                   </div>
-                )}
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </Card>
+
+      {/* Recent Activities */}
+      <Card>
+        <div className="p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activities</h2>
+          <div className="space-y-4">
+            {data.recent_activities.map((activity, index) => (
+              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div>
+                  <p className="font-medium text-gray-900">{activity.agent_name}</p>
+                  <p className="text-sm text-gray-600">{activity.action}</p>
+                  <p className="text-sm text-gray-500">{formatTime(activity.timestamp)}</p>
+                </div>
+                <Badge className={getStatusColor(activity.status)}>
+                  {activity.status === 'Success' && <CheckCircle className="h-4 w-4 mr-1" />}
+                  {activity.status === 'Failed' && <XCircle className="h-4 w-4 mr-1" />}
+                  {activity.status === 'In Progress' && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+                  {activity.status}
+                </Badge>
               </div>
             ))}
           </div>
         </div>
-
-        {/* Agent Details / Active Tasks Column */}
-        <div className="lg:col-span-2 bg-white p-4 rounded-lg shadow">
-          {selectedAgent ? (
-            <div>
-              <div className="flex justify-between items-center mb-3">
-                <h2 className="text-lg font-semibold">
-                  {agentsByPhase[Object.keys(agentsByPhase).find(p => agentsByPhase[p].agents.some(a => a.agent_id === selectedAgent)) || '']?.agents.find(a => a.agent_id === selectedAgent)?.name}
-                </h2>
-                <div>
-                  <button
-                    onClick={() => setSelectedAgentTab('details')}
-                    className={`px-3 py-1 text-sm rounded-l-md ${selectedAgentTab === 'details' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-                  >
-                    Details
-                  </button>
-                  <button
-                    onClick={() => setSelectedAgentTab('tasks')}
-                    className={`px-3 py-1 text-sm rounded-r-md ${selectedAgentTab === 'tasks' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-                  >
-                    Task History
-                  </button>
-                </div>
-              </div>
-
-              {selectedAgentTab === 'details' && (
-                <div>
-                  {/* ... Agent Details JSX ... */}
-                </div>
-              )}
-
-              {selectedAgentTab === 'tasks' && (
-                <div>
-                  {loadingTaskHistory ? (
-                    <p>Loading task history...</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {agentTaskHistory.map(task => (
-                        <div key={task.task_id} className="p-3 bg-gray-50 rounded-md border">
-                          <div className="flex justify-between items-start">
-                            <div className="flex items-center">
-                              <History className="h-4 w-4 mr-2 text-gray-400" />
-                              <p className="font-medium text-sm">{task.description}</p>
-                            </div>
-                            <span className={`text-xs font-bold ${task.status === 'completed' ? 'text-green-600' : 'text-red-600'}`}>
-                              {task.status.toUpperCase()}
-                            </span>
-                          </div>
-                          <div className="mt-2 text-xs text-gray-500 grid grid-cols-2 md:grid-cols-4 gap-2">
-                            <span><strong>Duration:</strong> {task.duration}s</span>
-                            <span><strong>LLM Calls:</strong> {task.llm_calls}</span>
-                            <span><strong>Started:</strong> {new Date(task.start_time).toLocaleTimeString()}</span>
-                            <span><strong>Agent:</strong> {task.agent}</span>
-                          </div>
-                          {task.result_preview && (
-                            <p className="mt-2 text-xs text-gray-600 bg-gray-100 p-2 rounded">
-                              <strong>Result:</strong> {task.result_preview}
-                            </p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div>
-              <h2 className="text-lg font-semibold mb-3">Active Tasks</h2>
-              {/* ... Active Tasks JSX ... */}
-            </div>
-          )}
-        </div>
-      </div>
+      </Card>
     </div>
   );
 };

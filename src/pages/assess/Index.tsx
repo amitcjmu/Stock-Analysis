@@ -1,106 +1,61 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import Sidebar from '../../components/Sidebar';
 import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
-import { useAppContext } from '@/hooks/useContext';
-import { apiCall, API_CONFIG } from '../../config/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { useQuery } from '@tanstack/react-query';
+import { apiCall } from '../../config/api';
 import { BarChart3, Calendar, Filter, Download, ClipboardList, Route, Edit, ArrowRight } from 'lucide-react';
 
 const AssessIndex = () => {
-  const { context, getContextHeaders } = useAppContext();
-  
-  // State for real data
-  const [assessmentMetrics, setAssessmentMetrics] = useState({
-    totalApps: 0,
-    assessed: 0,
-    waves: 0,
-    groups: 0
-  });
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { getAuthHeaders } = useAuth();
 
-  useEffect(() => {
-    fetchAssessmentData();
-  }, []);
-
-  // Refetch data when context changes
-  useEffect(() => {
-    if (context.client && context.engagement) {
-      fetchAssessmentData();
-    }
-  }, [context.client, context.engagement, context.session, context.viewMode]);
-
-  const fetchAssessmentData = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const contextHeaders = getContextHeaders();
-      
-      console.log('🔍 Assessment Overview: Fetching application data with context headers:', contextHeaders);
-      
-      // Fetch applications data from the working endpoint
-      const applicationsResponse = await apiCall('/api/v1/discovery/applications', {
-        headers: contextHeaders
-      });
-
-      console.log('📊 Assessment Overview: Applications response:', applicationsResponse);
-
-      // Calculate assessment metrics from real applications data
-      const applications = applicationsResponse.applications || [];
-      const totalApps = applications.length;
-      
-      // Count applications that have been assessed (have migration recommendations)
-      const assessed = applications.filter(app => 
-        app.migration_recommendation && app.migration_recommendation !== 'Pending Analysis'
-      ).length;
-      
-      console.log(`✅ Assessment Overview: Found ${totalApps} total apps, ${assessed} assessed`);
-      
-      setAssessmentMetrics({
-        totalApps,
-        assessed,
-        waves: Math.max(1, Math.ceil(totalApps / 8)), // ~8 apps per wave
-        groups: Math.max(1, Math.ceil(totalApps / 6))  // ~6 apps per group
-      });
-
-    } catch (error) {
-      console.error('❌ Assessment Overview: Failed to fetch application data:', error);
-      setError(`Failed to load application data: ${error.message || error}`);
-      
-      // Try fallback with assets count
-      try {
-        console.log('🔄 Assessment Overview: Trying fallback with assets endpoint');
-        const assetsResponse = await apiCall('/api/v1/discovery/assets', {
-          headers: contextHeaders
-        });
-        
-        const assets = assetsResponse.assets || assetsResponse || [];
-        const totalAssets = assets.length;
-        const estimatedApps = Math.ceil(totalAssets * 0.3); // Estimate ~30% of assets are applications
-        
-        setAssessmentMetrics({
-          totalApps: estimatedApps,
-          assessed: Math.ceil(estimatedApps * 0.5), // Estimate 50% assessed
-          waves: Math.max(1, Math.ceil(estimatedApps / 8)),
-          groups: Math.max(1, Math.ceil(estimatedApps / 6))
-        });
-        
-        console.log(`📊 Assessment Overview: Fallback metrics - ${estimatedApps} estimated apps from ${totalAssets} assets`);
-        
-      } catch (fallbackError) {
-        console.error('❌ Assessment Overview: Fallback also failed:', fallbackError);
-        // Final fallback to zero
-        setAssessmentMetrics({
-          totalApps: 0,
-          assessed: 0,
-          waves: 1,
-          groups: 1
-        });
-      }
-    } finally {
-      setIsLoading(false);
-    }
+  type Metrics = {
+    totalApps: number;
+    assessed: number;
+    waves: number;
+    groups: number;
   };
+
+  const { data: assessmentMetrics = { totalApps: 0, assessed: 0, waves: 1, groups: 1 }, isLoading, error } = useQuery<Metrics, Error>({
+    queryKey: ['assessment-overview'],
+    queryFn: async (): Promise<Metrics> => {
+      const headers = getAuthHeaders();
+
+      // Fetch applications first
+      try {
+        const applicationsResponse: any = await apiCall('/api/v1/discovery/applications', { headers });
+        const apps = applicationsResponse.applications || [];
+        const totalApps = apps.length;
+        const assessed = apps.filter((a: any) => a.migration_recommendation && a.migration_recommendation !== 'Pending Analysis').length;
+        return {
+          totalApps,
+          assessed,
+          waves: Math.max(1, Math.ceil(totalApps / 8)),
+          groups: Math.max(1, Math.ceil(totalApps / 6)),
+        };
+      } catch (primaryErr) {
+        // Fallback to assets
+        try {
+          const assetsResp: any = await apiCall('/api/v1/assets/list/paginated', { headers });
+          const totalAssets = assetsResp?.pagination?.total_items ?? 0;
+          const estimatedApps = Math.ceil(totalAssets * 0.3);
+          return {
+            totalApps: estimatedApps,
+            assessed: Math.ceil(estimatedApps * 0.5),
+            waves: Math.max(1, Math.ceil(estimatedApps / 8)),
+            groups: Math.max(1, Math.ceil(estimatedApps / 6)),
+          };
+        } catch {
+          return { totalApps: 0, assessed: 0, waves: 1, groups: 1 };
+        }
+      }
+    },
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+  const contextInfo = ''; // placeholder until breadcrumbs refactored
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -117,14 +72,7 @@ const AssessIndex = () => {
               {error && (
                 <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
                   <p className="text-red-800 text-sm">
-                    <strong>Error:</strong> {error}
-                  </p>
-                </div>
-              )}
-              {!error && (
-                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-blue-800 text-sm">
-                    <strong>Live Data:</strong> Connected to {context.client?.name || 'Unknown Client'} - {context.engagement?.name || 'Unknown Engagement'}
+                    <strong>Error:</strong> {error.message}
                   </p>
                 </div>
               )}

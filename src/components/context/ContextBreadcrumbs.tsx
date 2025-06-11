@@ -1,11 +1,14 @@
 import React from 'react';
-import { ChevronRight, Home, Building2, Calendar, Database } from 'lucide-react';
+import { ChevronRight, Home, Building2, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { useClients } from '@/contexts/ClientContext';
-import { useEngagements } from '@/contexts/EngagementContext';
+import { useClients } from '@/api/hooks/useClients';
+import { useEngagements } from '@/api/hooks/useEngagements';
 import { useSessions } from '@/contexts/SessionContext';
 import { SessionSelector } from '../session/SessionSelector';
+
+// Simple breadcrumb component that shows the current engagement and session
+// when available in the auth context
 
 interface ContextBreadcrumbsProps {
   className?: string;
@@ -16,20 +19,15 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({ classNam
     currentEngagementId, 
     setCurrentEngagementId,
     currentSessionId,
-    // A function to reset all context would be useful here
-    // For now, we'll clear engagement which also clears session
   } = useAuth();
   
-  // In a real multi-client setup, this would come from a higher-level context or user profile
-  const { data: clients, isLoading: isLoadingClients } = useClients();
-  const { data: engagements, isLoading: isLoadingEngagements } = useEngagements();
-  const { data: sessions, isLoading: isLoadingSessions } = useSessions();
+  const { data: clients } = useClients();
+  const { data: engagements } = useEngagements();
+  const { data: sessions } = useSessions();
 
   // Find the full objects based on current IDs
-  // This assumes a single client for now as per useEngagements hook logic
-  const currentClient = clients?.[0]; 
   const currentEngagement = engagements?.find(e => e.id === currentEngagementId);
-  const currentSession = sessions?.find(s => s.id === currentSessionId);
+  const currentClient = clients?.find(c => c.id === currentEngagement?.client_id);
 
   const breadcrumbs = [];
   if (currentClient) {
@@ -40,7 +38,6 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({ classNam
   }
 
   const handleHomeClick = () => {
-    // This should ideally be a single function in AuthContext to reset context
     setCurrentEngagementId(null);
   };
 
@@ -55,7 +52,7 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({ classNam
         <Home className="h-4 w-4" />
       </Button>
       
-      {breadcrumbs.map((crumb, index) => (
+      {breadcrumbs.map((crumb) => (
         <React.Fragment key={crumb.id}>
           <ChevronRight className="h-4 w-4 text-gray-400 mx-1" />
           <div className="flex items-center space-x-1">
@@ -74,4 +71,7 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({ classNam
       )}
     </div>
   );
-}; 
+};
+
+// Export as default for backward compatibility
+export default ContextBreadcrumbs;

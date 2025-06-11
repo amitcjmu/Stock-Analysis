@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { User, Lock, Eye, EyeOff, Save, ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,8 +17,6 @@ const UserProfile: React.FC = () => {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-
   // Password change form state
   const [passwordData, setPasswordData] = useState({
     current_password: '',
@@ -25,9 +24,48 @@ const UserProfile: React.FC = () => {
     confirm_password: ''
   });
 
+  const passwordChangeMutation = useMutation({
+    mutationFn: async (payload: typeof passwordData) => {
+      const response = await fetch('/api/v1/auth/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Password change failed');
+      }
+      const result = await response.json();
+      if (result.status !== 'success') {
+        throw new Error(result.message || 'Password change failed');
+      }
+      return result;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Password Changed",
+        description: "Your password has been updated successfully",
+      });
+      setPasswordData({
+        current_password: '',
+        new_password: '',
+        confirm_password: ''
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Password Change Failed",
+        description: error?.message || 'Password change failed',
+        variant: "destructive"
+      });
+    }
+  });
+
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (passwordData.new_password !== passwordData.confirm_password) {
       toast({
         title: "Password Change Failed",
@@ -36,7 +74,6 @@ const UserProfile: React.FC = () => {
       });
       return;
     }
-
     if (passwordData.new_password.length < 8) {
       toast({
         title: "Password Change Failed",
@@ -45,54 +82,7 @@ const UserProfile: React.FC = () => {
       });
       return;
     }
-
-    setLoading(true);
-
-    try {
-      const response = await fetch('/api/v1/auth/change-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders()
-        },
-        body: JSON.stringify({
-          current_password: passwordData.current_password,
-          new_password: passwordData.new_password,
-          confirm_password: passwordData.confirm_password
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Password change failed');
-      }
-
-      const result = await response.json();
-      
-      if (result.status === 'success') {
-        toast({
-          title: "Password Changed",
-          description: "Your password has been updated successfully",
-        });
-        
-        // Clear form
-        setPasswordData({
-          current_password: '',
-          new_password: '',
-          confirm_password: ''
-        });
-      } else {
-        throw new Error(result.message || 'Password change failed');
-      }
-    } catch (error) {
-      toast({
-        title: "Password Change Failed",
-        description: (error as Error).message,
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
+    await passwordChangeMutation.mutateAsync(passwordData);
   };
 
   if (!user) {
@@ -265,9 +255,9 @@ const UserProfile: React.FC = () => {
               <Button 
                 type="submit" 
                 className="w-full" 
-                disabled={loading}
+                disabled={passwordChangeMutation.isPending}
               >
-                {loading ? (
+                {passwordChangeMutation.isPending ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                     Changing Password...

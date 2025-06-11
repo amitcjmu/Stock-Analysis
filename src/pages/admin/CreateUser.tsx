@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, AlertCircle, User, Mail, Building2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,7 +30,37 @@ interface CreateUserData {
 const CreateUser: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
+  // Server state: useMutation for API interaction
+  const createUserMutation = useMutation({
+    mutationFn: async (payload: CreateUserData) => {
+      const response = await fetch('/api/v1/auth/admin/create-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer demo_token'
+        },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) {
+        throw new Error('Failed to create user');
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "User Created Successfully",
+        description: `User ${formData.email} has been created and is now active.`,
+      });
+      navigate('/admin/users/approvals');
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to create user. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
 
   const [formData, setFormData] = useState<CreateUserData>({
     email: '',
@@ -86,9 +117,8 @@ const CreateUser: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!validateForm()) {
       toast({
         title: "Validation Error",
@@ -97,141 +127,7 @@ const CreateUser: React.FC = () => {
       });
       return;
     }
-
-    try {
-      setLoading(true);
-      
-      // Try to call the real API first
-      try {
-        console.log('Creating user with data:', formData);
-        
-        const response = await fetch('/api/v1/auth/admin/create-user', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer demo_token'
-          },
-          body: JSON.stringify({
-            email: formData.email,
-            password: formData.password,
-            full_name: formData.full_name,
-            username: formData.username,
-            organization: formData.organization,
-            role_description: formData.role_description,
-            access_level: formData.access_level,
-            role_name: formData.role_name,
-            phone_number: formData.phone_number,
-            manager_email: formData.manager_email,
-            notes: formData.notes,
-            is_active: formData.is_active
-          })
-        });
-
-        console.log('User creation API response:', response.status, response.statusText);
-
-        if (response.ok) {
-          const responseData = await response.json();
-          console.log('User created successfully:', responseData);
-          
-          toast({
-            title: "User Created Successfully",
-            description: `User ${formData.full_name} has been created and is ${formData.is_active ? 'active' : 'pending approval'} on the platform.`,
-          });
-          
-          // Create proper user object for event
-          const createdUser = {
-            id: responseData.user_profile_id || `user-${Date.now()}`,
-            email: formData.email,
-            first_name: formData.full_name.split(' ')[0],
-            last_name: formData.full_name.split(' ').slice(1).join(' '),
-            full_name: formData.full_name,
-            username: formData.username,
-            organization: formData.organization,
-            role_description: formData.role_description,
-            phone_number: formData.phone_number,
-            manager_email: formData.manager_email,
-            access_level: formData.access_level,
-            role_name: formData.role_name,
-            is_active: formData.is_active,
-            is_verified: formData.is_active,
-            is_mock: false,
-            created_at: new Date().toISOString(),
-            status: responseData.approval_status || (formData.is_active ? 'active' : 'pending_approval')
-          };
-          
-          // Dispatch event for UserApprovals to pick up
-          window.dispatchEvent(new CustomEvent('userCreated', {
-            detail: createdUser
-          }));
-          
-          // Navigate back to user management
-          navigate('/admin/users/approvals');
-        } else if (response.status === 400) {
-          // Handle validation errors (like duplicate email)
-          const errorData = await response.json();
-          console.log('Validation error:', errorData);
-          
-          toast({
-            title: "Validation Error",
-            description: errorData.detail || "Invalid user data provided",
-            variant: "destructive"
-          });
-          
-          // Don't navigate away, let user fix the error
-          return;
-        } else {
-          const errorData = await response.text();
-          console.log('API call failed:', response.status, errorData);
-          throw new Error(`API call failed: ${response.status} - ${errorData}`);
-        }
-      } catch (apiError) {
-        // Enhanced fallback with proper demo user
-        console.log('User creation API failed, using demo mode. Error:', apiError);
-        
-        // Create demo user object with proper structure
-        const demoUser = {
-          id: `demo-${Date.now()}`,
-          email: formData.email,
-          first_name: formData.full_name.split(' ')[0],
-          last_name: formData.full_name.split(' ').slice(1).join(' '),
-          full_name: formData.full_name,
-          username: formData.username,
-          organization: formData.organization,
-          role_description: formData.role_description,
-          phone_number: formData.phone_number,
-          manager_email: formData.manager_email,
-          access_level: formData.access_level,
-          role_name: formData.role_name,
-          is_active: formData.is_active,
-          is_verified: formData.is_active,
-          is_mock: true,
-          created_at: new Date().toISOString(),
-          password_hash: '$2b$12$demo.hash',
-          status: formData.is_active ? 'active' : 'pending_approval'
-        };
-        
-        console.log('Using demo user:', demoUser);
-        
-        toast({
-          title: "User Created Successfully (Demo Mode)",
-          description: `User ${formData.full_name} has been created in demo mode and is ${formData.is_active ? 'active' : 'pending approval'} on the platform.`,
-        });
-        
-        // Dispatch event for UserApprovals to pick up
-        window.dispatchEvent(new CustomEvent('userCreated', {
-          detail: demoUser
-        }));
-      }
-    } catch (error) {
-      console.error('Error creating user:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create user. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
+    createUserMutation.mutate(formData);
   };
 
   return (
@@ -475,9 +371,9 @@ const CreateUser: React.FC = () => {
             <Card>
               <CardContent className="pt-6">
                 <div className="space-y-2">
-                  <Button type="submit" className="w-full" disabled={loading}>
+                  <Button type="submit" className="w-full" disabled={createUserMutation.isLoading}>
                     <Save className="w-4 h-4 mr-2" />
-                    {loading ? 'Creating User...' : 'Create User'}
+                    {createUserMutation.isLoading ? 'Creating User...' : 'Create User'}
                   </Button>
                   <Button 
                     type="button" 
