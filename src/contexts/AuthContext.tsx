@@ -18,12 +18,31 @@ interface AuthContextType {
   logout: () => Promise<void>;
   getContextHeaders: () => Record<string, string>;
   checkPermission: (permission: string) => boolean;
+  getToken: () => string | null;
+  setToken: (token: string) => void;
+  clearToken: () => void;
+  setRedirectPath: (path: string) => void;
+  getRedirectPath: () => string | null;
+  clearRedirectPath: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const TOKEN_KEY = 'auth_token';
-const USER_KEY = 'auth_user';
+// Secure token storage service
+const tokenStorage = {
+  getToken: () => sessionStorage.getItem('auth_token'),
+  setToken: (token: string) => sessionStorage.setItem('auth_token', token),
+  clearToken: () => sessionStorage.removeItem('auth_token'),
+  getUser: () => {
+    const user = sessionStorage.getItem('auth_user');
+    return user ? JSON.parse(user) : null;
+  },
+  setUser: (user: User) => sessionStorage.setItem('auth_user', JSON.stringify(user)),
+  clearUser: () => sessionStorage.removeItem('auth_user'),
+  getRedirectPath: () => sessionStorage.getItem('auth_redirect'),
+  setRedirectPath: (path: string) => sessionStorage.setItem('auth_redirect', path),
+  clearRedirectPath: () => sessionStorage.removeItem('auth_redirect')
+};
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -34,15 +53,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        const token = sessionStorage.getItem(TOKEN_KEY);
+        const token = tokenStorage.getToken();
         if (!token) {
           setIsLoading(false);
           return;
         }
 
-        const storedUser = sessionStorage.getItem(USER_KEY);
+        const storedUser = tokenStorage.getUser();
         if (storedUser) {
-          setUser(JSON.parse(storedUser));
+          setUser(storedUser);
         }
 
         // Verify token and refresh user data
@@ -55,17 +74,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (response.user) {
           setUser(response.user);
-          sessionStorage.setItem(USER_KEY, JSON.stringify(response.user));
+          tokenStorage.setUser(response.user);
         } else {
           // Token invalid
-          sessionStorage.removeItem(TOKEN_KEY);
-          sessionStorage.removeItem(USER_KEY);
+          tokenStorage.clearToken();
+          tokenStorage.clearUser();
           setUser(null);
         }
       } catch (err) {
         console.error('Auth initialization error:', err);
-        sessionStorage.removeItem(TOKEN_KEY);
-        sessionStorage.removeItem(USER_KEY);
+        tokenStorage.clearToken();
+        tokenStorage.clearUser();
         setUser(null);
         setError(err instanceof Error ? err : new Error('Authentication failed'));
       } finally {
@@ -88,13 +107,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const { token, user } = response;
 
-      sessionStorage.setItem(TOKEN_KEY, token);
-      sessionStorage.setItem(USER_KEY, JSON.stringify(user));
+      tokenStorage.setToken(token);
+      tokenStorage.setUser(user);
       setUser(user);
 
       // Redirect to dashboard or last attempted page
-      const redirectPath = sessionStorage.getItem('auth_redirect') || '/dashboard';
-      sessionStorage.removeItem('auth_redirect');
+      const redirectPath = tokenStorage.getRedirectPath() || '/dashboard';
+      tokenStorage.clearRedirectPath();
       router.push(redirectPath);
     } catch (err) {
       console.error('Login error:', err);
@@ -107,7 +126,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      const token = sessionStorage.getItem(TOKEN_KEY);
+      const token = tokenStorage.getToken();
       if (token) {
         await apiCall('/api/v1/auth/logout', {
           method: 'POST',
@@ -119,15 +138,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (err) {
       console.error('Logout error:', err);
     } finally {
-      sessionStorage.removeItem(TOKEN_KEY);
-      sessionStorage.removeItem(USER_KEY);
+      tokenStorage.clearToken();
+      tokenStorage.clearUser();
       setUser(null);
       router.push('/login');
     }
   };
 
   const getContextHeaders = () => {
-    const token = sessionStorage.getItem(TOKEN_KEY);
+    const token = tokenStorage.getToken();
     return {
       Authorization: token ? `Bearer ${token}` : '',
       'Content-Type': 'application/json'
@@ -146,7 +165,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     login,
     logout,
     getContextHeaders,
-    checkPermission
+    checkPermission,
+    getToken: tokenStorage.getToken,
+    setToken: tokenStorage.setToken,
+    clearToken: tokenStorage.clearToken,
+    setRedirectPath: tokenStorage.setRedirectPath,
+    getRedirectPath: tokenStorage.getRedirectPath,
+    clearRedirectPath: tokenStorage.clearRedirectPath
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -170,7 +195,7 @@ export const withAuth = <P extends object>(
 
     useEffect(() => {
       if (!isLoading && !user) {
-        sessionStorage.setItem('auth_redirect', router.asPath);
+        tokenStorage.setRedirectPath(router.asPath);
         router.push('/login');
         return;
       }
