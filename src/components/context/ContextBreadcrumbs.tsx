@@ -1,195 +1,77 @@
-import React, { useState } from 'react';
-import { ChevronRight, Building2, Calendar, Database, Home, Eye, ChevronDown } from 'lucide-react';
+import React from 'react';
+import { ChevronRight, Home, Building2, Calendar, Database } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { useAppContext } from '@/hooks/useContext';
-import ContextSelector from './ContextSelector';
+import { useAuth } from '@/contexts/AuthContext';
+import { useClients } from '@/contexts/ClientContext';
+import { useEngagements } from '@/contexts/EngagementContext';
+import { useSessions } from '@/contexts/SessionContext';
+import { SessionSelector } from '../session/SessionSelector';
 
 interface ContextBreadcrumbsProps {
   className?: string;
-  showHome?: boolean;
-  maxLength?: number;
-  showContextSelector?: boolean;
 }
 
-const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({ 
-  className = '', 
-  showHome = true,
-  maxLength = 60,
-  showContextSelector = false
-}) => {
-  const { context, getBreadcrumbs, setClient, setEngagement, setSession, setViewMode } = useAppContext();
-  const breadcrumbs = getBreadcrumbs();
-  const [showSelector, setShowSelector] = useState(false);
+export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({ className = '' }) => {
+  const { 
+    currentEngagementId, 
+    setCurrentEngagementId,
+    currentSessionId,
+    // A function to reset all context would be useful here
+    // For now, we'll clear engagement which also clears session
+  } = useAuth();
+  
+  // In a real multi-client setup, this would come from a higher-level context or user profile
+  const { data: clients, isLoading: isLoadingClients } = useClients();
+  const { data: engagements, isLoading: isLoadingEngagements } = useEngagements();
+  const { data: sessions, isLoading: isLoadingSessions } = useSessions();
 
-  const getIcon = (type: string) => {
-    switch (type) {
-      case 'client':
-        return <Building2 className="h-3 w-3" />;
-      case 'engagement':
-        return <Calendar className="h-3 w-3" />;
-      case 'session':
-        return <Database className="h-3 w-3" />;
-      default:
-        return null;
-    }
-  };
+  // Find the full objects based on current IDs
+  // This assumes a single client for now as per useEngagements hook logic
+  const currentClient = clients?.[0]; 
+  const currentEngagement = engagements?.find(e => e.id === currentEngagementId);
+  const currentSession = sessions?.find(s => s.id === currentSessionId);
 
-  const truncateText = (text: string, maxLen: number) => {
-    if (text.length <= maxLen) return text;
-    return text.substring(0, maxLen - 3) + '...';
-  };
-
-  const handleBreadcrumbClick = (type: string, index: number) => {
-    switch (type) {
-      case 'client':
-        // Clear engagement and session to go back to client level
-        setEngagement(null);
-        setSession(null);
-        break;
-      case 'engagement':
-        // Clear session to go back to engagement level
-        setSession(null);
-        setViewMode('engagement_view');
-        break;
-      case 'session':
-        // Already at session level, just ensure session view
-        setViewMode('session_view');
-        break;
-    }
-  };
-
-  if (breadcrumbs.length === 0) {
-    return (
-      <div className={`flex items-center text-sm text-gray-500 ${className}`}>
-        {showHome && (
-          <>
-            <Home className="h-4 w-4 mr-1" />
-            <span>No Context Selected</span>
-          </>
-        )}
-      </div>
-    );
+  const breadcrumbs = [];
+  if (currentClient) {
+    breadcrumbs.push({ type: 'Client', label: currentClient.name, id: currentClient.id });
+  }
+  if (currentEngagement) {
+    breadcrumbs.push({ type: 'Engagement', label: currentEngagement.name, id: currentEngagement.id });
   }
 
+  const handleHomeClick = () => {
+    // This should ideally be a single function in AuthContext to reset context
+    setCurrentEngagementId(null);
+  };
+
   return (
-    <div className="relative">
-      <nav className={`flex items-center text-sm ${className}`} aria-label="Context breadcrumb">
-        {showHome && (
-          <>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 px-2 text-gray-500 hover:text-gray-700"
-              onClick={() => {
-                setClient(null);
-                setEngagement(null);
-                setSession(null);
-              }}
-            >
-              <Home className="h-3 w-3" />
-            </Button>
-            <ChevronRight className="h-3 w-3 text-gray-400 mx-1" />
-          </>
-        )}
-        
-        {breadcrumbs.map((breadcrumb, index) => (
-          <div key={`breadcrumb-${index}`} className="flex items-center">
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`h-6 px-2 flex items-center space-x-1 ${
-                breadcrumb.active 
-                  ? 'text-blue-600 font-medium cursor-default' 
-                  : 'text-gray-600 hover:text-gray-800 cursor-pointer'
-              }`}
-              onClick={() => !breadcrumb.active && handleBreadcrumbClick(breadcrumb.type, index)}
-              disabled={breadcrumb.active}
-              title={breadcrumb.label}
-            >
-              {getIcon(breadcrumb.type)}
-              <span>{truncateText(breadcrumb.label, maxLength)}</span>
-              {breadcrumb.type === 'client' && context.client?.id === 'd838573d-f461-44e4-81b5-5af510ef83b7' && (
-                <Badge variant="secondary" className="ml-1 text-xs px-1 py-0">Demo</Badge>
-              )}
-            </Button>
-            
-            {index < breadcrumbs.length - 1 && (
-              <ChevronRight className="h-3 w-3 text-gray-400 mx-1" />
-            )}
+    <div className={`flex items-center text-sm text-gray-500 ${className}`}>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-8 px-2"
+        onClick={handleHomeClick}
+      >
+        <Home className="h-4 w-4" />
+      </Button>
+      
+      {breadcrumbs.map((crumb, index) => (
+        <React.Fragment key={crumb.id}>
+          <ChevronRight className="h-4 w-4 text-gray-400 mx-1" />
+          <div className="flex items-center space-x-1">
+            {crumb.type === 'Client' && <Building2 className="h-4 w-4" />}
+            {crumb.type === 'Engagement' && <Calendar className="h-4 w-4" />}
+            <span className="font-medium text-gray-700">{crumb.label}</span>
           </div>
-        ))}
-        
-        {/* View Mode Indicator */}
-        {context.engagement && (
-          <>
-            <ChevronRight className="h-3 w-3 text-gray-400 mx-1" />
-            <div className="flex items-center space-x-1">
-              <Eye className="h-3 w-3 text-gray-400" />
-              <Badge 
-                variant={context.viewMode === 'session_view' ? 'default' : 'secondary'}
-                className="text-xs px-2 py-0"
-              >
-                {context.viewMode === 'session_view' ? 'Session View' : 'Engagement View'}
-              </Badge>
-            </div>
-          </>
-        )}
+        </React.Fragment>
+      ))}
 
-        {/* Context Selector Toggle */}
-        {showContextSelector && (
-          <>
-            <div className="ml-2 border-l border-gray-300 pl-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 px-2 text-gray-600 hover:text-gray-800"
-                onClick={() => setShowSelector(!showSelector)}
-              >
-                <ChevronDown className={`h-3 w-3 transition-transform ${showSelector ? 'rotate-180' : ''}`} />
-              </Button>
-            </div>
-          </>
-        )}
-      </nav>
-
-      {/* Context Selector Dropdown */}
-      {showContextSelector && showSelector && (
+      {currentEngagement && (
         <>
-          {/* Backdrop */}
-          <div 
-            className="fixed inset-0 z-40 bg-black bg-opacity-25" 
-            onClick={() => setShowSelector(false)}
-          />
-          {/* Modal */}
-          <div className="absolute top-8 left-0 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-96 max-w-lg">
-            <div className="p-4 border-b flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Switch Context</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowSelector(false)}
-                className="h-6 w-6 p-0"
-              >
-                ×
-              </Button>
-            </div>
-            <div className="p-4">
-              <ContextSelector 
-                compact={false} 
-                onSelectionChange={() => {
-                  // Only close if we have a complete context (client + engagement)
-                  if (context.client && context.engagement) {
-                    setShowSelector(false);
-                  }
-                }}
-              />
-            </div>
-          </div>
+            <ChevronRight className="h-4 w-4 text-gray-400 mx-1" />
+            <SessionSelector />
         </>
       )}
     </div>
   );
-};
-
-export default ContextBreadcrumbs; 
+}; 

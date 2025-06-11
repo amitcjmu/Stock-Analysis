@@ -17,6 +17,8 @@ from app.api.v1.endpoints import (
     websocket_router,
     agent_learning_router,
     data_import_router,
+    sessions_router,
+    context_router,
 )
 from app.api.v1.admin.client_management import router as client_management_router
 from app.api.v1.admin.engagement_management import router as engagement_management_router
@@ -43,11 +45,15 @@ api_router.include_router(chat_router, prefix="/chat", tags=["Chat"])
 api_router.include_router(websocket_router, prefix="/ws", tags=["WebSocket"])
 api_router.include_router(auth_router, prefix="/auth", tags=["Authentication"])
 api_router.include_router(agent_learning_router, prefix="/agent-learning", tags=["Agent Learning"])
+api_router.include_router(sessions_router, prefix="/sessions", tags=["Sessions"])
 
 # Admin Routers
 api_router.include_router(client_management_router, prefix="/admin/clients", tags=["Admin - Client Management"])
 api_router.include_router(engagement_management_router, prefix="/admin/engagements", tags=["Admin - Engagement Management"])
 api_router.include_router(user_approvals_router, prefix="/admin/approvals", tags=["Admin - User Approvals"])
+
+# Include context router
+api_router.include_router(context_router, prefix="", tags=["Context"])
 
 
 logger.info("--- Finished API Router Inclusion Process ---")

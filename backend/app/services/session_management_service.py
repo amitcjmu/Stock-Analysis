@@ -1,20 +1,16 @@
 """
 Session Management Service for automatic session creation and lifecycle management.
 Handles auto-naming, status management, and session reference for data imports.
+Uses a modular handler pattern for better organization and maintainability.
 """
 
-from typing import Optional, Dict, Any, List
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
-from sqlalchemy import and_, or_, func, desc
-from datetime import datetime, timezone
-import uuid
 import logging
+from typing import Optional, Dict, Any, List
+from uuid import UUID
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.data_import_session import DataImportSession
-from app.models.client_account import Engagement, ClientAccount
-from app.core.context import get_current_context, RequestContext
-from app.core.database import AsyncSessionLocal
+from app.models.data_import_session import DataImportSession, SessionType
+from .session_handlers import ContextHandler, SessionHandler
 
 logger = logging.getLogger(__name__)
 
@@ -23,11 +19,8 @@ class SessionManagementService:
     """
     Service for managing data import sessions with automatic creation and lifecycle management.
     
-    Features:
-    - Auto-naming with format: client-engagement-timestamp
-    - Session status management (active/completed/archived)
-    - Context-aware session creation
-    - Session reference tracking for imports
+    Uses a modular handler pattern to keep the service focused and maintainable.
+    Each major feature area is delegated to a dedicated handler class.
     """
     
     def __init__(self, db: AsyncSession):
@@ -38,65 +31,142 @@ class SessionManagementService:
             db: Database session
         """
         self.db = db
+        self._context_handler = ContextHandler(db)
+        self._session_handler = SessionHandler(db)
+    
+    # Context Management Methods
+    
+    async def get_user_context(self, user_id: UUID) -> Dict[str, Any]:
+        """
+        Get complete user context including default engagement and session.
+        
+        Delegates to the context handler for implementation.
+        
+        Args:
+            user_id: The ID of the user
+            
+        Returns:
+            Dict containing user, client, engagement, and session info
+        """
+        return await self._context_handler.get_user_context(user_id)
+    
+    async def switch_session(self, user_id: UUID, session_id: UUID) -> Dict[str, Any]:
+        """
+        Switch user's current session.
+        
+        Delegates to the context handler for implementation.
+        
+        Args:
+            user_id: The ID of the user
+            session_id: The ID of the session to switch to
+            
+        Returns:
+            Updated user context with new session
+        """
+        return await self._context_handler.switch_session(user_id, session_id)
+    
+    # Session CRUD Methods
     
     async def create_session(
         self,
         client_account_id: str,
         engagement_id: str,
         session_name: Optional[str] = None,
+        session_display_name: Optional[str] = None,
         description: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None
+        is_default: bool = False,
+        session_type: str = SessionType.DATA_IMPORT,
+        auto_created: bool = True,
+        metadata: Optional[Dict[str, Any]] = None,
+        created_by: Optional[UUID] = None
     ) -> DataImportSession:
         """
-        Create a new data import session with auto-naming.
+        Create a new session with auto-naming and default session handling.
+        
+        Delegates to the session handler for implementation.
         
         Args:
-            client_account_id: Client account UUID
-            engagement_id: Engagement UUID
-            session_name: Optional custom session name (auto-generated if not provided)
-            description: Optional session description
-            metadata: Optional session metadata
+            client_account_id: The ID of the client account
+            engagement_id: The ID of the engagement
+            session_name: Optional custom session name
+            session_display_name: Optional display name for the session
+            description: Optional description of the session
+            is_default: Whether this should be the default session
+            session_type: Type of the session (default: DATA_IMPORT)
+            auto_created: Whether the session was auto-created
+            metadata: Optional metadata for the session
+            created_by: ID of the user creating the session
             
         Returns:
-            Created DataImportSession instance
+            The newly created session
         """
-        # Get client and engagement info for auto-naming
-        client_query = select(ClientAccount).where(ClientAccount.id == client_account_id)
-        client_result = await self.db.execute(client_query)
-        client = client_result.scalar_one_or_none()
-        
-        engagement_query = select(Engagement).where(Engagement.id == engagement_id)
-        engagement_result = await self.db.execute(engagement_query)
-        engagement = engagement_result.scalar_one_or_none()
-        
-        if not client:
-            raise ValueError(f"Client account not found: {client_account_id}")
-        if not engagement:
-            raise ValueError(f"Engagement not found: {engagement_id}")
-        
-        # Generate auto-name if not provided
-        if not session_name:
-            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
-            client_name = client.name.lower().replace(" ", "-").replace(".", "")
-            engagement_name = engagement.name.lower().replace(" ", "-").replace(".", "")
-            session_name = f"{client_name}-{engagement_name}-{timestamp}"
-        
-        # Create session
-        session = DataImportSession(
-            session_name=session_name,
+        return await self._session_handler.create_session(
             client_account_id=client_account_id,
             engagement_id=engagement_id,
-            description=description or f"Data import session for {engagement.name}",
-            status="active",
-            created_by="eef6ea50-6550-4f14-be2c-081d4eb23038"  # Use client_account_id as fallback for created_by
+            session_name=session_name,
+            session_display_name=session_display_name,
+            description=description,
+            is_default=is_default,
+            session_type=session_type,
+            auto_created=auto_created,
+            metadata=metadata,
+            created_by=created_by
         )
+    
+    async def update_session(
+        self,
+        session_id: str,
+        session_data: Dict[str, Any],
+        updated_by: Optional[UUID] = None
+    ) -> DataImportSession:
+        """
+        Update an existing session.
         
-        self.db.add(session)
-        await self.db.commit()
-        await self.db.refresh(session)
+        Delegates to the session handler for implementation.
         
-        logger.info(f"Created session {session.session_name} for client {client.name}, engagement {engagement.name}")
-        return session
+        Args:
+            session_id: The ID of the session to update
+            session_data: Dictionary of fields to update
+            updated_by: Optional ID of the user making the update
+            
+        Returns:
+            The updated session
+        """
+        return await self._session_handler.update_session(
+            session_id=session_id,
+            session_data=session_data,
+            updated_by=updated_by
+        )
+    
+    async def get_session(self, session_id: str) -> Optional[DataImportSession]:
+        """
+        Get a session by ID.
+        
+        Delegates to the session handler for implementation.
+        
+        Args:
+            session_id: The ID of the session to retrieve
+            
+        Returns:
+            The session if found, None otherwise
+        """
+        return await self._session_handler.get_session(session_id)
+    
+    async def delete_session(self, session_id: str) -> bool:
+        """
+        Delete a session by ID.
+        
+        Delegates to the session handler for implementation.
+        
+        Args:
+            session_id: The ID of the session to delete
+            
+        Returns:
+            True if the session was deleted, False otherwise
+        """
+        return await self._session_handler.delete_session(session_id)
+    
+    # Session Management Methods
     
     async def get_or_create_active_session(
         self,
@@ -107,6 +177,8 @@ class SessionManagementService:
         """
         Get the current active session for an engagement, or create one if needed.
         
+        Delegates to the session handler for implementation.
+        
         Args:
             client_account_id: Client account UUID
             engagement_id: Engagement UUID
@@ -115,27 +187,11 @@ class SessionManagementService:
         Returns:
             Active DataImportSession or None if not found and auto_create=False
         """
-        # Look for active session
-        query = select(DataImportSession).where(
-            and_(
-                DataImportSession.client_account_id == client_account_id,
-                DataImportSession.engagement_id == engagement_id,
-                DataImportSession.status == "active"
-            )
-        ).order_by(desc(DataImportSession.created_at))
-        
-        result = await self.db.execute(query)
-        session = result.scalar_one_or_none()
-        
-        if session:
-            logger.debug(f"Found active session: {session.session_name}")
-            return session
-        
-        if auto_create:
-            logger.info(f"No active session found, creating new session for engagement {engagement_id}")
-            return await self.create_session(client_account_id, engagement_id)
-        
-        return None
+        return await self._session_handler.get_or_create_active_session(
+            client_account_id=client_account_id,
+            engagement_id=engagement_id,
+            auto_create=auto_create
+        )
     
     async def complete_session(
         self,
@@ -146,6 +202,8 @@ class SessionManagementService:
         """
         Mark a session as completed with optional summary and metrics.
         
+        Delegates to the session handler for implementation.
+        
         Args:
             session_id: Session UUID
             summary: Optional completion summary
@@ -154,32 +212,17 @@ class SessionManagementService:
         Returns:
             Updated DataImportSession instance
         """
-        query = select(DataImportSession).where(DataImportSession.id == session_id)
-        result = await self.db.execute(query)
-        session = result.scalar_one_or_none()
+        return await self._session_handler.complete_session(
+            session_id=session_id,
+            summary=summary,
+            final_metrics=final_metrics
+        )
         
-        if not session:
-            raise ValueError(f"Session not found: {session_id}")
-        
-        # Update session status
-        session.status = "completed"
-        session.completed_at = datetime.now(timezone.utc)
-        
-        if summary:
-            session.description = f"{session.description}\n\nCompletion Summary: {summary}"
-        
-        if final_metrics:
-            session.metadata = {**(session.metadata or {}), "final_metrics": final_metrics}
-        
-        await self.db.commit()
-        await self.db.refresh(session)
-        
-        logger.info(f"Completed session {session.session_name}")
-        return session
-    
     async def archive_session(self, session_id: str) -> DataImportSession:
         """
         Archive a completed session.
+        
+        Delegates to the session handler for implementation.
         
         Args:
             session_id: Session UUID
@@ -187,22 +230,163 @@ class SessionManagementService:
         Returns:
             Updated DataImportSession instance
         """
-        query = select(DataImportSession).where(DataImportSession.id == session_id)
-        result = await self.db.execute(query)
-        session = result.scalar_one_or_none()
+        return await self._session_handler.archive_session(session_id)
+    
+    async def get_engagement_sessions(self, engagement_id: str) -> List[DataImportSession]:
+        """
+        Get all sessions for an engagement, ordered by creation date.
         
-        if not session:
-            raise ValueError(f"Session not found: {session_id}")
+        Delegates to the session handler for implementation.
         
-        if session.status != "completed":
-            raise ValueError(f"Can only archive completed sessions. Current status: {session.status}")
+        Args:
+            engagement_id: Engagement ID
+            
+        Returns:
+            List of DataImportSession objects
+        """
+        return await self._session_handler.get_engagement_sessions(engagement_id)
         
-        session.status = "archived"
-        await self.db.commit()
-        await self.db.refresh(session)
+    async def get_default_session(self, engagement_id: str) -> Optional[DataImportSession]:
+        """
+        Get the default session for an engagement.
         
-        logger.info(f"Archived session {session.session_name}")
-        return session
+        Delegates to the session handler for implementation.
+        
+        Args:
+            engagement_id: Engagement ID
+            
+        Returns:
+            Default DataImportSession or None if not found
+        """
+        return await self._session_handler.get_default_session(engagement_id)
+        
+    async def set_default_session(self, session_id: str) -> DataImportSession:
+        """
+        Set a session as the default for its engagement.
+            
+        Delegates to the session handler for implementation.
+            
+        Args:
+            session_id: Session ID to set as default
+            
+        Returns:
+            The updated session with is_default=True
+        """
+        return await self._session_handler.set_default_session(session_id)
+    async def merge_sessions(
+        self, 
+        source_session_id: str, 
+        target_session_id: str,
+        merge_metadata: Optional[Dict[str, Any]] = None
+    ) -> DataImportSession:
+        """
+        Merge data from one session into another.
+        
+        Delegates to the session handler for implementation.
+        
+        Args:
+            source_session_id: ID of the session to merge from
+            target_session_id: ID of the session to merge into
+            merge_metadata: Additional metadata about the merge
+            
+        Returns:
+            The target session with merged data
+            
+        Raises:
+            ValueError: If either session is not found or sessions are from different engagements
+        """
+        return await self._session_handler.merge_sessions(
+            source_session_id=source_session_id,
+            target_session_id=target_session_id,
+            merge_metadata=merge_metadata
+        )
+    
+    async def get_sessions_for_engagement(
+        self,
+        engagement_id: str,
+        status: Optional[str] = None,
+        limit: Optional[int] = None
+    ) -> List[DataImportSession]:
+        """
+        Get all sessions for an engagement, optionally filtered by status.
+        
+        Delegates to the session handler for implementation.
+        
+        Args:
+            engagement_id: Engagement UUID
+            status: Optional status filter (active/completed/archived)
+            limit: Optional limit on number of sessions returned
+            
+        Returns:
+            List of DataImportSession instances
+        """
+        return await self._session_handler.get_sessions_for_engagement(
+            engagement_id=engagement_id,
+            status=status,
+            limit=limit
+        )
+    
+    async def get_session_context(
+        self,
+        user_id: UUID,
+        client_account_id: Optional[UUID] = None,
+        engagement_id: Optional[UUID] = None,
+        session_id: Optional[UUID] = None
+    ) -> Dict[str, Any]:
+        """
+        Get the appropriate session context based on user permissions and provided IDs.
+        
+        Delegates to the context handler for implementation.
+        
+        Args:
+            user_id: User ID
+            client_account_id: Optional client ID to scope the context
+            engagement_id: Optional engagement ID to scope the context
+            session_id: Optional session ID to get specific session
+            
+        Returns:
+            Dictionary with context information including available clients, engagements, and sessions
+        """
+        return await self._context_handler.get_session_context(
+            user_id=user_id,
+            client_account_id=client_account_id,
+            engagement_id=engagement_id,
+            session_id=session_id
+        )
+    
+    async def create_data_import_session(
+        self,
+        engagement_id: str,
+        user_id: str,
+        session_name: Optional[str] = None,
+        description: Optional[str] = None,
+        is_default: bool = False,
+        metadata: Optional[Dict] = None
+    ) -> DataImportSession:
+        """
+        Create a new data import session.
+        
+        Delegates to the session handler for implementation.
+        
+        Args:
+            engagement_id: Engagement ID
+            user_id: User ID creating the session
+            session_name: Optional custom session name
+            description: Optional session description
+            is_default: Whether this should be the default session
+            metadata: Optional session metadata
+            
+        Returns:
+            Created DataImportSession
+        """
+        return await self._session_handler.create_data_import_session(
+            engagement_id=engagement_id,
+            user_id=user_id,
+            session_name=session_name,
+            description=description,
+            is_default=is_default,
+            metadata=metadata
+        )
     
     async def get_sessions_for_engagement(
         self,
@@ -241,40 +425,15 @@ class SessionManagementService:
         """
         Get comprehensive statistics for a session.
         
+        Delegates to the session handler for implementation.
+        
         Args:
             session_id: Session UUID
             
         Returns:
             Dictionary with session statistics
         """
-        query = select(DataImportSession).where(DataImportSession.id == session_id)
-        result = await self.db.execute(query)
-        session = result.scalar_one_or_none()
-        
-        if not session:
-            raise ValueError(f"Session not found: {session_id}")
-        
-        # Calculate session duration
-        duration = None
-        if session.completed_at:
-            duration = (session.completed_at - session.created_at).total_seconds()
-        elif session.status == "active":
-            duration = (datetime.now(timezone.utc) - session.created_at).total_seconds()
-        
-        # Get data import counts (would need to query related tables)
-        # For now, return basic session info
-        stats = {
-            "session_id": session.id,
-            "session_name": session.session_name,
-            "status": session.status,
-            "created_at": session.created_at.isoformat(),
-            "completed_at": session.completed_at.isoformat() if session.completed_at else None,
-            "duration_seconds": duration,
-            "metadata": session.metadata or {},
-            "description": session.description
-        }
-        
-        return stats
+        return await self._session_handler.get_session_statistics(session_id)
     
     async def update_session_metadata(
         self,
@@ -284,6 +443,8 @@ class SessionManagementService:
         """
         Update session metadata with new information.
         
+        Delegates to the session handler for implementation.
+        
         Args:
             session_id: Session UUID
             metadata_updates: Dictionary of metadata updates to merge
@@ -291,23 +452,10 @@ class SessionManagementService:
         Returns:
             Updated DataImportSession instance
         """
-        query = select(DataImportSession).where(DataImportSession.id == session_id)
-        result = await self.db.execute(query)
-        session = result.scalar_one_or_none()
-        
-        if not session:
-            raise ValueError(f"Session not found: {session_id}")
-        
-        # Merge metadata
-        current_metadata = session.metadata or {}
-        updated_metadata = {**current_metadata, **metadata_updates}
-        session.metadata = updated_metadata
-        
-        await self.db.commit()
-        await self.db.refresh(session)
-        
-        logger.debug(f"Updated metadata for session {session.session_name}")
-        return session
+        return await self._session_handler.update_session_metadata(
+            session_id=session_id,
+            metadata_updates=metadata_updates
+        )
 
 
 async def get_session_management_service() -> SessionManagementService:

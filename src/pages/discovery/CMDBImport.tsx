@@ -100,8 +100,9 @@ const DataImport = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showUploadSuccess, setShowUploadSuccess] = useState(false);
   const [agentRefreshTrigger, setAgentRefreshTrigger] = useState(0);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
 
-const uploadAreas: UploadArea[] = [
+  const uploadAreas: UploadArea[] = [
     {
       id: 'cmdb',
       title: 'CMDB Data',
@@ -250,47 +251,38 @@ const uploadAreas: UploadArea[] = [
           body: JSON.stringify(requestBody),
         });
 
-        console.log('AI crew intelligent analysis result:', result);
+        console.log('Received response from AI crew:', result);
 
-        if (result.agent_analysis?.status === 'error') {
-          const errorMessage = result.agent_analysis.message || 'An unknown error occurred during analysis.';
-          const errorDetails = result.agent_analysis.details ? `Details: ${result.agent_analysis.details.join(', ')}` : '';
-          throw new Error(`${errorMessage} ${errorDetails}`);
+        if (result && result.session_id) {
+          setCurrentSessionId(result.session_id);
         }
 
-        // Simulate processing steps for better UX
-        const messages = ['✅ AI crew analysis complete.'];
-        for (let i = 0; i < messages.length; i++) {
-          await new Promise(resolve => setTimeout(resolve, 700));
-          setUploadedFiles(prev =>
-            prev.map(f => f.file === fileUpload.file ? {
-              ...f,
-              currentStep: i + 1,
-              processingMessages: [...(f.processingMessages || []), messages[i]]
-            } : f)
-          );
-        }
-
+        // Update the file status to processed after analysis
         setUploadedFiles(prev =>
           prev.map(f => f.file === fileUpload.file ? {
             ...f,
             status: 'processed',
             aiSuggestions: result.agent_analysis?.suggestions || [],
             nextSteps: result.agent_analysis?.next_steps || [],
-            confidence: result.agent_analysis?.confidence || 0
+            confidence: result.agent_analysis?.confidence || 0,
+            currentStep: f.analysisSteps.length,
+            processingMessages: [...(f.processingMessages || []), 'Analysis complete. Ready for next steps.']
           } : f)
         );
         
-        // Refresh agent panels after analysis
+        // Refresh agent insights panel
         setAgentRefreshTrigger(prev => prev + 1);
 
       } catch (error) {
-        console.error("Error analyzing file:", error);
-        setUploadedFiles(prev =>
-          prev.map(f => f.file === fileUpload.file ? {
-            ...f,
+        console.error('Error during file analysis:', error);
+        
+        // Update status to error
+        setUploadedFiles(prev => 
+          prev.map(f => f.file === fileUpload.file ? { 
+            ...f, 
             status: 'error',
-            analysisError: error instanceof Error ? error.message : 'An unknown error occurred.'
+            analysisError: (error as Error).message,
+            processingMessages: [...(f.processingMessages || []), `Error: ${(error as Error).message}`]
           } : f)
         );
       }
@@ -298,6 +290,32 @@ const uploadAreas: UploadArea[] = [
     
     setIsAnalyzing(false);
     console.log('All files analyzed with intelligent AI crew');
+  };
+
+  const handleRefreshStatus = async () => {
+    if (!currentSessionId) {
+      console.log("No active session to refresh.");
+      // Optionally, provide user feedback here
+      return;
+    }
+
+    try {
+      console.log('Manually refreshing status for session:', currentSessionId);
+      const statusResult = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_STATUS}?session_id=${currentSessionId}`);
+      console.log('Refresh status result:', statusResult);
+
+      if (statusResult && statusResult.workflow_status === 'complete') {
+        console.log('Workflow complete, navigating to attribute mapping');
+        navigate('/discovery/attribute-mapping');
+      } else {
+        // Optionally, provide user feedback that it's still processing
+        alert(`Processing not yet complete. Current status: ${statusResult.workflow_status}`);
+      }
+    } catch (error) {
+      console.error('Error during status refresh:', error);
+      // Optionally, provide user feedback about the error
+      alert("An error occurred while checking the status.");
+    }
   };
 
   const readFileContent = (file: File): Promise<string> => {

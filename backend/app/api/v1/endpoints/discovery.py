@@ -39,6 +39,14 @@ try:
 except ImportError as e:
     logger.warning(f"⚠️ Feedback system router not available: {e}")
 
+# Include agents router
+try:
+    from app.api.v1.endpoints.agents.router import router as agents_router
+    router.include_router(agents_router, prefix="/agents")
+    logger.info("✅ Agents router included in discovery")
+except ImportError as e:
+    logger.warning(f"⚠️ Agents router not available: {e}")
+
 # Include other discovery routers
 try:
     from app.api.v1.discovery.cmdb_analysis import router as cmdb_analysis_router

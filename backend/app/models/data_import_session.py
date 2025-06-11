@@ -68,6 +68,10 @@ class DataImportSession(Base):
     session_display_name = Column(String(255), nullable=True)  # Optional user-friendly name
     description = Column(Text)
     
+    # Session management
+    is_default = Column(Boolean, default=False, nullable=False, index=True)  # Whether this is the default session for the engagement
+    parent_session_id = Column(PostgresUUID(as_uuid=True), ForeignKey('data_import_sessions.id', ondelete='SET NULL'), nullable=True)  # For tracking session merges
+    
     # Session metadata
     session_type = Column(String(50), default=SessionType.DATA_IMPORT, nullable=False)
     auto_created = Column(Boolean, default=True, nullable=False)  # True for auto-created, False for manual

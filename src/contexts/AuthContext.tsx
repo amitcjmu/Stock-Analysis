@@ -9,6 +9,7 @@ interface User {
   status: 'approved' | 'pending' | 'rejected' | 'suspended';
   client_accounts?: string[];
   engagements?: string[];
+  default_engagement_id?: string;
 }
 
 interface AuthContextType {
@@ -16,10 +17,14 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isAdmin: boolean;
   isLoading: boolean;
+  currentEngagementId: string | null;
+  currentSessionId: string | null;
   login: (email: string, password: string) => Promise<User>;
   logout: () => void;
   register: (userData: RegisterData) => Promise<void>;
   getAuthHeaders: () => Record<string, string>;
+  setCurrentEngagementId: (engagementId: string | null) => void;
+  setCurrentSessionId: (sessionId: string | null) => void;
 }
 
 interface RegisterData {
@@ -54,7 +59,9 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true); // Add loading state
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentEngagementId, setCurrentEngagementId] = useState<string | null>(null);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
 
   useEffect(() => {
     // Check if user is already logged in (check localStorage for token)
@@ -78,6 +85,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         setUser(parsedUser);
         setIsAuthenticated(true);
+
+        // Set initial engagement and session from localStorage or user defaults
+        const storedEngagementId = localStorage.getItem('selectedEngagementId');
+        if (storedEngagementId) {
+          setCurrentEngagementId(storedEngagementId);
+        } else if (parsedUser.default_engagement_id) {
+          setCurrentEngagementId(parsedUser.default_engagement_id);
+        }
+        
+        const storedSessionId = localStorage.getItem('selectedSessionId');
+        if (storedSessionId) {
+          setCurrentSessionId(storedSessionId);
+        }
+
       } catch (error) {
         console.error('Error parsing stored user data:', error);
         localStorage.removeItem('auth_token');
@@ -173,8 +194,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user_data');
     localStorage.removeItem('auth_source');
+    localStorage.removeItem('selectedEngagementId');
+    localStorage.removeItem('selectedSessionId');
     setUser(null);
     setIsAuthenticated(false);
+    setCurrentEngagementId(null);
+    setCurrentSessionId(null);
   };
 
   const register = async (userData: RegisterData): Promise<void> => {
@@ -235,23 +260,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const clientAccountId = localStorage.getItem('selectedClientAccountId');
-    const engagementId = localStorage.getItem('selectedEngagementId');
-
     if (user) {
       headers['X-User-ID'] = user.id;
       headers['X-User-Role'] = user.role;
     }
+
+    if (currentEngagementId) {
+      headers['X-Engagement-ID'] = currentEngagementId;
+    }
     
-    if (clientAccountId) {
-      headers['X-Client-Account-ID'] = clientAccountId;
+    if (currentSessionId) {
+      headers['X-Session-ID'] = currentSessionId;
     }
 
-    if (engagementId) {
-      headers['X-Engagement-ID'] = engagementId;
-    }
-        
     return headers;
+  };
+
+  const handleSetCurrentEngagementId = (engagementId: string | null) => {
+    setCurrentEngagementId(engagementId);
+    if (engagementId) {
+      localStorage.setItem('selectedEngagementId', engagementId);
+    } else {
+      localStorage.removeItem('selectedEngagementId');
+    }
+    // When engagement changes, clear the session
+    setCurrentSessionId(null);
+    localStorage.removeItem('selectedSessionId');
+  };
+
+  const handleSetCurrentSessionId = (sessionId: string | null) => {
+    setCurrentSessionId(sessionId);
+    if (sessionId) {
+      localStorage.setItem('selectedSessionId', sessionId);
+    } else {
+      localStorage.removeItem('selectedSessionId');
+    }
   };
 
   const isAdmin = user?.role === 'admin';
@@ -261,10 +304,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isAuthenticated,
     isAdmin,
     isLoading,
+    currentEngagementId,
+    currentSessionId,
     login,
     logout,
     register,
-    getAuthHeaders
+    getAuthHeaders,
+    setCurrentEngagementId: handleSetCurrentEngagementId,
+    setCurrentSessionId: handleSetCurrentSessionId,
   };
 
   return (

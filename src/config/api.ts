@@ -4,6 +4,26 @@
  * Supports local development, Vercel frontend + Railway backend deployment
  */
 
+// Define types for the API context
+interface AppContextType {
+  client: { id: string } | null;
+  engagement: { id: string } | null;
+  session: { id: string } | null;
+}
+
+// Create a variable to store the current context
+let currentContext: AppContextType = {
+  client: null,
+  engagement: null,
+  session: null
+};
+
+// Export a function to update the context
+// This will be called by the AppContextProvider when the context changes
+export const updateApiContext = (context: AppContextType) => {
+  currentContext = { ...context };
+};
+
 // Get the backend URL from environment variables with proper fallbacks
 const getBackendUrl = (): string => {
   // Priority 1: Explicit VITE_BACKEND_URL (for production deployments)
@@ -131,35 +151,154 @@ export const API_CONFIG = {
   }
 };
 
+// Track in-flight requests to prevent duplicates
+const pendingRequests = new Map<string, Promise<any>>();
+
+interface ApiError extends Error {
+  status?: number;
+  statusText?: string;
+  response?: any;
+  requestId?: string;
+  isApiError: boolean;
+}
+
 /**
  * Helper function to make API calls with proper error handling and authentication
+ * @param endpoint The API endpoint to call
+ * @param options Fetch options
+ * @param includeContext Whether to include the current context in the request headers
  */
-export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
+export const apiCall = async (
+  endpoint: string, 
+  options: RequestInit = {}, 
+  includeContext: boolean = true
+): Promise<any> => {
+  const requestId = Math.random().toString(36).substring(2, 8);
+  const startTime = performance.now();
   const url = `${API_CONFIG.BASE_URL}${endpoint}`;
+  const method = (options.method || 'GET').toUpperCase();
   
-  // Log API calls in development for debugging
-  if (import.meta.env.DEV) {
-    console.log(`API Call: ${options.method || 'GET'} ${url}`);
-  }
+  // Create a unique key for this request to prevent duplicates
+  const requestKey = `${method}:${endpoint}`;
   
-  // Get authentication token (for now using demo token, in production this would come from auth context)
-  const authToken = 'demo_token'; // This should come from your auth context/localStorage in production
-  
-  const response = await fetch(url, {
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`,
-      // Add client context headers for Marathon Petroleum testing
-      'X-Client-Account-ID': '73dee5f1-6a01-43e3-b1b8-dbe6c66f2990', // Marathon Petroleum
-      'X-Engagement-ID': '', // Will be set based on available engagements
-      ...options.headers,
-    },
-    ...options,
-  });
-
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+  // If we already have a request with the same key, return that instead
+  if (pendingRequests.has(requestKey)) {
+    console.log(`[${requestId}] Request already in flight: ${requestKey}`);
+    return pendingRequests.get(requestKey);
   }
 
-  return response.json();
-}; 
+  // Log the API call
+  console.group(`API Call [${requestId}]`);
+  console.log('Method:', method);
+  console.log('URL:', url);
+  console.log('Current Context:', currentContext);
+  
+  // Create the request promise and store it
+  const requestPromise = (async () => {
+    try {
+      // Add headers
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        'X-Request-ID': requestId,
+        ...options.headers,
+      };
+      
+      // Add auth token if available
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      } else {
+        console.warn('No auth token found in localStorage');
+      }
+      
+      // Add context headers if needed
+      if (includeContext) {
+        if (currentContext.client?.id) {
+          headers['X-Client-Account-ID'] = currentContext.client.id;
+        }
+        if (currentContext.engagement?.id) {
+          headers['X-Engagement-ID'] = currentContext.engagement.id;
+        }
+        if (currentContext.session?.id) {
+          headers['X-Session-ID'] = currentContext.session.id;
+        }
+      }
+      
+      // Make the request
+      const response = await fetch(url, {
+        ...options,
+        method, // Ensure method is uppercase
+        headers,
+        credentials: 'include',
+      });
+      
+      const endTime = performance.now();
+      const duration = (endTime - startTime).toFixed(2);
+      
+      // Parse response as JSON if possible
+      let data;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          data = await response.json();
+        } catch (e) {
+          console.error('Failed to parse JSON response:', e);
+          throw new Error('Invalid JSON response from server');
+        }
+      } else {
+        data = await response.text();
+      }
+      
+      // Log the response
+      console.log('Status:', response.status, response.statusText);
+      console.log('Duration:', `${duration}ms`);
+      console.log('Response:', data);
+      
+      if (!response.ok) {
+        const error = new Error(data?.message || response.statusText || 'Request failed') as ApiError;
+        error.status = response.status;
+        error.statusText = response.statusText;
+        error.response = data;
+        error.requestId = requestId;
+        error.isApiError = true;
+        
+        // Special handling for 404s
+        if (response.status === 404) {
+          console.warn(`[${requestId}] Resource not found: ${url}`);
+        }
+        
+        throw error;
+      }
+      
+      return data;
+    } catch (error) {
+      const endTime = performance.now();
+      const duration = (endTime - startTime).toFixed(2);
+      
+      let apiError: ApiError;
+      if (error instanceof Error) {
+        apiError = error as ApiError;
+        apiError.isApiError = true;
+      } else {
+        apiError = new Error('Unknown API error') as ApiError;
+        apiError.isApiError = true;
+      }
+      
+      apiError.requestId = requestId;
+      
+      console.error(`API Call [${requestId}] failed after ${duration}ms:`, apiError);
+      
+      // Re-throw the enhanced error
+      throw apiError;
+    } finally {
+      // Clean up the pending request
+      pendingRequests.delete(requestKey);
+      console.groupEnd();
+    }
+  })();
+  
+  // Store the promise for deduplication
+  pendingRequests.set(requestKey, requestPromise);
+  
+  return requestPromise;
+};

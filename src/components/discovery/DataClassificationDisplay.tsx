@@ -16,6 +16,7 @@ import {
   Edit3
 } from 'lucide-react';
 import { apiCall, API_CONFIG } from '../../config/api';
+import { useAppContext } from '../../hooks/useContext';
 
 interface DataItem {
   id: string;
@@ -44,6 +45,8 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
   refreshTrigger,
   isProcessing = false
 }) => {
+  const { session } = useAppContext();
+  
   const [classifications, setClassifications] = useState<{
     good_data: DataItem[];
     needs_clarification: DataItem[];
@@ -58,60 +61,60 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
   const [selectedTab, setSelectedTab] = useState<'good_data' | 'needs_clarification' | 'unusable'>('good_data');
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchClassifications();
-  }, [pageContext]);
-
-  // Refresh when refreshTrigger changes
-  useEffect(() => {
-    if (refreshTrigger !== undefined) {
-      fetchClassifications();
-    }
-  }, [refreshTrigger]);
-
-  // Set up polling only when processing is active
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
+  // Memoize the fetch function to prevent unnecessary re-renders
+  const fetchClassifications = React.useCallback(async () => {
+    if (!pageContext) return;
     
-    if (isProcessing) {
-      interval = setInterval(fetchClassifications, 8000); // Poll every 8 seconds only when processing
-    }
+    setIsLoading(true);
+    setError(null);
     
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isProcessing]);
-
-  const fetchClassifications = async () => {
     try {
-      const result = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_STATUS}?page_context=${pageContext}`, { method: 'GET' });
-      if (result.status === 'success' && result.page_data?.data_classifications) {
-        const classificationData = result.page_data.data_classifications;
-        
-        // Ensure we have the expected structure with arrays
-        const safeClassifications = {
-          good_data: Array.isArray(classificationData.good_data) ? classificationData.good_data : [],
-          needs_clarification: Array.isArray(classificationData.needs_clarification) ? classificationData.needs_clarification : [],
-          unusable: Array.isArray(classificationData.unusable) ? classificationData.unusable : []
-        };
-        
-        setClassifications(safeClassifications);
-      } else {
-        // Set empty state if no data available
+      // Build URL with query parameters
+      const url = new URL(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_STATUS, window.location.origin);
+      url.searchParams.append('page_context', pageContext);
+      
+      // Include session ID if available
+      if (session?.id) {
+        url.searchParams.append('session_id', session.id);
+      }
+      
+      // Make the API call with the constructed URL
+      const result = await apiCall(url.pathname + url.search, { method: 'GET' });
+      
+      // Process the result
+      if (result && result.data) {
         setClassifications({
-          good_data: [],
-          needs_clarification: [],
-          unusable: []
+          good_data: result.data.good_data || [],
+          needs_clarification: result.data.needs_clarification || [],
+          unusable: result.data.unusable || []
         });
       }
-      setError(null);
     } catch (err) {
       console.error('Error fetching data classifications:', err);
-      setError('Failed to load data classifications');
+      setError(err instanceof Error ? err.message : 'Failed to fetch data classifications');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [pageContext, session?.id]);
+
+  // Initial fetch and refresh when dependencies change
+  useEffect(() => {
+    fetchClassifications();
+  }, [fetchClassifications]);
+
+  // Set up polling only when processing is active
+  useEffect(() => {
+    if (!isProcessing) return;
+    
+    const interval = setInterval(fetchClassifications, 8000); // Poll every 8 seconds when processing
+    return () => clearInterval(interval);
+  }, [isProcessing, fetchClassifications]);
+  
+  // Handle refresh trigger
+  useEffect(() => {
+    if (refreshTrigger === undefined) return;
+    fetchClassifications();
+  }, [refreshTrigger, fetchClassifications]);
 
   const updateClassification = async (itemId: string, newClassification: 'good_data' | 'needs_clarification' | 'unusable') => {
     try {
@@ -215,17 +218,26 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
     }
   };
 
-  const getTotalCount = () => {
+  const getTotalCount = React.useCallback(() => {
     return classifications.good_data.length + 
            classifications.needs_clarification.length + 
            classifications.unusable.length;
-  };
+  }, [classifications]);
 
-  const getCompletionPercentage = () => {
+  const getCompletionPercentage = React.useCallback(() => {
     const total = getTotalCount();
-    if (total === 0) return 0;
-    return Math.round((classifications.good_data.length / total) * 100);
-  };
+    return total > 0 ? Math.round((classifications.good_data.length / total) * 100) : 0;
+  }, [classifications, getTotalCount]);
+
+  // Get the current classification config based on the selected tab
+  const currentClassificationConfig = React.useMemo(() => {
+    return getClassificationConfig(selectedTab);
+  }, [selectedTab]);
+  
+  // Get the current items based on the selected tab
+  const currentItems = React.useMemo(() => {
+    return classifications[selectedTab] || [];
+  }, [classifications, selectedTab]);
 
   if (isLoading) {
     return (
@@ -241,9 +253,6 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
       </div>
     );
   }
-
-  const currentClassificationConfig = getClassificationConfig(selectedTab);
-  const currentItems = classifications[selectedTab];
 
   return (
     <div className={`bg-white rounded-lg border shadow-sm ${className}`}>

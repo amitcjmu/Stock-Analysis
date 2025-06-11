@@ -101,3 +101,5 @@ htmlcov/
 Thumbs.db
 
 .cursor/
+.windsurf/rules/migration.md
+.windsurf/rules/task-list.md

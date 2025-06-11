@@ -34,11 +34,14 @@ Before you begin, ensure you have the following installed:
   "recommendations": [
     "ms-python.python",
     "ms-python.pylint",
+    "ms-python.vscode-pylance",
     "bradlc.vscode-tailwindcss",
     "esbenp.prettier-vscode",
     "ms-vscode.vscode-typescript-next",
     "ms-vscode-remote.remote-containers",
-    "ms-python.black-formatter"
+    "ms-python.black-formatter",
+    "ms-python.isort",
+    "charliermarsh.ruff"
   ]
 }
 ```
@@ -67,12 +70,22 @@ source venv/bin/activate
 # On Windows:
 venv\Scripts\activate
 
+# Upgrade pip and install build dependencies
+python -m pip install --upgrade pip
+pip install wheel setuptools
+
 # Install dependencies
 pip install -r requirements.txt
+
+# Install development dependencies
+pip install -r requirements-dev.txt
 
 # Set up environment variables
 cp .env.example .env
 # Edit .env with your configuration
+
+# Install pre-commit hooks
+pre-commit install
 ```
 
 ### 3. Frontend Setup
@@ -225,17 +238,169 @@ def analyze_data(data: Dict[str, Any]) -> Optional[List[str]]:
     return list(data.keys())
 ```
 
-#### Docstrings
+## API Development
+
+### Creating New Endpoints
+
+1. Add a new file in the appropriate directory under `app/api/v1/endpoints/`
+2. Define your FastAPI router and endpoints using Pydantic V2 models
+3. Import and include the router in `app/api/v1/api.py`
+
+Example endpoint with Pydantic V2:
+
 ```python
-def process_cmdb_data(data: Dict[str, Any]) -> Dict[str, Any]:
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+from typing import List, Optional
+
+from app.models import Item
+from app.schemas.item import ItemCreate, ItemUpdate, ItemResponse
+from app.core.database import get_db
+
+router = APIRouter(prefix="/items", tags=["items"])
+
+@router.get(
+    "/",
+    response_model=List[ItemResponse],
+    summary="List items",
+    description="Retrieve a list of items with pagination"
+)
+async def read_items(
+    skip: int = 0,
+    limit: int = 100,
+    db: AsyncSession = Depends(get_db)
+):
     """
-    Process CMDB data for analysis.
+    Retrieve items with pagination.
     
-    Args:
-        data: Dictionary containing CMDB data with headers and rows
-        
-    Returns:
-        Dictionary containing processed analysis results
+    - **skip**: Number of items to skip
+    - **limit**: Maximum number of items to return
+    """
+    result = await db.execute(select(Item).offset(skip).limit(limit))
+    items = result.scalars().all()
+    return items
+```
+
+### Pydantic V2 Best Practices
+
+1. **Model Configuration**:
+   ```python
+   from pydantic import BaseModel, Field
+   from typing import Optional
+   
+   class ItemBase(BaseModel):
+       name: str = Field(..., min_length=1, max_length=100)
+       description: Optional[str] = Field(None, max_length=500)
+   
+   class ItemCreate(ItemBase):
+       pass
+   
+   class ItemUpdate(BaseModel):
+       name: Optional[str] = Field(None, min_length=1, max_length=100)
+       description: Optional[str] = Field(None, max_length=500)
+   
+   class ItemResponse(ItemBase):
+       id: int
+       owner_id: int
+       
+       model_config = {
+           "from_attributes": True,  # Replaces orm_mode
+           "json_schema_extra": {
+               "example": {
+                   "id": 1,
+                   "name": "Example Item",
+                   "description": "An example item",
+                   "owner_id": 1
+               }
+           }
+       }
+   ```
+
+2. **Field Validation**:
+   ```python
+   from pydantic import field_validator, EmailStr
+   
+   class UserCreate(BaseModel):
+       email: EmailStr
+       password: str = Field(..., min_length=8)
+       
+       @field_validator('password')
+       def password_complexity(cls, v):
+           if not any(c.isupper() for c in v):
+               raise ValueError('Password must contain at least one uppercase letter')
+           if not any(c.isdigit() for c in v):
+               raise ValueError('Password must contain at least one digit')
+           return v
+   ```
+
+3. **Custom Types**:
+   ```python
+   from pydantic import GetCoreSchemaHandler
+   from pydantic_core import CoreSchema, core_schema
+   
+   class CustomType:
+       def __init__(self, value: str):
+           self.value = value
+   
+       @classmethod
+       def __get_pydantic_core_schema__(
+           cls, _source_type: Any, _handler: GetCoreSchemaHandler
+       ) -> CoreSchema:
+           return core_schema.no_info_after_validator_function(
+               cls.validate,
+               core_schema.str_schema(),
+               serialization=core_schema.to_string_ser_schema(),
+           )
+       
+       @classmethod
+       def validate(cls, value: str) -> 'CustomType':
+           if not value.startswith('custom_'):
+               raise ValueError('Must start with "custom_"')
+           return cls(value)
+   ```
+
+4. **Error Handling**:
+   ```python
+   from fastapi import HTTPException, status
+   
+   @router.get("/{item_id}", response_model=ItemResponse)
+   async def read_item(item_id: int, db: AsyncSession = Depends(get_db)):
+       db_item = await db.get(Item, item_id)
+       if db_item is None:
+           raise HTTPException(
+               status_code=status.HTTP_404_NOT_FOUND,
+               detail="Item not found"
+           )
+       return db_item
+   ```
+
+5. **Dependency Injection**:
+   ```python
+   from fastapi import Depends
+   from sqlalchemy.ext.asyncio import AsyncSession
+   
+   async def get_current_user(
+       token: str = Depends(oauth2_scheme),
+       db: AsyncSession = Depends(get_db)
+   ) -> User:
+       credentials_exception = HTTPException(
+           status_code=status.HTTP_401_UNAUTHORIZED,
+           detail="Could not validate credentials",
+           headers={"WWW-Authenticate": "Bearer"},
+       )
+       try:
+           payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+           username: str = payload.get("sub")
+           if username is None:
+               raise credentials_exception
+       except JWTError:
+           raise credentials_exception
+       
+       user = await get_user(db, username=username)
+       if user is None:
+           raise credentials_exception
+       return user
+   ```
         
     Raises:
         ValueError: If data format is invalid

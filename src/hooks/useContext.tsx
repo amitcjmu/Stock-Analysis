@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { apiCall, API_CONFIG } from '../config/api';
+import { apiCall, API_CONFIG, updateApiContext } from '../config/api';
 
 export interface ClientContext {
   id: string;
@@ -31,21 +31,41 @@ export interface AppContext {
 }
 
 interface AppContextType {
-  context: AppContext;
+  // Direct access to context values
+  client: ClientContext | null;
+  engagement: EngagementContext | null;
+  session: SessionContext | null;
+  viewMode: 'session_view' | 'engagement_view';
+  
+  // State and error handling
   isLoading: boolean;
   error: string | null;
+  
+  // Data fetching
   fetchClients: () => Promise<ClientContext[]>;
   fetchEngagements: (clientId: string) => Promise<EngagementContext[]>;
   fetchSessions: (engagementId: string) => Promise<SessionContext[]>;
+  
+  // State setters
   setClient: (client: ClientContext | null) => void;
   setEngagement: (engagement: EngagementContext | null) => void;
   setSession: (session: SessionContext | null) => void;
-  setViewMode: (viewMode: 'session_view' | 'engagement_view') => void;
+  setViewMode: (viewMode: 'session_view' | 'engagement_view', source?: string) => void;
+  
+  // Context utilities
   updateContext: (updates: Partial<AppContext>) => void;
   getContextHeaders: () => Record<string, string>;
-  getBreadcrumbs: () => Array<{ label: string; type: string; active: boolean }>;
+  getBreadcrumbs: () => Array<{ 
+    id: string; 
+    label: string; 
+    type: 'client' | 'engagement' | 'session'; 
+    active: boolean 
+  }>;
   resetToDemo: () => void;
   clearError: () => void;
+  
+  // For backward compatibility
+  context: AppContext;
 }
 
 const STORAGE_KEY = 'aiforce_context';
@@ -62,28 +82,71 @@ const DEFAULT_DEMO_ENGAGEMENT: EngagementContext = {
   client_account_id: 'd838573d-f461-44e4-81b5-5af510ef83b7'
 };
 
+const DEFAULT_DEMO_SESSION: SessionContext = {
+  id: 'a1b2c3d4-e5f6-7890-1234-567890abcdef',
+  session_name: 'default-session',
+  session_display_name: 'Default Session',
+  engagement_id: 'd1a93e23-719d-4dad-8bbf-b66ab9de2b94',
+  status: 'active'
+};
+
 // Create the context
 const AppContextContext = createContext<AppContextType | undefined>(undefined);
 
 // Context Provider
 export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  console.log('AppContextProvider - Initial render');
   const location = useLocation();
-  const [context, setContext] = useState<AppContext>({
-    client: DEFAULT_DEMO_CLIENT,
-    engagement: DEFAULT_DEMO_ENGAGEMENT,
-    session: null,
-    viewMode: 'engagement_view'
+  const [context, setContext] = useState<AppContext>(() => {
+    console.log('Initializing context state');
+    return {
+      client: DEFAULT_DEMO_CLIENT,
+      engagement: DEFAULT_DEMO_ENGAGEMENT,
+      session: DEFAULT_DEMO_SESSION,
+      viewMode: 'session_view' as const
+    };
   });
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+// Sync context with API module
+useEffect(() => {
+  try {
+    updateApiContext({
+      client: context.client,
+      engagement: context.engagement,
+      session: context.session
+    });
+  } catch (error) {
+    console.error('Failed to update API context:', error);
+  }
+}, [context.client, context.engagement, context.session]);
+
+  // Log context changes
+  useEffect(() => {
+    console.group('AppContext - Context Update');
+    console.log('Current context state:', {
+      client: context.client ? { id: context.client.id, name: context.client.name } : null,
+      engagement: context.engagement ? { id: context.engagement.id, name: context.engagement.name } : null,
+      session: context.session ? { 
+        id: context.session.id, 
+        name: context.session.session_display_name || context.session.session_name 
+      } : null,
+      viewMode: context.viewMode
+    });
+    console.trace('Context update stack trace');
+    console.groupEnd();
+  }, [context]);
+
   // Load context from localStorage on mount
   useEffect(() => {
+    console.log('Loading context from localStorage');
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       try {
         const parsedContext = JSON.parse(stored);
+        console.log('Found stored context:', parsedContext);
         setContext(prev => ({
           ...prev,
           ...parsedContext,
@@ -94,12 +157,19 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       } catch (err) {
         console.warn('Failed to parse stored context, using defaults');
       }
+    } else {
+      console.log('No stored context found, using defaults');
     }
   }, []);
 
-  // Save context to localStorage whenever it changes
+  // Save context to localStorage when it changes
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(context));
+    console.log('Saving context to localStorage');
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(context));
+    } catch (error) {
+      console.error('Error saving context to localStorage:', error);
+    }
   }, [context]);
 
   // Fetch available clients
@@ -200,44 +270,118 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   };
 
-  // Update context
+  // Update context with change checks
   const updateContext = (updates: Partial<AppContext>) => {
+    console.log('Updating context with:', updates);
     setContext(prev => {
-      const newContext = { ...prev, ...updates };
+      // Check if any values actually changed
+      const changes: Partial<AppContext> = {};
+      let hasChanges = false;
       
-      // If client changes, clear engagement and session
-      if (updates.client && updates.client.id !== prev.client?.id) {
-        newContext.engagement = null;
-        newContext.session = null;
+      // Check client changes
+      if ('client' in updates) {
+        const clientChanged = updates.client?.id !== prev.client?.id;
+        if (clientChanged) {
+          changes.client = updates.client;
+          hasChanges = true;
+          
+          // If client changes, clear engagement and session
+          changes.engagement = null;
+          changes.session = null;
+        }
       }
       
-      // If engagement changes, clear session
-      if (updates.engagement && updates.engagement.id !== prev.engagement?.id) {
-        newContext.session = null;
+      // Check engagement changes (if client didn't change)
+      if ('engagement' in updates && !changes.engagement) {
+        const engagementChanged = updates.engagement?.id !== prev.engagement?.id;
+        if (engagementChanged) {
+          changes.engagement = updates.engagement;
+          hasChanges = true;
+          
+          // If engagement changes, clear session
+          changes.session = null;
+        }
       }
       
-      return newContext;
+      // Check session changes (if engagement didn't change)
+      if ('session' in updates && !changes.session) {
+        const sessionChanged = updates.session?.id !== prev.session?.id;
+        if (sessionChanged) {
+          changes.session = updates.session;
+          hasChanges = true;
+        }
+      }
+      
+      // Check view mode changes
+      if ('viewMode' in updates && updates.viewMode !== prev.viewMode) {
+        changes.viewMode = updates.viewMode;
+        hasChanges = true;
+      }
+      
+      // Only return a new object if there are actual changes
+      if (!hasChanges) {
+        console.log('No context changes, skipping update');
+        return prev;
+      }
+      
+      console.log('Applying context changes:', changes);
+      return { ...prev, ...changes };
     });
   };
 
-  // Set client context
+  // Set client context with change check
   const setClient = (client: ClientContext | null) => {
-    updateContext({ client });
+    console.log('Setting client:', client?.id);
+    setContext(prev => {
+      if ((!client && !prev.client) || (client?.id === prev.client?.id)) {
+        console.log('Client unchanged, skipping update');
+        return prev;
+      }
+      return { ...prev, client };
+    });
   };
 
-  // Set engagement context
+  // Set engagement context with change check
   const setEngagement = (engagement: EngagementContext | null) => {
-    updateContext({ engagement });
+    console.log('Setting engagement:', engagement?.id);
+    setContext(prev => {
+      if ((!engagement && !prev.engagement) || (engagement?.id === prev.engagement?.id)) {
+        console.log('Engagement unchanged, skipping update');
+        return prev;
+      }
+      return { ...prev, engagement };
+    });
   };
 
-  // Set session context
+  // Set session context with change check
   const setSession = (session: SessionContext | null) => {
-    updateContext({ session });
+    console.log('Setting session:', session?.id);
+    setContext(prev => {
+      if ((!session && !prev.session) || (session?.id === prev.session?.id)) {
+        console.log('Session unchanged, skipping update');
+        return prev;
+      }
+      return { ...prev, session };
+    });
   };
 
-  // Set view mode
-  const setViewMode = (viewMode: 'session_view' | 'engagement_view') => {
-    updateContext({ viewMode });
+  // Set view mode with change check and stack trace
+  const setViewMode = (viewMode: 'session_view' | 'engagement_view', source = 'unknown') => {
+    console.group('setViewMode');
+    console.log('Requested view mode:', viewMode, 'from:', source);
+    console.trace('Stack trace');
+    
+    setContext(prev => {
+      if (prev.viewMode === viewMode) {
+        console.log('View mode unchanged, skipping update');
+        console.groupEnd();
+        return prev;
+      }
+      
+      console.log(`View mode changing from ${prev.viewMode} to ${viewMode}`);
+      console.groupEnd();
+      return { ...prev, viewMode };
+    });
   };
 
   // Get current context as HTTP headers
@@ -262,29 +406,42 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   // Get context breadcrumb path
-  const getBreadcrumbs = () => {
-    const breadcrumbs = [];
+  const getBreadcrumbs = (): Array<{
+    id: string;
+    label: string;
+    type: 'client' | 'engagement' | 'session';
+    active: boolean;
+  }> => {
+    const breadcrumbs: Array<{
+      id: string;
+      label: string;
+      type: 'client' | 'engagement' | 'session';
+      active: boolean;
+    }> = [];
     
     if (context.client) {
       breadcrumbs.push({
+        id: `client-${context.client.id}`,
         label: context.client.name,
-        type: 'client' as const,
+        type: 'client',
         active: !context.engagement
       });
     }
     
     if (context.engagement) {
       breadcrumbs.push({
+        id: `engagement-${context.engagement.id}`,
         label: context.engagement.name,
-        type: 'engagement' as const,
+        type: 'engagement',
         active: !context.session || context.viewMode === 'engagement_view'
       });
     }
     
     if (context.session && context.viewMode === 'session_view') {
       breadcrumbs.push({
+        id: `session-${context.session.id}`,
         label: context.session.session_display_name || context.session.session_name,
-        type: 'session' as const,
+        type: 'session',
         active: true
       });
     }
@@ -305,10 +462,19 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // Clear error
   const clearError = () => setError(null);
 
-  const value: AppContextType = {
-    context,
+  // Create the context value with direct property access
+  const contextValue: AppContextType = {
+    // Direct properties
+    client: context.client,
+    engagement: context.engagement,
+    session: context.session,
+    viewMode: context.viewMode,
+    
+    // State and error handling
     isLoading,
     error,
+    
+    // Methods
     fetchClients,
     fetchEngagements,
     fetchSessions,
@@ -320,11 +486,19 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     getContextHeaders,
     getBreadcrumbs,
     resetToDemo,
-    clearError
+    clearError,
+    
+    // For backward compatibility
+    context: {
+      client: context.client,
+      engagement: context.engagement,
+      session: context.session,
+      viewMode: context.viewMode
+    },
   };
 
   return (
-    <AppContextContext.Provider value={value}>
+    <AppContextContext.Provider value={contextValue}>
       {children}
     </AppContextContext.Provider>
   );

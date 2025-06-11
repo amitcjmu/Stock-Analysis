@@ -21,7 +21,7 @@ The backend is built with FastAPI, a modern Python web framework that provides a
 - **FastAPI Application**: Main web server and API framework
 - **CrewAI Agents**: AI-powered analysis and learning agents
 - **SQLAlchemy ORM**: Database abstraction layer
-- **Pydantic Schemas**: Data validation and serialization
+- **Pydantic V2 Schemas**: Data validation and serialization with improved performance and features
 - **WebSocket Manager**: Real-time communication
 - **Service Layer**: Business logic and AI integration
 
@@ -80,10 +80,12 @@ backend/app/
 │   ├── migration.py      # Migration project models
 │   ├── asset.py          # Asset models
 │   └── feedback.py       # Feedback models
-├── schemas/              # Pydantic schemas
+├── schemas/              # Pydantic V2 schemas
+│   ├── base.py           # Base schemas and common types
 │   ├── migration.py      # Migration request/response schemas
 │   ├── asset.py          # Asset schemas
-│   └── feedback.py       # Feedback schemas
+│   ├── feedback.py       # Feedback schemas
+│   └── session.py        # Session management schemas
 ├── services/             # Business logic layer
 │   ├── crewai_service.py # Main AI service orchestrator
 │   ├── agents.py         # AI agent management
@@ -96,6 +98,47 @@ backend/app/
 │       └── field_mapping_tool.py  # Field mapping tool
 └── websocket/            # WebSocket handlers
     └── manager.py        # WebSocket connection management
+```
+
+## Core Services
+
+### Updated Dependencies
+
+```bash
+# Updated requirements.txt
+fastapi>=0.100.0
+pydantic>=2.0.0
+sqlalchemy>=2.0.0
+# ... other dependencies ...
+```
+
+### Database Connection
+
+```python
+# Updated database.py with async support
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+
+SQLALCHEMY_DATABASE_URL = "postgresql+asyncpg://user:password@localhost/dbname"
+
+engine = create_async_engine(SQLALCHEMY_DATABASE_URL)
+AsyncSessionLocal = sessionmaker(
+    bind=engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+    autoflush=False
+)
+
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
 ```
 
 ## Core Services
@@ -421,6 +464,57 @@ async def process_feedback(request: FeedbackRequest):
 
 ```python
 # websocket/manager.py
+## Pydantic V2 Implementation
+
+### Model Configuration
+
+Pydantic V2 introduces several improvements and changes from V1. Here's how we're using it:
+
+```python
+from pydantic import BaseModel, Field
+from datetime import datetime
+from typing import Optional, List, Dict, Any
+from uuid import UUID
+
+class SessionBase(BaseModel):
+    """Base model for session data."""
+    session_name: str = Field(..., description="Unique identifier for the session")
+    session_display_name: Optional[str] = Field(
+        None, 
+        description="User-friendly display name for the session"
+    )
+    # ... other fields ...
+
+    model_config = {
+        "from_attributes": True,  # Replaces orm_mode in Pydantic V1
+        "json_schema_extra": {
+            "example": {
+                "id": "123e4567-e89b-12d3-a456-426614174000",
+                "session_name": "my-session",
+                # ... other example fields ...
+            }
+        }
+    }
+```
+
+### Key Changes from V1 to V2
+
+1. **Model Configuration**:
+   - Old (V1): `class Config` with `orm_mode = True`
+   - New (V2): `model_config` class variable with `from_attributes = True`
+
+2. **Field Configuration**:
+   - More powerful Field configuration with better type hints
+   - Built-in support for JSON Schema examples
+   - Improved validation performance
+
+3. **Serialization**:
+   - Use `model_dump()` instead of `dict()`
+   - Use `model_dump_json()` instead of `json()`
+
+## WebSocket Implementation
+
+```python
 class ConnectionManager:
     """Manages WebSocket connections for real-time updates."""
     

@@ -38,7 +38,9 @@ interface SupportTimeline {
 }
 
 const TechDebtAnalysis = () => {
-  const { client_account_id, engagement_id } = useAppContext();
+  const { client, engagement } = useAppContext();
+  const client_account_id = client?.id;
+  const engagement_id = engagement?.id;
   const [techDebtItems, setTechDebtItems] = useState<TechDebtItem[]>([]);
   const [supportTimelines, setSupportTimelines] = useState<SupportTimeline[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
