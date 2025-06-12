@@ -112,6 +112,7 @@ All pages in Group 4 (FinOps) have been successfully modernized with TanStack Qu
 | `/src/contexts/ClientContext.tsx` | N/A | N/A | ✅ | ✅ | Complete |
 | `/src/contexts/EngagementContext.tsx` | N/A | N/A | ✅ | ✅ | Complete |
 | `/src/hooks/useContext.tsx` | N/A | N/A | ✅ | ✅ | Complete |
+| `/src/components/context/ContextSelector.tsx` | ✅ | ✅ | ✅ | ✅ | Complete |
 
 Legend: ✅ = Complete, ⬜ = Pending, N/A = Not Applicable
 
