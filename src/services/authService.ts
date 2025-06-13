@@ -3,8 +3,13 @@ import { User } from '@/contexts/AuthContext';
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
 
 interface LoginResponse {
-  user: User;
-  token: string;
+  status: string;
+  message: string;
+  user: User | null;
+  token: {
+    access_token: string;
+    token_type: string;
+  } | null;
 }
 
 export const authService = {
@@ -19,19 +24,21 @@ export const authService = {
         body: JSON.stringify({ email, password }),
       });
 
-      if (response.ok) {
-        const result = await response.json();
-        if (result.status === 'success' && result.user) {
-          return {
-            user: result.user,
-            token: result.token,
-          };
-        }
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Login failed');
+      }
+
+      const result = await response.json();
+      if (result.status === 'success' && result.user && result.token) {
+        return result;
       }
 
       // Fall back to demo authentication if database auth fails
       if (email === 'admin@aiforce.com' && password === 'admin123') {
         return {
+          status: 'success',
+          message: 'Successfully logged in as demo admin',
           user: {
             id: '2a0de3df-7484-4fab-98b9-2ca126e2ab21',
             username: 'admin',
@@ -41,14 +48,17 @@ export const authService = {
             status: 'approved',
             default_engagement_id: 'default-engagement-1',
           },
-          token: 'demo-admin-token',
+          token: {
+            access_token: 'demo-admin-token',
+            token_type: 'bearer'
+          }
         };
       }
 
       throw new Error('Invalid email or password');
     } catch (error) {
       console.error('Login error:', error);
-      throw new Error('Login failed. Please try again.');
+      throw error;
     }
   },
 
@@ -90,7 +100,7 @@ export const authService = {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Registration failed');
+        throw new Error(errorData.detail || 'Registration failed');
       }
     } catch (error) {
       console.error('Registration error:', error);

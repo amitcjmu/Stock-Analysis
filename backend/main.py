@@ -96,13 +96,7 @@ try:
     API_ROUTES_ENABLED = True
     print("✅ API routes loaded successfully")
     
-    # Include demo data endpoints
-    try:
-        from app.api.v1.endpoints.demo_data import router as demo_router
-        app.include_router(demo_router, prefix="/api/v1")
-        print("✅ Demo data endpoints loaded successfully")
-    except Exception as demo_e:
-        print(f"⚠️  Demo data endpoints could not be loaded: {demo_e}")
+
         
     # Include fallback feedback system for Railway deployment issues
     try:
@@ -172,6 +166,7 @@ cors_origins = list(set(filter(None, cors_origins)))
 
 print(f"🌐 CORS Origins configured: {cors_origins}")
 
+# CORS middleware configuration first (CRITICAL: Middleware runs in reverse order)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
@@ -185,14 +180,9 @@ try:
     from app.core.middleware import ContextMiddleware, RequestLoggingMiddleware
     
     # CRITICAL: Middleware is executed in REVERSE order of addition.
+    # Order: RequestLogging -> Context -> CORS
     
-    # 1. This will run third
-    app.add_middleware(
-        RequestLoggingMiddleware,
-        excluded_paths=["/health"]
-    )
-    
-    # 2. This will run second
+    # Add context middleware with updated exempt paths
     app.add_middleware(
         ContextMiddleware,
         require_client=True,
@@ -205,13 +195,21 @@ try:
             "/openapi.json",
             "/debug/routes",
             "/static",
-            "/api/v1/assets/list/paginated"  # allow unauthenticated inventory preview
+            "/api/v1/assets/list/paginated",  # allow unauthenticated inventory preview
+            "/api/v1/me",  # Allow user context endpoint
+            "/api/v1/clients/default"  # Allow default client endpoint
         ]
     )
+    
+    # Add request logging middleware last
+    app.add_middleware(
+        RequestLoggingMiddleware,
+        excluded_paths=["/health"]
+    )
 
-    print("✅ Context middleware loaded successfully in correct order.")
+    print("✅ Middleware loaded successfully in correct order: CORS -> Context -> Logging")
 except Exception as e:
-    print(f"⚠️  Context middleware could not be loaded: {e}")
+    print(f"⚠️  Middleware could not be loaded: {e}")
     print(f"📋 Traceback: {traceback.format_exc()}")
 
 @app.get("/debug/routes")

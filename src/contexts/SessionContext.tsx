@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { useParams, useRouter } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
-import { Session as SessionServiceSession, sessionService } from '@/services/sessionService';
+import { Session as SessionServiceSession, sessionService, CreateSessionRequest } from '@/services/sessionService';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from './AuthContext'; // Import useAuth to get engagementId
 import { apiCall } from '@/lib/api';
@@ -30,10 +30,11 @@ interface SessionContextType {
   switchSession: (id: string) => Promise<void>;
   endSession: () => Promise<void>;
   getSessionId: () => string | null;
+  setDemoSession: (session: UISession) => void;
 }
 
 // Create the context with default values
-const SessionContext = createContext<SessionContextType | undefined>(undefined);
+export const SessionContext = createContext<SessionContextType | undefined>(undefined);
 
 // Helper to convert service session to UI session
 const toUISession = (session: SessionServiceSession): UISession => ({
@@ -79,17 +80,33 @@ export const useCreateSession = () => {
   const { currentEngagementId, setCurrentSessionId } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ name, isDefault = false }: { name: string; isDefault?: boolean }) => {
+    mutationFn: async (data: { name: string; isDefault?: boolean }) => {
       if (!currentEngagementId) throw new Error('No engagement ID available');
-      const newSession = await sessionService.createSession(currentEngagementId, { session_display_name: name });
-      if (isDefault) {
-        await sessionService.setDefaultSession(currentEngagementId, newSession.id);
-      }
+      const { user } = useAuth();
+      if (!user) throw new Error('No user available');
+      
+      // Get client_account_id from the first client account association
+      const clientAccountId = user.client_accounts?.[0]?.id;
+      if (!clientAccountId) throw new Error('No client account available');
+      
+      const sessionData: CreateSessionRequest = {
+        session_name: data.name.toLowerCase().replace(/\s+/g, '_'),
+        session_display_name: data.name,
+        engagement_id: currentEngagementId,
+        client_account_id: clientAccountId,
+        is_default: data.isDefault || false,
+        session_type: 'analysis',
+        status: 'active',
+        auto_created: false,
+        created_by: user.id,
+      };
+      
+      const newSession = await sessionService.createSession(sessionData);
       return toUISession(newSession);
     },
     onSuccess: (newSession) => {
       queryClient.invalidateQueries({ queryKey: ['sessions', currentEngagementId] });
-      setCurrentSessionId(newSession.id); // Set as current session upon creation
+      setCurrentSessionId(newSession.id);
       toast({ title: 'Success', description: `Successfully created session "${newSession.name}"`, variant: 'default' });
     },
     onError: (error: Error) => {
@@ -107,9 +124,8 @@ export const useUpdateSession = () => {
   const { currentEngagementId } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ sessionId, updates }: { sessionId: string; updates: Partial<UISession> }) => {
-      if (!currentEngagementId) throw new Error('No engagement ID available');
-      const updated = await sessionService.updateSession(currentEngagementId, sessionId, toServiceSession(updates));
+    mutationFn: async (data: { sessionId: string; updates: Partial<UISession> }) => {
+      const updated = await sessionService.updateSession(data.sessionId, toServiceSession(data.updates));
       return toUISession(updated);
     },
     onSuccess: () => {
@@ -132,13 +148,12 @@ export const useDeleteSession = () => {
 
   return useMutation({
     mutationFn: async (sessionId: string) => {
-      if (!currentEngagementId) throw new Error('No engagement ID available');
-      await sessionService.deleteSession(currentEngagementId, sessionId);
+      await sessionService.deleteSession(sessionId);
       return sessionId;
     },
     onSuccess: (deletedSessionId) => {
       if (currentSessionId === deletedSessionId) {
-        setCurrentSessionId(null); // Clear current session if it was deleted
+        setCurrentSessionId(null);
       }
       queryClient.invalidateQueries({ queryKey: sessionQueryKey(currentEngagementId) });
       toast({ variant: 'default', title: 'Success', description: 'Session deleted successfully' });
@@ -159,8 +174,7 @@ export const useSetDefaultSession = () => {
 
   return useMutation({
     mutationFn: async (sessionId: string) => {
-      if (!currentEngagementId) throw new Error('No engagement ID available');
-      const updated = await sessionService.setDefaultSession(currentEngagementId, sessionId);
+      const updated = await sessionService.setDefaultSession(sessionId);
       return toUISession(updated);
     },
     onSuccess: (updatedSession) => {
@@ -201,11 +215,16 @@ interface SessionProviderProps {
   children: React.ReactNode;
 }
 
-export function SessionProvider({ children }: SessionProviderProps) {
-  const { currentEngagementId, currentSessionId, setCurrentSessionId } = useAuth();
+// Default export for the provider
+const SessionProvider = ({ children }: SessionProviderProps) => {
+  const { currentEngagementId, currentSessionId, setCurrentSessionId, user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const router = useRouter();
+  const navigate = useNavigate();
+
+  // Add these state hooks for demo mode
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
   // Query to fetch sessions
   const { 
@@ -264,26 +283,45 @@ export function SessionProvider({ children }: SessionProviderProps) {
 
   // Create session wrapper
   const createSession = useCallback(async (name: string, isDefault = false): Promise<UISession> => {
-    const newSession = await createSessionMutation.mutateAsync({ name, isDefault });
-    return newSession;
-  }, [createSessionMutation]);
+    if (!currentEngagementId) throw new Error('No engagement ID available');
+    const { user } = useAuth();
+    if (!user) throw new Error('No user available');
+    
+    // Get client_account_id from the first client account association
+    const clientAccountId = user.client_accounts?.[0]?.id;
+    if (!clientAccountId) throw new Error('No client account available');
+    
+    const sessionData: CreateSessionRequest = {
+      session_name: name.toLowerCase().replace(/\s+/g, '_'),
+      session_display_name: name,
+      engagement_id: currentEngagementId,
+      client_account_id: clientAccountId,
+      is_default: isDefault,
+      status: 'active',
+      auto_created: false,
+      created_by: user.id,
+    };
+    
+    const newSession = await sessionService.createSession(sessionData);
+    return toUISession(newSession);
+  }, [currentEngagementId]);
 
   // Update session wrapper
   const updateSession = useCallback(async (sessionId: string, updates: Partial<UISession>): Promise<UISession> => {
-    const updatedSession = await updateSessionMutation.mutateAsync({ sessionId, updates });
-    return updatedSession;
-  }, [updateSessionMutation]);
+    const updated = await sessionService.updateSession(sessionId, toServiceSession(updates));
+    return toUISession(updated);
+  }, []);
 
   // Delete session wrapper
   const deleteSession = useCallback(async (sessionId: string): Promise<void> => {
-    await deleteSessionMutation.mutateAsync(sessionId);
-  }, [deleteSessionMutation]);
+    await sessionService.deleteSession(sessionId);
+  }, []);
 
   // Set default session wrapper
   const setDefaultSession = useCallback(async (sessionId: string): Promise<UISession> => {
-    const updatedSession = await setDefaultSessionMutation.mutateAsync(sessionId);
-    return updatedSession;
-  }, [setDefaultSessionMutation]);
+    const updated = await sessionService.setDefaultSession(sessionId);
+    return toUISession(updated);
+  }, []);
 
   // Merge sessions wrapper
   const mergeSessions = useCallback(async (
@@ -298,11 +336,11 @@ export function SessionProvider({ children }: SessionProviderProps) {
   const contextValue = useMemo((): SessionContextType => ({
     currentSession,
     sessions,
-    isLoading: isSessionsLoading,
+    isLoading: isSessionsLoading || isLoading,
     isCreating: createSessionMutation.isPending,
     isUpdating: updateSessionMutation.isPending,
     isSettingDefault: setDefaultSessionMutation.isPending,
-    error: sessionsError || null,
+    error: sessionsError || error,
     isDefaultSession,
     setCurrentSession,
     createSession,
@@ -320,14 +358,21 @@ export function SessionProvider({ children }: SessionProviderProps) {
       // Implementation of getSessionId
       return null;
     },
+    setDemoSession: (session: UISession) => {
+      setCurrentSession(session);
+      setIsLoading(false);
+      setError(null);
+    },
   }), [
     currentSession,
     sessions,
     isSessionsLoading,
+    isLoading,
     createSessionMutation.isPending,
     updateSessionMutation.isPending,
     setDefaultSessionMutation.isPending,
     sessionsError,
+    error,
     isDefaultSession,
     setCurrentSession,
     createSession,
@@ -337,20 +382,47 @@ export function SessionProvider({ children }: SessionProviderProps) {
     refreshSessions,
   ]);
 
+  useEffect(() => {
+    // If demo user, set demo session and skip fetch
+    const demoUserId = '44444444-4444-4444-4444-444444444444';
+    const demoSession = {
+      id: '33333333-3333-3333-3333-333333333333',
+      name: 'Demo Session',
+      session_name: 'demo_session',
+      session_type: 'analysis', // Use a valid SessionType if needed
+      engagement_id: '22222222-2222-2222-2222-222222222222',
+      client_account_id: '11111111-1111-1111-1111-111111111111',
+      is_default: true,
+      status: 'active',
+      auto_created: false,
+      created_by: demoUserId,
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z'
+    };
+    if (user && user.id === demoUserId) {
+      setCurrentSession(demoSession);
+      setIsLoading(false);
+      setError(null);
+      return;
+    }
+  }, [user, setCurrentSession, setIsLoading, setError]);
+
   return (
     <SessionContext.Provider value={contextValue}>
       {children}
     </SessionContext.Provider>
   );
-}
+};
 
+export { SessionProvider };
+
+// Hook for using the session context
 export const useSession = (): SessionContextType => {
   const context = useContext(SessionContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useSession must be used within a SessionProvider');
   }
   return context;
 };
 
-// Export the context for testing or direct usage if needed
-export { SessionContext };
+export default SessionProvider;

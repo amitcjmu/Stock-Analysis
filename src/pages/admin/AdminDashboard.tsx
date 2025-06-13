@@ -82,9 +82,9 @@ const AdminDashboard: React.FC = () => {
     const headers = getAuthHeaders();
     try {
       const [clientsData, engagementsData, usersData] = await Promise.all([
-        apiCall('/api/v1/admin/clients/dashboard/stats', { headers }),
-        apiCall('/api/v1/admin/engagements/dashboard/stats', { headers }),
-        apiCall('/api/v1/auth/admin/dashboard-stats', { headers })
+        apiCall('/admin/clients/dashboard/stats', { headers }),
+        apiCall('/admin/engagements/dashboard/stats', { headers }),
+        apiCall('/auth/admin/dashboard-stats', { headers })
       ]);
       
       const transformedClients = clientsData.dashboard_stats || clientsData;

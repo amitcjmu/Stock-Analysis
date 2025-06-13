@@ -26,7 +26,7 @@ import {
   type FieldMapping,
   type CrewAnalysis,
   type CriticalAttributesData
-} from '../../api/hooks/useAttributeMapping';
+} from '@/hooks/useAttributeMapping';
 
 // UI Components
 import { Button } from '../../components/ui/button';

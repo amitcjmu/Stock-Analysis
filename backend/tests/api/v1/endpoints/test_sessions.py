@@ -8,7 +8,7 @@ from fastapi import status
 from uuid import uuid4
 from datetime import datetime, timezone, timedelta
 
-from app.main import app
+from backend.main import app
 from app.models.data_import_session import DataImportSession, SessionStatus, SessionType
 from app.models.client_account import ClientAccount, Engagement
 from app.models.user import User

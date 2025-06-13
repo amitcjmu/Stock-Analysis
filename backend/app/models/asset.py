@@ -70,6 +70,7 @@ class SixRStrategy(str, enum.Enum):
     REFACTOR = "refactor"      # Re-architect
     REARCHITECT = "rearchitect" # Rebuild
     REPLACE = "replace"        # Replace with SaaS or cloud-native
+    REPURCHASE = "repurchase"  # Drop and shop
     RETIRE = "retire"          # Decommission
     RETAIN = "retain"          # Keep as-is
 
@@ -92,6 +93,7 @@ class Asset(Base):
     
     # Basic asset information (based on Azure Migrate metadata)
     name = Column(String(255), nullable=False, index=True)
+    asset_name = Column(String(255), nullable=True)
     hostname = Column(String(255), index=True)
     asset_type = Column(Enum(AssetType), nullable=False, index=True)
     description = Column(Text)
@@ -117,18 +119,25 @@ class Asset(Base):
     
     # Business information
     business_owner = Column(String(255))
+    technical_owner = Column(String(255))
     department = Column(String(100))
     application_name = Column(String(255))
     technology_stack = Column(String(255))
     criticality = Column(String(20))  # Low, Medium, High, Critical
+    business_criticality = Column(String(20))  # Business criticality label (low, medium, high, critical)
+    custom_attributes = Column(JSON)  # Arbitrary custom attributes captured during import
     
     # Migration assessment
-    status = Column(Enum(AssetStatus), default=AssetStatus.DISCOVERED, index=True)
     six_r_strategy = Column(Enum(SixRStrategy))
+    mapping_status = Column(String(20), index=True)  # pending, in_progress, completed
     migration_priority = Column(Integer, default=5)  # 1-10 scale
     migration_complexity = Column(String(20))  # Low, Medium, High
     migration_wave = Column(Integer)
-    sixr_ready = Column(String(50))  # Ready, Needs Analysis, etc.
+    sixr_ready = Column(String(50)) # e.g., 'Ready', 'Needs Analysis', 'Not Applicable'
+
+    # Status and ownership
+    status = Column(String(50), default='active', index=True) # Operational status
+    migration_status = Column(Enum(AssetStatus), default=AssetStatus.DISCOVERED, index=True)
     
     # Dependencies and relationships
     dependencies = Column(JSON)  # List of dependent asset IDs or names
@@ -144,6 +153,10 @@ class Asset(Base):
     memory_utilization_percent = Column(Float)
     disk_iops = Column(Float)
     network_throughput_mbps = Column(Float)
+    
+    # Data quality metrics
+    completeness_score = Column(Float)
+    quality_score = Column(Float)
     
     # Cost information
     current_monthly_cost = Column(Float)

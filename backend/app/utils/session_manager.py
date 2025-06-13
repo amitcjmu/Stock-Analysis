@@ -5,7 +5,7 @@ from datetime import datetime
 import uuid
 
 from app.models.session import Session
-from app.models.engagement import Engagement
+from app.models.client_account import Engagement
 from app.models.user import User
 from app.schemas.session import SessionCreate, SessionUpdate
 from app.core.security import get_password_hash

@@ -10,16 +10,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
+const DEMO_EMAIL = "demo@democorp.com";
+const DEMO_PASSWORD = "demo"; // placeholder, not actually checked in demo mode
+
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, register } = useAuth();
+  const { login, register, loginWithDemoUser } = useAuth();
   const { toast } = useToast();
   
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Login form state
   const [loginData, setLoginData] = useState({
@@ -49,26 +53,16 @@ const Login: React.FC = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
     try {
-      const loggedInUser = await login(loginData.email, loginData.password);
+      await login(loginData.email, loginData.password);
       toast({
         title: "Login Successful",
         description: "Welcome to AI Force Migration Platform",
       });
-
-      // Redirect admin to admin dashboard, others to their intended destination
-      if (loggedInUser.role === 'admin') {
-        navigate('/admin', { replace: true });
-      } else {
-        navigate(from, { replace: true });
-      }
-    } catch (error) {
-      toast({
-        title: "Login Failed",
-        description: (error as Error).message,
-        variant: "destructive"
-      });
+    } catch (err: any) {
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -114,6 +108,11 @@ const Login: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDemoMode = () => {
+    loginWithDemoUser();
+    // navigation is handled in AuthContext
   };
 
   if (registrationSuccess) {
@@ -220,7 +219,7 @@ const Login: React.FC = () => {
                 <h4 className="font-medium text-blue-900 text-sm mb-2">Demo Credentials:</h4>
                 <div className="text-xs text-blue-800 space-y-1">
                   <div><strong>Admin:</strong> admin@democorp.com / admin123</div>
-                  <div><strong>User:</strong> demo@democorp.com / user123</div>
+                  <div><strong>Demo:</strong> demo@democorp.com / demo123</div>
                 </div>
               </div>
               
@@ -403,6 +402,23 @@ const Login: React.FC = () => {
               >
                 Back to Platform
               </Link>
+            </div>
+          )}
+
+          {error && (
+            <div className="flex flex-col items-center space-y-2 mt-2">
+              <div className="flex items-center text-red-600 text-sm">
+                <AlertCircle className="w-4 h-4 mr-1" />
+                <span>{error}</span>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full mt-2"
+                onClick={handleDemoMode}
+              >
+                Try Demo Mode
+              </Button>
             </div>
           )}
         </CardContent>

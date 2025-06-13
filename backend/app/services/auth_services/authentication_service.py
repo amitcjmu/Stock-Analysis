@@ -14,7 +14,7 @@ from fastapi import HTTPException
 
 from app.models.client_account import User
 from app.models.rbac import UserProfile, UserRole
-from app.schemas.auth_schemas import LoginRequest, LoginResponse, PasswordChangeRequest, PasswordChangeResponse
+from app.schemas.auth_schemas import LoginRequest, LoginResponse, PasswordChangeRequest, PasswordChangeResponse, Token
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,6 @@ class AuthenticationService:
     async def authenticate_user(self, login_request: LoginRequest) -> LoginResponse:
         """
         Authenticate user against the database.
-        For now, this is a simplified implementation that checks if user exists and is active.
         """
         try:
             # Find user by email
@@ -92,11 +91,17 @@ class AuthenticationService:
                 user_profile.failed_login_attempts = 0
                 await self.db.commit()
             
+            # Create a proper Token object
+            token = Token(
+                access_token=f"db-token-{user.id}-{uuid.uuid4().hex[:8]}",
+                token_type="bearer"
+            )
+            
             return LoginResponse(
                 status="success",
                 message="Login successful",
                 user=user_data,
-                token=f"db-token-{user.id}-{uuid.uuid4().hex[:8]}"  # Simple token for demo
+                token=token
             )
             
         except HTTPException:

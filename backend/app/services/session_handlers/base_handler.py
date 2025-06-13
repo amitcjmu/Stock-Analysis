@@ -25,16 +25,16 @@ class BaseHandler:
         """
         from sqlalchemy.future import select
         from sqlalchemy.orm import selectinload
-        from app.models import User, Engagement
+        from app.models import User, Engagement, ClientAccount
         
         query = (
             select(User)
             .options(
-                selectinload(User.default_engagement)
-                .selectinload(Engagement.client_account),
-                selectinload(User.default_engagement)
-                .selectinload(Engagement.default_session),
+                selectinload(User.client_accounts),
                 selectinload(User.engagements)
+                .selectinload(Engagement.client_account),
+                selectinload(User.engagements)
+                .selectinload(Engagement.default_session)
             )
             .where(User.id == user_id)
         )

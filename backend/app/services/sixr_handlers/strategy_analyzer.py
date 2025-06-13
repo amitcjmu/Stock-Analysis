@@ -6,16 +6,11 @@ Handles core 6R strategy analysis and scoring operations.
 import logging
 from typing import Dict, List, Any, Tuple
 from enum import Enum
+from app.models.asset import SixRStrategy
 
 logger = logging.getLogger(__name__)
 
-class SixRStrategy(str, Enum):
-    REHOST = "rehost"
-    REPLATFORM = "replatform"
-    REFACTOR = "refactor"
-    REPURCHASE = "repurchase"
-    RETAIN = "retain"
-    RETIRE = "retire"
+
 
 class ApplicationType(str, Enum):
     WEB_APPLICATION = "web_application"

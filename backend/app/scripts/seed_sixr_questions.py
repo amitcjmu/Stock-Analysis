@@ -17,7 +17,7 @@ import argparse
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
 try:
-    from app.core.database import AsyncSessionLocal, init_db
+    from app.core.database import AsyncSessionLocal
     DEPENDENCIES_AVAILABLE = True
 except ImportError:
     DEPENDENCIES_AVAILABLE = False
@@ -55,15 +55,16 @@ PARAMETERS: List[Dict[str, Any]] = [
 # ---------------------------------------------------------------------------
 async def seed_questions(session, force: bool):
     if force:
-        await session.execute(text("DELETE FROM sixr_questions WHERE is_mock = TRUE"))
-        logger.info("Existing mock questions removed.")
+        # Remove existing records when --force flag provided
+        await session.execute(text("DELETE FROM sixr_questions"))
+        logger.info("Existing questions removed.")
 
     for q in QUESTIONS:
         await session.execute(
             text(
                 """
-                INSERT INTO sixr_questions (id, question_id, question_text, question_type, category, active, created_at, is_mock)
-                VALUES (gen_random_uuid(), :question_id, :question_text, :question_type, :category, :active, :created_at, TRUE)
+                INSERT INTO sixr_questions (id, question_id, question_text, question_type, category, active, created_at)
+                VALUES (gen_random_uuid(), :question_id, :question_text, :question_type, :category, :active, :created_at)
                 ON CONFLICT (question_id) DO NOTHING
                 """
             ),
@@ -75,15 +76,15 @@ async def seed_questions(session, force: bool):
 
 async def seed_parameters(session, force: bool):
     if force:
-        await session.execute(text("DELETE FROM sixr_parameters WHERE is_mock = TRUE"))
-        logger.info("Existing mock parameters removed.")
+        await session.execute(text("DELETE FROM sixr_parameters"))
+        logger.info("Existing parameters removed.")
 
     for p in PARAMETERS:
         await session.execute(
             text(
                 """
-                INSERT INTO sixr_parameters (id, parameter_key, value, description, created_at, is_mock)
-                VALUES (gen_random_uuid(), :parameter_key, :value, :description, :created_at, TRUE)
+                INSERT INTO sixr_parameters (id, parameter_key, value, description, created_at)
+                VALUES (gen_random_uuid(), :parameter_key, :value, :description, :created_at)
                 ON CONFLICT (parameter_key) DO NOTHING
                 """
             ),
@@ -99,7 +100,7 @@ async def main(force: bool):
         logger.error("Dependencies missing – aborting seeding.")
         return
 
-    await init_db()
+    # init_db call removed – rely on Alembic migrations for schema setup
     async with AsyncSessionLocal() as session:
         async with session.begin():
             await seed_questions(session, force)
@@ -109,7 +110,7 @@ async def main(force: bool):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Seed SixR master questions and parameters.")
-    parser.add_argument("--force", action="store_true", help="Delete existing mock rows before seeding")
+    parser.add_argument("--force", action="store_true", help="Delete existing rows before seeding")
     args = parser.parse_args()
 
     asyncio.run(main(force=args.force))

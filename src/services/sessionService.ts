@@ -1,6 +1,6 @@
-import { apiCall } from "@/config/api";
+import { apiCall } from "@/lib/api";
 
-export type SessionType = 'analysis' | 'migration' | 'testing' | 'other';
+export type SessionType = 'data_import' | 'validation_run' | 'incremental_update' | 'comparison_analysis' | 'cleanup_operation';
 
 export interface Session {
   id: string;
@@ -83,51 +83,22 @@ export const sessionService = {
   /**
    * Merge two sessions
    */
-  async mergeSessions(data: MergeSessionsRequest): Promise<Session> {
-    return apiCall(SESSION_ENDPOINTS.MERGE, {
+  async mergeSessions(engagementId: string, sourceSessionId: string, targetSessionId: string, strategy: 'preserve_target' | 'overwrite' | 'merge'): Promise<void> {
+    await apiCall(SESSION_ENDPOINTS.MERGE, {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        source_session_id: sourceSessionId,
+        target_session_id: targetSessionId,
+        merge_strategy: strategy,
+      }),
     });
   },
 
   /**
    * List all sessions for a given engagement
-   * @param engagementId The engagement ID
    */
-  listSessions: async (engagementId?: string | null): Promise<Session[]> => {
-    if (!engagementId) {
-      console.warn('No engagementId provided to listSessions');
-      return [];
-    }
-
-    console.log('Fetching sessions for engagement:', engagementId);
-    const endpoint = SESSION_ENDPOINTS.ENGAGEMENT_SESSIONS(engagementId);
-    console.log('API Endpoint:', endpoint);
-    
-    try {
-      const response = await apiCall(endpoint, {
-        method: 'GET',
-      }, true);
-      
-      // Handle different response formats
-      if (Array.isArray(response)) {
-        return response as Session[];
-      } else if (response && typeof response === 'object' && 'data' in response) {
-        return Array.isArray(response.data) ? response.data : [];
-      }
-      
-      console.warn('Unexpected response format for sessions:', response);
-      return [];
-    } catch (error) {
-      // Handle 404s gracefully - return empty array instead of throwing
-      if ((error as any)?.status === 404) {
-        console.log('No sessions found for engagement:', engagementId);
-        return [];
-      }
-      
-      console.error('Error fetching sessions:', error);
-      throw error;
-    }
+  async listSessions(engagementId: string): Promise<Session[]> {
+    return apiCall(SESSION_ENDPOINTS.ENGAGEMENT_SESSIONS(engagementId));
   },
 
   /**

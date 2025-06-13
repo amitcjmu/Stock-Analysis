@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSessions, useCreateSession, UISession } from '@/contexts/SessionContext';
+import { useSession } from '@/contexts/SessionContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, MoreVertical } from "lucide-react";
@@ -26,26 +26,30 @@ import { useToast } from '../ui/use-toast';
 
 export const SessionSelector: React.FC = () => {
     const { toast } = useToast();
-    const { currentSessionId, setCurrentSessionId, currentEngagementId } = useAuth();
-    const { data: sessions = [], isLoading, error } = useSessions();
-    const createSessionMutation = useCreateSession();
+    const { user } = useAuth();
+    const { 
+        currentSession,
+        sessions,
+        isLoading,
+        error,
+        createSession,
+        switchSession
+    } = useSession();
 
     const [isCreateDialogOpen, setCreateDialogOpen] = useState(false);
     const [newSessionName, setNewSessionName] = useState("");
     const [isDefault, setIsDefault] = useState(false);
 
-    const currentSession = sessions.find(s => s.id === currentSessionId);
-
     useEffect(() => {
-        // If there's no current session ID but there are sessions available, set one.
+        // If there's no current session but there are sessions available, set one.
         // Prioritize the default session, otherwise take the first one.
-        if (!currentSessionId && sessions.length > 0) {
+        if (!currentSession && sessions.length > 0 && !isLoading) {
             const defaultSession = sessions.find(s => s.is_default) || sessions[0];
             if (defaultSession) {
-                setCurrentSessionId(defaultSession.id);
+                switchSession(defaultSession.id);
             }
         }
-    }, [sessions, currentSessionId, setCurrentSessionId]);
+    }, [sessions, currentSession, isLoading, switchSession]);
 
     const handleCreateSession = async () => {
         if (!newSessionName.trim()) {
@@ -53,7 +57,7 @@ export const SessionSelector: React.FC = () => {
             return;
         }
         try {
-            await createSessionMutation.mutateAsync({ name: newSessionName, isDefault });
+            await createSession(newSessionName, isDefault);
             setNewSessionName("");
             setIsDefault(false);
             setCreateDialogOpen(false);
@@ -62,12 +66,12 @@ export const SessionSelector: React.FC = () => {
         }
     };
 
-    if (!currentEngagementId) {
+    if (!user) {
         return (
             <div className="flex items-center space-x-2">
                 <Select disabled>
                     <SelectTrigger className="w-[200px] h-9">
-                        <SelectValue placeholder="No Engagement Selected" />
+                        <SelectValue placeholder="Not Authenticated" />
                     </SelectTrigger>
                 </Select>
             </div>
@@ -85,8 +89,8 @@ export const SessionSelector: React.FC = () => {
     return (
         <div className="flex items-center space-x-2">
             <Select
-                value={currentSessionId || ""}
-                onValueChange={(value) => setCurrentSessionId(value)}
+                value={currentSession?.id || ""}
+                onValueChange={(value) => switchSession(value)}
                 disabled={sessions.length === 0}
             >
                 <SelectTrigger className="w-[200px] h-9">
@@ -95,7 +99,7 @@ export const SessionSelector: React.FC = () => {
                 <SelectContent>
                     <SelectGroup>
                         <SelectLabel>Available Sessions</SelectLabel>
-                        {sessions.map((session: UISession) => (
+                        {sessions.map((session) => (
                             <SelectItem key={session.id} value={session.id}>
                                 {session.name}{session.is_default ? ' (Default)' : ''}
                             </SelectItem>
@@ -144,9 +148,9 @@ export const SessionSelector: React.FC = () => {
                         <Button
                             type="submit"
                             onClick={handleCreateSession}
-                            disabled={createSessionMutation.isPending}
+                            disabled={isLoading}
                         >
-                            {createSessionMutation.isPending ? "Creating..." : "Create Session"}
+                            {isLoading ? "Creating..." : "Create Session"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

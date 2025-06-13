@@ -74,17 +74,17 @@ async def get_db() -> AsyncSession:
 
 
 async def init_db():
-    """Initialize database tables."""
-    async with engine.begin() as conn:
-        # Import all models here to ensure they are registered with Base
-        from app.models import (
-            migration, asset, assessment, sixr_analysis,  # Legacy models
-            client_account, cmdb_asset, tags  # New multi-tenant models
-        )
-        
-        # Create all tables
-        await conn.run_sync(Base.metadata.create_all)
-        logger.info("Database tables created successfully")
+    """Initialize database tables. DEPRECATED for schema creation."""
+    logger.warning(
+        "'init_db' was called, but schema creation via 'create_all' is disabled. "
+        "Database schema should be managed exclusively by Alembic migrations."
+    )
+    # The following code is commented out to prevent conflicts with Alembic.
+    # async with engine.begin() as conn:
+    #     from app import models
+    #     await conn.run_sync(Base.metadata.create_all)
+    #     logger.info("Database tables created successfully")
+    pass
 
 
 async def close_db():

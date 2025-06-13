@@ -47,14 +47,17 @@ api.interceptors.response.use(
  * @param config - Axios request config
  * @param useAuth - Whether to include auth token (default: true)
  */
-export const apiCall = async <T>(
+export const apiCall = async <T = any>(
   endpoint: string,
   config: AxiosRequestConfig = {},
   useAuth: boolean = true
 ): Promise<T> => {
   try {
+    // Ensure endpoint starts with /api/v1 if not already
+    const normalizedEndpoint = endpoint.startsWith('/api/v1') ? endpoint : `/api/v1${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+    
     const response = await api({
-      url: endpoint,
+      url: normalizedEndpoint,
       ...config,
       headers: {
         ...(useAuth && { Authorization: `Bearer ${getAuthToken()}` }),

@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
+import { useNavigate } from 'react-router-dom';
+import { apiCall } from '@/lib/api';
 import { useAuth } from './AuthContext';
 import { useClient } from './ClientContext';
-import { apiCall } from '@/lib/api';
 
 interface Engagement {
   id: string;
@@ -24,6 +24,7 @@ interface EngagementContextType {
   selectEngagement: (id: string) => Promise<void>;
   clearEngagement: () => void;
   getEngagementId: () => string | null;
+  setDemoEngagement: (engagement: Engagement) => void;
 }
 
 const EngagementContext = createContext<EngagementContextType | undefined>(undefined);
@@ -36,9 +37,33 @@ export const EngagementProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [error, setError] = useState<Error | null>(null);
   const { getContextHeaders } = useAuth();
   const { currentClient } = useClient();
-  const router = useRouter();
+  const navigate = useNavigate();
 
   useEffect(() => {
+    // If demo user, set demo engagement and skip fetch
+    const demoUserId = '44444444-4444-4444-4444-444444444444';
+    const demoEngagement = {
+      id: '22222222-2222-2222-2222-222222222222',
+      name: 'Cloud Migration 2024',
+      client_id: '11111111-1111-1111-1111-111111111111',
+      status: 'active',
+      type: 'migration',
+      start_date: '2024-01-01T00:00:00Z',
+      end_date: '2024-12-31T23:59:59Z',
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
+      metadata: {
+        project_manager: 'Demo PM',
+        budget: 1000000
+      }
+    };
+    if (user && user.id === demoUserId) {
+      setCurrentEngagement(demoEngagement);
+      setIsLoading(false);
+      setError(null);
+      return;
+    }
+
     const initializeEngagement = async () => {
       try {
         const engagementId = sessionStorage.getItem(ENGAGEMENT_KEY);
@@ -109,13 +134,20 @@ export const EngagementProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return sessionStorage.getItem(ENGAGEMENT_KEY);
   };
 
+  const setDemoEngagement = (engagement: Engagement) => {
+    setCurrentEngagement(engagement);
+    setIsLoading(false);
+    setError(null);
+  };
+
   const value = {
     currentEngagement,
     isLoading,
     error,
     selectEngagement,
     clearEngagement,
-    getEngagementId
+    getEngagementId,
+    setDemoEngagement
   };
 
   return <EngagementContext.Provider value={value}>{children}</EngagementContext.Provider>;
@@ -135,13 +167,13 @@ export const withEngagement = <P extends object>(
 ) => {
   return function WithEngagementComponent(props: P) {
     const { currentEngagement, isLoading } = useEngagement();
-    const router = useRouter();
+    const navigate = useNavigate();
 
     useEffect(() => {
       if (!isLoading && requireEngagement && !currentEngagement) {
-        router.push('/engagements');
+        navigate('/engagements');
       }
-    }, [currentEngagement, isLoading, router]);
+    }, [currentEngagement, isLoading, navigate]);
 
     if (isLoading) {
       return (

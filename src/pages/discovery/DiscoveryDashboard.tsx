@@ -15,7 +15,7 @@ import {
   type DiscoveryMetrics,
   type ApplicationLandscape,
   type InfrastructureLandscape
-} from '../../api/hooks/useDiscoveryDashboard';
+} from '../../hooks/useDiscoveryDashboard';
 import { useAuth } from '../../contexts/AuthContext';
 
 // UI Components

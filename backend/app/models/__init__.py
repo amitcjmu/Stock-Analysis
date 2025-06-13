@@ -7,8 +7,8 @@ from .migration import Migration, MigrationLog, MigrationStatus, MigrationPhase
 from .asset import Asset, AssetDependency, AssetType, AssetStatus, SixRStrategy, MigrationWave, WorkflowProgress
 from .assessment import Assessment, WavePlan, AssessmentType, AssessmentStatus, RiskLevel
 from .sixr_analysis import (
-    SixRParameters, SixRIteration, SixRRecommendation,
-    SixRQuestion, SixRQuestionResponse, SixRAnalysis
+    SixRIteration, SixRRecommendation,
+    SixRQuestion, SixRQuestionResponse, SixRAnalysis, SixRAnalysisParameters
 )
 
 # New multi-tenant models (primary imports)
@@ -91,7 +91,7 @@ __all__ = [
     
     # 6R Analysis models
     "SixRAnalysis",
-    "SixRParameters",
+    "SixRAnalysisParameters",
     "SixRIteration",
     "SixRRecommendation",
     "SixRQuestion",

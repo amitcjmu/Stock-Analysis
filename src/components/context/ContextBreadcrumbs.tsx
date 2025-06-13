@@ -2,8 +2,8 @@ import React from 'react';
 import { ChevronRight, Home, Building2, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { useClients } from '@/api/hooks/useClients';
-import { useEngagements } from '@/api/hooks/useEngagements';
+import { useClients } from '../../hooks/useClients';
+import { useEngagements } from '../../hooks/useEngagements';
 import { useSessions } from '@/contexts/SessionContext';
 import { SessionSelector } from '../session/SessionSelector';
 

@@ -76,4 +76,4 @@ const NavigationSidebar: React.FC = () => {
   );
 };
 
-export default NavigationSidebar;
+export { NavigationSidebar };

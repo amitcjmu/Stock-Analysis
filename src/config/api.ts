@@ -30,12 +30,12 @@ const getBackendUrl = (): string => {
   if (import.meta.env.VITE_BACKEND_URL) {
     const backendUrl = import.meta.env.VITE_BACKEND_URL;
     // Remove /api/v1 suffix if it exists to get the base URL
-    return backendUrl.replace(/\/api\/v1$/, '');
+    return backendUrl;
   }
   
   // Priority 2: Legacy VITE_API_BASE_URL
   if (import.meta.env.VITE_API_BASE_URL) {
-    return import.meta.env.VITE_API_BASE_URL.replace(/\/api\/v1$/, '');
+    return import.meta.env.VITE_API_BASE_URL;
   }
   
   // Priority 3: Check if we're in production mode with Vercel
@@ -71,83 +71,84 @@ export const API_CONFIG = {
   BASE_URL: getBackendUrl(),
   ENDPOINTS: {
     DISCOVERY: {
-      AGENT_ANALYSIS: '/api/v1/discovery/agents/agent-analysis',
-      ANALYZE_CMDB: '/api/v1/discovery/analyze-cmdb',
-      PROCESS_CMDB: '/api/v1/discovery/process-cmdb',
-      CMDB_TEMPLATES: '/api/v1/discovery/cmdb-templates',
-      CMDB_FEEDBACK: '/api/v1/discovery/cmdb-feedback',
-      ASSETS: '/api/v1/assets/list/paginated',
-      ASSETS_BULK: '/api/v1/discovery/assets/bulk',
-      ASSETS_CLEANUP: '/api/v1/discovery/assets/cleanup-duplicates',
-      APPLICATIONS: '/api/v1/discovery/applications',
-      APP_MAPPINGS: '/api/v1/discovery/app-server-mappings',
-      FEEDBACK: '/api/v1/discovery/feedback',
-      CHAT: '/api/v1/discovery/chat-test',
+      AGENT_ANALYSIS: '/discovery/agents/agent-analysis',
+      ANALYZE_CMDB: '/discovery/analyze-cmdb',
+      PROCESS_CMDB: '/discovery/process-cmdb',
+      CMDB_TEMPLATES: '/discovery/cmdb-templates',
+      CMDB_FEEDBACK: '/discovery/cmdb-feedback',
+      ASSETS: '/assets/list/paginated',
+      ASSETS_BULK: '/discovery/assets/bulk',
+      ASSETS_CLEANUP: '/discovery/assets/cleanup-duplicates',
+      APPLICATIONS: '/discovery/applications',
+      APP_MAPPINGS: '/discovery/app-server-mappings',
+      FEEDBACK: '/discovery/feedback',
+      CHAT: '/discovery/chat-test',
       // New discovery dashboard endpoints
-      DISCOVERY_METRICS: '/api/v1/discovery/assets/discovery-metrics',
-      APPLICATION_LANDSCAPE: '/api/v1/discovery/assets/application-landscape',
-      INFRASTRUCTURE_LANDSCAPE: '/api/v1/discovery/assets/infrastructure-landscape',
+      DISCOVERY_METRICS: '/discovery/assets/discovery-metrics',
+      APPLICATION_LANDSCAPE: '/discovery/assets/application-landscape',
+      INFRASTRUCTURE_LANDSCAPE: '/discovery/assets/infrastructure-landscape',
       // Agent endpoints
-      AGENT_CLARIFICATION: '/api/v1/discovery/agents/agent-clarification',
-      AGENT_STATUS: '/api/v1/discovery/agents/agent-status',
-      AGENT_LEARNING: '/api/v1/discovery/agents/agent-learning',
-      APPLICATION_PORTFOLIO: '/api/v1/discovery/agents/application-portfolio',
-      APPLICATION_VALIDATION: '/api/v1/discovery/agents/application-validation',
-      READINESS_ASSESSMENT: '/api/v1/discovery/agents/readiness-assessment',
+      AGENT_CLARIFICATION: '/discovery/agents/agent-clarification',
+      AGENT_STATUS: '/discovery/agents/agent-status',
+      AGENT_LEARNING: '/discovery/agents/agent-learning',
+      APPLICATION_PORTFOLIO: '/discovery/agents/application-portfolio',
+      APPLICATION_VALIDATION: '/discovery/agents/application-validation',
+      READINESS_ASSESSMENT: '/discovery/agents/readiness-assessment',
       // Assessment Readiness Orchestrator endpoints
-      ASSESSMENT_READINESS: '/api/v1/discovery/agents/assessment-readiness',
-      STAKEHOLDER_SIGNOFF_PACKAGE: '/api/v1/discovery/agents/stakeholder-signoff-package',
-      STAKEHOLDER_SIGNOFF_FEEDBACK: '/api/v1/discovery/agents/stakeholder-signoff-feedback',
+      ASSESSMENT_READINESS: '/discovery/agents/assessment-readiness',
+      STAKEHOLDER_SIGNOFF_PACKAGE: '/discovery/agents/stakeholder-signoff-package',
+      STAKEHOLDER_SIGNOFF_FEEDBACK: '/discovery/agents/stakeholder-signoff-feedback',
       // Tech Debt Analysis endpoints
-      TECH_DEBT_ANALYSIS: '/api/v1/discovery/agents/tech-debt-analysis',
-      TECH_DEBT_FEEDBACK: '/api/v1/discovery/agents/tech-debt-feedback',
+      TECH_DEBT_ANALYSIS: '/discovery/agents/tech-debt-analysis',
+      TECH_DEBT_FEEDBACK: '/discovery/agents/tech-debt-feedback',
       // Dependency Analysis endpoints
-      DEPENDENCY_ANALYSIS: '/api/v1/discovery/agents/dependency-analysis',
-      DEPENDENCY_FEEDBACK: '/api/v1/discovery/agents/dependency-feedback',
-      DEPENDENCIES: '/api/v1/discovery/dependencies',
-      EXPORT_VISUALIZATION: '/api/v1/discovery/dependencies/export-visualization',
+      DEPENDENCY_ANALYSIS: '/discovery/agents/dependency-analysis',
+      DEPENDENCY_FEEDBACK: '/discovery/agents/dependency-feedback',
+      DEPENDENCIES: '/discovery/dependencies',
+      EXPORT_VISUALIZATION: '/discovery/dependencies/export-visualization',
       // Data cleanup endpoints  
-      DATA_CLEANUP_ANALYZE: '/api/v1/discovery/data-cleanup/agent-analyze',
-      DATA_CLEANUP_PROCESS: '/api/v1/discovery/data-cleanup/agent-process',
+      DATA_CLEANUP_ANALYZE: '/discovery/data-cleanup/agent-analyze',
+      DATA_CLEANUP_PROCESS: '/discovery/data-cleanup/agent-process',
       // Data import persistence endpoints
-      STORE_IMPORT: '/api/v1/assets/bulk-create',
-      STORE_IMPORT_TEMP: '/api/v1/data-import/store-import-temp',
-      LATEST_IMPORT: '/api/v1/data-import/latest-import',
-      LATEST_IMPORT_TEMP: '/api/v1/data-import/latest-import-temp',
-      GET_IMPORT: '/api/v1/data-import/import',
-      LIST_IMPORTS: '/api/v1/data-import/imports',
-      AVAILABLE_TARGET_FIELDS: '/api/v1/data-import/available-target-fields',
-      CRITICAL_ATTRIBUTES_STATUS: '/api/v1/data-import/critical-attributes-status'
+      STORE_IMPORT: '/assets/bulk-create',
+      STORE_IMPORT_TEMP: '/data-import/store-import-temp',
+      LATEST_IMPORT: '/data-import/latest-import',
+      LATEST_IMPORT_TEMP: '/data-import/latest-import-temp',
+      GET_IMPORT: '/data-import/import',
+      LIST_IMPORTS: '/data-import/imports',
+      AVAILABLE_TARGET_FIELDS: '/data-import/available-target-fields',
+      CRITICAL_ATTRIBUTES_STATUS: '/data-import/critical-attributes-status'
     },
     MONITORING: {
-      STATUS: '/api/v1/monitoring/status',
-      TASKS: '/api/v1/monitoring/tasks',
-      AGENTS: '/api/v1/monitoring/agents',
-      HEALTH: '/api/v1/monitoring/health',
-      METRICS: '/api/v1/monitoring/metrics',
-      CANCEL_TASK: '/api/v1/monitoring/tasks'
+      STATUS: '/monitoring/status',
+      TASKS: '/monitoring/tasks',
+      AGENTS: '/monitoring/agents',
+      HEALTH: '/monitoring/health',
+      METRICS: '/monitoring/metrics',
+      CANCEL_TASK: '/monitoring/tasks'
     },
     ADMIN: {
-      CLIENTS: '/api/v1/admin/clients',
-      ENGAGEMENTS: '/api/v1/admin/engagements',
-      USERS: '/api/v1/admin/users',
-      USER_PROFILES: '/api/v1/admin/user-profiles',
-      CLIENT_ACCESS: '/api/v1/admin/client-access',
-      ENGAGEMENT_ACCESS: '/api/v1/admin/engagement-access'
+      CLIENTS: '/admin/clients',
+      DEFAULT_CLIENT: '/context/clients/default',
+      ENGAGEMENTS: '/admin/engagements',
+      USERS: '/admin/users',
+      USER_PROFILES: '/admin/user-profiles',
+      CLIENT_ACCESS: '/admin/client-access',
+      ENGAGEMENT_ACCESS: '/admin/engagement-access'
     },
     AGENT_LEARNING: {
-      LEARNING_STATISTICS: '/api/v1/agent-learning/learning/stats',
-      FIELD_MAPPING_LEARN: '/api/v1/agent-learning/learning/field-mapping',
-      FIELD_MAPPING_SUGGEST: '/api/v1/agent-learning/learning/field-mapping/suggest',
-      DATA_SOURCE_PATTERN: '/api/v1/agent-learning/learning/data-source-pattern',
-      QUALITY_ASSESSMENT: '/api/v1/agent-learning/learning/quality-assessment',
-      USER_PREFERENCES: '/api/v1/agent-learning/learning/user-preferences',
-      AGENT_PERFORMANCE: '/api/v1/agent-learning/learning/agent-performance',
-      HEALTH: '/api/v1/agent-learning/health'
+      LEARNING_STATISTICS: '/agent-learning/learning/stats',
+      FIELD_MAPPING_LEARN: '/agent-learning/learning/field-mapping',
+      FIELD_MAPPING_SUGGEST: '/agent-learning/learning/field-mapping/suggest',
+      DATA_SOURCE_PATTERN: '/agent-learning/learning/data-source-pattern',
+      QUALITY_ASSESSMENT: '/agent-learning/learning/quality-assessment',
+      USER_PREFERENCES: '/agent-learning/learning/user-preferences',
+      AGENT_PERFORMANCE: '/agent-learning/learning/agent-performance',
+      HEALTH: '/agent-learning/health'
     },
     HEALTH: '/health',
     // SIXR Endpoints
-    SIXR_ANALYSIS: '/api/v1/sixr/analyze'
+    SIXR_ANALYSIS: '/sixr/analyze'
   }
 };
 

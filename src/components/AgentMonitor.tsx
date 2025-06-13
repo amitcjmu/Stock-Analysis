@@ -1,13 +1,60 @@
 import React from 'react';
 import { Bot, Loader2, AlertTriangle, Activity, Clock, Memory, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { useAgentMonitor } from '@/hooks/useAgentMonitor';
-import { Alert } from '@/components/ui/alert';
+import { Alert, AlertVariant } from '@/components/ui/alert';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 
+type AgentStatus = 'Active' | 'Idle' | 'Error' | 'Offline' | 'Success' | 'Failed' | 'In Progress' | 'Healthy' | 'Warning' | 'Critical';
+
+interface MemoryUsage {
+  current: number;
+  peak: number;
+}
+
+interface Performance {
+  success_rate: number;
+}
+
+interface Agent {
+  id: string;
+  name: string;
+  status: AgentStatus;
+  current_task?: string;
+  last_active: string;
+  memory_usage: MemoryUsage;
+  performance: Performance;
+}
+
+interface SystemHealth {
+  status: AgentStatus;
+  issues: string[];
+}
+
+interface Metrics {
+  active_agents: number;
+  total_agents: number;
+  total_tasks_completed: number;
+  average_success_rate: number;
+  system_health: SystemHealth;
+}
+
+interface Activity {
+  agent_name: string;
+  action: string;
+  timestamp: string;
+  status: AgentStatus;
+}
+
+interface MonitorData {
+  metrics: Metrics;
+  agents: Agent[];
+  recent_activities: Activity[];
+}
+
 const AgentMonitor = () => {
-  const { data, isLoading, isError, error } = useAgentMonitor();
+  const { data, isLoading, isError, error } = useAgentMonitor<MonitorData>();
 
   if (isLoading) {
     return (
@@ -25,14 +72,14 @@ const AgentMonitor = () => {
       <div className="p-8">
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <p>Error loading agent data: {error?.message}</p>
+          <p>Error loading agent data: {error instanceof Error ? error.message : 'Unknown error'}</p>
         </Alert>
       </div>
     );
   }
 
-  const getStatusColor = (status: string) => {
-    const colors = {
+  const getStatusColor = (status: AgentStatus): string => {
+    const colors: Record<AgentStatus, string> = {
       'Active': 'bg-green-100 text-green-800',
       'Idle': 'bg-yellow-100 text-yellow-800',
       'Error': 'bg-red-100 text-red-800',
@@ -64,11 +111,15 @@ const AgentMonitor = () => {
     return new Date(timestamp).toLocaleTimeString();
   };
 
+  const getAlertVariant = (status: AgentStatus): AlertVariant => {
+    return status === 'Critical' ? 'destructive' : 'warning';
+  };
+
   return (
     <div className="space-y-6">
       {/* System Health Alert */}
       {data.metrics.system_health.status !== 'Healthy' && (
-        <Alert variant={data.metrics.system_health.status === 'Critical' ? 'destructive' : 'warning'}>
+        <Alert variant={getAlertVariant(data.metrics.system_health.status)}>
           <AlertCircle className="h-4 w-4" />
           <div className="ml-2">
             <p className="font-medium">System Health: {data.metrics.system_health.status}</p>

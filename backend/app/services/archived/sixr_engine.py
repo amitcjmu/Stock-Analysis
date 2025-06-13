@@ -10,21 +10,13 @@ import math
 
 try:
     from app.schemas.sixr_analysis import (
-        SixRStrategy, SixRParameterBase, SixRRecommendation, 
+        SixRParameterBase, SixRRecommendation, 
         SixRRecommendationScore, ApplicationType
     )
+    from app.models.asset import SixRStrategy
 except ImportError:
     # Fallback for testing
     from enum import Enum
-    
-    class SixRStrategy(str, Enum):
-        REHOST = "rehost"
-        REPLATFORM = "replatform"
-        REFACTOR = "refactor"
-        REARCHITECT = "rearchitect"
-        REWRITE = "rewrite"
-        REPLACE = "replace"
-        RETIRE = "retire"
     
     class ApplicationType(str, Enum):
         CUSTOM = "custom"

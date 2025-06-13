@@ -13,7 +13,7 @@ from sqlalchemy import select, func
 
 from app.core.database import get_db, AsyncSessionLocal
 from app.models.sixr_analysis import (
-    SixRAnalysis, SixRParameters as SixRParametersModel, SixRIteration, 
+    SixRAnalysis, SixRAnalysisParameters as SixRParametersModel, SixRIteration, 
     SixRRecommendation as SixRRecommendationModel, SixRQuestionResponse
 )
 from app.schemas.sixr_analysis import (

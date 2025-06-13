@@ -23,12 +23,12 @@ if config.config_file_name is not None:
 # target_metadata = mymodel.Base.metadata
 
 # Import all models to ensure they are registered with SQLAlchemy
-try:
-    from app.core.database import Base
-    from app.models import *  # Import all models
-    target_metadata = Base.metadata
-except ImportError:
-    target_metadata = None
+# The following import is critical for Alembic to detect model changes.
+# It assumes that your models/__init__.py file imports all your model modules.
+from app.core.database import Base
+from app.models import *  # Import all models
+
+target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

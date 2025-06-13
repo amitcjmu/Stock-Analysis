@@ -10,21 +10,21 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 
 // Components
-import { ReadinessScoreCard } from './assessment-readiness/components/ReadinessScoreCard';
-import { ReadinessTabs } from './assessment-readiness/components/ReadinessTabs';
+import { ReadinessScoreCard } from './AssessmentReadiness/components/ReadinessScoreCard';
+import { ReadinessTabs } from './AssessmentReadiness/components/ReadinessTabs';
 
 // Hooks
 import { 
   useReadinessAssessment, 
   useGenerateSignoffPackage, 
   useSubmitForApproval 
-} from './assessment-readiness/hooks/useReadinessAssessment';
+} from './AssessmentReadiness/hooks/useReadinessAssessment';
 
 // Types
-import type { ReadinessAssessment, SignoffPackage } from './assessment-readiness/types';
+import type { ReadinessAssessment, SignoffPackage } from './AssessmentReadiness/types';
 
 // Utils
-import { getReadinessColor, getRiskColor } from './assessment-readiness/utils';
+import { getReadinessColor, getRiskColor } from './AssessmentReadiness/utils';
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {

@@ -4,89 +4,154 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ChatFeedbackProvider } from "./contexts/ChatFeedbackContext";
-import { AuthProvider } from "./contexts/AuthContext";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { ClientProvider, useClient } from "./contexts/ClientContext";
 import GlobalChatFeedback from "./components/GlobalChatFeedback";
 import { SessionProvider } from "./contexts/SessionContext";
-import { useAuth } from "./contexts/AuthContext";
 
 // Lazy-loaded components
 const PageLoader = () => <div>Loading...</div>;
-const LoginPage = lazy(() => import('./pages/Login'));
-const SessionSelectionPage = lazy(() => import('./components/session/SessionSelector'));
-const AssetInventoryPage = lazy(() => import('./pages/discovery/Inventory'));
-const CMDBImport = lazy(() => import('./pages/discovery/CMDBImport'));
-const AttributeMappingPage = lazy(() => import('./pages/discovery/AttributeMapping'));
-const AssessmentReadinessPage = lazy(() => import('./pages/discovery/AssessmentReadiness'));
-const DataCleansingPage = lazy(() => import('./pages/discovery/DataCleansing'));
-const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
-const UserApprovals = lazy(() => import('./pages/admin/UserApprovals'));
-const ClientManagement = lazy(() => import('./pages/admin/ClientManagement'));
-const EngagementManagement = lazy(() => import('./pages/admin/EngagementManagement'));
-const EngagementCreation = lazy(() => import('./pages/admin/CreateEngagement'));
-const SessionComparison = lazy(() => import('./components/admin/session-comparison/SessionComparisonMain'));
-const PlatformAdmin = lazy(() => import('./pages/admin/PlatformAdmin'));
-const NotFoundPage = lazy(() => import('./pages/NotFound'));
-const DiscoveryDashboard = lazy(() => import('./pages/discovery/DiscoveryDashboard'));
-const IndexPage = lazy(() => import('./pages/Index'));
+const LoginPage = lazy(() => import("./pages/Login"));
+const SessionSelectionPage = lazy(() => import("./components/session/SessionSelector"));
+const AssetInventoryPage = lazy(() => import("./pages/discovery/Inventory"));
+const CMDBImport = lazy(() => import("./pages/discovery/CMDBImport"));
+const AttributeMappingPage = lazy(() => import("./pages/discovery/AttributeMapping"));
+const AssessmentReadinessPage = lazy(() => import("./pages/discovery/AssessmentReadiness"));
+const DataCleansingPage = lazy(() => import("./pages/discovery/DataCleansing"));
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const UserApprovals = lazy(() => import("./pages/admin/UserApprovals"));
+const ClientManagement = lazy(() => import("./pages/admin/ClientManagement"));
+const EngagementManagement = lazy(() => import("./pages/admin/EngagementManagement"));
+const EngagementCreation = lazy(() => import("./pages/admin/CreateEngagement"));
+const SessionComparison = lazy(() => import("./components/admin/session-comparison/SessionComparisonMain"));
+const PlatformAdmin = lazy(() => import("./pages/admin/PlatformAdmin"));
+const NotFoundPage = lazy(() => import("./pages/NotFound"));
+const DiscoveryDashboard = lazy(() => import("./pages/discovery/DiscoveryDashboard"));
+const IndexPage = lazy(() => import("./pages/Index"));
+const Assess = lazy(() => import("./pages/Assess"));
+const Plan = lazy(() => import("./pages/Plan"));
+const Execute = lazy(() => import("./pages/Execute"));
+const ExecuteIndex = lazy(() => import("./pages/execute/Index"));
+const Replatform = lazy(() => import("./pages/execute/Replatform"));
+const Modernize = lazy(() => import("./pages/Modernize"));
+const ModernizeIndex = lazy(() => import("./pages/modernize/Index"));
+const Rearchitect = lazy(() => import("./pages/modernize/Rearchitect"));
+const FinOps = lazy(() => import("./pages/FinOps"));
+const Decommission = lazy(() => import("./pages/Decommission"));
+const DecommissionIndex = lazy(() => import("./pages/decommission/Index"));
+const DecommissionPlanning = lazy(() => import("./pages/decommission/Planning"));
+const DecommissionExecution = lazy(() => import("./pages/decommission/Execution"));
+
 const ProtectedRoute = () => {
-    const { isAuthenticated, isLoading } = useAuth();
-    if (isLoading) {
+    const { user, isLoading: authLoading } = useAuth();
+    const { currentClient, isLoading: clientLoading } = useClient();
+    
+    // First check if we're still loading
+    if (authLoading || clientLoading) {
         return <div>Loading...</div>;
     }
-    if (!isAuthenticated) {
+    
+    // Then check authentication - this must be first!
+    if (!user) {
         return <Navigate to="/login" replace />;
     }
+    
+    // Only check client context if user is authenticated
+    if (user.role === 'admin' && !currentClient && !window.location.pathname.startsWith('/admin')) {
+        return <Navigate to="/admin/dashboard" replace />;
+    }
+    
+    if (user.role !== 'admin' && !currentClient) {
+        return <Navigate to="/session/select" replace />;
+    }
+    
     return <Outlet />;
 };
 
-const App = () => (
-    <AuthProvider>
-        <SessionProvider>
-            <ChatFeedbackProvider>
-                <TooltipProvider>
-                    <Toaster />
-                    <Sonner />
-                    <Suspense fallback={<PageLoader />}>
-                        <Routes>
-                            <Route path="/login" element={<LoginPage />} />
-                            <Route path="/session/select" element={<SessionSelectionPage />} />
+const AdminRoute = () => {
+    const { user, isLoading } = useAuth();
+    
+    if (isLoading) {
+        return <div>Loading...</div>;
+    }
+    
+    if (!user || user.role !== 'admin') {
+        return <Navigate to="/" replace />;
+    }
+    
+    return <Outlet />;
+};
 
-                            <Route element={<ProtectedRoute />}>
-                                <Route path="/" element={<IndexPage />} />
-                                
-                                <Route path="/discovery" element={<DiscoveryDashboard />} />
-                                <Route path="/discovery/assessment" element={<AssessmentReadinessPage />} />
-                                <Route path="/discovery/asset-inventory" element={<AssetInventoryPage />} />
-                                <Route path="/discovery/inventory" element={<AssetInventoryPage />} />
-                                <Route path="/discovery/import" element={<CMDBImport />} />
-                                <Route path="/discovery/attribute-mapping" element={<AttributeMappingPage />} />
-                                <Route path="/discovery/assessment-readiness" element={<AssessmentReadinessPage />} />
-                                <Route path="/discovery/data-cleansing/:fileId" element={<DataCleansingPage />} />
+const DemoBanner = () => {
+    const { user } = useAuth();
+    const isDemoUser = user && user.id === '44444444-4444-4444-4444-444444444444';
+    if (!isDemoUser) return null;
+    return (
+        <div style={{ background: '#ffecb3', color: '#b26a00', padding: '8px', textAlign: 'center', fontWeight: 'bold', zIndex: 1000 }}>
+            <span>Demo Mode</span>: You are exploring the app with demo data. Some features may be read-only or simulated.
+        </div>
+    );
+};
 
-                                <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                                <Route path="/admin/user-approvals" element={<UserApprovals />} />
-                                <Route path="/admin/client-management" element={<ClientManagement />} />
-                                <Route path="/admin/engagements" element={<EngagementManagement />} />
-                                <Route path="/admin/engagements/new" element={<EngagementCreation />} />
-                                <Route path="/admin/sessions" element={<SessionComparison />} />
-                                <Route path="/admin/platform" element={<PlatformAdmin />} />
-                                
-                                <Route path="/plan/*" element={<div>Plan Section</div>} />
-                                <Route path="/execute/*" element={<div>Execute Section</div>} />
-                                <Route path="/modernize/*" element={<div>Modernize Section</div>} />
-                                <Route path="/assess/*" element={<div>Assess Section</div>} />
-                                <Route path="/finops/*" element={<div>FinOps Section</div>} />
-                                <Route path="/decommission/*" element={<div>Decommission Section</div>} />
-                            </Route>
+const App = () => {
+    return (
+        <AuthProvider>
+            <ClientProvider>
+            <SessionProvider>
+                <ChatFeedbackProvider>
+                    <TooltipProvider>
+                        <DemoBanner />
+                        <Toaster />
+                        <Sonner />
+                        <Suspense fallback={<PageLoader />}>
+                            <Routes>
+                                <Route path="/login" element={<LoginPage />} />
+                                <Route path="/session/select" element={<SessionSelectionPage />} />
 
-                            <Route path="*" element={<NotFoundPage />} />
-                        </Routes>
-                    </Suspense>
-                    <GlobalChatFeedback />
-                </TooltipProvider>
-            </ChatFeedbackProvider>
-        </SessionProvider>
-    </AuthProvider>
-);
+                                <Route element={<ProtectedRoute />}>
+                                    <Route path="/" element={<IndexPage />} />
+                                    
+                                    <Route path="/discovery" element={<DiscoveryDashboard />} />
+                                    <Route path="/discovery/assessment" element={<AssessmentReadinessPage />} />
+                                    <Route path="/discovery/asset-inventory" element={<AssetInventoryPage />} />
+                                    <Route path="/discovery/inventory" element={<AssetInventoryPage />} />
+                                    <Route path="/discovery/import" element={<CMDBImport />} />
+                                    <Route path="/discovery/attribute-mapping" element={<AttributeMappingPage />} />
+                                    <Route path="/discovery/assessment-readiness" element={<AssessmentReadinessPage />} />
+                                    <Route path="/discovery/data-cleansing/:fileId" element={<DataCleansingPage />} />
+
+                                        <Route element={<AdminRoute />}>
+                                    <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                                    <Route path="/admin/user-approvals" element={<UserApprovals />} />
+                                    <Route path="/admin/client-management" element={<ClientManagement />} />
+                                    <Route path="/admin/engagements" element={<EngagementManagement />} />
+                                    <Route path="/admin/engagements/new" element={<EngagementCreation />} />
+                                    <Route path="/admin/sessions" element={<SessionComparison />} />
+                                    <Route path="/admin/platform" element={<PlatformAdmin />} />
+                                        </Route>
+                                    
+                                    <Route path="/plan" element={<Plan />} />
+                                    <Route path="/execute" element={<ExecuteIndex />} />
+                                    <Route path="/execute/replatform" element={<Replatform />} />
+                                    <Route path="/modernize" element={<ModernizeIndex />} />
+                                    <Route path="/modernize/rearchitect" element={<Rearchitect />} />
+                                    <Route path="/assess" element={<Assess />} />
+                                    <Route path="/finops" element={<FinOps />} />
+                                    <Route path="/decommission" element={<DecommissionIndex />} />
+                                    <Route path="/decommission/planning" element={<DecommissionPlanning />} />
+                                    <Route path="/decommission/execution" element={<DecommissionExecution />} />
+                                </Route>
+
+                                <Route path="*" element={<NotFoundPage />} />
+                            </Routes>
+                        </Suspense>
+                        <GlobalChatFeedback />
+                    </TooltipProvider>
+                </ChatFeedbackProvider>
+            </SessionProvider>
+            </ClientProvider>
+        </AuthProvider>
+    );
+};
 
 export default App;

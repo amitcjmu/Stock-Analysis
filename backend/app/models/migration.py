@@ -109,9 +109,11 @@ class Migration(Base):
         return (self.migrated_assets / self.total_assets) * 100
     
     def update_progress(self):
-        """Update progress based on current asset migration status."""
-        # This will be implemented when we have asset migration tracking
-        pass
+        """Update progress based on current asset migration status.
+
+        Placeholder: implement once asset migration tracking is available.
+        """
+        raise NotImplementedError("update_progress not yet implemented – awaits asset migration tracking feature")
 
 
 class MigrationLog(Base):

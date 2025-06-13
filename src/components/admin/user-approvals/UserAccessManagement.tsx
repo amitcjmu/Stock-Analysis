@@ -75,7 +75,7 @@ export const UserAccessManagement: React.FC = () => {
 
   const loadUsers = async () => {
     try {
-      const response = await apiCall('/api/v1/auth/active-users', {
+      const response = await apiCall('/auth/active-users', {
         headers: getAuthHeaders()
       });
 
@@ -120,7 +120,7 @@ export const UserAccessManagement: React.FC = () => {
 
   const loadClients = async () => {
     try {
-      const response = await apiCall('/api/v1/admin/clients/?page_size=100', {
+      const response = await apiCall('/admin/clients/?page_size=100', {
         headers: getAuthHeaders()
       });
 
@@ -149,7 +149,7 @@ export const UserAccessManagement: React.FC = () => {
 
   const loadEngagements = async () => {
     try {
-      const response = await apiCall('/api/v1/admin/engagements/?page_size=100', {
+      const response = await apiCall('/admin/engagements/?page_size=100', {
         headers: getAuthHeaders()
       });
 

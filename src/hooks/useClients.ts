@@ -1,21 +1,40 @@
-import { useQuery } from '@tanstack/react-query';
-import { apiCall } from '@/lib/api';
+import { useQuery } from "@tanstack/react-query";
+import { apiCall } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
-// This is a placeholder type. You should replace this with the actual Client type from your backend.
 export interface Client {
   id: string;
   name: string;
+  status: 'active' | 'inactive';
+  type: 'enterprise' | 'mid-market' | 'startup';
+  created_at: string;
+  updated_at: string;
+  metadata: Record<string, any>;
 }
 
-const clientsQueryKey = () => ['clients'];
-
 export const useClients = () => {
+  const { user } = useAuth();
+
   return useQuery<Client[]>({
-    queryKey: clientsQueryKey(),
+    queryKey: ["clients", user?.id],
     queryFn: async (): Promise<Client[]> => {
-      // Replace with your actual API endpoint for listing clients
-      return await apiCall('/api/v1/admin/clients');
+      try {
+        // If user is admin, get all clients
+        if (user?.role === "admin") {
+          const clients = await apiCall("/admin/clients");
+          if (clients && clients.length > 0) return clients;
+        }
+
+        // For non-admin users or if no clients found, get default client
+        const defaultClient = await apiCall("/clients/default");
+        return defaultClient ? [defaultClient] : [];
+      } catch (error) {
+        console.error("Error fetching clients:", error);
+        throw error; // Let React Query handle the error
+      }
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 2, // Retry failed requests twice
+    refetchOnWindowFocus: false // Don't refetch when window regains focus
   });
 }; 

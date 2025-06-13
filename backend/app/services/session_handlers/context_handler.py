@@ -22,6 +22,12 @@ class ContextHandler(BaseHandler):
         self._current_session = None
         self._available_sessions = []
     
+    async def get_demo_client(self) -> Optional[ClientAccount]:
+        """Get the demo client from the database."""
+        query = select(ClientAccount).where(ClientAccount.is_demo == True)
+        result = await self.db.execute(query)
+        return result.scalar_one_or_none()
+    
     async def get_user_context(self, user_id: UUID) -> UserContext:
         """
         Get the complete context for the current user.
@@ -39,12 +45,34 @@ class ContextHandler(BaseHandler):
                 detail="User not found"
             )
         
-        # If no default engagement, get the first available one
-        engagement = user.default_engagement
-        if not engagement and user.engagements:
-            engagement = user.engagements[0]
-            user.default_engagement = engagement
-            await self.db.commit()
+        # Get client and engagement
+        client = None
+        engagement = None
+        
+        # If user has client accounts, use the first one
+        if user.client_accounts:
+            client = user.client_accounts[0]
+            # Get the first engagement for this client
+            query = (
+                select(Engagement)
+                .where(Engagement.client_account_id == client.id)
+                .order_by(Engagement.created_at.desc())
+            )
+            result = await self.db.execute(query)
+            engagement = result.scalar_one_or_none()
+        
+        # If no client found, try to get demo client
+        if not client:
+            client = await self.get_demo_client()
+            if client:
+                # Get the first engagement for demo client
+                query = (
+                    select(Engagement)
+                    .where(Engagement.client_account_id == client.id)
+                    .order_by(Engagement.created_at.desc())
+                )
+                result = await self.db.execute(query)
+                engagement = result.scalar_one_or_none()
         
         # Get sessions for the engagement
         session = None
@@ -72,7 +100,7 @@ class ContextHandler(BaseHandler):
         
         return UserContext(
             user=user,
-            client=ClientBase.model_validate(engagement.client_account) if engagement else None,
+            client=ClientBase.model_validate(client) if client else None,
             engagement=EngagementBase.model_validate(engagement) if engagement else None,
             session=SessionBase.model_validate(session) if session else None,
             available_sessions=[SessionBase.model_validate(s) for s in available_sessions]

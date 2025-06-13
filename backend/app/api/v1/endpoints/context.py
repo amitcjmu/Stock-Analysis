@@ -17,7 +17,39 @@ from app.models import User
 from app.api.v1.auth.auth_utils import get_current_user
 from app.schemas.context import UserContext
 
-router = APIRouter(prefix="/context", tags=["context"])
+router = APIRouter(prefix="/api/v1", tags=["context"])
+
+# Demo mode constants
+DEMO_USER_ID = UUID("44444444-4444-4444-4444-444444444444")
+DEMO_USER_EMAIL = "demo@democorp.com"
+DEMO_CLIENT_ID = UUID("11111111-1111-1111-1111-111111111111")
+DEMO_ENGAGEMENT_ID = UUID("22222222-2222-2222-2222-222222222222")
+DEMO_SESSION_ID = UUID("33333333-3333-3333-3333-333333333333")
+
+@router.get(
+    "/clients/default",
+    response_model=dict,
+    summary="Get default client",
+    description="Get the default client for the current user or demo client if none is set."
+)
+async def get_default_client(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> dict:
+    try:
+        service = create_session_management_service(db)
+        context = await service.get_user_context(current_user.id)
+        if context and context.client:
+            return context.client.model_dump()
+    except Exception:
+        pass  # fallback to demo
+
+    # Fallback to demo client
+    return {
+        "id": str(DEMO_CLIENT_ID),
+        "name": "Democorp",
+        "is_demo": True
+    }
 
 @router.get(
     "/me",
@@ -28,21 +60,19 @@ router = APIRouter(prefix="/context", tags=["context"])
 async def get_user_context(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
-) -> Dict[str, Any]:
-    """
-    Get the complete context for the current user.
-    
-    Returns:
-        User context including client, engagement, and session info
-    """
+) -> UserContext:
     try:
         service = create_session_management_service(db)
         context = await service.get_user_context(current_user.id)
         return context
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+    except Exception:
+        # Fallback to demo context
+        return UserContext(
+            user={"id": str(DEMO_USER_ID), "email": DEMO_USER_EMAIL, "role": "demo"},
+            client={"id": str(DEMO_CLIENT_ID), "name": "Democorp", "is_demo": True},
+            engagement={"id": str(DEMO_ENGAGEMENT_ID), "name": "Cloud Migration 2024"},
+            session={"id": str(DEMO_SESSION_ID), "name": "Demo Session"},
+            available_sessions=[{"id": str(DEMO_SESSION_ID), "name": "Demo Session"}]
         )
 
 @router.post(

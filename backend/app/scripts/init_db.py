@@ -14,6 +14,7 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text, select
 import argparse
+from enum import Enum
 
 # Add the parent directory to the path so we can import our app modules
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -36,6 +37,13 @@ except ImportError as e:
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# --- Static UUIDs for Demo Mode ---
+DEMO_CLIENT_ID = uuid.UUID("11111111-1111-1111-1111-111111111111")
+DEMO_ENGAGEMENT_ID = uuid.UUID("22222222-2222-2222-2222-222222222222")
+DEMO_SESSION_ID = uuid.UUID("33333333-3333-3333-3333-333333333333")
+DEMO_USER_ID = uuid.UUID("44444444-4444-4444-4444-444444444444")
+ADMIN_USER_ID = uuid.UUID("55555555-5555-5555-5555-555555555555")
 
 # Mock data based on Azure Migrate metadata and common migration scenarios
 MOCK_DATA = {
@@ -137,7 +145,7 @@ MOCK_DATA = {
             "technology_stack": "IIS, ASP.NET, SQL Server",
             "criticality": "High",
             "status": AssetStatus.DISCOVERED,
-            "six_r_strategy": SixRStrategy.REHOST,
+            "six_r_strategy": SixRStrategy.REHOST.value,
             "migration_complexity": "Medium",
             "migration_wave": 1,
             "sixr_ready": "Ready",
@@ -169,7 +177,7 @@ MOCK_DATA = {
             "technology_stack": "SQL Server 2016, Always On",
             "criticality": "Critical",
             "status": AssetStatus.DISCOVERED,
-            "six_r_strategy": SixRStrategy.REPLATFORM,
+            "six_r_strategy": SixRStrategy.REPLATFORM.value,
             "migration_complexity": "High",
             "migration_wave": 2,
             "sixr_ready": "Needs Analysis",
@@ -199,7 +207,7 @@ MOCK_DATA = {
             "technology_stack": "Java Spring Boot, PostgreSQL",
             "criticality": "Medium",
             "status": AssetStatus.DISCOVERED,
-            "six_r_strategy": SixRStrategy.REFACTOR,
+            "six_r_strategy": SixRStrategy.REFACTOR.value,
             "migration_complexity": "Medium",
             "migration_wave": 3,
             "sixr_ready": "Ready",
@@ -225,7 +233,7 @@ MOCK_DATA = {
             "technology_stack": "Cisco Catalyst 9500",
             "criticality": "Critical",
             "status": AssetStatus.DISCOVERED,
-            "six_r_strategy": SixRStrategy.RETAIN,
+            "six_r_strategy": SixRStrategy.RETAIN.value,
             "migration_complexity": "Low",
             "sixr_ready": "Not Applicable",
             "discovery_method": "snmp_scan",
@@ -245,7 +253,7 @@ MOCK_DATA = {
             "technology_stack": "Palo Alto PA-5220",
             "criticality": "Critical",
             "status": AssetStatus.DISCOVERED,
-            "six_r_strategy": SixRStrategy.REPLATFORM,
+            "six_r_strategy": SixRStrategy.REPLATFORM.value,
             "migration_complexity": "Medium",
             "migration_wave": 1,
             "sixr_ready": "Needs Analysis",
@@ -267,7 +275,7 @@ MOCK_DATA = {
             "technology_stack": "Dell EMC PowerStore 9200T",
             "criticality": "High",
             "status": AssetStatus.DISCOVERED,
-            "six_r_strategy": SixRStrategy.REPLATFORM,
+            "six_r_strategy": SixRStrategy.REPLATFORM.value,
             "migration_complexity": "High",
             "migration_wave": 2,
             "sixr_ready": "Needs Analysis",
@@ -285,219 +293,182 @@ def generate_mock_embedding(text: str) -> List[float]:
     return np.random.rand(1536).tolist()
 
 
-async def create_mock_client_account(session: AsyncSession) -> str:
+async def create_mock_client_account(session: AsyncSession) -> uuid.UUID:
     """Creates mock client account if it doesn't exist."""
-    
     client_data = MOCK_DATA["client_accounts"][0]
-    
-    existing_client_result = await session.execute(
-        text(f"SELECT id FROM client_accounts WHERE slug = '{client_data['slug']}'")
+    client = ClientAccount(
+        id=DEMO_CLIENT_ID,
+        **client_data,
+        is_mock=True
     )
-    existing_client_row = existing_client_result.first()
-    if existing_client_row:
-        logger.info(f"Client account '{client_data['name']}' already exists.")
-        return str(existing_client_row[0])
-    
-    new_client = ClientAccount(**client_data, is_mock=True)
-    session.add(new_client)
+    await session.merge(client) # Use merge to handle potential pre-existence
     await session.flush()
-    await session.refresh(new_client)
-    
-    logger.info(f"Created mock client account: {new_client.name}")
-    return str(new_client.id)
+    logger.info(f"Created mock client account: {client.name}")
+    return client.id
 
 
-async def create_mock_users(session: AsyncSession, client_account_id: str) -> List[str]:
+async def create_mock_users(session: AsyncSession, client_account_id: uuid.UUID) -> Dict[str, uuid.UUID]:
     """Creates mock users and associates them with the client account."""
     user_ids = {}
-    
+    user_definitions = {
+        "demo@democorp.com": DEMO_USER_ID,
+        "admin@democorp.com": ADMIN_USER_ID
+    }
+
     for user_data in MOCK_DATA["users"]:
-        
-        existing_user_result = await session.execute(
-            text(f"SELECT id FROM users WHERE email = '{user_data['email']}'")
-        )
-        existing_user_row = existing_user_result.first()
-        if existing_user_row:
-            user_id = str(existing_user_row[0])
-            user_ids[user_data['email']] = user_id
-            logger.info(f"User with email '{user_data['email']}' already exists.")
-            
-            # Check for association
-            assoc_stmt = text(f"SELECT 1 FROM user_account_associations WHERE user_id = '{user_id}' AND client_account_id = '{client_account_id}'")
-            existing_assoc = await session.execute(assoc_stmt)
-            if not existing_assoc.first():
-                 association = UserAccountAssociation(
-                    user_id=user_id,
-                    client_account_id=client_account_id,
-                    role="admin" if "admin" in user_data["email"] else "member"
-                )
-                 session.add(association)
+        email = user_data["email"]
+        if email not in user_definitions:
             continue
 
-        hashed_password = bcrypt.hashpw(
-            user_data["password"].encode('utf-8'), 
-            bcrypt.gensalt()
-        ).decode('utf-8')
+        user_id = user_definitions[email]
+        hashed_password = bcrypt.hashpw(user_data["password"].encode('utf-8'), bcrypt.gensalt())
         
         user = User(
-            email=user_data["email"],
-            password_hash=hashed_password,
+            id=user_id,
+            email=email,
+            password_hash=hashed_password.decode('utf-8'),
             first_name=user_data["first_name"],
             last_name=user_data["last_name"],
-            is_verified=user_data.get("is_verified", False),
-            is_active=True,
+            is_verified=user_data["is_verified"],
             is_mock=True
         )
-        
-        session.add(user)
-        await session.flush() # Flush to get the user.id
-        await session.refresh(user)
-        
+        await session.merge(user)
+        await session.flush()
+        logger.info(f"Created mock user: {user.email}")
+        user_ids[user.email] = user.id
+
         # Associate user with the client account
         association = UserAccountAssociation(
             user_id=user.id,
             client_account_id=client_account_id,
-            role="admin" if "admin" in user.email else "member"
+            role='admin' if 'admin' in user.email else 'user',
+            is_mock=True
         )
-        session.add(association)
-        
-        user_ids[user_data['email']] = str(user.id)
-        logger.info(f"Created mock user: {user.email}")
-    
+        # Use merge for idempotency
+        await session.merge(association)
+        await session.flush()
+        logger.info(f"Associated {user.email} with client account.")
+
     return user_ids
 
 
-async def create_mock_engagement(session: AsyncSession, client_account_id: str, user_id: str) -> str:
-    """Creates a mock engagement for the demo client."""
+async def create_mock_engagement(session: AsyncSession, client_account_id: uuid.UUID, user_id: uuid.UUID) -> uuid.UUID:
+    """Creates a mock engagement for the client account."""
     engagement_data = MOCK_DATA["engagements"][0]
-    
-    # Check if engagement already exists
-    existing_engagement_id = await session.execute(
-        select(Engagement.id).where(
-            Engagement.slug == engagement_data["slug"],
-            Engagement.client_account_id == uuid.UUID(client_account_id)
-        )
-    )
-    if existing_engagement_id.scalar_one_or_none():
-        logger.info(f"Mock engagement '{engagement_data['name']}' already exists.")
-        return str(existing_engagement_id.scalar_one())
-
     engagement = Engagement(
-        id=uuid.uuid4(),
-        client_account_id=uuid.UUID(client_account_id),
-        name=engagement_data["name"],
-        slug=engagement_data["slug"],
-        description=engagement_data["description"],
-        engagement_type=engagement_data["engagement_type"],
-        status=engagement_data["status"],
-        priority=engagement_data["priority"],
-        client_contact_name=engagement_data["client_contact_name"],
-        client_contact_email=engagement_data["client_contact_email"],
-        created_by=uuid.UUID(user_id) if user_id else None,
+        id=DEMO_ENGAGEMENT_ID,
+        **engagement_data,
+        client_account_id=client_account_id,
+        created_by=user_id,
         is_mock=True
     )
     session.add(engagement)
-    await session.flush()
+    await session.flush() # Flush to get the ID before the transaction commits
     logger.info(f"Created mock engagement: {engagement.name}")
     return str(engagement.id)
 
 
-async def create_mock_tags(session: AsyncSession, client_account_id: str) -> Dict[str, str]:
+async def create_mock_tags(session: AsyncSession, client_account_id: uuid.UUID) -> Dict[str, uuid.UUID]:
     """Creates mock tags based on predefined list."""
     tag_ids = {}
     for tag_data in MOCK_DATA["tags"]:
-        # Check if tag exists
-        existing_tag_id = await session.execute(
-            select(Tag.id).where(Tag.name == tag_data["name"])
+        # Check if tag exists for this client to ensure idempotency
+        stmt = select(Tag.id).where(
+            Tag.name == tag_data["name"],
+            Tag.client_account_id == client_account_id
         )
-        if existing_tag_id.scalar_one_or_none():
-            logger.info(f"Mock tag '{tag_data['name']}' already exists.")
-            tag_ids[tag_data["name"]] = str(existing_tag_id.scalar_one())
+        existing_tag_id = await session.execute(stmt)
+        tag_id = existing_tag_id.scalar_one_or_none()
+
+        if tag_id:
+            tag_ids[tag_data["name"]] = tag_id
             continue
-            
+
         tag = Tag(
-            id=uuid.uuid4(),
-            client_account_id=uuid.UUID(client_account_id),
+            client_account_id=client_account_id,
             name=tag_data["name"],
             category=tag_data["category"],
             description=tag_data["description"],
             is_mock=True,
-            # Placeholder for embedding - ensure it is not a string
             reference_embedding=generate_mock_embedding(tag_data["name"]),
         )
         session.add(tag)
         await session.flush()
-        tag_ids[tag_data["name"]] = str(tag.id)
-    logger.info(f"Created {len(tag_ids)} mock tags.")
+        tag_ids[tag_data["name"]] = tag.id
+    logger.info(f"Created {len(MOCK_DATA['tags'])} mock tags.")
     return tag_ids
 
 
-async def create_mock_assets(session: AsyncSession, client_account_id: str, engagement_id: str, user_id: str, tag_ids: Dict[str, str]) -> List[str]:
+async def create_mock_assets(session: AsyncSession, client_account_id: uuid.UUID, engagement_id: uuid.UUID, user_id: uuid.UUID, tag_ids: Dict[str, uuid.UUID]) -> List[uuid.UUID]:
     asset_ids = []
     
+    # This path seems unused in the loop below, but we'll leave the loading logic for now.
     mock_data_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'mock_cmdb_data.json')
     try:
         with open(mock_data_path, 'r') as f:
             mock_assets = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError) as e:
-        logger.error(f"Failed to load mock asset data: {e}")
-        return []
+        logger.warning(f"Could not load mock asset data from mock_cmdb_data.json: {e}")
 
-    for asset_data in mock_assets:
-        try:
-            asset_id = uuid.uuid4()
-            
-            asset_info = asset_data.copy()
-            asset_info.pop("dependencies", None)
-            asset_info["id"] = asset_id
-            asset_info["client_account_id"] = client_account_id
-            asset_info["engagement_id"] = engagement_id
-            asset_info["created_by"] = user_id
-            asset_info["is_mock"] = True
+    for data in MOCK_DATA["assets"]:
+        strategy = data.get("six_r_strategy")
+        if isinstance(strategy, Enum):
+            strategy = strategy.value
 
-            asset = Asset(**asset_info)
-            session.add(asset)
-            await session.flush()
-            asset_ids.append(str(asset_id))
+        asset = Asset(
+            name=data["name"],
+            hostname=data["hostname"],
+            asset_type=data["asset_type"],
+            description=data["description"],
+            ip_address=data.get("ip_address"),
+            operating_system=data.get("operating_system"),
+            os_version=data.get("os_version"),
+            environment=data.get("environment", "production"),
+            status='active',
+            migration_status=data.get("status", AssetStatus.DISCOVERED),
+            business_owner=data.get("business_owner"),
+            technical_owner=data.get("technical_owner"),
+            application_name=data.get("application_name"),
+            cpu_cores=data.get("cpu_cores"),
+            memory_gb=data.get("ram_gb"),
+            storage_gb=data.get("storage_gb"),
+            business_criticality=data.get("business_criticality"),
+            six_r_strategy=strategy,
+            migration_complexity=data.get("migration_complexity"),
+            migration_wave=data.get("migration_wave"),
+            sixr_ready=data.get("sixr_ready"),
+            client_account_id=client_account_id,
+            engagement_id=engagement_id,
+            created_by=user_id,
+            is_mock=True
+        )
+        session.add(asset)
+        await session.flush()
 
-            # Create embedding
-            embedding_text = f"{asset_data.get('name', '')} {asset_data.get('description', '')} {asset_data.get('technology_stack', '')}"
-            embedding_vector = generate_mock_embedding(embedding_text)
-            
-            embedding = AssetEmbedding(
-                asset_id=asset_id,
-                client_account_id=client_account_id,
-                engagement_id=engagement_id,
-                embedding=embedding_vector,
-                source_text=embedding_text,
-                is_mock=True
-            )
-            session.add(embedding)
-            
-            # Link tags
-            if asset_data.get('asset_type') == 'server': # Use .get() for safety
-                os_info = asset_data.get('operating_system', '')
-                tag_name = "Windows Server" if "windows" in os_info.lower() else "Linux"
-                if tag_name in tag_ids:
-                    asset_tag = AssetTag(
-                        asset_id=asset_id, 
-                        tag_id=tag_ids[tag_name], 
-                        confidence_score=0.95,
-                        assigned_method='auto',
-                        is_mock=True
-                    )
+        asset_ids.append(asset.id)
+        
+        # Create embedding
+        embedding_text = f"{data['name']} {data['description']} {data.get('operating_system', '')}"
+        embedding_vector = generate_mock_embedding(embedding_text)
+        embedding = AssetEmbedding(
+            asset_id=asset.id,
+            embedding=embedding_vector,
+            embedding_model="text-embedding-ada-002",
+            client_account_id=client_account_id,
+            engagement_id=engagement_id,
+            is_mock=True
+        )
+        session.add(embedding)
+
+        # Associate tags
+        if "tags" in data:
+            for tag_name in data["tags"]:
+                tag_id = tag_ids.get(tag_name)
+                if tag_id:
+                    asset_tag = AssetTag(asset_id=asset.id, tag_id=tag_id, is_mock=True)
                     session.add(asset_tag)
 
-        except Exception as e:
-            logger.error(f"Error creating asset {asset_data.get('name')}: {e}")
-            await session.rollback()
-
-    # Link dependencies after all assets have been created
-    # This logic is complex and depends on having asset objects, not just IDs.
-    # We will simplify by not creating dependency links for now.
-
-    await session.commit()
-    logger.info("Successfully created mock assets and embeddings.")
+    logger.info(f"Staged {len(MOCK_DATA['assets'])} assets for creation.")
     return asset_ids
 
 
@@ -525,11 +496,10 @@ async def create_mock_sixr_analysis(session: AsyncSession, client_account_id: st
         )
         session.add(analysis)
         
-    await session.commit()
     logger.info("Successfully created mock 6R analysis.")
     
 
-async def create_mock_migration_waves(session: AsyncSession, client_account_id: str, engagement_id: str, user_id: str):
+async def create_mock_migration_waves(session: AsyncSession, client_account_id: uuid.UUID, engagement_id: uuid.UUID, user_id: uuid.UUID):
     """Creates mock migration waves."""
     
     wave_data = {
@@ -539,33 +509,33 @@ async def create_mock_migration_waves(session: AsyncSession, client_account_id: 
     }
     
     for wave_num, data in wave_data.items():
+        # Idempotency check
         stmt = select(MigrationWave).where(
             MigrationWave.wave_number == wave_num,
-            MigrationWave.client_account_id == uuid.UUID(client_account_id),
-            MigrationWave.engagement_id == uuid.UUID(engagement_id)
+            MigrationWave.client_account_id == client_account_id,
+            MigrationWave.engagement_id == engagement_id
         )
         result = await session.execute(stmt)
-        existing_wave = result.scalars().first()
+        if result.scalar_one_or_none():
+            continue
+
+        start_date = datetime.now() + timedelta(days=data["start_date_offset"])
+        end_date = datetime.now() + timedelta(days=data["end_date_offset"])
         
-        if not existing_wave:
-            start_date = datetime.utcnow() + timedelta(days=data["start_date_offset"])
-            end_date = datetime.utcnow() + timedelta(days=data["end_date_offset"])
-            wave = MigrationWave(
-                id=uuid.uuid4(),
-                wave_number=wave_num,
-                name=data["name"],
-                description=data["description"],
-                status=data["status"],
-                planned_start_date=start_date,
-                planned_end_date=end_date,
-                client_account_id=client_account_id,
-                engagement_id=engagement_id,
-                is_mock=True,
-                created_by=user_id
-            )
-            session.add(wave)
+        wave = MigrationWave(
+            wave_number=wave_num,
+            name=data["name"],
+            description=data["description"],
+            status=data["status"],
+            planned_start_date=start_date,
+            planned_end_date=end_date,
+            client_account_id=client_account_id,
+            engagement_id=engagement_id,
+            is_mock=True,
+            created_by=user_id
+        )
+        session.add(wave)
             
-    await session.commit()
     logger.info("Successfully created mock migration waves.")
 
 
@@ -628,8 +598,7 @@ async def initialize_mock_data(force: bool = False):
             #     asset_ids
             # )
 
-            await session.commit()
-            logger.info("Database initialization completed successfully.")
+            logger.info("Database initialization transaction will be committed.")
 
 
 async def check_mock_data_exists(session: AsyncSession) -> bool:

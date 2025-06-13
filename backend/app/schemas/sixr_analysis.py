@@ -2,6 +2,7 @@ from typing import List, Dict, Any, Optional, Union
 from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
 from enum import Enum
+from app.models.asset import SixRStrategy
 
 class ApplicationType(str, Enum):
     """Application type enumeration for COTS vs Custom distinction."""
@@ -9,15 +10,7 @@ class ApplicationType(str, Enum):
     COTS = "cots"              # Commercial Off-The-Shelf (cannot be rewritten, only replaced)
     HYBRID = "hybrid"          # Mix of custom and COTS components
 
-class SixRStrategy(str, Enum):
-    """6R migration strategy enumeration."""
-    REHOST = "rehost"          # Lift and shift - minimal modernization
-    REPLATFORM = "replatform"  # Lift, tinker, and shift - minimal modernization
-    REFACTOR = "refactor"      # Re-architect application - high modernization
-    REARCHITECT = "rearchitect" # Rebuild with new architecture - high modernization
-    REWRITE = "rewrite"        # Complete rebuild with cloud-native services - highest modernization (CUSTOM ONLY)
-    REPLACE = "replace"        # Replace with alternative solution - for COTS applications
-    RETIRE = "retire"          # Decommission
+
 
 class AnalysisStatus(str, Enum):
     """Analysis status enumeration."""

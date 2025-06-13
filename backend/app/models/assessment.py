@@ -3,9 +3,10 @@ Assessment models for 6R analysis and migration planning.
 """
 
 try:
-    from sqlalchemy import Column, Integer, String, DateTime, Text, JSON, Enum, Boolean, ForeignKey, Float, UUID
+    from sqlalchemy import Column, Integer, String, DateTime, Text, JSON, Enum, Boolean, ForeignKey, Float
     from sqlalchemy.orm import relationship
     from sqlalchemy.sql import func
+    from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
     SQLALCHEMY_AVAILABLE = True
 except ImportError:
     SQLALCHEMY_AVAILABLE = False
@@ -61,9 +62,12 @@ class Assessment(Base):
     
     __tablename__ = "assessments"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    migration_id = Column(UUID(as_uuid=True), ForeignKey("migrations.id"), nullable=False)
-    asset_id = Column(UUID(as_uuid=True), ForeignKey("assets.id"), nullable=True)  # Null for migration-wide assessments
+    id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    # Multi-tenant isolation
+    client_account_id = Column(PostgresUUID(as_uuid=True), ForeignKey('client_accounts.id', ondelete='CASCADE'), nullable=False, index=True)
+    engagement_id = Column(PostgresUUID(as_uuid=True), ForeignKey('engagements.id', ondelete='CASCADE'), nullable=False, index=True)
+    migration_id = Column(PostgresUUID(as_uuid=True), ForeignKey("migrations.id"), nullable=False)
+    asset_id = Column(PostgresUUID(as_uuid=True), ForeignKey("assets.id"), nullable=True)  # Null for migration-wide assessments
     
     # Assessment metadata
     assessment_type = Column(Enum(AssessmentType), nullable=False)
@@ -130,6 +134,8 @@ class Assessment(Base):
     # Relationships
     migration = relationship("Migration", back_populates="assessments")
     asset = relationship("Asset")
+    client_account = relationship("ClientAccount")
+    engagement = relationship("Engagement")
     
     def __repr__(self):
         return f"<Assessment(id={self.id}, type='{self.assessment_type}', status='{self.status}')>"
@@ -175,8 +181,11 @@ class WavePlan(Base):
     
     __tablename__ = "wave_plans"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    migration_id = Column(UUID(as_uuid=True), ForeignKey("migrations.id"), nullable=False)
+    id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    # Multi-tenant isolation
+    client_account_id = Column(PostgresUUID(as_uuid=True), ForeignKey('client_accounts.id', ondelete='CASCADE'), nullable=False, index=True)
+    engagement_id = Column(PostgresUUID(as_uuid=True), ForeignKey('engagements.id', ondelete='CASCADE'), nullable=False, index=True)
+    migration_id = Column(PostgresUUID(as_uuid=True), ForeignKey("migrations.id"), nullable=False)
     
     # Wave details
     wave_number = Column(Integer, nullable=False)
@@ -219,6 +228,8 @@ class WavePlan(Base):
     
     # Relationships
     migration = relationship("Migration")
+    client_account = relationship("ClientAccount")
+    engagement = relationship("Engagement")
     
     def __repr__(self):
         return f"<WavePlan(id={self.id}, wave={self.wave_number}, migration_id={self.migration_id})>"

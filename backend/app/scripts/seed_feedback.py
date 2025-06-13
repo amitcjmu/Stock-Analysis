@@ -15,7 +15,7 @@ from sqlalchemy import text
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
 try:
-    from app.core.database import AsyncSessionLocal, init_db
+    from app.core.database import AsyncSessionLocal
     DEPENDENCIES_AVAILABLE = True
 except ImportError:
     DEPENDENCIES_AVAILABLE = False
@@ -37,7 +37,7 @@ async def main(force: bool):
         logger.error("Missing modules – run within backend container.")
         return
 
-    await init_db()
+    # init_db removed – rely on Alembic migrations
     async with AsyncSessionLocal() as session:
         async with session.begin():
             await seed_feedback(session, force)

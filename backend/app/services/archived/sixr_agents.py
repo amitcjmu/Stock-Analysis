@@ -13,9 +13,10 @@ try:
     from app.services.deepinfra_llm import DeepInfraLLM
     from app.services.sixr_engine import SixRDecisionEngine
     from app.schemas.sixr_analysis import (
-        SixRParameterBase, SixRStrategy, QualifyingQuestion, 
+        SixRParameterBase, QualifyingQuestion, 
         QuestionType, QuestionOption
     )
+    from app.models.asset import SixRStrategy
 except ImportError as e:
     logging.warning(f"CrewAI imports failed: {e}")
     # Fallback classes for testing
@@ -42,14 +43,6 @@ except ImportError as e:
             self.cost_sensitivity = kwargs.get('cost_sensitivity', 5)
             self.risk_tolerance = kwargs.get('risk_tolerance', 5)
             self.innovation_priority = kwargs.get('innovation_priority', 5)
-    
-    class SixRStrategy:
-        REHOST = "rehost"
-        REPLATFORM = "replatform"
-        REFACTOR = "refactor"
-        REARCHITECT = "rearchitect"
-        REWRITE = "rewrite"
-        RETIRE = "retire"
     
     class QualifyingQuestion:
         def __init__(self, **kwargs):

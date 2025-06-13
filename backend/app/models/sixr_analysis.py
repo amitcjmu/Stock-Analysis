@@ -3,7 +3,8 @@
 """
 
 try:
-    from sqlalchemy import Column, Integer, String, DateTime, Text, JSON, Enum, Boolean, ForeignKey, Float, UUID
+    from sqlalchemy import Column, Integer, String, DateTime, Text, JSON, Enum, Boolean, ForeignKey, Float
+    from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
     from sqlalchemy.orm import relationship
     from sqlalchemy.sql import func
     SQLALCHEMY_AVAILABLE = True
@@ -25,19 +26,12 @@ import uuid
 
 try:
     from app.core.database import Base
-    from app.schemas.sixr_analysis import SixRStrategy, AnalysisStatus, QuestionType, ApplicationType
+    from app.schemas.sixr_analysis import AnalysisStatus, QuestionType, ApplicationType
+    from app.models.asset import SixRStrategy
 except ImportError:
     Base = object
     
     # Define enums locally if schemas not available
-    class SixRStrategy(str, enum.Enum):
-        REHOST = "rehost"
-        REPLATFORM = "replatform"
-        REFACTOR = "refactor"
-        REARCHITECT = "rearchitect"
-        REWRITE = "rewrite"
-        REPLACE = "replace"
-        RETIRE = "retire"
     
     class AnalysisStatus(str, enum.Enum):
         PENDING = "pending"
@@ -65,8 +59,12 @@ class SixRAnalysis(Base):
     
     __tablename__ = "sixr_analyses"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    migration_id = Column(UUID(as_uuid=True), ForeignKey("migrations.id"), nullable=True)
+    id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    migration_id = Column(PostgresUUID(as_uuid=True), ForeignKey("migrations.id"), nullable=True)
+    
+    # Multi-tenant isolation
+    client_account_id = Column(PostgresUUID(as_uuid=True), ForeignKey('client_accounts.id', ondelete='CASCADE'), nullable=False, index=True)
+    engagement_id = Column(PostgresUUID(as_uuid=True), ForeignKey('engagements.id', ondelete='CASCADE'), nullable=False, index=True)
     
     # Analysis metadata
     name = Column(String(255), nullable=False, index=True)
@@ -98,7 +96,7 @@ class SixRAnalysis(Base):
     
     # Relationships
     migration = relationship("Migration", back_populates="sixr_analyses")
-    parameters = relationship("SixRParameters", back_populates="analysis", cascade="all, delete-orphan")
+    parameters = relationship("SixRAnalysisParameters", back_populates="analysis", cascade="all, delete-orphan")
     iterations = relationship("SixRIteration", back_populates="analysis", cascade="all, delete-orphan")
     recommendations = relationship("SixRRecommendation", back_populates="analysis", cascade="all, delete-orphan")
     
@@ -111,7 +109,7 @@ class SixRAnalysis(Base):
         return self.status == AnalysisStatus.COMPLETED
     
     @property
-    def current_parameters(self) -> Optional['SixRParameters']:
+    def current_parameters(self) -> Optional['SixRAnalysisParameters']:
         """Get current iteration parameters."""
         if self.parameters:
             return max(self.parameters, key=lambda p: p.iteration_number)
@@ -140,90 +138,7 @@ class SixRAnalysis(Base):
         }
 
 
-class SixRParameters(Base):
-    """6R analysis parameters model."""
-    
-    __tablename__ = "sixr_parameters"
-    
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    analysis_id = Column(UUID(as_uuid=True), ForeignKey("sixr_analyses.id"), nullable=False)
-    iteration_number = Column(Integer, nullable=False, default=1)
-    
-    # 7 core parameters (1-10 scale)
-    business_value = Column(Float, nullable=False, default=5.0)
-    technical_complexity = Column(Float, nullable=False, default=5.0)
-    migration_urgency = Column(Float, nullable=False, default=5.0)
-    compliance_requirements = Column(Float, nullable=False, default=5.0)
-    cost_sensitivity = Column(Float, nullable=False, default=5.0)
-    risk_tolerance = Column(Float, nullable=False, default=5.0)
-    innovation_priority = Column(Float, nullable=False, default=5.0)
-    
-    # Application type for COTS vs Custom logic
-    application_type = Column(String(20), default="custom")  # custom, cots, hybrid
-    
-    # Parameter metadata
-    parameter_source = Column(String(50), default="user_input")  # user_input, ai_suggested, imported
-    confidence_level = Column(Float, default=0.5)  # 0-1 confidence in parameters
-    
-    # Audit fields
-    created_by = Column(String(100))
-    updated_by = Column(String(100))
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    
-    # Additional context
-    parameter_notes = Column(Text)  # Notes about parameter selection
-    validation_status = Column(String(20), default="pending")  # pending, validated, needs_review
-    
-    # Relationships
-    analysis = relationship("SixRAnalysis", back_populates="parameters")
-    
-    def __repr__(self):
-        return f"<SixRParameters(id={self.id}, analysis_id={self.analysis_id}, iteration={self.iteration_number})>"
-    
-    def get_parameter_dict(self) -> Dict[str, float]:
-        """Get parameters as dictionary for decision engine."""
-        return {
-            'business_value': self.business_value,
-            'technical_complexity': self.technical_complexity,
-            'migration_urgency': self.migration_urgency,
-            'compliance_requirements': self.compliance_requirements,
-            'cost_sensitivity': self.cost_sensitivity,
-            'risk_tolerance': self.risk_tolerance,
-            'innovation_priority': self.innovation_priority
-        }
-    
-    def update_from_dict(self, param_dict: Dict[str, Any]) -> None:
-        """Update parameters from dictionary."""
-        for key, value in param_dict.items():
-            if hasattr(self, key):
-                setattr(self, key, value)
-    
-    def calculate_weighted_score(self, weights: Optional[Dict[str, float]] = None) -> float:
-        """Calculate weighted parameter score."""
-        if weights is None:
-            # Default equal weights
-            weights = {param: 1.0/7 for param in self.get_parameter_dict().keys()}
-        
-        total_score = 0.0
-        for param, value in self.get_parameter_dict().items():
-            weight = weights.get(param, 0.0)
-            total_score += value * weight
-        
-        return total_score
-    
-    def validate_parameters(self) -> List[str]:
-        """Validate parameter values and return any issues."""
-        issues = []
-        params = self.get_parameter_dict()
-        
-        for param_name, value in params.items():
-            if not isinstance(value, (int, float)):
-                issues.append(f"{param_name} must be a number")
-            elif not 1.0 <= value <= 10.0:
-                issues.append(f"{param_name} must be between 1.0 and 10.0")
-        
-        return issues
+
 
 
 class SixRIteration(Base):
@@ -231,8 +146,8 @@ class SixRIteration(Base):
     
     __tablename__ = "sixr_iterations"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    analysis_id = Column(UUID(as_uuid=True), ForeignKey("sixr_analyses.id"), nullable=False)
+    id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    analysis_id = Column(PostgresUUID(as_uuid=True), ForeignKey("sixr_analyses.id"), nullable=False)
     iteration_number = Column(Integer, nullable=False)
     
     # Iteration metadata
@@ -304,8 +219,8 @@ class SixRRecommendation(Base):
     """6R analysis recommendation results."""
     __tablename__ = "sixr_recommendations"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    analysis_id = Column(UUID(as_uuid=True), ForeignKey("sixr_analyses.id"), nullable=False)
+    id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    analysis_id = Column(PostgresUUID(as_uuid=True), ForeignKey("sixr_analyses.id"), nullable=False)
     iteration_number = Column(Integer, default=1)
     
     # Core recommendation
@@ -404,7 +319,7 @@ class SixRQuestion(Base):
     
     __tablename__ = "sixr_questions"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     
     # Question definition
     question_id = Column(String(100), unique=True, nullable=False, index=True)
@@ -454,13 +369,66 @@ class SixRQuestion(Base):
         return self.options or []
 
 
+class SixRAnalysisParameters(Base):
+    """6R analysis parameters model for a specific analysis run."""
+    
+    __tablename__ = "sixr_analysis_parameters"
+    
+    id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    analysis_id = Column(PostgresUUID(as_uuid=True), ForeignKey("sixr_analyses.id"), nullable=False)
+    iteration_number = Column(Integer, nullable=False) # Tracks parameter set version
+
+    # Dynamic parameters based on analysis needs
+    business_value = Column(Float, nullable=False, default=3)
+    technical_complexity = Column(Float, nullable=False, default=3)
+    migration_urgency = Column(Float, nullable=False, default=3)
+    compliance_requirements = Column(Float, nullable=False, default=3)
+    cost_sensitivity = Column(Float, nullable=False, default=3)
+    risk_tolerance = Column(Float, nullable=False, default=3)
+    innovation_priority = Column(Float, nullable=False, default=3)
+
+    # Contextual parameters
+    application_type = Column(String(20), default='custom')
+    parameter_source = Column(String(50), default='initial') # initial, user_adjusted, ai_suggested
+    confidence_level = Column(Float, default=1.0)
+
+    # Metadata
+    created_by = Column(String(100))
+    updated_by = Column(String(100))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    parameter_notes = Column(Text)
+    validation_status = Column(String(20), default='valid')
+
+    # Relationships
+    analysis = relationship("SixRAnalysis", back_populates="parameters")
+
+    def __repr__(self):
+        return f"<SixRAnalysisParameters(analysis_id={self.analysis_id}, iteration={self.iteration_number})>"
+
+
+class SixRParameter(Base):
+    """Global 6R configuration parameters (key-value store)."""
+    __tablename__ = "sixr_parameters"
+
+    id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    parameter_key = Column(String(255), unique=True, nullable=False, index=True)
+    value = Column(JSON, nullable=False)
+    description = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    def __repr__(self):
+        return f"<SixRParameter(key='{self.parameter_key}', value='{self.value}')>"
+
+
 class SixRQuestionResponse(Base):
     """6R question responses model."""
     
     __tablename__ = "sixr_question_responses"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    analysis_id = Column(UUID(as_uuid=True), ForeignKey("sixr_analyses.id"), nullable=False)
+    id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    analysis_id = Column(PostgresUUID(as_uuid=True), ForeignKey("sixr_analyses.id"), nullable=False)
     iteration_number = Column(Integer, nullable=False)
     question_id = Column(String(100), ForeignKey("sixr_questions.question_id"), nullable=False)
     

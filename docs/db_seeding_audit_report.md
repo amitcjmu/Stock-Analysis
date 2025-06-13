@@ -111,4 +111,48 @@ The following tables have no seed data and are prime candidates for scripted pop
 
 ---
 
+## 5. New Seed Scripts Implemented (Jun 2025)
+
+| Script | Location | Tables Affected | Key Notes |
+|--------|----------|-----------------|-----------|
+| `seed_wave_plans.py` | `backend/app/scripts/` | `wave_plans` | Generates three baseline migration waves (`MOCK:` name prefix). Requires at least **one** row in `migrations` to link foreign-key. Use `--force` to purge `MOCK:` rows. |
+| `seed_data_quality_issues.py` | `backend/app/scripts/` | `data_quality_issues`, `data_imports`, `raw_import_records` | Creates supporting mock `data_import` + `raw_import_record` rows if missing, then three linked quality-issue rows. Uses `reasoning` field `MOCK:` prefix for cleanup. |
+| `seed_assessments.py` | `backend/app/scripts/` | `assessments` | Inserts migration-level and asset-level assessments (6R, risk & cost) with realistic scores. Needs at least one `migration` and a handful of `assets`. Cleans up via `title LIKE 'MOCK:%'`. |
+
+---
+
+## 6. Running Seeder Orchestration on a Fresh Docker Build
+
+```bash
+# 1. Build & start all containers
+docker-compose up -d --build
+
+# 2. Run core mock dataset (clients, users, assets, etc.)
+docker exec migration_backend python app/scripts/init_db.py --force
+
+# 3. OPTIONAL: create a placeholder migration if none exists yet
+docker exec migration_backend psql -U $POSTGRES_USER -d migration_db -c "INSERT INTO migrations (id, name, status, created_at) VALUES (gen_random_uuid(), 'MOCK: Initial Migration', 'planning', NOW());"
+
+# 4. Seed wave plans
+docker exec migration_backend python app/scripts/seed_wave_plans.py --force
+
+# 5. Seed assessments (relies on assets + migrations)
+docker exec migration_backend python app/scripts/seed_assessments.py --force
+
+# 6. Seed data-quality issues (relies on data_imports)
+docker exec migration_backend python app/scripts/seed_data_quality_issues.py --force
+
+# Repeat other seeders similarly as they are implemented
+```
+
+**Execution Order Rationale**
+1. `init_db.py` lays down all core tenant context and sample assets.
+2. `migrations` table must have at least one row before wave-plan & assessment seeders—use the quick SQL insert shown or implement a `seed_migrations.py` helper.
+3. `wave_plans` and `assessments` depend on that migration as a foreign-key.
+4. Data-quality seeder auto-creates its own prerequisite import data, so it can run any time after `init_db.py`.
+
+Use the `--force` flag on any seeder to safely re-run and purge previously inserted `MOCK:` rows without affecting real data.
+
+---
+
 _This audit was generated automatically via database inspection of the running `migration_postgres` container and codebase review of existing seed scripts._

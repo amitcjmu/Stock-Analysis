@@ -29,7 +29,7 @@ from app.services.auth_services.rbac_core_service import RBACCoreService
 logger = logging.getLogger(__name__)
 
 # Create main router
-router = APIRouter(prefix="/auth", tags=["Authentication & RBAC"])
+router = APIRouter(tags=["Authentication & RBAC"])
 
 # Include all modular handlers
 router.include_router(authentication_router, tags=["Authentication"])

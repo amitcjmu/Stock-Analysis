@@ -31,7 +31,7 @@ export const useUserType = () => {
       setLoading(true);
       setError(null);
 
-      const response = await apiCall('/api/v1/auth/user-type', {
+      const response = await apiCall('/auth/user-type', {
         headers: getAuthHeaders()
       });
 

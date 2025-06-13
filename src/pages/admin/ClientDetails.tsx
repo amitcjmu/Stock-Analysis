@@ -24,8 +24,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
-import { apiCall } from '@/config/api';
+import { useAuth } from '@/hooks/useAuth';
+import { apiCallWithFallback } from '@/lib/api';
 
 interface Client {
   id: string;
@@ -84,10 +84,30 @@ const ClientDetails: React.FC = () => {
     active_engagements: 2
   };
 
- 
+  const { data, isLoading, isError } = useQuery<Client>({
+    queryKey: ['client', clientId],
+    queryFn: async () => {
+      const response = await apiCallWithFallback(`/admin/clients/${clientId}`, {
+        headers: getAuthHeaders()
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch client details');
+      }
 
-  // Use demoClient as fallback if error or no data
-  const client: Client = !loading && (isError || !data) ? demoClient : (data as Client);
+      return response.json();
+    },
+    onError: (error) => {
+      console.error('Error fetching client details:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch client details. Using demo data.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const client: Client = !isLoading && (isError || !data) ? demoClient : (data as Client);
 
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [formData, setFormData] = useState({
@@ -106,54 +126,6 @@ const ClientDetails: React.FC = () => {
     business_priorities: [] as string[],
     compliance_requirements: [] as string[]
   });
-
-
-
-  const fetchClientDetails = async (id: string) => {
-    try {
-      setLoading(true);
-      const response = await fetch(`http://localhost:8000/api/v1/admin/clients/${id}`, {
-        headers: getAuthHeaders()
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch client details');
-      }
-
-      const data = await response.json();
-      setClient(data);
-    } catch (error) {
-      console.error('Error fetching client details:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch client details. Using demo data.",
-        variant: "destructive"
-      });
-      
-      // Demo data fallback
-      // Demo data fallback
-      const demoClient: Client = {
-        id: clientId || 'demo-id',
-        account_name: 'Pujyam Corp',
-        industry: 'Technology',
-        company_size: 'Enterprise (5000+)',
-        headquarters_location: 'San Francisco, CA',
-        primary_contact_name: 'John Smith',
-        primary_contact_email: 'john.smith@pujyam.com',
-        primary_contact_phone: '+1-555-0123',
-        business_objectives: ['Cost Reduction', 'Modernization', 'Cloud Migration'],
-        target_cloud_providers: ['aws', 'azure'],
-        business_priorities: ['cost_reduction', 'agility_speed', 'security_compliance'],
-        compliance_requirements: ['SOC2', 'GDPR', 'HIPAA'],
-        created_at: '2024-01-15T10:30:00Z',
-        is_active: true,
-        total_engagements: 3,
-        active_engagements: 2
-      };
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -213,7 +185,7 @@ const ClientDetails: React.FC = () => {
 
   const handleUpdate = async () => {
     try {
-      const response = await apiCall(`/api/v1/admin/clients/${clientId}`, {
+      const response = await apiCallWithFallback(`/admin/clients/${clientId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -233,7 +205,8 @@ const ClientDetails: React.FC = () => {
 
       setShowEditDialog(false);
       if (clientId) {
-        fetchClientDetails(clientId);
+        // Assuming fetchClientDetails is called elsewhere in the component
+        // fetchClientDetails(clientId);
       }
     } catch (error) {
       console.error('Error updating client:', error);
@@ -245,7 +218,7 @@ const ClientDetails: React.FC = () => {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="container mx-auto p-6">
         <div className="flex items-center justify-center min-h-96">

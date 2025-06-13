@@ -23,7 +23,8 @@ from app.api.v1.endpoints import (
 from app.api.v1.admin.client_management import router as client_management_router
 from app.api.v1.admin.engagement_management import router as engagement_management_router
 from app.api.v1.auth.handlers.user_management_handlers import user_management_router as user_approvals_router
-from app.api.v1.auth.handlers.authentication_handlers import authentication_router as auth_router
+from app.api.v1.auth.rbac import router as auth_router
+
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -46,6 +47,7 @@ api_router.include_router(websocket_router, prefix="/ws", tags=["WebSocket"])
 api_router.include_router(auth_router, prefix="/auth", tags=["Authentication"])
 api_router.include_router(agent_learning_router, prefix="/agent-learning", tags=["Agent Learning"])
 api_router.include_router(sessions_router, prefix="/sessions", tags=["Sessions"])
+
 
 # Admin Routers
 api_router.include_router(client_management_router, prefix="/admin/clients", tags=["Admin - Client Management"])
