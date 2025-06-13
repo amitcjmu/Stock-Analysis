@@ -13,7 +13,7 @@ export interface Client {
 }
 
 export const useClients = () => {
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
 
   return useQuery<Client[]>({
     queryKey: ["clients", user?.id],
@@ -33,6 +33,7 @@ export const useClients = () => {
         throw error; // Let React Query handle the error
       }
     },
+    enabled: !isDemoMode, // Only run the query if not in demo mode
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 2, // Retry failed requests twice
     refetchOnWindowFocus: false // Don't refetch when window regains focus

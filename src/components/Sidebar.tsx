@@ -40,7 +40,9 @@ import {
   LayoutDashboard,
   UserCheck,
   User,
-  Brain
+  Brain,
+  Settings2,
+  Wand2
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -85,9 +87,9 @@ const Sidebar = () => {
       hasSubmenu: true,
       submenu: [
         { name: 'Overview', path: '/discovery/overview', icon: LayoutDashboard },
-        { name: 'Data Import', path: '/discovery/data-import', icon: Upload },
-        { name: 'Attribute Mapping', path: '/discovery/attribute-mapping', icon: Settings },
-        { name: 'Data Cleansing', path: '/discovery/data-cleansing', icon: Sparkles },
+        { name: 'Data Import', path: '/discovery/import', icon: Upload },
+        { name: 'Attribute Mapping', path: '/discovery/attribute-mapping', icon: Settings2 },
+        { name: 'Data Cleansing', path: '/discovery/data-cleansing', icon: Wand2 },
         { name: 'Inventory', path: '/discovery/inventory', icon: Database },
         { name: 'Dependencies', path: '/discovery/dependencies', icon: Network },
         { name: 'Tech Debt', path: '/discovery/tech-debt-analysis', icon: BarChart3 }

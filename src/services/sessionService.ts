@@ -43,7 +43,7 @@ const SESSION_ENDPOINTS = {
   ENGAGEMENT_DEFAULT: (engagementId: string) => 
     `/api/v1/engagements/${engagementId}/sessions/default`,
   ENGAGEMENT_SESSIONS: (engagementId: string) => 
-    `/api/v1/engagements/${engagementId}/sessions`
+    `/api/v1/sessions/engagement/${engagementId}`
 } as const;
 
 export const sessionService = {

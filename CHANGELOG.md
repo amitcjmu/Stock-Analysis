@@ -348,3 +348,27 @@ This release completes the modernization of the useContext hook by replacing dir
 ### 🎯 **Success Metrics**
 - **[Completion]**: All planned useContext hook modernization tasks completed
 - **[Coverage]**: 100% of auth token access now uses useAuth functions
+
+## [0.4.11] - 2024-08-01
+
+### 🚀 [ADMIN] Admin & Discovery Dashboard Full Restoration
+
+This release restores full functionality to the Admin and Discovery dashboards by resolving a critical backend Pydantic validation error, correcting a frontend navigation path, and restoring a broken component from version control.
+
+### 🐛 **[FIX] Backend Pydantic Validation**
+
+-   **[Fix]**: The `get_dashboard_stats` function in `client_crud_handler.py` was returning a data structure that did not match the `ClientDashboardStats` Pydantic model, causing a 500 Internal Server Error.
+-   **[Impact]**: The Admin Dashboard now correctly displays statistics without any data fetching errors.
+-   **[Technical Details]**: Rewrote the `get_dashboard_stats` function to perform the necessary database queries and construct a dictionary that correctly aligns with the `ClientDashboardStats` schema.
+
+### 🐛 **[FIX] Frontend Navigation**
+
+-   **[Fix]**: The "Data Import" link in the sidebar was pointing to an incorrect URL (`/discovery/data-import`), resulting in a 404 error.
+-   **[Impact]**: Users can now successfully navigate to the Data Import page.
+-   **[Technical Details]**: Corrected the path in `src/components/Sidebar.tsx` to point to the correct route (`/discovery/import`).
+
+### 🐛 **[FIX] Discovery Dashboard**
+
+-   **[Fix]**: The Discovery Dashboard was not rendering correctly due to a data-fetching or rendering error within the component.
+-   **[Impact]**: The Discovery Dashboard is now fully functional and displays correctly.
+-   **[Technical Details]**: Restored the `src/pages/discovery/DiscoveryDashboard.tsx` file from git to its last known good state.

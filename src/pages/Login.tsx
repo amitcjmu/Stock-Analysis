@@ -10,8 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
+// Demo credentials that match the database seed
 const DEMO_EMAIL = "demo@democorp.com";
-const DEMO_PASSWORD = "demo"; // placeholder, not actually checked in demo mode
+const DEMO_PASSWORD = "password123"; // This matches the database seed
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -368,7 +369,10 @@ const Login: React.FC = () => {
               <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
                 <div className="flex items-start gap-2">
                   <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5" />
-                  <div className="text-xs text-amber-800">
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      Demo: {DEMO_EMAIL} / {DEMO_PASSWORD}
+                    </p>
                     <p><strong>Access Review Process:</strong></p>
                     <p>Your request will be reviewed by an administrator. Approval typically takes 1-2 business days.</p>
                   </div>

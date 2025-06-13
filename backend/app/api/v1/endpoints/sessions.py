@@ -170,7 +170,7 @@ async def merge_sessions(
 
 
 @router.get(
-    "/engagements/{engagement_id}/list",
+    "/engagement/{engagement_id}",
     response_model=List[Session],
     summary="List sessions for engagement",
     description="List all sessions for a specific engagement, optionally filtered by status.",

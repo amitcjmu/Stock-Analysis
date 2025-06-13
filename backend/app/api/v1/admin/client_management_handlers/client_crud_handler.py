@@ -260,35 +260,59 @@ class ClientCRUDHandler:
         try:
             if not CLIENT_MODELS_AVAILABLE:
                 raise HTTPException(status_code=503, detail="Client models not available")
-            
+
             # Total clients
             total_clients_query = select(func.count()).select_from(ClientAccount)
-            total_clients_result = await db.execute(total_clients_query)
-            total_clients = total_clients_result.scalar_one()
+            total_clients = (await db.execute(total_clients_query)).scalar_one()
 
             # Active clients (example: updated in last 90 days)
-            active_clients_query = select(func.count()).select_from(ClientAccount).where(
+            active_clients_query = select(func.count()).where(
                 ClientAccount.updated_at > datetime.utcnow() - timedelta(days=90)
             )
-            active_clients_result = await db.execute(active_clients_query)
-            active_clients = active_clients_result.scalar_one()
+            active_clients = (await db.execute(active_clients_query)).scalar_one()
 
-            # Total engagements
-            total_engagements_query = select(func.count()).select_from(Engagement)
-            total_engagements_result = await db.execute(total_engagements_query)
-            total_engagements = total_engagements_result.scalar_one()
+            # Clients by industry
+            industry_query = select(ClientAccount.industry, func.count()).group_by(ClientAccount.industry)
+            clients_by_industry = {
+                industry: count for industry, count in await db.execute(industry_query)
+            }
+
+            # Clients by company size
+            size_query = select(ClientAccount.company_size, func.count()).group_by(ClientAccount.company_size)
+            clients_by_company_size = {
+                size: count for size, count in await db.execute(size_query)
+            }
+
+            # Placeholder for clients by cloud provider as it's not a direct field
+            clients_by_cloud_provider = {"aws": 0, "azure": 0, "gcp": 0}
+
+            # Recent client registrations (last 30 days)
+            recent_clients_query = (
+                select(ClientAccount)
+                .where(ClientAccount.created_at > datetime.utcnow() - timedelta(days=30))
+                .order_by(ClientAccount.created_at.desc())
+                .limit(5)
+            )
+            recent_clients_results = await db.execute(recent_clients_query)
+            recent_clients = recent_clients_results.scalars().all()
+            
+            recent_client_registrations = [
+                await ClientCRUDHandler._convert_client_to_response(c, db) for c in recent_clients
+            ]
 
             return {
                 "total_clients": total_clients,
                 "active_clients": active_clients,
-                "total_engagements": total_engagements,
-                "new_clients_last_30_days": 0, # Placeholder
-                "avg_engagements_per_client": 0, # Placeholder
-                "subscription_tiers": {} # Placeholder
+                "clients_by_industry": clients_by_industry,
+                "clients_by_company_size": clients_by_company_size,
+                "clients_by_cloud_provider": clients_by_cloud_provider,
+                "recent_client_registrations": recent_client_registrations,
             }
         except Exception as e:
             logger.error(f"Error getting dashboard stats: {e}")
-            raise HTTPException(status_code=500, detail=f"Failed to get dashboard stats: {str(e)}")
+            raise HTTPException(
+                status_code=500, detail=f"Failed to get dashboard stats: {str(e)}"
+            )
 
     @staticmethod
     async def _convert_client_to_response(client: Any, db: AsyncSession) -> ClientAccountResponse:

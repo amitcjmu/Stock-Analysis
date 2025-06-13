@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authApi, User } from '@/lib/api/auth';
 import { apiCall } from '@/lib/api';
@@ -36,13 +36,60 @@ const tokenStorage: TokenStorage = {
   setToken: (token) => localStorage.setItem('auth_token', token),
   getUser: () => {
     const userData = localStorage.getItem('user_data');
-    return userData ? JSON.parse(userData) : null;
+    try {
+      return userData ? JSON.parse(userData) : null;
+    } catch (error) {
+      console.error("Failed to parse user data from localStorage", error);
+      return null;
+    }
   },
   setUser: (user) => localStorage.setItem('user_data', JSON.stringify(user)),
   getRedirectPath: () => localStorage.getItem('redirect_path'),
   setRedirectPath: (path) => localStorage.setItem('redirect_path', path),
   clearRedirectPath: () => localStorage.removeItem('redirect_path'),
 };
+
+// --- Demo Mode Constants ---
+const DEMO_USER_ID = '44444444-4444-4444-4444-444444444444';
+const DEMO_CLIENT_ID = '11111111-1111-1111-1111-111111111111';
+const DEMO_ENGAGEMENT_ID = '22222222-2222-2222-2222-222222222222';
+const DEMO_SESSION_ID = '33333333-3333-3333-3333-333333333333';
+
+const DEMO_USER: User = {
+  id: DEMO_USER_ID,
+  email: 'demo@democorp.com',
+  role: 'admin', // Give demo user admin privileges
+  full_name: 'Demo User',
+  username: 'demo',
+  status: 'active',
+  organization: 'Democorp',
+  role_description: 'Demo User',
+  client_account_id: DEMO_CLIENT_ID,
+  client_accounts: [{ 
+    id: DEMO_CLIENT_ID, 
+    name: 'Democorp', 
+    role: 'admin' 
+  }],
+};
+
+const DEMO_CLIENT: Client = {
+  id: DEMO_CLIENT_ID,
+  name: 'Democorp',
+  status: 'active',
+};
+
+const DEMO_ENGAGEMENT: Engagement = {
+  id: DEMO_ENGAGEMENT_ID,
+  name: 'Cloud Migration 2024',
+  status: 'active',
+};
+
+const DEMO_SESSION: Session = {
+  id: DEMO_SESSION_ID,
+  name: 'Demo Session',
+  status: 'active',
+};
+// -------------------------
 
 interface AuthContextType {
   user: User | null;
@@ -51,6 +98,9 @@ interface AuthContextType {
   session: Session | null;
   isLoading: boolean;
   error: string | null;
+  isDemoMode: boolean;
+  isAuthenticated: boolean;
+  isAdmin: boolean;
   login: (email: string, password: string) => Promise<User>;
   register: (userData: any) => Promise<any>;
   logout: () => void;
@@ -58,6 +108,9 @@ interface AuthContextType {
   switchEngagement: (engagementId: string) => Promise<void>;
   switchSession: (sessionId: string) => Promise<void>;
   loginWithDemoUser: () => void;
+  setCurrentSession: (session: Session | null) => void;
+  currentEngagementId: string | null;
+  currentSessionId: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -65,82 +118,68 @@ export { AuthContext };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const navigate = useNavigate();
-  const [user, setUser] = useState<User | null>(tokenStorage.getUser());
+  const [user, setUser] = useState<User | null>(() => tokenStorage.getUser());
   const [client, setClient] = useState<Client | null>(null);
   const [engagement, setEngagement] = useState<Engagement | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Start with loading true
   const [error, setError] = useState<string | null>(null);
 
-  // Function to get user context including client and engagement
-  const getUserContext = async () => {
-    try {
-      const context = await apiCall('me');
-      if (context) {
-        // Update client if available
-        if (context.client) {
-          setClient(context.client);
-        }
+  const isDemoMode = user?.id === DEMO_USER_ID;
+  const isAuthenticated = !!user;
+  const isAdmin = user?.role === 'admin';
 
-        // Update engagement if available
-        if (context.engagement) {
-          setEngagement(context.engagement);
-        }
-
-        // Update session if available
-        if (context.session) {
-          setSession(context.session);
-        }
-
-        // Update user with context
-        if (context.user) {
-          const updatedUser = {
-            ...user,
-            ...context.user
-          };
-          tokenStorage.setUser(updatedUser);
-          setUser(updatedUser);
-        }
-      }
-    } catch (error) {
-      // Only logout if NOT the demo user
-      if (!user || user.id !== '44444444-4444-4444-4444-444444444444') {
-        logout();
-      }
-      // else: do nothing, keep demo user context
-    }
-  };
+  const logout = useCallback(() => {
+    localStorage.removeItem('demoMode');
+    tokenStorage.setToken('');
+    tokenStorage.setUser(null);
+    setUser(null);
+    setClient(null);
+    setEngagement(null);
+    setSession(null);
+    navigate('/login');
+  }, [navigate]);
 
   useEffect(() => {
-    const token = tokenStorage.getToken();
-    if (token && !user) {
-      authApi.validateToken(token)
-        .then((validatedUser) => {
+    const initializeAuth = async () => {
+      setIsLoading(true);
+      const token = tokenStorage.getToken();
+      const storedUser = tokenStorage.getUser();
+
+      if (storedUser?.id === DEMO_USER_ID) {
+        // Handle demo user persistence
+        setUser(DEMO_USER);
+        setClient(DEMO_CLIENT);
+        setEngagement(DEMO_ENGAGEMENT);
+        setSession(DEMO_SESSION);
+      } else if (token) {
+        try {
+          // Validate token for regular user
+          const validatedUser = await authApi.validateToken(token);
           if (validatedUser) {
             tokenStorage.setUser(validatedUser);
             setUser(validatedUser);
-            // Get complete user context
-            getUserContext();
+            // Fetch the rest of the context
+            const context = await apiCall('me');
+            if (context) {
+              setClient(context.client || null);
+              setEngagement(context.engagement || null);
+              setSession(context.session || null);
+            }
           } else {
-            tokenStorage.setToken('');
-            tokenStorage.setUser(null);
-            setUser(null);
+            logout();
           }
-        })
-        .catch(() => {
-          tokenStorage.setToken('');
-          tokenStorage.setUser(null);
-          setUser(null);
-        });
-    }
-  }, []);
+        } catch (err) {
+          console.error("Token validation failed", err);
+          logout();
+        }
+      }
+      setIsLoading(false);
+    };
 
-  // Effect to handle user context when user changes
-  useEffect(() => {
-    if (user) {
-      getUserContext();
-    }
-  }, [user]);
+    initializeAuth();
+  }, [logout]);
+
 
   const login = async (email: string, password: string) => {
     try {
@@ -157,10 +196,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       tokenStorage.setUser(response.user);
       setUser(response.user);
 
-      // Get complete user context
-      await getUserContext();
+      const context = await apiCall('me');
+      if (context) {
+        setClient(context.client || null);
+        setEngagement(context.engagement || null);
+        setSession(context.session || null);
+      }
 
-      // Redirect based on user role and context
       const redirectPath = response.user.role === 'admin' 
         ? '/admin/dashboard' 
         : (tokenStorage.getRedirectPath() || '/');
@@ -175,6 +217,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(false);
     }
   };
+  const loginWithDemoUser = () => {
+    setIsLoading(true);
+    localStorage.setItem('demoMode', 'true');
+    tokenStorage.setToken('demo-token-' + DEMO_USER_ID);
+    tokenStorage.setUser(DEMO_USER);
+    
+    setUser(DEMO_USER);
+    setClient(DEMO_CLIENT);
+    setEngagement(DEMO_ENGAGEMENT);
+    setSession(DEMO_SESSION);
+    setError(null);
+    setIsLoading(false);
+    
+    navigate('/admin/dashboard');
+  };
+
+  const setCurrentSession = useCallback((session: Session | null) => {
+    setSession(session);
+  }, []);
 
   const register = async (userData: any) => {
     try {
@@ -197,11 +258,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const switchClient = async (clientId: string) => {
+    if (isDemoMode) return; // Switching not allowed in demo mode
     try {
       const response = await apiCall(`/clients/${clientId}`);
       if (response) {
         setClient(response);
-        // Clear engagement and session when switching client
         setEngagement(null);
         setSession(null);
       }
@@ -212,11 +273,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const switchEngagement = async (engagementId: string) => {
+    if (isDemoMode) return; // Switching not allowed in demo mode
     try {
       const response = await apiCall(`/engagements/${engagementId}`);
       if (response) {
         setEngagement(response);
-        // Clear session when switching engagement
         setSession(null);
       }
     } catch (error) {
@@ -226,6 +287,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const switchSession = async (sessionId: string) => {
+    if (isDemoMode) return; // Switching not allowed in demo mode
     try {
       const response = await apiCall(`/sessions/${sessionId}`);
       if (response) {
@@ -237,81 +299,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('demoMode');
-    tokenStorage.setToken('');
-    tokenStorage.setUser(null);
-    setUser(null);
-    setClient(null);
-    setEngagement(null);
-    setSession(null);
-    navigate('/login');
-  };
-
-  const loginWithDemoUser = () => {
-    localStorage.setItem('demoMode', 'true');
-    const demoUser = {
-      id: '44444444-4444-4444-4444-444444444444',
-      email: 'demo@democorp.com',
-      role: 'demo',
-      full_name: 'Demo User',
-      username: 'demo',
-      status: 'active',
-      organization: 'Democorp',
-      role_description: 'Demo User',
-      client_account_id: '11111111-1111-1111-1111-111111111111',
-      client_accounts: [{ id: '11111111-1111-1111-1111-111111111111', name: 'Democorp', role: 'demo' }],
-    };
-    const demoClient = {
-      id: '11111111-1111-1111-1111-111111111111',
-      name: 'Democorp',
-      status: 'active' as const,
-      type: 'enterprise' as const,
-      created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z',
-      metadata: {
-        industry: 'Technology',
-        size: 'Enterprise',
-        location: 'Global'
-      }
-    };
-    const demoEngagement = {
-      id: '22222222-2222-2222-2222-222222222222',
-      name: 'Cloud Migration 2024',
-      client_id: '11111111-1111-1111-1111-111111111111',
-      status: 'active' as const,
-      type: 'migration' as const,
-      start_date: '2024-01-01T00:00:00Z',
-      end_date: '2024-12-31T23:59:59Z',
-      created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z',
-      metadata: {
-        project_manager: 'Demo PM',
-        budget: 1000000
-      }
-    };
-    const demoSession = {
-      id: '33333333-3333-3333-3333-333333333333',
-      name: 'Demo Session',
-      session_name: 'demo_session',
-      session_type: 'analysis' as any,
-      engagement_id: '22222222-2222-2222-2222-222222222222',
-      client_account_id: '11111111-1111-1111-1111-111111111111',
-      is_default: true,
-      status: 'active' as const,
-      auto_created: false,
-      created_by: '44444444-4444-4444-4444-444444444444',
-      created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
-    };
-    setUser(demoUser);
-    setClient(demoClient);
-    setEngagement(demoEngagement);
-    setSession(demoSession);
-    setError(null);
-    setIsLoading(false);
-    navigate('/');
-  };
 
   return (
     <AuthContext.Provider value={{
@@ -321,13 +308,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       session,
       isLoading,
       error,
+      isDemoMode,
+      isAuthenticated,
+      isAdmin,
       login,
       register,
       logout,
       switchClient,
       switchEngagement,
       switchSession,
-      loginWithDemoUser
+      loginWithDemoUser,
+      setCurrentSession,
+      currentEngagementId: engagement?.id || null,
+      currentSessionId: session?.id || null,
     }}>
       {children}
     </AuthContext.Provider>

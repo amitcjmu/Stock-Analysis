@@ -76,15 +76,12 @@ const demoStats: DashboardStats = {
 };
 
 const AdminDashboard: React.FC = () => {
-  const { getAuthHeaders } = useAuth();
-
   const fetchDashboardStats = async (): Promise<DashboardStats> => {
-    const headers = getAuthHeaders();
     try {
       const [clientsData, engagementsData, usersData] = await Promise.all([
-        apiCall('/admin/clients/dashboard/stats', { headers }),
-        apiCall('/admin/engagements/dashboard/stats', { headers }),
-        apiCall('/auth/admin/dashboard-stats', { headers })
+        apiCall('/admin/clients/dashboard/stats'),
+        apiCall('/admin/engagements/dashboard/stats'),
+        apiCall('/auth/admin/dashboard-stats')
       ]);
       
       const transformedClients = clientsData.dashboard_stats || clientsData;
@@ -115,14 +112,12 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  const { data, isLoading, isError, error } = useQuery<DashboardStats>(
-    ['adminDashboardStats'], 
-    fetchDashboardStats,
-    {
-      retry: 1,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    }
-  );
+  const { data, isLoading, isError, error } = useQuery<DashboardStats>({
+    queryKey: ['adminDashboardStats'], 
+    queryFn: fetchDashboardStats,
+    retry: 1,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
   const stats = isError ? demoStats : data;
 

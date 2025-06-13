@@ -4,6 +4,7 @@ import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { Session as SessionServiceSession, sessionService, CreateSessionRequest } from '@/services/sessionService';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from './AuthContext'; // Import useAuth to get engagementId
+import type { Session as AuthSession } from './AuthContext';
 import { apiCall } from '@/lib/api';
 
 // Define our UI-specific session type that matches the service type but with name instead of session_display_name
@@ -57,7 +58,7 @@ const sessionQueryKey = (engagementId: string | null) => ['sessions', engagement
  * Hook to fetch the list of sessions for a given engagement.
  */
 export const useSessions = () => {
-  const { currentEngagementId } = useAuth();
+  const { currentEngagementId, isDemoMode } = useAuth();
   
   return useQuery<UISession[]>({
     queryKey: sessionQueryKey(currentEngagementId),
@@ -66,7 +67,7 @@ export const useSessions = () => {
       const serviceSessions = await sessionService.listSessions(currentEngagementId);
       return serviceSessions.map(toUISession);
     },
-    enabled: !!currentEngagementId,
+    enabled: !!currentEngagementId && !isDemoMode,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };
@@ -77,7 +78,7 @@ export const useSessions = () => {
 export const useCreateSession = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { currentEngagementId, setCurrentSessionId } = useAuth();
+  const { currentEngagementId, setCurrentSession } = useAuth();
 
   return useMutation({
     mutationFn: async (data: { name: string; isDefault?: boolean }) => {
@@ -106,7 +107,7 @@ export const useCreateSession = () => {
     },
     onSuccess: (newSession) => {
       queryClient.invalidateQueries({ queryKey: ['sessions', currentEngagementId] });
-      setCurrentSessionId(newSession.id);
+      setCurrentSession({ id: newSession.id, name: newSession.name, status: newSession.status });
       toast({ title: 'Success', description: `Successfully created session "${newSession.name}"`, variant: 'default' });
     },
     onError: (error: Error) => {
@@ -144,7 +145,7 @@ export const useUpdateSession = () => {
 export const useDeleteSession = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { currentEngagementId, currentSessionId, setCurrentSessionId } = useAuth();
+  const { currentEngagementId, currentSessionId, setCurrentSession } = useAuth();
 
   return useMutation({
     mutationFn: async (sessionId: string) => {
@@ -153,7 +154,7 @@ export const useDeleteSession = () => {
     },
     onSuccess: (deletedSessionId) => {
       if (currentSessionId === deletedSessionId) {
-        setCurrentSessionId(null);
+        setCurrentSession(null);
       }
       queryClient.invalidateQueries({ queryKey: sessionQueryKey(currentEngagementId) });
       toast({ variant: 'default', title: 'Success', description: 'Session deleted successfully' });
@@ -217,7 +218,7 @@ interface SessionProviderProps {
 
 // Default export for the provider
 const SessionProvider = ({ children }: SessionProviderProps) => {
-  const { currentEngagementId, currentSessionId, setCurrentSessionId, user } = useAuth();
+  const { currentEngagementId, currentSessionId, setCurrentSession, user, isDemoMode } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -262,13 +263,18 @@ const SessionProvider = ({ children }: SessionProviderProps) => {
   const mergeSessionsMutation = useMergeSessions();
 
   // Set current session
-  const setCurrentSession = useCallback(async (session: UISession | null) => {
+  const setCurrentSessionInProvider = useCallback(async (session: UISession | null) => {
     if (session) {
-      setCurrentSessionId(session.id);
+      const authSession: AuthSession = {
+        id: session.id,
+        name: session.name,
+        status: session.status,
+      };
+      setCurrentSession(authSession);
     } else {
-      setCurrentSessionId(null);
+      setCurrentSession(null);
     }
-  }, [setCurrentSessionId]);
+  }, [setCurrentSession]);
 
   // Refresh sessions
   const refreshSessions = useCallback(async () => {
@@ -342,7 +348,7 @@ const SessionProvider = ({ children }: SessionProviderProps) => {
     isSettingDefault: setDefaultSessionMutation.isPending,
     error: sessionsError || error,
     isDefaultSession,
-    setCurrentSession,
+    setCurrentSession: setCurrentSessionInProvider,
     createSession,
     updateSession,
     deleteSession,
@@ -359,9 +365,7 @@ const SessionProvider = ({ children }: SessionProviderProps) => {
       return null;
     },
     setDemoSession: (session: UISession) => {
-      setCurrentSession(session);
-      setIsLoading(false);
-      setError(null);
+      // This is likely no longer needed as demo state is managed in AuthContext
     },
   }), [
     currentSession,
@@ -374,38 +378,13 @@ const SessionProvider = ({ children }: SessionProviderProps) => {
     sessionsError,
     error,
     isDefaultSession,
-    setCurrentSession,
+    setCurrentSessionInProvider,
     createSession,
     updateSession,
     deleteSession,
     setDefaultSession,
     refreshSessions,
   ]);
-
-  useEffect(() => {
-    // If demo user, set demo session and skip fetch
-    const demoUserId = '44444444-4444-4444-4444-444444444444';
-    const demoSession = {
-      id: '33333333-3333-3333-3333-333333333333',
-      name: 'Demo Session',
-      session_name: 'demo_session',
-      session_type: 'analysis', // Use a valid SessionType if needed
-      engagement_id: '22222222-2222-2222-2222-222222222222',
-      client_account_id: '11111111-1111-1111-1111-111111111111',
-      is_default: true,
-      status: 'active',
-      auto_created: false,
-      created_by: demoUserId,
-      created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
-    };
-    if (user && user.id === demoUserId) {
-      setCurrentSession(demoSession);
-      setIsLoading(false);
-      setError(null);
-      return;
-    }
-  }, [user, setCurrentSession, setIsLoading, setError]);
 
   return (
     <SessionContext.Provider value={contextValue}>

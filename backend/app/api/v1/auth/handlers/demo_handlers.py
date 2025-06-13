@@ -52,11 +52,13 @@ async def get_demo_status():
             ],
             "demo_credentials": {
                 "admin_user": {
-                    "email": "admin@aiforce.com",
+                    "email": "admin@democorp.com",
+                    "password": "admin123",
                     "description": "Platform administrator with full access"
                 },
                 "demo_user": {
-                    "email": "user@demo.com", 
+                    "email": "demo@democorp.com",
+                    "password": "password123",
                     "description": "Standard user for testing workflows"
                 }
             }

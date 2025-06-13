@@ -22,6 +22,8 @@ DEMO_USER_EMAIL = "demo@democorp.com"
 DEMO_CLIENT_ID = UUID("11111111-1111-1111-1111-111111111111")
 DEMO_ENGAGEMENT_ID = UUID("22222222-2222-2222-2222-222222222222")
 DEMO_SESSION_ID = UUID("33333333-3333-3333-3333-333333333333")
+ADMIN_USER_ID = UUID("55555555-5555-5555-5555-555555555555")
+ADMIN_USER_EMAIL = "admin@democorp.com"
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db = Depends(get_db)):
     try:
@@ -29,28 +31,32 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db = Depends(get
             token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
         token_data = TokenPayload(**payload)
-        user = await db.get(User, token_data.sub)
-        if not user:
-            # Fallback to demo user stub
-            return User(
-                id=DEMO_USER_ID,
-                email=DEMO_USER_EMAIL,
-                is_active=True,
-                client_accounts=[DEMO_CLIENT_ID],
-                engagements=[DEMO_ENGAGEMENT_ID],
-                role="demo"
-            )
-        return user
-    except Exception:
-        # DB error or token error: fallback to demo user stub
-        return User(
-            id=DEMO_USER_ID,
-            email=DEMO_USER_EMAIL,
-            is_active=True,
-            client_accounts=[DEMO_CLIENT_ID],
-            engagements=[DEMO_ENGAGEMENT_ID],
-            role="demo"
-        )
+        user_id = UUID(token_data.sub)
+        
+        user = await db.get(User, user_id)
+        if user:
+            return user
+
+        # If user not found in DB, create a mock user object based on ID
+        if user_id == ADMIN_USER_ID:
+            mock_user = User(id=ADMIN_USER_ID, email=ADMIN_USER_EMAIL, is_active=True, is_mock=True)
+            mock_user.role = "admin"
+        else: # Default to regular demo user
+            mock_user = User(id=DEMO_USER_ID, email=DEMO_USER_EMAIL, is_active=True, is_mock=True)
+            mock_user.role = "demo"
+            
+        # Attach required relationship data to the mock object
+        mock_user.client_accounts = [{"id": str(DEMO_CLIENT_ID), "name": "Democorp"}]
+        mock_user.engagements = [{"id": str(DEMO_ENGAGEMENT_ID), "name": "Cloud Migration 2024"}]
+        return mock_user
+
+    except (JWTError, ValidationError, Exception):
+        # Fallback for any error during token processing or DB access
+        mock_user = User(id=DEMO_USER_ID, email=DEMO_USER_EMAIL, is_active=True, is_mock=True)
+        mock_user.role = "demo"
+        mock_user.client_accounts = [{"id": str(DEMO_CLIENT_ID), "name": "Democorp"}]
+        mock_user.engagements = [{"id": str(DEMO_ENGAGEMENT_ID), "name": "Cloud Migration 2024"}]
+        return mock_user
 
 
 def get_current_active_user(

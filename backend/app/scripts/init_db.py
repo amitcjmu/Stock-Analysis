@@ -23,8 +23,9 @@ try:
     from app.core.database import engine, AsyncSessionLocal, init_db
     from app.models.client_account import ClientAccount, Engagement, User, UserAccountAssociation
     from app.models.asset import Asset, AssetType, AssetStatus, SixRStrategy, MigrationWave
-    # from app.models.sixr_analysis import SixRAnalysis
+    from app.models.sixr_analysis import SixRAnalysis, AnalysisStatus
     from app.models.tags import Tag, AssetEmbedding, AssetTag
+    from app.models.rbac import UserProfile, UserRole, RoleType, AccessLevel, UserStatus, ClientAccess, EngagementAccess
     import bcrypt
     import numpy as np
     DEPENDENCIES_AVAILABLE = True
@@ -308,64 +309,203 @@ async def create_mock_client_account(session: AsyncSession) -> uuid.UUID:
 
 
 async def create_mock_users(session: AsyncSession, client_account_id: uuid.UUID) -> Dict[str, uuid.UUID]:
-    """Creates mock users and associates them with the client account."""
+    """Creates mock users, profiles, roles, and access records."""
+    logger.info("Creating mock users, profiles, and roles...")
     user_ids = {}
-    user_definitions = {
-        "demo@democorp.com": DEMO_USER_ID,
-        "admin@democorp.com": ADMIN_USER_ID
-    }
 
     for user_data in MOCK_DATA["users"]:
-        email = user_data["email"]
-        if email not in user_definitions:
-            continue
-
-        user_id = user_definitions[email]
-        hashed_password = bcrypt.hashpw(user_data["password"].encode('utf-8'), bcrypt.gensalt())
+        # Check if user already exists
+        existing_user_result = await session.execute(
+            select(User).where(User.email == user_data["email"])
+        )
+        existing_user = existing_user_result.scalars().first()
         
-        user = User(
-            id=user_id,
-            email=email,
-            password_hash=hashed_password.decode('utf-8'),
-            first_name=user_data["first_name"],
-            last_name=user_data["last_name"],
-            is_verified=user_data["is_verified"],
-            is_mock=True
-        )
-        await session.merge(user)
-        await session.flush()
-        logger.info(f"Created mock user: {user.email}")
-        user_ids[user.email] = user.id
+        if existing_user:
+            logger.info(f"User {user_data['email']} already exists, skipping creation but fetching ID.")
+            user_ids[user_data["email"]] = existing_user.id
+            # Even if user exists, ensure profile and roles are there for idempotency
+            # This is a simplified approach for a seeding script.
+            # A more robust implementation would check and update if necessary.
+        else:
+            # Hash password
+            hashed_password = bcrypt.hashpw(user_data["password"].encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            
+            # Create user
+            user = User(
+                id=ADMIN_USER_ID if "admin" in user_data["email"] else DEMO_USER_ID,
+                email=user_data["email"],
+                password_hash=hashed_password,
+                first_name=user_data["first_name"],
+                last_name=user_data["last_name"],
+                is_active=True,
+                is_verified=user_data.get("is_verified", True),
+                is_mock=True
+            )
+            session.add(user)
+            await session.flush()
+            user_id = user.id
+            user_ids[user_data["email"]] = user_id
+            logger.info(f"Created user: {user.email} with ID: {user_id}")
 
-        # Associate user with the client account
-        association = UserAccountAssociation(
-            user_id=user.id,
-            client_account_id=client_account_id,
-            role='admin' if 'admin' in user.email else 'user',
-            is_mock=True
+            # Associate user with client account
+            user_account_association = UserAccountAssociation(
+                user_id=user.id,
+                client_account_id=client_account_id,
+                role="Admin" if "admin" in user_data["email"] else "User"
+            )
+            session.add(user_account_association)
+            logger.info(f"Associated {user.email} with client account {client_account_id}")
+
+    # Commit users first to ensure they have IDs before creating dependent objects
+    try:
+        await session.commit()
+    except Exception as e:
+        logger.error(f"Error committing initial users: {e}")
+        await session.rollback()
+        raise
+
+    # Now create profiles and roles for all users
+    for email, user_id in user_ids.items():
+        # Check for existing profile
+        existing_profile_result = await session.execute(select(UserProfile).where(UserProfile.user_id == user_id))
+        if existing_profile_result.scalars().first():
+            logger.info(f"User profile for {email} already exists.")
+        else:
+            is_admin = "admin" in email
+            user_profile = UserProfile(
+                user_id=user_id,
+                status=UserStatus.ACTIVE,
+                organization="Demo Corporation",
+                role_description="Platform Administrator" if is_admin else "Platform User",
+                requested_access_level=AccessLevel.ADMIN if is_admin else AccessLevel.READ_WRITE,
+                approved_at=datetime.utcnow(),
+                approved_by=user_ids.get("admin@democorp.com", DEMO_USER_ID), # Self-approved or by admin
+            )
+            session.add(user_profile)
+            logger.info(f"Created user profile for {email}")
+
+        # Check for existing role
+        existing_role_result = await session.execute(select(UserRole).where(UserRole.user_id == user_id))
+        if existing_role_result.scalars().first():
+            logger.info(f"User role for {email} already exists.")
+        else:
+            is_admin = "admin" in email
+            role_type = RoleType.CLIENT_ADMIN if is_admin else RoleType.ANALYST
+            user_role = UserRole(
+                user_id=user_id,
+                role_type=role_type.value,
+                role_name=role_type.name.replace("_", " ").title(),
+                description=f"{role_type.name.replace('_', ' ').title()} for Demo Corporation",
+                scope_type="client",
+                scope_client_id=client_account_id,
+                assigned_by=user_ids.get("admin@democorp.com", DEMO_USER_ID),
+                is_active=True
+            )
+            session.add(user_role)
+            logger.info(f"Assigned role '{role_type.name}' to {email}")
+
+        # Check for existing client access
+        existing_access_result = await session.execute(
+            select(ClientAccess).where(
+                ClientAccess.user_profile_id == user_id,
+                ClientAccess.client_account_id == client_account_id
+            )
         )
-        # Use merge for idempotency
-        await session.merge(association)
-        await session.flush()
-        logger.info(f"Associated {user.email} with client account.")
+        if existing_access_result.scalars().first():
+            logger.info(f"Client access for {email} already exists.")
+        else:
+            is_admin = "admin" in email
+            client_access = ClientAccess(
+                user_profile_id=user_id,
+                client_account_id=client_account_id,
+                access_level=AccessLevel.ADMIN if is_admin else AccessLevel.READ_WRITE,
+                granted_by=user_ids.get("admin@democorp.com", DEMO_USER_ID)
+            )
+            session.add(client_access)
+            logger.info(f"Granted client access to {email}")
+            
+    try:
+        await session.commit()
+        logger.info("Successfully created/verified mock users, profiles, and roles.")
+    except Exception as e:
+        logger.error(f"Error committing users and profiles: {e}")
+        await session.rollback()
+        raise
 
     return user_ids
 
 
-async def create_mock_engagement(session: AsyncSession, client_account_id: uuid.UUID, user_id: uuid.UUID) -> uuid.UUID:
-    """Creates a mock engagement for the client account."""
+async def create_mock_engagement(session: AsyncSession, client_account_id: uuid.UUID, user_ids: Dict[str, uuid.UUID]) -> uuid.UUID:
+    """Creates a mock engagement and grants access to users."""
+    logger.info("Creating mock engagement...")
     engagement_data = MOCK_DATA["engagements"][0]
-    engagement = Engagement(
-        id=DEMO_ENGAGEMENT_ID,
-        **engagement_data,
-        client_account_id=client_account_id,
-        created_by=user_id,
-        is_mock=True
+
+    # Check if engagement already exists
+    existing_engagement_result = await session.execute(
+        select(Engagement).where(
+            Engagement.slug == engagement_data["slug"],
+            Engagement.client_account_id == client_account_id
+        )
     )
-    session.add(engagement)
-    await session.flush() # Flush to get the ID before the transaction commits
-    logger.info(f"Created mock engagement: {engagement.name}")
-    return str(engagement.id)
+    existing_engagement = existing_engagement_result.scalars().first()
+    
+    if existing_engagement:
+        logger.info(f"Engagement '{engagement_data['name']}' already exists.")
+        engagement_id = existing_engagement.id
+    else:
+        engagement = Engagement(
+            id=DEMO_ENGAGEMENT_ID,
+            client_account_id=client_account_id,
+            name=engagement_data["name"],
+            slug=engagement_data["slug"],
+            description=engagement_data["description"],
+            engagement_type=engagement_data["engagement_type"],
+            status=engagement_data["status"],
+            priority=engagement_data["priority"],
+            start_date=datetime.utcnow() - timedelta(days=30),
+            target_completion_date=datetime.utcnow() + timedelta(days=120),
+            client_contact_name=engagement_data["client_contact_name"],
+            client_contact_email=engagement_data["client_contact_email"],
+            is_mock=True,
+            created_by=user_ids["admin@democorp.com"]
+        )
+        session.add(engagement)
+        await session.flush()
+        engagement_id = engagement.id
+        logger.info(f"Created engagement: {engagement.name}")
+        await session.commit()
+
+    # Grant engagement access to all created users
+    for email, user_id in user_ids.items():
+        existing_access_result = await session.execute(
+            select(EngagementAccess).where(
+                EngagementAccess.user_profile_id == user_id,
+                EngagementAccess.engagement_id == engagement_id
+            )
+        )
+        if existing_access_result.scalars().first():
+            logger.info(f"Engagement access for {email} already exists.")
+            continue
+
+        is_admin = "admin" in email
+        engagement_access = EngagementAccess(
+            user_profile_id=user_id,
+            engagement_id=engagement_id,
+            access_level=AccessLevel.ADMIN if is_admin else AccessLevel.READ_WRITE,
+            engagement_role="Engagement Lead" if is_admin else "Analyst",
+            granted_by=user_ids["admin@democorp.com"]
+        )
+        session.add(engagement_access)
+        logger.info(f"Granted engagement access to {email}")
+        
+    try:
+        await session.commit()
+    except Exception as e:
+        logger.error(f"Error granting engagement access: {e}")
+        await session.rollback()
+        raise
+
+    return engagement_id
 
 
 async def create_mock_tags(session: AsyncSession, client_account_id: uuid.UUID) -> Dict[str, uuid.UUID]:
@@ -400,6 +540,8 @@ async def create_mock_tags(session: AsyncSession, client_account_id: uuid.UUID) 
 
 
 async def create_mock_assets(session: AsyncSession, client_account_id: uuid.UUID, engagement_id: uuid.UUID, user_id: uuid.UUID, tag_ids: Dict[str, uuid.UUID]) -> List[uuid.UUID]:
+    """Creates mock assets, embeddings, and associates them with tags."""
+    logger.info("Creating mock assets...")
     asset_ids = []
     
     # This path seems unused in the loop below, but we'll leave the loading logic for now.
@@ -468,39 +610,57 @@ async def create_mock_assets(session: AsyncSession, client_account_id: uuid.UUID
                     asset_tag = AssetTag(asset_id=asset.id, tag_id=tag_id, is_mock=True)
                     session.add(asset_tag)
 
-    logger.info(f"Staged {len(MOCK_DATA['assets'])} assets for creation.")
+    logger.info(f"Successfully created {len(asset_ids)} assets.")
     return asset_ids
 
 
-async def create_mock_sixr_analysis(session: AsyncSession, client_account_id: str, engagement_id: str, user_id: str, asset_ids: List[str]):
-    """Creates mock 6R analysis data for assets."""
-    
-    for asset_id_str in asset_ids:
-        asset_id = uuid.UUID(asset_id_str)
-        asset = await session.get(Asset, asset_id)
+async def create_mock_sixr_analysis(session: AsyncSession, client_account_id: uuid.UUID, engagement_id: uuid.UUID, user_id: uuid.UUID, asset_ids: List[uuid.UUID]):
+    """Creates a mock 6R analysis record for the engagement."""
+    logger.info("Creating mock 6R analysis record...")
+
+    # Check if an analysis for this engagement already exists
+    existing_analysis_result = await session.execute(
+        select(SixRAnalysis).where(SixRAnalysis.engagement_id == engagement_id)
+    )
+    existing_analysis = existing_analysis_result.scalar_one_or_none()
+
+    # Convert asset UUIDs to strings for JSON serialization
+    asset_id_strs = [str(aid) for aid in asset_ids]
+
+    if existing_analysis:
+        logger.info(f"6R analysis for engagement {engagement_id} already exists. Updating application_ids.")
+        existing_ids = set(existing_analysis.application_ids or [])
+        new_ids = set(asset_id_strs)
+        all_ids = list(existing_ids.union(new_ids))
         
-        if not asset:
-            continue
-            
-        analysis = SixRAnalysis(
-            asset_id=asset.id,
+        existing_analysis.application_ids = all_ids
+        existing_analysis.updated_at = datetime.utcnow()
+        session.add(existing_analysis)
+    else:
+        logger.info("Creating new 6R analysis record.")
+        analysis_record = SixRAnalysis(
+            name="6R Analysis for Cloud Migration 2024",
+            description="Automated 6R analysis for the initial set of discovered assets.",
             client_account_id=client_account_id,
             engagement_id=engagement_id,
-            recommended_strategy=asset.six_r_strategy or SixRStrategy.RETAIN,
-            justification="Mock data - based on initial asset discovery.",
-            confidence_score=np.random.uniform(0.7, 0.95),
-            status="completed",
-            is_mock=True,
-            created_by=user_id,
-            analysis_version="1.0"
+            status=AnalysisStatus.COMPLETED,
+            application_ids=asset_id_strs,
+            final_recommendation=SixRStrategy.REHOST,
+            confidence_score=0.85,
+            created_by=str(user_id)
         )
-        session.add(analysis)
-        
-    logger.info("Successfully created mock 6R analysis.")
-    
+        session.add(analysis_record)
+
+    try:
+        await session.commit()
+        logger.info("Successfully created/updated mock 6R analysis record.")
+    except Exception as e:
+        logger.error(f"Failed to commit 6R analysis record: {e}")
+        await session.rollback()
+
 
 async def create_mock_migration_waves(session: AsyncSession, client_account_id: uuid.UUID, engagement_id: uuid.UUID, user_id: uuid.UUID):
-    """Creates mock migration waves."""
+    """Creates mock migration waves and assigns assets to them."""
     
     wave_data = {
         1: {"name": "Wave 1 - Pilot", "description": "Pilot migration of non-critical web servers.", "status": "planning", "start_date_offset": 7, "end_date_offset": 37},
@@ -540,66 +700,38 @@ async def create_mock_migration_waves(session: AsyncSession, client_account_id: 
 
 
 async def initialize_mock_data(force: bool = False):
-    """Initializes the database with mock data."""
+    """
+    Initializes the database with mock data for the demo.
+    Creates a client account, users, engagement, assets, tags, and analysis.
+    """
     async with AsyncSessionLocal() as session:
-        async with session.begin():
-            if force:
-                logger.info("Force option enabled. Deleting existing mock data...")
-                # Use 'in_bulk' to handle relationships and delete in correct order
-                await session.execute(text("DELETE FROM user_account_associations WHERE is_mock = TRUE"))
-                await session.execute(text("DELETE FROM engagements WHERE is_mock = TRUE"))
-                await session.execute(text("DELETE FROM assets WHERE is_mock = TRUE"))
-                await session.execute(text("DELETE FROM tags WHERE is_mock = TRUE"))
-                await session.execute(text("DELETE FROM users WHERE is_mock = TRUE"))
-                await session.execute(text("DELETE FROM client_accounts WHERE is_mock = TRUE"))
-                logger.info("Mock data deleted.")
+        if not force and await check_mock_data_exists(session):
+            logger.info("Mock data already exists. Skipping initialization.")
+            return
 
-            exists = await check_mock_data_exists(session)
-            if exists and not force:
-                logger.info("Mock data already exists. Use '--force' to re-run.")
-                return
+        logger.info("--- Starting Mock Data Initialization ---")
+        
+        client_account_id = await create_mock_client_account(session)
+        user_ids = await create_mock_users(session, client_account_id)
+        engagement_id = await create_mock_engagement(session, client_account_id, user_ids)
+        tag_ids = await create_mock_tags(session, client_account_id)
+        
+        admin_user_id = user_ids.get("admin@democorp.com")
+        if not admin_user_id:
+            logger.error("Could not find admin user ID after user creation.")
+            # Fallback to a static ID if needed, though this indicates an issue
+            admin_user_id_result = await session.execute(select(User.id).where(User.email == "admin@democorp.com"))
+            admin_user_id = admin_user_id_result.scalar_one_or_none() or ADMIN_USER_ID
 
-            logger.info("Creating mock data...")
-            client_account_id = await create_mock_client_account(session)
-            
-            # 2. Create Users
-            user_ids = await create_mock_users(session, client_account_id)
-            admin_user_id = user_ids["admin@democorp.com"] # Assuming admin is the second user
-            
-            # 3. Create Engagement
-            engagement_id = await create_mock_engagement(session, client_account_id, admin_user_id)
-            
-            # 4. Create Tags
-            tag_ids = await create_mock_tags(session, client_account_id)
-            
-            # 5. Create Migration Waves
-            await create_mock_migration_waves(
-                session, 
-                client_account_id, 
-                engagement_id, 
-                admin_user_id
-            )
-            
-            # 6. Create Assets, Embeddings, and associate Tags
-            asset_ids = await create_mock_assets(
-                session, 
-                client_account_id, 
-                engagement_id, 
-                admin_user_id, 
-                tag_ids
-            )
-            
-            # 7. Create 6R Analysis
-            # await create_mock_sixr_analysis(
-            #     session, 
-            #     client_account_id, 
-            #     engagement_id, 
-            #     admin_user_id,
-            #     asset_ids
-            # )
+        asset_ids = await create_mock_assets(session, client_account_id, engagement_id, admin_user_id, tag_ids)
+        
+        if asset_ids:
+            # Pass correct UUID types
+            await create_mock_sixr_analysis(session, client_account_id, engagement_id, admin_user_id, asset_ids)
+        
+        await create_mock_migration_waves(session, client_account_id, engagement_id, admin_user_id)
 
-            logger.info("Database initialization transaction will be committed.")
-
+        logger.info("--- Mock Data Initialization Complete ---")
 
 async def check_mock_data_exists(session: AsyncSession) -> bool:
     """Checks if mock data has already been populated."""

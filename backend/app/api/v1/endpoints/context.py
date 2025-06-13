@@ -15,9 +15,10 @@ from app.core.database import get_db
 from app.services.session_management_service import create_session_management_service
 from app.models import User
 from app.api.v1.auth.auth_utils import get_current_user
-from app.schemas.context import UserContext
+from app.schemas.context import UserContext, ClientBase, EngagementBase, SessionBase
+from datetime import datetime
 
-router = APIRouter(prefix="/api/v1", tags=["context"])
+router = APIRouter(tags=["context"])
 
 # Demo mode constants
 DEMO_USER_ID = UUID("44444444-4444-4444-4444-444444444444")
@@ -64,15 +65,44 @@ async def get_user_context(
     try:
         service = create_session_management_service(db)
         context = await service.get_user_context(current_user.id)
-        return context
+        if context:
+            return context
+        # Raise an exception to fall through to the demo context creation
+        raise ValueError("User context not found, falling back to demo.")
     except Exception:
         # Fallback to demo context
+        now = datetime.utcnow()
+        demo_client = ClientBase(
+            id=DEMO_CLIENT_ID,
+            name="Democorp",
+            description="Demonstration Client",
+            created_at=now,
+            updated_at=now
+        )
+        demo_engagement = EngagementBase(
+            id=DEMO_ENGAGEMENT_ID,
+            name="Cloud Migration 2024",
+            description="Demonstration Engagement",
+            client_id=DEMO_CLIENT_ID,
+            created_at=now,
+            updated_at=now
+        )
+        demo_session = SessionBase(
+            id=DEMO_SESSION_ID,
+            name="Demo Session",
+            description="Demonstration Session",
+            engagement_id=DEMO_ENGAGEMENT_ID,
+            is_default=True,
+            created_by=DEMO_USER_ID,
+            created_at=now,
+            updated_at=now
+        )
         return UserContext(
-            user={"id": str(DEMO_USER_ID), "email": DEMO_USER_EMAIL, "role": "demo"},
-            client={"id": str(DEMO_CLIENT_ID), "name": "Democorp", "is_demo": True},
-            engagement={"id": str(DEMO_ENGAGEMENT_ID), "name": "Cloud Migration 2024"},
-            session={"id": str(DEMO_SESSION_ID), "name": "Demo Session"},
-            available_sessions=[{"id": str(DEMO_SESSION_ID), "name": "Demo Session"}]
+            user={"id": str(current_user.id), "email": current_user.email, "role": getattr(current_user, 'role', 'demo')},
+            client=demo_client,
+            engagement=demo_engagement,
+            session=demo_session,
+            available_sessions=[demo_session]
         )
 
 @router.post(
