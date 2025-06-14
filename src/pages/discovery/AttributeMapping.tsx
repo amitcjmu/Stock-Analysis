@@ -213,23 +213,9 @@ const AttributeMapping = () => {
     };
   }, [criticalAttributesData]);
 
-  // Render loading state
-  if (isLoading) {
-    return (
-      <div className="flex flex-col h-screen">
-        <div className="flex flex-1 overflow-hidden">
-          <Sidebar />
-          <main className="flex-1 overflow-auto p-6">
-            <div className="space-y-4">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-32 bg-muted/20 animate-pulse rounded-lg" />
-              ))}
-            </div>
-          </main>
-        </div>
-      </div>
-    );
-  }
+  const crewAnalysis = useMemo(() => {
+    return criticalAttributesData?.recommendations;
+  }, [criticalAttributesData]);
 
   // Render error state
   if (hasError) {
@@ -310,7 +296,7 @@ const AttributeMapping = () => {
             <ProgressDashboard 
               progress={mappingProgress} 
               onRefresh={handleRefreshCriticalAttributes}
-              isLoading={isLoadingCriticalAttributes}
+              isLoading={isLoading}
             />
           </div>
 
@@ -343,6 +329,7 @@ const AttributeMapping = () => {
               <CrewAnalysisPanel 
                 analysis={[]} // Will be populated from React Query
                 isLoading={isAnalyzing}
+                crewAnalysis={crewAnalysis}
               />
             )}
             

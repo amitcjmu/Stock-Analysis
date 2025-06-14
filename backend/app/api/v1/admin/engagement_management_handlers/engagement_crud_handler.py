@@ -99,7 +99,7 @@ class EngagementCRUDHandler:
             # Average engagement duration
             duration_query = select(
                 func.avg(
-                    func.julianday(Engagement.actual_completion_date) - func.julianday(Engagement.start_date)
+                    func.extract('epoch', Engagement.actual_completion_date - Engagement.start_date) / (60*60*24)
                 )
             ).where(
                 Engagement.actual_completion_date.isnot(None),

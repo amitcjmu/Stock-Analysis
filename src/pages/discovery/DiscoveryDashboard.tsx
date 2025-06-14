@@ -190,128 +190,120 @@ const DiscoveryDashboard: React.FC = () => {
   // Render error state if any query fails
   if (hasError) {
     return (
-      <div className="flex flex-col h-screen">
-        <div className="flex flex-1 overflow-hidden">
-          <Sidebar />
-          <div className="flex-1 overflow-auto p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h1 className="text-2xl font-bold">Discovery Dashboard</h1>
-            </div>
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-              <p>Failed to load dashboard data. Please try again later.</p>
-              <Button 
-                variant="outline" 
-                className="mt-2" 
-                onClick={handleRefresh}
-                aria-label="Retry loading data"
-              >
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Retry
-              </Button>
-            </div>
-          </div>
+      <div className="flex flex-1 overflow-auto p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold">Discovery Dashboard</h1>
+        </div>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+          <p>Failed to load dashboard data. Please try again later.</p>
+          <Button 
+            variant="outline" 
+            className="mt-2" 
+            onClick={handleRefresh}
+            aria-label="Retry loading data"
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Retry
+          </Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-screen">
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
-        <main className="flex-1 overflow-auto p-6">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-2xl font-bold">Discovery Dashboard</h1>
-              <p className="text-sm text-muted-foreground">
-                Overview of your discovery and assessment progress
-              </p>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button 
-                variant="outline" 
-                onClick={handleRefresh} 
-                disabled={isLoading}
-                aria-label="Refresh dashboard data"
-              >
-                <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
-            </div>
-          </div>
-
-          {/* Breadcrumbs */}
-          <div className="mb-6">
-            <ContextBreadcrumbs />
-          </div>
-
-          {/* Loading State */}
-          {isLoading ? (
-            <div className="space-y-4">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-32 bg-muted/20 animate-pulse rounded-lg" />
-              ))}
-            </div>
-          ) : (
-            <>
-              {/* Metrics Grid */}
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
-                <MetricCard
-                  title="Total Assets"
-                  value={metrics.totalAssets}
-                  description="Discovered assets"
-                  icon={<BarChart3 className="h-4 w-4" aria-hidden="true" />}
-                />
-                <MetricCard
-                  title="Applications"
-                  value={metrics.totalApplications}
-                  description="Discovered applications"
-                />
-                <MetricCard
-                  title="Critical Issues"
-                  value={metrics.criticalIssues}
-                  description="Requires attention"
-                  className="border-red-200 bg-red-50"
-                />
-                <MetricCard
-                  title="Tech Debt Items"
-                  value={metrics.techDebtItems}
-                  description="Identified technical debt"
-                />
-              </div>
-
-              {/* Progress Section */}
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-6">
-                <ProgressCard
-                  title="Discovery Progress"
-                  value={metrics.discoveryCompleteness}
-                  description={`${metrics.discoveryCompleteness}% of assets discovered and assessed`}
-                />
-                <ProgressCard
-                  title="Dependency Mapping"
-                  value={metrics.dependencyMappingComplete}
-                  description={`${metrics.dependencyMappingComplete}% of dependencies mapped`}
-                />
-                <ProgressCard
-                  title="Data Quality"
-                  value={metrics.dataQuality}
-                  description={`${metrics.dataQuality}% data quality score`}
-                />
-              </div>
-
-              {/* Agent Learning Insights */}
-              <div className="mb-6">
-                <AgentLearningInsights 
-                  metrics={metrics}
-                  applicationLandscape={applicationLandscape}
-                  infrastructureLandscape={infrastructureLandscape}
-                />
-              </div>
-            </>
-          )}
-        </main>
+    <div>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold">Discovery Dashboard</h1>
+          <p className="text-sm text-muted-foreground">
+            Overview of your discovery and assessment progress
+          </p>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button 
+            variant="outline" 
+            onClick={handleRefresh} 
+            disabled={isLoading}
+            aria-label="Refresh dashboard data"
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
+
+      {/* Breadcrumbs - This can be removed if the main layout handles it */}
+      {/* 
+      <div className="mb-6">
+        <ContextBreadcrumbs />
+      </div>
+      */}
+
+      {/* Loading State */}
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-32 bg-muted/20 animate-pulse rounded-lg" />
+          ))}
+        </div>
+      ) : (
+        <>
+          {/* Metrics Grid */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+            <MetricCard
+              title="Total Assets"
+              value={metrics.totalAssets}
+              description="Discovered assets"
+              icon={<BarChart3 className="h-4 w-4" aria-hidden="true" />}
+            />
+            <MetricCard
+              title="Applications"
+              value={metrics.totalApplications}
+              description="Discovered applications"
+            />
+            <MetricCard
+              title="Critical Issues"
+              value={metrics.criticalIssues}
+              description="Requires attention"
+              className="border-red-200 bg-red-50"
+            />
+            <MetricCard
+              title="Tech Debt Items"
+              value={metrics.techDebtItems}
+              description="Identified technical debt"
+            />
+          </div>
+
+          {/* Progress Section */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-6">
+            <ProgressCard
+              title="Discovery Progress"
+              value={metrics.discoveryCompleteness}
+              description={`${metrics.discoveryCompleteness}% of assets discovered and assessed`}
+            />
+            <ProgressCard
+              title="Dependency Mapping"
+              value={metrics.dependencyMappingComplete}
+              description={`${metrics.dependencyMappingComplete}% of dependencies mapped`}
+            />
+            <ProgressCard
+              title="Data Quality"
+              value={metrics.dataQuality}
+              description={`${metrics.dataQuality}% data quality score`}
+            />
+          </div>
+
+          {/* Agent Learning Insights */}
+          <div className="mb-6">
+            <AgentLearningInsights 
+              metrics={metrics}
+              applicationLandscape={applicationLandscape}
+              infrastructureLandscape={infrastructureLandscape}
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 };

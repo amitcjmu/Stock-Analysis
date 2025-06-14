@@ -300,6 +300,19 @@ class ClientCRUDHandler:
                 await ClientCRUDHandler._convert_client_to_response(c, db) for c in recent_clients
             ]
 
+            # Engagements by status
+            status_query = select(Engagement.status, func.count()).group_by(Engagement.status)
+            engagements_by_status = {row[0]: row[1] for row in (await db.execute(status_query)).all() if row[0]}
+
+            # Average engagement duration
+            duration_query = select(func.avg(
+                func.extract('epoch', Engagement.actual_completion_date - Engagement.start_date) / (60*60*24)
+            )).where(
+                Engagement.actual_completion_date.isnot(None),
+                Engagement.start_date.isnot(None)
+            )
+            average_duration = (await db.execute(duration_query)).scalar_one()
+
             return {
                 "total_clients": total_clients,
                 "active_clients": active_clients,
@@ -307,6 +320,8 @@ class ClientCRUDHandler:
                 "clients_by_company_size": clients_by_company_size,
                 "clients_by_cloud_provider": clients_by_cloud_provider,
                 "recent_client_registrations": recent_client_registrations,
+                "engagements_by_status": engagements_by_status,
+                "average_engagement_duration": average_duration
             }
         except Exception as e:
             logger.error(f"Error getting dashboard stats: {e}")
