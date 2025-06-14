@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authApi, User } from '@/lib/api/auth';
-import { apiCall } from '@/lib/api';
+import { apiCall, updateApiContext } from '@/config/api';
 
 interface TokenStorage {
   getToken: () => string | null;
@@ -129,6 +129,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isAuthenticated = !!user;
   const isAdmin = user?.role === 'admin';
 
+  useEffect(() => {
+    updateApiContext({ client, engagement, session });
+  }, [client, engagement, session]);
+
   const logout = useCallback(() => {
     localStorage.removeItem('demoMode');
     tokenStorage.setToken('');
@@ -143,38 +147,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const initializeAuth = async () => {
       setIsLoading(true);
-      const token = tokenStorage.getToken();
-      const storedUser = tokenStorage.getUser();
+      try {
+        const token = tokenStorage.getToken();
+        const storedUser = tokenStorage.getUser();
 
-      if (storedUser?.id === DEMO_USER_ID) {
-        // Handle demo user persistence
-        setUser(DEMO_USER);
-        setClient(DEMO_CLIENT);
-        setEngagement(DEMO_ENGAGEMENT);
-        setSession(DEMO_SESSION);
-      } else if (token) {
-        try {
-          // Validate token for regular user
+        if (storedUser?.id === DEMO_USER_ID) {
+          setUser(DEMO_USER);
+          setClient(DEMO_CLIENT);
+          setEngagement(DEMO_ENGAGEMENT);
+          setSession(DEMO_SESSION);
+        } else if (token) {
           const validatedUser = await authApi.validateToken(token);
           if (validatedUser) {
             tokenStorage.setUser(validatedUser);
             setUser(validatedUser);
-            // Fetch the rest of the context
-            const context = await apiCall('me');
+            const context = await apiCall('/api/v1/users/me/context');
             if (context) {
               setClient(context.client || null);
               setEngagement(context.engagement || null);
               setSession(context.session || null);
             }
           } else {
+            // Token is invalid, log out
             logout();
           }
-        } catch (err) {
-          console.error("Token validation failed", err);
-          logout();
         }
+      } catch (err) {
+        console.error("Authentication initialization failed:", err);
+        // Also log out on error
+        logout();
+      } finally {
+        // This is the crucial change: ensure loading is false only after all checks are done
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     initializeAuth();
