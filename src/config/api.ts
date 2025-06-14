@@ -176,7 +176,7 @@ export const apiCall = async (
 ): Promise<any> => {
   const requestId = Math.random().toString(36).substring(2, 8);
   const startTime = performance.now();
-  const url = `${API_CONFIG.BASE_URL}${endpoint}`;
+  const url = `${API_CONFIG.BASE_URL}/api/v1${endpoint}`;
   const method = (options.method || 'GET').toUpperCase();
   
   // Create a unique key for this request to prevent duplicates
