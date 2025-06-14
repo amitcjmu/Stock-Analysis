@@ -42,7 +42,8 @@ import {
   User,
   Brain,
   Settings2,
-  Wand2
+  Wand2,
+  ShieldAlert
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -92,7 +93,7 @@ const Sidebar = () => {
         { name: 'Data Cleansing', path: '/discovery/data-cleansing', icon: Wand2 },
         { name: 'Inventory', path: '/discovery/inventory', icon: Database },
         { name: 'Dependencies', path: '/discovery/dependencies', icon: Network },
-        { name: 'Tech Debt', path: '/discovery/tech-debt-analysis', icon: BarChart3 }
+        { name: 'Tech Debt', path: '/discovery/tech-debt', icon: ShieldAlert },
       ]
     },
     { 

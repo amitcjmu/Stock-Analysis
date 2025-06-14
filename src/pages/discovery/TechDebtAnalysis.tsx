@@ -327,67 +327,13 @@ const TechDebtAnalysis: React.FC = () => {
 
 export default TechDebtAnalysis;
 
+const TechDebtAnalysisPage = () => {
   return (
-    <div className="flex h-screen">
-      <NavigationSidebar />
-      <div className="flex-1 overflow-auto">
-        <div className="p-8">
-          <ContextBreadcrumbs />
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold mb-2">Technical Debt Analysis</h1>
-            <p className="text-gray-600">
-              Analyze and track technical debt across your applications
-            </p>
-          </div>
-
-          {summary && <TechDebtSummaryCards summary={summary} />}
-
-          <div className="mb-6">
-            <TechDebtFilters
-              selectedCategory={selectedCategory}
-              setSelectedCategory={setSelectedCategory}
-              selectedRisk={selectedRisk}
-              setSelectedRisk={setSelectedRisk}
-              selectedStatus={selectedStatus}
-              setSelectedStatus={setSelectedStatus}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-            />
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {techDebtItems.map((item) => (
-              <TechDebtItemCard
-                key={item.id}
-                item={item}
-                onUpdate={updateTechDebtItem}
-                onDelete={deleteTechDebtItem}
-                selected={selectedItems.has(item.id)}
-                onSelect={(selected) => {
-                  const newSelected = new Set(selectedItems);
-                  if (selected) {
-                    newSelected.add(item.id);
-                  } else {
-                    newSelected.delete(item.id);
-                  }
-                  setSelectedItems(newSelected);
-                }}
-              />
-            ))}
-          </div>
-
-          {supportTimelines && supportTimelines.length > 0 && (
-            <div className="mt-8">
-              <h2 className="text-xl font-semibold mb-4">Support Timelines</h2>
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {supportTimelines.map(renderSupportTimeline)}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+    <div className="p-4">
+      <h1 className="text-2xl font-bold">Tech Debt Analysis</h1>
+      <p className="mt-4">This page is under construction.</p>
     </div>
   );
 };
 
-export default TechDebtAnalysis;
+export default TechDebtAnalysisPage;

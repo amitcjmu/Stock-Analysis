@@ -78,30 +78,40 @@ class EngagementCRUDHandler:
         try:
             # Total engagements
             total_query = select(func.count()).select_from(Engagement)
-            total_result = await db.execute(total_query)
-            total_engagements = total_result.scalar_one()
+            total_engagements = (await db.execute(total_query)).scalar_one()
 
             # Active engagements
-            active_query = select(func.count()).select_from(Engagement).where(Engagement.status == 'In Progress')
-            active_result = await db.execute(active_query)
-            active_engagements = active_result.scalar_one()
+            active_query = select(func.count()).where(Engagement.is_active == True)
+            active_engagements = (await db.execute(active_query)).scalar_one()
 
             # Engagements by type
             type_query = select(Engagement.engagement_type, func.count()).group_by(Engagement.engagement_type)
-            type_result = await db.execute(type_query)
-            engagements_by_type = {row[0]: row[1] for row in type_result.all() if row[0]}
+            engagements_by_type = {
+                row[0]: row[1] for row in (await db.execute(type_query)).all() if row[0]
+            }
 
             # Engagements by status
             status_query = select(Engagement.status, func.count()).group_by(Engagement.status)
-            status_result = await db.execute(status_query)
-            engagements_by_status = {row[0]: row[1] for row in status_result.all() if row[0]}
+            engagements_by_status = {
+                row[0]: row[1] for row in (await db.execute(status_query)).all() if row[0]
+            }
             
-            # Recent engagements (last 7 days)
-            seven_days_ago = datetime.utcnow() - timedelta(days=7)
-            recent_query = select(Engagement).where(Engagement.created_at >= seven_days_ago).order_by(Engagement.created_at.desc()).limit(5)
-            recent_result = await db.execute(recent_query)
-            recent_engagements = recent_result.scalars().all()
+            # Average engagement duration
+            duration_query = select(
+                func.avg(
+                    func.julianday(Engagement.actual_completion_date) - func.julianday(Engagement.start_date)
+                )
+            ).where(
+                Engagement.actual_completion_date.isnot(None),
+                Engagement.start_date.isnot(None)
+            )
+            avg_duration_result = (await db.execute(duration_query)).scalar_one_or_none()
+            avg_engagement_duration_days = round(avg_duration_result, 2) if avg_duration_result else 0.0
 
+            # Recent engagements (last 30 days)
+            thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+            recent_query = select(Engagement).where(Engagement.created_at >= thirty_days_ago).order_by(Engagement.created_at.desc()).limit(5)
+            recent_engagements = (await db.execute(recent_query)).scalars().all()
             recent_engagement_responses = [EngagementResponse.model_validate(e, from_attributes=True) for e in recent_engagements]
 
             return {
@@ -109,9 +119,9 @@ class EngagementCRUDHandler:
                 "active_engagements": active_engagements,
                 "engagements_by_type": engagements_by_type,
                 "engagements_by_status": engagements_by_status,
-                "avg_engagement_duration_days": 0, # Placeholder
-                "recent_engagements": recent_engagement_responses
+                "avg_engagement_duration_days": avg_engagement_duration_days,
+                "recent_engagements": recent_engagement_responses,
             }
         except Exception as e:
-            logger.error(f"Error getting engagement dashboard stats: {e}")
-            raise HTTPException(status_code=500, detail="Failed to retrieve dashboard stats") 
+            logger.error(f"Error getting engagement dashboard stats: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Failed to retrieve dashboard stats: {str(e)}") 

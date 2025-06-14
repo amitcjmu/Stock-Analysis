@@ -111,7 +111,7 @@ export const useFileAnalysisStatus = (sessionId: string | null) => {
       if (!sessionId) return null;
       
       const response = await apiCall(
-        `${API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_STATUS}?session_id=${sessionId}`
+        `${API_CONFIG.ENDPOINTS.DISCOVERY.AGENTS}/agent-status?session_id=${sessionId}`
       );
       
       return response as { workflow_status: string; [key: string]: any };

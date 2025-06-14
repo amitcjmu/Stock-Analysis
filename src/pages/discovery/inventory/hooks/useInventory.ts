@@ -1,11 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@/contexts/AuthContext';
 import { apiCall } from '@/lib/api';
 import { InventoryResponse, InventoryFilters, BulkUpdateVariables } from '../types';
 
 export const useInventoryData = (filters: InventoryFilters) => {
-  const { getAuthHeaders } = useAuth();
-  
   return useQuery<InventoryResponse, Error>({
     queryKey: ['inventory', filters],
     queryFn: async () => {
@@ -17,10 +14,9 @@ export const useInventoryData = (filters: InventoryFilters) => {
         }
       });
       
-      // Make the API call with params and headers
+      // Make the API call with params
       return apiCall<InventoryResponse>('/assets/list/paginated', {
         params,
-        headers: getAuthHeaders()
       });
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -29,13 +25,11 @@ export const useInventoryData = (filters: InventoryFilters) => {
 
 export const useBulkUpdateAssets = () => {
   const queryClient = useQueryClient();
-  const { getAuthHeaders } = useAuth();
   
   return useMutation<Response, Error, BulkUpdateVariables>({
     mutationFn: async ({ assetIds, updateData }) => {
       return apiCall<Response>('/assets/bulk-update-plan', {
         method: 'POST',
-        headers: getAuthHeaders(),
         data: {
           asset_ids: assetIds,
           ...updateData
