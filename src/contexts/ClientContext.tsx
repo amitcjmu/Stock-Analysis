@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { apiCall } from '@/lib/api';
 
-interface Client {
+export interface Client {
   id: string;
   name: string;
   status: 'active' | 'inactive';
@@ -15,9 +15,11 @@ interface Client {
 
 interface ClientContextType {
   currentClient: Client | null;
+  availableClients: Client[];
   isLoading: boolean;
   error: Error | null;
   selectClient: (id: string) => Promise<void>;
+  switchClient: (id: string) => Promise<void>;
   clearClient: () => void;
   getClientId: () => string | null;
   setDemoClient: (client: Client) => void;
@@ -29,6 +31,7 @@ const CLIENT_KEY = 'current_client';
 
 export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentClient, setCurrentClient] = useState<Client | null>(null);
+  const [availableClients, setAvailableClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { user } = useAuth();
@@ -110,11 +113,47 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
 
     if (user) {
-    initializeClient();
+      const fetchClients = async () => {
+        setIsLoading(true);
+        try {
+          const response = await apiCall('/api/v1/clients'); 
+          if (response.items) {
+            setAvailableClients(response.items);
+            const storedClientId = sessionStorage.getItem(CLIENT_KEY);
+            if (storedClientId) {
+              const client = response.items.find((c: Client) => c.id === storedClientId);
+              if (client) {
+                setCurrentClient(client);
+              }
+            } else if (response.items.length > 0) {
+              // select the first client if none is stored
+              setCurrentClient(response.items[0]);
+              sessionStorage.setItem(CLIENT_KEY, response.items[0].id);
+            }
+          }
+        } catch (err) {
+          setError(err instanceof Error ? err : new Error('Failed to fetch clients'));
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchClients();
     } else {
       setIsLoading(false);
+      setCurrentClient(null);
+      setAvailableClients([]);
     }
   }, [user, navigate]);
+
+  const switchClient = async (id: string): Promise<void> => {
+    const client = availableClients.find(c => c.id === id);
+    if (client) {
+      setCurrentClient(client);
+      sessionStorage.setItem(CLIENT_KEY, id);
+    } else {
+      throw new Error('Client not found');
+    }
+  };
 
   const selectClient = async (id: string): Promise<void> => {
     try {
@@ -155,9 +194,11 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const value = {
     currentClient,
+    availableClients,
     isLoading,
     error,
     selectClient,
+    switchClient,
     clearClient,
     getClientId,
     setDemoClient

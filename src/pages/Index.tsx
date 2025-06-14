@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
@@ -20,7 +19,7 @@ const Index = () => {
       icon: FileText,
       path: '/assess',
       color: 'bg-blue-500',
-      status: 'Active'
+      status: 'In Progress'
     },
     {
       title: 'Plan',
@@ -28,7 +27,7 @@ const Index = () => {
       icon: Building2,
       path: '/plan',
       color: 'bg-purple-500',
-      status: 'Active'
+      status: 'Planned'
     },
     {
       title: 'Execute',
@@ -36,7 +35,7 @@ const Index = () => {
       icon: Wrench,
       path: '/execute',
       color: 'bg-orange-500',
-      status: 'Active'
+      status: 'Planned'
     },
     {
       title: 'Modernize',
@@ -44,7 +43,7 @@ const Index = () => {
       icon: Sparkles,
       path: '/modernize',
       color: 'bg-indigo-500',
-      status: 'Active'
+      status: 'Planned'
     },
     {
       title: 'Decommission',
@@ -52,7 +51,7 @@ const Index = () => {
       icon: Archive,
       path: '/decommission',
       color: 'bg-red-500',
-      status: 'Active'
+      status: 'Planned'
     },
     {
       title: 'FinOps',
@@ -60,7 +59,7 @@ const Index = () => {
       icon: BarChart3,
       path: '/finops',
       color: 'bg-yellow-500',
-      status: 'Active'
+      status: 'Planned'
     },
     {
       title: 'Observability',
@@ -68,7 +67,7 @@ const Index = () => {
       icon: Eye,
       path: '/observability',
       color: 'bg-emerald-500',
-      status: 'Active'
+      status: 'Planned'
     }
   ];
 
@@ -104,7 +103,9 @@ const Index = () => {
                         <span className={`px-2 py-1 text-xs rounded-full ${
                           phase.status === 'Active' 
                             ? 'bg-green-100 text-green-800' 
-                            : 'bg-gray-100 text-gray-600'
+                            : phase.status === 'In Progress'
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'bg-gray-100 text-gray-600'
                         }`}>
                           {phase.status}
                         </span>

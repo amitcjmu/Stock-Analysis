@@ -71,7 +71,7 @@ export const API_CONFIG = {
   BASE_URL: getBackendUrl(),
   ENDPOINTS: {
     DISCOVERY: {
-      AGENT_ANALYSIS: '/discovery/agents/agent-analysis',
+      AGENT_ANALYSIS: '/discovery/agents/discovery/analysis/agent-analysis',
       ANALYZE_CMDB: '/discovery/analyze-cmdb',
       PROCESS_CMDB: '/discovery/process-cmdb',
       CMDB_TEMPLATES: '/discovery/cmdb-templates',

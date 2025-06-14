@@ -127,6 +127,11 @@ const CMDBImport: React.FC = () => {
   // Get uploaded files from the query cache
   const { data: uploadedFiles = [] } = useQuery<UploadedFile[]>({
     queryKey: ['uploadedFiles'],
+    queryFn: () => {
+      // This query is for client-side state managed by a mutation.
+      // Return initial data or empty array.
+      return queryClient.getQueryData<UploadedFile[]>(['uploadedFiles']) || [];
+    },
     initialData: []
   });
 
@@ -159,171 +164,139 @@ const CMDBImport: React.FC = () => {
   return (
     <>
       <style>{styles}</style>
-      <div className="flex min-h-screen bg-gray-50">
-        <Sidebar />
-        
-        <div className="flex-1 flex flex-col overflow-hidden ml-64">
-          <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50">
-            <div className="flex h-full">
-              {/* Main Content Area */}
-              <div className="flex-1 overflow-y-auto">
-                <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-5xl">
-                  {/* Context Breadcrumbs */}
-                  <div className="mb-6">
-                    <ContextBreadcrumbs />
-                  </div>
-                  
-                  <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900">Intelligent Data Analysis</h1>
-                    <p className="mt-2 text-gray-600">
-                      Upload any data file and let our AI crew intelligently determine its type, value, and processing requirements
+      <div className="flex h-full">
+        {/* Main Content Area */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-5xl">
+            {/* Context Breadcrumbs */}
+            <div className="mb-6">
+              <ContextBreadcrumbs />
+            </div>
+            
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-gray-900">Intelligent Data Analysis</h1>
+              <p className="mt-2 text-gray-600">
+                Upload any data file and let our AI crew intelligently determine its type, value, and processing requirements
+              </p>
+              <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <Brain className="h-6 w-6 text-blue-600" />
+                  <div>
+                    <p className="text-sm text-blue-800">
+                      <strong>Smart AI Analysis:</strong> Our intelligent agents analyze any uploaded data to determine actual content type, assess quality and relevance, then recommend the optimal processing workflow for your migration journey.
                     </p>
-                    <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <Brain className="h-6 w-6 text-blue-600" />
-                        <div>
-                          <p className="text-sm text-blue-800">
-                            <strong>Smart AI Analysis:</strong> Our intelligent agents analyze any uploaded data to determine actual content type, assess quality and relevance, then recommend the optimal processing workflow for your migration journey.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
                   </div>
-                  
-                  {/* Upload Success Toast */}
-                  {showUploadSuccess && (
-                    <div className="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2 animate-slide-in-right z-50">
-                      <CheckCircle className="h-5 w-5" />
-                      <span>File uploaded successfully! AI analysis starting...</span>
-                    </div>
-                  )}
-
-                  {/* Upload Areas */}
-                  <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-                    <h2 className="text-xl font-semibold text-gray-900 mb-6">Upload Your Data (AI Will Determine Actual Type)</h2>
-                    <p className="text-sm text-gray-600 mb-6">
-                      Choose the category that best represents what you <em>intended</em> to upload. Our AI crew will analyze the actual content and determine its true type and value.
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {uploadAreas.map((area) => (
-                        <UploadArea
-                          key={area.id}
-                          area={area}
-                          onDrop={handleDrop}
-                          isSelected={selectedUploadType === area.id}
-                        />
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Uploaded Files */}
-                  {uploadedFiles.length > 0 && (
-                    <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-                      <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-xl font-semibold text-gray-900">AI Crew Analysis</h2>
-                        {isUploading && (
-                          <div className="flex items-center space-x-2 text-blue-600">
-                            <Bot className="h-5 w-5 animate-pulse" />
-                            <span className="text-sm font-medium">Agentic crew active</span>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="space-y-6">
-                        {uploadedFiles.map((fileUpload, index) => (
-                          <FileAnalysis
-                            key={fileUpload.id || index}
-                            file={fileUpload}
-                            onNavigate={handleNavigate}
-                            onRetry={() => {
-                              // Implement retry logic if needed
-                              console.log('Retry file:', fileUpload.file.name);
-                            }}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Getting Started */}
-                  {uploadedFiles.length === 0 && (
-                    <div className="bg-white rounded-lg shadow-md p-6">
-                      <h2 className="text-xl font-semibold text-gray-900 mb-4">How Intelligent Analysis Works</h2>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                          <h3 className="font-medium text-gray-900 mb-2">🤖 AI-Powered Content Detection</h3>
-                          <ul className="space-y-1 text-sm text-gray-600">
-                            <li>• AI crew analyzes actual file content and structure</li>
-                            <li>• Determines true data type regardless of upload category</li>
-                            <li>• Assesses data quality and migration relevance</li>
-                            <li>• Scores information value for your migration project</li>
-                          </ul>
-                        </div>
-                        <div>
-                          <h3 className="font-medium text-gray-900 mb-2">📊 Intelligent Recommendations</h3>
-                          <ul className="space-y-1 text-sm text-gray-600">
-                            <li>• Tailored processing workflow based on actual content</li>
-                            <li>• Context-aware next steps for optimal migration planning</li>
-                            <li>• Quality-based confidence scoring and issue identification</li>
-                            <li>• Application-focused insights from any data type</li>
-                          </ul>
-                        </div>
-                      </div>
-                      
-                      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                        <div className="flex items-center space-x-3">
-                          <Lightbulb className="h-5 w-5 text-blue-600" />
-                          <div>
-                            <p className="text-sm text-blue-800">
-                              <strong>Pro Tip:</strong> Don't worry about choosing the "perfect" category - our AI crew is designed to understand your data regardless of how you categorize it. Just pick the closest match and let the intelligence do the rest!
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Agent Interaction Sidebar */}
-              <div className="w-96 border-l border-gray-200 bg-gray-50 overflow-y-auto">
-                <div className="p-4 space-y-4">
-                  {/* Agent Clarification Panel */}
-                  <AgentClarificationPanel 
-                    pageContext="data-import"
-                    refreshTrigger={agentRefreshTrigger}
-                    isProcessing={isUploading}
-                    onQuestionAnswered={(questionId, response) => {
-                      console.log('Question answered:', questionId, response);
-                      setAgentRefreshTrigger(prev => prev + 1);
-                    }}
-                  />
-
-                  {/* Data Classification Display */}
-                  <DataClassificationDisplay 
-                    pageContext="data-import"
-                    refreshTrigger={agentRefreshTrigger}
-                    isProcessing={isUploading}
-                    onClassificationUpdate={(itemId, newClassification) => {
-                      console.log('Classification updated:', itemId, newClassification);
-                      setAgentRefreshTrigger(prev => prev + 1);
-                    }}
-                  />
-
-                  {/* Agent Insights Section */}
-                  <AgentInsightsSection 
-                    pageContext="data-import"
-                    refreshTrigger={agentRefreshTrigger}
-                    isProcessing={isUploading}
-                    onInsightAction={(insightId, action) => {
-                      console.log('Insight action:', insightId, action);
-                      setAgentRefreshTrigger(prev => prev + 1);
-                    }}
-                  />
                 </div>
               </div>
             </div>
-          </main>
+            
+            {/* Upload Success Toast */}
+            {showUploadSuccess && (
+              <div className="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2 animate-slide-in-right z-50">
+                <CheckCircle className="h-5 w-5" />
+                <span>File uploaded successfully! AI analysis starting...</span>
+              </div>
+            )}
+
+            {/* Upload Areas */}
+            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+              <h2 className="text-xl font-semibold text-gray-900 mb-6">Upload Your Data (AI Will Determine Actual Type)</h2>
+              <p className="text-sm text-gray-600 mb-6">
+                Choose the category that best represents what you <em>intended</em> to upload. Our AI crew will analyze the actual content and determine its true type and value.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {uploadAreas.map((area) => (
+                  <UploadArea
+                    key={area.id}
+                    area={area}
+                    onDrop={handleDrop}
+                    isSelected={selectedUploadType === area.id}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Uploaded Files */}
+            {uploadedFiles.length > 0 && (
+              <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-semibold text-gray-900">AI Crew Analysis</h2>
+                  {isUploading && (
+                    <div className="flex items-center space-x-2 text-blue-600">
+                      <Bot className="h-5 w-5 animate-pulse" />
+                      <span className="text-sm font-medium">Agentic crew active</span>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="space-y-6">
+                  {uploadedFiles.map((fileUpload, index) => (
+                    <FileAnalysis
+                      key={fileUpload.id || index}
+                      file={fileUpload}
+                      onNavigate={handleNavigate}
+                      onRetry={() => {
+                        // Implement retry logic if needed
+                        console.log('Retry file:', fileUpload.file.name);
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Getting Started */}
+            {uploadedFiles.length === 0 && (
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">Getting Started</h2>
+                <div className="prose max-w-none text-gray-600">
+                  <p>
+                    Welcome to the Intelligent Data Analysis module. Here's how to get started:
+                  </p>
+                  <ol>
+                    <li>
+                      <strong>Upload Data:</strong> Drag and drop a file into one of the categories above, or click to browse. You can upload CMDB exports, application scan results, or even unstructured documentation.
+                    </li>
+                    <li>
+                      <strong>AI Analysis:</strong> Our AI crew will immediately begin analyzing the file to determine its content, structure, and quality. You'll see real-time progress as agents classify the data.
+                    </li>
+                    <li>
+                      <strong>Review Insights:</strong> Once the analysis is complete, you'll see a summary of findings, including detected asset types, data quality scores, and recommendations for next steps.
+                    </li>
+                    <li>
+                      <strong>Proceed to Mapping:</strong> For structured data like CMDB exports, you can proceed to the{' '}
+                      <a href="/discovery/attribute-mapping" className="text-blue-600 hover:underline">Attribute Mapping</a> page to align your data with our standard migration model.
+                    </li>
+                  </ol>
+                  <div className="mt-6 flex items-center space-x-3 bg-blue-50 p-3 rounded-lg">
+                    <Lightbulb className="h-5 w-5 text-blue-600" />
+                    <p className="text-sm text-blue-800">
+                      <strong>Tip:</strong> Don't worry about choosing the perfect category. The AI is designed to figure out the data's true nature regardless of where you drop it.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right-side Panel for Agent Clarification */}
+        <div className="w-96 min-w-96 p-4 overflow-y-auto bg-white border-l border-gray-200">
+          <AgentClarificationPanel 
+            key={`clarification-${agentRefreshTrigger}`}
+            onAnalysisComplete={() => {
+              queryClient.invalidateQueries({ queryKey: ['uploadedFiles'] });
+              setAgentRefreshTrigger(prev => prev + 1);
+            }} 
+          />
+          <DataClassificationDisplay
+            key={`classification-${agentRefreshTrigger}`}
+            pageContext="data-import"
+          />
+          <AgentInsightsSection
+            key={`insights-${agentRefreshTrigger}`}
+            pageContext="data-import"
+          />
         </div>
       </div>
     </>

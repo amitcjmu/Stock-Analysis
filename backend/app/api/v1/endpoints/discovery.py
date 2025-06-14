@@ -55,6 +55,14 @@ try:
 except ImportError as e:
     logger.warning(f"⚠️ CMDB analysis router not available: {e}")
 
+# Include agent discovery router for agent status and analysis
+try:
+    from app.api.v1.endpoints.agent_discovery import router as agent_discovery_router
+    router.include_router(agent_discovery_router, prefix="/agents", tags=["discovery-agents"])
+    logger.info("✅ Agent discovery router included in discovery")
+except ImportError as e:
+    logger.warning(f"⚠️ Agent discovery router not available: {e}")
+
 try:
     from app.api.v1.discovery.chat_interface import router as chat_interface_router
     router.include_router(chat_interface_router, tags=["discovery-chat"])
@@ -77,14 +85,6 @@ try:
     logger.info("✅ Data cleanup router included in discovery")
 except ImportError as e:
     logger.warning(f"⚠️ Data cleanup router not available: {e}")
-
-# Include agent discovery router for agent status and analysis
-try:
-    from app.api.v1.endpoints.agent_discovery import router as agent_discovery_router
-    router.include_router(agent_discovery_router, prefix="/agents", tags=["discovery-agents"])
-    logger.info("✅ Agent discovery router included in discovery")
-except ImportError as e:
-    logger.warning(f"⚠️ Agent discovery router not available: {e}")
 
 # Include app-server mappings router for dependency analysis
 try:

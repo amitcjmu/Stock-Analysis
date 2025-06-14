@@ -9,6 +9,14 @@ import { ClientProvider, useClient } from "./contexts/ClientContext";
 import GlobalChatFeedback from "./components/GlobalChatFeedback";
 import { SessionProvider } from "./contexts/SessionContext";
 
+// Import placeholder components for new routes
+const PlaceholderPage = ({ title }: { title: string }) => (
+  <div className="p-8">
+    <h2 className="text-2xl font-bold mb-4">{title}</h2>
+    <p className="text-gray-600">This page is a placeholder. Content will be added in a future update.</p>
+  </div>
+);
+
 // Layouts
 import MainLayout from './components/MainLayout';
 
@@ -120,16 +128,59 @@ const App = () => {
                                             <Route path="discovery/tech-debt" element={<TechDebtAnalysisPage />} />
 
                                             {/* Other Main Modules */}
-                                            <Route path="plan" element={<Plan />} />
-                                            <Route path="execute" element={<ExecuteIndex />} />
-                                            <Route path="execute/replatform" element={<Replatform />} />
-                                            <Route path="modernize" element={<ModernizeIndex />} />
-                                            <Route path="modernize/rearchitect" element={<Rearchitect />} />
-                                            <Route path="assess" element={<Assess />} />
-                                            <Route path="finops" element={<FinOps />} />
-                                            <Route path="decommission" element={<DecommissionIndex />} />
-                                            <Route path="decommission/planning" element={<DecommissionPlanning />} />
-                                            <Route path="decommission/execution" element={<DecommissionExecution />} />
+                                            {/* Plan Module */}
+                                            <Route path="plan" element={<Plan />}>
+                                                <Route index element={<Navigate to="overview" replace />} />
+                                                <Route path="overview" element={<div>Plan Overview</div>} />
+                                                <Route path="timeline" element={<div>Migration Timeline</div>} />
+                                                <Route path="dependencies" element={<div>Dependency Mapping</div>} />
+                                                <Route path="risks" element={<div>Risk Assessment</div>} />
+                                            </Route>
+                                            
+                                            {/* Execute Module */}
+                                            <Route path="execute" element={<ExecuteIndex />}>
+                                                <Route index element={<Navigate to="dashboard" replace />} />
+                                                <Route path="dashboard" element={<div>Execution Dashboard</div>} />
+                                                <Route path="replatform" element={<Replatform />} />
+                                                <Route path="wave-planning" element={<div>Wave Planning</div>} />
+                                                <Route path="runbooks" element={<div>Runbooks</div>} />
+                                            </Route>
+                                            
+                                            {/* Modernize Module */}
+                                            <Route path="modernize" element={<ModernizeIndex />}>
+                                                <Route index element={<Navigate to="overview" replace />} />
+                                                <Route path="overview" element={<div>Modernization Overview</div>} />
+                                                <Route path="rearchitect" element={<Rearchitect />} />
+                                                <Route path="refactor" element={<div>Refactoring</div>} />
+                                                <Route path="optimize" element={<div>Optimization</div>} />
+                                            </Route>
+                                            
+                                            {/* Assess Module */}
+                                            <Route path="assess" element={<Assess />}>
+                                                <Route index element={<Navigate to="overview" replace />} />
+                                                <Route path="overview" element={<div>Assessment Overview</div>} />
+                                                <Route path="6r-analysis" element={<div>6R Analysis</div>} />
+                                                <Route path="grouping" element={<div>Migration Grouping</div>} />
+                                                <Route path="wave-planning" element={<div>Wave Planning</div>} />
+                                            </Route>
+                                            
+                                            {/* FinOps Module */}
+                                            <Route path="finops" element={<FinOps />}>
+                                                <Route index element={<Navigate to="overview" replace />} />
+                                                <Route path="overview" element={<div>FinOps Overview</div>} />
+                                                <Route path="cost-analysis" element={<div>Cost Analysis</div>} />
+                                                <Route path="optimization" element={<div>Optimization</div>} />
+                                                <Route path="budgeting" element={<div>Budgeting</div>} />
+                                            </Route>
+                                            
+                                            {/* Decommission Module */}
+                                            <Route path="decommission" element={<DecommissionIndex />}>
+                                                <Route index element={<Navigate to="planning" replace />} />
+                                                <Route path="planning" element={<DecommissionPlanning />} />
+                                                <Route path="execution" element={<DecommissionExecution />} />
+                                                <Route path="validation" element={<div>Validation</div>} />
+                                                <Route path="reporting" element={<div>Reporting</div>} />
+                                            </Route>
                                             
                                             {/* Admin routes now nested here */}
                                             <Route path="admin/dashboard" element={<AdminDashboard />} />

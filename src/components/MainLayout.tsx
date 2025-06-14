@@ -20,7 +20,7 @@ const MainLayout: React.FC = () => {
   return (
     <div className="flex h-screen bg-background">
       <Sidebar />
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="ml-64 flex flex-1 flex-col overflow-hidden">
         {user && (
           <Header
             user={user}

@@ -396,10 +396,15 @@ class AssetAnalysisHandler:
         Get discovery metrics for the Discovery Overview dashboard.
         """
         try:
+            # Get assets with proper scoping
             all_assets = await self._get_assets_from_database(client_account_id, engagement_id)
-            
+
             if not all_assets:
+                logger.warning(f"No assets found for client {client_account_id}, engagement {engagement_id}. Returning default metrics.")
                 return self._fallback_get_discovery_metrics()
+            
+            # Convert to DataFrame for analysis
+            df = pd.DataFrame(all_assets)
             
             # Count assets by type
             total_assets = len(all_assets)
@@ -471,10 +476,14 @@ class AssetAnalysisHandler:
         """
         try:
             all_assets = await self._get_assets_from_database(client_account_id, engagement_id)
-            
+
             if not all_assets:
+                logger.warning(f"No assets found for client {client_account_id}, engagement {engagement_id}. Returning default application landscape.")
                 return self._fallback_get_application_landscape()
+
+            df = pd.DataFrame(all_assets)
             
+            # Filter for assets that are applications
             applications = [a for a in all_assets if 'app' in str(a.get('asset_type', '')).lower()]
             
             # Transform applications to match frontend interface
@@ -544,9 +553,12 @@ class AssetAnalysisHandler:
         """
         try:
             all_assets = await self._get_assets_from_database(client_account_id, engagement_id)
-            
+
             if not all_assets:
+                logger.warning(f"No assets found for client {client_account_id}, engagement {engagement_id}. Returning default infrastructure landscape.")
                 return self._fallback_get_infrastructure_landscape()
+
+            df = pd.DataFrame(all_assets)
             
             # Count servers by type
             servers = [a for a in all_assets if 'server' in str(a.get('asset_type', '')).lower()]

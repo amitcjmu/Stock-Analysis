@@ -13,19 +13,19 @@ interface TokenStorage {
   clearRedirectPath: () => void;
 }
 
-interface Client {
+export interface Client {
   id: string;
   name: string;
   status: string;
 }
 
-interface Engagement {
+export interface Engagement {
   id: string;
   name: string;
   status: string;
 }
 
-interface Session {
+export interface Session {
   id: string;
   name: string;
   status: string;
