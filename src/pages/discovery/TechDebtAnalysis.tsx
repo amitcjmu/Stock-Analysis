@@ -66,7 +66,7 @@ import {
 } from '@/hooks/discovery/useTechDebtQueries';
 
 // Components
-import NavigationSidebar from '@/components/navigation/NavigationSidebar';
+import { NavigationSidebar } from '@/components/navigation/NavigationSidebar';
 import { ContextBreadcrumbs } from '@/components/context/ContextBreadcrumbs';
 import { TechDebtSummaryCards, TechDebtFilters, TechDebtItemCard } from '@/components/tech-debt';
 

@@ -69,17 +69,13 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
     setError(null);
     
     try {
-      // Build URL with query parameters
-      const url = new URL(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_STATUS, window.location.origin);
-      url.searchParams.append('page_context', pageContext);
-      
-      // Include session ID if available
-      if (session?.id) {
-        url.searchParams.append('session_id', session.id);
-      }
-      
-      // Make the API call with the constructed URL
-      const result = await apiCall(url.pathname + url.search, { method: 'GET' });
+      const result = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_STATUS, {
+        method: 'GET',
+        params: { 
+          page_context: pageContext,
+          session_id: session?.id
+        }
+      });
       
       // Process the result
       if (result && result.data) {

@@ -117,8 +117,9 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
 
   const fetchQuestions = async () => {
     try {
-              const result = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_STATUS}?page_context=${pageContext}`, {
-        method: 'GET'
+      const result = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_STATUS, {
+        method: 'GET',
+        params: { page_context: pageContext }
       });
       if (result.status === 'success' && result.page_data?.pending_questions) {
         const questions = result.page_data.pending_questions;

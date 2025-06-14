@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiCall, API_CONFIG } from '@/config/api';
-import { useAuth } from '@/contexts/AuthContext';
 
 // Types
 export interface FieldMapping {
@@ -69,14 +68,10 @@ export interface CriticalAttributesData {
 
 // Hook to fetch critical attributes status
 export const useCriticalAttributes = () => {
-  const { getContextHeaders } = useAuth();
-  
   return useQuery<CriticalAttributesData>({
     queryKey: ['critical-attributes'],
     queryFn: async () => {
-      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.CRITICAL_ATTRIBUTES_STATUS, {
-        headers: getContextHeaders()
-      });
+      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.CRITICAL_ATTRIBUTES_STATUS);
       return response;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -86,14 +81,10 @@ export const useCriticalAttributes = () => {
 
 // Hook to fetch latest imported data
 export const useLatestImport = () => {
-  const { getContextHeaders } = useAuth();
-  
   return useQuery({
     queryKey: ['latest-import'],
     queryFn: async () => {
-      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.LATEST_IMPORT, {
-        headers: getContextHeaders()
-      });
+      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.LATEST_IMPORT);
       return response?.data || [];
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -103,7 +94,6 @@ export const useLatestImport = () => {
 
 // Hook to generate field mappings
 export const useGenerateFieldMappings = () => {
-  const { getContextHeaders } = useAuth();
   const queryClient = useQueryClient();
   
   return useMutation({
@@ -112,8 +102,7 @@ export const useGenerateFieldMappings = () => {
       const response = await apiCall('/api/v1/data-import/generate-field-mappings', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          ...getContextHeaders()
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           columns,
@@ -131,7 +120,6 @@ export const useGenerateFieldMappings = () => {
 
 // Hook to update a field mapping
 export const useUpdateFieldMapping = () => {
-  const { getContextHeaders } = useAuth();
   const queryClient = useQueryClient();
   
   return useMutation({
@@ -139,8 +127,7 @@ export const useUpdateFieldMapping = () => {
       const response = await apiCall(`/api/v1/data-import/field-mappings/${id}`, {
         method: 'PATCH',
         headers: {
-          'Content-Type': 'application/json',
-          ...getContextHeaders()
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(updates)
       });
@@ -156,7 +143,6 @@ export const useUpdateFieldMapping = () => {
 
 // Hook to analyze data with AI
 export const useAnalyzeData = () => {
-  const { getContextHeaders } = useAuth();
   const queryClient = useQueryClient();
   
   return useMutation({
@@ -165,8 +151,7 @@ export const useAnalyzeData = () => {
       const response = await apiCall('/api/v1/data-import/analyze', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          ...getContextHeaders()
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(data)
       });

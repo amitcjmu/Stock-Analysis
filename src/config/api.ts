@@ -112,7 +112,7 @@ export const API_CONFIG = {
       // Data import persistence endpoints
       STORE_IMPORT: '/assets/bulk-create',
       STORE_IMPORT_TEMP: '/data-import/store-import-temp',
-      LATEST_IMPORT: '/data-import/latest-import',
+      LATEST_IMPORT: '/discovery/cmdb/latest-import',
       LATEST_IMPORT_TEMP: '/data-import/latest-import-temp',
       GET_IMPORT: '/data-import/import',
       LIST_IMPORTS: '/data-import/imports',

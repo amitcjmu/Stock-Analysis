@@ -80,7 +80,10 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
 
   const fetchInsights = async () => {
     try {
-              const result = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_STATUS}?page_context=${pageContext}`, { method: 'GET' });
+      const result = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_STATUS, {
+        method: 'GET',
+        params: { page_context: pageContext }
+      });
       if (result.status === 'success' && result.page_data?.agent_insights) {
         setInsights(result.page_data.agent_insights);
       }
