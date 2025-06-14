@@ -326,14 +326,3 @@ const TechDebtAnalysis: React.FC = () => {
 };
 
 export default TechDebtAnalysis;
-
-const TechDebtAnalysisPage = () => {
-  return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold">Tech Debt Analysis</h1>
-      <p className="mt-4">This page is under construction.</p>
-    </div>
-  );
-};
-
-export default TechDebtAnalysisPage;

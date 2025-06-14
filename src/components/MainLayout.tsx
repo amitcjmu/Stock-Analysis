@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
-import ContextBreadcrumbs from 'context/ContextBreadcrumbs';
+import ContextBreadcrumbs from './context/ContextBreadcrumbs';
 
 const MainLayout: React.FC = () => {
   return (
