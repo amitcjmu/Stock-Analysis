@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useBudgetAlerts, useFinOpsMetrics } from '@/hooks/finops/useFinOpsQueries';
+import { useBudgetAlerts, useCostMetrics } from '@/hooks/finops/useFinOpsQueries';
 import { NavigationSidebar } from '@/components/navigation/NavigationSidebar';
 import { Bell, AlertTriangle, CheckCircle, Settings, Plus, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,10 +20,7 @@ const BudgetAlerts = () => {
     error: alertsError
   } = useBudgetAlerts();
 
-  const {
-    data: metricsData,
-    isLoading: isLoadingMetrics
-  } = useFinOpsMetrics();
+  const { data: metricsData, isLoading: isLoadingMetrics } = useCostMetrics();
 
   if (!isAuthenticated) {
     return (
@@ -49,12 +46,12 @@ const BudgetAlerts = () => {
     );
   }
 
-  const { alerts = [], metrics = {} } = alertsData || {};
+  const alerts = alertsData || [];
   const alertMetrics = [
-    { label: 'Active Alerts', value: metrics.activeAlerts || '0', color: 'text-red-600', icon: AlertTriangle },
-    { label: 'Resolved', value: metrics.resolvedAlerts || '0', color: 'text-green-600', icon: CheckCircle },
-    { label: 'Budget Usage', value: metrics.budgetUsage || '0%', color: 'text-blue-600', icon: Settings },
-    { label: 'Alert Rules', value: metrics.totalRules || '0', color: 'text-purple-600', icon: Bell },
+    { label: 'Active Alerts', value: metricsData?.activeAlerts || '0', color: 'text-red-600', icon: AlertTriangle },
+    { label: 'Resolved', value: metricsData?.resolvedAlerts || '0', color: 'text-green-600', icon: CheckCircle },
+    { label: 'Budget Usage', value: metricsData?.budgetUsage || '0%', color: 'text-blue-600', icon: Settings },
+    { label: 'Alert Rules', value: metricsData?.totalRules || '0', color: 'text-purple-600', icon: Bell },
   ];
 
   return (
@@ -84,7 +81,7 @@ const BudgetAlerts = () => {
               </div>
               <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <p className="text-blue-800 text-sm">
-                  <strong>AI Insight:</strong> {metrics.aiInsight || 'No insights available'}
+                  <strong>AI Insight:</strong> No insights available
                 </p>
               </div>
             </div>

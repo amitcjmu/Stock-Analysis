@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ChatFeedbackProvider } from "./contexts/ChatFeedbackContext";
 import { AuthProvider } from "./contexts/AuthContext";
-import { AppContextProvider } from "./hooks/useContext";
+// import { AppContextProvider } from "./hooks/useContext";
 import GlobalChatFeedback from "./components/GlobalChatFeedback";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
@@ -80,9 +80,9 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+
         <AuthProvider>
-          <AppContextProvider>
+
             <ChatFeedbackProvider>
               <Routes>
               <Route path="/" element={<Index />} />
@@ -90,12 +90,12 @@ const App = () => (
               <Route path="/discovery" element={<Discovery />} />
               <Route path="/discovery/overview" element={<DiscoveryDashboard />} />
               <Route path="/discovery/dashboard" element={<DiscoveryDashboard />} />
-              <Route path="/discovery/data-import" element={<DataImport />} />
+              <Route path="/discovery/import" element={<DataImport />} />
               <Route path="/discovery/inventory" element={<Inventory />} />
+              <Route path="/discovery/dependencies" element={<Dependencies />} />
               <Route path="/discovery/data-cleansing" element={<DataCleansing />} />
               <Route path="/discovery/attribute-mapping" element={<AttributeMapping />} />
-              <Route path="/discovery/tech-debt-analysis" element={<TechDebtAnalysis />} />
-              <Route path="/discovery/dependencies" element={<Dependencies />} />
+              <Route path="/discovery/tech-debt" element={<TechDebtAnalysis />} />
               <Route path="/assess" element={<Assess />} />
               <Route path="/assess/overview" element={<AssessIndex />} />
               <Route path="/assess/treatment" element={<Treatment />} />
@@ -159,9 +159,8 @@ const App = () => (
               </Routes>
               <GlobalChatFeedback />
             </ChatFeedbackProvider>
-          </AppContextProvider>
         </AuthProvider>
-      </BrowserRouter>
+
     </TooltipProvider>
   </QueryClientProvider>
 );

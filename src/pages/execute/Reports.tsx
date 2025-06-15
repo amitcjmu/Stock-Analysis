@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useExecutionReports, useExecutionMetrics } from '@/hooks/execute/useExecuteQueries';
+import { useExecutionMetrics } from '@/hooks/execute/useExecuteQueries';
 import { NavigationSidebar } from '@/components/navigation/NavigationSidebar';
 import { BarChart, LineChart, PieChart, Download, Filter, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';

@@ -5,4 +5,4 @@ export * from './session';
 export * from './AgentMonitor';
 export * from './FeedbackWidget';
 export * from './GlobalChatFeedback';
-export * from './Sidebar';
+export { default as Sidebar } from './Sidebar';

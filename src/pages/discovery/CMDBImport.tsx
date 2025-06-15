@@ -164,7 +164,11 @@ const CMDBImport: React.FC = () => {
   return (
     <>
       <style>{styles}</style>
-      <div className="flex h-full">
+      <div className="flex min-h-screen bg-gray-50">
+  {/* Sidebar */}
+  <div className="hidden lg:block w-64 border-r bg-white">
+    <Sidebar />
+  </div>
         {/* Main Content Area */}
         <div className="flex-1 overflow-y-auto">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-5xl">
@@ -284,7 +288,10 @@ const CMDBImport: React.FC = () => {
         <div className="w-96 min-w-96 p-4 overflow-y-auto bg-white border-l border-gray-200">
           <AgentClarificationPanel 
             key={`clarification-${agentRefreshTrigger}`}
-            onAnalysisComplete={() => {
+            pageContext="data-import"
+            refreshTrigger={agentRefreshTrigger}
+            isProcessing={isUploading}
+            onQuestionAnswered={() => {
               queryClient.invalidateQueries({ queryKey: ['uploadedFiles'] });
               setAgentRefreshTrigger(prev => prev + 1);
             }} 

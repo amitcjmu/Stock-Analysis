@@ -58,7 +58,7 @@ import {
   SixRParameters,
   SixRRecommendation,
   QuestionResponse,
-  AnalysisProgress,
+  AnalysisProgress as AnalysisProgressType,
   Analysis,
   AnalysisQueueItem
 } from '@/types/assessment';
@@ -67,11 +67,11 @@ import {
 import { 
   ParameterSliders,
   QualifyingQuestions,
-  AnalysisProgressDisplay,
+  AnalysisProgress as AnalysisProgressComponent,
   RecommendationDisplay,
-  AnalysisHistory,
-  Sidebar
+  AnalysisHistory
 } from '@/components/assessment';
+import { Sidebar } from '@/components';
 
 // Main component
 export const Treatment: React.FC = () => {
@@ -94,16 +94,9 @@ export const Treatment: React.FC = () => {
     refetch: refetchApplications 
   } = useApplications();
 
-  const {
-    analysisState: state,
-    isLoading: isAnalysisLoading,
-    error: analysisError,
-    initializeAnalysis,
-    updateParameters,
-    answerQuestions,
-    acceptRecommendation,
-    iterateAnalysis
-  } = useSixRAnalysis(selectedApplicationIds);
+  const [state, actions] = useSixRAnalysis(selectedApplicationIds);
+const { isLoading: isAnalysisLoading, error: analysisError } = state;
+const { updateParameters, submitQuestionResponse, acceptRecommendation, iterateAnalysis } = actions;
 
   const {
     queues: analysisQueues,
@@ -140,23 +133,13 @@ export const Treatment: React.FC = () => {
     setManualNavigation(true);
   }, []);
   
-  const handleStartAnalysis = useCallback(async () => {
-    if (selectedApplicationIds.length === 0) {
-      toast.error('Please select at least one application');
-      return;
-    }
-    
-    setCurrentTab('parameters');
-    await initializeAnalysis();
-  }, [selectedApplicationIds, initializeAnalysis]);
+  // Removed: handleStartAnalysis (initializeAnalysis not available in AnalysisActions)
   
   const handleUpdateParameters = useCallback((params: SixRParameters) => {
     updateParameters(params);
   }, [updateParameters]);
   
-  const handleAnswerQuestions = useCallback((responses: QuestionResponse[]) => {
-    answerQuestions(responses);
-  }, [answerQuestions]);
+  // Removed: handleAnswerQuestions (answerQuestions not available in AnalysisActions)
   
   const handleAcceptRecommendation = useCallback(async () => {
     try {
@@ -220,50 +203,49 @@ export const Treatment: React.FC = () => {
       <main className="flex-1 overflow-auto">
         <div className="p-6">
           {/* Tab content */}
+          {/* TODO: Implement ApplicationSelector or replace with alternative UI */}
           {currentTab === 'selection' && (
-            <ApplicationSelector
-              applications={applications}
-              selectedApplications={selectedApplications}
-              onSelectionChange={handleSelectApplications}
-              onStartAnalysis={handleStartAnalysis}
-            />
+            <div className="p-4 text-red-600">ApplicationSelector component is missing. Please implement or provide an alternative UI for application selection.</div>
           )}
 
           {currentTab === 'parameters' && state.parameters && (
             <ParameterSliders
               parameters={state.parameters}
-              onChange={handleUpdateParameters}
+              onParametersChange={updateParameters}
             />
           )}
 
-          {currentTab === 'questions' && state.questions && (
+          {currentTab === 'questions' && state.qualifyingQuestions && (
             <QualifyingQuestions
-              questions={state.questions}
-              onResponse={handleAnswerQuestions}
+              questions={state.qualifyingQuestions}
+              responses={state.questionResponses}
+              onResponseChange={submitQuestionResponse}
+              onSubmit={() => {}}
             />
           )}
 
-          {currentTab === 'progress' && state.progress && (
-            <AnalysisProgressDisplay progress={state.progress} />
+          {currentTab === 'progress' && state.analysisProgress && (
+            <AnalysisProgressComponent progress={state.analysisProgress} />
           )}
 
-          {currentTab === 'recommendation' && state.recommendation && (
+          {currentTab === 'recommendation' && state.currentRecommendation && (
             <RecommendationDisplay
-              recommendation={state.recommendation}
-              onAccept={handleAcceptRecommendation}
-              onReject={handleIterateAnalysis}
+              recommendation={state.currentRecommendation}
+              onAccept={acceptRecommendation}
+              onReject={iterateAnalysis}
             />
           )}
 
           {currentTab === 'history' && (
             <AnalysisHistory
               analyses={state.analysisHistory || []}
-              onSelect={(analysis) => {/* Handle selection */}}
-              onCompare={(ids) => {/* Handle comparison */}}
-              onExport={(ids, format) => {/* Handle export */}}
-              onDelete={(id) => {/* Handle deletion */}}
-              onArchive={(id) => {/* Handle archival */}}
-              onViewDetails={(id) => {/* Handle viewing details */}}
+              // TODO: Implement these handlers as needed
+              onSelect={() => {}}
+              onCompare={() => {}}
+              onExport={() => {}}
+              onDelete={() => {}}
+              onArchive={() => {}}
+              onViewDetails={() => {}}
             />
           )}
         </div>

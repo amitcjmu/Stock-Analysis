@@ -20,6 +20,9 @@ import {
   BulkAnalysisResult,
   BulkAnalysisSummary
 } from '../components/sixr';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiCall } from '@/lib/api';
+import { AnalysisProgress, Analysis } from '@/types/assessment';
 
 // State interfaces
 export interface AnalysisState {

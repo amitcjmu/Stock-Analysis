@@ -1,6 +1,5 @@
-export { ParameterSliders } from './ParameterSliders';
-export { QualifyingQuestions } from './QualifyingQuestions';
-export { AnalysisProgressDisplay } from './AnalysisProgressDisplay';
-export { RecommendationDisplay } from './RecommendationDisplay';
-export { AnalysisHistory } from './AnalysisHistory';
-export { Sidebar } from './Sidebar'; 
+export { ParameterSliders } from '../sixr/ParameterSliders';
+export { QualifyingQuestions } from '../sixr/QualifyingQuestions';
+export { AnalysisProgress } from '../sixr/AnalysisProgress';
+export { RecommendationDisplay } from '../sixr/RecommendationDisplay';
+export { AnalysisHistory } from '../sixr/AnalysisHistory';

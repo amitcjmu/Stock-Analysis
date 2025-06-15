@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.core.context import RequestContext, get_current_context
-from app.db.session import get_db
+from app.core.database import get_db
 from app.models.client_account import User
 from app.services.crewai_flow_service import crewai_flow_service
 from app.services.session_management_service import SessionManagementService

@@ -10,10 +10,26 @@ import { Button } from '../../components/ui/button';
 import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
 import NoDataPlaceholder from '../../components/NoDataPlaceholder';
 import ProgressDashboard from '../../components/discovery/attribute-mapping/ProgressDashboard';
-import CrewAnalysisPanel from '../../components/discovery/attribute-mapping/CrewAnalysisPanel';
-import NavigationTabs from '../../components/discovery/attribute-mapping/NavigationTabs';
 import FieldMappingsTab from '../../components/discovery/attribute-mapping/FieldMappingsTab';
 import CriticalAttributesTab from '../../components/discovery/attribute-mapping/CriticalAttributesTab';
+import CrewAnalysisPanel from '../../components/discovery/attribute-mapping/CrewAnalysisPanel';
+import NavigationTabs from '../../components/discovery/attribute-mapping/NavigationTabs';
+import AgentClarificationPanel from '../../components/discovery/AgentClarificationPanel';
+import DataClassificationDisplay from '../../components/discovery/DataClassificationDisplay';
+import AgentInsightsSection from '../../components/discovery/AgentInsightsSection';
+import Sidebar from '../../components/Sidebar';
+import { ArrowRight, Brain } from 'lucide-react';
+const CRITICAL_ATTRIBUTES = {
+  hostname: { field: 'Hostname' },
+  os: { field: 'Operating System' },
+  ip_address: { field: 'IP Address' },
+  environment: { field: 'Environment' },
+  owner: { field: 'Owner' },
+  department: { field: 'Department' },
+  business_criticality: { field: 'Business Criticality' },
+  six_r_strategy: { field: '6R Strategy' },
+  migration_wave: { field: 'Migration Wave' }
+};
 
 const AttributeMapping: React.FC = () => {
   const { toast } = useToast();
@@ -87,59 +103,105 @@ const AttributeMapping: React.FC = () => {
   if (isErrorCriticalAttributes) {
     return <div className="p-4 text-red-600 bg-red-50 rounded-md">Error loading attribute mapping data. Please try again.</div>;
   }
+
+  // Tab content renderer
+  function renderTabContent() {
+    if (activeTab === 'field-mappings') {
+      return (
+        <FieldMappingsTab
+          fieldMappings={fieldMappings}
+          isAnalyzing={isAnalyzing}
+          onMappingAction={() => {}}
+        />
+      );
+    }
+    if (activeTab === 'critical-attributes') {
+      return (
+        <CriticalAttributesTab
+          criticalAttributes={(criticalAttributesData?.attributes || []).map(attr => ({
+            ...attr,
+            mapping_type: attr.mapping_type as any,
+            business_impact: attr.business_impact as any
+          }))}
+          isAnalyzing={isAnalyzing}
+        />
+      );
+    }
+    return null;
+  }
   
   return (
-    <div className="space-y-6">
-      <ContextBreadcrumbs />
-      <div>
-        <h1 className="text-2xl font-bold">Attribute Mapping</h1>
-        <p className="text-sm text-gray-500">
-          Map imported CMDB fields to the AI Force critical attributes for migration.
-        </p>
+    <div className="flex min-h-screen bg-gray-50">
+      {/* Sidebar */}
+      <div className="hidden lg:block w-64 border-r bg-white">
+        <Sidebar />
       </div>
-
-      <ProgressDashboard mappingProgress={mappingProgress} isLoading={isLoading} />
-      
-      {noData ? (
-        <NoDataPlaceholder
-          title="No attributes to map"
-          description="It looks like you haven't imported any data for this engagement yet. Please import your CMDB data to begin mapping attributes."
-          actions={
-            <Link to="/discovery/import">
-              <Button>
-                <Upload className="mr-2 h-4 w-4" />
-                Go to Data Import
-              </Button>
-            </Link>
-          }
-        />
-      ) : (
-        <div className="grid grid-cols-12 gap-8">
-          <div className="col-span-12 lg:col-span-8">
+      {/* Main Content */}
+      <main className="flex-1 px-8 py-8">
+        <ContextBreadcrumbs />
+        <div>
+          <h1 className="text-2xl font-bold">Attribute Mapping</h1>
+          <p className="text-sm text-gray-500">
+            Map imported CMDB fields to the AI Force critical attributes for migration.
+          </p>
+        </div>
+        <ProgressDashboard mappingProgress={mappingProgress} isLoading={isLoading} />
+        {noData ? (
+          <NoDataPlaceholder
+            title="No attributes to map"
+            description="It looks like you haven't imported any data for this engagement yet. Please import your CMDB data to begin mapping attributes."
+            actions={
+              <Link to="/discovery/import">
+                <Button>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Go to Data Import
+                </Button>
+              </Link>
+            }
+          />
+        ) : (
+          <>
             <NavigationTabs activeTab={activeTab} onTabChange={setActiveTab} />
             <div className="mt-4">
-              {activeTab === 'field-mappings' && (
-                <FieldMappingsTab
-                  fieldMappings={fieldMappings}
-                  isAnalyzing={isAnalyzing}
-                  onMappingAction={() => {}} 
-                />
-              )}
-              {activeTab === 'critical-attributes' && (
-                <CriticalAttributesTab
-                  criticalAttributes={(criticalAttributesData?.attributes || []).map(attr => ({...attr, mapping_type: attr.mapping_type as any, business_impact: attr.business_impact as any}))}
-                  isAnalyzing={isAnalyzing}
-                />
-              )}
+              {renderTabContent()}
             </div>
-          </div>
-          <div className="col-span-12 lg:col-span-4">
-            <CrewAnalysisPanel 
-              crewAnalysis={crewAnalysis}
-            />
-          </div>
-        </div>
-      )}
+            {/* AI Learning Tips */}
+            <div className="mt-6 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+              <div className="flex items-start space-x-3">
+                <Brain className="h-5 w-5 text-indigo-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h4 className="font-medium text-indigo-900 mb-2">Improve AI Learning</h4>
+                  <ul className="text-sm text-indigo-800 space-y-1">
+                    <li>• Approve accurate field mappings to teach the AI your data patterns</li>
+                    <li>• Reject incorrect mappings to prevent the AI from learning bad patterns</li>
+                    <li>• Manually adjust mappings when needed - the AI will learn from your corrections</li>
+                    <li>• The more examples you provide, the better the AI becomes at future mappings</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            {/* Continue Button */}
+            <div className="flex justify-center mt-8">
+              <button
+                // onClick={handleContinueToDataCleansing} // TODO: implement navigation
+                disabled={false /* TODO: implement canContinueToDataCleansing() logic */}
+                className={`flex items-center space-x-2 px-6 py-3 rounded-lg text-lg font-medium transition-colors bg-blue-600 text-white hover:bg-blue-700`}
+              >
+                <span>Continue to Data Cleansing</span>
+                <ArrowRight className="h-5 w-5" />
+              </button>
+            </div>
+            {/* TODO: Add missing critical fields warning if needed */}
+            <CrewAnalysisPanel crewAnalysis={crewAnalysis} />
+          </>
+        )}
+      </main>
+      {/* Agentic Panels Sidebar */}
+      <aside className="hidden xl:flex flex-col w-96 border-l bg-white px-6 py-8 space-y-6">
+        <AgentClarificationPanel pageContext="attribute-mapping" />
+        <DataClassificationDisplay pageContext="attribute-mapping" />
+        <AgentInsightsSection pageContext="attribute-mapping" />
+      </aside>
     </div>
   );
 };

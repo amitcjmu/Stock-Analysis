@@ -20,6 +20,8 @@ from app.api.v1.endpoints import (
     sessions_router,
     context_router,
 )
+from app.api.v1.discovery import discovery_flow_router
+
 from app.api.v1.admin.client_management import router as client_management_router
 from app.api.v1.admin.engagement_management import router as engagement_management_router
 from app.api.v1.auth.handlers.user_management_handlers import user_management_router as user_approvals_router
@@ -37,6 +39,7 @@ logger.info("--- Starting API Router Inclusion Process ---")
 
 api_router.include_router(sixr_router, prefix="/sixr", tags=["6R Analysis"])
 api_router.include_router(discovery_router, prefix="/discovery", tags=["Discovery"])
+api_router.include_router(discovery_flow_router, prefix="/discovery/flow", tags=["Discovery Flow"])
 api_router.include_router(asset_inventory_router, prefix="/assets", tags=["Asset Inventory"])
 api_router.include_router(data_cleanup_router, prefix="/data-cleanup", tags=["Data Cleanup"])
 api_router.include_router(data_import_router, prefix="/data-import", tags=["Data Import"])

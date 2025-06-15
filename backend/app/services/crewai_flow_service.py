@@ -60,8 +60,8 @@ class CrewAIFlowService:
                 # Configure LLM for DeepInfra
                 self.llm = ChatOpenAI(
                     api_key=os.getenv("DEEPINFRA_API_KEY"),
-                    base_url="https://api.deepinfra.com/v1/openai",
-                    model_name="openai/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+                    base_url="https://api.deepinfra.com/v1/openai/chat/completions",
+                    model_name="meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
                     temperature=0.1,
                     max_tokens=4096
                 )
@@ -134,17 +134,45 @@ class CrewAIFlowService:
 
         try:
             # 1. Parse Input Data
-            file_data_b64 = data_source.get("file_data")
-            metadata = data_source.get("metadata", {})
-            if not file_data_b64:
+            file_data = data_source.get("file_data")
+            if not file_data:
                 raise ValueError("file_data is required for analysis")
-            
-            decoded_content = base64.b64decode(file_data_b64).decode('utf-8')
-            if metadata.get('filename', '').endswith('.csv'):
-                string_io = io.StringIO(decoded_content)
-                parsed_data = list(csv.DictReader(string_io))
+
+            # Accept both array-of-objects (CSV rows) and string (Base64 or raw)
+            if isinstance(file_data, str):
+                # Try to decode base64 or parse as needed (for non-CSV files)
+                try:
+                    decoded = base64.b64decode(file_data)
+                    # Optionally: try to parse as CSV if needed
+                except Exception:
+                    # Not base64, treat as raw string
+                    decoded = file_data
+                # Process decoded string as needed
+                if isinstance(decoded, bytes):
+                    decoded = decoded.decode('utf-8')
+                if isinstance(decoded, str):
+                    if decoded.strip().startswith('[') and decoded.strip().endswith(']'):
+                        # Try to parse as JSON array
+                        try:
+                            parsed_data = json.loads(decoded)
+                        except json.JSONDecodeError:
+                            raise ValueError("Invalid JSON format")
+                    else:
+                        # Try to parse as CSV
+                        try:
+                            string_io = io.StringIO(decoded)
+                            parsed_data = list(csv.DictReader(string_io))
+                        except csv.Error:
+                            raise ValueError("Invalid CSV format")
+                else:
+                    raise ValueError("Invalid file_data format")
+            elif isinstance(file_data, list):
+                # Already parsed rows (CSV upload)
+                parsed_data = file_data
             else:
-                parsed_data = json.loads(decoded_content)
+                raise ValueError("file_data must be either a list of records or a base64 string")
+
+            metadata = data_source.get("metadata", {})
             cmdb_data = {"file_data": parsed_data, "metadata": metadata}
 
             # 2. Create Initial State and store it

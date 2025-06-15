@@ -91,7 +91,11 @@ const DataCleansing: React.FC = () => {
   }, []);
 
   return (
-    <div className="flex h-full">
+    <div className="flex min-h-screen bg-gray-50">
+  {/* Sidebar */}
+  <div className="hidden lg:block w-64 border-r bg-white">
+    <Sidebar />
+  </div>
       {/* Main Content Area */}
       <div className="flex-1 overflow-y-auto">
         <main className="p-8">

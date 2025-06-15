@@ -1,8 +1,8 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useWaveBreakdown, useFinOpsMetrics } from '@/hooks/finops/useFinOpsQueries';
+import { useCostMetrics, useResourceCosts } from '@/hooks/finops/useFinOpsQueries';
 import { NavigationSidebar } from '@/components/navigation/NavigationSidebar';
-import { Wave, BarChart, LineChart, Download, Filter, RefreshCw } from 'lucide-react';
+import { Waves, BarChart, LineChart, Download, Filter, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -14,16 +14,8 @@ const WaveBreakdown = () => {
   const { isAuthenticated } = useAuth();
 
   // Queries
-  const { 
-    data: waveData,
-    isLoading: isLoadingWave,
-    error: waveError
-  } = useWaveBreakdown();
-
-  const {
-    data: metricsData,
-    isLoading: isLoadingMetrics
-  } = useFinOpsMetrics();
+  const { data: metricsData, isLoading: isLoadingMetrics, error: metricsError } = useCostMetrics();
+  const { data: waveData, isLoading: isLoadingWave, error: waveError } = useResourceCosts();
 
   if (!isAuthenticated) {
     return (
@@ -49,12 +41,12 @@ const WaveBreakdown = () => {
     );
   }
 
-  const { waves = [], metrics = {} } = waveData || {};
+  const waves = waveData || [];
   const waveMetrics = [
-    { label: 'Total Cost', value: metrics.totalCost || '$0', color: 'text-blue-600', icon: Wave },
-    { label: 'MoM Change', value: metrics.monthOverMonth || '0%', color: 'text-green-600', icon: LineChart },
-    { label: 'Avg Cost', value: metrics.avgCost || '$0', color: 'text-purple-600', icon: BarChart },
-    { label: 'Active Waves', value: metrics.activeWaves || '0', color: 'text-orange-600', icon: RefreshCw },
+    { label: 'Total Cloud Spend', value: metricsData?.totalCost || '$0', color: 'text-blue-600', icon: Waves },
+    { label: 'Projected Annual', value: metricsData?.projectedAnnual || '$0', color: 'text-green-600', icon: LineChart },
+    { label: 'Savings Identified', value: metricsData?.savingsIdentified || '$0', color: 'text-purple-600', icon: BarChart },
+    { label: 'Optimization Score', value: metricsData?.optimizationScore || '0', color: 'text-orange-600', icon: RefreshCw },
   ];
 
   return (
@@ -84,7 +76,7 @@ const WaveBreakdown = () => {
               </div>
               <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <p className="text-blue-800 text-sm">
-                  <strong>AI Insight:</strong> {metrics.aiInsight || 'No insights available'}
+                  <strong>AI Insight:</strong> No insights available
                 </p>
               </div>
             </div>

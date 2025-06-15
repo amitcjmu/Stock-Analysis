@@ -6,7 +6,7 @@ import DataClassificationDisplay from '../../components/discovery/DataClassifica
 import AgentInsightsSection from '../../components/discovery/AgentInsightsSection';
 import { 
   AlertTriangle, Bug, Shield, Clock, TrendingUp,
-  Code, Database, Globe, Timeline, BarChart3, Settings,
+  Code, Database, Globe, BarChart3, Settings,
   CheckCircle, X, Info, GraduationCap, RotateCcw
 } from 'lucide-react';
 import { apiCall, API_CONFIG } from '../../config/api';
@@ -320,8 +320,11 @@ const TechDebtAnalysis = () => {
   }
 
   return (
-    <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
-      <Sidebar />
+    <div className="flex min-h-screen bg-gray-50">
+      {/* Sidebar */}
+      <div className="hidden lg:block w-64 border-r bg-white">
+        <Sidebar />
+      </div>
       <div className="flex-1 flex flex-col overflow-hidden">
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900">
           <div className="container mx-auto px-6 py-8">

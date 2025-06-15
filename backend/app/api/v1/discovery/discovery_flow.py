@@ -34,6 +34,31 @@ class FlowStatusResponse(BaseModel):
     duration_seconds: Optional[float]
 
 # Main Discovery Flow Endpoints
+
+# Alias for frontend polling: /agent/crew/analysis/status?session_id=...
+from fastapi import Request
+
+@router.get("/agent/crew/analysis/status")
+async def get_agent_crew_analysis_status(session_id: str, request: Request):
+    """
+    Alias endpoint for agentic analysis status polling via session_id.
+    Returns flow status for the given session.
+    """
+    try:
+        flow_state = crewai_flow_service.get_flow_state_by_session(session_id)
+        if not flow_state:
+            raise HTTPException(status_code=404, detail=f"No active analysis found for session_id {session_id}")
+        # Compose a minimal status response compatible with frontend expectations
+        return {
+            "status": "success",
+            "flow_status": flow_state.dict() if hasattr(flow_state, 'dict') else flow_state,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get agent crew analysis status: {e}")
+        raise HTTPException(status_code=500, detail=f"Status check failed: {str(e)}")
+
 @router.post("/run")
 async def run_discovery_flow(request: DiscoveryFlowRequest):
     """

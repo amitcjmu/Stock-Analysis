@@ -1,7 +1,7 @@
 import React from 'react';
-import { Bot, Loader2, AlertTriangle, Activity, Clock, Memory, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Bot, Loader2, AlertTriangle, Activity, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { useAgentMonitor } from '@/hooks/useAgentMonitor';
-import { Alert, AlertVariant } from '@/components/ui/alert';
+import { Alert } from '@/components/ui/alert';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -215,7 +215,7 @@ const AgentMonitor = () => {
 
                   <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center">
-                      <Memory className="h-4 w-4 text-gray-400 mr-2" />
+                      <Activity className="h-4 w-4 text-gray-400 mr-2" />
                       <span>Memory Usage</span>
                     </div>
                     <span>{formatBytes(agent.memory_usage.current)} / {formatBytes(agent.memory_usage.peak)}</span>

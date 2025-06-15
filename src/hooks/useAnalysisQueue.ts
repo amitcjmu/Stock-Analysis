@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AnalysisQueueItem } from '@/types/assessment';
-import { api } from '@/lib/api';
+import { apiCall } from '@/lib/api';
 
 interface CreateQueueRequest {
   name: string;

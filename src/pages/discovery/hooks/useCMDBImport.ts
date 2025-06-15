@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiCall, API_CONFIG } from '../../../config/api';
+import Papa from 'papaparse';
 
 // Types
 export interface UploadedFile {
@@ -76,12 +77,27 @@ export const useFileAnalysis = () => {
   
   return useMutation<FileAnalysisResponse, Error, { file: File; type: string; sessionId: string }>({
     mutationFn: async ({ file, type, sessionId }) => {
-      const fileContent = await readFileAsBase64(file);
-      
-      const requestBody: FileAnalysisRequest = {
+      let fileData: any = null;
+      let columns: string[] = [];
+      let sample_data: any[] = [];
+      let detectedType = file.name.split('.').pop()?.toLowerCase();
+
+      if (detectedType === 'csv') {
+        // Parse CSV into array of objects
+        const text = await file.text();
+        const parsed = Papa.parse(text, { header: true });
+        fileData = parsed.data;
+        columns = parsed.meta.fields || [];
+        sample_data = fileData.slice(0, 10);
+      } else {
+        // Fallback to base64 for non-CSV
+        fileData = await readFileAsBase64(file);
+      }
+
+      const requestBody: any = {
         analysis_type: 'data_source_analysis',
         data_source: {
-          file_data: fileContent,
+          file_data: fileData,
           metadata: {
             filename: file.name,
             size: file.size,
@@ -91,6 +107,8 @@ export const useFileAnalysis = () => {
           },
         },
       };
+      if (columns.length) requestBody.data_source.columns = columns;
+      if (sample_data.length) requestBody.data_source.sample_data = sample_data;
 
       return apiCall<FileAnalysisResponse>(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_ANALYSIS, {
         method: 'POST',

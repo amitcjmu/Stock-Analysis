@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCloudComparison, useFinOpsMetrics } from '@/hooks/finops/useFinOpsQueries';
+import { useCostMetrics } from '@/hooks/finops/useFinOpsQueries';
 import { NavigationSidebar } from '@/components/navigation/NavigationSidebar';
 import { Cloud, BarChart, LineChart, Download, Filter, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,16 +14,11 @@ const CloudComparison = () => {
   const { isAuthenticated } = useAuth();
 
   // Queries
-  const { 
-    data: comparisonData,
-    isLoading: isLoadingComparison,
-    error: comparisonError
-  } = useCloudComparison();
-
   const {
     data: metricsData,
-    isLoading: isLoadingMetrics
-  } = useFinOpsMetrics();
+    isLoading: isLoadingMetrics,
+    error: metricsError
+  } = useCostMetrics();
 
   if (!isAuthenticated) {
     return (
@@ -35,149 +30,64 @@ const CloudComparison = () => {
     );
   }
 
-  if (isLoadingComparison || isLoadingMetrics) {
+  if (isLoadingMetrics) {
     return <LoadingSkeleton />;
   }
 
-  if (comparisonError) {
+  if (metricsError) {
     return (
       <Alert variant="destructive">
         <AlertDescription>
-          Error: {comparisonError.message}
+          Failed to load cost metrics.
         </AlertDescription>
       </Alert>
     );
   }
 
-  const { comparisons = [], metrics = {} } = comparisonData || {};
+  const metrics = metricsData || {};
   const comparisonMetrics = [
-    { label: 'Total Savings', value: metrics.totalSavings || '$0', color: 'text-green-600', icon: BarChart },
-    { label: 'Cost Reduction', value: metrics.costReduction || '0%', color: 'text-blue-600', icon: LineChart },
-    { label: 'Cloud Providers', value: metrics.providers || '0', color: 'text-purple-600', icon: Cloud },
-    { label: 'Active Projects', value: metrics.activeProjects || '0', color: 'text-orange-600', icon: RefreshCw },
+    {
+      label: 'Total Cloud Spend',
+      value: metrics.totalCost || 0,
+      icon: <Cloud className="h-5 w-5" />
+    },
+    {
+      label: 'Projected Annual',
+      value: metrics.projectedAnnual || 0,
+      icon: <BarChart className="h-5 w-5" />
+    },
+    {
+      label: 'Savings Identified',
+      value: metrics.savingsIdentified || 0,
+      icon: <LineChart className="h-5 w-5" />
+    },
+    {
+      label: 'Optimization Score',
+      value: metrics.optimizationScore || 0,
+      icon: <Filter className="h-5 w-5" />
+    }
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <main className="flex min-h-screen">
       <NavigationSidebar />
-      <div className="flex-1 ml-64">
-        <main className="p-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="mb-8">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2">Cloud Cost Comparison</h1>
-                  <p className="text-lg text-gray-600">
-                    Compare costs across cloud providers
-                  </p>
-                </div>
-                <div className="flex space-x-3">
-                  <Button variant="outline">
-                    <Filter className="h-5 w-5 mr-2" />
-                    Filter
-                  </Button>
-                  <Button variant="default" className="bg-blue-600 hover:bg-blue-700">
-                    <Download className="h-5 w-5 mr-2" />
-                    Export
-                  </Button>
-                </div>
-              </div>
-              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-blue-800 text-sm">
-                  <strong>AI Insight:</strong> {metrics.aiInsight || 'No insights available'}
-                </p>
-              </div>
-            </div>
-
-            {/* Comparison Metrics */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              {comparisonMetrics.map((metric, index) => {
-                const Icon = metric.icon;
-                return (
-                  <Card key={index}>
-                    <CardContent className="flex items-center justify-between p-6">
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">{metric.label}</p>
-                        <p className={`text-2xl font-bold ${metric.color}`}>
-                          {metric.value}
-                        </p>
-                      </div>
-                      <Icon className={`h-8 w-8 ${metric.color}`} />
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-
-            {/* Comparison List */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Cloud Cost Comparisons</CardTitle>
+      <div className="flex-1 p-8">
+        <h1 className="text-2xl font-bold mb-6">Cloud Cost Comparison</h1>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          {comparisonMetrics.map(({ label, value, icon }) => (
+            <Card key={label}>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">{label}</CardTitle>
+                {icon}
               </CardHeader>
               <CardContent>
-                <div className="space-y-6">
-                  {comparisons.map((comparison) => (
-                    <Card key={comparison.id}>
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between mb-4">
-                          <div>
-                            <h4 className="font-medium text-gray-900">{comparison.name}</h4>
-                            <div className="flex items-center space-x-2 mt-1">
-                              <Badge variant={comparison.type === 'Migration' ? 'destructive' : 'secondary'}>
-                                {comparison.type}
-                              </Badge>
-                              <Badge variant={comparison.status === 'Active' ? 'default' : 'outline'}>
-                                {comparison.status}
-                              </Badge>
-                            </div>
-                          </div>
-                          <Button variant="outline" size="sm">
-                            <Download className="h-4 w-4 mr-2" />
-                            Export
-                          </Button>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mb-4">
-                          <div>
-                            <span className="text-gray-600">Current Cost:</span>
-                            <span className="ml-2 font-medium">${comparison.currentCost}</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-600">Projected Cost:</span>
-                            <span className="ml-2 font-medium">${comparison.projectedCost}</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-600">Savings:</span>
-                            <span className="ml-2 font-medium text-green-600">${comparison.savings}</span>
-                          </div>
-                        </div>
-                        <div className="space-y-4">
-                          {comparison.providers.map((provider) => (
-                            <div key={provider.name} className="space-y-2">
-                              <div className="flex justify-between text-sm mb-1">
-                                <span className="text-gray-600">{provider.name}</span>
-                                <span className="font-medium">${provider.cost}</span>
-                              </div>
-                              <Progress value={provider.percentage} className="h-2" />
-                            </div>
-                          ))}
-                        </div>
-                        {comparison.recommendation && (
-                          <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                            <p className="text-sm text-blue-800">
-                              <strong>Recommendation:</strong> {comparison.recommendation}
-                            </p>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                <div className="text-2xl font-bold">{value}</div>
               </CardContent>
             </Card>
-          </div>
-        </main>
+          ))}
+        </div>
       </div>
-    </div>
+    </main>
   );
 };
 

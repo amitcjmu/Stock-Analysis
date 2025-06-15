@@ -42,8 +42,7 @@ const defaultMetrics: DiscoveryMetrics = {
   techDebtItems: 0,
   criticalIssues: 0,
   discoveryCompleteness: 0,
-  dataQuality: 0,
-  totalServers: 0
+  dataQuality: 0
 };
 
 const defaultAppLandscape: ApplicationLandscape = {
@@ -62,9 +61,7 @@ const defaultInfraLandscape: InfrastructureLandscape = {
     virtual: 0,
     cloud: 0,
     supportedOS: 0,
-    deprecatedOS: 0,
-    securityDevices: 0,
-    storageDevices: 0
+    deprecatedOS: 0
   },
   databases: {
     total: 0,
@@ -72,8 +69,8 @@ const defaultInfraLandscape: InfrastructureLandscape = {
     deprecatedVersions: 0,
     endOfLife: 0
   },
-  network: {
-    totalDevices: 0,
+  networks: {
+    devices: 0,
     securityDevices: 0,
     storageDevices: 0
   }
@@ -211,7 +208,12 @@ const DiscoveryDashboard: React.FC = () => {
   }
 
   return (
-    <div>
+    <div className="flex min-h-screen bg-gray-50">
+      {/* Sidebar */}
+      <div className="hidden lg:block w-64 border-r bg-white">
+        <Sidebar />
+      </div>
+      <div className="flex-1 overflow-y-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -304,8 +306,9 @@ const DiscoveryDashboard: React.FC = () => {
           </div>
         </>
       )}
-    </div>
-  );
+        </div>
+      </div>
+    );
 };
 
 // Memoize the component to prevent unnecessary re-renders

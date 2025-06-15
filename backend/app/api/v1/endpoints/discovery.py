@@ -176,6 +176,25 @@ async def process_cmdb_data(request: Dict[str, Any]):
         logger.error(f"CMDB processing error: {e}")
         raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}")
 
+@router.post("/agent/crew/analysis")
+async def agentic_crew_analysis(request: Dict[str, Any]):
+    """
+    Agentic CrewAI analysis endpoint for discovery workflows.
+    Accepts discovery input and triggers CrewAIFlowService agentic analysis.
+    """
+    try:
+        from app.services.crewai_flow_service import crewai_flow_service
+        # You may want to validate the request schema here
+        logger.info(f"Received agentic analysis request: {request}")
+        # Example: expects 'data_source' and 'context' fields
+        data_source = request.get('data_source', request)
+        context = request.get('context', {})
+        result = await crewai_flow_service.initiate_data_source_analysis(data_source, context)
+        return result
+    except Exception as e:
+        logger.error(f"Agentic CrewAI analysis error: {e}")
+        raise HTTPException(status_code=500, detail=f"Agentic CrewAI analysis failed: {str(e)}")
+
 @router.post("/cmdb-feedback")
 async def submit_cmdb_feedback(request: Dict[str, Any]):
     """Submit feedback on CMDB analysis results."""
