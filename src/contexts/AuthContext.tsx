@@ -226,22 +226,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error(response.message || 'Login failed');
       }
 
+      // Set token and user data
       tokenStorage.setToken(response.token.access_token);
       tokenStorage.setUser(response.user);
       setUser(response.user);
 
-      const context = await apiCall('/me');
-      if (context) {
-        setClient(context.client || null);
-        setEngagement(context.engagement || null);
-        setSession(context.session || null);
+      // Small delay to ensure localStorage is updated
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Get user context with the new token
+      try {
+        const context = await apiCall('/me');
+        if (context) {
+          setClient(context.client || null);
+          setEngagement(context.engagement || null);
+          setSession(context.session || null);
+        }
+      } catch (contextError) {
+        console.warn('Failed to load user context, using defaults:', contextError);
+        // Continue with login even if context fails
       }
 
       const redirectPath = response.user.role === 'admin' 
         ? '/admin/dashboard' 
         : (tokenStorage.getRedirectPath() || '/');
       tokenStorage.clearRedirectPath();
-      navigate(redirectPath);
+      
+      // Use setTimeout to ensure navigation happens after state updates
+      setTimeout(() => {
+        navigate(redirectPath);
+      }, 200);
 
       return response.user;
     } catch (error) {

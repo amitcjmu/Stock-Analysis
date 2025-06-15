@@ -40,7 +40,17 @@ class AssetClassificationHandler:
         )
         crew = self.Crew(agents=[self.agents['asset_classifier']], tasks=[task], verbose=1)
         
-        result = await asyncio.to_thread(crew.kickoff, inputs={'validated_data': flow_state.validated_structure})
+        # Use timeout to prevent hanging
+        try:
+            result = await asyncio.wait_for(
+                asyncio.to_thread(crew.kickoff, inputs={'validated_data': flow_state.validated_structure}),
+                timeout=180  # 3 minute timeout for asset classification
+            )
+        except asyncio.TimeoutError:
+            logger.error("Asset classification timed out after 3 minutes")
+            flow_state.asset_classification_results = {"error": "Asset classification timed out", "timeout": True}
+            flow_state.asset_classification_complete = True
+            return flow_state
         
         try:
             flow_state.asset_classifications = json.loads(result)

@@ -40,7 +40,17 @@ class DataValidationHandler:
         )
         crew = self.Crew(agents=[self.agents['data_validator']], tasks=[task], verbose=1)
         
-        result = await asyncio.to_thread(crew.kickoff, inputs={'cmdb_data': cmdb_data})
+        # Use timeout to prevent hanging
+        try:
+            result = await asyncio.wait_for(
+                asyncio.to_thread(crew.kickoff, inputs={'cmdb_data': cmdb_data}),
+                timeout=120  # 2 minute timeout for data validation
+            )
+        except asyncio.TimeoutError:
+            logger.error("Data validation timed out after 2 minutes")
+            flow_state.validated_structure = {"error": "Data validation timed out", "timeout": True}
+            flow_state.data_validation_complete = True
+            return flow_state
         
         try:
             flow_state.validated_structure = json.loads(result)

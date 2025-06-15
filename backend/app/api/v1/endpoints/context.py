@@ -63,14 +63,36 @@ async def get_user_context(
     current_user: User = Depends(get_current_user)
 ) -> UserContext:
     try:
+        # First, determine the user's role from UserRole table
+        from app.models.rbac import UserRole
+        from sqlalchemy import select, and_
+        
+        user_role = "user"  # Default role
+        try:
+            roles_query = select(UserRole).where(
+                and_(UserRole.user_id == current_user.id, UserRole.is_active == True)
+            )
+            roles_result = await db.execute(roles_query)
+            user_roles = roles_result.scalars().all()
+            
+            # Determine if user is admin based on roles
+            if any(role.role_type in ["platform_admin", "client_admin"] for role in user_roles):
+                user_role = "admin"
+        except Exception as role_error:
+            print(f"Error determining user role: {role_error}")
+            # Continue with default role
+        
         service = create_session_management_service(db)
         context = await service.get_user_context(current_user.id)
         if context:
+            # Update the user role in the context
+            context.user["role"] = user_role
             return context
         # Raise an exception to fall through to the demo context creation
         raise ValueError("User context not found, falling back to demo.")
-    except Exception:
-        # Fallback to demo context
+    except Exception as e:
+        print(f"Context error: {e}")
+        # Fallback to demo context but with correct user info
         now = datetime.utcnow()
         demo_client = ClientBase(
             id=DEMO_CLIENT_ID,
@@ -97,8 +119,26 @@ async def get_user_context(
             created_at=now,
             updated_at=now
         )
+        
+        # Determine user role for fallback context
+        user_role = "user"  # Default
+        try:
+            from app.models.rbac import UserRole
+            from sqlalchemy import select, and_
+            
+            roles_query = select(UserRole).where(
+                and_(UserRole.user_id == current_user.id, UserRole.is_active == True)
+            )
+            roles_result = await db.execute(roles_query)
+            user_roles = roles_result.scalars().all()
+            
+            if any(role.role_type in ["platform_admin", "client_admin"] for role in user_roles):
+                user_role = "admin"
+        except Exception:
+            pass  # Use default role
+        
         return UserContext(
-            user={"id": str(current_user.id), "email": current_user.email, "role": getattr(current_user, 'role', 'demo')},
+            user={"id": str(current_user.id), "email": current_user.email, "role": user_role},
             client=demo_client,
             engagement=demo_engagement,
             session=demo_session,

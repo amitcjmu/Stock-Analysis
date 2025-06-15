@@ -40,7 +40,17 @@ class FieldMappingHandler:
         )
         crew = self.Crew(agents=[self.agents['field_mapper']], tasks=[task], verbose=1)
         
-        result = await asyncio.to_thread(crew.kickoff, inputs={'cmdb_data': cmdb_data})
+        # Use timeout to prevent hanging
+        try:
+            result = await asyncio.wait_for(
+                asyncio.to_thread(crew.kickoff, inputs={'cmdb_data': cmdb_data}),
+                timeout=120  # 2 minute timeout for field mapping
+            )
+        except asyncio.TimeoutError:
+            logger.error("Field mapping timed out after 2 minutes")
+            flow_state.suggested_field_mappings = {"error": "Field mapping timed out", "timeout": True}
+            flow_state.field_mapping_complete = True
+            return flow_state
         
         try:
             flow_state.suggested_field_mappings = json.loads(result)

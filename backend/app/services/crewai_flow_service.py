@@ -8,7 +8,7 @@ import asyncio
 import uuid
 import json
 from typing import Dict, List, Any, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 import base64
 import csv
 import io
@@ -42,6 +42,16 @@ from app.services.crewai_flow_handlers.discovery_handlers.discovery_workflow_man
 
 logger = logging.getLogger(__name__)
 
+class MockAgent:
+    """Mock agent for when CrewAI is not available."""
+    def __init__(self, role: str, goal: str):
+        self.role = role
+        self.goal = goal
+        self.backstory = "Mock agent for testing"
+        
+    def __str__(self):
+        return f"MockAgent({self.role})"
+
 class CrewAIFlowService:
     """A stateful service registry for core CrewAI components and active flows."""
     
@@ -52,6 +62,12 @@ class CrewAIFlowService:
         self.db = db
         self.state_service = WorkflowStateService(self.db)
         self.service_available = LANGCHAIN_AVAILABLE and LITELLM_AVAILABLE
+        
+        # Agent lifecycle management
+        self._agents_initialized = False
+        self._agent_creation_lock = asyncio.Lock()
+        self._active_tasks = {}
+        self._task_timeouts = {}
         
         # LLM and agent initialization
         self.llm = None
@@ -80,35 +96,131 @@ class CrewAIFlowService:
             logger.warning("CrewAI Flow Service running in limited capacity due to missing configuration.")
 
     def _initialize_agents(self):
+        """Initialize agents only once to prevent creation loops."""
+        if self._agents_initialized:
+            logger.info("Agents already initialized, returning existing agents.")
+            return self.agents
+            
         agents = {
             'data_validator': self._create_agent("Data Quality Analyst", "Ensures data quality and consistency."),
             'field_mapper': self._create_agent("Field Mapping Specialist", "Maps source data fields to the target schema."),
             'asset_classifier': self._create_agent("Asset Classification Expert", "Classifies assets and suggests 6R strategies."),
             'dependency_analyzer': self._create_agent("Dependency Analysis Specialist", "Identifies relationships between assets."),
         }
+        
+        self._agents_initialized = True
         logger.info(f"Created {len(agents)} specialized agents.")
         return agents
 
     def _create_agent(self, role: str, goal: str) -> 'crewai.Agent':
+        """Create a single agent with timeout and error handling."""
+        if not CREWAI_AVAILABLE:
+            logger.warning(f"CrewAI not available, creating mock agent for {role}")
+            return MockAgent(role=role, goal=goal)
+            
         return crewai.Agent(
             role=role,
             goal=goal,
             backstory="An expert in cloud migration planning.",
             llm=self.llm,
             verbose=True,
-            allow_delegation=False
+            allow_delegation=False,
+            max_execution_time=300  # 5 minute timeout per agent
         )
+
+    async def run_crew_with_timeout(self, crew, timeout_seconds: int = 300) -> Any:
+        """Run crew with timeout to prevent hanging."""
+        try:
+            # Create a task with timeout
+            task = asyncio.create_task(
+                asyncio.to_thread(crew.kickoff)
+            )
+            
+            # Wait for completion or timeout
+            result = await asyncio.wait_for(task, timeout=timeout_seconds)
+            return result
+            
+        except asyncio.TimeoutError:
+            logger.error(f"Crew execution timed out after {timeout_seconds} seconds")
+            # Cancel the task
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+            raise Exception(f"Agent processing timed out after {timeout_seconds} seconds")
+        except Exception as e:
+            logger.error(f"Crew execution failed: {e}")
+            raise
+
+    async def cleanup_stuck_tasks(self):
+        """Clean up any stuck or hanging tasks."""
+        current_time = datetime.now()
+        stuck_tasks = []
+        
+        for task_id, task_info in self._active_tasks.items():
+            if current_time - task_info['start_time'] > timedelta(minutes=10):
+                stuck_tasks.append(task_id)
+        
+        for task_id in stuck_tasks:
+            logger.warning(f"Cleaning up stuck task: {task_id}")
+            if task_id in self._active_tasks:
+                task_info = self._active_tasks[task_id]
+                if 'task' in task_info:
+                    task_info['task'].cancel()
+                del self._active_tasks[task_id]
+            if task_id in self._task_timeouts:
+                del self._task_timeouts[task_id]
 
     async def run_workflow_background(self, manager: DiscoveryWorkflowManager, flow_state: DiscoveryFlowState, cmdb_data: Dict[str, Any], context: RequestContext):
         """Helper to run the workflow in the background and update state."""
+        task_id = f"workflow_{flow_state.session_id}_{datetime.now().strftime('%H%M%S')}"
+        
         try:
-            final_state = await manager.run_workflow(
-                flow_state=flow_state,
-                cmdb_data=cmdb_data,
-                client_account_id=context.client_account_id,
-                engagement_id=context.engagement_id,
-                user_id=context.user_id
-            )
+            # Track this task
+            self._active_tasks[task_id] = {
+                'start_time': datetime.now(),
+                'session_id': flow_state.session_id,
+                'type': 'workflow'
+            }
+            
+            logger.info(f"Starting background workflow for session: {flow_state.session_id}")
+            
+            # Run the workflow with timeout
+            try:
+                final_state = await asyncio.wait_for(
+                    manager.run_workflow(
+                        flow_state=flow_state,
+                        cmdb_data=cmdb_data,
+                        client_account_id=context.client_account_id,
+                        engagement_id=context.engagement_id,
+                        user_id=context.user_id
+                    ),
+                    timeout=600  # 10 minute timeout for entire workflow
+                )
+            except asyncio.TimeoutError:
+                logger.error(f"Workflow timed out for session: {flow_state.session_id}")
+                flow_state.status = "failed"
+                flow_state.current_phase = "timeout"
+                error_state_data = {
+                    "session_id": flow_state.session_id,
+                    "client_account_id": str(flow_state.client_account_id),
+                    "engagement_id": str(flow_state.engagement_id),
+                    "status": "failed",
+                    "current_phase": "timeout",
+                    "status_message": "Workflow timed out after 10 minutes",
+                }
+                if self.state_service:
+                    self.state_service.update_workflow_state(
+                        session_id=flow_state.session_id,
+                        client_account_id=flow_state.client_account_id,
+                        engagement_id=flow_state.engagement_id,
+                        status="failed",
+                        current_phase="timeout",
+                        state_data=error_state_data
+                    )
+                return
+            
             # Update the state upon completion
             # Persist the final state using WorkflowStateService
             if self.state_service:
@@ -142,6 +254,10 @@ class CrewAIFlowService:
                     current_phase="error",
                     state_data=error_state_data
                 )
+        finally:
+            # Clean up task tracking
+            if task_id in self._active_tasks:
+                del self._active_tasks[task_id]
 
     async def initiate_data_source_analysis(
         self,
