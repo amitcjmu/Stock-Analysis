@@ -106,7 +106,7 @@ export const useChat = () => {
     mutationFn: async (text) => {
       // If we don't have a conversation ID, use one-off chat endpoint
       if (!conversationId) {
-        const response = await apiCall('/api/v1/chat', {
+        const response = await apiCall('chat', {
           method: 'POST',
           body: JSON.stringify({
             message: text,

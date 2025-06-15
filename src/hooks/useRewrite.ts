@@ -55,7 +55,7 @@ export const useRewrite = (filter?: string) => {
   return useQuery<RewriteData>({
     queryKey: ['rewrite', filter],
     queryFn: async () => {
-      const response = await apiCall('/api/v1/modernize/rewrite', {
+      const response = await apiCall('modernize/rewrite', {
         method: 'GET',
         headers: {
           ...getContextHeaders(),

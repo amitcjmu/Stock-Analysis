@@ -12,11 +12,11 @@ export function useAnalysisQueue() {
 
   const { data: queues = [], isLoading } = useQuery<AnalysisQueueItem[]>({
     queryKey: ['analysis-queues'],
-    queryFn: () => apiCall('/api/v1/analysis/queues'),
+    queryFn: () => apiCall('analysis/queues'),
   });
 
   const createQueue = async (request: CreateQueueRequest) => {
-    const response = await apiCall('/api/v1/analysis/queues', { method: 'POST', body: JSON.stringify(request) });
+    const response = await apiCall('analysis/queues', { method: 'POST', body: JSON.stringify(request) });
     await queryClient.invalidateQueries({ queryKey: ['analysis-queues'] });
     return response.data;
   };

@@ -528,7 +528,7 @@ const Inventory = () => {
       console.log('🔍 Fetching unlinked assets from API');
       console.log('🔒 Using context headers:', contextHeaders);
       
-      const response = await apiCall('/api/v1/discovery/assets/unlinked', {
+      const response = await apiCall('discovery/assets/unlinked', {
         headers: contextHeaders
       });
       

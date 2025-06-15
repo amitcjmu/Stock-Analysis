@@ -62,7 +62,7 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
     queryFn: async () => {
-      const response = await apiCall('/api/v1/clients', {
+      const response = await apiCall('clients', {
         method: 'GET',
         headers: getContextHeaders()
       });

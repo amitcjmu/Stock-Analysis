@@ -116,7 +116,7 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const fetchClients = async () => {
         setIsLoading(true);
         try {
-          const response = await apiCall('/api/v1/clients'); 
+          const response = await apiCall('clients'); 
           if (response.items) {
             setAvailableClients(response.items);
             const storedClientId = sessionStorage.getItem(CLIENT_KEY);

@@ -48,7 +48,7 @@ export const useTarget = () => {
   return useQuery<TargetData>({
     queryKey: ['target'],
     queryFn: async () => {
-      const response = await apiCall('/api/v1/plan/target', {
+      const response = await apiCall('plan/target', {
         method: 'GET',
         headers: getContextHeaders()
       });

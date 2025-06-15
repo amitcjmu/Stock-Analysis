@@ -51,7 +51,7 @@ export const useFeedback = () => {
   const query = useQuery<FeedbackData>({
     queryKey: ['feedback'],
     queryFn: async () => {
-      const response = await apiCall('/api/v1/feedback', {
+      const response = await apiCall('feedback', {
         method: 'GET',
         headers: getContextHeaders()
       });
@@ -63,7 +63,7 @@ export const useFeedback = () => {
 
   const createMutation = useMutation({
     mutationFn: async (input: CreateFeedbackInput) => {
-      const response = await apiCall('/api/v1/feedback', {
+      const response = await apiCall('feedback', {
         method: 'POST',
         headers: getContextHeaders(),
         body: JSON.stringify(input)

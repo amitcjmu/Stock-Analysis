@@ -55,7 +55,7 @@ export const useCompliance = () => {
     queryKey: ['compliance'],
     queryFn: async () => {
       const headers = getAuthHeaders();
-      const response = await apiCall('/api/v1/decommission/compliance', { headers });
+      const response = await apiCall('decommission/compliance', { headers });
       return response.data;
     },
   });

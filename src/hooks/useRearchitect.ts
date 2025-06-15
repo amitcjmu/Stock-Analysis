@@ -40,7 +40,7 @@ export const useRearchitect = () => {
   return useQuery<RearchitectData>({
     queryKey: ['rearchitect'],
     queryFn: async () => {
-      const response = await apiCall('/api/v1/modernize/rearchitect', {
+      const response = await apiCall('modernize/rearchitect', {
         method: 'GET',
         headers: getContextHeaders()
       });

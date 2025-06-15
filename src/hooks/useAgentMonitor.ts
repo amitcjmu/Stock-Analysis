@@ -48,7 +48,7 @@ export const useAgentMonitor = () => {
   return useQuery<AgentMonitorData>({
     queryKey: ['agent-monitor'],
     queryFn: async () => {
-      const response = await apiCall('/api/v1/agents/monitor', {
+      const response = await apiCall('agents/monitor', {
         method: 'GET',
         headers: getContextHeaders()
       });

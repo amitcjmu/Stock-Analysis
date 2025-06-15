@@ -37,7 +37,7 @@ const FeedbackView: React.FC = () => {
     queryKey: ['feedback', clientAccountId],
     queryFn: async () => {
       try {
-        const response = await apiCall('/api/v1/feedback', {
+        const response = await apiCall('feedback', {
           headers: getAuthHeaders()
         });
         return response;

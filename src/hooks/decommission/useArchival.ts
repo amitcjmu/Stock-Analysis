@@ -47,7 +47,7 @@ export const useArchival = () => {
     queryKey: ['archival'],
     queryFn: async () => {
       const headers = getAuthHeaders();
-      const response = await apiCall('/api/v1/decommission/archival', { headers });
+      const response = await apiCall('decommission/archival', { headers });
       return response.data;
     },
   });

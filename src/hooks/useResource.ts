@@ -47,7 +47,7 @@ export const useResource = () => {
   return useQuery<ResourceData>({
     queryKey: ['resources'],
     queryFn: async () => {
-      const response = await apiCall('/api/v1/plan/resources', {
+      const response = await apiCall('plan/resources', {
         method: 'GET',
         headers: getContextHeaders()
       });

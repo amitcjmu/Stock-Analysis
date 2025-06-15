@@ -34,7 +34,7 @@ export const useWavePlanning = () => {
     queryKey: ['wave-planning'],
     queryFn: async () => {
       const headers = getAuthHeaders();
-      const response = await apiCall('/api/v1/assess/wave-planning', { headers });
+      const response = await apiCall('ave-planning', { headers });
       return response;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -48,7 +48,7 @@ export const useUpdateWavePlanning = () => {
   return useMutation({
     mutationFn: async (data: WavePlanningData) => {
       const headers = getAuthHeaders();
-      return apiCall('/api/v1/assess/wave-planning', {
+      return apiCall('ave-planning', {
         method: 'PUT',
         headers,
         body: JSON.stringify(data),

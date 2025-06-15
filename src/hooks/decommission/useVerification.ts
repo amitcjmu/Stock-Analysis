@@ -43,7 +43,7 @@ export const useVerification = () => {
     queryKey: ['verification'],
     queryFn: async () => {
       const headers = getAuthHeaders();
-      const response = await apiCall('/api/v1/decommission/verification', { headers });
+      const response = await apiCall('decommission/verification', { headers });
       return response.data;
     },
   });

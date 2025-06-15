@@ -54,7 +54,7 @@ export const useDataRetention = () => {
     queryKey: ['data-retention'],
     queryFn: async () => {
       const headers = getAuthHeaders();
-      const response = await apiCall('/api/v1/decommission/data-retention', { headers });
+      const response = await apiCall('decommission/data-retention', { headers });
       return response.data;
     },
   });
@@ -67,7 +67,7 @@ export const useCreateArchiveJob = () => {
   return useMutation({
     mutationFn: async (data: Partial<ArchiveJob>) => {
       const headers = getAuthHeaders();
-      const response = await apiCall('/api/v1/decommission/archive-jobs', {
+      const response = await apiCall('decommission/archive-jobs', {
         method: 'POST',
         headers,
         body: JSON.stringify(data),

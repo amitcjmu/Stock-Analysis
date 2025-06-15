@@ -65,7 +65,7 @@ export const PlatformAdminDashboard: React.FC = () => {
   const fetchPendingItems = async () => {
     try {
       setLoading(true);
-      const response = await apiCall('/api/v1/platform-admin/pending-purge-items', {
+      const response = await apiCall('platform-admin/pending-purge-items', {
         headers: getAuthHeaders()
       });
       

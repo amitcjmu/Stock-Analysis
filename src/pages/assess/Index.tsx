@@ -24,7 +24,7 @@ const AssessIndex = () => {
 
       // Fetch applications first
       try {
-        const applicationsResponse: any = await apiCall('/api/v1/discovery/applications', { headers });
+        const applicationsResponse: any = await apiCall('discovery/applications', { headers });
         const apps = applicationsResponse.applications || [];
         const totalApps = apps.length;
         const assessed = apps.filter((a: any) => a.migration_recommendation && a.migration_recommendation !== 'Pending Analysis').length;
@@ -37,7 +37,7 @@ const AssessIndex = () => {
       } catch (primaryErr) {
         // Fallback to assets
         try {
-          const assetsResp: any = await apiCall('/api/v1/assets/list/paginated', { headers });
+          const assetsResp: any = await apiCall('assets/list/paginated', { headers });
           const totalAssets = assetsResp?.pagination?.total_items ?? 0;
           const estimatedApps = Math.ceil(totalAssets * 0.3);
           return {

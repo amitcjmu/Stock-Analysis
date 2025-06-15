@@ -117,7 +117,7 @@ export const useSupportTimelines = () => {
 
   const fetchSupportTimelines = async () => {
     const headers = getAuthHeaders();
-    const response = await apiCall('/api/v1/discovery/support-timelines', { headers });
+    const response = await apiCall('discovery/support-timelines', { headers });
     return response.data;
   };
 

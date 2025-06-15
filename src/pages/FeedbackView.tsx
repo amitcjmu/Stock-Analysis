@@ -60,7 +60,7 @@ const FeedbackView: React.FC = () => {
       console.log('- Window location:', typeof window !== 'undefined' ? window.location.href : 'SSR');
 
       // Try to fetch from actual API first
-      const response = await apiCall('/api/v1/discovery/feedback');
+      const response = await apiCall('discovery/feedback');
       console.log('API Response:', response); // Debug log
       
       const allFeedback = response.feedback || [];

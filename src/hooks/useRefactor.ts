@@ -42,7 +42,7 @@ export const useRefactor = (filterStatus: string = 'All') => {
   return useQuery<RefactorData>({
     queryKey: ['refactor', filterStatus],
     queryFn: async () => {
-      const response = await apiCall('/api/v1/modernize/refactor', {
+      const response = await apiCall('modernize/refactor', {
         method: 'GET',
         headers: {
           ...getContextHeaders(),

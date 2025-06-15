@@ -112,7 +112,7 @@ If a question is outside these bounds, respond: "I'm specialized in IT migration
     setIsLoading(true);
 
     try {
-      const response = await apiCall('/api/v1/discovery/chat-test', {
+      const response = await apiCall('discovery/chat-test', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -152,7 +152,7 @@ If a question is outside these bounds, respond: "I'm specialized in IT migration
 
     setIsSubmittingFeedback(true);
     try {
-      await apiCall('/api/v1/discovery/feedback', {
+      await apiCall('discovery/feedback', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -99,7 +99,7 @@ export const useGenerateFieldMappings = () => {
   return useMutation({
     mutationFn: async ({ columns, sampleData }: { columns: string[], sampleData: any[] }) => {
       // This is a placeholder - replace with actual API call
-      const response = await apiCall('/api/v1/data-import/generate-field-mappings', {
+      const response = await apiCall('data-import/generate-field-mappings', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -148,7 +148,7 @@ export const useAnalyzeData = () => {
   return useMutation({
     mutationFn: async (data: { columns: string[], sampleData: any[] }) => {
       // This is a placeholder - replace with actual API call
-      const response = await apiCall('/api/v1/data-import/analyze', {
+      const response = await apiCall('data-import/analyze', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

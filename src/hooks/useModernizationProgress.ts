@@ -52,7 +52,7 @@ export const useModernizationProgress = (timeframe: 'week' | 'month' | 'quarter'
   return useQuery<ModernizationProgress>({
     queryKey: ['modernization-progress', timeframe],
     queryFn: async () => {
-      const response = await apiCall('/api/v1/modernize/progress', {
+      const response = await apiCall('modernize/progress', {
         method: 'GET',
         headers: {
           ...getContextHeaders(),

@@ -27,7 +27,7 @@ const ChatInterface: React.FC = () => {
   const submitFeedback = useMutation({
     mutationFn: async (data: FeedbackFormData) => {
       try {
-        return await apiCall('/api/v1/feedback', {
+        return await apiCall('feedback', {
           method: 'POST',
           headers: getAuthHeaders(),
           body: JSON.stringify({

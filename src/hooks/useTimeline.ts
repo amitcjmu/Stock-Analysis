@@ -49,7 +49,7 @@ export const useTimeline = () => {
   return useQuery<TimelineData>({
     queryKey: ['timeline'],
     queryFn: async () => {
-      const response = await apiCall('/api/v1/plan/timeline', {
+      const response = await apiCall('plan/timeline', {
         method: 'GET',
         headers: getContextHeaders()
       });
