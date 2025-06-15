@@ -21,8 +21,8 @@ export const useClients = () => {
       try {
         // If user is admin, get all clients
         if (user?.role === "admin") {
-          const clients = await apiCall("/admin/clients");
-          if (clients && clients.length > 0) return clients;
+          const response = await apiCall("/admin/clients/");
+          if (response && response.items && response.items.length > 0) return response.items;
         }
 
         // For non-admin users or if no clients found, get default client

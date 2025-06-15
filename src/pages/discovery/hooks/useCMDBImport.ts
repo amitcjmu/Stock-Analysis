@@ -113,7 +113,7 @@ export const useFileAnalysis = () => {
       if (columns.length) requestBody.data_source.columns = columns;
       if (sample_data.length) requestBody.data_source.sample_data = sample_data;
 
-      return apiCall<FileAnalysisResponse>('/api/v1/discovery/agent-analysis', {
+      return apiCall<FileAnalysisResponse>('/api/v1/discovery/flow/agent/analysis', {
         method: 'POST',
         body: JSON.stringify(requestBody),
       });

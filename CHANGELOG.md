@@ -851,6 +851,38 @@ This release resolves critical authentication issues preventing proper user logi
 
 ---
 
+## [0.8.10] - 2025-01-15
+
+### 🎯 **DATA IMPORT FLOW & CONTEXT NAVIGATION FIXES**
+
+This release fixes critical issues with data import processing and missing context navigation breadcrumbs.
+
+### 🚀 **Data Import Processing Fixes**
+
+#### **API Endpoint Correction**
+- **Frontend API Call**: Fixed frontend calling wrong endpoint `/api/v1/discovery/agent-analysis` instead of `/api/v1/discovery/flow/agent/analysis`
+- **Workflow Initiation**: Data import now properly triggers the CrewAI discovery workflow instead of remaining idle
+- **Agent Processing**: Fixed agents getting stuck in processing loops by correcting the API endpoint path
+- **Status Polling**: Agent status polling now receives proper workflow status instead of "idle"
+
+#### **Context Navigation Restoration**
+- **useClients Hook**: Fixed `/admin/clients` endpoint to use correct path `/admin/clients/` with trailing slash
+- **useEngagements Hook**: Fixed engagements loading by using `/admin/engagements/?client_account_id={id}` instead of non-existent client-specific endpoint
+- **Data Structure**: Updated hooks to properly handle API response structure with `items` array
+- **Context Breadcrumbs**: ContextBreadcrumbs component now properly displays client, engagement, and session navigation
+
+### 📊 **Technical Achievements**
+- **API Path Consistency**: Ensured all admin endpoints use proper trailing slash format
+- **Response Handling**: Fixed response parsing to handle paginated API responses with `items` array
+- **Context Loading**: Restored proper context loading for authenticated users with real client/engagement data
+- **Workflow Integration**: Data import now properly integrates with the CrewAI discovery workflow system
+
+### 🎯 **Success Metrics**
+- **Data Processing**: Data import processing now completes instead of hanging indefinitely
+- **Navigation**: Context breadcrumbs display properly with client and engagement information
+- **API Consistency**: All admin endpoints now use consistent URL patterns and response formats
+- **User Experience**: Restored full navigation context for better user orientation
+
 ## [0.8.9] - 2025-01-15
 
 ### 🎯 **CREWAI SERVICE IMPORT FIX**

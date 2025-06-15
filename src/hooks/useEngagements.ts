@@ -14,8 +14,8 @@ export interface Engagement {
 const engagementsQueryKey = (clientId: string | null) => ["engagements", clientId];
 
 export const useEngagements = () => {
-  const { user, isDemoMode } = useAuth();
-  const clientId = user?.client_accounts?.[0]?.id;
+  const { user, client, isDemoMode } = useAuth();
+  const clientId = client?.id;
 
   return useQuery<Engagement[]>({
     queryKey: engagementsQueryKey(clientId),
@@ -24,8 +24,10 @@ export const useEngagements = () => {
       if (!clientId) return [];
       
       try {
-        const engagements = await apiCallWithFallback(`/admin/clients/${clientId}/engagements`);
-        return engagements || [];
+        const response = await apiCallWithFallback(`/admin/engagements/?client_account_id=${clientId}`);
+        const engagements = response?.items || response || [];
+        // Filter by client_account_id to ensure we only get engagements for this client
+        return engagements.filter((engagement: any) => engagement.client_account_id === clientId);
       } catch (error) {
         console.error("Error fetching engagements:", error);
         return [];
