@@ -37,10 +37,7 @@ const EngagementManagementMain: React.FC = () => {
         params.append('page', currentPage.toString());
         params.append('limit', '10');
         
-        // Use demo client ID if no specific client filter
-        if (filterClient === 'all') {
-          params.append('client_account_id', '11111111-1111-1111-1111-111111111111'); // Demo client ID
-        }
+        // Don't add client_account_id if "All Clients" is selected
         
         const queryString = params.toString();
         const result = await apiCall(`/admin/engagements/?${queryString}`);

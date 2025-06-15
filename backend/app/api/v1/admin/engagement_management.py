@@ -25,14 +25,12 @@ async def list_engagements(
     db: AsyncSession = Depends(get_db),
     admin_user: str = Depends(require_admin_access)
 ):
-    """List engagements for a client."""
-    # Use demo client ID if not specified
-    if not client_account_id:
-        client_account_id = "11111111-1111-1111-1111-111111111111"  # Demo client ID
+    """List engagements for a client or all engagements if no client specified."""
+    # Don't force a specific client ID - let it be None for "All Clients"
     
     paginated_result = await EngagementCRUDHandler.list_engagements(
         db=db,
-        client_account_id=client_account_id,
+        client_account_id=client_account_id,  # Pass None if not specified
         pagination=pagination.dict()
     )
     return PaginatedResponse(**paginated_result)

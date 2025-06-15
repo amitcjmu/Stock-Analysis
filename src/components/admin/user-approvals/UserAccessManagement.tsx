@@ -75,9 +75,7 @@ export const UserAccessManagement: React.FC = () => {
 
   const loadUsers = async () => {
     try {
-      const response = await apiCall('/auth/active-users', {
-        headers: getAuthHeaders()
-      });
+      const response = await apiCall('/auth/active-users');
 
       if (response.status === 'success') {
         setUsers(response.active_users || []);

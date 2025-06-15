@@ -74,9 +74,7 @@ export const UserApprovalsMain: React.FC = () => {
   const fetchPendingUsers = async () => {
     try {
       setLoading(true);
-      const response = await apiCall('/api/v1/auth/pending-approvals', {
-        headers: getAuthHeaders()
-      });
+      const response = await apiCall('/auth/pending-approvals');
 
       if (response.status === 'success') {
         setPendingUsers(response.pending_approvals || []);
@@ -138,9 +136,7 @@ export const UserApprovalsMain: React.FC = () => {
 
   const fetchActiveUsers = async () => {
     try {
-      const response = await apiCall('/api/v1/auth/active-users', {
-        headers: getAuthHeaders()
-      });
+      const response = await apiCall('/auth/active-users');
 
       if (response.status === 'success') {
         setActiveUsers(response.active_users || []);
@@ -191,9 +187,8 @@ export const UserApprovalsMain: React.FC = () => {
     try {
       setActionLoading(selectedUser.user_id);
       
-      const response = await apiCall('/api/v1/auth/approve-user', {
+      const response = await apiCall('/auth/approve-user', {
         method: 'POST',
-        headers: getAuthHeaders(),
         body: JSON.stringify({
           user_id: selectedUser.user_id,
           access_level: approvalData.access_level,
@@ -260,9 +255,8 @@ export const UserApprovalsMain: React.FC = () => {
     try {
       setActionLoading(selectedUser.user_id);
       
-      const response = await apiCall('/api/v1/auth/reject-user', {
+      const response = await apiCall('/auth/reject-user', {
         method: 'POST',
-        headers: getAuthHeaders(),
         body: JSON.stringify({
           user_id: selectedUser.user_id,
           rejection_reason: rejectionData.rejection_reason
@@ -301,11 +295,11 @@ export const UserApprovalsMain: React.FC = () => {
     try {
       setActionLoading(user.user_id);
       
-      const response = await apiCall('/api/v1/auth/deactivate-user', {
+      const response = await apiCall('/auth/deactivate-user', {
         method: 'POST',
-        headers: getAuthHeaders(),
         body: JSON.stringify({
-          user_id: user.user_id
+          user_id: user.user_id,
+          reason: "Deactivated by admin"
         })
       });
 
@@ -339,9 +333,8 @@ export const UserApprovalsMain: React.FC = () => {
     try {
       setActionLoading(user.user_id);
       
-      const response = await apiCall('/api/v1/auth/activate-user', {
+      const response = await apiCall('/auth/activate-user', {
         method: 'POST',
-        headers: getAuthHeaders(),
         body: JSON.stringify({
           user_id: user.user_id
         })
@@ -417,6 +410,16 @@ export const UserApprovalsMain: React.FC = () => {
     setShowRejectionDialog(true);
   };
 
+  const handleEditAccess = (user: ActiveUser) => {
+    // For now, show a toast indicating this feature is coming soon
+    // In a full implementation, this would open a modal to edit user permissions
+    toast({
+      title: "Edit Access",
+      description: `Edit access for ${user.full_name} - Feature coming soon`,
+      variant: "default"
+    });
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -454,6 +457,7 @@ export const UserApprovalsMain: React.FC = () => {
           onReject={handleRejectUser}
           onDeactivateUser={handleDeactivateUser}
           onActivateUser={handleActivateUser}
+          onEditAccess={handleEditAccess}
           formatDate={formatDate}
           getAccessLevelColor={getAccessLevelColor}
         />

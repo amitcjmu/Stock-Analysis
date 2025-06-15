@@ -190,7 +190,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (validatedUser) {
             tokenStorage.setUser(validatedUser);
             setUser(validatedUser);
-            const context = await apiCall('/api/v1/users/me/context');
+            const context = await apiCall('/me');
             if (context) {
               setClient(context.client || null);
               setEngagement(context.engagement || null);
@@ -230,7 +230,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       tokenStorage.setUser(response.user);
       setUser(response.user);
 
-      const context = await apiCall('me');
+      const context = await apiCall('/me');
       if (context) {
         setClient(context.client || null);
         setEngagement(context.engagement || null);

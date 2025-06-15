@@ -624,7 +624,7 @@ This release restores the original fixed UUID demo system design and resolves al
 
 ### 🎯 **Success Metrics**
 - **Demo Mode**: 100% reliable operation with fixed UUIDs
-- **User Creation**: Duplicate prevention and proper error handling working
+- **User Creation**: Duplicate prevention and proper error handling
 - **Context API**: `/api/v1/me` returns complete demo context structure
 - **File Processing**: CMDB uploads process correctly with demo user context
 - **Navigation**: Discovery workflow maintains session context across pages
@@ -773,4 +773,42 @@ This release fixes all admin section API issues, eliminates double prefix proble
 
 ---
 
-## [0.8.4] - 2025-01-27
+## [0.8.6] - 2025-01-28
+
+### 🎯 **ADMIN SECTIONS - User Management and Authentication Fixes**
+
+This release resolves critical issues with admin user management functionality and authentication flows.
+
+### 🚀 **User Management Enhancements**
+
+#### **Active User Management Fixes**
+- **Authentication Context**: Fixed `/me` endpoint API calls in AuthContext to use correct path
+- **User Deactivation**: Fixed undefined `reason` variable causing deactivation failures
+- **Edit Access Button**: Added proper onClick handler and placeholder functionality
+- **Password Reset**: Implemented password reset capability for existing users
+- **Real Data Display**: Fixed Active Platform Users section to show real user data instead of demo fallback
+
+#### **Login System Improvements**
+- **Password Management**: Fixed password hash verification for registered users
+- **User Authentication**: Resolved login issues for `chocka@gmail.com` and other registered users
+- **Token Validation**: Enhanced token handling and context management
+- **Error Handling**: Improved error messages and fallback mechanisms
+
+#### **API Integration Fixes**
+- **Endpoint Corrections**: Fixed double API prefix issues in user management calls
+- **Response Handling**: Enhanced API response parsing and error handling
+- **Authentication Headers**: Removed redundant manual header management in favor of automatic injection
+
+### 📊 **Technical Achievements**
+- **User Operations**: All user deactivation/activation operations now functional
+- **Authentication Flow**: Complete login/logout cycle working for all user types
+- **Data Consistency**: Real user data properly displayed across admin sections
+- **Error Resolution**: Eliminated console errors and 404/422 validation issues
+
+### 🎯 **Success Metrics**
+- **User Management**: 100% functional user deactivation/activation operations
+- **Authentication**: All registered users can now login successfully
+- **Admin Interface**: Complete admin user management workflow operational
+- **Data Accuracy**: Real-time user data display with proper status updates
+
+## [0.8.5] - 2025-01-28

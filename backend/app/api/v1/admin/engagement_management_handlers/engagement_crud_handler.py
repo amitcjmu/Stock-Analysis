@@ -28,6 +28,7 @@ class EngagementCRUDHandler:
             page_size = pagination.get('page_size', 20)
 
             query = select(Engagement)
+            # Only filter by client_account_id if it's provided (not None)
             if client_account_id:
                  query = query.where(Engagement.client_account_id == client_account_id)
             

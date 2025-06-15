@@ -26,6 +26,7 @@ interface UserListProps {
   onReject: (user: PendingUser) => void;
   onDeactivateUser: (user: ActiveUser) => void;
   onActivateUser: (user: ActiveUser) => void;
+  onEditAccess: (user: ActiveUser) => void;
   formatDate: (dateString: string) => string;
   getAccessLevelColor: (level: string) => string;
 }
@@ -40,6 +41,7 @@ export const UserList: React.FC<UserListProps> = ({
   onReject,
   onDeactivateUser,
   onActivateUser,
+  onEditAccess,
   formatDate,
   getAccessLevelColor
 }) => {
@@ -204,7 +206,11 @@ export const UserList: React.FC<UserListProps> = ({
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => onEditAccess(user)}
+                    >
                       <Edit className="w-4 h-4 mr-1" />
                       Edit Access
                     </Button>
