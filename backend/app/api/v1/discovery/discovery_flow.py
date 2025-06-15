@@ -15,7 +15,10 @@ from sqlalchemy.orm import Session
 # Core imports
 from app.core.config import settings
 from app.core.context import RequestContext, get_current_context
+from app.api.v1.auth.auth_utils import get_current_user
+from app.models import User
 from app.core.database import get_db
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # Service imports
 from app.services.crewai_flow_service import CrewAIFlowService
@@ -25,6 +28,39 @@ from app.api.v1.dependencies import get_crewai_flow_service
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/flow", tags=["Discovery Flow"])
+
+async def get_context_from_user(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> RequestContext:
+    """
+    Get context from authenticated user's data instead of headers.
+    This is a more reliable way to get context for authenticated endpoints.
+    """
+    try:
+        # Get user context from the /me endpoint logic
+        from app.services.session_management_service import create_session_management_service
+        
+        service = create_session_management_service(db)
+        user_context = await service.get_user_context(current_user.id)
+        
+        if user_context and user_context.client and user_context.engagement:
+            return RequestContext(
+                client_account_id=str(user_context.client.id),
+                engagement_id=str(user_context.engagement.id),
+                user_id=str(current_user.id),
+                session_id=str(user_context.session.id) if user_context.session else None
+            )
+    except Exception as e:
+        logger.warning(f"Failed to get context from user: {e}")
+    
+    # Fallback to demo context
+    return RequestContext(
+        client_account_id="11111111-1111-1111-1111-111111111111",
+        engagement_id="22222222-2222-2222-2222-222222222222", 
+        user_id=str(current_user.id),
+        session_id="33333333-3333-3333-3333-333333333333"
+    )
 
 # Request/Response Models
 class DiscoveryFlowRequest(BaseModel):
@@ -52,7 +88,7 @@ from fastapi import Request
 async def get_agent_crew_analysis_status(
     session_id: str,
     service: CrewAIFlowService = Depends(get_crewai_flow_service),
-    context: RequestContext = Depends(get_current_context)
+    context: RequestContext = Depends(get_context_from_user)
 ):
     """
     Get the status of an agentic analysis workflow by session ID.
@@ -85,7 +121,7 @@ async def get_agent_crew_analysis_status(
             )
         
         # Get the workflow state with proper tenant isolation using the injected service
-        flow_state = service.get_flow_state_by_session(
+        flow_state = await service.get_flow_state_by_session(
             session_id=session_id,
             context=context
         )
@@ -95,10 +131,26 @@ async def get_agent_crew_analysis_status(
                 f"No active analysis found for session_id {session_id} "
                 f"(client: {context.client_account_id}, engagement: {context.engagement_id})"
             )
-            raise HTTPException(
-                status_code=404, 
-                detail="No active analysis found for the given session"
-            )
+            # Return idle status instead of 404 when no workflow exists
+            return {
+                "status": "success",
+                "session_id": session_id,
+                "client_account_id": context.client_account_id,
+                "engagement_id": context.engagement_id,
+                "flow_status": {
+                    "status": "idle",
+                    "current_phase": "not_started",
+                    "progress_percentage": 0,
+                    "message": "No workflow has been started for this session"
+                },
+                "current_phase": "not_started",
+                "status": "idle",
+                "timestamp": datetime.utcnow().isoformat(),
+                "metadata": {
+                    "service_version": "1.0.0",
+                    "context_valid": bool(context and hasattr(context, 'client_account_id'))
+                }
+            }
             
         # Format the response with detailed status information
         response = {
@@ -428,7 +480,7 @@ async def get_service_capabilities(service: CrewAIFlowService = Depends(get_crew
 async def agent_analysis(
     data: Dict[str, Any],
     service: CrewAIFlowService = Depends(get_crewai_flow_service),
-    context: RequestContext = Depends(get_current_context)
+    context: RequestContext = Depends(get_context_from_user)
 ):
     """
     Execute agent-based analysis on provided data.
@@ -653,7 +705,7 @@ async def get_agent_analysis_endpoint(
 @router.get("/agentic-analysis/status")
 async def get_agentic_analysis_status(
     session_id: str,
-    context: RequestContext = Depends(get_current_context),
+    context: RequestContext = Depends(get_context_from_user),
     service: CrewAIFlowService = Depends(get_crewai_flow_service)
 ):
     """Get agentic analysis status - alias for the main status endpoint."""

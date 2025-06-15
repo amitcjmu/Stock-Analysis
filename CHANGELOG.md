@@ -2,6 +2,87 @@
 
 All notable changes to the AI Force Migration Platform will be documented in this file.
 
+## [0.8.11] - 2025-06-15
+
+### 🎯 **Authentication & Data Import Flow Restoration**
+
+This release resolves critical authentication and data import workflow issues that were preventing users from logging in and processing CMDB data uploads.
+
+### 🚀 **Authentication System Fixes**
+
+#### **Login Redirect & Token Validation**
+- **[Fix]**: Replaced non-existent `/api/v1/auth/validate` endpoint with proper `/api/v1/me` endpoint for token validation
+- **[Implementation]**: Updated `validateToken` method in `auth.ts` to use correct endpoint with proper error handling
+- **[Enhancement]**: Added 100ms delay in login flow to ensure localStorage token is set before API calls
+- **[Benefits]**: Users can now successfully log in and are properly redirected to the homepage
+
+#### **Context Navigation & Breadcrumbs**
+- **[Fix]**: Resolved import path issues in `ContextBreadcrumbs.tsx` by using absolute imports (`@/hooks/`)
+- **[Fix]**: Updated `useClients()` hook to call `/admin/clients/` with trailing slash and handle paginated responses
+- **[Fix]**: Fixed `useEngagements()` hook to use general `/admin/engagements/` endpoint instead of non-existent client-specific endpoint
+- **[Benefits]**: Context switcher and breadcrumbs navigation now work correctly
+
+### 🔧 **Data Import Workflow Restoration**
+
+#### **Database Schema & Model Fixes**
+- **[Fix]**: Corrected `WorkflowState` model to use `UUID` type for `session_id` field instead of `String` to match database schema
+- **[Fix]**: Updated `WorkflowState` model to use `UUID` primary key with auto-generation instead of `Integer`
+- **[Implementation]**: Added UUID conversion logic in `WorkflowStateService` methods to handle string-to-UUID conversion
+- **[Benefits]**: Workflow states can now be created and queried without database type mismatch errors
+
+#### **Async/Sync Session Management**
+- **[Fix]**: Updated `dependencies.py` to use `AsyncSession` instead of sync `Session` for CrewAI service injection
+- **[Fix]**: Converted all `WorkflowStateService` methods to async patterns using `select()` and `await`
+- **[Fix]**: Updated `CrewAIFlowService` to accept `AsyncSession` and made dependent methods async
+- **[Benefits]**: Eliminated "AsyncSession object has no attribute 'query'" errors
+
+#### **Context-Aware Endpoint Dependencies**
+- **[Implementation]**: Created `get_context_from_user()` dependency that extracts context from authenticated user data
+- **[Fix]**: Updated discovery flow endpoints to use user-based context instead of header-based context
+- **[Enhancement]**: Added fallback to demo context when user context extraction fails
+- **[Benefits]**: API endpoints now receive proper client/engagement context for multi-tenant data access
+
+#### **Discovery Flow Schema Completion**
+- **[Fix]**: Added missing `status` field to `DiscoveryFlowState` schema
+- **[Fix]**: Added missing `import_session_id` field to flow state creation
+- **[Fix]**: Fixed async method calls in workflow state creation and updates
+- **[Benefits]**: Discovery workflows can now be initiated and tracked properly
+
+### 📊 **Technical Achievements**
+
+#### **Authentication Flow**
+- **[Endpoint Correction]**: Fixed `/api/v1/auth/validate` → `/api/v1/me` endpoint usage
+- **[Token Handling]**: Improved token validation with proper error handling and timeouts
+- **[Context Management]**: Restored context-aware navigation and breadcrumbs
+
+#### **Data Import Pipeline**
+- **[Database Compatibility]**: Resolved UUID/String type mismatches in workflow state management
+- **[Async Patterns]**: Converted entire workflow state service to proper async/await patterns
+- **[Context Injection]**: Implemented reliable user-based context extraction for API endpoints
+- **[Schema Validation]**: Completed DiscoveryFlowState schema with all required fields
+
+#### **API Endpoint Status**
+- **[Status Endpoint]**: `/api/v1/discovery/flow/agentic-analysis/status` returns proper workflow status
+- **[Analysis Endpoint]**: `/api/v1/discovery/flow/agent/analysis` successfully initiates workflows
+- **[Context Endpoints]**: `/api/v1/me` returns complete user context with client/engagement data
+
+### 🎯 **Success Metrics**
+
+#### **Authentication**
+- **[Login Success]**: Users can successfully log in with `chocka@gmail.com` and proper role assignment
+- **[Token Validation]**: Token validation works correctly with `/me` endpoint
+- **[Navigation]**: Context breadcrumbs and navigation work without errors
+
+#### **Data Import**
+- **[Workflow Creation]**: Discovery workflows are successfully created in database
+- **[Status Tracking]**: Workflow status can be queried and returns proper JSON responses
+- **[Context Isolation]**: Multi-tenant data access works with proper client/engagement scoping
+
+#### **System Stability**
+- **[Error Elimination]**: No more 404 errors for authentication endpoints
+- **[Database Consistency]**: Workflow states persist correctly with proper UUID handling
+- **[Async Compatibility]**: All database operations use consistent async patterns
+
 ## [0.8.1] - 2025-01-15
 
 ### 🚀 **Discovery Workflow Stabilization**

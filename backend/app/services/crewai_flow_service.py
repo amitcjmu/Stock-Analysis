@@ -13,7 +13,7 @@ import base64
 import csv
 import io
 import os
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # Pydantic and Core Components
 from pydantic import BaseModel, Field, ValidationError
@@ -61,7 +61,7 @@ class MockAgent:
 class CrewAIFlowService:
     """A stateful service registry for core CrewAI components and active flows."""
     
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         from app.services.workflow_state_service import WorkflowStateService
         
         # Initialize service state
@@ -217,7 +217,7 @@ class CrewAIFlowService:
                     "status_message": "Workflow timed out after 10 minutes",
                 }
                 if self.state_service:
-                    self.state_service.update_workflow_state(
+                    await self.state_service.update_workflow_state(
                         session_id=flow_state.session_id,
                         client_account_id=flow_state.client_account_id,
                         engagement_id=flow_state.engagement_id,
@@ -230,7 +230,7 @@ class CrewAIFlowService:
             # Update the state upon completion
             # Persist the final state using WorkflowStateService
             if self.state_service:
-                self.state_service.update_workflow_state(
+                await self.state_service.update_workflow_state(
                     session_id=flow_state.session_id,
                     client_account_id=flow_state.client_account_id,
                     engagement_id=flow_state.engagement_id,
@@ -252,7 +252,7 @@ class CrewAIFlowService:
                     "current_phase": "error",
                     "status_message": str(e),
                 }
-                self.state_service.update_workflow_state(
+                await self.state_service.update_workflow_state(
                     session_id=flow_state.session_id,
                     client_account_id=flow_state.client_account_id,
                     engagement_id=flow_state.engagement_id,
@@ -322,7 +322,7 @@ class CrewAIFlowService:
             # 2. Create Initial State and store it
             flow_state = self._create_new_flow_state(context, metadata)
             if self.state_service:
-                self.state_service.create_workflow_state(
+                await self.state_service.create_workflow_state(
                     session_id=flow_state.session_id,
                     client_account_id=flow_state.client_account_id,
                     engagement_id=flow_state.engagement_id,
@@ -368,6 +368,7 @@ class CrewAIFlowService:
             client_account_id=context.client_account_id,
             engagement_id=context.engagement_id,
             user_id=user_id,
+            import_session_id=context.session_id,  # Use session_id as import_session_id
             status="running",
             current_phase="initialization",
             metadata=metadata
@@ -394,7 +395,7 @@ class CrewAIFlowService:
         )
         return DiscoveryFlowState(**ws.state_data) if ws and hasattr(ws, 'state_data') else None
 
-    def get_flow_state_by_session(self, session_id: str, context: RequestContext) -> Optional[DiscoveryFlowState]:
+    async def get_flow_state_by_session(self, session_id: str, context: RequestContext) -> Optional[DiscoveryFlowState]:
         """
         Retrieves the state of a flow by its session ID from the persistent storage.
         """
@@ -402,7 +403,7 @@ class CrewAIFlowService:
             logger.error("State service is not available.")
             return None
         
-        workflow_state = self.state_service.get_workflow_state_by_session_id(
+        workflow_state = await self.state_service.get_workflow_state_by_session_id(
             session_id=session_id,
             client_account_id=context.client_account_id,
             engagement_id=context.engagement_id
@@ -413,7 +414,7 @@ class CrewAIFlowService:
         
         return None
 
-    def get_all_active_flows(self, context: RequestContext) -> List[DiscoveryFlowState]:
+    async def get_all_active_flows(self, context: RequestContext) -> List[DiscoveryFlowState]:
         """
         Retrieves all active flows for the current engagement from persistent storage.
         """
@@ -421,7 +422,7 @@ class CrewAIFlowService:
             logger.error("State service is not available.")
             return []
 
-        workflow_states = self.state_service.list_workflow_states_by_engagement(
+        workflow_states = await self.state_service.list_workflow_states_by_engagement(
             engagement_id=context.engagement_id,
             client_account_id=context.client_account_id
         )

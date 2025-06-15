@@ -35,7 +35,7 @@ export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNav
       }
       
       try {
-        const response = await fetch(`/api/v1/discovery/agents/agent-status?session_id=${file.id}`);
+        const response = await fetch(`/api/v1/discovery/flow/agentic-analysis/status?session_id=${file.id}`);
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }

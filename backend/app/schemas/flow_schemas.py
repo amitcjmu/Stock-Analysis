@@ -14,6 +14,7 @@ class DiscoveryFlowState(BaseModel):
     engagement_id: str
     user_id: str
     import_session_id: str
+    status: str = "running"
     current_phase: str = "initialization"
     workflow_phases: List[str] = Field(default_factory=lambda: [
         "initialization", "data_source_analysis", "data_validation", "field_mapping", 

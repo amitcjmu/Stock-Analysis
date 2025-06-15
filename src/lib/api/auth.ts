@@ -86,18 +86,24 @@ export const authApi = {
   },
 
   async validateToken(token: string): Promise<User | null> {
-    const response = await fetch(`${API_BASE_URL}/api/v1/auth/validate`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/v1/me`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
 
-    if (!response.ok) {
+      if (!response.ok) {
+        return null;
+      }
+
+      const data = await response.json();
+      return data || null;
+    } catch (error) {
+      console.error('Token validation error:', error);
       return null;
     }
-
-    return response.json();
   },
 
   async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<any> {
