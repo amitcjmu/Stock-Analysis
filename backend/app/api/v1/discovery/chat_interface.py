@@ -12,15 +12,26 @@ from app.core.context import get_user_id
 from app.services.multi_model_service import multi_model_service
 
 from app.api.v1.discovery.persistence import get_processed_assets
-from app.services.crewai_flow_service import crewai_flow_service, CrewAIFlowService
+from app.services.crewai_flow_service import CrewAIFlowService
 from app.models.client_account import User
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+# This is a placeholder for a proper dependency injection factory
+# In a real app, this would be more robust.
+def get_crewai_flow_service(db: AsyncSession = Depends(get_db)) -> CrewAIFlowService:
+    # This is a simplified way to get the service.
+    # In a real application, you might use a more sophisticated service locator
+    # or ensure a single instance is created and reused.
+    return CrewAIFlowService(db=db)
+
 @router.post("/chat-test")
-async def chat_test(request: Dict[str, Any]):
+async def chat_test(
+    request: Dict[str, Any],
+    crewai_service: CrewAIFlowService = Depends(get_crewai_flow_service)
+):
     """
     Test chat interface with context-aware responses about the asset inventory.
     """
@@ -90,7 +101,8 @@ User Question: {user_message}"""
 async def websocket_endpoint(
     websocket: WebSocket,
     client_id: str,
-    user_id: str = Depends(get_user_id)
+    user_id: str = Depends(get_user_id),
+    crewai_service: CrewAIFlowService = Depends(get_crewai_flow_service)
 ):
     # This is a placeholder - in production, you'd fetch this from a database
     return [
@@ -155,16 +167,6 @@ def _generate_fallback_response(user_message: str, context: str) -> str:
     # General help
     else:
         return f"I'm here to help with your cloud migration planning! Here's what I can assist with:\n\n**Current Status:**\n{context}\n\n**My Capabilities:**\n- 📊 **Asset Analysis**: Review your inventory and identify migration candidates\n- 🎯 **6R Strategy**: Recommend optimal migration approaches (Rehost, Refactor, etc.)\n- 🔍 **Complexity Assessment**: Evaluate technical challenges and dependencies\n- 📈 **Migration Planning**: Help prioritize applications and plan phases\n\nWhat specific area would you like to explore?"
-
-async def get_instance(
-    current_user: User = Depends(get_user_id)
-) -> "ChatInterface":
-    if not ChatInterface.is_crewai_available():
-        raise WebSocketDisconnect(code=1008, reason="CrewAI service not available")
-    
-    instance = ChatInterface(crewai_flow_service)
-    instance.current_user = current_user
-    return instance 
 
 async def get_chat_history(user_id: str, limit: int = 10) -> List[Dict[str, str]]:
     """Retrieve chat history for a user."""

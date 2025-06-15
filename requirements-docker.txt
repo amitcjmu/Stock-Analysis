@@ -18,6 +18,7 @@ crewai-tools
 langchain>=0.2.0,<0.3.0
 langchain-community>=0.2.0,<0.3.0
 langchain-openai>=0.1.8
+litellm
 
 # Environment and configuration
 python-dotenv>=1.0.0
@@ -39,9 +40,7 @@ openpyxl
 # Other utilities
 requests>=2.31.0
 tenacity>=2.2.0
-watchdog>=2.5.0 
-
-# CrewAI and LangChain dependencies
-langchain-openai
-crewai
-litellm
+watchdog>=2.5.0
+deepinfra
+google-generativeai
+py-obs
