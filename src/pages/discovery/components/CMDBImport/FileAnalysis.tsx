@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { UploadedFile } from '../../hooks/useCMDBImport';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 
 interface FileAnalysisProps {
   file: UploadedFile;
@@ -25,29 +25,59 @@ interface FileAnalysisProps {
 export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNavigate }) => {
   const queryClient = useQueryClient();
   
-  // Use the useFileAnalysisStatus hook to poll for status updates
-  const { data: statusData, isLoading: isLoadingStatus } = useQueryClient().getQueryState([
-    'fileAnalysisStatus', 
-    file.id
-  ]);
+  // Use the useQuery hook to poll for status updates instead of getQueryState
+  const { data: statusData, isLoading: isLoadingStatus } = useQuery({
+    queryKey: ['fileAnalysisStatus', file.id],
+    queryFn: async () => {
+      // Only poll if the file is still being analyzed
+      if (file.status !== 'analyzing') {
+        return null;
+      }
+      
+      try {
+        const response = await fetch(`/api/v1/discovery/agents/agent-status?session_id=${file.id}`);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        return await response.json();
+      } catch (error) {
+        console.warn(`Status polling failed for ${file.id}:`, error);
+        return null;
+      }
+    },
+    enabled: file.status === 'analyzing', // Only poll when analyzing
+    refetchInterval: 2000, // Poll every 2 seconds
+    refetchIntervalInBackground: false,
+    retry: 3,
+    retryDelay: 1000
+  });
   
   // Update the file status when status data changes
   useEffect(() => {
-    if (statusData?.data) {
-      const { workflow_status, current_phase, status } = statusData.data;
+    if (statusData?.flow_status) {
+      const { status, current_phase } = statusData.flow_status;
       
       // Update the file status based on the workflow status
-      if (workflow_status === 'completed' || status === 'completed') {
+      if (status === 'completed') {
         // Update the file status to 'processed' when analysis is complete
         queryClient.setQueryData<UploadedFile[]>(['uploadedFiles'], (old = []) =>
           old.map(f => f.id === file.id ? {
             ...f,
             status: 'processed' as const,
             currentStep: 5, // All steps complete
-            processingMessages: ['Analysis complete. Ready for next steps.']
+            processingMessages: ['✅ Analysis complete. Ready for next steps.'],
+            aiSuggestions: ['File processed successfully'],
+            nextSteps: [
+              {
+                label: 'Proceed to Attribute Mapping',
+                route: '/discovery/attribute-mapping',
+                description: 'Map your data fields to standard attributes',
+                import_session_id: file.id
+              }
+            ]
           } : f)
         );
-      } else if (workflow_status === 'failed' || status === 'failed') {
+      } else if (status === 'failed' || status === 'error') {
         // Update the file status to 'error' if analysis failed
         queryClient.setQueryData<UploadedFile[]>(['uploadedFiles'], (old = []) =>
           old.map(f => f.id === file.id ? {
@@ -57,7 +87,7 @@ export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNav
             processingMessages: ['❌ Analysis failed. Please try again.']
           } : f)
         );
-      } else if (workflow_status === 'in_progress' || status === 'in_progress') {
+      } else if (status === 'in_progress' || status === 'running') {
         // Update the current step and processing messages based on the current phase
         const stepMap: Record<string, number> = {
           'initial_scan': 0,
