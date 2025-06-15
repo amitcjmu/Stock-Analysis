@@ -12,10 +12,11 @@ from .handlers.learning import router as learning_router
 from .handlers.dependencies import router as dependencies_router
 
 # Create the router
-router = APIRouter(prefix="", tags=["discovery"])
+router = APIRouter(tags=["discovery-agents"])
 
 # Include the sub-routers
-router.include_router(status_router, prefix="/status")
+# Status endpoints are included directly (no prefix) so /agents/agent-status works
+router.include_router(status_router)
 router.include_router(analysis_router, prefix="/analysis")
 router.include_router(learning_router, prefix="/learning")
 router.include_router(dependencies_router, prefix="/dependencies")

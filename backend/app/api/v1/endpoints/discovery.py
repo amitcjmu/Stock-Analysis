@@ -21,6 +21,14 @@ try:
 except ImportError as e:
     logger.warning(f"⚠️ Discovery flow router not available: {e}")
 
+# Include agent discovery endpoints
+try:
+    from app.api.v1.endpoints.agents.discovery.router import router as agents_discovery_router
+    router.include_router(agents_discovery_router, prefix="/agents", tags=["discovery-agents"])
+    logger.info("✅ Agent discovery router included in discovery")
+except ImportError as e:
+    logger.warning(f"⚠️ Agent discovery router not available: {e}")
+
 @router.get("/health")
 async def discovery_health_check() -> Dict[str, Any]:
     """
@@ -34,5 +42,6 @@ async def discovery_health_check() -> Dict[str, Any]:
         "description": "All discovery operations are now routed through the agentic workflow.",
         "components": {
             "discovery_flow_service": "active",
+            "agent_discovery_endpoints": "active",
         }
     } 
