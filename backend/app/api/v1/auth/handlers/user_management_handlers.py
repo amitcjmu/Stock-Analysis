@@ -22,6 +22,9 @@ from app.services.auth_services.user_management_service import UserManagementSer
 
 logger = logging.getLogger(__name__)
 
+# Demo admin user UUID for fallback
+DEMO_ADMIN_USER_ID = "55555555-5555-5555-5555-555555555555"
+
 # Create user management router
 user_management_router = APIRouter()
 
@@ -58,11 +61,13 @@ async def get_registration_status(
     user_id: str,
     db: AsyncSession = Depends(get_db)
 ):
-    """Get the registration/approval status of a user."""
+    """Get registration status for a user."""
     try:
         user_service = UserManagementService(db)
         return await user_service.get_registration_status(user_id)
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error in get_registration_status: {e}")
         raise HTTPException(status_code=500, detail=f"Status check failed: {str(e)}")
@@ -81,8 +86,8 @@ async def get_pending_approvals(
     try:
         context = get_current_context()
         
-        # Get user ID from context, with fallback for demo purposes
-        user_id_str = context.user_id or "admin_user"
+        # Get user ID from context, with fallback to demo admin UUID
+        user_id_str = context.user_id or DEMO_ADMIN_USER_ID
         
         user_service = UserManagementService(db)
         return await user_service.get_pending_approvals(user_id_str, pagination, filters)
@@ -107,8 +112,8 @@ async def approve_user(
     try:
         context = get_current_context()
         
-        # For demo purposes, use a default admin user ID
-        approved_by = context.user_id or "admin_user"
+        # Use demo admin UUID as fallback
+        approved_by = context.user_id or DEMO_ADMIN_USER_ID
         
         approval_data = approval_request.dict()
         approval_data.update({
@@ -139,8 +144,8 @@ async def reject_user(
     try:
         context = get_current_context()
         
-        # For demo purposes, use a default admin user ID
-        rejected_by = context.user_id or "admin_user"
+        # Use demo admin UUID as fallback
+        rejected_by = context.user_id or DEMO_ADMIN_USER_ID
         
         user_service = UserManagementService(db)
         return await user_service.reject_user(rejection_request, rejected_by)
@@ -184,8 +189,8 @@ async def grant_client_access(
     try:
         context = get_current_context()
         
-        # For demo purposes, use a default admin user ID
-        granted_by = context.user_id or "admin_user"
+        # Use demo admin UUID as fallback
+        granted_by = context.user_id or DEMO_ADMIN_USER_ID
         
         request_data = {
             "ip_address": request.client.host if request.client else None,
@@ -247,8 +252,8 @@ async def deactivate_user(
     try:
         context = get_current_context()
         
-        # Get the user performing the deactivation
-        deactivated_by = context.user_id or "admin_user"
+        # Use demo admin UUID as fallback
+        deactivated_by = context.user_id or DEMO_ADMIN_USER_ID
         
         user_service = UserManagementService(db)
         return await user_service.deactivate_user(request_data, deactivated_by)
@@ -270,8 +275,8 @@ async def activate_user(
     try:
         context = get_current_context()
         
-        # Get the user performing the activation
-        activated_by = context.user_id or "admin_user"
+        # Use demo admin UUID as fallback
+        activated_by = context.user_id or DEMO_ADMIN_USER_ID
         
         user_service = UserManagementService(db)
         return await user_service.activate_user(request_data, activated_by)

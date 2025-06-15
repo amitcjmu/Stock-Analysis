@@ -41,21 +41,8 @@ class EngagementCRUDHandler:
 
             engagement_responses = []
             for eng in engagements:
-                eng_dict = {
-                    "id": str(eng.id),
-                    "client_account_id": str(eng.client_account_id),
-                    "engagement_name": eng.name,
-                    "engagement_description": eng.description,
-                    "migration_scope": eng.migration_scope,
-                    "target_cloud_provider": eng.engagement_type,
-                    "planned_start_date": eng.start_date,
-                    "planned_end_date": eng.target_completion_date,
-                    "created_at": eng.created_at,
-                    "updated_at": eng.updated_at,
-                    "is_active": eng.is_active,
-                    "current_phase": eng.status
-                }
-                engagement_responses.append(EngagementResponse(**eng_dict))
+                # Properly convert database model to response schema
+                engagement_responses.append(await EngagementCRUDHandler._convert_engagement_to_response(eng))
             
             total_pages = (total_items + page_size - 1) // page_size
             
@@ -112,7 +99,11 @@ class EngagementCRUDHandler:
             thirty_days_ago = datetime.utcnow() - timedelta(days=30)
             recent_query = select(Engagement).where(Engagement.created_at >= thirty_days_ago).order_by(Engagement.created_at.desc()).limit(5)
             recent_engagements = (await db.execute(recent_query)).scalars().all()
-            recent_engagement_responses = [EngagementResponse.model_validate(e, from_attributes=True) for e in recent_engagements]
+            
+            # Convert recent engagements to response format
+            recent_engagement_responses = []
+            for eng in recent_engagements:
+                recent_engagement_responses.append(await EngagementCRUDHandler._convert_engagement_to_response(eng))
 
             return {
                 "total_engagements": total_engagements,
@@ -124,4 +115,65 @@ class EngagementCRUDHandler:
             }
         except Exception as e:
             logger.error(f"Error getting engagement dashboard stats: {e}", exc_info=True)
-            raise HTTPException(status_code=500, detail=f"Failed to retrieve dashboard stats: {str(e)}") 
+            raise HTTPException(status_code=500, detail=f"Failed to retrieve dashboard stats: {str(e)}")
+
+    @staticmethod
+    async def _convert_engagement_to_response(engagement: Engagement) -> EngagementResponse:
+        """Convert Engagement model to EngagementResponse schema with proper field mapping."""
+        try:
+            # Handle migration_scope - convert to string if it's a dict
+            migration_scope = engagement.migration_scope
+            if isinstance(migration_scope, dict):
+                # Convert dict to a readable string representation
+                scope_parts = []
+                if migration_scope.get('target_clouds'):
+                    scope_parts.append(f"Clouds: {', '.join(migration_scope['target_clouds'])}")
+                if migration_scope.get('migration_strategies'):
+                    scope_parts.append(f"Strategies: {', '.join(migration_scope['migration_strategies'])}")
+                if migration_scope.get('business_units'):
+                    scope_parts.append(f"Units: {', '.join(migration_scope['business_units'])}")
+                migration_scope = "; ".join(scope_parts) if scope_parts else "Full Migration"
+            elif not migration_scope:
+                migration_scope = "Full Migration"
+
+            return EngagementResponse(
+                id=str(engagement.id),
+                engagement_name=engagement.name,  # Map 'name' to 'engagement_name'
+                client_account_id=str(engagement.client_account_id),
+                engagement_description=engagement.description,
+                migration_scope=migration_scope,
+                target_cloud_provider=engagement.engagement_type or "aws",
+                planned_start_date=engagement.start_date,
+                planned_end_date=engagement.target_completion_date,
+                actual_start_date=engagement.start_date,  # Use start_date as actual_start_date
+                actual_end_date=engagement.actual_completion_date,
+                engagement_manager=engagement.client_contact_name or "Not Assigned",
+                technical_lead=engagement.client_contact_name or "Not Assigned",
+                team_preferences=engagement.team_preferences or {},
+                agent_configuration={},  # Default empty dict
+                discovery_preferences={},  # Default empty dict
+                assessment_criteria={},  # Default empty dict
+                current_phase=engagement.status or "planning",
+                completion_percentage=0.0,  # Default to 0.0
+                current_session_id=None,  # Default to None
+                created_at=engagement.created_at,
+                updated_at=engagement.updated_at,
+                is_active=engagement.is_active,
+                total_sessions=0,  # Default to 0
+                total_assets=0  # Default to 0
+            )
+        except Exception as e:
+            logger.error(f"Error converting engagement to response: {e}")
+            # Return a minimal valid response to prevent complete failure
+            return EngagementResponse(
+                id=str(engagement.id),
+                engagement_name=engagement.name or "Unknown Engagement",
+                client_account_id=str(engagement.client_account_id),
+                engagement_description=engagement.description or "",
+                migration_scope="Full Migration",
+                target_cloud_provider="aws",
+                current_phase="planning",
+                completion_percentage=0.0,
+                created_at=engagement.created_at or datetime.utcnow(),
+                is_active=engagement.is_active
+            ) 

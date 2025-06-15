@@ -16,6 +16,9 @@ from app.services.auth_services.rbac_core_service import RBACCoreService
 
 logger = logging.getLogger(__name__)
 
+# Demo admin user UUID for fallback
+DEMO_ADMIN_USER_ID = "55555555-5555-5555-5555-555555555555"
+
 # Create admin router
 admin_router = APIRouter()
 
@@ -28,8 +31,8 @@ async def get_admin_dashboard_stats(
     try:
         context = get_current_context()
         
-        # Get user ID from context, with fallback for demo purposes
-        user_id_str = context.user_id or "admin_user"
+        # Use demo admin UUID as fallback
+        user_id_str = context.user_id or DEMO_ADMIN_USER_ID
         
         admin_service = AdminOperationsService(db)
         return await admin_service.get_admin_dashboard_stats(user_id_str)
@@ -51,8 +54,8 @@ async def get_active_users(
     try:
         context = get_current_context()
         
-        # Get user ID from context, with fallback for demo purposes
-        user_id_str = context.user_id or "admin_user"
+        # Use demo admin UUID as fallback
+        user_id_str = context.user_id or DEMO_ADMIN_USER_ID
         
         admin_service = AdminOperationsService(db)
         return await admin_service.get_active_users(user_id_str, page, page_size)
@@ -76,7 +79,8 @@ async def get_access_logs(
     try:
         context = get_current_context()
         
-        user_id_str = context.user_id or "admin_user"
+        # Use demo admin UUID as fallback
+        user_id_str = context.user_id or DEMO_ADMIN_USER_ID
         
         admin_service = AdminOperationsService(db)
         return await admin_service.get_access_logs(user_id_str, page, page_size, user_id, action_type)
@@ -101,8 +105,8 @@ async def admin_create_user(
     try:
         context = get_current_context()
         
-        # Get the admin user creating this user
-        created_by = context.user_id or "admin_user"
+        # Use demo admin UUID as fallback
+        created_by = context.user_id or DEMO_ADMIN_USER_ID
         
         request_data = {
             "ip_address": request.client.host if request.client else None,
@@ -144,7 +148,8 @@ async def get_role_statistics(
     """Get role distribution statistics."""
     try:
         context = get_current_context()
-        user_id_str = context.user_id or "admin_user"
+        # Use demo admin UUID as fallback
+        user_id_str = context.user_id or DEMO_ADMIN_USER_ID
         
         # Check admin access first
         admin_service = AdminOperationsService(db)
@@ -170,7 +175,8 @@ async def ensure_basic_roles(
     """Ensure basic system roles exist."""
     try:
         context = get_current_context()
-        user_id_str = context.user_id or "admin_user"
+        # Use demo admin UUID as fallback
+        user_id_str = context.user_id or DEMO_ADMIN_USER_ID
         
         # Check admin access first
         admin_service = AdminOperationsService(db)
@@ -202,10 +208,11 @@ async def get_user_type(
     """Get user type information for access control."""
     try:
         context = get_current_context()
-        user_id_str = context.user_id or "admin_user"
+        # Use demo admin UUID as fallback
+        user_id_str = context.user_id or DEMO_ADMIN_USER_ID
         
         # Check if user is demo admin
-        is_demo_admin = user_id_str in ["admin_user", "demo_user"]
+        is_demo_admin = user_id_str in [DEMO_ADMIN_USER_ID, "demo_user"]
         
         # For real users, check if they have demo/mock flag
         is_mock_user = False

@@ -111,6 +111,7 @@ interface AuthContextType {
   setCurrentSession: (session: Session | null) => void;
   currentEngagementId: string | null;
   currentSessionId: string | null;
+  getAuthHeaders: () => Record<string, string>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -132,6 +133,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     updateApiContext({ client, engagement, session });
   }, [client, engagement, session]);
+
+  const getAuthHeaders = useCallback((): Record<string, string> => {
+    const token = tokenStorage.getToken();
+    const headers: Record<string, string> = {};
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    if (user) {
+      headers['X-User-ID'] = user.id;
+      headers['X-User-Role'] = user.role;
+    }
+
+    if (client) {
+      headers['X-Client-Account-ID'] = client.id;
+    }
+
+    if (engagement) {
+      headers['X-Engagement-ID'] = engagement.id;
+    }
+    
+    if (session) {
+      headers['X-Session-ID'] = session.id;
+    }
+
+    return headers;
+  }, [user, client, engagement, session]);
 
   const logout = useCallback(() => {
     localStorage.removeItem('demoMode');
@@ -326,6 +355,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCurrentSession,
       currentEngagementId: engagement?.id || null,
       currentSessionId: session?.id || null,
+      getAuthHeaders,
     }}>
       {children}
     </AuthContext.Provider>
