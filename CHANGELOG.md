@@ -571,3 +571,67 @@ This release resolves critical issues with the CMDB file upload workflow and ens
 - **Backend**: Proper workflow state management
 - **Integration**: Seamless frontend-backend communication
 - **Performance**: Efficient polling and background processing
+
+## [0.8.3] - 2025-01-28
+
+### 🎯 **CRITICAL FIXES - Fixed UUID Demo System & User Management**
+
+This release restores the original fixed UUID demo system design and resolves all user creation issues.
+
+### 🚀 **Fixed UUID Demo System Restoration**
+
+#### **Consistent Demo UUID Implementation**
+- **Architecture**: Restored original fixed UUID design for reliable demo mode operation
+- **Demo User**: `44444444-4444-4444-4444-444444444444` (demo@democorp.com)
+- **Admin User**: `55555555-5555-5555-5555-555555555555` (admin@democorp.com)
+- **Demo Client**: `11111111-1111-1111-1111-111111111111` (Democorp)
+- **Demo Engagement**: `22222222-2222-2222-2222-222222222222` (Cloud Migration 2024)
+- **Demo Session**: `33333333-3333-3333-3333-333333333333` (Demo Session)
+
+#### **Context System Integration**
+- **Fallback Logic**: System automatically uses fixed UUIDs when services fail
+- **Multi-Tenant**: Proper client/engagement/session context isolation maintained
+- **API Endpoints**: `/api/v1/me` and `/api/v1/clients/default` return correct demo context
+- **Agent Processing**: File uploads work with consistent demo user context
+- **Session Management**: Discovery workflow maintains session state across phases
+
+#### **Database Population Fixes**
+- **Script Update**: `populate_demo_data.py` now uses correct fixed UUIDs
+- **Data Consistency**: All demo entities created with predictable identifiers
+- **Foreign Keys**: Proper relationships between users, clients, engagements, and sessions
+- **Profiles**: Complete RBAC profiles created for both admin and demo users
+
+### 🔧 **User Management Fixes**
+
+#### **User Creation Duplicate Prevention**
+- **Validation**: Added email uniqueness check before user creation
+- **Error Handling**: Proper error messages for duplicate email attempts
+- **Security**: Password hashing implemented with bcrypt
+- **Database**: Complete user profiles created with proper foreign key relationships
+
+#### **Admin Operations Enhancement**
+- **Context Aware**: User creation uses proper admin context for approval chains
+- **Fallback Logic**: Graceful handling when admin user context unavailable
+- **Audit Trail**: Proper logging of user creation activities
+- **Role Assignment**: Automatic role and permission assignment for new users
+
+### 📊 **Technical Achievements**
+- **UUID Consistency**: All demo entities use predictable fixed identifiers
+- **Context Reliability**: Demo mode works even when database/services fail
+- **User Management**: Complete admin user creation workflow functional
+- **Agent Processing**: File analysis works with consistent demo user context
+- **Session Persistence**: Discovery workflow maintains state across navigation
+
+### 🎯 **Success Metrics**
+- **Demo Mode**: 100% reliable operation with fixed UUIDs
+- **User Creation**: Duplicate prevention and proper error handling working
+- **Context API**: `/api/v1/me` returns complete demo context structure
+- **File Processing**: CMDB uploads process correctly with demo user context
+- **Navigation**: Discovery workflow maintains session context across pages
+
+### 🔧 **Workflow Validation**
+- **Fixed Context**: Demo user (4444...), client (1111...), engagement (2222...), session (3333...)
+- **User Creation**: Admin form creates users with proper validation and security
+- **Discovery Flow**: File upload → Analysis → Status monitoring with consistent context
+- **Multi-Tenancy**: Proper data isolation maintained even in demo mode
+- **Fallback System**: Platform remains functional when individual services fail

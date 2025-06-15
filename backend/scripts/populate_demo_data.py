@@ -21,10 +21,10 @@ async def create_demo_users(db: AsyncSession):
     """Create demo users."""
     print("Creating demo users...")
     
-    # Admin user
+    # Admin user - using fixed UUID from system design
     admin_user = User(
-        id=uuid.UUID('eef6ea50-6550-4f14-be2c-081d4eb23038'),
-        email='admin@aiforce.com',
+        id=uuid.UUID('55555555-5555-5555-5555-555555555555'),
+        email='admin@democorp.com',
         password_hash='$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhZ8/iGda9iaHeqM1a3huS',
         first_name='Admin',
         last_name='User',
@@ -33,10 +33,10 @@ async def create_demo_users(db: AsyncSession):
         created_at=datetime.utcnow()
     )
     
-    # Demo user
+    # Demo user - using fixed UUID from system design
     demo_user = User(
-        id=uuid.UUID('550e8400-e29b-41d4-a716-446655440000'),
-        email='demo@aiforce.com',
+        id=uuid.UUID('44444444-4444-4444-4444-444444444444'),
+        email='demo@democorp.com',
         password_hash='$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhZ8/iGda9iaHeqM1a3huS',
         first_name='Demo',
         last_name='User',
@@ -70,6 +70,16 @@ async def create_demo_clients(db: AsyncSession):
     
     clients = [
         {
+            'id': uuid.UUID('11111111-1111-1111-1111-111111111111'),
+            'name': 'Democorp',
+            'slug': 'democorp',
+            'description': 'Demo corporation for testing platform features',
+            'industry': 'Technology',
+            'company_size': 'Enterprise',
+            'headquarters_location': 'Demo City, Demo State',
+            'is_mock': True
+        },
+        {
             'id': uuid.UUID('d838573d-f461-44e4-81b5-5af510ef83b7'),
             'name': 'Acme Corporation',
             'slug': 'acme-corp',
@@ -88,16 +98,6 @@ async def create_demo_clients(db: AsyncSession):
             'company_size': 'Enterprise',
             'headquarters_location': 'Findlay, OH',
             'is_mock': False
-        },
-        {
-            'id': uuid.UUID('bafd5b46-aaaf-4c95-8142-573699d93171'),
-            'name': 'Complete Test Client',
-            'slug': 'complete-test-client',
-            'description': 'Demo client for testing platform features',
-            'industry': 'Technology',
-            'company_size': 'Mid-Market',
-            'headquarters_location': 'Austin, TX',
-            'is_mock': True
         }
     ]
     
@@ -137,6 +137,13 @@ async def create_demo_engagements(db: AsyncSession, clients, admin_user):
     
     engagements_data = [
         {
+            'id': uuid.UUID('22222222-2222-2222-2222-222222222222'),
+            'name': 'Cloud Migration 2024',
+            'slug': 'cloud-migration-2024',
+            'description': 'Demo engagement for cloud migration project',
+            'client_account_id': uuid.UUID('11111111-1111-1111-1111-111111111111')
+        },
+        {
             'id': uuid.UUID('d1a93e23-719d-4dad-8bbf-b66ab9de2b94'),
             'name': 'Cloud Migration Initiative 2024',
             'slug': 'cloud-migration-initiative-2024',
@@ -149,13 +156,6 @@ async def create_demo_engagements(db: AsyncSession, clients, admin_user):
             'slug': 'test-fixed-engagement',
             'description': 'Fixed engagement for testing purposes',
             'client_account_id': uuid.UUID('d838573d-f461-44e4-81b5-5af510ef83b7')
-        },
-        {
-            'id': uuid.UUID('6e9c8133-4169-4b79-b052-106dc93d0208'),
-            'name': 'Azure Transformation',
-            'slug': 'azure-transformation',
-            'description': 'Migration to Microsoft Azure cloud platform',
-            'client_account_id': uuid.UUID('bafd5b46-aaaf-4c95-8142-573699d93171')
         },
         {
             'id': uuid.UUID('baf640df-433c-4bcd-8c8f-7b01c12e9005'),
@@ -209,6 +209,12 @@ async def create_demo_sessions(db: AsyncSession, engagements, admin_user):
     print("Creating demo data import sessions...")
     
     sessions_data = [
+        {
+            'id': uuid.UUID('33333333-3333-3333-3333-333333333333'),
+            'session_name': 'Demo Session',
+            'client_account_id': uuid.UUID('11111111-1111-1111-1111-111111111111'),
+            'engagement_id': uuid.UUID('22222222-2222-2222-2222-222222222222')
+        },
         {
             'id': uuid.UUID('a1b2c3d4-e5f6-7890-abcd-ef1234567890'),
             'session_name': 'Demo Session 1',
@@ -305,8 +311,8 @@ async def main():
             
             print("\n✅ Demo data population completed successfully!")
             print("\nDemo credentials:")
-            print("  Admin: admin@aiforce.com / password")
-            print("  Demo:  demo@aiforce.com / password")
+            print("  Admin: admin@democorp.com / password")
+            print("  Demo:  demo@democorp.com / password")
             
         except Exception as e:
             print(f"\n❌ Error populating demo data: {e}")

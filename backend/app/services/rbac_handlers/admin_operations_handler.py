@@ -55,6 +55,17 @@ class AdminOperationsHandler(BaseRBACHandler):
             return {"status": "error", "message": "RBAC models not available"}
         
         try:
+            # Check if user already exists
+            email = user_data.get("email", "")
+            if not email:
+                return {"status": "error", "message": "Email is required"}
+            
+            from sqlalchemy import select
+            from app.models.client_account import User
+            existing_user = await self.db.execute(select(User).where(User.email == email))
+            if existing_user.scalar_one_or_none():
+                return {"status": "error", "message": f"User with email {email} already exists"}
+            
             # Generate UUID if not provided
             user_id = user_data.get("user_id", str(uuid.uuid4()))
             
@@ -91,10 +102,16 @@ class AdminOperationsHandler(BaseRBACHandler):
             # Map access level to proper enum value
             access_level = self._map_access_level(user_data.get("access_level", "analyst"))
             
+            # Hash the password
+            password = user_data.get("password", "defaultpassword123")
+            import bcrypt
+            password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            
             # Create base User record
             user = User(
                 id=user_id,
                 email=user_data.get("email", ""),
+                password_hash=password_hash,
                 first_name=first_name,
                 last_name=last_name,
                 is_active=user_data.get("is_active", True),
