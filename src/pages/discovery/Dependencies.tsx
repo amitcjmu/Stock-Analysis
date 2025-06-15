@@ -1,32 +1,12 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  Network, Database, Server, ArrowRight, RefreshCw, Filter, Search, MapPin, Activity, AlertTriangle, CheckCircle, Clock, Settings, Eye
-} from 'lucide-react';
-
-import { useAuth } from '@/contexts/AuthContext';
-import { useSession } from '@/contexts/SessionContext';
-
-import { apiCall } from '@/lib/api';
-import Sidebar from '@/components/Sidebar';
-import { ContextBreadcrumbs } from '@/components/context/ContextBreadcrumbs';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from '@/components/ui/badge';
+import React, { useState, useEffect } from 'react';
+import Sidebar from '../../components/Sidebar';
+import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
+import AgentClarificationPanel from '../../components/discovery/AgentClarificationPanel';
+import DataClassificationDisplay from '../../components/discovery/DataClassificationDisplay';
+import AgentInsightsSection from '../../components/discovery/AgentInsightsSection';
+import { Network, Database, Server, ArrowRight, RefreshCw, Filter, Search, MapPin, Activity, AlertTriangle, CheckCircle, Clock, Settings, Eye } from 'lucide-react';
+import { apiCall, API_CONFIG } from '../../config/api';
+import { useAppContext } from '../../hooks/useContext';
 
 interface DependencyItem {
   id: string;
@@ -118,11 +98,10 @@ interface DependencyAnalysisData {
 }
 
 const Dependencies = () => {
-  const { getAuthHeaders, currentEngagementId } = useAuth();
-  const { activeEngagement } = useSession();
-  const queryClient = useQueryClient();
-
-  // UI-only state
+  const { getContextHeaders, context } = useAppContext();
+  const [isLoading, setIsLoading] = useState(false);
+  const [dependencyData, setDependencyData] = useState<DependencyAnalysisData | null>(null);
+  const [agentRefreshTrigger, setAgentRefreshTrigger] = useState(0);
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [selectedStrength, setSelectedStrength] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -130,88 +109,213 @@ const Dependencies = () => {
   const [graphViewMode, setGraphViewMode] = useState<'applications' | 'infrastructure'>('applications');
   const [selectedDependency, setSelectedDependency] = React.useState<any>(null);
   const [showReviewModal, setShowReviewModal] = React.useState(false);
-  const [agentRefreshTrigger, setAgentRefreshTrigger] = useState(0);
+  const [editMode, setEditMode] = React.useState(false);
 
-  // Query: fetch dependency analysis
-  const {
-    data: dependencyData,
-    isLoading,
-    isError,
-    error,
-    refetch: refetchDependencyAnalysis
-  } = useQuery<DependencyAnalysisData>({
-    queryKey: ['dependency-analysis', currentEngagementId],
-    queryFn: async () => {
-      if (!currentEngagementId) {
-        throw new Error("Engagement ID not available");
-      }
-      const headers = getAuthHeaders();
-      const assetsResponse = await apiCall(`/api/v1/discovery/assets?page=1&page_size=1000&engagement_id=${currentEngagementId}`, { headers });
-      const assets = assetsResponse.assets || [];
+  useEffect(() => {
+    fetchDependencyAnalysis();
+    // Trigger agent analysis after initial data load
+    setTimeout(() => {
+      setAgentRefreshTrigger(prev => prev + 1);
+    }, 1000);
+  }, []);
+
+  // Refetch data when context changes (client/engagement/session)
+  useEffect(() => {
+    if (context.client && context.engagement) {
+      console.log('🔄 Context changed, refetching dependencies data for:', {
+        client: context.client.name,
+        engagement: context.engagement.name,
+        session: context.session?.session_display_name || 'None'
+      });
       
-      let applications: any[] = [];
+      // Refetch dependency analysis for new context
+      fetchDependencyAnalysis();
+    }
+  }, [context.client, context.engagement, context.session, context.viewMode]);
+
+  const fetchDependencyAnalysis = async () => {
+    try {
+      setIsLoading(true);
+      const contextHeaders = getContextHeaders();
+      
+      // Get assets for dependency analysis
+      const assetsResponse = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}?page=1&page_size=1000`, {
+        headers: contextHeaders
+      });
+      const assets = assetsResponse?.assets || [];
+      
+      // Get applications for cross-app mapping
+      let applications = [];
       try {
-        const applicationsResponse = await apiCall(`/api/v1/discovery/applications?engagement_id=${currentEngagementId}`, { headers });
-        applications = applicationsResponse.applications || [];
+        const applicationsResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.APPLICATIONS, {
+          headers: contextHeaders
+        });
+        applications = applicationsResponse?.applications || [];
       } catch (appError) {
-        console.warn("Could not fetch applications, proceeding without them.", appError);
+        console.warn('Could not fetch applications for dependency analysis:', appError);
       }
-      
-      const result = await apiCall('/api/v1/discovery/dependency-analysis', {
+
+      // Debug: Log what we're sending to the API
+      console.log('🚀 Sending to dependency analysis API:', {
+        assets_count: assets.length,
+        applications_count: applications.length,
+        sample_asset: assets[0],
+        user_context: {
+          analysis_type: 'comprehensive',
+          include_cross_app_mapping: true,
+          include_impact_analysis: true
+        }
+      });
+
+      // Perform dependency analysis
+      const dependencyAnalysis = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.DEPENDENCY_ANALYSIS, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...headers },
+        headers: {
+          'Content-Type': 'application/json',
+          ...contextHeaders
+        },
         body: JSON.stringify({
-          assets,
-          applications,
+          assets: assets,
+          applications: applications,
           user_context: {
             analysis_type: 'comprehensive',
             include_cross_app_mapping: true,
-            include_impact_analysis: true,
-            engagement_id: currentEngagementId,
+            include_impact_analysis: true
           }
-        })
+        }),
       });
-      if (!result?.dependency_intelligence) throw new Error('No dependency_intelligence in response');
-      return result.dependency_intelligence;
-    },
-    enabled: !!currentEngagementId,
-    retry: 1,
-    staleTime: 1000 * 60 * 5,
-  });
-  
-  // Filter dependencies based on controls
-  const filteredDependencies = useMemo(() => {
-    let deps = dependencyData?.cross_application_mapping?.cross_app_dependencies || [];
 
+      if (dependencyAnalysis?.dependency_intelligence) {
+        console.log('🔍 Dependency Analysis Response:', dependencyAnalysis.dependency_intelligence);
+        console.log('📊 Cross-app deps count:', dependencyAnalysis.dependency_intelligence.cross_application_mapping?.cross_app_dependencies?.length);
+        console.log('🏗️ Application clusters count:', dependencyAnalysis.dependency_intelligence.cross_application_mapping?.application_clusters?.length);
+        console.log('📈 Graph nodes count:', dependencyAnalysis.dependency_intelligence.cross_application_mapping?.dependency_graph?.nodes?.length);
+        
+        // Enhanced debugging - show sample dependency data
+        const sampleDeps = dependencyAnalysis.dependency_intelligence.cross_application_mapping?.cross_app_dependencies?.slice(0, 3);
+        console.log('🎯 Sample dependencies:', sampleDeps);
+        
+        setDependencyData(dependencyAnalysis.dependency_intelligence);
+        
+        // Trigger agent analysis with dependency context
+        await triggerAgentAnalysis(dependencyAnalysis.dependency_intelligence);
+      } else {
+        console.error('❌ No dependency_intelligence in response:', dependencyAnalysis);
+      }
+    } catch (error) {
+      console.error('Failed to fetch dependency analysis:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const triggerAgentAnalysis = async (depData: DependencyAnalysisData) => {
+    try {
+      // Trigger agent analysis with dependency context
+      await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_ANALYSIS, {
+        method: 'POST',
+        body: JSON.stringify({
+          page_context: 'dependencies',
+          data_context: {
+            dependency_analysis: depData.dependency_analysis,
+            cross_app_dependencies: depData.cross_application_mapping.cross_app_dependencies.slice(0, 5), // Sample for context
+            impact_summary: depData.impact_analysis.impact_summary,
+            validation_needs: depData.dependency_analysis.dependency_quality
+          },
+          analysis_type: 'dependency_mapping'
+        }),
+      });
+
+      // Refresh agent panels after a moment
+      setTimeout(() => {
+        setAgentRefreshTrigger(prev => prev + 1);
+      }, 1500);
+    } catch (error) {
+      console.error('Failed to trigger dependency agent analysis:', error);
+    }
+  };
+
+  const getStrengthColor = (strength: string) => {
+    switch (strength) {
+      case 'Critical': return 'bg-red-100 text-red-800';
+      case 'High': return 'bg-orange-100 text-orange-800';
+      case 'Medium': return 'bg-yellow-100 text-yellow-800';
+      case 'Low': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getValidationStatusColor = (status: string) => {
+    switch (status) {
+      case 'validated': return 'bg-green-100 text-green-800';
+      case 'needs_review': return 'bg-yellow-100 text-yellow-800';
+      case 'conflicted': return 'bg-red-100 text-red-800';
+      case 'pending': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getValidationIcon = (status: string) => {
+    switch (status) {
+      case 'validated': return <CheckCircle className="h-4 w-4" />;
+      case 'needs_review': return <Eye className="h-4 w-4" />;
+      case 'conflicted': return <AlertTriangle className="h-4 w-4" />;
+      case 'pending': return <Clock className="h-4 w-4" />;
+      default: return <Clock className="h-4 w-4" />;
+    }
+  };
+
+  // Filter dependencies based on controls
+  const filteredDependencies = React.useMemo(() => {
+    let deps = dependencyData?.cross_application_mapping?.cross_app_dependencies || [];
+    
+    // Filter by type
     if (selectedFilter !== 'all') {
-      deps = deps.filter(d => d.dependency_type === selectedFilter);
+      deps = deps.filter(dep => dep.dependency?.dependency_type?.includes(selectedFilter));
     }
+    
+    // Filter by strength/impact
     if (selectedStrength !== 'all') {
-      deps = deps.filter(d => d.dependency_strength === selectedStrength);
+      deps = deps.filter(dep => dep.impact_level === selectedStrength.toLowerCase());
     }
+    
+    // Filter by search term
     if (searchTerm) {
-      const lowercasedTerm = searchTerm.toLowerCase();
-      deps = deps.filter(d =>
-        d.source_asset_name?.toLowerCase().includes(lowercasedTerm) ||
-        d.target_asset_name?.toLowerCase().includes(lowercasedTerm)
+      deps = deps.filter(dep => 
+        dep.source_application?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        dep.target_application?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
+    
     return deps;
   }, [dependencyData, selectedFilter, selectedStrength, searchTerm]);
 
   // Filter dependency graph based on filtered dependencies
-  const filteredDependencyGraph = useMemo(() => {
+  const filteredDependencyGraph = React.useMemo(() => {
     if (!dependencyData?.cross_application_mapping?.dependency_graph) return null;
-
-    const filteredNodes = dependencyData.cross_application_mapping.dependency_graph.nodes.filter(node =>
-      filteredDependencies.some(dep => dep.source_asset === node.id || dep.target === node.id)
+    
+    const originalGraph = dependencyData.cross_application_mapping.dependency_graph;
+    
+    // Get nodes that are involved in filtered dependencies
+    const involvedNodes = new Set<string>();
+    filteredDependencies.forEach(dep => {
+      involvedNodes.add(dep.source_application);
+      involvedNodes.add(dep.target_application);
+    });
+    
+    // Filter nodes
+    const filteredNodes = originalGraph.nodes.filter(node => 
+      involvedNodes.has(node.id) || involvedNodes.has(node.label)
     );
-
-    const filteredNodeIds = new Set(filteredNodes.map(n => n.id));
-
-    const filteredEdges = dependencyData.cross_application_mapping.dependency_graph.edges.filter(edge =>
-      filteredNodeIds.has(edge.source) && filteredNodeIds.has(edge.target)
-    );
+    
+    // Filter edges based on filtered dependencies
+    const filteredEdges = originalGraph.edges.filter(edge => {
+      const matchingDep = filteredDependencies.find(dep => 
+        (dep.source_application === edge.source || dep.source_application === edge.target) &&
+        (dep.target_application === edge.target || dep.target_application === edge.source)
+      );
+      return matchingDep !== undefined;
+    });
     
     return {
       nodes: filteredNodes,
@@ -221,7 +325,8 @@ const Dependencies = () => {
 
   const applicationClusters = dependencyData?.cross_application_mapping?.application_clusters || [];
 
-  useEffect(() => {
+  // Debug logging
+  React.useEffect(() => {
     if (dependencyData) {
       console.log('🎯 Component Render - Dependency Data:', {
         total_dependencies: dependencyData.dependency_analysis?.total_dependencies,
@@ -230,48 +335,28 @@ const Dependencies = () => {
         graph_nodes_count: filteredDependencyGraph?.nodes?.length || 0,
         graph_edges_count: filteredDependencyGraph?.edges?.length || 0,
       });
+      
+      // Debug filtered dependencies structure
+      console.log('🔍 Raw filteredDependencies:', filteredDependencies);
+      console.log('🔍 Full dependencyData structure:', dependencyData);
+      
+      if (filteredDependencies.length > 0) {
+        console.log('📋 Sample dependency fields:', Object.keys(filteredDependencies[0]));
+      }
     }
-  }, [dependencyData, filteredDependencies, applicationClusters, filteredDependencyGraph]);
+  }, [dependencyData, filteredDependencies.length, applicationClusters.length, filteredDependencyGraph]);
 
   const handleReviewDependency = (dependency: any) => {
     setSelectedDependency(dependency);
     setShowReviewModal(true);
   };
-  
+
   const handleSaveDependency = async (updatedDependency: any) => {
+    // Here you would call an API to update the dependency
     console.log('Saving updated dependency:', updatedDependency);
     setShowReviewModal(false);
-    refetchDependencyAnalysis();
-  };
-
-  const getStrengthColor = (strength: string) => {
-    switch (strength) {
-      case 'Critical': return '#DC2626';
-      case 'High': return '#F59E0B';
-      case 'Medium': return '#3B82F6';
-      case 'Low': return '#22C55E';
-      default: return '#6B7280';
-    }
-  };
-
-  const getValidationStatusColor = (status: string): "default" | "destructive" | "outline" | "secondary" => {
-    switch (status) {
-      case 'validated': return 'secondary';
-      case 'needs_review': return 'default';
-      case 'conflicted': return 'destructive';
-      case 'pending':
-      default: return 'outline';
-    }
-  };
-
-  const getValidationIcon = (status: string) => {
-    switch (status) {
-      case 'validated': return <CheckCircle className="h-4 w-4 mr-1 inline-block" />;
-      case 'needs_review': return <AlertTriangle className="h-4 w-4 mr-1 inline-block" />;
-      case 'conflicted': return <AlertTriangle className="h-4 w-4 mr-1 inline-block" />;
-      case 'pending':
-      default: return <Clock className="h-4 w-4 mr-1 inline-block" />;
-    }
+    // Refresh the analysis
+    fetchDependencyAnalysis();
   };
 
   return (
@@ -284,7 +369,7 @@ const Dependencies = () => {
               {/* Header with Breadcrumbs */}
               <div className="mb-8">
                 <div className="mb-4">
-                  <ContextBreadcrumbs />
+                  <ContextBreadcrumbs showContextSelector={true} />
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
@@ -294,7 +379,7 @@ const Dependencies = () => {
                     </p>
                   </div>
                   <button
-                    onClick={() => refetchDependencyAnalysis()}
+                    onClick={fetchDependencyAnalysis}
                     disabled={isLoading}
                     className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 disabled:opacity-50"
                   >
@@ -303,28 +388,21 @@ const Dependencies = () => {
                   </button>
                 </div>
 
-                {isError && (
-                  <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
-                    <p className="font-bold">Error</p>
-                    <p>{(error as any)?.message || "Failed to fetch dependency analysis."}</p>
+                {/* Intelligence Status */}
+                {dependencyData && (
+                  <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <Activity className="h-5 w-5 text-blue-600" />
+                      <span className="text-sm font-medium text-blue-900">
+                        Dependency Intelligence Active
+                      </span>
+                    </div>
+                    <p className="text-sm text-blue-700 mt-1">
+                      AI analysis complete with {dependencyData.dependency_analysis.total_dependencies} dependencies discovered across {applicationClusters.length} application clusters
+                    </p>
                   </div>
                 )}
               </div>
-
-              {/* Intelligence Status */}
-              {dependencyData && (
-                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-center space-x-2">
-                    <Activity className="h-5 w-5 text-blue-600" />
-                    <span className="text-sm font-medium text-blue-900">
-                      Dependency Intelligence Active
-                    </span>
-                  </div>
-                  <p className="text-sm text-blue-700 mt-1">
-                    AI analysis complete with {dependencyData.dependency_analysis.total_dependencies} dependencies discovered across {applicationClusters.length} application clusters
-                  </p>
-                </div>
-              )}
 
               {/* Dependency Stats */}
               {dependencyData && (
@@ -444,150 +522,557 @@ const Dependencies = () => {
                 </div>
               </div>
 
-              {isLoading && (
-                <div className="text-center py-12">
-                  <RefreshCw className="h-8 w-8 text-blue-600 animate-spin mx-auto" />
-                  <p className="mt-4 text-lg text-gray-600">Running AI Dependency Analysis...</p>
-                  <p className="text-sm text-gray-500">This may take a moment.</p>
+              {/* Dependency Graph Visualization */}
+              {showGraph && filteredDependencyGraph && (
+                <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+                  <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                    Dependency Graph
+                    {(selectedFilter !== 'all' || selectedStrength !== 'all' || searchTerm) && (
+                      <span className="text-sm font-normal text-gray-500 ml-2">(Filtered)</span>
+                    )}
+                  </h2>
+                  <div className="border border-gray-200 rounded-lg bg-gray-50">
+                    <div className="p-4 border-b border-gray-200 bg-white rounded-t-lg">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4 text-sm text-gray-600">
+                          <span>{filteredDependencyGraph.nodes.length} nodes</span>
+                          <span>{filteredDependencyGraph.edges.length} connections</span>
+                          {editMode && <span className="text-blue-600 font-medium">Edit Mode</span>}
+                        </div>
+                        <div className="flex items-center space-x-6 text-sm">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                            <span>Applications ({filteredDependencyGraph.nodes.filter(n => n.type === 'application').length})</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                            <span>Servers ({filteredDependencyGraph.nodes.filter(n => n.type === 'server').length})</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                            <span>Databases ({filteredDependencyGraph.nodes.filter(n => n.type === 'database').length})</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Interactive SVG Graph */}
+                    <div className="p-6">
+                      {filteredDependencyGraph.nodes.length === 0 ? (
+                        <div className="text-center py-12">
+                          <Network className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                          <h3 className="text-lg font-medium text-gray-900 mb-2">No Dependencies Match Filters</h3>
+                          <p className="text-gray-600">Try adjusting your search criteria or filters</p>
+                        </div>
+                      ) : (
+                        <svg width="100%" height="500" viewBox="0 0 1000 500" className="border border-gray-200 rounded bg-white">
+                          {/* Define arrow marker for edges */}
+                          <defs>
+                            <marker id="arrowhead" markerWidth="10" markerHeight="7" 
+                                    refX="10" refY="3.5" orient="auto">
+                              <polygon points="0 0, 10 3.5, 0 7" fill="#6B7280" />
+                            </marker>
+                            <marker id="arrowhead-hover" markerWidth="10" markerHeight="7" 
+                                    refX="10" refY="3.5" orient="auto">
+                              <polygon points="0 0, 10 3.5, 0 7" fill="#3B82F6" />
+                            </marker>
+                          </defs>
+                          
+                          {/* Calculate shared layout variables */}
+                          {(() => {
+                            const cols = Math.ceil(Math.sqrt(filteredDependencyGraph.nodes.length));
+                            const rows = Math.ceil(filteredDependencyGraph.nodes.length / cols);
+                            const nodeSpacingX = 900 / Math.max(cols - 1, 1);
+                            const nodeSpacingY = 400 / Math.max(rows - 1, 1);
+                            
+                            return (
+                              <>
+                                {/* Render edges (connections) */}
+                                {filteredDependencyGraph.edges.map((edge, index) => {
+                                  // Use a better grid layout instead of circular
+                                  const sourceNode = filteredDependencyGraph.nodes.find(n => n.id === edge.source || n.label === edge.source);
+                                  const targetNode = filteredDependencyGraph.nodes.find(n => n.id === edge.target || n.label === edge.target);
+                                  
+                                  if (!sourceNode || !targetNode) return null;
+                                  
+                                  const sourceIndex = filteredDependencyGraph.nodes.indexOf(sourceNode);
+                                  const targetIndex = filteredDependencyGraph.nodes.indexOf(targetNode);
+                                  
+                                  const sourceCol = sourceIndex % cols;
+                                  const sourceRow = Math.floor(sourceIndex / cols);
+                                  const targetCol = targetIndex % cols;
+                                  const targetRow = Math.floor(targetIndex / cols);
+                                  
+                                  const sourceX = 50 + sourceCol * nodeSpacingX;
+                                  const sourceY = 50 + sourceRow * nodeSpacingY;
+                                  const targetX = 50 + targetCol * nodeSpacingX;
+                                  const targetY = 50 + targetRow * nodeSpacingY;
+                            
+                            // Calculate edge end point (stop before node)
+                            const nodeRadius = 30;
+                            const dx = targetX - sourceX;
+                            const dy = targetY - sourceY;
+                            const length = Math.sqrt(dx * dx + dy * dy);
+                            const edgeEndX = length > 0 ? targetX - (dx / length) * nodeRadius : targetX;
+                            const edgeEndY = length > 0 ? targetY - (dy / length) * nodeRadius : targetY;
+                            const edgeStartX = length > 0 ? sourceX + (dx / length) * nodeRadius : sourceX;
+                            const edgeStartY = length > 0 ? sourceY + (dy / length) * nodeRadius : sourceY;
+                            
+                            // Find matching dependency for click handler
+                            const matchingDep = filteredDependencies.find(dep => 
+                              (dep.source_application === edge.source && dep.target_application === edge.target) ||
+                              (dep.source_application === sourceNode.label && dep.target_application === targetNode.label)
+                            );
+                            
+                            return (
+                              <g key={`edge-${index}`}>
+                                <line
+                                  x1={edgeStartX}
+                                  y1={edgeStartY}
+                                  x2={edgeEndX}
+                                  y2={edgeEndY}
+                                  stroke="#6B7280"
+                                  strokeWidth={edge.strength === 'critical' ? 3 : edge.strength === 'high' ? 2 : 1}
+                                  strokeOpacity={0.6}
+                                  markerEnd="url(#arrowhead)"
+                                  className="cursor-pointer hover:stroke-blue-500 transition-colors"
+                                  onClick={() => {
+                                    if (matchingDep && editMode) {
+                                      handleReviewDependency(matchingDep);
+                                    }
+                                  }}
+                                />
+                                {/* Edge label */}
+                                <text
+                                  x={(edgeStartX + edgeEndX) / 2}
+                                  y={(edgeStartY + edgeEndY) / 2 - 5}
+                                  textAnchor="middle"
+                                  className="text-xs fill-gray-600 pointer-events-none"
+                                  fontSize="11"
+                                >
+                                  {edge.type.replace('_', ' ')}
+                                </text>
+                                {/* Clickable area for edge */}
+                                <line
+                                  x1={edgeStartX}
+                                  y1={edgeStartY}
+                                  x2={edgeEndX}
+                                  y2={edgeEndY}
+                                  stroke="transparent"
+                                  strokeWidth="12"
+                                  className="cursor-pointer"
+                                  onClick={() => {
+                                    if (matchingDep) {
+                                      if (editMode) {
+                                        handleReviewDependency(matchingDep);
+                                      } else {
+                                        console.log('Dependency details:', matchingDep);
+                                      }
+                                    }
+                                  }}
+                                />
+                                  </g>
+                                );
+                              })}
+                              
+                              {/* Render nodes */}
+                              {filteredDependencyGraph.nodes.map((node, index) => {
+                                const col = index % cols;
+                                const row = Math.floor(index / cols);
+                                
+                                const x = 50 + col * nodeSpacingX;
+                                const y = 50 + row * nodeSpacingY;
+                            
+                            const nodeColor = node.type === 'application' ? '#3B82F6' : 
+                                            node.type === 'server' ? '#10B981' : '#8B5CF6';
+                            
+                            return (
+                              <g key={`node-${node.id}`} className="cursor-pointer">
+                                <circle
+                                  cx={x}
+                                  cy={y}
+                                  r="30"
+                                  fill={nodeColor}
+                                  stroke="#ffffff"
+                                  strokeWidth="3"
+                                  className="hover:opacity-80 transition-opacity drop-shadow-md"
+                                  onClick={() => {
+                                    if (editMode) {
+                                      // In edit mode, allow creating new dependencies from this node
+                                      console.log('Select node for new dependency:', node);
+                                    } else {
+                                      console.log('Node details:', node);
+                                    }
+                                  }}
+                                />
+                                {/* Node icon/text */}
+                                <text
+                                  x={x}
+                                  y={y}
+                                  textAnchor="middle"
+                                  dominantBaseline="middle"
+                                  className="text-white text-xs pointer-events-none font-medium"
+                                  fontSize="12"
+                                >
+                                  {node.type === 'application' ? '📱' : node.type === 'server' ? '🖥️' : '🗄️'}
+                                </text>
+                                {/* Node label below */}
+                                <text
+                                  x={x}
+                                  y={y + 50}
+                                  textAnchor="middle"
+                                  className="text-gray-700 text-sm pointer-events-none font-medium"
+                                  fontSize="12"
+                                >
+                                  {node.label.length > 12 ? node.label.substring(0, 12) + '...' : node.label}
+                                </text>
+                                {/* Edit mode indicator */}
+                                {editMode && (
+                                  <circle
+                                    cx={x + 20}
+                                    cy={y - 20}
+                                    r="6"
+                                    fill="#F59E0B"
+                                    stroke="#ffffff"
+                                    strokeWidth="2"
+                                    className="pointer-events-none"
+                                  />
+                                )}
+                                </g>
+                              );
+                            })}
+                              </>
+                            );
+                          })()}
+                        </svg>
+                      )}
+                      
+                      <div className="mt-4 flex items-center justify-between">
+                        <div className="text-sm text-gray-600">
+                          {editMode ? 'Click on dependencies to edit them, or nodes to create new dependencies' : 'Click on dependencies to view details'}
+                        </div>
+                        <button
+                          onClick={() => setEditMode(!editMode)}
+                          className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${
+                            editMode 
+                              ? 'bg-orange-600 text-white hover:bg-orange-700' 
+                              : 'bg-blue-600 text-white hover:bg-blue-700'
+                          }`}
+                        >
+                          <Settings className="h-4 w-4" />
+                          <span>{editMode ? 'Exit Edit Mode' : 'Edit Dependencies'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 
-              {dependencyData && !isLoading && (
-                <div className="space-y-8">
-                  {showGraph ? (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Dependency Graph</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="h-[600px] w-full bg-gray-100 rounded-lg flex items-center justify-center">
-                          <p className="text-gray-500">Dependency Graph Component not available.</p>
+              {/* Application Clusters */}
+              {applicationClusters.length > 0 && (
+                <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+                  <h2 className="text-xl font-semibold text-gray-900 mb-4">Application Clusters</h2>
+                  <p className="text-sm text-gray-600 mb-6">Groups of tightly coupled applications based on dependency analysis</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {applicationClusters.map((cluster) => (
+                      <div key={cluster.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                        <div className="mb-3">
+                          <h3 className="font-medium text-gray-900">{cluster.name}</h3>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Application Clusters</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {applicationClusters.map(cluster => (
-                            <Card key={cluster.id} className="p-4">
-                              <h4 className="font-bold">{cluster.name}</h4>
-                              <p className="text-sm text-gray-600">Apps: {cluster.applications.length}</p>
-                              <p className="text-sm text-gray-600">Complexity: {cluster.complexity_score}</p>
-                            </Card>
-                          ))}
+                        <div className="space-y-2">
+                          <div className="text-sm text-gray-600">
+                            <span className="font-medium">{cluster.applications.length}</span> connected applications
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            Complexity: <span className="font-medium">{cluster.complexity_score.toFixed(1)}</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1 mt-3">
+                            {cluster.applications.slice(0, 4).map((app, idx) => (
+                              <span key={idx} className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded">
+                                {app}
+                              </span>
+                            ))}
+                            {cluster.applications.length > 4 && (
+                              <span className="text-xs px-2 py-1 bg-gray-200 text-gray-600 rounded">
+                                +{cluster.applications.length - 4} more
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  )}
-                  
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Dependency Details</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Source Asset</TableHead>
-                            <TableHead></TableHead>
-                            <TableHead>Target Asset</TableHead>
-                            <TableHead>Type</TableHead>
-                            <TableHead>Strength</TableHead>
-                            <TableHead>Confidence</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {filteredDependencies.map((dep) => (
-                            <TableRow key={dep.id}>
-                              <TableCell className="font-medium">{dep.source_asset_name || dep.source_asset}</TableCell>
-                              <TableCell><ArrowRight className="h-4 w-4" /></TableCell>
-                              <TableCell className="font-medium">{dep.target_asset_name || dep.target}</TableCell>
-                              <TableCell>{dep.dependency_type}</TableCell>
-                              <TableCell>
-                                <Badge style={{ backgroundColor: getStrengthColor(dep.dependency_strength || 'Low'), color: 'white' }} >
-                                  {dep.dependency_strength}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <Progress value={dep.confidence * 100} className="w-24" />
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant={getValidationStatusColor(dep.validation_status)}>
-                                  {getValidationIcon(dep.validation_status)}
-                                  {dep.validation_status}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <Button variant="outline" size="sm" onClick={() => handleReviewDependency(dep)}>
-                                  <Eye className="h-4 w-4 mr-2" />
-                                  Review
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </CardContent>
-                  </Card>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
+
+              {/* Dependencies Table */}
+              <div className="bg-white rounded-lg shadow-md">
+                <div className="p-6 border-b border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">Cross-Application Dependencies</h3>
+                      <p className="text-sm text-gray-600 mt-1">Dependencies that span multiple applications and require coordination</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setSelectedDependency({
+                          source_application: '',
+                          target_application: '',
+                          impact_level: 'medium',
+                          dependency: {
+                            dependency_type: 'application_to_server',
+                            confidence: 0.8
+                          }
+                        });
+                        setShowReviewModal(true);
+                      }}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+                    >
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      <span>Add Dependency</span>
+                    </button>
+                  </div>
+                </div>
+                <div className="overflow-x-auto">
+                  {filteredDependencies.length === 0 ? (
+                    <div className="text-center py-12">
+                      <MapPin className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">No Cross-Application Dependencies Found</h3>
+                      <p className="text-gray-600">Applications appear to be isolated or analysis is in progress</p>
+                    </div>
+                  ) : (
+                    <table className="w-full">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source Application</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Relationship</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Target Application</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Impact Level</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {filteredDependencies.map((dep, index) => (
+                          <tr key={index} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{dep.source_application}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              <ArrowRight className="h-4 w-4" />
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{dep.target_application}</td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`px-2 py-1 text-xs rounded-full ${getStrengthColor(dep.impact_level)}`}>
+                                {dep.impact_level}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              <button 
+                                onClick={() => handleReviewDependency(dep)}
+                                className="text-blue-600 hover:text-blue-800 transition-colors"
+                              >
+                                Review
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </div>
             </div>
           </main>
         </div>
-      </div>
 
-      {showReviewModal && selectedDependency && (
-        <Dialog open={showReviewModal} onOpenChange={setShowReviewModal}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Review Dependency</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Source Asset</Label>
-                  <p className="font-semibold">{selectedDependency.source_asset_name}</p>
+        {/* Agent Interaction Sidebar */}
+        <div className="w-96 border-l border-gray-200 bg-gray-50 overflow-y-auto">
+          <div className="p-4 space-y-4">
+            {/* Agent Clarification Panel */}
+            <AgentClarificationPanel 
+              pageContext="dependencies"
+              refreshTrigger={agentRefreshTrigger}
+              onQuestionAnswered={(questionId, response) => {
+                console.log('Dependency question answered:', questionId, response);
+                // Refresh dependency analysis after agent learning
+                fetchDependencyAnalysis();
+              }}
+            />
+
+            {/* Data Classification Display */}
+            <DataClassificationDisplay 
+              pageContext="dependencies"
+              refreshTrigger={agentRefreshTrigger}
+              onClassificationUpdate={(itemId, newClassification) => {
+                console.log('Dependency classification updated:', itemId, newClassification);
+              }}
+            />
+
+            {/* Agent Insights Section */}
+            <AgentInsightsSection 
+              pageContext="dependencies"
+              refreshTrigger={agentRefreshTrigger}
+              onInsightAction={(insightId, action) => {
+                console.log('Dependency insight action:', insightId, action);
+                if (action === 'apply_insight') {
+                  // Apply dependency recommendations
+                  console.log('Applying dependency insights');
+                }
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Dependency Review Modal */}
+        {showReviewModal && selectedDependency && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-90vh overflow-y-auto">
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-gray-900">Review Dependency</h3>
+                  <button
+                    onClick={() => setShowReviewModal(false)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
                 </div>
+              </div>
+              
+              <div className="p-6 space-y-6">
+                {/* Source Application */}
                 <div>
-                  <Label>Target Asset</Label>
-                  <p className="font-semibold">{selectedDependency.target_asset_name}</p>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Source Application
+                  </label>
+                  <input
+                    type="text"
+                    value={selectedDependency.source_application}
+                    onChange={(e) => setSelectedDependency({
+                      ...selectedDependency,
+                      source_application: e.target.value
+                    })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
                 </div>
-              </div>
-              <div>
-                <Label htmlFor="validation_status">Validation Status</Label>
-                <Select
-                  value={selectedDependency.validation_status}
-                  onValueChange={(value) => setSelectedDependency({ ...selectedDependency, validation_status: value })}
-                >
-                  <SelectTrigger id="validation_status">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="validated">Validated</SelectItem>
-                    <SelectItem value="needs_review">Needs Review</SelectItem>
-                    <SelectItem value="conflicted">Conflicted</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="notes">Notes</Label>
-                <Textarea id="notes" placeholder="Add notes about this dependency..." />
-              </div>
-              <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setShowReviewModal(false)}>Cancel</Button>
-                <Button onClick={() => handleSaveDependency(selectedDependency)}>Save</Button>
+                
+                {/* Target Application */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Target Application
+                  </label>
+                  <input
+                    type="text"
+                    value={selectedDependency.target_application}
+                    onChange={(e) => setSelectedDependency({
+                      ...selectedDependency,
+                      target_application: e.target.value
+                    })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                
+                {/* Dependency Type */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Dependency Type
+                  </label>
+                  <select
+                    value={selectedDependency.dependency?.dependency_type || 'application_to_server'}
+                    onChange={(e) => setSelectedDependency({
+                      ...selectedDependency,
+                      dependency: {
+                        ...selectedDependency.dependency,
+                        dependency_type: e.target.value
+                      }
+                    })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="application_to_server">Application to Server</option>
+                    <option value="application_dependency">Application Dependency</option>
+                    <option value="database_connection">Database Connection</option>
+                    <option value="network_dependency">Network Dependency</option>
+                    <option value="infrastructure_dependency">Infrastructure Dependency</option>
+                  </select>
+                </div>
+                
+                {/* Impact Level */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Impact Level
+                  </label>
+                  <select
+                    value={selectedDependency.impact_level}
+                    onChange={(e) => setSelectedDependency({
+                      ...selectedDependency,
+                      impact_level: e.target.value
+                    })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="critical">Critical</option>
+                  </select>
+                </div>
+                
+                {/* Confidence */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Confidence ({Math.round((selectedDependency.dependency?.confidence || 0) * 100)}%)
+                  </label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value={selectedDependency.dependency?.confidence || 0}
+                    onChange={(e) => setSelectedDependency({
+                      ...selectedDependency,
+                      dependency: {
+                        ...selectedDependency.dependency,
+                        confidence: parseFloat(e.target.value)
+                      }
+                    })}
+                    className="w-full"
+                  />
+                </div>
+                
+                {/* Actions */}
+                <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                  <button
+                    onClick={() => {
+                      // Delete dependency logic
+                      console.log('Delete dependency:', selectedDependency);
+                      setShowReviewModal(false);
+                    }}
+                    className="px-4 py-2 text-red-600 border border-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                  >
+                    Delete Dependency
+                  </button>
+                  
+                  <div className="flex space-x-3">
+                    <button
+                      onClick={() => setShowReviewModal(false)}
+                      className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => handleSaveDependency(selectedDependency)}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Save Changes
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
-      )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
