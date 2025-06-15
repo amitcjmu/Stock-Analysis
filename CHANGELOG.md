@@ -459,3 +459,115 @@ This release restores full functionality to the Admin and Discovery dashboards b
 -   **[Fix]**: The Discovery Dashboard was not rendering correctly due to a data-fetching or rendering error within the component.
 -   **[Impact]**: The Discovery Dashboard is now fully functional and displays correctly.
 -   **[Technical Details]**: Restored the `src/pages/discovery/DiscoveryDashboard.tsx` file from git to its last known good state.
+
+## [0.8.2] - 2025-01-15
+
+### 🔧 **CMDB Upload Discovery Flow - Complete End-to-End Implementation**
+
+This release resolves critical issues with the CMDB file upload workflow and ensures proper progression through the entire discovery pipeline from Data Import to Tech Debt analysis.
+
+### 🐛 **Frontend Critical Fixes**
+
+#### **React Query Error Resolution**
+- **Fixed**: `useQueryClient().getQueryState()` destructuring error that was crashing the FileAnalysis component
+- **Replaced**: Incorrect `getQueryState()` usage with proper `useQuery` hook for status polling
+- **Implemented**: Real-time status polling with 2-second intervals for workflow updates
+- **Added**: Comprehensive error handling to prevent frontend crashes during file analysis
+
+#### **File Upload Status Tracking**
+- **Enhanced**: File analysis component to properly track workflow phases
+- **Added**: Visual progress indicators with step-by-step analysis tracking
+- **Implemented**: Automatic navigation to Attribute Mapping upon successful analysis
+- **Fixed**: Status polling to correctly handle workflow state transitions
+
+### 🚀 **Backend Discovery Workflow Enhancement**
+
+#### **Agent Status Endpoint Restructuring**
+- **Updated**: `/discovery/agents/agent-status` to return correct `flow_status` structure
+- **Fixed**: Frontend-backend data contract mismatch causing status polling failures
+- **Enhanced**: Error handling to return valid responses even during failures
+- **Added**: Proper session-based workflow state tracking
+
+#### **CMDB File Processing Pipeline**
+- **Enhanced**: `/discovery/flow/agent/analysis` endpoint to handle CMDB uploads correctly
+- **Integrated**: `initiate_data_source_analysis()` method for proper workflow initiation
+- **Implemented**: Automatic session creation and workflow state management
+- **Added**: Support for CSV parsing and data structure validation
+
+#### **Discovery Workflow State Management**
+- **Fixed**: Session-based workflow tracking across the discovery pipeline
+- **Enhanced**: Flow state persistence and retrieval mechanisms
+- **Added**: Proper context propagation for multi-tenant environments
+- **Implemented**: Background workflow execution with real-time status updates
+
+### 📊 **End-to-End Workflow Implementation**
+
+#### **Complete Discovery Pipeline**
+- **Data Import**: CMDB CSV files properly uploaded and analyzed
+- **Attribute Mapping**: Automatic navigation with session context preservation
+- **Data Cleansing**: Quality issues identified and passed to cleansing page
+- **Inventory Management**: Processed assets available for inventory review
+- **Dependencies**: Application dependencies configurable from inventory
+- **Tech Debt**: Overall technical debt analysis displayed
+
+#### **Workflow State Transitions**
+- **Initialization**: File upload triggers workflow creation
+- **Analysis**: AI agents process file content and structure
+- **Completion**: Results packaged for next phase navigation
+- **Error Handling**: Graceful degradation with user-friendly error messages
+
+### 🎯 **Agentic Architecture Compliance**
+
+#### **CrewAI Integration**
+- **Maintained**: All intelligence flows through CrewAI agent system
+- **Enhanced**: Agent-based file analysis with confidence scoring
+- **Preserved**: Multi-tenant context isolation throughout workflow
+- **Implemented**: Proper dependency injection patterns
+
+#### **Session Management**
+- **Fixed**: Session creation and retrieval for workflow continuity
+- **Enhanced**: Context-aware session scoping by client/engagement
+- **Added**: Automatic session cleanup and state management
+- **Implemented**: Persistent workflow state across page navigation
+
+### 🔍 **Technical Achievements**
+
+#### **Error Resolution**
+- **Eliminated**: Frontend React Query destructuring errors
+- **Fixed**: Backend import errors and method signature mismatches
+- **Resolved**: Status polling infinite loops and failed requests
+- **Corrected**: Data structure misalignments between frontend and backend
+
+#### **Performance Improvements**
+- **Optimized**: Status polling frequency and retry logic
+- **Enhanced**: Background workflow execution without blocking UI
+- **Improved**: Error recovery and graceful degradation
+- **Streamlined**: Data flow from upload to analysis completion
+
+### 🎪 **User Experience Enhancements**
+
+#### **Real-Time Feedback**
+- **Added**: Live analysis progress with step-by-step updates
+- **Implemented**: Visual indicators for workflow phases
+- **Enhanced**: Error messages with actionable guidance
+- **Improved**: Automatic navigation between workflow stages
+
+#### **Workflow Continuity**
+- **Ensured**: Seamless progression from Data Import to Attribute Mapping
+- **Maintained**: Session context across page transitions
+- **Added**: Proper data handoff between workflow phases
+- **Implemented**: Consistent user experience throughout discovery process
+
+### 🎯 **Success Metrics**
+
+#### **Functional Completeness**
+- **CMDB Upload**: Files upload and analyze without errors
+- **Status Polling**: Real-time updates work correctly
+- **Workflow Progression**: Automatic navigation to next phases
+- **Error Handling**: Graceful failure recovery implemented
+
+#### **Technical Stability**
+- **Frontend**: No more React Query destructuring errors
+- **Backend**: Proper workflow state management
+- **Integration**: Seamless frontend-backend communication
+- **Performance**: Efficient polling and background processing
