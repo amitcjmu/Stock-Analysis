@@ -27,36 +27,61 @@ ADMIN_USER_EMAIL = "admin@democorp.com"
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db = Depends(get_db)):
     try:
-        payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
-        )
-        token_data = TokenPayload(**payload)
-        user_id = UUID(token_data.sub)
-        
-        user = await db.get(User, user_id)
-        if user:
-            return user
-
-        # If user not found in DB, create a mock user object based on ID
-        if user_id == ADMIN_USER_ID:
-            mock_user = User(id=ADMIN_USER_ID, email=ADMIN_USER_EMAIL, is_active=True, is_mock=True)
-            mock_user.role = "admin"
-        else: # Default to regular demo user
-            mock_user = User(id=DEMO_USER_ID, email=DEMO_USER_EMAIL, is_active=True, is_mock=True)
-            mock_user.role = "demo"
+        # Handle db-token format (from AuthenticationService)
+        if token.startswith("db-token-"):
+            # Token format: db-token-{uuid}-{random_suffix}
+            # Extract the UUID part (everything between "db-token-" and the last "-")
+            token_without_prefix = token[9:]  # Remove "db-token-"
+            parts = token_without_prefix.split("-")
             
-        # Attach required relationship data to the mock object
-        mock_user.client_accounts = [{"id": str(DEMO_CLIENT_ID), "name": "Democorp"}]
-        mock_user.engagements = [{"id": str(DEMO_ENGAGEMENT_ID), "name": "Cloud Migration 2024"}]
-        return mock_user
+            # The UUID should be the first 5 parts (standard UUID format: 8-4-4-4-12)
+            if len(parts) >= 5:
+                user_id_str = "-".join(parts[:5])  # Reconstruct the UUID
+                try:
+                    user_id = UUID(user_id_str)
+                    
+                    # Find user by ID
+                    user = await db.get(User, user_id)
+                    if user:
+                        # Return user even if not active - let the endpoint handle it
+                        return user
+                except ValueError as e:
+                    pass
+        
+        # Handle JWT token format
+        else:
+            payload = jwt.decode(
+                token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+            )
+            token_data = TokenPayload(**payload)
+            user_id = UUID(token_data.sub)
+            
+            user = await db.get(User, user_id)
+            if user:
+                return user
 
-    except (JWTError, ValidationError, Exception):
-        # Fallback for any error during token processing or DB access
-        mock_user = User(id=DEMO_USER_ID, email=DEMO_USER_EMAIL, is_active=True, is_mock=True)
-        mock_user.role = "demo"
-        mock_user.client_accounts = [{"id": str(DEMO_CLIENT_ID), "name": "Democorp"}]
-        mock_user.engagements = [{"id": str(DEMO_ENGAGEMENT_ID), "name": "Cloud Migration 2024"}]
-        return mock_user
+            # If user not found in DB, create a mock user object based on ID
+            if user_id == ADMIN_USER_ID:
+                mock_user = User(id=ADMIN_USER_ID, email=ADMIN_USER_EMAIL, is_active=True, is_mock=True)
+                mock_user.role = "admin"
+            else: # Default to regular demo user
+                mock_user = User(id=DEMO_USER_ID, email=DEMO_USER_EMAIL, is_active=True, is_mock=True)
+                mock_user.role = "demo"
+                
+            # Attach required relationship data to the mock object
+            mock_user.client_accounts = [{"id": str(DEMO_CLIENT_ID), "name": "Democorp"}]
+            mock_user.engagements = [{"id": str(DEMO_ENGAGEMENT_ID), "name": "Cloud Migration 2024"}]
+            return mock_user
+
+    except (JWTError, ValidationError, Exception) as e:
+        pass
+    
+    # Fallback for any error during token processing or DB access
+    mock_user = User(id=DEMO_USER_ID, email=DEMO_USER_EMAIL, is_active=True, is_mock=True)
+    mock_user.role = "demo"
+    mock_user.client_accounts = [{"id": str(DEMO_CLIENT_ID), "name": "Democorp"}]
+    mock_user.engagements = [{"id": str(DEMO_ENGAGEMENT_ID), "name": "Cloud Migration 2024"}]
+    return mock_user
 
 
 def get_current_active_user(
