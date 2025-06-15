@@ -5,6 +5,7 @@ import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { apiCall } from '@/config/api';
 
 import { CreateEngagementData, ClientAccount } from './types';
 import { EngagementBasicInfo } from './EngagementBasicInfo';
@@ -16,29 +17,25 @@ export const CreateEngagementMain: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { getAuthHeaders } = useAuth();
+  const { user } = useAuth();
+
   // Fetch client accounts with React Query
   const clientAccountsQuery = useQuery<ClientAccount[]>({
     queryKey: ['client-accounts'],
     queryFn: async () => {
       try {
-        const response = await fetch('/api/v1/admin/clients/', {
-          headers: getAuthHeaders()
-        });
-        if (response.ok) {
-          const data = await response.json();
-          if (data.items && Array.isArray(data.items)) {
-            return data.items.map((client: any) => ({
-              id: client.id,
-              account_name: client.account_name,
-              industry: client.industry
-            }));
-          } else {
-            throw new Error('Invalid response format');
-          }
+        const result = await apiCall('/admin/clients/');
+        if (result.items && Array.isArray(result.items)) {
+          return result.items.map((client: any) => ({
+            id: client.id,
+            account_name: client.account_name,
+            industry: client.industry
+          }));
         } else {
-          throw new Error('API request failed');
+          throw new Error('Invalid response format');
         }
       } catch (error) {
+        console.error('Error fetching client accounts:', error);
         // Enhanced fallback to demo data including the real backend client
         return [
           { id: 'd838573d-f461-44e4-81b5-5af510ef83b7', account_name: 'Acme Corporation', industry: 'Technology' },
@@ -57,18 +54,10 @@ export const CreateEngagementMain: React.FC = () => {
   // Server state: useMutation for API interaction
   const createEngagementMutation = useMutation({
     mutationFn: async (submissionData: any) => {
-      const response = await fetch('/api/v1/admin/engagements/', {
+      return await apiCall('/admin/engagements/', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders()
-        },
-        body: JSON.stringify(submissionData)
+        body: submissionData
       });
-      if (!response.ok) {
-        throw new Error('Failed to create engagement');
-      }
-      return response.json();
     },
     // Pass engagement name via context for toast
     onSuccess: (_data, variables) => {
@@ -109,8 +98,6 @@ export const CreateEngagementMain: React.FC = () => {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-
-
 
   // Simple form handler - no useCallback to prevent re-renders
   const handleFormChange = (field: keyof CreateEngagementData, value: any) => {

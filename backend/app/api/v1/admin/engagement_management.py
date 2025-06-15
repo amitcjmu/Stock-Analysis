@@ -3,7 +3,7 @@ Engagement Management API
 Admin endpoints for managing engagements.
 """
 from fastapi import APIRouter, Depends, Query, HTTPException
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 from app.schemas.engagement import Engagement, EngagementSession
 import uuid
@@ -20,12 +20,16 @@ router = APIRouter(tags=["Engagement Management"])
 
 @router.get("/", response_model=PaginatedResponse)
 async def list_engagements(
-    client_account_id: str = Query(...),
+    client_account_id: Optional[str] = Query(None, description="Client account ID to filter by"),
     pagination: AdminPaginationParams = Depends(),
     db: AsyncSession = Depends(get_db),
     admin_user: str = Depends(require_admin_access)
 ):
     """List engagements for a client."""
+    # Use demo client ID if not specified
+    if not client_account_id:
+        client_account_id = "11111111-1111-1111-1111-111111111111"  # Demo client ID
+    
     paginated_result = await EngagementCRUDHandler.list_engagements(
         db=db,
         client_account_id=client_account_id,

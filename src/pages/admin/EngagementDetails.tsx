@@ -1,6 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
+import { apiCall } from '@/config/api';
 import { 
   Calendar, 
   DollarSign, 
@@ -52,17 +53,7 @@ const EngagementDetails: React.FC = () => {
   const { toast } = useToast();
 
   const fetchEngagementDetails = async (id: string): Promise<Engagement> => {
-    const response = await fetch(`/api/v1/admin/engagements/${id}`, {
-      headers: {
-        'X-Demo-Mode': 'true',
-        'X-User-ID': 'demo-admin-user',
-        'Authorization': 'Bearer demo-admin-token'
-      }
-    });
-    if (!response.ok) {
-      throw new Error('Failed to fetch engagement details');
-    }
-    return response.json();
+    return await apiCall(`/admin/engagements/${id}`);
   };
 
   const {

@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-
+import { apiCall } from '@/config/api';
 
 import { EngagementFilters } from './EngagementFilters';
 import { EngagementStats } from './EngagementStats';
@@ -28,20 +28,25 @@ const EngagementManagementMain: React.FC = () => {
   const engagementsQuery = useQuery<Engagement[]>({
     queryKey: ['engagements', searchTerm, filterClient, filterPhase, currentPage],
     queryFn: async () => {
-      // Build query parameters
-      const params = new URLSearchParams();
-      if (searchTerm) params.append('search', searchTerm);
-      if (filterClient !== 'all') params.append('client_id', filterClient);
-      if (filterPhase !== 'all') params.append('phase', filterPhase);
-      params.append('page', currentPage.toString());
-      params.append('limit', '10');
-      const queryString = params.toString();
-      const url = `/api/v1/admin/engagements/${queryString ? `?${queryString}` : ''}`;
       try {
-        const result = await fetch(url);
-        const data = await result.json();
-        return data.items || [];
+        // Build query parameters
+        const params = new URLSearchParams();
+        if (searchTerm) params.append('search', searchTerm);
+        if (filterClient !== 'all') params.append('client_account_id', filterClient);
+        if (filterPhase !== 'all') params.append('phase', filterPhase);
+        params.append('page', currentPage.toString());
+        params.append('limit', '10');
+        
+        // Use demo client ID if no specific client filter
+        if (filterClient === 'all') {
+          params.append('client_account_id', '11111111-1111-1111-1111-111111111111'); // Demo client ID
+        }
+        
+        const queryString = params.toString();
+        const result = await apiCall(`/admin/engagements/?${queryString}`);
+        return result.items || [];
       } catch (error) {
+        console.error('Error fetching engagements:', error);
         // Fallback demo data
         return [];
       }
@@ -56,10 +61,10 @@ const EngagementManagementMain: React.FC = () => {
     queryKey: ['clients'],
     queryFn: async () => {
       try {
-        const result = await fetch('/api/v1/admin/clients/?limit=100');
-        const data = await result.json();
-        return data.items || [];
+        const result = await apiCall('/admin/clients/?limit=100');
+        return result.items || [];
       } catch (error) {
+        console.error('Error fetching clients:', error);
         // Fallback demo data
         return [];
       }
@@ -88,10 +93,6 @@ const EngagementManagementMain: React.FC = () => {
     stakeholder_preferences: {}
   });
 
-
-
-
-
   // Handle form changes
   const handleFormChange = useCallback((field: keyof EngagementFormData, value: any) => {
     setFormData(prev => ({
@@ -119,16 +120,16 @@ const EngagementManagementMain: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`/api/v1/admin/engagements/${engagementId}`, {
+      const result = await apiCall(`/admin/engagements/${engagementId}`, {
         method: 'DELETE'
       });
-      const result = await response.json();
       if (result && result.message) {
         toast({
           title: "Success",
           description: result.message || "Engagement deleted successfully.",
         });
-        // TODO: Use engagementsQuery.refetch() after mutation to refresh data
+        // Refetch engagements after successful deletion
+        engagementsQuery.refetch();
       } else {
         toast({
           title: "Error",
@@ -231,8 +232,6 @@ const EngagementManagementMain: React.FC = () => {
     engagement.client_account_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     engagement.engagement_manager?.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-
 
   return (
     <div className="container mx-auto p-6 space-y-6">

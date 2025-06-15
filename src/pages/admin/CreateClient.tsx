@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import { apiCall } from '@/config/api';
 import { ArrowLeft, Save, AlertCircle, Building2, Mail, MapPin } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -59,20 +60,10 @@ const CreateClient: React.FC = () => {
   // Server state: useMutation for API interaction
   const createClientMutation = useMutation({
     mutationFn: async (payload: CreateClientData) => {
-      const response = await fetch('/api/v1/admin/clients/', {
+      return await apiCall('/admin/clients/', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Demo-Mode': 'true',
-          'X-User-ID': 'demo-admin-user',
-          'Authorization': 'Bearer demo-admin-token'
-        },
-        body: JSON.stringify(payload)
+        body: payload
       });
-      if (!response.ok) {
-        throw new Error('Failed to create client');
-      }
-      return response.json();
     },
     onSuccess: (data) => {
       toast({

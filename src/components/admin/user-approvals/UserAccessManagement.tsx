@@ -120,9 +120,7 @@ export const UserAccessManagement: React.FC = () => {
 
   const loadClients = async () => {
     try {
-      const response = await apiCall('/admin/clients/?page_size=100', {
-        headers: getAuthHeaders()
-      });
+      const response = await apiCall('/admin/clients/?page_size=100');
 
       if (response.items) {
         setClients(response.items.map((client: any) => ({
@@ -149,9 +147,7 @@ export const UserAccessManagement: React.FC = () => {
 
   const loadEngagements = async () => {
     try {
-      const response = await apiCall('/admin/engagements/?page_size=100', {
-        headers: getAuthHeaders()
-      });
+      const response = await apiCall('/admin/engagements/?page_size=100&client_account_id=11111111-1111-1111-1111-111111111111');
 
       if (response.items) {
         setEngagements(response.items.map((engagement: any) => ({
