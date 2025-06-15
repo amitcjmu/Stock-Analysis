@@ -25,10 +25,16 @@ from app.schemas.flow_schemas import DiscoveryFlowState
 # Conditional import for LangChain components
 try:
     import langchain_openai
-    import crewai
     LANGCHAIN_AVAILABLE = True
 except ImportError:
     LANGCHAIN_AVAILABLE = False
+
+# Conditional import for CrewAI
+try:
+    import crewai
+    CREWAI_AVAILABLE = True
+except ImportError:
+    CREWAI_AVAILABLE = False
 
 # Conditional import for LiteLLM
 try:
@@ -61,7 +67,7 @@ class CrewAIFlowService:
         # Initialize service state
         self.db = db
         self.state_service = WorkflowStateService(self.db)
-        self.service_available = LANGCHAIN_AVAILABLE and LITELLM_AVAILABLE
+        self.service_available = LANGCHAIN_AVAILABLE and CREWAI_AVAILABLE and LITELLM_AVAILABLE
         
         # Agent lifecycle management
         self._agents_initialized = False

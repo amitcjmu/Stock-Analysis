@@ -851,6 +851,32 @@ This release resolves critical authentication issues preventing proper user logi
 
 ---
 
+## [0.8.9] - 2025-01-15
+
+### 🎯 **CREWAI SERVICE IMPORT FIX**
+
+This release fixes a critical import error that was causing the agent status endpoint to fail with "CREWAI_AVAILABLE is not defined" error.
+
+### 🚀 **Service Import Management**
+
+#### **CrewAI Import Fix**
+- **Import Separation**: Separated CrewAI imports from LangChain imports to prevent dependency conflicts
+- **Availability Flags**: Added proper `CREWAI_AVAILABLE` flag alongside existing `LANGCHAIN_AVAILABLE` and `LITELLM_AVAILABLE` flags
+- **Service Availability**: Updated service availability check to include all three required components
+- **Error Prevention**: Fixed undefined variable error that was causing 500 Internal Server Error on agent status endpoint
+
+### 📊 **Technical Achievements**
+- **Import Safety**: Enhanced conditional import pattern for better dependency management
+- **Service Reliability**: Improved service initialization with proper availability checks
+- **Error Handling**: Fixed runtime errors in agent status monitoring
+
+### 🎯 **Success Metrics**
+- **Agent Status Endpoint**: ✅ Now returns 200 OK instead of 500 Internal Server Error
+- **Service Initialization**: ✅ CrewAI service initializes properly with all dependencies
+- **Import Management**: ✅ Conditional imports work correctly for all optional dependencies
+
+---
+
 ## [0.8.8] - 2025-01-15
 
 ### 🎯 **AUTHENTICATION & AGENT PROCESSING FIXES**
