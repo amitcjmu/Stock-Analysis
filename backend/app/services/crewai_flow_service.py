@@ -24,15 +24,15 @@ from app.schemas.flow_schemas import DiscoveryFlowState
 
 # Conditional import for LangChain components
 try:
-    from langchain_openai import ChatOpenAI
-    from crewai import Agent
+    import langchain_openai
+    import crewai
     LANGCHAIN_AVAILABLE = True
 except ImportError:
     LANGCHAIN_AVAILABLE = False
 
 # Conditional import for LiteLLM
 try:
-    from litellm import completion as litellm_completion
+    import litellm
     LITELLM_AVAILABLE = True
 except ImportError:
     LITELLM_AVAILABLE = False
@@ -57,7 +57,7 @@ class CrewAIFlowService:
         self.llm = None
         if self.service_available:
             # Configure LLM for DeepInfra
-            self.llm = ChatOpenAI(
+            self.llm = langchain_openai.ChatOpenAI(
                 api_key=os.getenv("DEEPINFRA_API_KEY"),
                 base_url="https://api.deepinfra.com/v1/openai/chat/completions",
                 model_name="meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
@@ -89,8 +89,8 @@ class CrewAIFlowService:
         logger.info(f"Created {len(agents)} specialized agents.")
         return agents
 
-    def _create_agent(self, role: str, goal: str) -> Agent:
-        return Agent(
+    def _create_agent(self, role: str, goal: str) -> 'crewai.Agent':
+        return crewai.Agent(
             role=role,
             goal=goal,
             backstory="An expert in cloud migration planning.",
@@ -324,7 +324,7 @@ class CrewAIFlowService:
 
         try:
             # Use LiteLLM's completion for provider-agnostic calls
-            response = await litellm_completion(
+            response = await litellm.completion(
                 model="openai/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
                 messages=[{"role": "user", "content": prompt}],
                 api_key=os.getenv("DEEPINFRA_API_KEY"),
