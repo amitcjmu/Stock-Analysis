@@ -6,39 +6,18 @@ Helper functions for asset processing and analysis.
 import logging
 from typing import Dict, List, Any, Optional
 
-from app.services.crewai_flow_service import crewai_flow_service
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
 
 def standardize_asset_type(asset_type: str, asset_name: str = "", asset_data: Dict[str, Any] = None) -> str:
-    """Standardize asset type names using agentic intelligence and comprehensive pattern matching."""
+    """Standardize asset type names using comprehensive pattern matching."""
     if not asset_type and not asset_name:
         return "Unknown"
     
     # Combine type and name for better detection
     combined_text = f"{asset_type or ''} {asset_name or ''}".lower()
-    
-    # Use agentic intelligence if available
-    try:
-        if asset_data and crewai_flow_service.agents:
-            # Create minimal analysis data for asset type detection
-            analysis_data = {
-                "asset_name": asset_name,
-                "asset_type": asset_type,
-                "combined_context": combined_text,
-                "tech_stack": asset_data.get("tech_stack", ""),
-                "operating_system": asset_data.get("os", ""),
-                "has_cpu": bool(asset_data.get("cpu_cores")),
-                "has_memory": bool(asset_data.get("memory_gb")),
-                "has_ip": bool(asset_data.get("ip_address"))
-            }
-            
-            # Quick agentic asset type detection
-            # This could be enhanced with a specific agent call if needed
-    except Exception:
-        pass  # Fall back to rule-based detection
     
     # Enhanced rule-based detection with device classification
     

@@ -7,9 +7,9 @@ import logging
 from typing import Dict, List, Any, Optional
 from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.services.asset_processing_service import asset_processing_service
-from app.services.crewai_flow_service import crewai_flow_service
+from sqlalchemy.orm import Session
+from app.api.v1.dependencies import get_crewai_flow_service
+from app.services.crewai_flow_service import CrewAIFlowService
 from app.schemas.asset_schemas import AssetCreate, AssetUpdate, AssetResponse, PaginatedAssetResponse
 from app.core.context import get_user_id, get_current_context, RequestContext
 from app.repositories.asset_repository import AssetRepository
@@ -47,16 +47,6 @@ class AssetFeedbackRequest(BaseModel):
     corrections: Optional[Dict[str, Any]] = None
     user_context: Optional[str] = None
 
-# Dependency to get CrewAI service
-async def get_crewai_service():
-    """Get the CrewAI service instance."""
-    try:
-        from app.services.crewai_service_modular import crewai_service
-        return crewai_service
-    except ImportError as e:
-        logger.error(f"CrewAI service not available: {e}")
-        raise HTTPException(status_code=503, detail="AI services temporarily unavailable")
-
 # Dependency to get asset data
 async def get_asset_data(asset_ids: Optional[List[str]] = None, 
                         filters: Optional[Dict[str, Any]] = None):
@@ -91,26 +81,22 @@ async def get_asset_data(asset_ids: Optional[List[str]] = None,
         return []
 
 @router.get("/health")
-async def asset_inventory_health():
+async def asset_inventory_health(service: CrewAIFlowService = Depends(get_crewai_flow_service)):
     """Health check for enhanced asset inventory management."""
     try:
-        crewai_service = await get_crewai_service()
+        health_status = service.get_service_status()
         return {
             "status": "healthy",
             "service": "enhanced-asset-inventory",
             "version": "2.0.0",
-            "agentic_intelligence": {
-                "available": crewai_service.is_available(),
-                "asset_intelligence_agent": "asset_intelligence" in (crewai_service.agents or {}),
-                "field_mapping_intelligence": hasattr(crewai_service, 'field_mapping_tool'),
-                "learning_system": hasattr(crewai_service, 'memory')
-            }
+            "agentic_intelligence": health_status
         }
-    except HTTPException:
+    except Exception as e:
         return {
             "status": "degraded",
             "service": "enhanced-asset-inventory", 
             "version": "2.0.0",
+            "error": str(e),
             "agentic_intelligence": {
                 "available": False,
                 "fallback_mode": True
@@ -120,7 +106,7 @@ async def asset_inventory_health():
 @router.post("/analyze")
 async def analyze_assets_intelligently(
     request: AssetAnalysisRequest,
-    crewai_service = Depends(get_crewai_service)
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
 ):
     """
     Use Asset Intelligence Agent to analyze asset patterns, quality issues, and provide recommendations.
@@ -158,18 +144,21 @@ async def analyze_assets_intelligently(
         }
         
         # Use Asset Intelligence Agent for analysis
-        analysis_result = await crewai_service.analyze_asset_inventory(inventory_data)
+        analysis_result = await service.call_ai_agent(
+            prompt=f"Analyze the following assets: {inventory_data}"
+        )
         
         # Enhance result with metadata
-        analysis_result.update({
+        result_data = {
+            "analysis": analysis_result,
             "request_operation": request.operation,
             "assets_analyzed": len(assets),
             "total_assets_available": len(assets),
             "agentic_analysis": True
-        })
+        }
         
         logger.info(f"Asset intelligence analysis completed successfully for {len(assets)} assets")
-        return analysis_result
+        return result_data
         
     except HTTPException:
         raise
@@ -180,7 +169,7 @@ async def analyze_assets_intelligently(
 @router.post("/bulk-update-plan")
 async def plan_bulk_update(
     request: BulkUpdatePlanRequest,
-    crewai_service = Depends(get_crewai_service)
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
 ):
     """
     Use Asset Intelligence Agent to plan optimal bulk update strategy.
@@ -218,10 +207,13 @@ async def plan_bulk_update(
         }
         
         # Use Asset Intelligence Agent for planning
-        planning_result = await crewai_service.plan_asset_bulk_operation(operation_data)
+        planning_result = await service.call_ai_agent(
+            prompt=f"Plan a bulk update with the following data: {operation_data}"
+        )
         
         # Enhance result with validation details
-        planning_result.update({
+        result_data = {
+            "plan": planning_result,
             "request_summary": {
                 "total_requested": len(request.asset_ids),
                 "valid_assets": len(existing_asset_ids),
@@ -229,10 +221,10 @@ async def plan_bulk_update(
                 "validation_level": request.validation_level
             },
             "agentic_planning": True
-        })
+        }
         
         logger.info(f"Bulk update plan completed for {len(existing_asset_ids)} assets")
-        return planning_result
+        return result_data
         
     except HTTPException:
         raise
@@ -243,7 +235,7 @@ async def plan_bulk_update(
 @router.post("/auto-classify")
 async def auto_classify_assets(
     request: AssetClassificationRequest,
-    crewai_service = Depends(get_crewai_service)
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
 ):
     """
     Use Asset Intelligence Agent to automatically classify assets based on learned patterns.
@@ -282,21 +274,23 @@ async def auto_classify_assets(
         }
         
         # Use Asset Intelligence Agent for classification
-        classification_result = await crewai_service.classify_assets(classification_data)
-        
-        # Enhance result with metadata
-        classification_result.update({
-            "request_summary": {
-                "assets_processed": len(assets),
-                "confidence_threshold": request.confidence_threshold,
-                "use_learned_patterns": request.use_learned_patterns
-            },
-            "agentic_classification": True
-        })
-        
-        logger.info(f"Asset classification completed for {len(assets)} assets")
-        return classification_result
-        
+        classification_result = await service.call_ai_agent(
+            prompt=f"Classify the following assets: {classification_data}"
+        )
+
+        result_data = {
+            "classification_results": classification_result,
+            "assets_processed": len(assets),
+            "agentic_classification": True,
+            "parameters": {
+                "use_learned_patterns": request.use_learned_patterns,
+                "confidence_threshold": request.confidence_threshold
+            }
+        }
+
+        logger.info(f"Auto-classification completed for {len(assets)} assets")
+        return result_data
+
     except HTTPException:
         raise
     except Exception as e:
@@ -306,10 +300,10 @@ async def auto_classify_assets(
 @router.post("/feedback")
 async def process_asset_feedback(
     request: AssetFeedbackRequest,
-    crewai_service = Depends(get_crewai_service)
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
 ):
     """
-    Process user feedback from asset management operations to improve AI intelligence.
+    Process user feedback to improve the Asset Intelligence Agent's performance.
     
     This endpoint enables continuous learning:
     - Field mapping learning from user corrections
@@ -334,19 +328,17 @@ async def process_asset_feedback(
             }
         }
         
-        # Use Learning Agent to process feedback
-        learning_result = await crewai_service.process_asset_feedback(feedback_data)
+        # Send feedback to the agent learning system
+        learning_response = await service.call_ai_agent(
+            prompt=f"Learn from this user feedback: {feedback_data}"
+        )
         
-        # Enhance result with processing metadata
-        learning_result.update({
-            "feedback_processed": True,
-            "operation_type": request.operation_type,
-            "learning_applied": True,
-            "continuous_improvement": "System intelligence enhanced based on feedback"
-        })
-        
-        logger.info(f"Asset feedback processed successfully for operation: {request.operation_type}")
-        return learning_result
+        return {
+            "status": "success",
+            "message": "Feedback received and processed for agent learning.",
+            "learning_response": learning_response,
+            "agentic_feedback_loop": True
+        }
         
     except HTTPException:
         raise
@@ -356,68 +348,29 @@ async def process_asset_feedback(
 
 @router.get("/intelligence-status")
 async def get_asset_intelligence_status(
-    crewai_service = Depends(get_crewai_service)
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
 ):
     """
-    Get status of asset intelligence capabilities and learned patterns.
-    
-    Provides insight into:
-    - Available AI agents and their capabilities
-    - Learned field mapping patterns
-    - System learning metrics
-    - Intelligence enhancement opportunities
+    Get the current status and health of the Asset Intelligence Agent and its subsystems.
     """
     try:
-        # Get comprehensive intelligence status
-        intelligence_status = {
-            "agentic_framework": {
-                "available": crewai_service.is_available(),
-                "asset_intelligence_agent": "asset_intelligence" in (crewai_service.agents or {}),
-                "learning_agent": "learning_agent" in (crewai_service.agents or {}),
-                "pattern_agent": "pattern_agent" in (crewai_service.agents or {}),
-                "total_agents": len(crewai_service.agents or {})
-            },
-            "field_mapping_intelligence": {},
-            "learning_metrics": {},
-            "capabilities": {
-                "intelligent_analysis": True,
-                "bulk_operation_planning": True,
-                "auto_classification": True,
-                "continuous_learning": True,
-                "pattern_recognition": True
-            }
+        health_status = service.get_health_status()
+        
+        # Extract relevant info for asset intelligence
+        asset_agent_status = {
+            "agent_available": "asset_classifier" in health_status.get("agents", {}),
+            "llm_configured": health_status.get("llm_configured", False),
+            "service_available": health_status.get("service_available", False)
         }
-        
-        # Get field mapping intelligence status
-        if hasattr(crewai_service, 'field_mapping_tool') and crewai_service.field_mapping_tool:
-            try:
-                field_context = crewai_service.field_mapping_tool.get_mapping_context()
-                intelligence_status["field_mapping_intelligence"] = {
-                    "available": True,
-                    "learned_mappings": field_context.get("learned_mappings", {}),
-                    "mapping_statistics": field_context.get("mapping_statistics", {}),
-                    "total_variations_learned": field_context.get("total_variations_learned", 0)
-                }
-            except Exception as e:
-                logger.warning(f"Failed to get field mapping context: {e}")
-                intelligence_status["field_mapping_intelligence"] = {"available": False, "error": str(e)}
-        
-        # Get learning metrics
-        if hasattr(crewai_service, 'memory') and crewai_service.memory:
-            try:
-                learning_metrics = crewai_service.memory.get_learning_metrics()
-                intelligence_status["learning_metrics"] = learning_metrics
-            except Exception as e:
-                logger.warning(f"Failed to get learning metrics: {e}")
-                intelligence_status["learning_metrics"] = {"error": str(e)}
-        
-        return intelligence_status
-        
-    except HTTPException:
-        raise
+
+        return {
+            "status": "success",
+            "asset_intelligence_status": asset_agent_status,
+            "full_service_health": health_status
+        }
     except Exception as e:
-        logger.error(f"Failed to get intelligence status: {e}")
-        raise HTTPException(status_code=500, detail=f"Intelligence status failed: {str(e)}")
+        logger.error(f"Failed to get asset intelligence status: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get asset intelligence status")
 
 @router.get("/")
 async def list_assets(
@@ -433,7 +386,7 @@ async def list_assets(
 @router.get("/{asset_id}", response_model=AssetResponse)
 async def get_asset(
     asset_id: str,
-    db: AsyncSession = Depends(get_db),
+    db: Session = Depends(get_db),
     context: RequestContext = Depends(get_current_context)
 ):
     repo = AssetRepository(db, context.client_account_id)
@@ -445,7 +398,7 @@ async def get_asset(
 @router.post("/", response_model=AssetResponse, status_code=201)
 async def create_asset(
     asset: AssetCreate,
-    db: AsyncSession = Depends(get_db),
+    db: Session = Depends(get_db),
     context: RequestContext = Depends(get_current_context),
     user_id: str = Depends(get_user_id)
 ):
@@ -457,7 +410,7 @@ async def create_asset(
 async def list_assets_paginated_fallback(
     page: int = 1,
     page_size: int = 50,
-    db: Optional[AsyncSession] = Depends(get_db),
+    db: Optional[Session] = Depends(get_db),
     context: RequestContext = Depends(get_current_context)
 ):
     """Lightweight fallback that returns an empty asset list when DB or context unavailable."""
@@ -505,7 +458,7 @@ async def list_assets_paginated_fallback(
 
 @router.get("/list/paginated", response_model=PaginatedAssetResponse)
 async def list_assets_paginated(
-    db: AsyncSession = Depends(get_db),
+    db: Session = Depends(get_db),
     context: RequestContext = Depends(get_current_context),
     page: int = 1,
     page_size: int = 20
@@ -517,7 +470,7 @@ async def list_assets_paginated(
 async def update_asset(
     asset_id: str,
     asset: AssetUpdate,
-    db: AsyncSession = Depends(get_db),
+    db: Session = Depends(get_db),
     context: RequestContext = Depends(get_current_context)
 ):
     repo = AssetRepository(db, context.client_account_id)
@@ -529,7 +482,7 @@ async def update_asset(
 @router.delete("/{asset_id}", status_code=204)
 async def delete_asset(
     asset_id: str,
-    db: AsyncSession = Depends(get_db),
+    db: Session = Depends(get_db),
     context: RequestContext = Depends(get_current_context)
 ):
     repo = AssetRepository(db, context.client_account_id)
@@ -541,7 +494,7 @@ async def delete_asset(
 @router.post("/bulk-create", response_model=Dict[str, Any])
 async def bulk_create_assets(
     assets: List[AssetCreate],
-    db: AsyncSession = Depends(get_db),
+    db: Session = Depends(get_db),
     context: RequestContext = Depends(get_current_context),
     user_id: str = Depends(get_user_id)
 ):
@@ -551,7 +504,7 @@ async def bulk_create_assets(
 
 @router.get("/analysis/overview", response_model=Dict[str, Any])
 async def get_asset_overview(
-    db: AsyncSession = Depends(get_db),
+    db: Session = Depends(get_db),
     context: RequestContext = Depends(get_current_context)
 ):
     repo = AssetRepository(db, context.client_account_id)
@@ -559,7 +512,7 @@ async def get_asset_overview(
 
 @router.get("/analysis/by-type", response_model=Dict[str, int])
 async def get_assets_by_type(
-    db: AsyncSession = Depends(get_db),
+    db: Session = Depends(get_db),
     context: RequestContext = Depends(get_current_context)
 ):
     repo = AssetRepository(db, context.client_account_id)
@@ -567,7 +520,7 @@ async def get_assets_by_type(
 
 @router.get("/analysis/by-status", response_model=Dict[str, int])
 async def get_assets_by_status(
-    db: AsyncSession = Depends(get_db),
+    db: Session = Depends(get_db),
     context: RequestContext = Depends(get_current_context)
 ):
     repo = AssetRepository(db, context.client_account_id)

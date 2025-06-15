@@ -4,13 +4,23 @@ Enhanced endpoints for modular CrewAI Flow Service with parallel execution and s
 """
 
 import logging
-from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel, Field
-from typing import Dict, List, Any, Optional
 from datetime import datetime
+from typing import Dict, List, Any, Optional
 
-# Import the modular service
-from app.services.crewai_flow_service import crewai_flow_service
+from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi.encoders import jsonable_encoder
+from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
+
+# Core imports
+from app.core.config import settings
+from app.core.context import RequestContext, get_current_context
+from app.core.database import get_db
+
+# Service imports
+from app.services.crewai_flow_service import CrewAIFlowService
+from app.services.workflow_state_service import WorkflowStateService
+from app.api.v1.dependencies import get_crewai_flow_service
 
 logger = logging.getLogger(__name__)
 
@@ -39,28 +49,100 @@ class FlowStatusResponse(BaseModel):
 from fastapi import Request
 
 @router.get("/agent/crew/analysis/status")
-async def get_agent_crew_analysis_status(session_id: str, request: Request):
+async def get_agent_crew_analysis_status(
+    session_id: str,
+    service: CrewAIFlowService = Depends(get_crewai_flow_service),
+    context: RequestContext = Depends(get_current_context)
+):
     """
-    Alias endpoint for agentic analysis status polling via session_id.
-    Returns flow status for the given session.
+    Get the status of an agentic analysis workflow by session ID.
+    
+    This endpoint provides real-time status updates for discovery workflows,
+    including progress, current phase, and any results or errors.
+    
+    Args:
+        session_id: The unique identifier for the workflow session
+        service: The CrewAIFlowService instance (injected)
+        context: Request context with tenant/user info (injected)
+        
+    Returns:
+        JSON with workflow status and details
     """
     try:
-        flow_state = crewai_flow_service.get_flow_state_by_session(session_id)
+        # Ensure we have a valid session ID
+        if not session_id:
+            raise HTTPException(
+                status_code=400,
+                detail="session_id parameter is required"
+            )
+            
+        # Ensure we have a valid context
+        if not context or not hasattr(context, 'client_account_id') or not hasattr(context, 'engagement_id'):
+            logger.error(f"Invalid or incomplete context: {context}")
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid request context. Please ensure you're authenticated and have selected a client/engagement."
+            )
+        
+        # Get the workflow state with proper tenant isolation using the injected service
+        flow_state = service.get_flow_state_by_session(
+            session_id=session_id,
+            context=context
+        )
+        
         if not flow_state:
-            raise HTTPException(status_code=404, detail=f"No active analysis found for session_id {session_id}")
-        # Compose a minimal status response compatible with frontend expectations
-        return {
+            logger.warning(
+                f"No active analysis found for session_id {session_id} "
+                f"(client: {context.client_account_id}, engagement: {context.engagement_id})"
+            )
+            raise HTTPException(
+                status_code=404, 
+                detail="No active analysis found for the given session"
+            )
+            
+        # Format the response with detailed status information
+        response = {
             "status": "success",
+            "session_id": session_id,
+            "client_account_id": context.client_account_id,
+            "engagement_id": context.engagement_id,
             "flow_status": flow_state.dict() if hasattr(flow_state, 'dict') else flow_state,
+            "current_phase": getattr(flow_state, 'current_phase', 'unknown'),
+            "status": getattr(flow_state, 'status', 'unknown'),
+            "timestamp": datetime.utcnow().isoformat(),
+            "metadata": {
+                "service_version": "1.0.0",
+                "context_valid": bool(context and hasattr(context, 'client_account_id'))
+            }
         }
+        
+        logger.debug(f"Returning status for session {session_id}: {response['flow_status'].get('status')}")
+        return response
+        
     except HTTPException:
-        raise
+        logger.warning(
+            f"HTTP error in get_agent_crew_analysis_status for session {session_id}",
+            exc_info=True
+        )
+        raise  # Re-raise HTTP exceptions as-is
+        
     except Exception as e:
-        logger.error(f"Failed to get agent crew analysis status: {e}")
-        raise HTTPException(status_code=500, detail=f"Status check failed: {str(e)}")
+        error_detail = f"Status check failed: {str(e)}"
+        logger.error(
+            f"Failed to get agent crew analysis status for session {session_id}: {error_detail}",
+            exc_info=True
+        )
+        raise HTTPException(
+            status_code=500,
+            detail=error_detail,
+            headers={"X-Error-Detail": "An unexpected error occurred while checking analysis status"}
+        )
 
 @router.post("/run")
-async def run_discovery_flow(request: DiscoveryFlowRequest):
+async def run_discovery_flow(
+    request: DiscoveryFlowRequest,
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
+):
     """
     Execute complete Discovery phase workflow with enhanced parallel processing.
     
@@ -87,8 +169,8 @@ async def run_discovery_flow(request: DiscoveryFlowRequest):
             "options": request.options
         }
         
-        # Execute discovery flow
-        result = await crewai_flow_service.run_discovery_flow(cmdb_data)
+        # Execute discovery flow via the injected service
+        result = await service.run_discovery_flow(cmdb_data)
         
         return {
             "status": "success",
@@ -113,7 +195,7 @@ async def run_discovery_flow(request: DiscoveryFlowRequest):
         raise HTTPException(status_code=500, detail=f"Execution failed: {str(e)}")
 
 @router.get("/health")
-async def get_flow_service_health():
+async def get_flow_service_health(service: CrewAIFlowService = Depends(get_crewai_flow_service)):
     """
     Get comprehensive health status of the Discovery Flow Service.
     
@@ -124,7 +206,7 @@ async def get_flow_service_health():
     - Performance capabilities
     """
     try:
-        health_status = crewai_flow_service.get_health_status()
+        health_status = service.get_health_status()
         
         return {
             "status": "healthy",
@@ -152,7 +234,7 @@ async def get_flow_service_health():
         }
 
 @router.get("/status/{flow_id}")
-async def get_flow_status(flow_id: str):
+async def get_flow_status(flow_id: str, service: CrewAIFlowService = Depends(get_crewai_flow_service)):
     """
     Get detailed status of a specific Discovery flow.
     
@@ -163,7 +245,7 @@ async def get_flow_status(flow_id: str):
     - Results (if completed)
     """
     try:
-        status = crewai_flow_service.get_flow_status(flow_id)
+        status = service.get_flow_status(flow_id)
         
         if status.get("status") == "not_found":
             raise HTTPException(status_code=404, detail=f"Flow {flow_id} not found")
@@ -180,30 +262,25 @@ async def get_flow_status(flow_id: str):
         raise HTTPException(status_code=500, detail=f"Status check failed: {str(e)}")
 
 @router.get("/active")
-async def get_active_flows():
+async def get_active_flows(
+    service: CrewAIFlowService = Depends(get_crewai_flow_service),
+    context: RequestContext = Depends(get_current_context)
+):
     """
-    Get summary of all currently active Discovery flows.
-    
-    **Returns:**
-    - Total active flows count
-    - Flows grouped by current phase
-    - Individual flow summaries with progress
+    Get a list of all active Discovery flows for the current engagement.
     """
     try:
-        active_flows = crewai_flow_service.get_active_flows()
-        
+        active_flows = service.get_all_active_flows(context=context)
         return {
             "status": "success",
-            "active_flows": active_flows,
-            "timestamp": datetime.now().isoformat()
+            "active_flows": active_flows
         }
-        
     except Exception as e:
         logger.error(f"Failed to get active flows: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve active flows: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve active flows")
 
 @router.get("/metrics")
-async def get_performance_metrics():
+async def get_performance_metrics(service: CrewAIFlowService = Depends(get_crewai_flow_service)):
     """
     Get comprehensive performance metrics for the Discovery Flow Service.
     
@@ -212,9 +289,10 @@ async def get_performance_metrics():
     - Flow completion rates and timing
     - Handler-specific metrics
     - Resource utilization data
+    - Average processing time per record
     """
     try:
-        metrics = crewai_flow_service.get_performance_metrics()
+        metrics = service.get_performance_metrics()
         
         return {
             "status": "success",
@@ -228,7 +306,10 @@ async def get_performance_metrics():
 
 # Individual Component Endpoints for Testing/Debugging
 @router.post("/validate-data")
-async def validate_data_only(request: DiscoveryFlowRequest):
+async def validate_data_only(
+    request: DiscoveryFlowRequest,
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
+):
     """
     Execute only data validation phase for testing purposes.
     
@@ -241,20 +322,19 @@ async def validate_data_only(request: DiscoveryFlowRequest):
         cmdb_data = {
             "headers": request.headers,
             "sample_data": request.sample_data,
-            "filename": request.filename
+            "filename": request.filename,
+            "options": request.options
         }
         
-        # Use validation handler directly
-        validation_handler = crewai_flow_service.validation_handler
-        validation_handler.validate_input_data(cmdb_data)
-        quality_metrics = validation_handler.assess_data_quality(cmdb_data)
+        # Execute validation flow via the injected service
+        result = await service.run_validation_flow(cmdb_data)
         
         return {
             "status": "success",
             "validation_result": {
                 "input_validation": "passed",
-                "data_quality_metrics": quality_metrics,
-                "ready_for_full_flow": quality_metrics.get("overall_quality_score", 0) > 5.0
+                "data_quality_metrics": result,
+                "ready_for_full_flow": result.get("overall_quality_score", 0) > 5.0
             }
         }
         
@@ -267,7 +347,7 @@ async def validate_data_only(request: DiscoveryFlowRequest):
         raise HTTPException(status_code=500, detail=f"Validation error: {str(e)}")
 
 @router.post("/cleanup")
-async def cleanup_resources():
+async def cleanup_resources(service: CrewAIFlowService = Depends(get_crewai_flow_service)):
     """
     Clean up expired flows and free resources.
     
@@ -277,12 +357,12 @@ async def cleanup_resources():
     - Debugging memory issues
     """
     try:
-        cleaned_count = crewai_flow_service.cleanup_resources()
+        cleanup_result = service.cleanup_resources()
         
         return {
             "status": "success",
-            "message": f"Cleanup completed: {cleaned_count} flows cleaned",
-            "cleaned_flows": cleaned_count,
+            "message": f"Cleanup completed: {cleanup_result['cleaned_flows']} flows cleaned",
+            "details": cleanup_result,
             "timestamp": datetime.now().isoformat()
         }
         
@@ -292,7 +372,7 @@ async def cleanup_resources():
 
 # Configuration and Debugging Endpoints
 @router.get("/config")
-async def get_service_configuration():
+async def get_service_configuration(service: CrewAIFlowService = Depends(get_crewai_flow_service)):
     """
     Get current service configuration and settings.
     
@@ -301,13 +381,14 @@ async def get_service_configuration():
     - Retry settings
     - LLM parameters
     - Handler configurations
+    - Feature flags and enabled capabilities
     """
     try:
-        config_summary = crewai_flow_service.config.get_summary()
+        config = service.get_configuration()
         
         return {
             "status": "success",
-            "configuration": config_summary,
+            "configuration": config,
             "service_version": "2.0.0",
             "modular_architecture": True
         }
@@ -317,7 +398,7 @@ async def get_service_configuration():
         raise HTTPException(status_code=500, detail=f"Configuration error: {str(e)}")
 
 @router.get("/capabilities")
-async def get_service_capabilities():
+async def get_service_capabilities(service: CrewAIFlowService = Depends(get_crewai_flow_service)):
     """
     Get detailed service capabilities and feature availability.
     
@@ -328,47 +409,39 @@ async def get_service_capabilities():
     - Performance optimizations
     """
     try:
-        health = crewai_flow_service.get_health_status()
-        
-        capabilities = {
-            "discovery_workflow": {
-                "parallel_execution": True,
-                "retry_logic": True,
-                "enhanced_parsing": True,
-                "input_validation": True,
-                "state_management": True
-            },
-            "ai_capabilities": {
-                "llm_available": health["components"]["llm_available"],
-                "agents_available": health["components"]["agents_created"],
-                "intelligent_field_mapping": True,
-                "asset_classification": True,
-                "data_validation": True
-            },
-            "performance_features": {
-                "async_execution": True,
-                "parallel_processing": True,
-                "configurable_timeouts": True,
-                "automatic_fallbacks": True,
-                "memory_management": True
-            },
-            "integration_features": {
-                "modular_architecture": True,
-                "rest_api": True,
-                "structured_responses": True,
-                "comprehensive_logging": True
-            }
-        }
+        capabilities = service.get_service_status()
         
         return {
             "status": "success",
             "capabilities": capabilities,
-            "service_details": health
+            "service_details": service.get_health_status()
         }
         
     except Exception as e:
         logger.error(f"Capabilities check failed: {e}")
         raise HTTPException(status_code=500, detail=f"Capabilities error: {str(e)}")
+
+# Add a generic analysis endpoint to start the workflow.
+# This endpoint is more aligned with what the frontend expects.
+# Alias to /api/v1/discovery/agent/analysis
+@router.post("/agent/analysis")
+async def agent_analysis(
+    data: Dict[str, Any],
+    service: CrewAIFlowService = Depends(get_crewai_flow_service),
+    context: RequestContext = Depends(get_current_context)
+):
+    """
+    Main endpoint to initiate a data source analysis workflow.
+    """
+    try:
+        result = await service.initiate_data_source_analysis(
+            data_source=data.get("data_source", {}),
+            context=context
+        )
+        return {"status": "success", "data": result}
+    except Exception as e:
+        logger.error(f"Agent analysis initiation failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Export router
 __all__ = ["router"] 

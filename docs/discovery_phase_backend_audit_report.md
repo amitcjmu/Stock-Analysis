@@ -34,7 +34,6 @@ This report provides a deep audit of the backend Python codebase for the Discove
 
 | File/Endpoint | Description | Blocker? | Reason & Risk |
 |--------------|-------------|----------|--------------|
-| `api/v1/discovery/cmdb_analysis.py` (`/analyze-cmdb`, `/process-cmdb`, `/cmdb-feedback`, etc.) | CMDB data analysis, validation, and feedback via `CMDBDataProcessor` and internal handlers | YES | Bypasses CrewAI flow service and agentic learning; risk of static mapping, legacy logic, and context leakage |
 | `api/v1/discovery/asset_management_modular.py` (`/assets`, `/reprocess`, `/validate-data`, `/legacy/summary`, etc.) | Asset CRUD, processing, validation, and legacy endpoints via direct handlers | YES | Not routed through CrewAI flow service; risk of stale data, static logic, and agent learning bypass |
 | `api/v1/discovery/feedback_fallback.py` (`/feedback/fallback`, `/feedback/fallback/status`) | In-memory fallback feedback system | YES | Feedback not integrated with CrewAI agent memory; lost on restart; not agentic |
 | `api/v1/discovery/feedback_system.py` (`/feedback`, `/feedback/stats`) | Feedback system with LLM analysis | YES | Feedback/insights not routed to CrewAI agent learning; possible context issues |

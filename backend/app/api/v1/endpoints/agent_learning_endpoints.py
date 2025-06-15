@@ -9,7 +9,8 @@ import logging
 
 from app.services.agent_learning_system import agent_learning_system, LearningContext
 # from app.services.client_context_manager import client_context_manager
-from app.services.crewai_flow_service import crewai_flow_service
+from app.api.v1.dependencies import get_crewai_flow_service
+from app.services.crewai_flow_service import CrewAIFlowService
 
 logger = logging.getLogger(__name__)
 
@@ -321,130 +322,115 @@ async def set_cross_page_context(
 
 @router.get("/context/cross-page/get")
 async def get_cross_page_context(
-    key: str
+    key: str,
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
 ):
     # This functionality is now part of the UIInteractionHandler within the flow service
-    # context = crewai_flow_service.ui_interaction_handler.context_handler.get_cross_page_context(key)
-    return {"status": "success", "key": key, "value": "deprecated"}
+    # context = service.ui_interaction_handler.context_handler.get_cross_page_context(key)
+    return {"status": "deprecated", "message": "Functionality moved to flow-based service."}
 
 @router.get("/context/cross-page/metadata")
 async def get_context_metadata(
-    key: str
+    key: str,
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
 ):
     # This functionality is now part of the UIInteractionHandler within the flow service
-    # metadata = crewai_flow_service.ui_interaction_handler.context_handler.get_context_metadata(key)
-    return {"status": "success", "key": key, "metadata": "deprecated"}
+    # metadata = service.ui_interaction_handler.context_handler.get_context_metadata(key)
+    return {"status": "deprecated", "message": "Functionality moved to flow-based service."}
 
 @router.delete("/context/cross-page/clear")
 async def clear_cross_page_context(
-    key: str
+    key: str,
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
 ):
     # This functionality is now part of the UIInteractionHandler within the flow service
-    # crewai_flow_service.ui_interaction_handler.context_handler.clear_cross_page_context(key)
-    return {"status": "success", "message": f"Context for key '{key}' cleared (deprecated)"}
+    # service.ui_interaction_handler.context_handler.clear_cross_page_context(key)
+    return {"status": "deprecated", "message": "Functionality moved to flow-based service."}
 
 @router.post("/coordination/agent-state/update")
 async def update_agent_state(
-    state_update: Dict[str, Any]
+    state_update: Dict[str, Any],
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
 ):
     # This functionality is now managed within individual agent flows.
-    # crewai_flow_service.update_agent_state(state_update)
-    agent_id = state_update.get("agent_id")
-    state_data = state_update.get("state_data")
-    page = state_update.get("page", "unknown")
-    
-    # This functionality is now managed within individual agent flows.
-    # crewai_flow_service.update_agent_state(agent_id, state_data, page)
-    
-    return {"status": "success", "message": f"Agent {agent_id} state updated (deprecated)"}
+    # service.update_agent_state(state_update)
+    return {"status": "deprecated", "message": "Functionality moved to flow-based service."}
 
 @router.get("/coordination/agent-state/get")
 async def get_agent_state(
-    agent_id: str
+    agent_id: str,
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
 ):
     # This functionality is now managed within individual agent flows.
-    # state = crewai_flow_service.get_agent_state(agent_id)
-    return {"status": "success", "agent_id": agent_id, "state": "deprecated"}
+    # state = service.get_agent_state(agent_id)
+    return {"status": "deprecated", "message": "Functionality moved to flow-based service."}
 
 @router.get("/coordination/agent-states/all")
-async def get_all_agent_states():
+async def get_all_agent_states(service: CrewAIFlowService = Depends(get_crewai_flow_service)):
     # This functionality is now managed within individual agent flows.
-    # states = crewai_flow_service.get_all_agent_states()
-    return {"message": "This endpoint is deprecated and functionality is now managed within agent flows."}
+    # states = service.get_all_agent_states()
+    return {"status": "deprecated", "message": "Functionality moved to flow-based service."}
 
 @router.get("/coordination/summary")
-async def get_agent_coordination_summary():
+async def get_agent_coordination_summary(service: CrewAIFlowService = Depends(get_crewai_flow_service)):
     # This functionality is now managed within individual agent flows.
-    # summary = crewai_flow_service.get_agent_coordination_summary()
-    return {"message": "This endpoint is deprecated and functionality is now managed within agent flows."}
+    # summary = service.get_agent_coordination_summary()
+    return {"status": "deprecated", "message": "Functionality moved to flow-based service."}
 
 @router.get("/coordination/dependencies")
-async def get_context_dependencies():
+async def get_context_dependencies(service: CrewAIFlowService = Depends(get_crewai_flow_service)):
     # This functionality is now managed within individual agent flows.
-    # dependencies = crewai_flow_service.get_context_dependencies()
-    return {"message": "This endpoint is deprecated and functionality is now managed within agent flows."}
+    # dependencies = service.get_context_dependencies()
+    return {"status": "deprecated", "message": "Functionality moved to flow-based."}
 
 @router.post("/coordination/context/clear-stale")
 async def clear_stale_context(
-    config: Dict[str, Any]
+    config: Dict[str, Any],
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
 ):
     # This functionality is now managed within individual agent flows.
-    # crewai_flow_service.clear_stale_context(config)
-    return {"message": "This endpoint is deprecated and functionality is now managed within agent flows."}
+    # service.clear_stle_context(config)
+    return {"status": "deprecated", "message": "Functionality moved to flow-based service."}
 
 @router.post("/coordination/master-summary")
 async def get_master_summary(
-    summary_request: Dict[str, Any]
+    summary_request: Dict[str, Any],
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
 ):
     # This functionality has been significantly altered with the new flow-based service.
-    # coordination_summary = crewai_flow_service.get_agent_coordination_summary()
+    # coordination_summary = service.get_agent_coordination_summary()
     
     # Placeholder for a more robust implementation if needed
-    return {
-        "message": "This endpoint is deprecated. Core summary logic is now part of crewai_flow_service.",
-        "summary_type": "high-level",
-        "status": "not_generated",
-        "request": summary_request
-    }
+    return {"status": "deprecated", "message": "Functionality moved to flow-based service."}
 
 @router.get("/learning/experiences")
 async def get_learning_experiences(
-    limit: Optional[int] = 100
+    limit: Optional[int] = 100,
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
 ):
     # This would now be sourced from the learning system, not the UI bridge
-    # recent_experiences = crewai_flow_service.get_recent_learning_experiences(limit=limit)
-    return {
-        "message": "This endpoint is deprecated. Learning experiences are now tracked in agent_learning_system.",
-        "limit": limit
-    }
+    # recent_experiences = service.get_recent_learning_experiences(limit=limit)
+    return {"status": "deprecated", "message": "Functionality moved to agent_learning_system."}
 
 # === COMBINED LEARNING AND CONTEXT ENDPOINTS ===
 
 @router.get("/health")
-async def get_agent_learning_health():
-    """Get health status of agent learning and context systems."""
+async def get_agent_learning_health(service: CrewAIFlowService = Depends(get_crewai_flow_service)):
+    """Get health status of the agent learning systems."""
     try:
         learning_stats = agent_learning_system.get_learning_statistics()
-        # context_stats = client_context_manager.get_context_statistics()
-        coordination_summary = agent_ui_bridge.get_agent_coordination_summary()
+        flow_health = service.get_health_status()
         
         return {
-            "system_health": "healthy",
-            "learning_system": {
-                "status": "active" if learning_stats["total_learning_events"] > 0 else "inactive",
+            "status": "healthy",
+            "agent_learning_system": {
+                "status": "active",
                 "statistics": learning_stats
             },
-            "context_system": {
-                "status": "active" if context_stats["total_clients"] > 0 else "inactive",
-                "statistics": context_stats
-            },
-            "coordination_system": {
-                "status": "active" if coordination_summary["active_agents"] > 0 else "inactive",
-                "summary": coordination_summary
-            }
+            "crewai_flow_service": flow_health
         }
     except Exception as e:
-        logger.error(f"Error getting system health: {e}")
+        logger.error(f"Error getting agent learning health: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/integration/learn-from-user-response")

@@ -245,10 +245,10 @@ interface ApiCallOptions extends RequestInit {
   headers?: HeadersInit;
 }
 
-export const apiCall = async (
+export const apiCall = async <T = any>(
   endpoint: string,
   options: ApiCallOptions = {}
-): Promise<any> => {
+): Promise<T> => {
   const client = new HttpClient();
   
   if (options.method === 'GET' || !options.method) {

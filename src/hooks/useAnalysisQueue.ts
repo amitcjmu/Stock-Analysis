@@ -12,46 +12,56 @@ export function useAnalysisQueue() {
 
   const { data: queues = [], isLoading } = useQuery<AnalysisQueueItem[]>({
     queryKey: ['analysis-queues'],
-    queryFn: () => api.get('/api/v1/analysis/queues').then(res => res.data),
+    queryFn: () => apiCall('/api/v1/analysis/queues'),
   });
 
   const createQueue = async (request: CreateQueueRequest) => {
-    const response = await api.post('/api/v1/analysis/queues', request);
+    const response = await apiCall('/api/v1/analysis/queues', { method: 'POST', body: JSON.stringify(request) });
     await queryClient.invalidateQueries({ queryKey: ['analysis-queues'] });
     return response.data;
   };
 
+  const addToQueue = async (queueId: string, applicationId: string) => {
+    await apiCall(`/api/v1/analysis/queues/${queueId}/items`, { 
+      method: 'POST',
+      body: JSON.stringify({ applicationId }) 
+    });
+    await queryClient.invalidateQueries({ queryKey: ['analysis-queues'] });
+  };
+
   const startQueue = async (id: string) => {
-    await api.post(`/api/v1/analysis/queues/${id}/start`);
+    await apiCall(`/api/v1/analysis/queues/${id}/start`, { method: 'POST' });
     await queryClient.invalidateQueries({ queryKey: ['analysis-queues'] });
   };
 
   const pauseQueue = async (id: string) => {
-    await api.post(`/api/v1/analysis/queues/${id}/pause`);
+    await apiCall(`/api/v1/analysis/queues/${id}/pause`, { method: 'POST' });
     await queryClient.invalidateQueries({ queryKey: ['analysis-queues'] });
   };
 
   const cancelQueue = async (id: string) => {
-    await api.post(`/api/v1/analysis/queues/${id}/cancel`);
+    await apiCall(`/api/v1/analysis/queues/${id}/cancel`, { method: 'POST' });
     await queryClient.invalidateQueries({ queryKey: ['analysis-queues'] });
   };
 
   const retryQueue = async (id: string) => {
-    await api.post(`/api/v1/analysis/queues/${id}/retry`);
+    await apiCall(`/api/v1/analysis/queues/${id}/retry`, { method: 'POST' });
     await queryClient.invalidateQueries({ queryKey: ['analysis-queues'] });
   };
 
-  const deleteQueue = async (id: string) => {
-    await api.delete(`/api/v1/analysis/queues/${id}`);
+  const deleteQueue = async (queueId: string) => {
+    await apiCall(`/api/v1/analysis/queues/${queueId}`, { method: 'DELETE' });
     await queryClient.invalidateQueries({ queryKey: ['analysis-queues'] });
   };
 
-  const exportResults = async (id: string, format: 'csv' | 'pdf' | 'json') => {
-    const response = await api.get(`/api/v1/analysis/queues/${id}/export`, {
-      params: { format },
-      responseType: 'blob'
+  const exportQueue = async (id: string, format: 'csv' | 'json' = 'csv') => {
+    const response = await apiCall(`/api/v1/analysis/queues/${id}/export?format=${format}`, {
+      method: 'GET',
+      headers: {
+        'Accept': format === 'csv' ? 'text/csv' : 'application/json'
+      }
     });
-    return response.data;
+    return response;
   };
 
   return {
@@ -63,6 +73,6 @@ export function useAnalysisQueue() {
     cancelQueue,
     retryQueue,
     deleteQueue,
-    exportResults
+    exportResults: exportQueue
   };
 } 

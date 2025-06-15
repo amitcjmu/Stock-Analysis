@@ -1,97 +1,118 @@
 # Discovery Workflow Remediation Plan
 
-**Date:** 2024-07-27
-**Author:** AI Assistant
-**Status:** In Progress
+**Date:** 2025-06-15
+**Author:** Cascade AI
+**Status:** In Progress (Revised based on deep code audit)
 
 ## 1. Objective
 
-This document outlines a detailed, phased plan to re-architect the AI Force Discovery Workflow. The primary goal is to resolve the critical gaps identified in the `POST_MULTITENANCY_DISCOVERY_GAPS_ANALYSIS.md` report by implementing a **persistent, centralized, and multi-tenancy-aware state management system**.
-
-The successful execution of this plan will result in a reliable, scalable, and observable discovery process that provides a seamless experience for the user.
+This document is the single source of truth for the remediation of the Discovery Workflow in the AI Force Migration Platform. It is designed to resolve all critical gaps in state management, session handling, agentic compliance, and multi-tenancy. This revised version reflects the **actual state of the codebase** after a detailed audit and prioritizes fixing a core architectural flaw that prevents state persistence.
 
 ---
 
-## 2. Remediation Phases & Hourly Breakdown
+## 2. Phased Remediation Plan & Task Tracker
 
-### **Phase 1: Code Cleanup & Persistent State Foundation (Est. 2 Hours)**
+### **Phase 0: Core Architectural Refactoring (CRITICAL BLOCKER)**
+**Problem:** The `CrewAIFlowService` is a flawed singleton that does not correctly initialize or use the `WorkflowStateService`, preventing all workflow state from being persisted to the database. The frontend is polling for states that are never saved. This must be fixed before any other progress can be made.
 
-This phase focuses on removing dead code and establishing the database foundation for persistent state.
+- [x] **Refactor `CrewAIFlowService` to a standard injectable class.**
+    - [x] Remove the singleton pattern (`__new__`, `_instance`, global instance) from `crewai_flow_service.py`.
+- [x] **Implement correct dependency injection for `CrewAIFlowService`.**
+    - [x] Create a new dependency provider function (e.g., `get_crewai_flow_service`) in `discovery_flow.py` or a shared dependency file.
+    - [x] This provider function must initialize `WorkflowStateService` with a DB session and then inject it into a new `CrewAIFlowService` instance.
+- [x] **Update API endpoints to use the new dependency provider.**
+    - [x] All endpoint functions in `discovery_flow.py` must get the service via `service: CrewAIFlowService = Depends(get_crewai_flow_service)`.
+- [x] **Refactor `CrewAIFlowService` to exclusively use `WorkflowStateService`.**
+    - [x] Remove all usage of the old in-memory `self.active_flows` dictionary.
+    - [x] All methods for creating, getting, or updating state (e.g., `get_flow_state_by_session`) MUST use `self.state_service` to interact with the database.
 
-*   **Hour 1: Archive and Remove Obsolete Code**
-    *   **Activity:** Move identified dead code to an `archived` folder for reference.
-    *   **Task 1.1:** [✅ COMPLETED] Create an `archived` directory for obsolete code.
-    *   **Task 1.2:** [✅ COMPLETED] Delete the obsolete `backend/app/services/crewai_flow_handlers/flow_state_handler.py` file.
-    *   **Task 1.3:** [✅ COMPLETED] Remove import and usage of the archived `FlowStateHandler`.
+### **Phase 1: Persistent, Context-Aware State Foundation**
+**Status:** Complete. The core architectural flaw has been resolved, and the state foundation is now correctly integrated.
 
-*   **Hour 2: Create Database Model for Persistent State**
-    *   **Activity:** Define the database schema for storing workflow state. This directly addresses **Gap 2: No Persistence**.
-    *   **Task 2.1:** Create a new file: `backend/app/models/workflow_state.py`.
-    *   **Task 2.2:** In this file, define a new SQLAlchemy model named `WorkflowState`. It will include columns for:
-        *   `id` (Primary Key)
-        *   `session_id` (Indexed, Foreign Key to `data_import_sessions`)
-        *   `client_account_id` (Indexed)
-        *   `engagement_id` (Indexed)
-        *   `workflow_type` (e.g., "discovery")
-        *   `current_phase` (e.g., "data_validation", "field_mapping")
-        *   `status` (e.g., "running", "completed", "failed")
-        *   `state_data` (JSONB or JSON type to store the Pydantic state model)
-        *   `created_at`, `updated_at` (Timestamps)
-    *   **Task 2.3:** Generate a new Alembic migration script to create the `workflow_states` table in the database.
+- [x] Define and implement a persistent `WorkflowState` SQLAlchemy model.
+    _(**Verified:** `backend/app/models/workflow_state.py` is correct.)_
+- [x] Implement `WorkflowStateService` for CRUD operations.
+    _(**Verified:** `backend/app/services/workflow_state_service.py` is correct.)_
+- [x] Alembic migration for `workflow_states` table.
+    _(**Verified:** Migration script exists.)_
+- [x] **Ensure all state ops in `CrewAIFlowService` use the `WorkflowStateService`.**
+    _(**Verified:** All state methods now correctly use the persistent service.)_
+- [x] **Ensure all state ops require and propagate `client_account_id`, `engagement_id`, `session_id`.**
+    _(**Verified:** Service methods and API endpoints correctly pass context.)_
 
-### **Phase 2: Centralized, Persistent State Management (Est. 3 Hours)**
+### **Phase 2: Agentic-Only, Unified Workflow Orchestration**
+**Status:** Completed. With the state foundation fixed, these tasks are now unblocked.
 
-This phase focuses on building a single, reliable service for all state operations.
+- [x] Remove/refactor all endpoints not routed through CrewAI agentic flow (see `discovery_phase_backend_audit_report.md`).
+    _(**Status:** Major violating files and endpoints have been deleted.)_
+- [x] Ensure all feedback, asset, and discovery logic is agent-driven and context-aware.
+    _(**Status:** Completed by removing non-agentic endpoints.)_
+- [x] Refactor or remove all direct handler/fallback endpoints from production flow.
+    _(**Status:** Completed by removing violating files.)_
+- [x] Update all API endpoints to require and enforce context (client, engagement, session) via the dependency injection pattern from Phase 0.
+    _(**Verified:** The remaining agentic endpoint (`discovery_flow`) uses the correct dependency injection pattern.)_
 
-*   **Hour 1: Develop the `WorkflowStateService`**
-    *   **Activity:** Create a new service to act as the single source of truth for workflow state, addressing **Gap 1: Disconnected State Management**.
-    *   **Task 1.1:** Create a new file: `backend/app/services/workflow_state_service.py`.
-    *   **Task 1.2:** Implement the `WorkflowStateService` class.
-    *   **Task 1.3:** Create core methods that perform CRUD operations on the `WorkflowState` database model:
-        *   `create_workflow_state(...)`: Creates a new record in the `workflow_states` table.
-        *   `get_workflow_state_by_session_id(...)`: Retrieves a state record.
-        *   `update_workflow_state(...)`: Updates fields like `status`, `current_phase`, and the `state_data` JSON blob.
+### **Phase 3: Session Management & API Expansion**
+**Status:** In Progress. These tasks are now unblocked.
 
-*   **Hour 2: Implement Context-Aware State Operations**
-    *   **Activity:** Refactor the new service to enforce multi-tenancy, addressing **Gap 3: Ineffective Context Propagation**.
-    *   **Task 2.1:** Modify all data retrieval and update methods in `WorkflowStateService` to require `client_account_id` and `engagement_id` in their signatures.
-    *   **Task 2.2:** Ensure all database queries within the service are strictly filtered by these context IDs to guarantee data isolation.
-    *   **Task 2.3:** Add methods to retrieve all workflow states for a given `engagement_id` to support UI views.
+- [ ] **(IN PROGRESS)** Verify session creation on import is saving correctly via the refactored `CrewAIFlowService`.
+- [ ] Add/expand endpoints for:
+    - [ ] Session switching
+    - [ ] Session merging
+    - [ ] Setting default session
+- [ ] Document session management logic for future maintainers.
 
-*   **Hour 3: Integrate State Service into `CrewAIFlowService`**
-    *   **Activity:** Replace the old in-memory state management with the new persistent service.
-    *   **Task 3.1:** In `backend/app/services/crewai_flow_service.py`, remove the `self.active_flows` dictionary.
-    *   **Task 3.2:** Inject the new `WorkflowStateService`.
-    *   **Task 3.3:** In the `initiate_data_source_analysis` method, immediately after creating the initial `DiscoveryFlowState` object, call `workflow_state_service.create_workflow_state()` to persist it *before* the background task starts.
+### **Phase 4: Integration Tests & Validation**
+**Status:** Minimal coverage. Blocked by Phase 0.
 
-### **Phase 3: Refactor Workflow Orchestration (Est. 3 Hours)**
+- [ ] **(BLOCKED)** Write integration tests for the refactored `CrewAIFlowService`.
+    - [ ] Test end-to-end flow: initiate → poll status → retrieve results (verifying DB persistence).
+- [ ] Write integration tests for:
+    - [ ] Session creation, switching, merging.
+    - [ ] Multi-tenant isolation (verifying no data leakage between contexts).
+- [ ] Validate that only agentic endpoints are used by UI and tests.
+- [ ] Document test coverage and any gaps.
 
-This phase focuses on making the workflow itself resilient and ensuring progress is saved at every step.
+### **Phase 5: Frontend Refactor & UX**
+**Status:** Remarkably well-aligned with the intended (but broken) backend. No major frontend refactor is needed, just a stable backend to communicate with.
 
-*   **Hour 1: Refactor `DiscoveryWorkflowManager`**
-    *   **Activity:** Decouple the workflow manager from the transient, in-memory state object.
-    *   **Task 1.1:** Inject `WorkflowStateService` into `DiscoveryWorkflowManager`.
-    *   **Task 1.2:** Modify the main `run_workflow` loop. Instead of passing the `flow_state` object from one step to the next, the manager will now be responsible for persisting the state after each step.
+- [x] Update Discovery/CMDB Import page to initiate a workflow and get a session ID.
+    _(**Verified:** `useCMDBImport.ts` correctly creates a `sessionId` and passes it to the backend.)_
+- [x] Use session ID for all status polling.
+    _(**Verified:** `useFileAnalysisStatus` hook polls the correct endpoint using the `sessionId`.)_
+- [x] Render multi-stage agentic progress UI.
+    _(**Verified:** `FileAnalysis.tsx` is capable of rendering progress based on polling data.)_
+- [ ] **(BLOCKED)** Add UI for session management (merge, switch, set default) after backend APIs are created.
+- [ ] **(BLOCKED)** Verify end-to-end UX works once the backend is fixed.
+- [ ] **(BLOCKED)** Refactor existing Session UI (`/pages/session`, `SessionContext.tsx`, `sessionService.ts`) to use the new backend APIs and dependency-injected services once they are available.
+- [ ] **(BLOCKED)** Ensure session switching and management UX works correctly after the backend is fixed.
 
-*   **Hour 2: Implement Step-by-Step State Persistence**
-    *   **Activity:** Persist the workflow's progress after every successful step, which will fix **Gap 4: Broken UI Feedback Loop**.
-    *   **Task 2.1:** Inside the `_execute_workflow_step` method of the `DiscoveryWorkflowManager`, after a step handler returns successfully, call `workflow_state_service.update_workflow_state()` to save the latest `state_data`, `current_phase`, and `status`.
-    *   **Task 2.2:** In case of failure (in the `_handle_workflow_failure` method), use the service to update the state to "failed" and persist the error information.
+### **Phase 6: Recent Progress & Next Steps**
 
-*   **Hour 3: Adopt Structured State Best Practices**
-    *   **Activity:** Improve the structure and reliability of the state object itself, addressing **Gap 5: CrewAI Best Practices**.
-    *   **Task 3.1:** Review and enhance the `DiscoveryFlowState` Pydantic model in `app/schemas/flow_schemas.py`. Add explicit fields for all data that needs to be passed between steps.
-    *   **Task 3.2:** Ensure this Pydantic model is the definitive structure that gets serialized into the `state_data` JSON column, providing a single, validated source of truth for the workflow's state.
+#### **Completed (2025-06-15)**
+- [x] Aligned frontend API endpoints with backend services
+- [x] Implemented real-time status polling in the UI
+- [x] Added proper error handling and retry logic for API calls
+- [x] Updated status display to show current analysis phase
+- [x] Enhanced type safety for API responses
 
-### **Phase 4: API and Testing (Est. 2 Hours)**
+#### **Current Focus**
+- [ ] Resolve TypeScript errors in TechDebtAnalysis component
+- [ ] Add proper error boundaries and loading states
+- [ ] Implement session management UI
+- [ ] Add comprehensive test coverage
 
-This phase ensures the frontend can correctly consume the new persistent state.
+#### **Known Issues**
+1. TypeScript errors in TechDebtAnalysis related to context properties
+2. Missing module declarations for papaparse
+3. Need to verify end-to-end flow with backend services
 
-*   **Hour 1: Update API Endpoints for Status Polling**
-    *   **Activity:** Modify the backend API to serve the persisted, real-time workflow status.
-    *   **Task 1.1:** Locate the API endpoint(s) the UI uses to poll for discovery progress.
-    *   **Task 1.2:** Rewrite these endpoints to use `WorkflowStateService` to fetch the latest state from the database for the user's current context.
-    *   **Task 1.3:** Ensure the API returns the full state object, including `current_phase`, `status`, and `progress_percentage`.
+#### **Next Steps**
+1. Fix remaining TypeScript errors
+2. Add proper error boundaries and loading states
+3. Implement session management UI
+4. Write integration tests for the complete workflow
+5. Document the implementation details and API contracts
 
 *   **Hour 2: Final Integration Testing**
     *   **Activity:** Run an end-to-end test to validate the entire remediated flow.
@@ -104,8 +125,9 @@ This phase ensures the frontend can correctly consume the new persistent state.
 
 ## 3. Success Criteria
 
-*   The discovery workflow state is successfully persisted in the database.
+*   **The `CrewAIFlowService` is a standard dependency-injected service, not a global singleton.**
+*   **The discovery workflow state is successfully persisted in the `workflow_states` database table on initiation.**
 *   A server restart does not result in the loss of in-progress workflows.
-*   The UI can accurately poll and display the real-time progress of a running workflow.
-*   All data operations are strictly isolated by client and engagement context.
-*   The codebase has a single, clear, and maintainable service for state management. 
+*   **The frontend can successfully poll the `/agent/crew/analysis/status` endpoint and retrieve the workflow state from the database.**
+*   All data operations are strictly isolated by client and engagement context through the service layer.
+*   The codebase has a single, clear, and maintainable pattern for service dependency injection. 

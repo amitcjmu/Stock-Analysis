@@ -10,8 +10,6 @@ from app.api.v1.endpoints import (
     sixr_router,
     discovery_router,
     asset_inventory_router,
-    data_cleanup_router,
-    agent_discovery_router,
     monitoring_router,
     chat_router,
     websocket_router,
@@ -41,9 +39,7 @@ api_router.include_router(sixr_router, prefix="/sixr", tags=["6R Analysis"])
 api_router.include_router(discovery_router, prefix="/discovery", tags=["Discovery"])
 api_router.include_router(discovery_flow_router, prefix="/discovery/flow", tags=["Discovery Flow"])
 api_router.include_router(asset_inventory_router, prefix="/assets", tags=["Asset Inventory"])
-api_router.include_router(data_cleanup_router, prefix="/data-cleanup", tags=["Data Cleanup"])
 api_router.include_router(data_import_router, prefix="/data-import", tags=["Data Import"])
-api_router.include_router(agent_discovery_router, prefix="/agent-discovery", tags=["Agent Discovery"])
 api_router.include_router(monitoring_router, prefix="/monitoring", tags=["Monitoring"])
 api_router.include_router(chat_router, prefix="/chat", tags=["Chat"])
 api_router.include_router(websocket_router, prefix="/ws", tags=["WebSocket"])

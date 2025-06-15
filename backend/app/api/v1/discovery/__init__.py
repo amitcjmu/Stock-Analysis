@@ -13,7 +13,6 @@ from .models import (
     CMDBAnalysisResponse
 )
 
-from .processor import CMDBDataProcessor
 from .utils import (
     standardize_asset_type,
     get_field_value,
@@ -59,7 +58,6 @@ __all__ = [
     "CMDBAnalysisResponse",
     
     # Core functionality
-    "CMDBDataProcessor",
     "standardize_asset_type",
     "get_field_value",
     "get_tech_stack",

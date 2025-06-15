@@ -40,3 +40,8 @@ openpyxl
 requests>=2.31.0
 tenacity>=2.2.0
 watchdog>=2.5.0 
+
+# CrewAI and LangChain dependencies
+langchain-openai
+crewai
+litellm

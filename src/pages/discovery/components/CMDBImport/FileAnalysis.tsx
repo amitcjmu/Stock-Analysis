@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { 
   CheckCircle, 
   AlertTriangle, 
@@ -13,7 +13,8 @@ import {
   Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { UploadedFile } from '../hooks/useCMDBImport';
+import { UploadedFile } from '../../hooks/useCMDBImport';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface FileAnalysisProps {
   file: UploadedFile;
@@ -22,6 +23,67 @@ interface FileAnalysisProps {
 }
 
 export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNavigate }) => {
+  const queryClient = useQueryClient();
+  
+  // Use the useFileAnalysisStatus hook to poll for status updates
+  const { data: statusData, isLoading: isLoadingStatus } = useQueryClient().getQueryState([
+    'fileAnalysisStatus', 
+    file.id
+  ]);
+  
+  // Update the file status when status data changes
+  useEffect(() => {
+    if (statusData?.data) {
+      const { workflow_status, current_phase, status } = statusData.data;
+      
+      // Update the file status based on the workflow status
+      if (workflow_status === 'completed' || status === 'completed') {
+        // Update the file status to 'processed' when analysis is complete
+        queryClient.setQueryData<UploadedFile[]>(['uploadedFiles'], (old = []) =>
+          old.map(f => f.id === file.id ? {
+            ...f,
+            status: 'processed' as const,
+            currentStep: 5, // All steps complete
+            processingMessages: ['Analysis complete. Ready for next steps.']
+          } : f)
+        );
+      } else if (workflow_status === 'failed' || status === 'failed') {
+        // Update the file status to 'error' if analysis failed
+        queryClient.setQueryData<UploadedFile[]>(['uploadedFiles'], (old = []) =>
+          old.map(f => f.id === file.id ? {
+            ...f,
+            status: 'error' as const,
+            analysisError: 'Analysis failed. Please try again.',
+            processingMessages: ['❌ Analysis failed. Please try again.']
+          } : f)
+        );
+      } else if (workflow_status === 'in_progress' || status === 'in_progress') {
+        // Update the current step and processing messages based on the current phase
+        const stepMap: Record<string, number> = {
+          'initial_scan': 0,
+          'content_analysis': 1,
+          'pattern_recognition': 2,
+          'field_mapping': 3,
+          'quality_assessment': 4,
+          'next_steps': 5
+        };
+        
+        const currentStep = stepMap[current_phase] || 0;
+        
+        queryClient.setQueryData<UploadedFile[]>(['uploadedFiles'], (old = []) =>
+          old.map(f => f.id === file.id ? {
+            ...f,
+            status: 'analyzing' as const,
+            currentStep,
+            processingMessages: [
+              ...(f.processingMessages || []).filter(m => !m.startsWith('🤖')),
+              `🤖 ${current_phase ? `Processing: ${current_phase.replace(/_/g, ' ')}` : 'Analyzing...'}`
+            ].slice(-5) // Keep only the last 5 messages
+          } : f)
+        );
+      }
+    }
+  }, [statusData, file.id, queryClient]);
   const getStatusIcon = (status: UploadedFile['status']) => {
     switch (status) {
       case 'uploaded':
@@ -86,7 +148,7 @@ export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNav
       </div>
 
       {/* Processing Animation */}
-      {file.status === 'analyzing' && (
+      {(file.status === 'analyzing' || file.status === 'uploaded') && (
         <div className="space-y-4">
           <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4">
             <div className="flex items-center space-x-2 mb-3">

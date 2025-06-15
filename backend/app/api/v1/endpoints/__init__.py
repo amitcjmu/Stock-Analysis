@@ -5,8 +5,6 @@ API endpoints package.
 from . import sixr_analysis
 from . import discovery
 from . import asset_inventory
-from . import data_cleanup
-from . import agent_discovery
 from . import monitoring
 from . import chat
 from . import websocket
@@ -19,8 +17,6 @@ from . import context
 sixr_router = sixr_analysis.router
 discovery_router = discovery.router
 asset_inventory_router = asset_inventory.router
-data_cleanup_router = data_cleanup.router
-agent_discovery_router = agent_discovery.router
 monitoring_router = monitoring.router
 chat_router = chat.router
 websocket_router = websocket.router

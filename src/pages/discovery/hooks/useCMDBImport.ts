@@ -1,6 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiCall, API_CONFIG } from '../../../config/api';
-import Papa from 'papaparse';
+import { apiCall } from '@/lib/api';
+// Use type-only import for Papaparse
+import type * as PapaType from 'papaparse';
+// @ts-ignore - Workaround for Papaparse types
+const Papa = window.Papa as typeof PapaType;
 
 // Types
 export interface UploadedFile {
@@ -110,7 +113,7 @@ export const useFileAnalysis = () => {
       if (columns.length) requestBody.data_source.columns = columns;
       if (sample_data.length) requestBody.data_source.sample_data = sample_data;
 
-      return apiCall<FileAnalysisResponse>(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_ANALYSIS, {
+      return apiCall<FileAnalysisResponse>('/api/v1/discovery/agent-analysis', {
         method: 'POST',
         body: JSON.stringify(requestBody),
       });
@@ -122,23 +125,41 @@ export const useFileAnalysis = () => {
   });
 };
 
+interface AnalysisStatusResponse {
+  workflow_status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  current_phase?: string;
+  status?: string;
+  message?: string;
+  [key: string]: any;
+}
+
 export const useFileAnalysisStatus = (sessionId: string | null) => {
-  return useQuery({
+  return useQuery<AnalysisStatusResponse, Error>({
     queryKey: ['fileAnalysisStatus', sessionId],
     queryFn: async () => {
-      if (!sessionId) return null;
+      if (!sessionId) throw new Error('Session ID is required');
       
-      const response = await apiCall(
-        `${API_CONFIG.ENDPOINTS.DISCOVERY.AGENTS}/agent-status?session_id=${sessionId}`
-      );
-      
-      return response as { workflow_status: string; [key: string]: any };
+      try {
+        const response = await apiCall<AnalysisStatusResponse>(
+          `/api/v1/discovery/agentic-analysis/status?session_id=${sessionId}`
+        );
+        
+        return response;
+      } catch (error) {
+        console.error('Error fetching analysis status:', error);
+        throw error;
+      }
     },
     enabled: !!sessionId,
-    refetchInterval: (data) => {
+    refetchInterval: (query) => {
+      const data = query.state.data;
       // Only poll if the workflow is still in progress
-      return data?.workflow_status === 'in_progress' ? 2000 : false;
+      return data?.workflow_status === 'in_progress' || 
+             data?.status === 'in_progress' ? 2000 : false;
     },
+    refetchOnWindowFocus: true,
+    retry: 3,
+    retryDelay: 1000,
   });
 };
 
@@ -168,15 +189,12 @@ export const useFileUpload = () => {
             sessionId: id,
           });
           
-          // Update the file status to 'processed'
+          // Return initial state, the status will be updated by the polling
           return {
             id,
             file,
             type,
-            status: 'processed' as const,
-            aiSuggestions: result.agent_analysis.suggestions || [],
-            nextSteps: result.agent_analysis.next_steps || [],
-            confidence: result.agent_analysis.confidence || 0,
+            status: 'analyzing' as const,
             detectedFileType: file.name.split('.').pop()?.toUpperCase() || 'UNKNOWN',
             analysisSteps: [
               'Initial file scan',
@@ -186,8 +204,8 @@ export const useFileUpload = () => {
               'Quality assessment',
               'Next steps generation'
             ],
-            currentStep: 5, // All steps complete
-            processingMessages: ['Analysis complete. Ready for next steps.']
+            currentStep: 0,
+            processingMessages: ['🤖 AI crew is analyzing your file...']
           };
         } catch (error) {
           // Update the file status to 'error'
@@ -234,9 +252,22 @@ export const useFileUpload = () => {
         queryClient.setQueryData(['uploadedFiles'], context.previousFiles);
       }
     },
-    onSettled: () => {
+    onSettled: (data) => {
       // Refresh the list of uploaded files
       queryClient.invalidateQueries({ queryKey: ['uploadedFiles'] });
+      
+      // Start polling for status updates for each uploaded file
+      if (data) {
+        data.forEach((file) => {
+          if (file.status === 'analyzing') {
+            // The useFileAnalysisStatus hook will handle the polling automatically
+            // We just need to ensure the query is enabled
+            queryClient.invalidateQueries({ 
+              queryKey: ['fileAnalysisStatus', file.id] 
+            });
+          }
+        });
+      }
     },
   });
 };

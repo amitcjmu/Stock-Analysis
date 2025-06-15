@@ -71,7 +71,7 @@ export const API_CONFIG = {
   BASE_URL: getBackendUrl(),
   ENDPOINTS: {
     DISCOVERY: {
-      AGENT_ANALYSIS: '/discovery/agents/discovery/analysis/agent-analysis',
+      AGENT_ANALYSIS: '/discovery/agent/crew/analysis', // Updated to match backend endpoint
       ANALYZE_CMDB: '/discovery/analyze-cmdb',
       PROCESS_CMDB: '/discovery/process-cmdb',
       CMDB_TEMPLATES: '/discovery/cmdb-templates',
@@ -90,6 +90,7 @@ export const API_CONFIG = {
       // Agent endpoints
       AGENT_CLARIFICATION: '/discovery/agents/agent-clarification',
       AGENT_STATUS: '/discovery/agents/agent-status',
+      AGENTIC_ANALYSIS_STATUS: '/discovery/flow/agent/crew/analysis/status',
       AGENT_LEARNING: '/discovery/agents/agent-learning',
       APPLICATION_PORTFOLIO: '/discovery/agents/application-portfolio',
       APPLICATION_VALIDATION: '/discovery/agents/application-validation',

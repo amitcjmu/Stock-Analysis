@@ -13,6 +13,7 @@ import base64
 import csv
 import io
 import os
+from sqlalchemy.orm import Session
 
 # Pydantic and Core Components
 from pydantic import BaseModel, Field, ValidationError
@@ -44,44 +45,40 @@ logger = logging.getLogger(__name__)
 class CrewAIFlowService:
     """A stateful service registry for core CrewAI components and active flows."""
     
-    _instance = None
+    def __init__(self, db: Session):
+        from app.services.workflow_state_service import WorkflowStateService
+        
+        # Initialize service state
+        self.db = db
+        self.state_service = WorkflowStateService(self.db)
+        self.service_available = LANGCHAIN_AVAILABLE and LITELLM_AVAILABLE
+        
+        # LLM and agent initialization
+        self.llm = None
+        if self.service_available:
+            # Configure LLM for DeepInfra
+            self.llm = ChatOpenAI(
+                api_key=os.getenv("DEEPINFRA_API_KEY"),
+                base_url="https://api.deepinfra.com/v1/openai/chat/completions",
+                model_name="meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+                temperature=0.1,
+                max_tokens=4096
+            )
 
-    def __new__(cls, *args, **kwargs):
-        if not cls._instance:
-            cls._instance = super(CrewAIFlowService, cls).__new__(cls)
-        return cls._instance
+        self.settings = settings
+        self.agents = self._initialize_agents() if self.llm else {}
+        
+        # Initialize the workflow manager AFTER agents are initialized
+        self.manager = DiscoveryWorkflowManager(self)
+        self.initialized = True
 
-    def __init__(self):
-        if not hasattr(self, 'initialized'):
-            self.active_flows = {}
-            self.service_available = LANGCHAIN_AVAILABLE and LITELLM_AVAILABLE
-            
-            if self.service_available:
-                # Configure LLM for DeepInfra
-                self.llm = ChatOpenAI(
-                    api_key=os.getenv("DEEPINFRA_API_KEY"),
-                    base_url="https://api.deepinfra.com/v1/openai/chat/completions",
-                    model_name="meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
-                    temperature=0.1,
-                    max_tokens=4096
-                )
-            else:
-                self.llm = None
+        logger.info("Initializing CrewAIFlowService...")
+        
+        if self.service_available:
+            logger.info("CrewAIFlowService initialized successfully with state management.")
+        else:
+            logger.warning("CrewAI Flow Service running in limited capacity due to missing configuration.")
 
-            self.settings = settings
-            self.agents = self._initialize_agents() if self.llm else {}
-            
-            # Initialize the workflow manager AFTER agents are initialized
-            self.manager = DiscoveryWorkflowManager(self)
-            self.initialized = True
-
-            logger.info("Initializing CrewAIFlowService...")
-            
-            if self.service_available:
-                logger.info("CrewAIFlowService initialized successfully with state management.")
-            else:
-                logger.warning("CrewAI Flow Service running in limited capacity due to missing configuration.")
-    
     def _initialize_agents(self):
         agents = {
             'data_validator': self._create_agent("Data Quality Analyst", "Ensures data quality and consistency."),
@@ -113,13 +110,38 @@ class CrewAIFlowService:
                 user_id=context.user_id
             )
             # Update the state upon completion
-            self.active_flows[flow_state.session_id] = final_state
+            # Persist the final state using WorkflowStateService
+            if self.state_service:
+                self.state_service.update_workflow_state(
+                    session_id=flow_state.session_id,
+                    client_account_id=flow_state.client_account_id,
+                    engagement_id=flow_state.engagement_id,
+                    status="completed",
+                    current_phase=final_state.current_phase,
+                    state_data=final_state.dict()
+                )
             logger.info(f"Background workflow {flow_state.session_id} completed.")
         except Exception as e:
             logger.error(f"Error in background workflow {flow_state.session_id}: {e}", exc_info=True)
-            flow_state.current_phase = "error"
-            flow_state.status_message = str(e)
-            self.active_flows[flow_state.session_id] = flow_state
+            # Persist the error state using WorkflowStateService
+            if self.state_service:
+                # Construct a minimal state for saving on error
+                error_state_data = {
+                    "session_id": flow_state.session_id,
+                    "client_account_id": str(flow_state.client_account_id),
+                    "engagement_id": str(flow_state.engagement_id),
+                    "status": "failed",
+                    "current_phase": "error",
+                    "status_message": str(e),
+                }
+                self.state_service.update_workflow_state(
+                    session_id=flow_state.session_id,
+                    client_account_id=flow_state.client_account_id,
+                    engagement_id=flow_state.engagement_id,
+                    status="failed",
+                    current_phase="error",
+                    state_data=error_state_data
+                )
 
     async def initiate_data_source_analysis(
         self,
@@ -177,7 +199,16 @@ class CrewAIFlowService:
 
             # 2. Create Initial State and store it
             flow_state = self._create_new_flow_state(context, metadata)
-            self.active_flows[flow_state.session_id] = flow_state
+            if self.state_service:
+                self.state_service.create_workflow_state(
+                    session_id=flow_state.session_id,
+                    client_account_id=flow_state.client_account_id,
+                    engagement_id=flow_state.engagement_id,
+                    workflow_type="discovery",
+                    status=flow_state.status,
+                    current_phase=flow_state.current_phase,
+                    state_data=flow_state.dict()
+                )
 
             # 3. Initialize the manager and run the workflow in the background
             workflow_manager = DiscoveryWorkflowManager(self)
@@ -211,36 +242,79 @@ class CrewAIFlowService:
 
         return DiscoveryFlowState(
             session_id=context.session_id,
+            flow_id=context.session_id,
             client_account_id=context.client_account_id,
             engagement_id=context.engagement_id,
             user_id=user_id,
-            import_session_id=metadata.get("import_session_id", str(uuid.uuid4()))
+            status="running",
+            current_phase="initialization",
+            metadata=metadata
         )
 
-    def get_flow_state(self, flow_id: str) -> Optional[DiscoveryFlowState]:
+    def get_flow_state(self, flow_id: str, context: RequestContext) -> Optional[DiscoveryFlowState]:
         """
         Retrieves the state of a specific workflow.
+        
+        Args:
+            flow_id: The ID of the workflow to retrieve
+            context: Request context containing client and engagement info
+            
+        Returns:
+            DiscoveryFlowState if found, None otherwise
         """
-        return self.active_flows.get(flow_id)
-
-    def get_flow_state_by_session(self, session_id: str) -> Optional[DiscoveryFlowState]:
-        """
-        Retrieves the state of a workflow for a given session ID.
-        """
-        if not session_id:
+        if not self.state_service or not flow_id or not context:
             return None
-        for flow_state in self.active_flows.values():
-            if flow_state.session_id == session_id:
-                return flow_state
+            
+        ws = self.state_service.get_workflow_state_by_session_id(
+            session_id=flow_id,
+            client_account_id=context.client_account_id,
+            engagement_id=context.engagement_id
+        )
+        return DiscoveryFlowState(**ws.state_data) if ws and hasattr(ws, 'state_data') else None
+
+    def get_flow_state_by_session(self, session_id: str, context: RequestContext) -> Optional[DiscoveryFlowState]:
+        """
+        Retrieves the state of a flow by its session ID from the persistent storage.
+        """
+        if not self.state_service:
+            logger.error("State service is not available.")
+            return None
+        
+        workflow_state = self.state_service.get_workflow_state_by_session_id(
+            session_id=session_id,
+            client_account_id=context.client_account_id,
+            engagement_id=context.engagement_id
+        )
+
+        if workflow_state:
+            return DiscoveryFlowState(**workflow_state.state_data)
+        
         return None
 
-    def get_all_active_flows(self) -> List[DiscoveryFlowState]:
+    def get_all_active_flows(self, context: RequestContext) -> List[DiscoveryFlowState]:
         """
-        Returns a list of all active workflow states.
+        Retrieves all active flows for the current engagement from persistent storage.
         """
-        return list(self.active_flows.values())
+        if not self.state_service:
+            logger.error("State service is not available.")
+            return []
+
+        workflow_states = self.state_service.list_workflow_states_by_engagement(
+            engagement_id=context.engagement_id,
+            client_account_id=context.client_account_id
+        )
+
+        active_flow_states = [
+            DiscoveryFlowState(**ws.state_data) 
+            for ws in workflow_states 
+            if ws.status == "running"
+        ]
+        return active_flow_states
 
     def _get_llm(self):
+        """Returns the configured LLM instance."""
+        if not self.llm:
+            logger.warning("LLM is not available. CrewAI service is in limited mode.")
         return self.llm
 
     async def call_ai_agent(self, prompt: str) -> str:
@@ -323,5 +397,17 @@ class CrewAIFlowService:
                 "timestamp": datetime.utcnow().isoformat()
             }
 
-# Singleton instance
-crewai_flow_service = CrewAIFlowService() 
+    def get_service_status(self):
+        """Returns a brief status of the service availability."""
+        return {
+            "service_available": self.service_available,
+            "langchain_available": LANGCHAIN_AVAILABLE,
+            "litellm_available": LITELLM_AVAILABLE,
+            "llm_configured": self.llm is not None,
+            "agents_initialized": bool(self.agents),
+            "manager_initialized": self.manager is not None
+        }
+
+# Single, shared instance of the service
+# This will be replaced by dependency injection
+# crewai_flow_service = CrewAIFlowService() 
