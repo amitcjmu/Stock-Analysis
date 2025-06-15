@@ -234,20 +234,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Small delay to ensure localStorage is updated
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Get user context with the new token
+      // Get user context with the new token to get the actual user role
+      let actualUserRole = response.user.role; // fallback to login response role
       try {
         const context = await apiCall('/me');
         if (context) {
           setClient(context.client || null);
           setEngagement(context.engagement || null);
           setSession(context.session || null);
+          // Use the role from /me endpoint as it's more accurate
+          if (context.user && context.user.role) {
+            actualUserRole = context.user.role;
+            // Update the user object with the correct role
+            const updatedUser = { ...response.user, role: context.user.role };
+            tokenStorage.setUser(updatedUser);
+            setUser(updatedUser);
+          }
         }
       } catch (contextError) {
         console.warn('Failed to load user context, using defaults:', contextError);
         // Continue with login even if context fails
       }
 
-      const redirectPath = response.user.role === 'admin' 
+      // Determine redirect path based on actual user role
+      const redirectPath = actualUserRole === 'admin' 
         ? '/admin/dashboard' 
         : (tokenStorage.getRedirectPath() || '/');
       tokenStorage.clearRedirectPath();

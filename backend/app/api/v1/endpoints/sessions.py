@@ -20,7 +20,7 @@ from app.schemas.session import Session, SessionCreate, SessionUpdate, SessionLi
 from app.api.v1.auth.auth_utils import get_current_user
 from app.models import User
 
-router = APIRouter(prefix="/sessions", tags=["sessions"])
+router = APIRouter(tags=["sessions"])
 
 
 @router.post(

@@ -41,7 +41,7 @@ const SESSION_ENDPOINTS = {
   SET_DEFAULT: (id: string) => `/api/v1/sessions/${id}/set-default`,
   MERGE: '/api/v1/sessions/merge',
   ENGAGEMENT_DEFAULT: (engagementId: string) => 
-    `/api/v1/engagements/${engagementId}/sessions/default`,
+    `/api/v1/sessions/engagements/${engagementId}/default`,
   ENGAGEMENT_SESSIONS: (engagementId: string) => 
     `/api/v1/sessions/engagement/${engagementId}`
 } as const;

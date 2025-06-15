@@ -1070,4 +1070,48 @@ This release addresses critical authentication role determination, login redirec
 
 ---
 
-## [0.8.7] - 2025-01-15
+## [0.8.12] - 2025-01-27
+
+### 🎯 **Authentication & Session Management Fixes**
+
+This release resolves critical authentication flow and session management issues that were preventing proper user login and data import functionality.
+
+### 🚀 **Authentication System Fixes**
+
+#### **Login Redirect & Role Validation**
+- **Fixed Login Redirect Logic**: Updated AuthContext to properly check user role from `/me` endpoint instead of login response
+- **Role Consistency**: Resolved discrepancy between login response role and actual user context role
+- **Admin Access Control**: Fixed admin dashboard access for users with proper admin privileges
+- **Context Loading**: Enhanced user context loading with proper fallback handling
+
+#### **Session Provider Integration**
+- **Added SessionProvider**: Wrapped application with SessionProvider to fix "useSession must be used within a SessionProvider" errors
+- **Router Structure**: Fixed duplicate BrowserRouter wrappers that were causing routing conflicts
+- **Context Hierarchy**: Properly structured AuthProvider > SessionProvider > ChatFeedbackProvider hierarchy
+
+### 🔧 **Backend API Fixes**
+
+#### **Session Endpoints Restoration**
+- **Fixed Router Prefix**: Removed duplicate `/sessions` prefix from sessions router that was causing 404 errors
+- **Schema Validation**: Updated Session Pydantic schema to properly map DataImportSession model fields
+- **Import Dependencies**: Added missing SQLAlchemy imports (`select`, `desc`) in session management service
+- **Field Mapping**: Fixed metadata field validation issues by aligning schema with actual model structure
+
+#### **Database Schema Alignment**
+- **Optional Fields**: Made `updated_at` field optional in Session schema to handle null values
+- **Type Safety**: Ensured proper type mapping between SQLAlchemy models and Pydantic schemas
+- **Validation Errors**: Resolved Pydantic validation errors for session data serialization
+
+### 📊 **Technical Achievements**
+- **Session API Functional**: `/api/v1/sessions/engagement/{id}` endpoint now returns proper session data
+- **Authentication Flow**: Complete login-to-dashboard flow working for both admin and regular users
+- **Context Management**: Proper user context loading with client, engagement, and session data
+- **Error Resolution**: Eliminated 404 and 500 errors in critical authentication and session flows
+
+### 🎯 **Success Metrics**
+- **Login Success**: Users can successfully log in and get redirected based on their role
+- **Session Loading**: Session data loads correctly without validation errors
+- **Admin Access**: Admin users can access admin dashboard without permission errors
+- **Data Import Ready**: Session management foundation restored for data import workflows
+
+## [0.8.11] - 2025-01-27

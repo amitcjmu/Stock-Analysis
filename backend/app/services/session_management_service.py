@@ -8,6 +8,7 @@ import logging
 from typing import Optional, Dict, Any, List
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, desc
 
 from app.models.data_import_session import DataImportSession, SessionType
 from .session_handlers import ContextHandler, SessionHandler
