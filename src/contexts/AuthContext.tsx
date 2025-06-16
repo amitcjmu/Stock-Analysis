@@ -115,7 +115,6 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-export { AuthContext };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const navigate = useNavigate();
@@ -125,6 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true); // Start with loading true
   const [error, setError] = useState<string | null>(null);
+  const [isLoginInProgress, setIsLoginInProgress] = useState(false);
 
   const isDemoMode = user?.id === DEMO_USER_ID;
   const isAuthenticated = !!user;
@@ -192,10 +192,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const initializeAuth = async () => {
+      // Skip initialization if login is in progress
+      if (isLoginInProgress) {
+        console.log('🔐 Skipping initializeAuth - login in progress');
+        return;
+      }
+      
       setIsLoading(true);
       try {
         const token = tokenStorage.getToken();
         const storedUser = tokenStorage.getUser();
+
+        console.log('🔐 InitializeAuth - Starting with:', {
+          hasToken: !!token,
+          hasStoredUser: !!storedUser,
+          storedUserRole: storedUser?.role,
+          isDemoUser: storedUser?.id === DEMO_USER_ID
+        });
 
         if (storedUser?.id === DEMO_USER_ID) {
           setUser(DEMO_USER);
@@ -204,6 +217,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setSession(DEMO_SESSION);
         } else if (token) {
           const validatedUser = await authApi.validateToken(token);
+          console.log('🔐 InitializeAuth - Token validation result:', validatedUser);
+          
           if (validatedUser) {
             tokenStorage.setUser(validatedUser);
             setUser(validatedUser);
@@ -229,12 +244,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     initializeAuth();
-  }, [logout]);
+  }, [logout, isLoginInProgress]);
 
 
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
+      setIsLoginInProgress(true);
       setError(null);
 
       const response = await authApi.login(email, password);
@@ -311,6 +327,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw error;
     } finally {
       setIsLoading(false);
+      setIsLoginInProgress(false);
     }
   };
   const loginWithDemoUser = () => {

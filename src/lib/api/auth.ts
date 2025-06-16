@@ -99,7 +99,7 @@ export const authApi = {
       }
 
       const data = await response.json();
-      return data || null;
+      return data.user || null;
     } catch (error) {
       console.error('Token validation error:', error);
       return null;
