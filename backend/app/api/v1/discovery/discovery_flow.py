@@ -11,6 +11,7 @@ from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
+from sqlalchemy import select, and_
 
 # Core imports
 from app.core.config import settings
@@ -55,7 +56,6 @@ async def get_context_from_user(
     # If client+engagement provided in headers, find the default session for that combination
     if client_account_id and engagement_id:
         try:
-            from sqlalchemy import select, and_
             from app.models.data_import_session import DataImportSession
             
             # Find user's default session for this specific client+engagement combination
@@ -150,7 +150,6 @@ async def get_context_from_user(
     
     # Final fallback: Try to find any default session for the user
     try:
-        from sqlalchemy import select
         from app.models.data_import_session import DataImportSession
         
         query = (

@@ -12,6 +12,7 @@ from . import agent_learning_endpoints
 from . import data_import
 from . import sessions
 from . import context
+from . import test_discovery
 
 # Expose the routers for the main api.py to collect
 sixr_router = sixr_analysis.router
@@ -23,4 +24,5 @@ websocket_router = websocket.router
 agent_learning_router = agent_learning_endpoints.router
 data_import_router = data_import.router
 sessions_router = sessions.router
-context_router = context.router 
+context_router = context.router
+test_discovery_router = test_discovery.router 

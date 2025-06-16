@@ -4,14 +4,20 @@ Provides real-time observability into CrewAI agent task execution for the fronte
 Enhanced with comprehensive agent registry and phase organization.
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends, Request
 from typing import Dict, List, Any, Optional
 import logging
+from datetime import datetime
 
 from app.services.agent_monitor import agent_monitor, TaskStatus
 
 # Import the new agent registry
 from app.services.agent_registry import agent_registry, AgentPhase, AgentStatus
+
+# Import CrewAI Flow service and context dependencies
+from app.api.v1.dependencies import get_crewai_flow_service
+from app.core.context import RequestContext, extract_context_from_request
+from app.services.crewai_flow_service import CrewAIFlowService
 
 logger = logging.getLogger(__name__)
 
@@ -444,4 +450,208 @@ async def export_agent_registry():
         
     except Exception as e:
         logger.error(f"Error exporting agent registry: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to export agent registry: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Failed to export agent registry: {str(e)}")
+
+
+@router.get("/crewai-flows")
+async def get_crewai_flow_status(
+    request: Request,
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
+):
+    """
+    Get comprehensive CrewAI Flow monitoring data.
+    
+    Returns detailed information about:
+    - Active discovery flows and their current phases
+    - Flow execution progress and status
+    - Agent task details within flows
+    - Flow performance metrics
+    - Error states and debugging information
+    """
+    try:
+        # Get context without authentication
+        context = extract_context_from_request(request)
+        
+        # Get active flows summary
+        flows_summary = service.get_active_flows_summary()
+        
+        # Get all active flows with details
+        active_flows = service.get_all_active_flows(context)
+        
+        # Get service health status
+        health_status = service.get_health_status()
+        
+        # Get performance metrics
+        performance_metrics = service.get_performance_metrics()
+        
+        # Enhanced flow details with agent task information
+        enhanced_flows = []
+        for flow in active_flows:
+            flow_id = flow.get("session_id")
+            if flow_id:
+                # Get detailed flow status
+                flow_status = service.get_flow_status(flow_id)
+                
+                # Combine flow data with status details
+                enhanced_flow = {
+                    **flow,
+                    "detailed_status": flow_status,
+                    "agent_tasks": flow_status.get("agent_tasks", []),
+                    "current_agent": flow_status.get("current_agent"),
+                    "execution_timeline": flow_status.get("execution_timeline", []),
+                    "performance_metrics": flow_status.get("performance_metrics", {}),
+                    "error_details": flow_status.get("errors", [])
+                }
+                enhanced_flows.append(enhanced_flow)
+        
+        return {
+            "success": True,
+            "timestamp": datetime.utcnow().isoformat(),
+            "crewai_flows": {
+                "service_health": health_status,
+                "flows_summary": flows_summary,
+                "active_flows": enhanced_flows,
+                "performance_metrics": performance_metrics,
+                "total_active_flows": len(enhanced_flows),
+                "openlit_available": getattr(service, 'OPENLIT_AVAILABLE', False)
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting CrewAI flow status: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get CrewAI flow status: {str(e)}")
+
+
+@router.get("/crewai-flows/{session_id}")
+async def get_specific_flow_details(
+    session_id: str,
+    request: Request,
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
+):
+    """
+    Get detailed information about a specific CrewAI Flow.
+    
+    Returns comprehensive flow execution details including:
+    - Current flow state and phase
+    - Agent task execution history
+    - Flow execution timeline
+    - Performance metrics for this specific flow
+    - Error states and debugging information
+    - Real-time agent activity
+    """
+    try:
+        # Get context without authentication
+        context = extract_context_from_request(request)
+        
+        # Get flow state
+        flow_state = await service.get_flow_state_by_session(session_id, context)
+        if not flow_state:
+            raise HTTPException(status_code=404, detail=f"Flow not found: {session_id}")
+        
+        # Get detailed flow status
+        flow_status = service.get_flow_status(session_id)
+        
+        # Combine all flow information
+        detailed_flow = {
+            "session_id": session_id,
+            "flow_state": flow_state,
+            "flow_status": flow_status,
+            "agent_tasks": flow_status.get("agent_tasks", []),
+            "current_agent": flow_status.get("current_agent"),
+            "execution_timeline": flow_status.get("execution_timeline", []),
+            "performance_metrics": flow_status.get("performance_metrics", {}),
+            "error_details": flow_status.get("errors", []),
+            "debug_info": {
+                "phases_completed": flow_state.get("phases_completed", {}),
+                "current_phase": flow_state.get("current_phase"),
+                "status": flow_state.get("status"),
+                "progress_percentage": flow_state.get("progress_percentage", 0),
+                "warnings": flow_state.get("warnings", []),
+                "metadata": flow_state.get("metadata", {})
+            }
+        }
+        
+        return {
+            "success": True,
+            "timestamp": datetime.utcnow().isoformat(),
+            "flow_details": detailed_flow
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting flow details for {session_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get flow details: {str(e)}")
+
+
+@router.get("/crewai-flows/{session_id}/agent-tasks")
+async def get_flow_agent_tasks(
+    session_id: str,
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
+):
+    """
+    Get detailed agent task information for a specific flow.
+    
+    Returns real-time agent task execution details including:
+    - Current agent tasks and their status
+    - Task execution timeline
+    - Agent performance within this flow
+    - Task dependencies and execution order
+    - Error states and retry information
+    """
+    try:
+        # Get flow status with focus on agent tasks
+        flow_status = service.get_flow_status(session_id)
+        
+        if not flow_status:
+            raise HTTPException(status_code=404, detail=f"Flow not found: {session_id}")
+        
+        # Extract and enhance agent task information
+        agent_tasks = flow_status.get("agent_tasks", [])
+        current_agent = flow_status.get("current_agent")
+        execution_timeline = flow_status.get("execution_timeline", [])
+        
+        # Organize tasks by agent and phase
+        tasks_by_agent = {}
+        tasks_by_phase = {}
+        
+        for task in agent_tasks:
+            agent_name = task.get("agent_name", "unknown")
+            phase = task.get("phase", "unknown")
+            
+            if agent_name not in tasks_by_agent:
+                tasks_by_agent[agent_name] = []
+            tasks_by_agent[agent_name].append(task)
+            
+            if phase not in tasks_by_phase:
+                tasks_by_phase[phase] = []
+            tasks_by_phase[phase].append(task)
+        
+        return {
+            "success": True,
+            "timestamp": datetime.utcnow().isoformat(),
+            "session_id": session_id,
+            "agent_tasks": {
+                "current_agent": current_agent,
+                "all_tasks": agent_tasks,
+                "tasks_by_agent": tasks_by_agent,
+                "tasks_by_phase": tasks_by_phase,
+                "execution_timeline": execution_timeline,
+                "total_tasks": len(agent_tasks),
+                "completed_tasks": len([t for t in agent_tasks if t.get("status") == "completed"]),
+                "active_tasks": len([t for t in agent_tasks if t.get("status") == "running"]),
+                "failed_tasks": len([t for t in agent_tasks if t.get("status") == "failed"])
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting agent tasks for flow {session_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get agent tasks: {str(e)}")
+
+
+# Create a simple context dependency for monitoring (no auth required)
+async def get_monitoring_context(request: Request) -> RequestContext:
+    """Get context for monitoring endpoints without authentication."""
+    return extract_context_from_request(request) 

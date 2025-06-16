@@ -84,6 +84,8 @@ class DiscoveryFlowState(BaseModel):
     warnings: List[str] = Field(default_factory=list)
     
     # Timestamps
+    created_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
+    updated_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
     started_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
     completed_at: Optional[datetime] = None
     

@@ -11,9 +11,9 @@ import json
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, and_
 
 from app.core.context import RequestContext
-from app.schemas.flow_schemas import DiscoveryFlowState as LegacyDiscoveryFlowState
 from app.services.crewai_flows.discovery_flow import (
     create_discovery_flow,
     DiscoveryFlow,
@@ -21,18 +21,32 @@ from app.services.crewai_flows.discovery_flow import (
     CREWAI_FLOW_AVAILABLE
 )
 
+# OpenLIT observability for CrewAI agents
+try:
+    import openlit
+    # Initialize OpenLIT for CrewAI observability
+    openlit.init(
+        otlp_endpoint="http://127.0.0.1:4318",
+        disable_metrics=True  # Focus on traces for agent monitoring
+    )
+    OPENLIT_AVAILABLE = True
+    logging.info("✅ OpenLIT observability initialized for CrewAI agents")
+except ImportError:
+    OPENLIT_AVAILABLE = False
+    logging.warning("⚠️ OpenLIT not available - agent observability limited")
+
 logger = logging.getLogger(__name__)
 
 class CrewAIFlowService:
     """
-    CrewAI Flow Service that uses the simplified Flow implementation.
+    CrewAI Flow Service using native CrewAI Flow implementation.
     
-    Key improvements:
+    Key features:
     - Uses native CrewAI Flow patterns with @start/@listen decorators
     - Automatic state persistence with @persist decorator
     - Simplified control transfer between workflow steps
-    - Better error handling and recovery
-    - Maintains backward compatibility with existing API
+    - Comprehensive error handling and recovery
+    - Native DiscoveryFlowState format throughout
     """
     
     def __init__(self, db: AsyncSession):
@@ -67,8 +81,7 @@ class CrewAIFlowService:
         """
         Initiate a discovery workflow using the CrewAI Flow.
         
-        This method provides the same interface as the legacy service but uses
-        the simplified CrewAI Flow implementation internally.
+        Uses the native CrewAI Flow implementation with DiscoveryFlowState format.
         """
         try:
             # Parse and validate input data (reuse existing logic)
@@ -122,8 +135,11 @@ class CrewAIFlowService:
             # Start the workflow in the background
             asyncio.create_task(self._run_workflow_background(flow, context))
             
-            # Return initial state in legacy format for backward compatibility
-            initial_state = self._convert_to_legacy_format(flow.state)
+            # Return initial state in native format
+            initial_state = flow.state.model_dump()
+            # Add timestamp fields for API compatibility
+            initial_state["created_at"] = flow.state.started_at.isoformat() if flow.state.started_at else None
+            initial_state["updated_at"] = flow.state.started_at.isoformat() if flow.state.started_at else None
             
             logger.info(f"Discovery workflow initiated for session: {session_id}")
             return initial_state
@@ -158,14 +174,13 @@ class CrewAIFlowService:
             
             # Update persistent state
             if self.state_service:
-                legacy_state = self._convert_to_legacy_format(flow.state)
                 await self.state_service.update_workflow_state(
                     session_id=session_id,
                     client_account_id=context.client_account_id,
                     engagement_id=context.engagement_id,
                     status=flow.state.status,
                     current_phase=flow.state.current_phase,
-                    state_data=legacy_state
+                    state_data=flow.state.model_dump()
                 )
             
         except Exception as e:
@@ -177,14 +192,13 @@ class CrewAIFlowService:
             flow.state.add_error("workflow_execution", str(e))
             
             if self.state_service:
-                legacy_state = self._convert_to_legacy_format(flow.state)
                 await self.state_service.update_workflow_state(
                     session_id=session_id,
                     client_account_id=context.client_account_id,
                     engagement_id=context.engagement_id,
                     status="failed",
                     current_phase="error",
-                    state_data=legacy_state
+                    state_data=flow.state.model_dump()
                 )
         finally:
             # Clean up active flow tracking
@@ -207,45 +221,6 @@ class CrewAIFlowService:
             logger.error(f"Fallback workflow execution failed: {e}")
             raise
     
-    def _convert_to_legacy_format(self, flow_state: DiscoveryFlowState) -> Dict[str, Any]:
-        """Convert flow state to legacy format for backward compatibility."""
-        return {
-            "session_id": flow_state.session_id,
-            "client_account_id": flow_state.client_account_id,
-            "engagement_id": flow_state.engagement_id,
-            "user_id": flow_state.user_id,
-            "status": flow_state.status,
-            "current_phase": flow_state.current_phase,
-            "phases_completed": flow_state.phases_completed,
-            "results": flow_state.results,
-            "errors": flow_state.errors,
-            "metadata": flow_state.metadata,
-            "created_at": flow_state.created_at.isoformat() if flow_state.created_at else None,
-            "updated_at": flow_state.updated_at.isoformat() if flow_state.updated_at else None,
-            
-            # Legacy fields for compatibility
-            "data_validation": {
-                "status": "completed" if flow_state.phases_completed.get("data_validation") else "pending",
-                "results": flow_state.results.get("data_validation", {})
-            },
-            "field_mapping": {
-                "status": "completed" if flow_state.phases_completed.get("field_mapping") else "pending",
-                "results": flow_state.results.get("field_mapping", {})
-            },
-            "asset_classification": {
-                "status": "completed" if flow_state.phases_completed.get("asset_classification") else "pending",
-                "results": flow_state.results.get("asset_classification", {})
-            },
-            "dependency_analysis": {
-                "status": "completed" if flow_state.phases_completed.get("dependency_analysis") else "pending",
-                "results": flow_state.results.get("dependency_analysis", {})
-            },
-            "database_integration": {
-                "status": "completed" if flow_state.phases_completed.get("database_integration") else "pending",
-                "results": flow_state.results.get("database_integration", {})
-            }
-        }
-    
     async def get_flow_state_by_session(
         self,
         session_id: str,
@@ -256,11 +231,11 @@ class CrewAIFlowService:
             # Check active flows first
             if session_id in self._active_flows:
                 flow = self._active_flows[session_id]
-                return self._convert_to_legacy_format(flow.state)
+                return flow.state.model_dump()
             
             # Fall back to persistent state
             if self.state_service:
-                state = await self.state_service.get_workflow_state(
+                state = await self.state_service.get_workflow_state_by_session_id(
                     session_id=session_id,
                     client_account_id=context.client_account_id,
                     engagement_id=context.engagement_id

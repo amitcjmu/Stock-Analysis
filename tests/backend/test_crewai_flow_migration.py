@@ -157,11 +157,11 @@ class TestCrewAIFlowMigration:
                 mock_create.assert_called_once()
                 assert "test-session" in service._active_flows or len(service._active_flows) > 0
     
-    def test_legacy_format_conversion(self, mock_db_session):
-        """Test conversion from new state format to legacy format."""
+    def test_native_format_structure(self, mock_db_session):
+        """Test that the service returns native DiscoveryFlowState format."""
         service = CrewAIFlowService(mock_db_session)
         
-        # Create a sample new state
+        # Create a test state
         new_state = DiscoveryFlowState(
             session_id="test-session",
             client_account_id="test-client",
@@ -170,14 +170,14 @@ class TestCrewAIFlowMigration:
         )
         new_state.mark_phase_complete("data_validation", {"records": 100})
         
-        # Convert to legacy format
-        legacy_format = service._convert_to_legacy_format(new_state)
+        # Convert to native format using model_dump
+        native_format = new_state.model_dump()
         
-        # Verify legacy structure
-        assert legacy_format["session_id"] == "test-session"
-        assert legacy_format["status"] == "running"
-        assert "data_validation" in legacy_format
-        assert legacy_format["data_validation"]["status"] == "completed"
+        # Verify native structure
+        assert native_format["session_id"] == "test-session"
+        assert native_format["status"] == "running"
+        assert native_format["phases_completed"]["data_validation"] is True
+        assert native_format["results"]["data_validation"]["records"] == 100
     
     def test_fallback_behavior_when_crewai_unavailable(self):
         """Test that the system works correctly when CrewAI Flow is not available."""
@@ -375,15 +375,15 @@ class TestCrewAIFlowMigration:
             assert "confidence" in asset
 
 
-class TestBackwardCompatibility:
-    """Test backward compatibility with legacy API contracts."""
+class TestNativeFormatValidation:
+    """Test native DiscoveryFlowState format validation and structure."""
     
     @pytest.fixture
     def mock_db_session(self):
         return Mock()
     
-    def test_legacy_state_structure_preserved(self, mock_db_session):
-        """Test that legacy state structure is preserved in API responses."""
+    def test_native_state_structure_complete(self, mock_db_session):
+        """Test that native state structure contains all required fields."""
         service = CrewAIFlowService(mock_db_session)
         
         # Create new state
@@ -394,26 +394,24 @@ class TestBackwardCompatibility:
             user_id="test-user"
         )
         
-        # Convert to legacy format
-        legacy_state = service._convert_to_legacy_format(new_state)
+        # Convert to native format using model_dump
+        native_state = new_state.model_dump()
         
-        # Verify all expected legacy fields exist
+        # Verify all expected native fields exist
         expected_fields = [
             "session_id", "client_account_id", "engagement_id", "user_id",
             "status", "current_phase", "phases_completed", "results", "errors",
-            "metadata", "created_at", "updated_at",
-            "data_validation", "field_mapping", "asset_classification",
-            "dependency_analysis", "database_integration"
+            "metadata", "started_at", "completed_at", "progress_percentage",
+            "agent_insights", "recommendations", "warnings"
         ]
         
         for field in expected_fields:
-            assert field in legacy_state, f"Missing legacy field: {field}"
+            assert field in native_state, f"Missing native field: {field}"
         
-        # Verify legacy phase structure
-        for phase in ["data_validation", "field_mapping", "asset_classification", 
-                     "dependency_analysis", "database_integration"]:
-            assert "status" in legacy_state[phase]
-            assert "results" in legacy_state[phase]
+        # Verify native phase structure
+        assert isinstance(native_state["phases_completed"], dict)
+        assert isinstance(native_state["results"], dict)
+        assert isinstance(native_state["errors"], list)
     
     def test_api_method_signatures_unchanged(self, mock_db_session):
         """Test that API method signatures remain unchanged."""

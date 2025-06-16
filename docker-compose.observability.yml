@@ -1,0 +1,121 @@
+version: '3.8'
+
+services:
+  # OpenLIT Observability Stack
+  openlit:
+    image: ghcr.io/openlit/openlit:latest
+    container_name: openlit_dashboard
+    ports:
+      - "3000:3000"  # OpenLIT Dashboard
+    environment:
+      - OPENLIT_ENVIRONMENT=development
+      - OPENLIT_DATABASE_URL=postgresql://openlit:openlit@openlit_db:5432/openlit
+      - OPENLIT_REDIS_URL=redis://openlit_redis:6379
+    depends_on:
+      - openlit_db
+      - openlit_redis
+      - openlit_otel_collector
+    networks:
+      - openlit_network
+      - migrate-ui-orchestrator_default  # Connect to main app network
+    restart: unless-stopped
+
+  # OpenLIT Database
+  openlit_db:
+    image: postgres:15-alpine
+    container_name: openlit_postgres
+    environment:
+      - POSTGRES_DB=openlit
+      - POSTGRES_USER=openlit
+      - POSTGRES_PASSWORD=openlit
+    volumes:
+      - openlit_db_data:/var/lib/postgresql/data
+    networks:
+      - openlit_network
+    restart: unless-stopped
+
+  # Redis for OpenLIT
+  openlit_redis:
+    image: redis:7-alpine
+    container_name: openlit_redis
+    networks:
+      - openlit_network
+    restart: unless-stopped
+
+  # OpenTelemetry Collector for CrewAI agent tracing
+  openlit_otel_collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: openlit_otel_collector
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./observability/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "4317:4317"   # OTLP gRPC receiver
+      - "4318:4318"   # OTLP HTTP receiver
+      - "8888:8888"   # Prometheus metrics
+      - "8889:8889"   # Prometheus exporter metrics
+    networks:
+      - openlit_network
+      - migrate-ui-orchestrator_default  # Connect to main app network
+    restart: unless-stopped
+
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: openlit_prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - openlit_network
+    restart: unless-stopped
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: openlit_grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./observability/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./observability/grafana/datasources:/etc/grafana/provisioning/datasources
+    ports:
+      - "3001:3000"  # Use 3001 to avoid conflict with OpenLIT
+    networks:
+      - openlit_network
+    restart: unless-stopped
+
+  # Jaeger for distributed tracing
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: jaeger_tracing
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "14268:14268"  # Jaeger collector HTTP
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - openlit_network
+    restart: unless-stopped
+
+volumes:
+  openlit_db_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  openlit_network:
+    driver: bridge
+  migrate-ui-orchestrator_default:
+    external: true 

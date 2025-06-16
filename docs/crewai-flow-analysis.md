@@ -262,6 +262,398 @@ class DiscoveryFlow(Flow[DiscoveryFlowState]):
 
 This approach eliminates technical debt, reduces complexity, and provides a clean foundation following CrewAI best practices.
 
+## 🔗 **Frontend-Backend API Contracts**
+
+### **Complete API Request/Response Documentation**
+
+This section documents all API calls made by the frontend to the backend for CMDB import and discovery workflows, ensuring perfect naming and format alignment.
+
+#### **1. CMDB File Analysis (Initial Upload)**
+
+**Frontend Request:**
+```typescript
+// File: src/hooks/useCMDBImport.ts - useFileAnalysis()
+POST /api/v1/discovery/flow/agent/analysis
+
+Request Body:
+{
+  "analysis_type": "data_source_analysis",
+  "data_source": {
+    "file_data": [
+      // Parsed CSV data as array of objects
+      {"Asset_Name": "server-01", "CI_Type": "Server", "Environment": "Production"},
+      {"Asset_Name": "app-web-01", "CI_Type": "Application", "Environment": "Development"}
+    ],
+    "headers": ["Asset_Name", "CI_Type", "Environment", "Owner", "Location"],
+    "filename": "cmdb_export.csv",
+    "total_records": 150,
+    "sample_size": 10
+  },
+  "options": {
+    "include_field_mapping": true,
+    "include_quality_assessment": true,
+    "confidence_threshold": 0.7
+  }
+}
+```
+
+**Backend Response:**
+```json
+{
+  "success": true,
+  "analysis_id": "analysis_12345",
+  "timestamp": "2025-01-28T12:00:00Z",
+  "data_source_analysis": {
+    "source_type": "CMDB Export",
+    "confidence": 0.95,
+    "total_records": 150,
+    "data_quality": {
+      "completeness": 0.87,
+      "consistency": 0.92,
+      "accuracy": 0.89,
+      "issues": [
+        {
+          "type": "missing_values",
+          "field": "Owner",
+          "count": 12,
+          "percentage": 8.0
+        }
+      ]
+    },
+    "field_mapping": {
+      "Asset_Name": {
+        "mapped_to": "asset_name",
+        "confidence": 0.98,
+        "critical_attribute": "identity"
+      },
+      "CI_Type": {
+        "mapped_to": "asset_type",
+        "confidence": 0.95,
+        "critical_attribute": "technical"
+      }
+    },
+    "insights": [
+      "High-quality CMDB data with good asset coverage",
+      "Missing ownership information for 8% of assets",
+      "Strong environment classification present"
+    ],
+    "recommendations": [
+      "Proceed with full import - data quality is sufficient",
+      "Consider enriching ownership data before migration planning"
+    ]
+  }
+}
+```
+
+#### **2. Discovery Flow Initiation**
+
+**Frontend Request:**
+```typescript
+// File: src/hooks/useCMDBImport.ts - initiateDiscoveryFlow()
+POST /api/v1/discovery/flow/run
+
+Request Body:
+{
+  "headers": ["Asset_Name", "CI_Type", "Environment", "Owner", "Location"],
+  "sample_data": [
+    {"Asset_Name": "server-01", "CI_Type": "Server", "Environment": "Production"},
+    {"Asset_Name": "app-web-01", "CI_Type": "Application", "Environment": "Development"}
+  ],
+  "filename": "cmdb_export.csv",
+  "options": {
+    "auto_proceed": true,
+    "include_recommendations": true,
+    "enable_learning": true
+  }
+}
+```
+
+**Backend Response:**
+```json
+{
+  "success": true,
+  "flow_id": "flow_67890",
+  "session_id": "session_abc123",
+  "status": "initiated",
+  "message": "Discovery flow started successfully",
+  "estimated_duration": "2-3 minutes",
+  "phases": [
+    "data_validation",
+    "field_mapping", 
+    "asset_classification",
+    "quality_assessment",
+    "recommendations"
+  ],
+  "current_phase": "data_validation",
+  "progress_percentage": 5,
+  "started_at": "2025-01-28T12:00:00Z"
+}
+```
+
+#### **3. Flow Status Polling**
+
+**Frontend Request:**
+```typescript
+// File: src/hooks/useCMDBImport.ts - pollFlowStatus()
+GET /api/v1/discovery/flow/agent/crew/analysis/status?session_id=session_abc123
+
+Headers:
+{
+  "X-Client-Account-Id": "client_uuid",
+  "X-Engagement-Id": "engagement_uuid",
+  "X-Session-Id": "session_abc123"
+}
+```
+
+**Backend Response:**
+```json
+{
+  "success": true,
+  "session_id": "session_abc123",
+  "flow_status": {
+    "status": "running",
+    "current_phase": "field_mapping",
+    "progress_percentage": 45,
+    "phases_completed": {
+      "data_validation": {
+        "status": "completed",
+        "duration": 15.2,
+        "results": {
+          "records_processed": 150,
+          "validation_passed": true,
+          "issues_found": 2
+        }
+      },
+      "field_mapping": {
+        "status": "in_progress",
+        "progress": 0.7,
+        "current_agent": "Field Mapping Specialist",
+        "estimated_remaining": 30
+      }
+    },
+    "agent_insights": [
+      {
+        "agent": "Data Source Intelligence Agent",
+        "insight": "High-quality CMDB export detected",
+        "confidence": 0.95,
+        "timestamp": "2025-01-28T12:01:00Z"
+      }
+    ],
+    "started_at": "2025-01-28T12:00:00Z",
+    "estimated_completion": "2025-01-28T12:03:00Z"
+  }
+}
+```
+
+#### **4. Flow Results Retrieval**
+
+**Frontend Request:**
+```typescript
+// File: src/hooks/useCMDBImport.ts - getFlowResults()
+GET /api/v1/discovery/flow/status/session_abc123
+
+Headers:
+{
+  "X-Client-Account-Id": "client_uuid",
+  "X-Engagement-Id": "engagement_uuid"
+}
+```
+
+**Backend Response:**
+```json
+{
+  "success": true,
+  "session_id": "session_abc123",
+  "flow_state": {
+    "status": "completed",
+    "current_phase": "completed",
+    "progress_percentage": 100,
+    "started_at": "2025-01-28T12:00:00Z",
+    "completed_at": "2025-01-28T12:02:45Z",
+    "duration_seconds": 165,
+    "results": {
+      "field_mapping": {
+        "mapped_fields": 12,
+        "confidence_score": 0.92,
+        "custom_attributes": 2,
+        "mappings": {
+          "Asset_Name": "asset_name",
+          "CI_Type": "asset_type",
+          "Environment": "environment"
+        }
+      },
+      "asset_classification": {
+        "total_assets": 150,
+        "classified_assets": 147,
+        "classification_accuracy": 0.98,
+        "asset_types": {
+          "Server": 45,
+          "Application": 38,
+          "Database": 22,
+          "Network": 15,
+          "Storage": 12,
+          "Unknown": 3
+        }
+      },
+      "quality_assessment": {
+        "overall_score": 0.89,
+        "completeness": 0.87,
+        "consistency": 0.92,
+        "accuracy": 0.89,
+        "migration_readiness": "high"
+      }
+    },
+    "recommendations": [
+      {
+        "type": "data_quality",
+        "priority": "medium",
+        "title": "Enrich Missing Ownership Data",
+        "description": "8% of assets lack ownership information",
+        "impact": "May delay migration planning for unowned assets"
+      },
+      {
+        "type": "migration_strategy",
+        "priority": "high", 
+        "title": "Proceed with Migration Assessment",
+        "description": "Data quality is sufficient for migration planning",
+        "impact": "Can proceed to 6R analysis and wave planning"
+      }
+    ],
+    "agent_insights": [
+      {
+        "agent": "CMDB Data Analyst",
+        "insight": "Strong asset inventory with good categorization",
+        "confidence": 0.94
+      },
+      {
+        "agent": "Field Mapping Specialist", 
+        "insight": "Standard CMDB field structure detected",
+        "confidence": 0.96
+      }
+    ]
+  }
+}
+```
+
+#### **5. Agent Monitoring and Observability**
+
+**Frontend Request:**
+```typescript
+// File: src/components/AgentMonitor.tsx - fetchAgentStatus()
+GET /api/v1/monitoring/status
+
+// No authentication required for monitoring
+```
+
+**Backend Response:**
+```json
+{
+  "success": true,
+  "timestamp": "2025-01-28T12:00:00Z",
+  "monitoring": {
+    "active": true,
+    "active_tasks": 3,
+    "completed_tasks": 15,
+    "hanging_tasks": 0
+  },
+  "agents": {
+    "total_registered": 17,
+    "active_agents": 13,
+    "learning_enabled": 7,
+    "phase_distribution": {
+      "discovery": {"total": 4, "active": 4},
+      "assessment": {"total": 2, "active": 2},
+      "planning": {"total": 1, "active": 1}
+    }
+  },
+  "tasks": {
+    "active": [
+      {
+        "task_id": "task_123",
+        "agent": "Field Mapping Specialist",
+        "status": "running",
+        "progress": 0.7,
+        "started_at": "2025-01-28T12:01:30Z"
+      }
+    ]
+  }
+}
+```
+
+#### **6. CrewAI Flow Monitoring**
+
+**Frontend Request:**
+```typescript
+// File: src/pages/AgentMonitoring.tsx - fetchCrewAIFlows()
+GET /api/v1/monitoring/crewai-flows
+```
+
+**Backend Response:**
+```json
+{
+  "success": true,
+  "timestamp": "2025-01-28T12:00:00Z",
+  "crewai_flows": {
+    "service_health": {
+      "service_name": "CrewAI Flow Service",
+      "status": "healthy",
+      "crewai_flow_available": true,
+      "active_flows": 2
+    },
+    "active_flows": [
+      {
+        "session_id": "session_abc123",
+        "status": "running",
+        "current_phase": "field_mapping",
+        "progress_percentage": 45,
+        "started_at": "2025-01-28T12:00:00Z",
+        "agent_tasks": [
+          {
+            "agent": "Field Mapping Specialist",
+            "status": "active",
+            "progress": 0.7,
+            "current_task": "Mapping CI_Type to asset_type"
+          }
+        ]
+      }
+    ],
+    "total_active_flows": 2,
+    "openlit_available": true
+  }
+}
+```
+
+### **🔧 API Endpoint Mapping**
+
+| Frontend Hook/Component | API Endpoint | Purpose |
+|------------------------|--------------|---------|
+| `useCMDBImport.useFileAnalysis()` | `POST /api/v1/discovery/flow/agent/analysis` | Initial file analysis |
+| `useCMDBImport.initiateDiscoveryFlow()` | `POST /api/v1/discovery/flow/run` | Start discovery workflow |
+| `useCMDBImport.pollFlowStatus()` | `GET /api/v1/discovery/flow/agent/crew/analysis/status` | Poll flow progress |
+| `useCMDBImport.getFlowResults()` | `GET /api/v1/discovery/flow/status/{session_id}` | Get final results |
+| `AgentMonitor.fetchAgentStatus()` | `GET /api/v1/monitoring/status` | Agent monitoring |
+| `AgentMonitoring.fetchCrewAIFlows()` | `GET /api/v1/monitoring/crewai-flows` | Flow monitoring |
+
+### **🚨 Common Issues and Debugging**
+
+#### **Issue 1: Flow Status Polling Returns 404**
+- **Symptom**: Frontend polling returns "Flow not found"
+- **Cause**: Session ID mismatch or flow cleanup
+- **Debug**: Check `/api/v1/monitoring/crewai-flows` for active flows
+- **Solution**: Verify session ID and restart flow if needed
+
+#### **Issue 2: Agent Analysis Stuck**
+- **Symptom**: Progress percentage stops increasing
+- **Cause**: Agent task hanging or service degradation
+- **Debug**: Check `/api/v1/monitoring/status` for hanging tasks
+- **Solution**: Monitor agent health and restart if needed
+
+#### **Issue 3: Import Process Never Starts**
+- **Symptom**: File upload completes but analysis never begins
+- **Cause**: CrewAI Flow service not available
+- **Debug**: Check `/api/v1/monitoring/crewai-flows` service health
+- **Solution**: Verify CrewAI service configuration and restart backend
+
 ---
 
 *This document serves as both analysis and implementation guide for the rip-and-replace migration to native CrewAI Flow patterns.* 

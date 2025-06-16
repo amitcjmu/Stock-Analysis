@@ -17,6 +17,7 @@ from app.api.v1.endpoints import (
     data_import_router,
     sessions_router,
     context_router,
+    test_discovery_router,
 )
 from app.api.v1.discovery import discovery_flow_router
 
@@ -56,5 +57,7 @@ api_router.include_router(user_approvals_router, prefix="/admin/approvals", tags
 # Include context router
 api_router.include_router(context_router, prefix="", tags=["Context"])
 
+# Include test discovery router for debugging
+api_router.include_router(test_discovery_router, prefix="/test-discovery", tags=["Test Discovery"])
 
 logger.info("--- Finished API Router Inclusion Process ---")
