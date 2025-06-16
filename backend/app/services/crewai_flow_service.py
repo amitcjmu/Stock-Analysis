@@ -156,7 +156,7 @@ class CrewAIFlowService:
         flow: DiscoveryFlow,
         context: RequestContext
     ):
-        """Run the workflow in the background."""
+        """Run the workflow in the background with its own database session."""
         session_id = flow.state.session_id
         
         try:
@@ -172,16 +172,15 @@ class CrewAIFlowService:
                 logger.info("Using fallback workflow execution")
                 result = await self._execute_fallback_workflow(flow)
             
-            # Update persistent state
-            if self.state_service:
-                await self.state_service.update_workflow_state(
-                    session_id=session_id,
-                    client_account_id=context.client_account_id,
-                    engagement_id=context.engagement_id,
-                    status=flow.state.status,
-                    current_phase=flow.state.current_phase,
-                    state_data=flow.state.model_dump()
-                )
+            # Update persistent state with a new database session
+            await self._update_workflow_state_with_new_session(
+                session_id=session_id,
+                client_account_id=context.client_account_id,
+                engagement_id=context.engagement_id,
+                status=flow.state.status,
+                current_phase=flow.state.current_phase,
+                state_data=flow.state.model_dump()
+            )
             
         except Exception as e:
             logger.error(f"Workflow failed for session {session_id}: {e}", exc_info=True)
@@ -191,19 +190,50 @@ class CrewAIFlowService:
             flow.state.current_phase = "error"
             flow.state.add_error("workflow_execution", str(e))
             
-            if self.state_service:
-                await self.state_service.update_workflow_state(
-                    session_id=session_id,
-                    client_account_id=context.client_account_id,
-                    engagement_id=context.engagement_id,
-                    status="failed",
-                    current_phase="error",
-                    state_data=flow.state.model_dump()
-                )
+            # Update persistent state with error using new session
+            await self._update_workflow_state_with_new_session(
+                session_id=session_id,
+                client_account_id=context.client_account_id,
+                engagement_id=context.engagement_id,
+                status="failed",
+                current_phase="error",
+                state_data=flow.state.model_dump()
+            )
         finally:
             # Clean up active flow tracking
             if session_id in self._active_flows:
                 del self._active_flows[session_id]
+    
+    async def _update_workflow_state_with_new_session(
+        self,
+        session_id: str,
+        client_account_id: str,
+        engagement_id: str,
+        status: str,
+        current_phase: str,
+        state_data: Dict[str, Any]
+    ):
+        """Update workflow state using a new database session to avoid conflicts."""
+        try:
+            from app.core.database import AsyncSessionLocal
+            from app.services.workflow_state_service import WorkflowStateService
+            
+            # Create a new database session for the background task
+            async with AsyncSessionLocal() as session:
+                state_service = WorkflowStateService(session)
+                await state_service.update_workflow_state(
+                    session_id=session_id,
+                    client_account_id=client_account_id,
+                    engagement_id=engagement_id,
+                    status=status,
+                    current_phase=current_phase,
+                    state_data=state_data
+                )
+                await session.commit()
+                
+        except Exception as e:
+            logger.error(f"Failed to update workflow state for session {session_id}: {e}")
+            # Don't re-raise to avoid breaking the background task
     
     async def _execute_fallback_workflow(self, flow: DiscoveryFlow) -> str:
         """Execute workflow manually when CrewAI Flow is not available."""
@@ -233,16 +263,23 @@ class CrewAIFlowService:
                 flow = self._active_flows[session_id]
                 return flow.state.model_dump()
             
-            # Fall back to persistent state
-            if self.state_service:
-                state = await self.state_service.get_workflow_state_by_session_id(
-                    session_id=session_id,
-                    client_account_id=context.client_account_id,
-                    engagement_id=context.engagement_id
-                )
-                return state.state_data if state else None
-            
-            return None
+            # Fall back to persistent state using a new session
+            try:
+                from app.core.database import AsyncSessionLocal
+                from app.services.workflow_state_service import WorkflowStateService
+                
+                async with AsyncSessionLocal() as session:
+                    state_service = WorkflowStateService(session)
+                    state = await state_service.get_workflow_state_by_session_id(
+                        session_id=session_id,
+                        client_account_id=context.client_account_id,
+                        engagement_id=context.engagement_id
+                    )
+                    return state.state_data if state else None
+                    
+            except Exception as e:
+                logger.error(f"Failed to get persistent state for session {session_id}: {e}")
+                return None
             
         except Exception as e:
             logger.error(f"Failed to get flow state for session {session_id}: {e}")

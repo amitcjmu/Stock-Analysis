@@ -68,13 +68,22 @@ async def test_discovery_flow(
         
         logger.info(f"Test discovery flow request for file: {data.get('filename', 'unknown')}")
         
-        # Initiate the discovery workflow
+        # Prepare data_source in the format expected by initiate_discovery_workflow
+        data_source = {
+            "file_data": data.get("data", []),  # Use 'data' field from request
+            "metadata": {
+                "filename": data.get("filename", "test_file.csv"),
+                "headers": data.get("headers", []),
+                "sample_data": data.get("sample_data", []),
+                "options": data.get("options", {}),
+                "test_mode": True
+            }
+        }
+        
+        # Initiate the discovery workflow with correct parameters
         result = await service.initiate_discovery_workflow(
-            headers=data.get("headers", []),
-            sample_data=data.get("sample_data", []),
-            filename=data.get("filename", "test_file.csv"),
-            context=context,
-            options=data.get("options", {})
+            data_source=data_source,
+            context=context
         )
         
         return {

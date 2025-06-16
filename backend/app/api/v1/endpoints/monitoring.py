@@ -654,4 +654,4 @@ async def get_flow_agent_tasks(
 # Create a simple context dependency for monitoring (no auth required)
 async def get_monitoring_context(request: Request) -> RequestContext:
     """Get context for monitoring endpoints without authentication."""
-    return extract_context_from_request(request) 
+    return extract_context_from_request(request)

@@ -13,7 +13,7 @@ import {
   Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { UploadedFile, useFileAnalysisStatus } from '../../hooks/useCMDBImport';
+import { UploadedFile, useDiscoveryFlowStatus } from '../../hooks/useCMDBImport';
 import { useQueryClient } from '@tanstack/react-query';
 
 interface FileAnalysisProps {
@@ -26,7 +26,7 @@ export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNav
   const queryClient = useQueryClient();
   
   // Use the centralized status polling hook instead of creating a duplicate query
-  const { data: statusData, isLoading: isLoadingStatus } = useFileAnalysisStatus(
+  const { data: statusData, isLoading: isLoadingStatus } = useDiscoveryFlowStatus(
     file.status === 'analyzing' ? file.id : null
   );
   
@@ -34,8 +34,8 @@ export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNav
   useEffect(() => {
     if (!statusData) return;
     
-    const status = statusData.status || statusData.flow_status?.status;
-    const current_phase = statusData.current_phase || statusData.flow_status?.current_phase;
+    const status = statusData.status;
+    const current_phase = statusData.current_phase;
     
     console.log(`Status update for ${file.id}:`, { status, current_phase, statusData });
     
@@ -72,12 +72,13 @@ export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNav
     } else if (status === 'running') {
       // Update the current step and processing messages based on the current phase
       const stepMap: Record<string, number> = {
-        'initial_scan': 0,
-        'content_analysis': 1,
-        'pattern_recognition': 2,
+        'initialization': 0,
+        'data_source_analysis': 1,
+        'data_validation': 2,
         'field_mapping': 3,
-        'quality_assessment': 4,
-        'next_steps': 5
+        'asset_classification': 4,
+        'dependency_analysis': 5,
+        'database_integration': 6
       };
       
       const currentStep = stepMap[current_phase] || 0;

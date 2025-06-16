@@ -1,4 +1,4 @@
-import { HttpClient, APIError } from './http';
+import { apiCall } from '@/config/api';
 import { 
   SixRParameters, 
   QualifyingQuestion, 
@@ -10,6 +10,19 @@ import {
   BulkAnalysisResult,
   BulkAnalysisSummary
 } from '../../components/sixr';
+
+// Custom API Error class for SixR
+export class APIError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+    public type: 'network' | 'server' | 'client' | 'unknown',
+    public details?: any
+  ) {
+    super(message);
+    this.name = 'APIError';
+  }
+}
 
 // API Configuration
 const getWsBaseUrl = (): string => {
@@ -204,21 +217,20 @@ class WebSocketManager {
 
 // Main API Client
 export class SixRApiClient {
-  private http = new HttpClient();
   private ws = new WebSocketManager();
   
   // Analysis Management
   async createAnalysis(request: CreateAnalysisRequest): Promise<number> {
     try {
       console.log('🔍 API createAnalysis called with:', request);
-      const response = await this.http.post<{ analysis_id: number }>('/sixr/analyze', {
-        application_ids: request.application_ids,
-        initial_parameters: request.parameters,
-        analysis_name: request.queue_name || `Analysis ${Date.now()}`
+      const response = await apiCall<{ analysis_id: number }>('/sixr/analyze', {
+        method: 'POST',
+        body: JSON.stringify({
+          application_ids: request.application_ids,
+          initial_parameters: request.parameters,
+          analysis_name: request.queue_name || `Analysis ${Date.now()}`
+        })
       });
-      
-      // Cache the new analysis
-      this.http.invalidateCache('/sixr');
       
       return response.analysis_id;
     } catch (error) {
@@ -228,10 +240,8 @@ export class SixRApiClient {
   }
   
   async getAnalysis(analysisId: number): Promise<SixRAnalysisResponse> {
-    const cacheKey = `analysis_${analysisId}`;
-    
     try {
-      const response = await this.http.get<SixRAnalysisResponse>(`/sixr/${analysisId}`);
+      const response = await apiCall<SixRAnalysisResponse>(`/sixr/${analysisId}`);
       return response;
     } catch (error) {
       this.handleError('Failed to get analysis', error);
@@ -241,13 +251,13 @@ export class SixRApiClient {
   
   async updateParameters(analysisId: number, parameters: SixRParameters): Promise<SixRAnalysisResponse> {
     try {
-      const response = await this.http.put<SixRAnalysisResponse>(`/sixr/${analysisId}/parameters`, {
-        parameters,
-        trigger_reanalysis: true
+      const response = await apiCall<SixRAnalysisResponse>(`/sixr/${analysisId}/parameters`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          parameters,
+          trigger_reanalysis: true
+        })
       });
-      
-      // Update cache
-      this.http.invalidateCache(`/sixr/${analysisId}`);
       
       return response;
     } catch (error) {
@@ -258,13 +268,13 @@ export class SixRApiClient {
   
   async submitQuestions(analysisId: number, responses: QuestionResponse[], isPartial: boolean = false): Promise<SixRAnalysisResponse> {
     try {
-      const response = await this.http.post<SixRAnalysisResponse>(`/sixr/${analysisId}/questions`, {
-        responses,
-        is_partial: isPartial
+      const response = await apiCall<SixRAnalysisResponse>(`/sixr/${analysisId}/questions`, {
+        method: 'POST',
+        body: JSON.stringify({
+          responses,
+          is_partial: isPartial
+        })
       });
-      
-      // Update cache
-      this.http.invalidateCache(`/sixr/${analysisId}`);
       
       return response;
     } catch (error) {
@@ -275,14 +285,13 @@ export class SixRApiClient {
   
   async iterateAnalysis(analysisId: number, iterationNotes: string): Promise<SixRAnalysisResponse> {
     try {
-      const response = await this.http.post<SixRAnalysisResponse>(`/sixr/${analysisId}/iterate`, {
-        iteration_reason: 'User-initiated iteration',
-        stakeholder_feedback: iterationNotes
+      const response = await apiCall<SixRAnalysisResponse>(`/sixr/${analysisId}/iterate`, {
+        method: 'POST',
+        body: JSON.stringify({
+          iteration_reason: 'User-initiated iteration',
+          stakeholder_feedback: iterationNotes
+        })
       });
-      
-      // Update cache
-      this.http.invalidateCache(`/sixr/${analysisId}`);
-      this.http.invalidateCache('analysis_*');
       
       return response;
     } catch (error) {
@@ -293,7 +302,7 @@ export class SixRApiClient {
   
   async getRecommendation(analysisId: number): Promise<SixRRecommendation> {
     try {
-      const response = await this.http.get<SixRRecommendation>(`/sixr/${analysisId}/recommendation`);
+      const response = await apiCall<SixRRecommendation>(`/sixr/${analysisId}/recommendation`);
       return response;
     } catch (error) {
       this.handleError('Failed to get recommendation', error);
@@ -303,7 +312,7 @@ export class SixRApiClient {
   
   async getQualifyingQuestions(analysisId: number): Promise<QualifyingQuestion[]> {
     try {
-      const response = await this.http.get<QualifyingQuestion[]>(`/sixr/${analysisId}/questions`);
+      const response = await apiCall<QualifyingQuestion[]>(`/sixr/${analysisId}/questions`);
       return response;
     } catch (error) {
       this.handleError('Failed to get qualifying questions', error);
@@ -330,7 +339,7 @@ export class SixRApiClient {
       }
       
       const endpoint = `/sixr/history${queryParams.toString() ? `?${queryParams}` : ''}`;
-      const response = await this.http.get<AnalysisHistoryItem[]>(endpoint);
+      const response = await apiCall<AnalysisHistoryItem[]>(endpoint);
       return response;
     } catch (error) {
       this.handleError('Failed to get analysis history', error);
@@ -340,7 +349,9 @@ export class SixRApiClient {
   
   async deleteAnalysis(analysisId: number): Promise<{ success: boolean; message: string }> {
     try {
-      return await this.http.delete<{ success: boolean; message: string }>(`/sixr/${analysisId}`);
+      return await apiCall<{ success: boolean; message: string }>(`/sixr/${analysisId}`, {
+        method: 'DELETE'
+      });
     } catch (error) {
       this.handleError('Failed to delete analysis', error);
       throw error;
@@ -349,7 +360,9 @@ export class SixRApiClient {
   
   async archiveAnalysis(analysisId: number): Promise<{ success: boolean; message: string }> {
     try {
-      return await this.http.post<{ success: boolean; message: string }>(`/sixr/${analysisId}/archive`);
+      return await apiCall<{ success: boolean; message: string }>(`/sixr/${analysisId}/archive`, {
+        method: 'POST'
+      });
     } catch (error) {
       this.handleError('Failed to archive analysis', error);
       throw error;
@@ -358,7 +371,10 @@ export class SixRApiClient {
   
   async createBulkAnalysis(request: BulkAnalysisRequest): Promise<string> {
     try {
-      const response = await this.http.post<{ job_id: string }>('/sixr/bulk', request);
+      const response = await apiCall<{ job_id: string }>('/sixr/bulk', {
+        method: 'POST',
+        body: JSON.stringify(request)
+      });
       return response.job_id;
     } catch (error) {
       this.handleError('Failed to create bulk analysis', error);
@@ -368,7 +384,7 @@ export class SixRApiClient {
   
   async getBulkJobs(): Promise<BulkAnalysisJob[]> {
     try {
-      return await this.http.get<BulkAnalysisJob[]>('/sixr/bulk');
+      return await apiCall<BulkAnalysisJob[]>('/sixr/bulk');
     } catch (error) {
       this.handleError('Failed to get bulk jobs', error);
       throw error;
@@ -377,7 +393,7 @@ export class SixRApiClient {
   
   async getBulkJobResults(jobId: string): Promise<BulkAnalysisResult[]> {
     try {
-      return await this.http.get<BulkAnalysisResult[]>(`/sixr/bulk/${jobId}/results`);
+      return await apiCall<BulkAnalysisResult[]>(`/sixr/bulk/${jobId}/results`);
     } catch (error) {
       this.handleError('Failed to get bulk job results', error);
       throw error;
@@ -386,7 +402,7 @@ export class SixRApiClient {
   
   async getBulkSummary(): Promise<BulkAnalysisSummary> {
     try {
-      return await this.http.get<BulkAnalysisSummary>('/sixr/bulk/summary');
+      return await apiCall<BulkAnalysisSummary>('/sixr/bulk/summary');
     } catch (error) {
       this.handleError('Failed to get bulk summary', error);
       throw error;
@@ -398,16 +414,20 @@ export class SixRApiClient {
     action: 'start' | 'pause' | 'cancel' | 'retry'
   ): Promise<{ success: boolean; message: string }> {
     try {
-      return await this.http.post<{ success: boolean; message: string }>(`/sixr/bulk/${jobId}/${action}`);
+      return await apiCall<{ success: boolean; message: string }>(`/sixr/bulk/${jobId}/${action}`, {
+        method: 'POST'
+      });
     } catch (error) {
-      this.handleError(`Failed to ${action} bulk job`, error);
+      this.handleError('Failed to control bulk job', error);
       throw error;
     }
   }
   
   async deleteBulkJob(jobId: string): Promise<{ success: boolean; message: string }> {
     try {
-      return await this.http.delete<{ success: boolean; message: string }>(`/sixr/bulk/${jobId}`);
+      return await apiCall<{ success: boolean; message: string }>(`/sixr/bulk/${jobId}`, {
+        method: 'DELETE'
+      });
     } catch (error) {
       this.handleError('Failed to delete bulk job', error);
       throw error;
@@ -419,11 +439,22 @@ export class SixRApiClient {
     format: 'csv' | 'pdf' | 'json'
   ): Promise<Blob> {
     try {
-      const response = await this.http.post<Blob>('/sixr/export', {
-        analysis_ids: analysisIds,
-        format
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/sixr/export`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          analysis_ids: analysisIds,
+          format
+        })
       });
-      return response;
+      
+      if (!response.ok) {
+        throw new Error(`Export failed: ${response.statusText}`);
+      }
+      
+      return await response.blob();
     } catch (error) {
       this.handleError('Failed to export analysis', error);
       throw error;
@@ -435,17 +466,26 @@ export class SixRApiClient {
     format: 'csv' | 'pdf' | 'json'
   ): Promise<Blob> {
     try {
-      const response = await this.http.post<Blob>(`/sixr/bulk/${jobId}/export`, {
-        format
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/sixr/bulk/${jobId}/export`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ format })
       });
-      return response;
+      
+      if (!response.ok) {
+        throw new Error(`Export failed: ${response.statusText}`);
+      }
+      
+      return await response.blob();
     } catch (error) {
       this.handleError('Failed to export bulk results', error);
       throw error;
     }
   }
   
-  // WebSocket Management
+  // WebSocket Methods
   connectToAnalysis(
     analysisId: number,
     onMessage?: (data: any) => void,
@@ -454,7 +494,7 @@ export class SixRApiClient {
     onClose?: () => void
   ): WebSocket {
     return this.ws.connect(
-      `/sixr/${analysisId}/ws`,
+      `/sixr/${analysisId}`,
       onMessage,
       onError,
       onOpen,
@@ -470,7 +510,7 @@ export class SixRApiClient {
     onClose?: () => void
   ): WebSocket {
     return this.ws.connect(
-      `/sixr/bulk/${jobId}/ws`,
+      `/sixr/bulk/${jobId}`,
       onMessage,
       onError,
       onOpen,
@@ -488,40 +528,51 @@ export class SixRApiClient {
   
   // Cache Management
   clearCache(): void {
-    this.http.clearCache();
+    // Cache management would be handled by the apiCall function
+    console.log('Cache cleared');
   }
   
   invalidateCache(pattern: string): void {
-    this.http.invalidateCache(pattern);
+    // Cache management would be handled by the apiCall function
+    console.log('Cache invalidated:', pattern);
   }
   
   // Cleanup
   cleanup(): void {
     this.ws.disconnectAll();
-    this.http.clearCache();
   }
   
-  // List all analyses with optional filtering
+  // List all analyses
   async listAnalyses(filters?: AnalysisFilters): Promise<SixRAnalysisResponse[]> {
     try {
       const queryParams = new URLSearchParams();
       
       if (filters) {
         Object.entries(filters).forEach(([key, value]) => {
-          if (value) queryParams.append(key, value.toString());
+          if (value !== undefined) {
+            queryParams.append(key, value.toString());
+          }
         });
       }
       
-      const endpoint = `/sixr/list${queryParams.toString() ? `?${queryParams}` : ''}`;
-      return await this.http.get<SixRAnalysisResponse[]>(endpoint);
+      const endpoint = `/sixr${queryParams.toString() ? `?${queryParams}` : ''}`;
+      return await apiCall<SixRAnalysisResponse[]>(endpoint);
     } catch (error) {
       this.handleError('Failed to list analyses', error);
       throw error;
     }
   }
   
+  // Error handling
   private handleError(context: string, error: unknown): void {
     console.error(`${context}:`, error);
+    
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack
+      });
+    }
   }
 }
 

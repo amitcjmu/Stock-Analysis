@@ -71,30 +71,45 @@ def extract_context_from_request(request: Request) -> RequestContext:
     """
     headers = request.headers
     
+    # Debug logging to see what headers we're receiving
+    logger.info(f"🔍 Headers received: {dict(headers)}")
+    
     # Extract context from headers (primary format)
+    # Handle both uppercase and lowercase variations
     client_account_id = (
+        headers.get("X-Client-Account-ID") or
         headers.get("x-client-account-id") or 
+        headers.get("X-Client-Account-Id") or
         headers.get("x-context-client-id") or
         headers.get("client-account-id")
     )
     
     engagement_id = (
+        headers.get("X-Engagement-ID") or
         headers.get("x-engagement-id") or
+        headers.get("X-Engagement-Id") or
         headers.get("x-context-engagement-id") or  
         headers.get("engagement-id")
     )
     
     user_id = (
+        headers.get("X-User-ID") or
         headers.get("x-user-id") or
+        headers.get("X-User-Id") or
         headers.get("x-context-user-id") or
         headers.get("user-id")
     )
 
     session_id = (
+        headers.get("X-Session-ID") or
         headers.get("x-session-id") or
+        headers.get("X-Session-Id") or
         headers.get("x-context-session-id") or
         headers.get("session-id")
     )
+    
+    # Debug logging to see what we extracted
+    logger.info(f"🔍 Extracted values - Client: {client_account_id}, Engagement: {engagement_id}, User: {user_id}, Session: {session_id}")
     
     # Generate a session ID if not provided
     if not session_id:
@@ -117,7 +132,7 @@ def extract_context_from_request(request: Request) -> RequestContext:
         session_id=session_id
     )
     
-    logger.debug(f"Extracted context from request: {context}")
+    logger.info(f"🔍 Final context: {context}")
     return context
 
 

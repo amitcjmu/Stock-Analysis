@@ -1,0 +1,5 @@
+server,os,environment,application,cpu_cores,memory_gb,disk_gb
+web01,linux,production,nginx,4,16,100
+web02,windows,production,iis,8,32,200
+db01,linux,production,postgresql,16,64,500
+app01,linux,staging,tomcat,4,8,50 

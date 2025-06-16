@@ -1,9 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiCall } from '@/lib/api';
-// Use type-only import for Papaparse
-import type * as PapaType from 'papaparse';
-// @ts-ignore - Workaround for Papaparse types
-const Papa = window.Papa as typeof PapaType;
+import { apiCall } from '@/config/api';
 
 // Types
 export interface UploadedFile {
@@ -27,225 +23,207 @@ export interface UploadedFile {
   analysisError?: string;
 }
 
-export interface FileAnalysisRequest {
-  analysis_type: string;
-  data_source: {
-    file_data: string; // Base64 encoded file content
-    metadata: {
-      filename: string;
-      size: number;
-      type: string;
-      lastModified: number;
-      import_session_id: string;
-    };
-  };
+export interface DiscoveryFlowRequest {
+  headers: string[];
+  sample_data: Record<string, any>[];
+  filename: string;
+  options?: Record<string, any>;
 }
 
-export interface FileAnalysisResponse {
+export interface DiscoveryFlowResponse {
+  status: string;
+  message: string;
   session_id: string;
-  agent_analysis: {
-    suggestions: string[];
-    next_steps: Array<{
-      label: string;
-      route?: string;
-      description?: string;
-      isExternal?: boolean;
-      dataQualityIssues?: any[];
-    }>;
-    confidence: number;
-  };
+  flow_id: string;
   workflow_status: string;
+  current_phase: string;
+  flow_result: any;
+  next_steps: {
+    ready_for_assessment: boolean;
+    recommended_actions: string[];
+  };
 }
 
-// Helper function to read file content as base64
-const readFileAsBase64 = (file: File): Promise<string> => {
+interface AnalysisStatusResponse {
+  status: 'running' | 'completed' | 'failed' | 'idle';
+  session_id: string;
+  current_phase: string;
+  workflow_phases: string[];
+  progress_percentage?: number;
+  message?: string;
+  [key: string]: any;
+}
+
+// Helper function to parse CSV file into structured data
+const parseCSVFile = (file: File): Promise<{ headers: string[]; sample_data: Record<string, any>[] }> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
-      const content = e.target?.result as string;
-      // Convert to base64
-      const base64Content = btoa(content);
-      resolve(base64Content);
+      try {
+        const text = e.target?.result as string;
+        const lines = text.split('\n').filter(line => line.trim());
+        
+        if (lines.length === 0) {
+          reject(new Error('File is empty'));
+          return;
+        }
+        
+        // Parse headers
+        const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+        
+        // Parse data rows
+        const sample_data: Record<string, any>[] = [];
+        for (let i = 1; i < Math.min(lines.length, 11); i++) { // Take first 10 data rows
+          const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+          const row: Record<string, any> = {};
+          headers.forEach((header, index) => {
+            row[header] = values[index] || '';
+          });
+          sample_data.push(row);
+        }
+        
+        resolve({ headers, sample_data });
+      } catch (error) {
+        reject(new Error('Failed to parse CSV file'));
+      }
     };
-    reader.onerror = (e) => {
-      reject(new Error('Failed to read file'));
-    };
-    reader.readAsBinaryString(file);
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsText(file);
   });
 };
 
-// Hooks
-export const useFileAnalysis = () => {
+// Main hook for initiating discovery workflow
+export const useDiscoveryFlow = () => {
   const queryClient = useQueryClient();
   
-  return useMutation<FileAnalysisResponse, Error, { file: File; type: string; sessionId: string }>({
-    mutationFn: async ({ file, type, sessionId }) => {
-      let fileData: any = null;
-      let columns: string[] = [];
-      let sample_data: any[] = [];
-      let detectedType = file.name.split('.').pop()?.toLowerCase();
-
-      if (detectedType === 'csv') {
-        // Parse CSV into array of objects
-        const text = await file.text();
-        const parsed = Papa.parse(text, { header: true });
-        fileData = parsed.data;
-        columns = parsed.meta.fields || [];
-        sample_data = fileData.slice(0, 10);
-      } else {
-        // Fallback to base64 for non-CSV
-        fileData = await readFileAsBase64(file);
-      }
-
-      const requestBody: any = {
-        analysis_type: 'data_source_analysis',
-        data_source: {
-          file_data: fileData,
-          metadata: {
-            filename: file.name,
-            size: file.size,
-            type: file.type,
-            lastModified: file.lastModified,
-            import_session_id: sessionId,
-          },
-        },
+  return useMutation<DiscoveryFlowResponse, Error, { file: File; sessionId: string }>({
+    mutationFn: async ({ file, sessionId }) => {
+      // Parse CSV file
+      const { headers, sample_data } = await parseCSVFile(file);
+      
+      // Prepare request for the working backend endpoint
+      const requestBody: DiscoveryFlowRequest = {
+        headers,
+        sample_data,
+        filename: file.name,
+        options: {
+          enable_parallel_execution: true,
+          enable_retry_logic: true,
+          quality_threshold: 7.0
+        }
       };
-      if (columns.length) requestBody.data_source.columns = columns;
-      if (sample_data.length) requestBody.data_source.sample_data = sample_data;
 
-      return apiCall<FileAnalysisResponse>('/api/v1/discovery/flow/agent/analysis', {
+      // Call the working backend endpoint
+      return apiCall<DiscoveryFlowResponse>('/api/v1/discovery/flow/run', {
         method: 'POST',
         body: JSON.stringify(requestBody),
       });
     },
     onSuccess: (data) => {
-      // Invalidate any related queries
-      queryClient.invalidateQueries({ queryKey: ['fileAnalysis', data.session_id] });
+      // Invalidate related queries
+      queryClient.invalidateQueries({ queryKey: ['discoveryFlow', data.session_id] });
     },
   });
 };
 
-interface AnalysisStatusResponse {
-  status: 'running' | 'completed' | 'failed' | 'idle';
-  session_id: string;
-  flow_status: {
-    status: 'running' | 'completed' | 'failed' | 'idle';
-    current_phase: string;
-    workflow_phases: string[];
-    [key: string]: any;
-  };
-  current_phase?: string;
-  message?: string;
-  [key: string]: any;
-}
-
-export const useFileAnalysisStatus = (sessionId: string | null) => {
+// Hook for polling workflow status
+export const useDiscoveryFlowStatus = (sessionId: string | null) => {
   return useQuery<AnalysisStatusResponse, Error>({
-    queryKey: ['fileAnalysisStatus', sessionId],
+    queryKey: ['discoveryFlowStatus', sessionId],
     queryFn: async () => {
       if (!sessionId) throw new Error('Session ID is required');
       
-      try {
-        const response = await apiCall<AnalysisStatusResponse>(
-          `/api/v1/discovery/flow/agentic-analysis/status?session_id=${sessionId}`
-        );
-        
-        return response;
-      } catch (error) {
-        console.error('Error fetching analysis status:', error);
-        throw error;
-      }
+      const response = await apiCall<AnalysisStatusResponse>(
+        `/api/v1/discovery/flow/agentic-analysis/status?session_id=${sessionId}`
+      );
+      
+      return response;
     },
     enabled: !!sessionId,
     refetchInterval: (query) => {
       const data = query.state.data;
-      // Only poll if the workflow is still running
-      const isRunning = data?.status === 'running' || 
-                       data?.flow_status?.status === 'running' ||
-                       data?.workflow_status === 'running';
+      // Poll every 2 seconds if workflow is running
+      const isRunning = data?.status === 'running';
       
       console.log(`Polling decision for ${sessionId}:`, {
         status: data?.status,
-        flow_status: data?.flow_status?.status,
-        workflow_status: data?.workflow_status,
+        current_phase: data?.current_phase,
         isRunning,
-        willPoll: isRunning ? 3000 : false
+        willPoll: isRunning ? 2000 : false
       });
       
-      return isRunning ? 3000 : false; // Poll every 3 seconds only when running
+      return isRunning ? 2000 : false;
     },
-    refetchOnWindowFocus: false, // Disable refetch on window focus to reduce API calls
-    retry: 2, // Reduce retry attempts
-    retryDelay: 2000,
+    refetchOnWindowFocus: false,
+    retry: 2,
+    retryDelay: 1000,
   });
 };
 
-// Helper hook for file uploads
+// Simplified file upload hook
 export const useFileUpload = () => {
   const queryClient = useQueryClient();
-  const fileAnalysis = useFileAnalysis();
+  const discoveryFlow = useDiscoveryFlow();
   
   return useMutation({
     mutationFn: async (files: { file: File; type: string; id: string }[]) => {
       const uploadPromises = files.map(async ({ file, type, id }) => {
         try {
-          // Update the file status to 'analyzing'
+          // Update file status to analyzing
           queryClient.setQueryData<UploadedFile[]>(['uploadedFiles'], (old = []) => 
             old.map(f => f.id === id ? { 
               ...f, 
               status: 'analyzing',
               analysisError: undefined,
-              processingMessages: ['🤖 AI crew initializing...']
+              processingMessages: ['🚀 Starting discovery workflow...']
             } : f)
           );
           
-          // Start the analysis
-          const result = await fileAnalysis.mutateAsync({
+          // Start the discovery workflow
+          const result = await discoveryFlow.mutateAsync({
             file,
-            type,
             sessionId: id,
           });
           
-          // Use the session ID returned by the backend for polling
+          // Use the session ID returned by the backend
           const actualSessionId = result.session_id || id;
           
-          // Update the file with the actual session ID from the backend
+          // Update file with backend session ID
           queryClient.setQueryData<UploadedFile[]>(['uploadedFiles'], (old = []) => 
             old.map(f => f.id === id ? { 
               ...f, 
-              id: actualSessionId,  // Update to use the actual session ID
+              id: actualSessionId,
               status: 'analyzing',
-              processingMessages: ['🤖 AI crew is analyzing your file...']
+              processingMessages: [`✅ Workflow started: ${result.current_phase}`]
             } : f)
           );
           
-          // Return initial state with the actual session ID
           return {
-            id: actualSessionId,  // Use the actual session ID returned by backend
+            id: actualSessionId,
             file,
             type,
             status: 'analyzing' as const,
-            detectedFileType: file.name.split('.').pop()?.toUpperCase() || 'UNKNOWN',
+            detectedFileType: file.name.split('.').pop()?.toUpperCase() || 'CSV',
             analysisSteps: [
-              'Initial file scan',
-              'Content structure analysis',
-              'Data pattern recognition',
-              'Field mapping suggestions',
-              'Quality assessment',
-              'Next steps generation'
+              'Data source analysis',
+              'Data validation', 
+              'Field mapping',
+              'Asset classification',
+              'Dependency analysis',
+              'Database integration'
             ],
-            currentStep: 0,
-            processingMessages: ['🤖 AI crew is analyzing your file...']
+            currentStep: 1,
+            processingMessages: [`✅ Workflow started: ${result.current_phase}`]
           };
         } catch (error) {
-          // Update the file status to 'error'
+          console.error('Discovery workflow failed:', error);
           return {
             id,
             file,
             type,
             status: 'error' as const,
             analysisError: (error as Error).message,
-            processingMessages: [`Error: ${(error as Error).message}`]
+            processingMessages: [`❌ Error: ${(error as Error).message}`]
           };
         }
       });
@@ -253,7 +231,7 @@ export const useFileUpload = () => {
       return Promise.all(uploadPromises);
     },
     onMutate: (files) => {
-      // Optimistically update the UI
+      // Optimistically add files to UI
       const newFiles: UploadedFile[] = files.map(({ file, type, id }) => ({
         id,
         file,
@@ -261,15 +239,15 @@ export const useFileUpload = () => {
         status: 'uploaded' as const,
         detectedFileType: file.name.split('.').pop()?.toUpperCase(),
         analysisSteps: [
-          'Initial file scan',
-          'Content structure analysis',
-          'Data pattern recognition',
-          'Field mapping suggestions',
-          'Quality assessment',
-          'Next steps generation'
+          'Data source analysis',
+          'Data validation', 
+          'Field mapping',
+          'Asset classification',
+          'Dependency analysis',
+          'Database integration'
         ],
         currentStep: 0,
-        processingMessages: []
+        processingMessages: ['📁 File uploaded, preparing analysis...']
       }));
       
       queryClient.setQueryData<UploadedFile[]>(['uploadedFiles'], (old = []) => [...old, ...newFiles]);
@@ -283,21 +261,19 @@ export const useFileUpload = () => {
       }
     },
     onSettled: (data) => {
-      // Refresh the list of uploaded files
+      // Refresh uploaded files list
       queryClient.invalidateQueries({ queryKey: ['uploadedFiles'] });
       
-      // Start polling for status updates for each uploaded file
+      // Start status polling for successful uploads
       if (data) {
         data.forEach((file) => {
           if (file.status === 'analyzing') {
-            // The useFileAnalysisStatus hook will handle the polling automatically
-            // We just need to ensure the query is enabled with the actual session ID
             queryClient.invalidateQueries({ 
-              queryKey: ['fileAnalysisStatus', file.id] 
+              queryKey: ['discoveryFlowStatus', file.id] 
             });
           }
         });
       }
     },
   });
-};
+}; 

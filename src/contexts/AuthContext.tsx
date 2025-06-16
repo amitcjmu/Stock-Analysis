@@ -148,8 +148,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [user, isAuthenticated, isAdmin, isDemoMode]);
 
   useEffect(() => {
-    updateApiContext({ client, engagement, session });
-  }, [client, engagement, session]);
+    updateApiContext({ user, client, engagement, session });
+  }, [user, client, engagement, session]);
 
   const getAuthHeaders = useCallback((): Record<string, string> => {
     const token = tokenStorage.getToken();

@@ -6,6 +6,7 @@
 
 // Define types for the API context
 interface AppContextType {
+  user: { id: string } | null;
   client: { id: string } | null;
   engagement: { id: string } | null;
   session: { id: string } | null;
@@ -13,6 +14,7 @@ interface AppContextType {
 
 // Create a variable to store the current context
 let currentContext: AppContextType = {
+  user: null,
   client: null,
   engagement: null,
   session: null
@@ -221,6 +223,9 @@ export const apiCall = async (
       
       // Add context headers if needed
       if (includeContext) {
+        if (currentContext.user?.id) {
+          headers['X-User-ID'] = currentContext.user.id;
+        }
         if (currentContext.client?.id) {
           headers['X-Client-Account-ID'] = currentContext.client.id;
         }
@@ -309,4 +314,38 @@ export const apiCall = async (
   pendingRequests.set(requestKey, requestPromise);
   
   return requestPromise;
+};
+
+/**
+ * API call with fallback behavior - returns a structured response with success/error status
+ * @param endpoint The API endpoint to call
+ * @param options Fetch options
+ * @param includeContext Whether to include the current context in the request headers
+ */
+export const apiCallWithFallback = async (
+  endpoint: string, 
+  options: RequestInit = {}, 
+  includeContext: boolean = true
+): Promise<{ ok: boolean; status: string; data?: any; message?: string; json?: () => Promise<any> }> => {
+  try {
+    const data = await apiCall(endpoint, options, includeContext);
+    
+    // Return a structured response that mimics fetch Response object
+    return {
+      ok: true,
+      status: 'success',
+      data,
+      json: async () => data
+    };
+  } catch (error) {
+    console.error('API call failed, using fallback behavior:', error);
+    
+    const apiError = error as ApiError;
+    return {
+      ok: false,
+      status: 'error',
+      message: apiError.message || 'Request failed',
+      json: async () => ({ error: apiError.message || 'Request failed' })
+    };
+  }
 };

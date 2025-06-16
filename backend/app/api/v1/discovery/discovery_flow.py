@@ -315,7 +315,7 @@ async def get_agent_crew_analysis_status(
 async def run_discovery_flow(
     request: DiscoveryFlowRequest,
     service: CrewAIFlowService = Depends(get_crewai_flow_service),
-    context: RequestContext = Depends(get_current_context)
+    context: RequestContext = Depends(get_context_from_user)
 ):
     """
     Execute complete Discovery phase workflow with enhanced parallel processing.
