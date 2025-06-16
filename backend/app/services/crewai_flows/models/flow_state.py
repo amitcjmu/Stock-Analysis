@@ -23,13 +23,44 @@ class DiscoveryFlowState(BaseModel):
     
     # Memory references
     shared_memory_id: str = ""
+    shared_memory_reference: Any = None  # Direct reference to shared memory instance
     knowledge_base_refs: List[str] = []
     
-    # Phase tracking with manager oversight
+    # Enhanced Phase tracking with manager oversight
     current_phase: str = "initialization"
-    phase_managers: Dict[str, str] = {}
+    phase_managers: Dict[str, str] = Field(default_factory=lambda: {
+        "field_mapping": "Field Mapping Manager",
+        "data_cleansing": "Data Quality Manager",
+        "inventory_building": "Inventory Manager", 
+        "app_server_dependencies": "Dependency Manager",
+        "app_app_dependencies": "Integration Manager",
+        "technical_debt": "Technical Debt Manager"
+    })
     crew_status: Dict[str, Dict[str, Any]] = {}
-    agent_collaboration_map: Dict[str, List[str]] = {}
+    agent_collaboration_map: Dict[str, List[str]] = Field(default_factory=lambda: {
+        "field_mapping": ["Schema Analysis Expert", "Attribute Mapping Specialist"],
+        "data_cleansing": ["Data Validation Expert", "Data Standardization Specialist"],
+        "inventory_building": ["Server Classification Expert", "Application Discovery Expert", "Device Classification Expert"],
+        "app_server_dependencies": ["Hosting Relationship Expert", "Migration Impact Analyst"],
+        "app_app_dependencies": ["Integration Pattern Expert", "Business Flow Analyst"],
+        "technical_debt": ["Legacy Systems Analyst", "Modernization Expert", "Risk Assessment Specialist"]
+    })
+    
+    # Success criteria tracking for enhanced validation
+    success_criteria: Dict[str, Dict[str, Any]] = Field(default_factory=lambda: {
+        "field_mapping": {"field_mappings_confidence": 0.8, "unmapped_fields_threshold": 0.1, "validation_passed": True},
+        "data_cleansing": {"data_quality_score": 0.85, "standardization_complete": True, "validation_passed": True},
+        "inventory_building": {"asset_classification_complete": True, "cross_domain_validation": True, "classification_confidence": 0.9},
+        "app_server_dependencies": {"hosting_relationships_mapped": True, "topology_validated": True, "dependency_confidence": 0.8},
+        "app_app_dependencies": {"communication_patterns_mapped": True, "api_dependencies_identified": True, "integration_analysis_complete": True},
+        "technical_debt": {"debt_assessment_complete": True, "six_r_recommendations_ready": True, "risk_analysis_complete": True}
+    })
+    
+    # Phase completion tracking for flow control
+    phase_completion: Dict[str, bool] = Field(default_factory=lambda: {
+        "field_mapping": False, "data_cleansing": False, "inventory_building": False,
+        "app_server_dependencies": False, "app_app_dependencies": False, "technical_debt": False
+    })
     
     # Input data
     raw_data: List[Dict[str, Any]] = []

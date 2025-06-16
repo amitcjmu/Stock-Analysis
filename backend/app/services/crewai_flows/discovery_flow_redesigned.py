@@ -152,10 +152,19 @@ class DiscoveryFlowRedesigned(Flow[DiscoveryFlowState], PlanningMixin):
             self.state.current_phase = "field_mapping"
             self.state.crew_status["field_mapping"] = result.get("crew_status", {})
             
-            logger.info("✅ Field Mapping Crew completed successfully")
+            # Validate success criteria
+            success_criteria_met = self._validate_phase_success("field_mapping")
+            self.state.phase_completion["field_mapping"] = success_criteria_met
+            
+            # Store shared memory reference for subsequent crews
+            if hasattr(self, 'shared_memory'):
+                self.state.shared_memory_reference = self.shared_memory
+            
+            logger.info(f"✅ Field Mapping Crew completed - Success criteria met: {success_criteria_met}")
             return {
                 "status": "field_mapping_completed",
                 "field_mappings": self.state.field_mappings,
+                "success_criteria_met": success_criteria_met,
                 "next_phase": "data_cleansing"
             }
             
@@ -173,16 +182,14 @@ class DiscoveryFlowRedesigned(Flow[DiscoveryFlowState], PlanningMixin):
                 state=self.state
             )
             
-            # Update state with results
-            self.state.cleaned_data = result.get("cleaned_data", [])
-            self.state.data_quality_metrics = result.get("data_quality_metrics", {})
-            self.state.current_phase = "data_cleansing"
-            self.state.crew_status["data_cleansing"] = result.get("crew_status", {})
+            # Update state with validation
+            result = self._update_crew_with_validation("data_cleansing", result)
             
-            logger.info("✅ Data Cleansing Crew completed successfully")
+            logger.info(f"✅ Data Cleansing Crew completed - Success criteria met: {result.get('success_criteria_met', False)}")
             return {
                 "status": "data_cleansing_completed", 
                 "data_quality_score": self.state.data_quality_metrics.get("overall_score", 0),
+                "success_criteria_met": result.get("success_criteria_met", False),
                 "next_phase": "inventory_building"
             }
             
@@ -339,5 +346,123 @@ class DiscoveryFlowRedesigned(Flow[DiscoveryFlowState], PlanningMixin):
         await self.session_handler.cleanup_all_sessions()
     
     async def execute_with_session(self, crew_name: str, operation):
-        """Execute database operation with crew-specific session"""
-        return await self.session_handler.execute_with_session(crew_name, operation) 
+        """Execute crew operation with proper session management"""
+        return await self.session_handler.execute_with_session(crew_name, operation)
+
+    def _validate_phase_success(self, phase_name: str) -> bool:
+        """Validate success criteria for a specific phase"""
+        try:
+            criteria = self.state.success_criteria.get(phase_name, {})
+            
+            if phase_name == "field_mapping":
+                mappings = self.state.field_mappings.get("mappings", {})
+                confidence_scores = self.state.field_mappings.get("confidence_scores", {})
+                unmapped_fields = self.state.field_mappings.get("unmapped_fields", [])
+                
+                # Check confidence threshold
+                avg_confidence = sum(confidence_scores.values()) / len(confidence_scores) if confidence_scores else 0
+                confidence_met = avg_confidence >= criteria.get("field_mappings_confidence", 0.8)
+                
+                # Check unmapped fields threshold
+                total_fields = len(mappings) + len(unmapped_fields)
+                unmapped_ratio = len(unmapped_fields) / total_fields if total_fields > 0 else 0
+                unmapped_met = unmapped_ratio <= criteria.get("unmapped_fields_threshold", 0.1)
+                
+                validation_passed = self.state.field_mappings.get("validation_results", {}).get("valid", False)
+                
+                return confidence_met and unmapped_met and validation_passed
+                
+            elif phase_name == "data_cleansing":
+                quality_score = self.state.data_quality_metrics.get("overall_score", 0)
+                standardization = self.state.data_quality_metrics.get("standardization_complete", False)
+                validation = self.state.data_quality_metrics.get("validation_passed", False)
+                
+                score_met = quality_score >= criteria.get("data_quality_score", 0.85)
+                return score_met and standardization and validation
+                
+            elif phase_name == "inventory_building":
+                metadata = self.state.asset_inventory.get("classification_metadata", {})
+                total_classified = metadata.get("total_classified", 0)
+                classification_complete = total_classified > 0
+                
+                # Check if we have assets in multiple domains
+                servers = len(self.state.asset_inventory.get("servers", []))
+                apps = len(self.state.asset_inventory.get("applications", []))
+                devices = len(self.state.asset_inventory.get("devices", []))
+                cross_domain = (servers > 0) + (apps > 0) + (devices > 0) >= 2
+                
+                return classification_complete and cross_domain
+                
+            elif phase_name == "app_server_dependencies":
+                relationships = self.state.app_server_dependencies.get("hosting_relationships", [])
+                topology = self.state.app_server_dependencies.get("topology_insights", {})
+                
+                relationships_mapped = len(relationships) > 0
+                topology_validated = topology.get("total_relationships", 0) >= 0
+                
+                return relationships_mapped and topology_validated
+                
+            elif phase_name == "app_app_dependencies":
+                patterns = self.state.app_app_dependencies.get("communication_patterns", [])
+                api_deps = self.state.app_app_dependencies.get("api_dependencies", [])
+                complexity = self.state.app_app_dependencies.get("integration_complexity", {})
+                
+                patterns_mapped = len(patterns) >= 0  # Can be empty for simple environments
+                api_identified = len(api_deps) >= 0   # Can be empty for simple environments
+                analysis_complete = "total_integrations" in complexity
+                
+                return patterns_mapped and api_identified and analysis_complete
+                
+            elif phase_name == "technical_debt":
+                debt_scores = self.state.technical_debt_assessment.get("debt_scores", {})
+                recommendations = self.state.technical_debt_assessment.get("modernization_recommendations", [])
+                six_r_prep = self.state.technical_debt_assessment.get("six_r_preparation", {})
+                
+                assessment_complete = "overall" in debt_scores
+                recommendations_ready = len(recommendations) > 0
+                six_r_ready = six_r_prep.get("ready", False)
+                
+                return assessment_complete and recommendations_ready and six_r_ready
+                
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error validating success criteria for {phase_name}: {e}")
+            return False
+
+    def _update_crew_with_validation(self, phase_name: str, result: Dict[str, Any]) -> Dict[str, Any]:
+        """Update crew result with success criteria validation"""
+        try:
+            # Update state based on result
+            if phase_name == "data_cleansing":
+                self.state.cleaned_data = result.get("cleaned_data", [])
+                self.state.data_quality_metrics = result.get("data_quality_metrics", {})
+            elif phase_name == "inventory_building":
+                self.state.asset_inventory = result.get("asset_inventory", {})
+            elif phase_name == "app_server_dependencies":
+                self.state.app_server_dependencies = result.get("app_server_dependencies", {})
+            elif phase_name == "app_app_dependencies":
+                self.state.app_app_dependencies = result.get("app_app_dependencies", {})
+            elif phase_name == "technical_debt":
+                self.state.technical_debt_assessment = result.get("technical_debt_assessment", {})
+            
+            # Update tracking
+            self.state.current_phase = phase_name
+            self.state.crew_status[phase_name] = result.get("crew_status", {})
+            
+            # Validate success criteria
+            success_criteria_met = self._validate_phase_success(phase_name)
+            self.state.phase_completion[phase_name] = success_criteria_met
+            
+            # Store shared memory reference
+            if hasattr(self, 'shared_memory'):
+                self.state.shared_memory_reference = self.shared_memory
+            
+            # Update result with validation
+            result["success_criteria_met"] = success_criteria_met
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error updating crew result for {phase_name}: {e}")
+            return result 
