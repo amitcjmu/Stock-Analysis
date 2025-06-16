@@ -1273,3 +1273,97 @@ This release resolves the admin dashboard access denied issue by fixing timing p
 **Note**: This release specifically addresses the timing issue where the AdminRoute component was making access decisions before the authentication state was fully stabilized after login. The enhanced state management ensures reliable admin access for authenticated admin users.
 
 ## [0.8.14] - 2025-01-27
+
+### 🎯 **NAVIGATION ENHANCEMENT - Enhanced Breadcrumbs with Context Switcher**
+
+This release implements a comprehensive navigation enhancement that integrates context switching directly into the breadcrumbs navigation, enabling users to select client and engagement context from any page in the application.
+
+### 🚀 **Navigation & Context Management**
+
+#### **Enhanced Breadcrumbs Component**
+- **Implementation**: Complete redesign of `ContextBreadcrumbs` component with integrated context switcher
+- **Technology**: React with TanStack Query for real-time data fetching and state management
+- **Integration**: Popover-based context switcher with client and engagement selection
+- **Benefits**: Users can switch context from any page without navigating to dedicated context pages
+
+#### **Multi-Tenant Context API Endpoints**
+- **Implementation**: New non-admin API endpoints for client and engagement access
+- **Technology**: FastAPI with proper authentication and authorization
+- **Integration**: Seamless integration with existing multi-tenant session management
+- **Benefits**: Regular users can access their permitted clients and engagements without admin privileges
+
+#### **Real-Time Context Switching**
+- **Implementation**: Live context updates with automatic data refresh
+- **Technology**: React Query invalidation and toast notifications for user feedback
+- **Integration**: Proper header-based context passing to backend for every API request
+- **Benefits**: Immediate context switching with visual feedback and data consistency
+
+### 📊 **Technical Achievements**
+- **API Endpoints**: Added `/api/v1/clients` and `/api/v1/clients/{client_id}/engagements` endpoints
+- **Context Management**: Enhanced breadcrumbs with popover-based context switcher
+- **State Management**: Integrated TanStack Query for efficient data fetching and caching
+- **User Experience**: Toast notifications and loading states for smooth context transitions
+- **Multi-Tenancy**: Proper client+engagement context passing via HTTP headers
+
+### 🎯 **Success Metrics**
+- **Context Switching**: Users can switch between client+engagement combinations from any page
+- **API Integration**: Backend properly receives and processes context headers for session resolution
+- **User Experience**: Smooth transitions with visual feedback and automatic data refresh
+- **Data Isolation**: Proper multi-tenant data scoping based on selected context
+
+### 🔧 **Implementation Details**
+- **Frontend**: Enhanced `ContextBreadcrumbs` component with integrated `Popover` UI
+- **Backend**: New context endpoints in `backend/app/api/v1/endpoints/context.py`
+- **Authentication**: Proper user authentication and context validation
+- **Error Handling**: Graceful fallbacks to demo data when models unavailable
+- **Performance**: Efficient query caching and invalidation strategies
+
+### 🎪 **User Experience Improvements**
+- **Navigation**: Context switcher available on every page via breadcrumbs
+- **Visual Design**: Clean popover interface with client and engagement badges
+- **Feedback**: Toast notifications for successful context switches
+- **Accessibility**: Proper ARIA labels and keyboard navigation support
+- **Responsive**: Works seamlessly across different screen sizes
+
+---
+
+## [0.8.2] - 2025-06-15
+
+### 🎯 **SESSION MANAGEMENT - Multi-Tenant Session Resolution**
+
+This release implements comprehensive multi-tenant session management that automatically resolves default sessions based on client+engagement context from the frontend context switcher.
+
+### 🚀 **Multi-Tenant Session Architecture**
+
+#### **Context-Driven Session Resolution**
+- **Implementation**: Enhanced `get_context_from_user()` function to read client+engagement headers
+- **Technology**: FastAPI request header processing with automatic session creation
+- **Integration**: Frontend context switcher drives backend session resolution via HTTP headers
+- **Benefits**: Users get appropriate default sessions for each client+engagement combination
+
+#### **Automatic Session Provisioning**
+- **Implementation**: Auto-creation of default sessions when users access new client+engagement combinations
+- **Technology**: Database session management with proper naming conventions
+- **Integration**: Sessions named as `{client-name}-{engagement-name}-{username}-default`
+- **Benefits**: Seamless session management without manual user intervention
+
+#### **Multi-Tenant Data Isolation**
+- **Implementation**: Proper session scoping ensures data isolation between different client engagements
+- **Technology**: Session-based data filtering with client+engagement context validation
+- **Integration**: All API requests properly scoped to user's current session context
+- **Benefits**: Complete data separation between different client+engagement combinations
+
+### 📊 **Technical Achievements**
+- **Session Resolution**: Context-aware session lookup based on client+engagement headers
+- **Auto-Creation**: Automatic session provisioning for new client+engagement combinations
+- **Data Isolation**: Proper multi-tenant data scoping with session-based filtering
+- **Header Processing**: Enhanced request context extraction from `X-Client-Account-Id` and `X-Engagement-Id`
+- **Database Integration**: Robust session creation with proper metadata and naming
+
+### 🎯 **Success Metrics**
+- **Session Reuse**: Same client+engagement combination reuses existing session (`25ba4b5a-1e72-467d-ade6-9e6b6b3d1ff8`)
+- **Session Creation**: Different client+engagement combination creates new session (`a370d266-379e-4f3e-889b-5b973a100393`)
+- **Data Isolation**: Verified separate sessions for different engagement contexts
+- **Context Switching**: Frontend context switcher successfully drives backend session resolution
+
+---

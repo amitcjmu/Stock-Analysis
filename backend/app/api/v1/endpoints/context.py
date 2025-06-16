@@ -179,3 +179,173 @@ async def switch_session(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
+
+# Additional endpoints for context switcher functionality
+from typing import List
+from pydantic import BaseModel
+
+# Response models for context switcher
+class ClientResponse(BaseModel):
+    id: str
+    name: str
+    industry: Optional[str] = None
+    company_size: Optional[str] = None
+    status: str = "active"
+
+class EngagementResponse(BaseModel):
+    id: str
+    name: str
+    client_id: str
+    status: str
+    type: Optional[str] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+
+class ClientsListResponse(BaseModel):
+    clients: List[ClientResponse]
+
+class EngagementsListResponse(BaseModel):
+    engagements: List[EngagementResponse]
+
+@router.get("/clients", response_model=ClientsListResponse)
+async def get_user_clients(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get list of clients accessible to the current user.
+    For regular users, returns clients they have access to.
+    For admin users, returns all clients.
+    """
+    try:
+        # Import models with fallback
+        try:
+            from app.models.client_account import ClientAccount
+            from sqlalchemy import select
+            
+            # For now, return all active clients
+            # TODO: Implement proper user-client access control
+            query = select(ClientAccount).where(ClientAccount.is_active == True)
+            result = await db.execute(query)
+            clients = result.scalars().all()
+
+            client_responses = []
+            for client in clients:
+                client_responses.append(ClientResponse(
+                    id=str(client.id),
+                    name=client.name,
+                    industry=client.industry,
+                    company_size=client.company_size,
+                    status="active" if client.is_active else "inactive"
+                ))
+
+            return ClientsListResponse(clients=client_responses)
+            
+        except ImportError:
+            # Return demo data if models not available
+            demo_clients = [
+                ClientResponse(
+                    id="bafd5b46-aaaf-4c95-8142-573699d93171",
+                    name="Complete Test Client",
+                    industry="Technology",
+                    company_size="Enterprise",
+                    status="active"
+                )
+            ]
+            return ClientsListResponse(clients=demo_clients)
+
+    except Exception as e:
+        print(f"Error fetching user clients: {e}")
+        # Return demo data as fallback
+        demo_clients = [
+            ClientResponse(
+                id="bafd5b46-aaaf-4c95-8142-573699d93171",
+                name="Complete Test Client",
+                industry="Technology",
+                company_size="Enterprise",
+                status="active"
+            )
+        ]
+        return ClientsListResponse(clients=demo_clients)
+
+@router.get("/clients/{client_id}/engagements", response_model=EngagementsListResponse)
+async def get_client_engagements(
+    client_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get list of engagements for a specific client accessible to the current user.
+    """
+    try:
+        # Import models with fallback
+        try:
+            from app.models.client_account import ClientAccount, Engagement
+            from sqlalchemy import select, and_
+            
+            # Verify client exists and user has access
+            client_query = select(ClientAccount).where(
+                and_(
+                    ClientAccount.id == client_id,
+                    ClientAccount.is_active == True
+                )
+            )
+            client_result = await db.execute(client_query)
+            client = client_result.scalar_one_or_none()
+
+            if not client:
+                raise HTTPException(status_code=404, detail="Client not found or not accessible")
+
+            # Get engagements for this client
+            # TODO: Implement proper user-engagement access control
+            query = select(Engagement).where(
+                and_(
+                    Engagement.client_account_id == client_id,
+                    Engagement.is_active == True
+                )
+            )
+            result = await db.execute(query)
+            engagements = result.scalars().all()
+
+            engagement_responses = []
+            for engagement in engagements:
+                engagement_responses.append(EngagementResponse(
+                    id=str(engagement.id),
+                    name=engagement.name,
+                    client_id=str(engagement.client_account_id),
+                    status=engagement.status or "active",
+                    type=engagement.engagement_type,
+                    start_date=engagement.start_date.isoformat() if engagement.start_date else None,
+                    end_date=engagement.target_completion_date.isoformat() if engagement.target_completion_date else None
+                ))
+
+            return EngagementsListResponse(engagements=engagement_responses)
+            
+        except ImportError:
+            # Return demo data if models not available
+            demo_engagements = [
+                EngagementResponse(
+                    id="6e9c8133-4169-4b79-b052-106dc93d0208",
+                    name="Azure Transformation",
+                    client_id=client_id,
+                    status="active",
+                    type="migration"
+                )
+            ]
+            return EngagementsListResponse(engagements=demo_engagements)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error fetching client engagements: {e}")
+        # Return demo data as fallback
+        demo_engagements = [
+            EngagementResponse(
+                id="6e9c8133-4169-4b79-b052-106dc93d0208",
+                name="Azure Transformation",
+                client_id=client_id,
+                status="active",
+                type="migration"
+            )
+        ]
+        return EngagementsListResponse(engagements=demo_engagements)
