@@ -867,21 +867,56 @@ def create_discovery_flow(
     metadata: Dict[str, Any],
     crewai_service,
     context: RequestContext
-) -> DiscoveryFlow:
+):
     """
-    Create and initialize a Discovery Flow with proper CrewAI integration.
+    Create and initialize a Discovery Flow using the redesigned architecture.
     
-    Uses CrewAI Fingerprinting for unique identification and session management.
+    This creates and initializes a DiscoveryFlowRedesigned instance that follows
+    CrewAI best practices for High Complexity + High Precision use cases.
+    
+    The redesigned flow orchestrates multiple specialized crews:
+    - Data Ingestion Crew: Structured data processing
+    - Asset Analysis Crew: Collaborative asset intelligence
+    - Field Mapping Crew: Precise field mapping with validation
+    - Quality Assessment Crew: Data quality analysis
+    - Database Integration: Structured persistence
     """
-    flow = DiscoveryFlow(
-        crewai_service=crewai_service,
-        context=context,
-        session_id=session_id,
-        client_account_id=client_account_id,
-        engagement_id=engagement_id,
-        user_id=user_id,
-        cmdb_data=cmdb_data,
-        metadata=metadata
-    )
-    
-    return flow 
+    try:
+        # Import the redesigned flow
+        from app.services.crewai_flows.discovery_flow_redesigned import DiscoveryFlowRedesigned
+        
+        flow = DiscoveryFlowRedesigned(
+            crewai_service=crewai_service,
+            context=context,
+            session_id=session_id,
+            client_account_id=client_account_id,
+            engagement_id=engagement_id,
+            user_id=user_id,
+            raw_data=cmdb_data.get("file_data", []),
+            metadata=metadata
+        )
+        
+        logger.info(f"Created Redesigned Discovery Flow for session: {session_id}")
+        return flow
+        
+    except Exception as e:
+        logger.error(f"Failed to create Redesigned Discovery Flow: {e}")
+        # Fallback to original flow if redesigned flow fails
+        try:
+            flow = DiscoveryFlow(
+                crewai_service=crewai_service,
+                context=context,
+                session_id=session_id,
+                client_account_id=client_account_id,
+                engagement_id=engagement_id,
+                user_id=user_id,
+                cmdb_data=cmdb_data,
+                metadata=metadata
+            )
+            
+            logger.warning(f"Using fallback original Discovery Flow for session: {session_id}")
+            return flow
+            
+        except Exception as fallback_error:
+            logger.error(f"Both redesigned and original Discovery Flow creation failed: {fallback_error}")
+            raise 

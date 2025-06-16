@@ -17,6 +17,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { UploadedFile, useDiscoveryFlowStatus } from '../../hooks/useCMDBImport';
 import { useQueryClient } from '@tanstack/react-query';
+import AgentOrchestrationPanel from './AgentOrchestrationPanel';
 
 interface FileAnalysisProps {
   file: UploadedFile;
@@ -207,46 +208,16 @@ export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNav
         )}
       </div>
 
-      {/* Analysis Progress */}
-      {statusData?.status && ['running', 'in_progress', 'processing'].includes(statusData.status) && (
-        <div className="space-y-3">
-          <h4 className="font-medium text-gray-900 flex items-center">
-            <Bot className="h-4 w-4 mr-2 text-blue-500" />
-            AI Crew Analysis
-          </h4>
-          <div className="space-y-2">
-            {statusData.workflow_phases?.map((phase: string, index: number) => {
-              const isActive = statusData.current_phase === phase;
-              const isCompleted = statusData.workflow_phases?.indexOf(statusData.current_phase) > index;
-              
-              return (
-                <div key={phase} className={`flex items-center space-x-3 p-2 rounded ${
-                  isActive ? 'bg-blue-50 border border-blue-200' : 
-                  isCompleted ? 'bg-green-50' : 'bg-gray-50'
-                }`}>
-                  {isCompleted ? (
-                    <CheckCircle className="h-4 w-4 text-green-500" />
-                  ) : isActive ? (
-                    <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-                  ) : (
-                    <Clock className="h-4 w-4 text-gray-400" />
-                  )}
-                  <span className={`text-sm ${
-                    isActive ? 'text-blue-700 font-medium' : 
-                    isCompleted ? 'text-green-700' : 'text-gray-600'
-                  }`}>
-                    {phase.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                  </span>
-                </div>
-              );
-            }) || (
-              <div className="flex items-center space-x-3 p-2 rounded bg-blue-50 border border-blue-200">
-                <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-                <span className="text-sm text-blue-700">Analysis in progress...</span>
-              </div>
-            )}
-          </div>
-        </div>
+      {/* CrewAI Agent Orchestration Panel */}
+      {statusData?.status && ['running', 'in_progress', 'processing', 'completed'].includes(statusData.status) && (
+        <AgentOrchestrationPanel 
+          sessionId={file.sessionId} 
+          flowState={statusData}
+          onStatusUpdate={(status) => {
+            // Handle status updates from the orchestration panel
+            console.log('Status update from orchestration panel:', status);
+          }}
+        />
       )}
 
       {/* Action Buttons */}
