@@ -46,7 +46,7 @@ export interface DiscoveryFlowResponse {
 }
 
 interface AnalysisStatusResponse {
-  status: 'running' | 'completed' | 'failed' | 'idle';
+  status: 'running' | 'completed' | 'failed' | 'idle' | 'error' | 'in_progress' | 'processing';
   session_id: string;
   current_phase: string;
   workflow_phases: string[];
@@ -147,9 +147,8 @@ export const useDiscoveryFlow = () => {
       },
       onSuccess: (data) => {
         console.log('🎉 Discovery flow completed successfully:', data);
-        // Invalidate related queries
-        queryClient.invalidateQueries({ queryKey: ['discovery-flow'] });
-        queryClient.invalidateQueries({ queryKey: ['analysis-status'] });
+        // Only invalidate the specific query for this workflow, not all discovery queries
+        queryClient.invalidateQueries({ queryKey: ['discoveryFlowStatus', data.session_id] });
       },
       onError: (error) => {
         console.error('❌ Discovery flow failed:', error);
@@ -165,29 +164,61 @@ export const useDiscoveryFlowStatus = (sessionId: string | null) => {
     queryFn: async () => {
       if (!sessionId) throw new Error('Session ID is required');
       
+      // Use the correct backend endpoint for status checking
       const response = await apiCall(
-        `/api/v1/discovery/flow/agentic-analysis/status?session_id=${sessionId}`
-      ) as AnalysisStatusResponse;
+        `/api/v1/discovery/flow/agent/crew/analysis/status?session_id=${sessionId}`
+      ) as any;
       
-      return response;
+      // Extract the actual workflow status from the backend response
+      const flowStatus = response.flow_status || {};
+      const workflowStatus = flowStatus.status || response.status || 'unknown';
+      const currentPhase = flowStatus.current_phase || response.current_phase || 'unknown';
+      const progressPercentage = flowStatus.progress_percentage || 0;
+      
+      // Transform to frontend format
+      return {
+        status: workflowStatus,
+        session_id: sessionId,
+        current_phase: currentPhase,
+        workflow_phases: flowStatus.workflow_phases || [],
+        progress_percentage: progressPercentage,
+        message: flowStatus.message || response.message
+      } as AnalysisStatusResponse;
     },
     enabled: !!sessionId,
     refetchInterval: (query) => {
       const data = query.state.data;
-      // Poll every 2 seconds if workflow is running
-      const isRunning = data?.status === 'running';
       
-      console.log(`Polling decision for ${sessionId}:`, {
+      // Stop polling if workflow is completed, failed, or idle
+      const shouldStopPolling = data?.status === 'completed' || 
+                               data?.status === 'failed' || 
+                               data?.status === 'idle' ||
+                               data?.status === 'error';
+      
+      const shouldPoll = data?.status === 'running' || 
+                        data?.status === 'in_progress' ||
+                        data?.status === 'processing';
+      
+      console.log(`📊 Polling decision for ${sessionId}:`, {
         status: data?.status,
         current_phase: data?.current_phase,
-        isRunning,
-        willPoll: isRunning ? 2000 : false
+        shouldPoll,
+        shouldStopPolling,
+        willPoll: shouldPoll ? 3000 : false
       });
       
-      return isRunning ? 2000 : false;
+      // Poll every 3 seconds if workflow is running, otherwise stop
+      return shouldPoll ? 3000 : false;
     },
     refetchOnWindowFocus: false,
-    retry: 2,
+    retry: (failureCount, error) => {
+      // Don't retry if workflow is completed or failed intentionally
+      if (error?.message?.includes('completed') || error?.message?.includes('failed')) {
+        return false;
+      }
+      // Only retry up to 2 times for network errors
+      return failureCount < 2;
+    },
     retryDelay: 1000,
   });
 };
@@ -292,19 +323,8 @@ export const useFileUpload = () => {
       }
     },
     onSettled: (data) => {
-      // Refresh uploaded files list
+      // Only refresh the uploaded files list, don't trigger status polling here
       queryClient.invalidateQueries({ queryKey: ['uploadedFiles'] });
-      
-      // Start status polling for successful uploads
-      if (data) {
-        data.forEach((file) => {
-          if (file.status === 'analyzing') {
-            queryClient.invalidateQueries({ 
-              queryKey: ['discoveryFlowStatus', file.id] 
-            });
-          }
-        });
-      }
     },
   });
 }; 

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { 
   CheckCircle, 
   AlertTriangle, 
@@ -24,23 +24,30 @@ interface FileAnalysisProps {
 
 export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNavigate }) => {
   const queryClient = useQueryClient();
+  const lastStatusRef = useRef<string | null>(null);
   
   // Use the centralized status polling hook instead of creating a duplicate query
   const { data: statusData, isLoading: isLoadingStatus } = useDiscoveryFlowStatus(
     file.status === 'analyzing' ? file.id : null
   );
   
-  // Update the file status when status data changes
+  // Update the file status when status data changes, but only if it actually changed
   useEffect(() => {
     if (!statusData) return;
     
     const status = statusData.status;
     const current_phase = statusData.current_phase;
     
-    console.log(`Status update for ${file.id}:`, { status, current_phase, statusData });
+    // Prevent unnecessary updates if status hasn't changed
+    const statusKey = `${status}-${current_phase}`;
+    if (lastStatusRef.current === statusKey) return;
+    lastStatusRef.current = statusKey;
+    
+    console.log(`📋 Status change for ${file.id}:`, { status, current_phase });
     
     // Update the file status based on the workflow status
     if (status === 'completed') {
+      console.log(`✅ Marking file ${file.id} as processed`);
       // Update the file status to 'processed' when analysis is complete
       queryClient.setQueryData<UploadedFile[]>(['uploadedFiles'], (old = []) =>
         old.map(f => f.id === file.id ? {
@@ -60,6 +67,7 @@ export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNav
         } : f)
       );
     } else if (status === 'failed' || status === 'error') {
+      console.log(`❌ Marking file ${file.id} as error`);
       // Update the file status to 'error' if analysis failed
       queryClient.setQueryData<UploadedFile[]>(['uploadedFiles'], (old = []) =>
         old.map(f => f.id === file.id ? {
@@ -69,7 +77,7 @@ export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNav
           processingMessages: ['❌ Analysis failed. Please try again.']
         } : f)
       );
-    } else if (status === 'running') {
+    } else if (status === 'running' || status === 'in_progress' || status === 'processing') {
       // Update the current step and processing messages based on the current phase
       const stepMap: Record<string, number> = {
         'initialization': 0,
@@ -78,7 +86,9 @@ export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNav
         'field_mapping': 3,
         'asset_classification': 4,
         'dependency_analysis': 5,
-        'database_integration': 6
+        'database_integration': 6,
+        'finalization': 6,
+        'completed': 6
       };
       
       const currentStep = stepMap[current_phase] || 0;
@@ -89,13 +99,13 @@ export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNav
           status: 'analyzing' as const,
           currentStep,
           processingMessages: [
-            ...(f.processingMessages || []).filter(m => !m.startsWith('🤖')),
             `🤖 ${current_phase ? `Processing: ${current_phase.replace(/_/g, ' ')}` : 'Analyzing...'}`
-          ].slice(-5) // Keep only the last 5 messages
+          ]
         } : f)
       );
     }
-  }, [statusData, file.id, queryClient]);
+  }, [statusData?.status, statusData?.current_phase, file.id, queryClient]);
+
   const getStatusIcon = (status: UploadedFile['status']) => {
     switch (status) {
       case 'uploaded':
