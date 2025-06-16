@@ -1,1 +1,75 @@
-{"standard_mappings":{"asset_identification":{"asset_name":["name","hostname"],"asset_type":["type","category"]}}}
+{
+  "standard_mappings": {
+    "asset_identification": {
+      "asset_name": ["name", "hostname", "server_name", "host_name", "device_name", "application_name", "app_name", "system_name"],
+      "asset_id": ["id", "asset_id", "ci_id", "cmdb_id", "unique_id", "identifier", "uuid"],
+      "asset_type": ["type", "category", "class", "classification", "asset_class", "ci_type", "device_type"]
+    },
+    "infrastructure": {
+      "operating_system": ["os", "operating_system", "platform", "os_version", "os_name", "system_platform"],
+      "ip_address": ["ip", "ip_address", "primary_ip", "management_ip", "network_address"],
+      "cpu_cores": ["cores", "cpu_cores", "processor_cores", "vcpu", "cpu_count"],
+      "memory_gb": ["memory", "ram", "memory_gb", "ram_gb", "total_memory"],
+      "storage_gb": ["storage", "disk", "storage_gb", "disk_gb", "total_storage"]
+    },
+    "business_context": {
+      "environment": ["env", "environment", "stage", "tier", "deployment_environment"],
+      "business_criticality": ["criticality", "priority", "business_criticality", "impact", "criticality_level"],
+      "owner": ["owner", "business_owner", "responsible_party", "contact"],
+      "cost_center": ["cost_center", "billing_code", "department", "division"]
+    },
+    "dependency_mapping": {
+      "depends_on": ["dependencies", "depends_on", "requires", "prerequisite"],
+      "supports": ["supports", "provides_to", "serves", "dependencies_for"],
+      "hosted_on": ["host", "server", "infrastructure", "platform", "deployed_on"]
+    },
+    "technical_attributes": {
+      "version": ["version", "release", "build", "revision"],
+      "vendor": ["vendor", "manufacturer", "supplier", "provider"],
+      "license": ["license", "licensing", "license_type", "software_license"]
+    }
+  },
+  "confidence_patterns": {
+    "high_confidence": {
+      "exact_match": 1.0,
+      "case_insensitive_match": 0.95,
+      "partial_match_start": 0.85
+    },
+    "medium_confidence": {
+      "contains_keyword": 0.7,
+      "semantic_similarity": 0.6,
+      "pattern_match": 0.65
+    },
+    "low_confidence": {
+      "fuzzy_match": 0.4,
+      "context_based": 0.3,
+      "fallback_match": 0.2
+    }
+  },
+  "validation_rules": {
+    "required_fields": ["asset_name", "asset_type"],
+    "conditional_fields": {
+      "if_server": ["operating_system", "ip_address"],
+      "if_application": ["version", "environment"],
+      "if_database": ["version", "instance_name"]
+    },
+    "data_quality_checks": [
+      "no_null_required_fields",
+      "valid_ip_format",
+      "environment_in_allowed_values",
+      "criticality_level_valid"
+    ]
+  },
+  "learning_patterns": {
+    "field_semantics": {
+      "naming_conventions": ["snake_case", "camelCase", "kebab-case"],
+      "common_prefixes": ["srv_", "app_", "db_", "net_"],
+      "common_suffixes": ["_prod", "_dev", "_test", "_name", "_id"]
+    },
+    "data_patterns": {
+      "ip_address_regex": "^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$",
+      "hostname_pattern": "^[a-zA-Z0-9][a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9]$",
+      "environment_values": ["production", "prod", "staging", "test", "development", "dev"]
+    }
+  }
+} 
