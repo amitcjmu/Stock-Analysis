@@ -8,6 +8,9 @@ export interface UploadedFile {
   file: File;
   type: string;
   status: 'uploaded' | 'analyzing' | 'processed' | 'error';
+  sessionId?: string; // Session ID from the CrewAI workflow
+  filename?: string; // File name for display
+  recordCount?: number; // Number of records in the file
   aiSuggestions?: string[];
   nextSteps?: Array<{
     label: string;
@@ -250,11 +253,17 @@ export const useFileUpload = () => {
           // Use the session ID returned by the backend
           const actualSessionId = result.session_id || id;
           
-          // Update file with backend session ID
+          // Parse CSV to get record count for display
+          const { headers, sample_data } = await parseCSVFile(file);
+          
+          // Update file with backend session ID and additional metadata
           queryClient.setQueryData<UploadedFile[]>(['uploadedFiles'], (old = []) => 
             old.map(f => f.id === id ? { 
               ...f, 
               id: actualSessionId,
+              sessionId: actualSessionId, // Add session ID for status polling
+              filename: file.name, // Add filename for display
+              recordCount: sample_data.length, // Add record count for display
               status: 'analyzing',
               processingMessages: [`✅ Workflow started: ${result.current_phase}`]
             } : f)
@@ -265,6 +274,9 @@ export const useFileUpload = () => {
             file,
             type,
             status: 'analyzing' as const,
+            sessionId: actualSessionId, // Add session ID for status polling
+            filename: file.name, // Add filename for display 
+            recordCount: sample_data.length, // Add record count for display
             detectedFileType: file.name.split('.').pop()?.toUpperCase() || 'CSV',
             analysisSteps: [
               'Data source analysis',
@@ -299,6 +311,9 @@ export const useFileUpload = () => {
         file,
         type,
         status: 'uploaded' as const,
+        sessionId: id, // Temporary until backend returns real session ID
+        filename: file.name,
+        recordCount: 0, // Will be updated after parsing
         detectedFileType: file.name.split('.').pop()?.toUpperCase(),
         analysisSteps: [
           'Data source analysis',

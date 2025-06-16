@@ -241,10 +241,10 @@ const CrewAIDataImport: React.FC = () => {
             )}
 
             {/* Agent Orchestration Panel - Shows when workflow starts */}
-            {(workflowStarted || uploadedFiles.length > 0) && (
+            {(workflowStarted || uploadedFiles.length > 0) && uploadedFiles.length > 0 && (
               <div className="mt-8">
                 <AgentOrchestrationPanel 
-                  sessionId="demo-session-id"
+                  sessionId={uploadedFiles[0].sessionId || "unknown-session"}
                   flowState={{}}
                   onStatusUpdate={(status) => console.log('Flow status:', status)}
                 />
