@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiCall } from '@/config/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Types
 export interface UploadedFile {
@@ -95,35 +96,66 @@ const parseCSVFile = (file: File): Promise<{ headers: string[]; sample_data: Rec
 // Main hook for initiating discovery workflow
 export const useDiscoveryFlow = () => {
   const queryClient = useQueryClient();
+  const { currentSessionId } = useAuth(); // Get session ID from AuthContext
   
-  return useMutation<DiscoveryFlowResponse, Error, { file: File; sessionId: string }>({
-    mutationFn: async ({ file, sessionId }) => {
-      // Parse CSV file
-      const { headers, sample_data } = await parseCSVFile(file);
-      
-      // Prepare request for the working backend endpoint
-      const requestBody: DiscoveryFlowRequest = {
-        headers,
-        sample_data,
-        filename: file.name,
-        options: {
-          enable_parallel_execution: true,
-          enable_retry_logic: true,
-          quality_threshold: 7.0
-        }
-      };
-
-      // Call the working backend endpoint
-      return apiCall<DiscoveryFlowResponse>('/api/v1/discovery/flow/run', {
-        method: 'POST',
-        body: JSON.stringify(requestBody),
-      });
-    },
-    onSuccess: (data) => {
-      // Invalidate related queries
-      queryClient.invalidateQueries({ queryKey: ['discoveryFlow', data.session_id] });
-    },
-  });
+  return useMutation<DiscoveryFlowResponse, Error, { file: File }>(
+    {
+      mutationFn: async ({ file }) => {
+        console.log('🔍 Starting discovery flow for file:', file.name);
+        console.log('📋 Using session ID from AuthContext:', currentSessionId);
+        
+        // Parse CSV file
+        const { headers, sample_data } = await parseCSVFile(file);
+        
+        console.log('📊 Parsed CSV data:', {
+          headers,
+          sample_data_count: sample_data.length,
+          first_record: sample_data[0]
+        });
+        
+        // Prepare request for the working backend endpoint
+        const requestBody: DiscoveryFlowRequest = {
+          headers,
+          sample_data,
+          filename: file.name,
+          options: {
+            enable_parallel_execution: true,
+            enable_retry_logic: true,
+            max_retries: 3,
+            timeout_seconds: 300,
+            session_id: currentSessionId // Use session ID from AuthContext
+          }
+        };
+        
+        console.log('🚀 Sending request to backend:', {
+          endpoint: '/api/v1/discovery/flow/run',
+          session_id: currentSessionId,
+          filename: file.name,
+          headers_count: headers.length,
+          sample_data_count: sample_data.length
+        });
+        
+        // Call the working backend endpoint
+        const response = await apiCall('/api/v1/discovery/flow/run', {
+          method: 'POST',
+          body: JSON.stringify(requestBody),
+        }) as DiscoveryFlowResponse;
+        
+        console.log('✅ Discovery flow response:', response);
+        
+        return response;
+      },
+      onSuccess: (data) => {
+        console.log('🎉 Discovery flow completed successfully:', data);
+        // Invalidate related queries
+        queryClient.invalidateQueries({ queryKey: ['discovery-flow'] });
+        queryClient.invalidateQueries({ queryKey: ['analysis-status'] });
+      },
+      onError: (error) => {
+        console.error('❌ Discovery flow failed:', error);
+      }
+    }
+  );
 };
 
 // Hook for polling workflow status
@@ -133,9 +165,9 @@ export const useDiscoveryFlowStatus = (sessionId: string | null) => {
     queryFn: async () => {
       if (!sessionId) throw new Error('Session ID is required');
       
-      const response = await apiCall<AnalysisStatusResponse>(
+      const response = await apiCall(
         `/api/v1/discovery/flow/agentic-analysis/status?session_id=${sessionId}`
-      );
+      ) as AnalysisStatusResponse;
       
       return response;
     },
@@ -182,7 +214,6 @@ export const useFileUpload = () => {
           // Start the discovery workflow
           const result = await discoveryFlow.mutateAsync({
             file,
-            sessionId: id,
           });
           
           // Use the session ID returned by the backend

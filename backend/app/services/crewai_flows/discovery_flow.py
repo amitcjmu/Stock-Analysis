@@ -11,8 +11,8 @@ from pydantic import BaseModel, Field
 
 # CrewAI Flow imports
 try:
-    from crewai.flow.flow import Flow, listen, start, persist
-    from crewai import Task, Crew
+    from crewai.flow.flow import Flow, listen, start
+    from crewai.flow import persist
     CREWAI_FLOW_AVAILABLE = True
 except ImportError:
     CREWAI_FLOW_AVAILABLE = False
@@ -27,11 +27,19 @@ except ImportError:
         
         def kickoff(self):
             """Mock kickoff method"""
-            return "completed"
+            pass
     
-    def start(): return lambda f: f
-    def listen(func): return lambda f: f
-    def persist(): return lambda f: f
+    def listen(condition):
+        """Mock listen decorator"""
+        return lambda f: f
+    
+    def start():
+        """Mock start decorator"""
+        return lambda f: f
+        
+    def persist():
+        """Mock persist decorator"""
+        return lambda f: f
 
 from app.core.context import RequestContext
 
@@ -48,11 +56,11 @@ class DiscoveryFlowState(BaseModel):
     - Comprehensive error handling
     """
     
-    # Context Information (Required)
-    session_id: str
-    client_account_id: str
-    engagement_id: str
-    user_id: str
+    # Context Information (Required - with defaults for initialization)
+    session_id: str = ""
+    client_account_id: str = ""
+    engagement_id: str = ""
+    user_id: str = ""
     
     # Input Data
     cmdb_data: Dict[str, Any] = Field(default_factory=dict)
@@ -84,10 +92,10 @@ class DiscoveryFlowState(BaseModel):
     warnings: List[str] = Field(default_factory=list)
     
     # Timestamps
-    created_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
-    updated_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
-    started_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
-    completed_at: Optional[datetime] = None
+    created_at: Optional[str] = Field(default_factory=lambda: datetime.utcnow().isoformat())
+    updated_at: Optional[str] = Field(default_factory=lambda: datetime.utcnow().isoformat())
+    started_at: Optional[str] = Field(default_factory=lambda: datetime.utcnow().isoformat())
+    completed_at: Optional[str] = None
     
     def add_error(self, phase: str, error: str, details: Optional[Dict] = None):
         """Add an error with context information."""
@@ -137,27 +145,51 @@ class DiscoveryFlow(Flow[DiscoveryFlowState]):
     - Comprehensive logging and monitoring
     """
     
-    def __init__(self, crewai_service, context: RequestContext):
+    def __init__(self, crewai_service, context: RequestContext, **kwargs):
+        # Initialize the Flow first (this creates the empty state)
         super().__init__()
+        
+        # Store the initialization data for use in flow methods
         self.crewai_service = crewai_service
         self.context = context
         self.agents = crewai_service.agents if crewai_service else {}
         
-        logger.info(f"🏗️ Discovery Flow initialized for session: {context.session_id}")
+        # Store the initialization parameters for the flow methods
+        self._init_session_id = context.session_id
+        self._init_client_account_id = context.client_account_id
+        self._init_engagement_id = context.engagement_id
+        self._init_user_id = context.user_id
+        self._init_cmdb_data = kwargs.get('cmdb_data', {})
+        self._init_metadata = kwargs.get('metadata', {})
+        
+        # Handle any additional kwargs from decorators (like persistence)
+        for key, value in kwargs.items():
+            if key not in ['cmdb_data', 'metadata']:
+                setattr(self, key, value)
+        
+        logger.info(f"🏗️ Discovery Flow initialized for session: {self._init_session_id}")
     
     @start()
     def initialize_discovery(self):
         """
-        Initialize the discovery workflow.
+        Initialize the discovery workflow with proper state setup.
         
-        State before: Empty state
-        State after: Initialized with input data and context
+        This method sets up the state with the required fields after the Flow
+        has been created, following CrewAI best practices.
         """
-        logger.info(f"🚀 Starting Discovery Flow for session: {self.state.session_id}")
+        logger.info(f"🚀 Starting Discovery Flow initialization")
         
-        # Update state immutably
+        # Set the required state fields
+        self.state.session_id = self._init_session_id
+        self.state.client_account_id = self._init_client_account_id
+        self.state.engagement_id = self._init_engagement_id
+        self.state.user_id = self._init_user_id
+        self.state.cmdb_data = self._init_cmdb_data
+        self.state.metadata = self._init_metadata
+        
+        # Set the processing status
         self.state.current_phase = "initialization"
-        self.state.started_at = datetime.utcnow()
+        self.state.started_at = datetime.utcnow().isoformat()
         
         # Validate input data
         cmdb_data = self.state.cmdb_data.get("file_data", [])
@@ -347,7 +379,7 @@ class DiscoveryFlow(Flow[DiscoveryFlowState]):
             
             # Update final status
             self.state.status = "completed"
-            self.state.completed_at = datetime.utcnow()
+            self.state.completed_at = datetime.utcnow().isoformat()
             self.state.current_phase = "completed"
             
             # Generate final recommendations
@@ -549,15 +581,10 @@ def create_discovery_flow(
     following CrewAI best practices for flow creation.
     """
     
-    # Create the flow instance
-    flow = DiscoveryFlow(crewai_service=crewai_service, context=context)
-    
-    # Initialize the state
-    flow.state = DiscoveryFlowState(
-        session_id=session_id,
-        client_account_id=client_account_id,
-        engagement_id=engagement_id,
-        user_id=user_id,
+    # Create the flow instance with initialization data passed as kwargs
+    flow = DiscoveryFlow(
+        crewai_service=crewai_service, 
+        context=context,
         cmdb_data=cmdb_data,
         metadata=metadata
     )

@@ -384,6 +384,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setEngagement(null);
       setSession(null);
       
+      // Fetch updated context from backend to get the appropriate session
+      try {
+        const context = await apiCall('/me');
+        if (context) {
+          setEngagement(context.engagement || null);
+          setSession(context.session || null);
+          console.log('🔄 Client switched - Updated context from backend:', {
+            client: newClientData,
+            engagement: context.engagement,
+            session: context.session
+          });
+        }
+      } catch (contextError) {
+        console.warn('Failed to fetch updated context after client switch:', contextError);
+      }
+      
       console.log('Client switched to:', clientId, newClientData);
     } catch (error) {
       console.error('Error switching client:', error);
@@ -403,6 +419,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       setEngagement(newEngagementData);
       setSession(null);
+      
+      // Fetch updated context from backend to get the appropriate session for this engagement
+      try {
+        const context = await apiCall('/me');
+        if (context) {
+          setSession(context.session || null);
+          console.log('🔄 Engagement switched - Updated context from backend:', {
+            engagement: newEngagementData,
+            session: context.session
+          });
+        }
+      } catch (contextError) {
+        console.warn('Failed to fetch updated context after engagement switch:', contextError);
+      }
       
       console.log('Engagement switched to:', engagementId, newEngagementData);
     } catch (error) {
