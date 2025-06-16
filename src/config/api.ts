@@ -177,11 +177,17 @@ export const apiCall = async (
 ): Promise<any> => {
   const requestId = Math.random().toString(36).substring(2, 8);
   const startTime = performance.now();
-  const url = `${API_CONFIG.BASE_URL}/api/v1${endpoint}`;
+  
+  // Normalize endpoint to prevent double /api/v1 prefix
+  const normalizedEndpoint = endpoint.startsWith('/api/v1') 
+    ? endpoint 
+    : `/api/v1${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  
+  const url = `${API_CONFIG.BASE_URL}${normalizedEndpoint}`;
   const method = (options.method || 'GET').toUpperCase();
   
   // Create a unique key for this request to prevent duplicates
-  const requestKey = `${method}:${endpoint}`;
+  const requestKey = `${method}:${normalizedEndpoint}`;
   
   // If we already have a request with the same key, return that instead
   if (pendingRequests.has(requestKey)) {

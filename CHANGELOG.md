@@ -1114,4 +1114,53 @@ This release resolves critical authentication flow and session management issues
 - **Admin Access**: Admin users can access admin dashboard without permission errors
 - **Data Import Ready**: Session management foundation restored for data import workflows
 
-## [0.8.11] - 2025-01-27
+## [0.8.13] - 2025-01-27
+
+### 🎯 **API Routing & Authentication Debugging Fixes**
+
+This release resolves critical API routing issues and adds comprehensive debugging for authentication flow problems.
+
+### 🚀 **API Infrastructure Fixes**
+
+#### **Double API Prefix Resolution**
+- **Fixed Double Prefix Issue**: Resolved `/api/v1/api/v1/...` URLs causing 404 errors
+- **Smart Endpoint Normalization**: Updated `apiCall` function to handle endpoints with or without `/api/v1` prefix
+- **Backward Compatibility**: Maintains compatibility with existing endpoint definitions
+- **URL Construction Logic**: Enhanced URL building to prevent duplicate prefixes
+
+#### **Feedback System Cleanup**
+- **Removed Missing Module**: Eliminated import of non-existent `feedback_fallback` module
+- **Clean Startup**: Backend now starts without fallback system warnings
+- **Streamlined Architecture**: Simplified feedback system loading process
+
+### 🔧 **Authentication Debugging Enhancement**
+
+#### **Debug Logging Implementation**
+- **AuthContext Debugging**: Added comprehensive state tracking for user authentication
+- **AdminRoute Debugging**: Enhanced admin access validation with detailed logging
+- **State Change Monitoring**: Real-time tracking of user role and authentication status
+- **Access Denial Diagnostics**: Improved error reporting for admin access issues
+
+#### **User State Validation**
+- **Role Verification**: Enhanced tracking of user role changes during login flow
+- **Authentication Flow**: Improved visibility into login redirect and role assignment
+- **Context Loading**: Better monitoring of user context initialization
+
+### 📊 **Technical Improvements**
+
+#### **API Call Enhancement**
+- **Request Deduplication**: Maintained existing request deduplication logic
+- **Error Handling**: Preserved robust error handling and logging
+- **Context Headers**: Continued support for multi-tenant context headers
+- **Performance Monitoring**: Kept request timing and performance tracking
+
+#### **Development Experience**
+- **Console Debugging**: Added structured logging for authentication troubleshooting
+- **State Visibility**: Enhanced developer tools for diagnosing access issues
+- **Error Diagnostics**: Improved error messages for admin access problems
+
+### 🎯 **Success Metrics**
+- **API Routing**: Eliminated 404 errors from double prefix issues
+- **Authentication Flow**: Enhanced debugging capabilities for login problems
+- **Admin Access**: Improved diagnostics for role-based access control
+- **Development Efficiency**: Better tools for troubleshooting authentication issues

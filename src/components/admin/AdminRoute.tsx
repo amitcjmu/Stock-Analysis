@@ -13,6 +13,15 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
   const { isAuthenticated, isAdmin, isLoading, user } = useAuth();
   const location = useLocation();
 
+  // Debug logging for admin route access
+  console.log('🛡️ AdminRoute Debug:', {
+    isAuthenticated,
+    isAdmin,
+    isLoading,
+    user: user ? { id: user.id, role: user.role, full_name: user.full_name } : null,
+    location: location.pathname
+  });
+
   // Show loading state while checking authentication
   if (isLoading) {
     return (

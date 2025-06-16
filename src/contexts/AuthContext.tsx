@@ -130,6 +130,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isAuthenticated = !!user;
   const isAdmin = user?.role === 'admin';
 
+  // Debug logging for admin access
+  useEffect(() => {
+    console.log('🔍 Auth State Debug:', {
+      user: user ? { id: user.id, role: user.role, full_name: user.full_name } : null,
+      isAuthenticated,
+      isAdmin,
+      isDemoMode
+    });
+  }, [user, isAuthenticated, isAdmin, isDemoMode]);
+
   useEffect(() => {
     updateApiContext({ client, engagement, session });
   }, [client, engagement, session]);

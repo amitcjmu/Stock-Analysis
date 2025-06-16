@@ -96,16 +96,6 @@ try:
     API_ROUTES_ENABLED = True
     print("✅ API routes loaded successfully")
     
-
-        
-    # Include fallback feedback system for Railway deployment issues
-    try:
-        from app.api.v1.discovery.feedback_fallback import router as fallback_router
-        app.include_router(fallback_router, prefix="/api/v1/discovery")
-        print("✅ Fallback feedback system loaded successfully")
-    except Exception as fallback_e:
-        print(f"⚠️  Fallback feedback system could not be loaded: {fallback_e}")
-    
     # Test if discovery routes are available
     try:
         routes_list = [route.path for route in api_router.routes]
