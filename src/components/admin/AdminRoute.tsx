@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { Shield, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,23 +12,45 @@ interface AdminRouteProps {
 const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
   const { isAuthenticated, isAdmin, isLoading, user } = useAuth();
   const location = useLocation();
+  const [stateStabilized, setStateStabilized] = useState(false);
 
   // Debug logging for admin route access
   console.log('🛡️ AdminRoute Debug:', {
     isAuthenticated,
     isAdmin,
     isLoading,
+    stateStabilized,
     user: user ? { id: user.id, role: user.role, full_name: user.full_name } : null,
     location: location.pathname
   });
 
-  // Show loading state while checking authentication
-  if (isLoading) {
+  // Wait for authentication state to stabilize
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      // Add a small delay to ensure state is fully updated
+      const timer = setTimeout(() => {
+        setStateStabilized(true);
+        console.log('🛡️ AdminRoute State Stabilized:', {
+          isAdmin,
+          userRole: user?.role,
+          finalDecision: user?.role === 'admin'
+        });
+      }, 100);
+      return () => clearTimeout(timer);
+    } else if (!isLoading && !isAuthenticated) {
+      setStateStabilized(true);
+    }
+  }, [isLoading, isAuthenticated, isAdmin, user?.role]);
+
+  // Show loading state while checking authentication or waiting for state to stabilize
+  if (isLoading || (isAuthenticated && !stateStabilized)) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading...</p>
+          <p className="mt-2 text-gray-600">
+            {isLoading ? 'Loading...' : 'Verifying admin access...'}
+          </p>
         </div>
       </div>
     );
@@ -39,7 +61,17 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (!isAdmin) {
+  // Check admin access using both isAdmin computed property and direct user role check
+  const hasAdminAccess = isAdmin || user?.role === 'admin';
+  
+  console.log('🛡️ AdminRoute Access Check:', {
+    isAdmin,
+    userRole: user?.role,
+    hasAdminAccess,
+    finalDecision: hasAdminAccess
+  });
+
+  if (!hasAdminAccess) {
     // Show access denied message
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
