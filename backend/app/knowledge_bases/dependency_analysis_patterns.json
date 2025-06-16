@@ -1,1 +1,137 @@
-{"dependency_patterns":{"hosting":["runs_on","hosted_by"],"communication":["calls","connects_to"]}}
+{
+  "hosting_patterns": {
+    "application_server_relationships": {
+      "web_tier": {
+        "indicators": ["web_server", "frontend", "ui", "portal", "www"],
+        "typical_hosts": ["apache", "nginx", "iis", "tomcat"],
+        "dependency_types": ["hosts", "serves", "load_balances"]
+      },
+      "application_tier": {
+        "indicators": ["app_server", "middleware", "business_logic", "api"],
+        "typical_hosts": ["jboss", "websphere", "weblogic", "spring_boot"],
+        "dependency_types": ["executes", "processes", "manages"]
+      },
+      "data_tier": {
+        "indicators": ["database", "data_store", "persistence", "storage"],
+        "typical_hosts": ["mysql", "postgresql", "oracle", "mssql", "mongodb"],
+        "dependency_types": ["stores", "persists", "retrieves"]
+      }
+    },
+    "infrastructure_dependencies": {
+      "compute_resources": {
+        "physical_hosts": ["bare_metal", "dedicated_server", "rack_server"],
+        "virtualization": ["vmware", "hyper-v", "kvm", "xen"],
+        "containers": ["docker", "kubernetes", "openshift"]
+      },
+      "network_dependencies": {
+        "load_balancers": ["f5", "netscaler", "aws_elb", "nginx_plus"],
+        "proxies": ["reverse_proxy", "api_gateway", "ingress"],
+        "dns_services": ["bind", "route53", "azure_dns"]
+      },
+      "storage_dependencies": {
+        "shared_storage": ["nfs", "cifs", "san", "nas"],
+        "object_storage": ["s3", "azure_blob", "gcs"],
+        "database_storage": ["tablespace", "datafile", "log_file"]
+      }
+    }
+  },
+  "application_integration_patterns": {
+    "synchronous_communication": {
+      "rest_apis": {
+        "indicators": ["rest", "api", "http", "https", "endpoint"],
+        "patterns": ["crud_operations", "resource_based", "stateless"],
+        "dependencies": ["authentication", "rate_limiting", "versioning"]
+      },
+      "soap_services": {
+        "indicators": ["soap", "wsdl", "xml", "web_service"],
+        "patterns": ["document_style", "rpc_style", "contract_first"],
+        "dependencies": ["schema_validation", "security_tokens"]
+      },
+      "rpc_calls": {
+        "indicators": ["rpc", "grpc", "thrift", "avro"],
+        "patterns": ["remote_procedure", "binary_protocol", "schema_evolution"],
+        "dependencies": ["service_discovery", "load_balancing"]
+      }
+    },
+    "asynchronous_communication": {
+      "message_queues": {
+        "indicators": ["queue", "mq", "rabbitmq", "activemq", "kafka"],
+        "patterns": ["point_to_point", "publish_subscribe", "request_reply"],
+        "dependencies": ["message_broker", "dead_letter_queue", "acknowledgments"]
+      },
+      "event_streaming": {
+        "indicators": ["stream", "event", "kafka", "kinesis", "eventhub"],
+        "patterns": ["event_sourcing", "cqrs", "stream_processing"],
+        "dependencies": ["schema_registry", "consumer_groups", "offset_management"]
+      },
+      "file_transfer": {
+        "indicators": ["file", "ftp", "sftp", "batch", "etl"],
+        "patterns": ["scheduled_transfer", "event_driven", "change_detection"],
+        "dependencies": ["file_format", "encryption", "compression"]
+      }
+    },
+    "data_integration": {
+      "database_connections": {
+        "indicators": ["jdbc", "odbc", "connection_string", "datasource"],
+        "patterns": ["connection_pooling", "read_replica", "sharding"],
+        "dependencies": ["authentication", "ssl", "connection_limits"]
+      },
+      "data_synchronization": {
+        "indicators": ["sync", "replication", "cdc", "etl", "elt"],
+        "patterns": ["real_time", "batch", "incremental", "full_load"],
+        "dependencies": ["change_capture", "conflict_resolution", "schema_mapping"]
+      }
+    }
+  },
+  "migration_complexity_indicators": {
+    "high_complexity": {
+      "tight_coupling": ["direct_database_access", "shared_filesystems", "in_memory_state"],
+      "legacy_protocols": ["mainframe_connectivity", "proprietary_protocols", "custom_middleware"],
+      "performance_critical": ["real_time_processing", "high_throughput", "low_latency"]
+    },
+    "medium_complexity": {
+      "standard_integration": ["rest_apis", "soap_services", "standard_queues"],
+      "configurable_endpoints": ["environment_specific", "dns_based", "service_discovery"],
+      "stateless_design": ["microservices", "api_gateways", "load_balanced"]
+    },
+    "low_complexity": {
+      "loose_coupling": ["event_driven", "asynchronous", "circuit_breakers"],
+      "cloud_native": ["containerized", "kubernetes", "service_mesh"],
+      "standard_protocols": ["http", "https", "standard_databases"]
+    }
+  },
+  "dependency_validation_rules": {
+    "hosting_validation": {
+      "application_must_have_host": "Every application must be hosted on at least one server",
+      "host_capacity_check": "Server capacity must support hosted applications",
+      "os_compatibility": "Application OS requirements must match server OS"
+    },
+    "integration_validation": {
+      "bidirectional_check": "If A depends on B, verify B can serve A",
+      "network_connectivity": "Dependent applications must have network connectivity",
+      "port_availability": "Required ports must be available on target servers"
+    },
+    "circular_dependency_detection": {
+      "direct_cycles": "Direct circular dependencies between applications",
+      "indirect_cycles": "Indirect circular dependencies through chains",
+      "self_dependencies": "Applications depending on themselves"
+    }
+  },
+  "risk_assessment_factors": {
+    "dependency_risks": {
+      "single_point_failure": "Critical applications with single hosting points",
+      "cascade_failure": "Dependencies that can cause cascade failures",
+      "version_incompatibility": "Mismatched versions in dependent components"
+    },
+    "integration_risks": {
+      "api_breaking_changes": "APIs with poor versioning strategies",
+      "timeout_configurations": "Inappropriate timeout settings",
+      "authentication_complexity": "Complex authentication chains"
+    },
+    "infrastructure_risks": {
+      "resource_contention": "Multiple applications competing for resources",
+      "network_latency": "High latency between dependent components",
+      "security_boundaries": "Dependencies crossing security zones"
+    }
+  }
+}

@@ -1,1 +1,116 @@
-{"classification_rules":{"servers":["server","host","vm"],"applications":["app","application","service"],"devices":["device","network","switch"]}}
+{
+  "classification_rules": {
+    "servers": {
+      "physical_servers": {
+        "indicators": ["physical", "bare_metal", "dedicated", "rack_server", "blade_server"],
+        "os_patterns": ["windows_server", "linux", "unix", "aix", "solaris"],
+        "hardware_indicators": ["cpu_cores", "memory_gb", "storage_tb", "raid_config"]
+      },
+      "virtual_machines": {
+        "indicators": ["vm", "virtual", "vmware", "hyper-v", "kvm", "xen"],
+        "naming_patterns": ["vm-", "virt-", "v-", "-vm", "-virtual"],
+        "platform_indicators": ["vsphere", "hyperv", "proxmox", "citrix"]
+      },
+      "containers": {
+        "indicators": ["container", "docker", "kubernetes", "k8s", "pod"],
+        "naming_patterns": ["cnt-", "pod-", "docker-", "k8s-"],
+        "orchestration": ["kubernetes", "docker_swarm", "openshift"]
+      }
+    },
+    "applications": {
+      "web_applications": {
+        "indicators": ["web", "http", "https", "webapp", "website", "portal"],
+        "technologies": ["apache", "nginx", "iis", "tomcat", "jboss"],
+        "frameworks": ["spring", "django", "react", "angular", "vue"]
+      },
+      "databases": {
+        "indicators": ["db", "database", "sql", "nosql", "data"],
+        "types": ["mysql", "postgresql", "oracle", "mssql", "mongodb", "redis"],
+        "roles": ["primary", "secondary", "replica", "cluster"]
+      },
+      "middleware": {
+        "indicators": ["middleware", "mq", "queue", "broker", "bus"],
+        "types": ["rabbitmq", "kafka", "activemq", "tibco", "websphere"],
+        "patterns": ["message_queue", "service_bus", "api_gateway"]
+      },
+      "enterprise_applications": {
+        "indicators": ["erp", "crm", "hr", "finance", "sap", "oracle_apps"],
+        "types": ["sap_ecc", "salesforce", "workday", "peoplesoft"],
+        "modules": ["financials", "procurement", "hr", "supply_chain"]
+      }
+    },
+    "devices": {
+      "network_devices": {
+        "routers": {
+          "indicators": ["router", "rt", "rtr", "edge", "wan"],
+          "vendors": ["cisco", "juniper", "arista", "fortinet"],
+          "models": ["asr", "isr", "srx", "mx", "ex"]
+        },
+        "switches": {
+          "indicators": ["switch", "sw", "access", "core", "distribution"],
+          "types": ["l2", "l3", "access_switch", "core_switch"],
+          "vendors": ["cisco", "juniper", "arista", "hp", "dell"]
+        },
+        "firewalls": {
+          "indicators": ["firewall", "fw", "security", "asa", "palo"],
+          "vendors": ["palo_alto", "fortinet", "cisco_asa", "checkpoint"],
+          "functions": ["perimeter", "internal", "dmz", "web_application"]
+        }
+      },
+      "security_devices": {
+        "indicators": ["ids", "ips", "waf", "dlp", "siem"],
+        "types": ["intrusion_detection", "web_application_firewall", "data_loss_prevention"],
+        "vendors": ["splunk", "qradar", "fortinet", "palo_alto"]
+      },
+      "storage_devices": {
+        "indicators": ["storage", "san", "nas", "array", "disk"],
+        "types": ["block_storage", "file_storage", "object_storage"],
+        "vendors": ["emc", "netapp", "hitachi", "ibm", "pure_storage"]
+      }
+    }
+  },
+  "classification_confidence": {
+    "exact_match": 0.95,
+    "pattern_match": 0.85,
+    "keyword_match": 0.70,
+    "vendor_match": 0.80,
+    "naming_convention": 0.75,
+    "technology_stack": 0.80
+  },
+  "cross_domain_indicators": {
+    "hosting_relationships": {
+      "application_on_server": ["hosted_on", "deployed_on", "runs_on", "server_host"],
+      "database_on_server": ["db_server", "database_host", "data_tier"],
+      "service_dependencies": ["depends_on", "requires", "consumes", "calls"]
+    },
+    "network_relationships": {
+      "server_network": ["network_segment", "vlan", "subnet", "ip_range"],
+      "application_ports": ["listen_port", "service_port", "tcp_port", "udp_port"],
+      "firewall_rules": ["allow", "deny", "permit", "access_control"]
+    }
+  },
+  "validation_criteria": {
+    "required_attributes": {
+      "servers": ["asset_name", "operating_system", "ip_address"],
+      "applications": ["asset_name", "application_type", "version", "environment"],
+      "devices": ["asset_name", "device_type", "vendor", "model"]
+    },
+    "conditional_attributes": {
+      "if_virtual_machine": ["hypervisor", "host_server"],
+      "if_database": ["database_engine", "instance_name"],
+      "if_network_device": ["management_ip", "device_role"]
+    }
+  },
+  "learning_patterns": {
+    "naming_conventions": {
+      "server_prefixes": ["srv", "server", "host", "vm", "virt"],
+      "application_prefixes": ["app", "web", "db", "svc", "api"],
+      "device_prefixes": ["sw", "rt", "fw", "net", "dev"]
+    },
+    "environment_indicators": {
+      "production": ["prod", "production", "live", "prd"],
+      "development": ["dev", "development", "test", "tst", "uat"],
+      "staging": ["stage", "staging", "preprod", "stg"]
+    }
+  }
+}

@@ -1,1 +1,249 @@
 {"strategies":{"rehost":"lift_and_shift","replatform":"platform_change","refactor":"code_modernization"}}
+
+six_r_strategies:
+  rehost:
+    name: "Rehost (Lift and Shift)"
+    description: "Move applications to cloud with minimal changes"
+    best_for:
+      - legacy_applications_with_stable_architecture
+      - tight_migration_timelines
+      - minimal_modernization_budget
+      - proof_of_concept_migrations
+    characteristics:
+      effort: "low"
+      risk: "low_to_medium"
+      cost_savings: "immediate_infrastructure"
+      timeline: "weeks_to_months"
+    indicators:
+      positive:
+        - stable_application_architecture
+        - minimal_dependencies
+        - standard_operating_systems
+        - well_documented_configurations
+      negative:
+        - heavy_customization
+        - tight_hardware_coupling
+        - legacy_protocols
+        - compliance_restrictions
+    migration_patterns:
+      - virtual_machine_migration
+      - containerization_without_refactoring
+      - cloud_infrastructure_as_a_service
+
+  replatform:
+    name: "Replatform (Lift, Tinker, and Shift)"
+    description: "Move to cloud with minor optimizations"
+    best_for:
+      - applications_needing_basic_cloud_benefits
+      - moderate_modernization_budget
+      - incremental_improvement_approach
+    characteristics:
+      effort: "low_to_medium"
+      risk: "medium"
+      cost_savings: "infrastructure_plus_basic_optimization"
+      timeline: "months"
+    indicators:
+      positive:
+        - applications_using_standard_databases
+        - web_applications_with_standard_frameworks
+        - microservices_ready_architecture
+        - cloud_native_friendly_technologies
+      negative:
+        - monolithic_legacy_architecture
+        - proprietary_database_dependencies
+        - custom_middleware_requirements
+    migration_patterns:
+      - managed_database_services
+      - platform_as_a_service_deployment
+      - basic_containerization
+
+  refactor:
+    name: "Refactor (Re-architect)"
+    description: "Modify application code for cloud optimization"
+    best_for:
+      - applications_requiring_significant_improvements
+      - performance_optimization_needs
+      - scalability_requirements
+    characteristics:
+      effort: "medium_to_high"
+      risk: "medium_to_high"
+      cost_savings: "significant_operational_efficiency"
+      timeline: "months_to_year"
+    indicators:
+      positive:
+        - modular_application_design
+        - skilled_development_team_available
+        - business_value_justification
+        - modern_programming_languages
+      negative:
+        - legacy_programming_languages
+        - undocumented_business_logic
+        - limited_development_resources
+        - tight_coupling_with_other_systems
+    migration_patterns:
+      - microservices_decomposition
+      - api_first_design
+      - cloud_native_services_integration
+
+  rearchitect:
+    name: "Rearchitect (Rebuild)"
+    description: "Redesign application using cloud-native architecture"
+    best_for:
+      - legacy_applications_with_high_business_value
+      - significant_scalability_requirements
+      - innovation_and_competitive_advantage
+    characteristics:
+      effort: "high"
+      risk: "high"
+      cost_savings: "transformational_business_value"
+      timeline: "year_or_more"
+    indicators:
+      positive:
+        - clear_business_case_for_transformation
+        - skilled_cloud_native_development_team
+        - well_defined_requirements
+        - strategic_business_importance
+      negative:
+        - unclear_business_requirements
+        - limited_budget_for_transformation
+        - tight_migration_deadlines
+        - low_business_criticality
+    migration_patterns:
+      - cloud_native_architecture
+      - serverless_computing
+      - event_driven_architecture
+      - modern_data_architecture
+
+  retire:
+    name: "Retire (Decommission)"
+    description: "Turn off applications that are no longer needed"
+    best_for:
+      - redundant_applications
+      - applications_with_low_business_value
+      - cost_optimization_initiatives
+    characteristics:
+      effort: "low"
+      risk: "low_to_medium"
+      cost_savings: "immediate_license_and_infrastructure"
+      timeline: "weeks"
+    indicators:
+      positive:
+        - low_or_no_usage_metrics
+        - functionality_replaced_by_other_systems
+        - high_maintenance_costs
+        - security_vulnerabilities
+      negative:
+        - regulatory_compliance_requirements
+        - hidden_business_dependencies
+        - data_archival_requirements
+    migration_patterns:
+      - data_archival_and_backup
+      - graceful_decommissioning
+      - dependency_verification
+
+  retain:
+    name: "Retain (Keep On-Premises)"
+    description: "Keep applications in current environment"
+    best_for:
+      - applications_with_regulatory_constraints
+      - recently_upgraded_systems
+      - applications_without_business_case_for_migration
+    characteristics:
+      effort: "minimal"
+      risk: "low"
+      cost_savings: "avoided_migration_costs"
+      timeline: "immediate"
+    indicators:
+      positive:
+        - regulatory_or_compliance_restrictions
+        - recent_significant_investment
+        - high_performance_requirements
+        - data_sovereignty_requirements
+      negative:
+        - aging_infrastructure
+        - high_maintenance_costs
+        - limited_scalability
+        - security_concerns
+    migration_patterns:
+      - hybrid_cloud_integration
+      - api_exposure_for_integration
+      - security_hardening
+
+decision_matrix:
+  technical_factors:
+    application_age:
+      legacy: [retain, retire]
+      modern: [rehost, replatform, refactor]
+      cutting_edge: [rearchitect]
+    architecture_quality:
+      monolithic: [rehost, rearchitect]
+      modular: [replatform, refactor]
+      microservices: [refactor, rearchitect]
+    technology_stack:
+      legacy_proprietary: [retain, rearchitect]
+      standard_enterprise: [rehost, replatform, refactor]
+      cloud_native: [refactor, rearchitect]
+    dependencies:
+      tightly_coupled: [rehost, rearchitect]
+      loosely_coupled: [replatform, refactor]
+      independent: [rehost, replatform, refactor, rearchitect]
+
+  business_factors:
+    business_criticality:
+      mission_critical: [replatform, refactor, rearchitect]
+      important: [rehost, replatform, refactor]
+      low_importance: [retire, retain]
+    usage_patterns:
+      high_usage: [replatform, refactor, rearchitect]
+      moderate_usage: [rehost, replatform]
+      low_usage: [retire, retain]
+    investment_budget:
+      high: [rearchitect, refactor]
+      medium: [replatform, refactor]
+      low: [rehost, retire, retain]
+
+  risk_tolerance:
+    risk_averse: [rehost, retain]
+    moderate_risk: [replatform, refactor]
+    high_risk_high_reward: [rearchitect]
+
+assessment_criteria:
+  effort_estimation:
+    rehost: "1-3 months"
+    replatform: "3-6 months"
+    refactor: "6-12 months"
+    rearchitect: "12+ months"
+    retire: "1-4 weeks"
+    retain: "immediate"
+
+  cost_factors:
+    migration_costs:
+      rehost: "low"
+      replatform: "medium"
+      refactor: "high"
+      rearchitect: "very_high"
+      retire: "very_low"
+      retain: "none"
+    operational_savings:
+      rehost: "infrastructure_only"
+      replatform: "infrastructure_plus_management"
+      refactor: "significant_efficiency_gains"
+      rearchitect: "transformational_savings"
+      retire: "total_elimination"
+      retain: "none"
+
+  risk_assessment:
+    technical_risk:
+      rehost: "low"
+      replatform: "medium"
+      refactor: "medium_high"
+      rearchitect: "high"
+      retire: "low"
+      retain: "low"
+    business_risk:
+      rehost: "low"
+      replatform: "medium"
+      refactor: "medium"
+      rearchitect: "high"
+      retire: "medium"
+      retain: "low"

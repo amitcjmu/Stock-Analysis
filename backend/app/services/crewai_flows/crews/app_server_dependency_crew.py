@@ -251,7 +251,236 @@ class AppServerDependencyCrew:
         return []
 
 def create_app_server_dependency_crew(crewai_service, asset_inventory: Dict[str, Any], 
-                                     shared_memory=None, knowledge_base=None) -> Crew:
-    """Factory function to create enhanced App-Server Dependency Crew"""
-    crew_instance = AppServerDependencyCrew(crewai_service, shared_memory, knowledge_base)
+                                     shared_memory=None) -> Crew:
+    """
+    Create enhanced App-Server Dependency Crew with inventory intelligence
+    Uses asset inventory insights from shared memory to map hosting relationships
+    """
+    
+    # Access inventory insights from shared memory
+    if shared_memory:
+        logger.info("🧠 App-Server Dependency Crew accessing asset inventory insights from shared memory")
+    
+    try:
+        # Dependency Manager - Enhanced with inventory context
+        dependency_manager = Agent(
+            role="Dependency Manager",
+            goal="Orchestrate comprehensive app-to-server dependency mapping using asset inventory intelligence",
+            backstory="""Senior infrastructure architect with 15+ years managing enterprise hosting relationships. 
+            Expert in leveraging asset inventory intelligence to optimize dependency mapping and hosting analysis.
+            Capable of coordinating multiple specialists to achieve comprehensive hosting relationship mapping.""",
+            llm=crewai_service.llm,
+            manager=True,
+            delegation=True,
+            max_delegation=2,
+            memory=shared_memory,  # Access inventory insights
+            planning=True,
+            verbose=True,
+            step_callback=lambda step: logger.info(f"Dependency Manager: {step}")
+        )
+        
+        # Hosting Relationship Expert - Enhanced with inventory intelligence
+        hosting_expert = Agent(
+            role="Hosting Relationship Expert",
+            goal="Map application-to-server hosting relationships using inventory intelligence",
+            backstory="""Expert in hosting relationship analysis with deep knowledge of application deployment patterns. 
+            Specializes in using asset inventory intelligence to identify hosting relationships and resource mappings.
+            Skilled in cross-referencing application and server data to determine hosting dependencies.""",
+            llm=crewai_service.llm,
+            memory=shared_memory,  # Access shared insights
+            collaboration=True,
+            verbose=True,
+            tools=[
+                _create_hosting_analysis_tool(asset_inventory),
+                _create_topology_mapping_tool(),
+                _create_relationship_validation_tool()
+            ]
+        )
+        
+        # Migration Impact Analyst - Enhanced with hosting context
+        migration_analyst = Agent(
+            role="Migration Impact Analyst",
+            goal="Analyze migration complexity using hosting relationship context",
+            backstory="""Specialist in migration impact assessment with expertise in hosting dependency analysis. 
+            Expert in evaluating migration complexity based on hosting relationships and resource dependencies.
+            Capable of generating actionable migration recommendations based on hosting topology.""",
+            llm=crewai_service.llm,
+            memory=shared_memory,  # Access hosting context
+            collaboration=True,
+            verbose=True,
+            tools=[
+                _create_migration_complexity_tool(asset_inventory),
+                _create_capacity_analysis_tool(),
+                _create_impact_assessment_tool()
+            ]
+        )
+        
+        # Enhanced planning task that leverages inventory intelligence
+        planning_task = Task(
+            description=f"""
+            Plan comprehensive app-server dependency mapping using asset inventory intelligence.
+            
+            INVENTORY INTELLIGENCE CONTEXT:
+            - Servers available: {len(asset_inventory.get('servers', []))}
+            - Applications available: {len(asset_inventory.get('applications', []))}
+            - Devices available: {len(asset_inventory.get('devices', []))}
+            - Cross-domain classification completed
+            
+            PLANNING REQUIREMENTS:
+            1. Review asset inventory for hosting relationship candidates
+            2. Identify applications requiring server hosting
+            3. Map server capacity and hosting capabilities
+            4. Plan hosting relationship discovery approach
+            5. Coordinate hosting analysis and migration impact assessment
+            6. Set success criteria for dependency mapping
+            
+            DELIVERABLE: Comprehensive dependency mapping plan with hosting relationship strategy
+            """,
+            expected_output="App-server dependency mapping plan with hosting relationship discovery strategy",
+            agent=dependency_manager,
+            context=[],
+            tools=[]
+        )
+        
+        # Inventory-aware hosting analysis task
+        hosting_analysis_task = Task(
+            description=f"""
+            Execute comprehensive hosting relationship mapping using asset inventory intelligence.
+            
+            ASSET INVENTORY INSIGHTS:
+            - Server assets: {asset_inventory.get('servers', [])}
+            - Application assets: {asset_inventory.get('applications', [])}
+            - Classification metadata: {asset_inventory.get('classification_metadata', {})}
+            
+            HOSTING ANALYSIS REQUIREMENTS:
+            1. Map applications to their hosting servers using inventory data
+            2. Identify hosting patterns and resource utilization
+            3. Analyze server capacity and application resource requirements
+            4. Validate hosting relationships through cross-reference analysis
+            5. Generate hosting topology with resource mappings
+            6. Store hosting insights in shared memory for app-app dependency crew
+            
+            COLLABORATION: Work with migration analyst to assess hosting complexity and migration impact.
+            """,
+            expected_output="Comprehensive hosting relationship mapping with resource utilization and topology insights",
+            agent=hosting_expert,
+            context=[planning_task],
+            collaboration=[migration_analyst],
+            tools=[
+                _create_hosting_analysis_tool(asset_inventory),
+                _create_topology_mapping_tool()
+            ]
+        )
+        
+        # Inventory-aware migration impact task
+        migration_impact_task = Task(
+            description=f"""
+            Analyze migration complexity and impact using hosting relationship intelligence.
+            
+            HOSTING CONTEXT USAGE:
+            - Use hosting relationships identified by hosting expert
+            - Analyze migration complexity based on hosting dependencies
+            - Assess resource requirements and capacity constraints
+            - Evaluate migration risks and effort estimates
+            
+            MIGRATION IMPACT TARGETS:
+            1. Application migration complexity scoring
+            2. Server migration impact assessment
+            3. Resource dependency analysis
+            4. Migration sequencing recommendations
+            5. Risk assessment for hosting changes
+            6. Effort estimation for migration planning
+            
+            MEMORY STORAGE: Store migration insights in shared memory for technical debt crew.
+            """,
+            expected_output="Migration impact assessment with complexity scoring and risk analysis",
+            agent=migration_analyst,
+            context=[hosting_analysis_task],
+            collaboration=[hosting_expert],
+            tools=[
+                _create_migration_complexity_tool(asset_inventory),
+                _create_capacity_analysis_tool()
+            ]
+        )
+        
+        # Create crew with hierarchical process and shared memory
+        crew = Crew(
+            agents=[dependency_manager, hosting_expert, migration_analyst],
+            tasks=[planning_task, hosting_analysis_task, migration_impact_task],
+            process=Process.hierarchical,
+            manager_llm=crewai_service.llm,
+            planning=True,
+            memory=True,
+            verbose=True,
+            share_crew=True  # Enable cross-crew collaboration
+        )
+        
+        logger.info("✅ Enhanced App-Server Dependency Crew created with inventory intelligence")
+        return crew
+        
+    except Exception as e:
+        logger.error(f"Failed to create enhanced App-Server Dependency Crew: {e}")
+        # Fallback to basic crew
+        return _create_fallback_app_server_dependency_crew(crewai_service, asset_inventory)
+
+def _create_hosting_analysis_tool(asset_inventory: Dict[str, Any]):
+    """Create tool for hosting relationship analysis"""
+    # Placeholder for hosting analysis tool - will be implemented in Task 7
+    class HostingAnalysisTool:
+        def analyze_hosting_relationships(self, data):
+            return f"Hosting analysis for {len(asset_inventory.get('servers', []))} servers and {len(asset_inventory.get('applications', []))} applications"
+    
+    return HostingAnalysisTool()
+
+def _create_topology_mapping_tool():
+    """Create tool for topology mapping"""
+    # Placeholder for topology mapping tool - will be implemented in Task 7
+    class TopologyMappingTool:
+        def map_topology(self, data):
+            return "Topology mapping analysis"
+    
+    return TopologyMappingTool()
+
+def _create_relationship_validation_tool():
+    """Create tool for relationship validation"""
+    # Placeholder for relationship validation tool - will be implemented in Task 7
+    class RelationshipValidationTool:
+        def validate_relationships(self, data):
+            return "Relationship validation analysis"
+    
+    return RelationshipValidationTool()
+
+def _create_migration_complexity_tool(asset_inventory: Dict[str, Any]):
+    """Create tool for migration complexity analysis"""
+    # Placeholder for migration complexity tool - will be implemented in Task 7
+    class MigrationComplexityTool:
+        def analyze_complexity(self, data):
+            return f"Migration complexity analysis for {len(asset_inventory.get('servers', []))} servers"
+    
+    return MigrationComplexityTool()
+
+def _create_capacity_analysis_tool():
+    """Create tool for capacity analysis"""
+    # Placeholder for capacity analysis tool - will be implemented in Task 7
+    class CapacityAnalysisTool:
+        def analyze_capacity(self, data):
+            return "Capacity analysis"
+    
+    return CapacityAnalysisTool()
+
+def _create_impact_assessment_tool():
+    """Create tool for impact assessment"""
+    # Placeholder for impact assessment tool - will be implemented in Task 7
+    class ImpactAssessmentTool:
+        def assess_impact(self, data):
+            return "Impact assessment analysis"
+    
+    return ImpactAssessmentTool()
+
+def _create_fallback_app_server_dependency_crew(crewai_service, asset_inventory: Dict[str, Any]) -> Crew:
+    """Create fallback crew when enhanced features fail"""
+    logger.info("Creating fallback App-Server Dependency Crew")
+    
+    # Basic crew with minimal functionality
+    crew_instance = AppServerDependencyCrew(crewai_service)
     return crew_instance.create_crew(asset_inventory)
