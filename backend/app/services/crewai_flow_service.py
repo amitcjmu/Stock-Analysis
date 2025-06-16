@@ -79,9 +79,12 @@ class CrewAIFlowService:
         context: RequestContext
     ) -> Dict[str, Any]:
         """
-        Initiate a discovery workflow using the CrewAI Flow.
+        Initiate a discovery workflow using the CrewAI Flow with smart session management.
         
-        Uses the native CrewAI Flow implementation with DiscoveryFlowState format.
+        This method handles:
+        - Existing active workflows (returns existing if running)
+        - Failed/completed workflows (creates new workflow) 
+        - Database duplication issues through smart session resolution
         """
         try:
             # Parse and validate input data (reuse existing logic)
@@ -116,6 +119,64 @@ class CrewAIFlowService:
             # Generate session ID
             session_id = context.session_id or str(uuid.uuid4())
             
+            # Smart session management - check for existing workflows
+            initial_state_data = {
+                "session_id": session_id,
+                "client_account_id": context.client_account_id,
+                "engagement_id": context.engagement_id,
+                "user_id": context.user_id or "anonymous",
+                "status": "running",
+                "current_phase": "initialization",
+                "cmdb_data": cmdb_data,
+                "metadata": metadata,
+                "started_at": datetime.utcnow().isoformat(),
+                "created_at": datetime.utcnow().isoformat(),
+                "updated_at": datetime.utcnow().isoformat()
+            }
+            
+            # Use smart session management to handle duplicates
+            workflow_state, is_new, message = await self.state_service.get_or_create_workflow_state(
+                session_id=session_id,
+                client_account_id=uuid.UUID(context.client_account_id),
+                engagement_id=uuid.UUID(context.engagement_id),
+                workflow_type="discovery",
+                current_phase="initialization",
+                initial_state_data=initial_state_data,
+                allow_concurrent=False  # Don't allow concurrent workflows by default
+            )
+            
+            if not is_new:
+                # Return existing workflow state
+                logger.info(f"Returning existing workflow for session {session_id}: {message}")
+                existing_state = workflow_state.state_data
+                
+                # Check if existing workflow is still active
+                if workflow_state.status in ['running', 'in_progress', 'processing']:
+                    existing_state.update({
+                        "status": "success",
+                        "message": f"Workflow already running: {message}",
+                        "session_id": session_id,
+                        "flow_id": session_id,
+                        "workflow_status": workflow_state.status,
+                        "current_phase": workflow_state.current_phase
+                    })
+                    return existing_state
+                else:
+                    # Existing workflow is completed/failed, but service decided to return it
+                    # This might happen if user tries to restart too quickly
+                    existing_state.update({
+                        "status": "success", 
+                        "message": f"Previous workflow status: {workflow_state.status}. {message}",
+                        "session_id": session_id,
+                        "flow_id": session_id,
+                        "workflow_status": workflow_state.status,
+                        "current_phase": workflow_state.current_phase
+                    })
+                    return existing_state
+            
+            # Create new workflow
+            logger.info(f"Creating new workflow for session {session_id}: {message}")
+            
             # Create the flow
             async with self._flow_creation_lock:
                 flow = create_discovery_flow(
@@ -136,19 +197,30 @@ class CrewAIFlowService:
             asyncio.create_task(self._run_workflow_background(flow, context))
             
             # Return initial state in native format
-            initial_state = flow.state.model_dump()
-            # Add timestamp fields for API compatibility
-            initial_state["created_at"] = flow.state.started_at.isoformat() if flow.state.started_at else None
-            initial_state["updated_at"] = flow.state.started_at.isoformat() if flow.state.started_at else None
+            initial_state = flow.state.model_dump() if hasattr(flow.state, 'model_dump') else flow.state.__dict__
+            
+            # Ensure required fields for API response
+            response_state = {
+                "status": "success",
+                "message": f"Discovery flow initiated successfully. {message}",
+                "session_id": session_id,
+                "flow_id": session_id,
+                "workflow_status": "running",
+                "current_phase": "initialization",
+                **initial_state
+            }
             
             logger.info(f"Discovery workflow initiated for session: {session_id}")
-            return initial_state
+            return response_state
             
         except Exception as e:
             logger.error(f"Failed to initiate discovery workflow: {e}", exc_info=True)
             return {
                 "status": "error",
-                "message": f"Failed to start workflow: {str(e)}"
+                "message": f"Failed to start workflow: {str(e)}",
+                "session_id": context.session_id,
+                "workflow_status": "failed",
+                "current_phase": "error"
             }
     
     async def _run_workflow_background(
@@ -256,33 +328,42 @@ class CrewAIFlowService:
         session_id: str,
         context: RequestContext
     ) -> Optional[Dict[str, Any]]:
-        """Get flow state by session ID."""
+        """
+        Get flow state by session ID using smart session management.
+        
+        This method uses the smart session resolution to handle cases where
+        multiple workflow states exist for the same session.
+        """
         try:
-            # Check active flows first
-            if session_id in self._active_flows:
-                flow = self._active_flows[session_id]
-                return flow.state.model_dump()
+            # Use the smart session management to get the primary workflow
+            workflow_state = await self.state_service.get_active_workflow_for_session(
+                session_id=session_id,
+                client_account_id=uuid.UUID(context.client_account_id),
+                engagement_id=uuid.UUID(context.engagement_id)
+            )
             
-            # Fall back to persistent state using a new session
-            try:
-                from app.core.database import AsyncSessionLocal
-                from app.services.workflow_state_service import WorkflowStateService
-                
-                async with AsyncSessionLocal() as session:
-                    state_service = WorkflowStateService(session)
-                    state = await state_service.get_workflow_state_by_session_id(
-                        session_id=session_id,
-                        client_account_id=context.client_account_id,
-                        engagement_id=context.engagement_id
-                    )
-                    return state.state_data if state else None
-                    
-            except Exception as e:
-                logger.error(f"Failed to get persistent state for session {session_id}: {e}")
+            if not workflow_state:
+                logger.warning(f"No workflow state found for session {session_id}")
                 return None
             
+            # Extract state data and add database metadata
+            state_data = workflow_state.state_data or {}
+            
+            # Ensure the state has all required fields for API compatibility
+            state_data.update({
+                "session_id": session_id,
+                "status": workflow_state.status,
+                "current_phase": workflow_state.current_phase,
+                "workflow_type": workflow_state.workflow_type,
+                "created_at": workflow_state.created_at.isoformat() if workflow_state.created_at else None,
+                "updated_at": workflow_state.updated_at.isoformat() if workflow_state.updated_at else None
+            })
+            
+            logger.debug(f"Retrieved workflow state for session {session_id}: status={workflow_state.status}")
+            return state_data
+            
         except Exception as e:
-            logger.error(f"Failed to get flow state for session {session_id}: {e}")
+            logger.error(f"Failed to get persistent state for session {session_id}: {e}")
             return None
     
     def get_active_flows_summary(self) -> Dict[str, Any]:

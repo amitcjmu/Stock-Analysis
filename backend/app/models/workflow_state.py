@@ -15,7 +15,7 @@ class WorkflowState(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     
-    session_id = Column(UUID(as_uuid=True), unique=True, index=True, nullable=False)
+    session_id = Column(UUID(as_uuid=True), index=True, nullable=False)
     client_account_id = Column(UUID(as_uuid=True), index=True, nullable=False)
     engagement_id = Column(UUID(as_uuid=True), index=True, nullable=False)
 

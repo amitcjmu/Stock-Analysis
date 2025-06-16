@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { 
   CheckCircle, 
   AlertTriangle, 
@@ -10,7 +10,9 @@ import {
   ArrowRight,
   Loader2,
   Bot,
-  Clock
+  Clock,
+  StopCircle,
+  Play
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { UploadedFile, useDiscoveryFlowStatus } from '../../hooks/useCMDBImport';
@@ -25,322 +27,258 @@ interface FileAnalysisProps {
 export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNavigate }) => {
   const queryClient = useQueryClient();
   const lastStatusRef = useRef<string | null>(null);
+  const [showWorkflowControls, setShowWorkflowControls] = useState(false);
   
-  // Use the centralized status polling hook instead of creating a duplicate query
-  const { data: statusData, isLoading: isLoadingStatus } = useDiscoveryFlowStatus(
-    file.status === 'analyzing' ? file.id : null
-  );
-  
-  // Update the file status when status data changes, but only if it actually changed
+  // Use the updated useDiscoveryFlowStatus hook with proper endpoint and polling logic
+  const { 
+    data: statusData, 
+    isLoading: isStatusLoading, 
+    error: statusError,
+    refetch: refetchStatus 
+  } = useDiscoveryFlowStatus(file.sessionId);
+
+  // Only trigger effects when status actually changes (prevent excessive updates)
   useEffect(() => {
-    if (!statusData) return;
-    
-    const status = statusData.status;
-    const current_phase = statusData.current_phase;
-    
-    // Prevent unnecessary updates if status hasn't changed
-    const statusKey = `${status}-${current_phase}`;
-    if (lastStatusRef.current === statusKey) return;
-    lastStatusRef.current = statusKey;
-    
-    console.log(`📋 Status change for ${file.id}:`, { status, current_phase });
-    
-    // Update the file status based on the workflow status
-    if (status === 'completed') {
-      console.log(`✅ Marking file ${file.id} as processed`);
-      // Update the file status to 'processed' when analysis is complete
-      queryClient.setQueryData<UploadedFile[]>(['uploadedFiles'], (old = []) =>
-        old.map(f => f.id === file.id ? {
-          ...f,
-          status: 'processed' as const,
-          currentStep: 5, // All steps complete
-          processingMessages: ['✅ Analysis complete. Ready for next steps.'],
-          aiSuggestions: ['File processed successfully'],
-          nextSteps: [
-            {
-              label: 'Proceed to Attribute Mapping',
-              route: '/discovery/attribute-mapping',
-              description: 'Map your data fields to standard attributes',
-              import_session_id: file.id
-            }
-          ]
-        } : f)
-      );
-    } else if (status === 'failed' || status === 'error') {
-      console.log(`❌ Marking file ${file.id} as error`);
-      // Update the file status to 'error' if analysis failed
-      queryClient.setQueryData<UploadedFile[]>(['uploadedFiles'], (old = []) =>
-        old.map(f => f.id === file.id ? {
-          ...f,
-          status: 'error' as const,
-          analysisError: 'Analysis failed. Please try again.',
-          processingMessages: ['❌ Analysis failed. Please try again.']
-        } : f)
-      );
-    } else if (status === 'running' || status === 'in_progress' || status === 'processing') {
-      // Update the current step and processing messages based on the current phase
-      const stepMap: Record<string, number> = {
-        'initialization': 0,
-        'data_source_analysis': 1,
-        'data_validation': 2,
-        'field_mapping': 3,
-        'asset_classification': 4,
-        'dependency_analysis': 5,
-        'database_integration': 6,
-        'finalization': 6,
-        'completed': 6
+    const currentStatus = statusData?.status;
+    if (currentStatus && currentStatus !== lastStatusRef.current) {
+      lastStatusRef.current = currentStatus;
+      
+      // Handle workflow status messages that indicate existing workflows
+      if (statusData?.message?.includes("already running") || 
+          statusData?.message?.includes("Workflow already")) {
+        setShowWorkflowControls(true);
+      }
+      
+      // Only invalidate queries when we reach terminal states
+      if (currentStatus === 'completed' || currentStatus === 'failed') {
+        // Invalidate relevant queries to refresh UI data
+        queryClient.invalidateQueries({ queryKey: ['uploadedFiles'] });
+        queryClient.invalidateQueries({ queryKey: ['assetCounts'] });
+      }
+    }
+  }, [statusData?.status, statusData?.message, queryClient]);
+
+  const getStatusDisplay = () => {
+    if (isStatusLoading) {
+      return {
+        icon: <Loader2 className="h-4 w-4 animate-spin text-blue-500" />,
+        text: 'Checking workflow status...',
+        color: 'text-blue-600',
+        bgColor: 'bg-blue-50'
       };
-      
-      const currentStep = stepMap[current_phase] || 0;
-      
-      queryClient.setQueryData<UploadedFile[]>(['uploadedFiles'], (old = []) =>
-        old.map(f => f.id === file.id ? {
-          ...f,
-          status: 'analyzing' as const,
-          currentStep,
-          processingMessages: [
-            `🤖 ${current_phase ? `Processing: ${current_phase.replace(/_/g, ' ')}` : 'Analyzing...'}`
-          ]
-        } : f)
-      );
     }
-  }, [statusData?.status, statusData?.current_phase, file.id, queryClient]);
 
-  const getStatusIcon = (status: UploadedFile['status']) => {
+    if (statusError) {
+      return {
+        icon: <AlertTriangle className="h-4 w-4 text-red-500" />,
+        text: 'Error checking status',
+        color: 'text-red-600',
+        bgColor: 'bg-red-50'
+      };
+    }
+
+    const status = statusData?.status;
+    const phase = statusData?.current_phase;
+    const message = statusData?.message;
+
     switch (status) {
-      case 'uploaded':
-        return <FileSpreadsheet className="h-5 w-5 text-gray-500" />;
-      case 'analyzing':
-        return <RefreshCw className="h-5 w-5 text-blue-500 animate-spin" />;
-      case 'processed':
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
+      case 'running':
+      case 'in_progress':
+      case 'processing':
+        return {
+          icon: <Loader2 className="h-4 w-4 animate-spin text-blue-500" />,
+          text: `Processing: ${phase || 'Unknown phase'}`,
+          color: 'text-blue-600',
+          bgColor: 'bg-blue-50',
+          showControls: showWorkflowControls
+        };
+      case 'completed':
+        return {
+          icon: <CheckCircle className="h-4 w-4 text-green-500" />,
+          text: 'Analysis completed successfully',
+          color: 'text-green-600', 
+          bgColor: 'bg-green-50'
+        };
+      case 'failed':
       case 'error':
-        return <AlertTriangle className="h-5 w-5 text-red-500" />;
+        return {
+          icon: <AlertTriangle className="h-4 w-4 text-red-500" />,
+          text: `Analysis failed: ${phase || 'Unknown error'}`,
+          color: 'text-red-600',
+          bgColor: 'bg-red-50'
+        };
       default:
-        return <FileSpreadsheet className="h-5 w-5 text-gray-500" />;
+        return {
+          icon: <Clock className="h-4 w-4 text-gray-500" />,
+          text: message || 'Workflow status unknown',
+          color: 'text-gray-600',
+          bgColor: 'bg-gray-50'
+        };
     }
   };
 
-  const handleNavigation = (step: any) => {
-    if (step.route === '/discovery/data-cleansing' && step.dataQualityIssues) {
-      onNavigate(step.route, {
-        state: {
-          dataQualityIssues: step.dataQualityIssues,
-          fromDataImport: true
-        }
-      });
-    } else if (step.route === '/discovery/attribute-mapping' && (step.importedData || step.import_session_id)) {
-      onNavigate(step.route, {
-        state: {
-          importedData: step.importedData,
-          import_session_id: step.import_session_id,
-          fromDataImport: true
-        }
-      });
-    } else if (step.route) {
-      onNavigate(step.route);
+  const handleCancelWorkflow = async () => {
+    // This would call an API to cancel the existing workflow
+    console.log('Cancel workflow requested for session:', file.sessionId);
+    setShowWorkflowControls(false);
+    // In the future, implement actual cancellation logic
+  };
+
+  const handleRetryWorkflow = () => {
+    setShowWorkflowControls(false);
+    if (onRetry) {
+      onRetry();
     }
   };
+
+  const statusDisplay = getStatusDisplay();
 
   return (
-    <div className="border border-gray-200 rounded-lg p-6 transition-all duration-300 hover:shadow-md">
-      {/* File Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-3">
-          {getStatusIcon(file.status)}
-          <div>
-            <h3 className="font-medium text-gray-900">{file.file.name}</h3>
-            <div className="flex items-center space-x-2 text-sm text-gray-500">
-              <span>{(file.file.size / 1024 / 1024).toFixed(2)} MB</span>
-              {file.detectedFileType && (
-                <>
-                  <span>•</span>
-                  <span className="text-blue-600 font-medium">{file.detectedFileType}</span>
-                </>
+    <div className="space-y-4">
+      {/* File Information */}
+      <div className="flex items-center space-x-3">
+        <FileSpreadsheet className="h-5 w-5 text-blue-500" />
+        <div>
+          <h3 className="font-medium text-gray-900">{file.filename}</h3>
+          <p className="text-sm text-gray-500">
+            {file.recordCount} records • Session: {file.sessionId?.slice(0, 8)}...
+          </p>
+        </div>
+      </div>
+
+      {/* Workflow Status */}
+      <div className={`p-4 rounded-lg border ${statusDisplay.bgColor}`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            {statusDisplay.icon}
+            <div>
+              <p className={`font-medium ${statusDisplay.color}`}>
+                {statusDisplay.text}
+              </p>
+              {statusData?.message && (
+                <p className="text-sm text-gray-600 mt-1">
+                  {statusData.message}
+                </p>
               )}
             </div>
           </div>
+          
+          <div className="flex items-center space-x-2">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => refetchStatus()}
+              disabled={isStatusLoading}
+            >
+              <RefreshCw className={`h-4 w-4 ${isStatusLoading ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
         </div>
-        {file.confidence && (
-          <div className="text-right">
-            <div className="text-lg font-semibold text-green-600">{file.confidence}%</div>
-            <div className="text-xs text-gray-500">AI Confidence</div>
+
+        {/* Workflow Controls (shown when there's an existing workflow) */}
+        {statusDisplay.showControls && (
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-600">
+                A workflow is already running for this session. What would you like to do?
+              </p>
+              <div className="flex space-x-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleCancelWorkflow}
+                  className="flex items-center space-x-1"
+                >
+                  <StopCircle className="h-4 w-4" />
+                  <span>Cancel & Restart</span>
+                </Button>
+                <Button 
+                  variant="default" 
+                  size="sm"
+                  onClick={() => setShowWorkflowControls(false)}
+                  className="flex items-center space-x-1"
+                >
+                  <Clock className="h-4 w-4" />
+                  <span>Wait for Completion</span>
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Processing Animation */}
-      {(file.status === 'analyzing' || file.status === 'uploaded') && (
-        <div className="space-y-4">
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-center space-x-2 mb-3">
-              <Bot className="h-5 w-5 text-blue-600 animate-bounce" />
-              <h4 className="font-medium text-blue-900">AI Crew Processing</h4>
-              <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
-            </div>
-            
-            {/* Processing Steps */}
-            <div className="space-y-2 mb-4">
-              {file.analysisSteps?.map((step, idx) => (
-                <div 
-                  key={idx} 
-                  className={`flex items-center space-x-2 text-sm transition-all duration-300 ${
-                    idx <= (file.currentStep || 0) ? 'text-blue-800' : 'text-gray-500'
-                  }`}
-                >
-                  {idx < (file.currentStep || 0) ? (
+      {/* Analysis Progress */}
+      {statusData?.status && ['running', 'in_progress', 'processing'].includes(statusData.status) && (
+        <div className="space-y-3">
+          <h4 className="font-medium text-gray-900 flex items-center">
+            <Bot className="h-4 w-4 mr-2 text-blue-500" />
+            AI Crew Analysis
+          </h4>
+          <div className="space-y-2">
+            {statusData.workflow_phases?.map((phase: string, index: number) => {
+              const isActive = statusData.current_phase === phase;
+              const isCompleted = statusData.workflow_phases?.indexOf(statusData.current_phase) > index;
+              
+              return (
+                <div key={phase} className={`flex items-center space-x-3 p-2 rounded ${
+                  isActive ? 'bg-blue-50 border border-blue-200' : 
+                  isCompleted ? 'bg-green-50' : 'bg-gray-50'
+                }`}>
+                  {isCompleted ? (
                     <CheckCircle className="h-4 w-4 text-green-500" />
-                  ) : idx === (file.currentStep || 0) ? (
-                    <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
+                  ) : isActive ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
                   ) : (
                     <Clock className="h-4 w-4 text-gray-400" />
                   )}
-                  <span className={idx <= (file.currentStep || 0) ? 'font-medium' : ''}>
-                    {step}
+                  <span className={`text-sm ${
+                    isActive ? 'text-blue-700 font-medium' : 
+                    isCompleted ? 'text-green-700' : 'text-gray-600'
+                  }`}>
+                    {phase.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                   </span>
                 </div>
-              ))}
-            </div>
-            
-            {/* Live Processing Messages */}
-            {file.processingMessages && file.processingMessages.length > 0 && (
-              <div className="bg-white rounded p-3 max-h-32 overflow-y-auto">
-                <div className="text-xs text-gray-600 mb-1">Live Analysis Feed:</div>
-                {file.processingMessages.map((message, idx) => (
-                  <div key={idx} className="text-sm text-gray-800 animate-fade-in flex items-center space-x-1">
-                    <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
-                    <span>{message}</span>
-                  </div>
-                ))}
+              );
+            }) || (
+              <div className="flex items-center space-x-3 p-2 rounded bg-blue-50 border border-blue-200">
+                <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                <span className="text-sm text-blue-700">Analysis in progress...</span>
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* Analysis Results */}
-      {file.status === 'processed' && file.aiSuggestions && (
-        <div className="space-y-4">
-          {/* File Type Detection */}
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <div className="flex items-center space-x-2 mb-2">
-              <CheckCircle className="h-5 w-5 text-gray-600" />
-              <h4 className="font-medium text-gray-900">File Analysis Summary</h4>
-            </div>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-gray-600">Detected Type:</span>
-                <span className="ml-2 font-medium text-blue-600">
-                  {file.detectedFileType || 'Unknown'}
-                </span>
-              </div>
-              <div>
-                <span className="text-gray-600">Confidence:</span>
-                <span className="ml-2 font-medium text-green-600">
-                  {file.confidence}%
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* AI Insights */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-center space-x-2 mb-3">
-              <Lightbulb className="h-5 w-5 text-blue-600" />
-              <h4 className="font-medium text-blue-900">AI Crew Insights</h4>
-            </div>
-            <ul className="space-y-2">
-              {file.aiSuggestions.map((suggestion, idx) => (
-                <li key={idx} className="text-sm text-blue-800 flex items-start space-x-2">
-                  <CheckCircle className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                  <span>{suggestion}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Next Steps */}
-          {file.nextSteps && file.nextSteps.length > 0 && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <div className="flex items-center space-x-2 mb-3">
-                <ArrowRight className="h-5 w-5 text-green-600" />
-                <h4 className="font-medium text-green-900">Recommended Next Steps</h4>
-              </div>
-              <div className="space-y-3">
-                {file.nextSteps.map((step, idx) => (
-                  <div key={idx}>
-                    {step.route ? (
-                      <button
-                        onClick={() => handleNavigation(step)}
-                        className="group block w-full text-left p-3 border border-green-200 rounded-lg hover:border-green-400 hover:bg-green-100 transition-all duration-200"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-start space-x-3">
-                            <div className="bg-green-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">
-                              {idx + 1}
-                            </div>
-                            <div className="flex-1">
-                              <div className="text-sm font-medium text-green-800 group-hover:text-green-900">
-                                {step.label}
-                              </div>
-                              {step.description && (
-                                <div className="text-xs text-green-600 mt-1">
-                                  {step.description}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          <ExternalLink className="h-4 w-4 text-green-500 group-hover:text-green-700 flex-shrink-0" />
-                        </div>
-                      </button>
-                    ) : (
-                      <div className="flex items-start space-x-3 p-3 bg-green-100 rounded-lg">
-                        <div className="bg-green-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">
-                          {idx + 1}
-                        </div>
-                        <div className="flex-1">
-                          <div className="text-sm font-medium text-green-800">
-                            {step.label}
-                          </div>
-                          {step.description && (
-                            <div className="text-xs text-green-600 mt-1">
-                              {step.description}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
+      {/* Action Buttons */}
+      <div className="flex justify-between items-center pt-4 border-t">
+        <div className="flex space-x-2">
+          {statusData?.status === 'failed' && onRetry && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleRetryWorkflow}
+              className="flex items-center space-x-1"
+            >
+              <RefreshCw className="h-4 w-4" />
+              <span>Retry Analysis</span>
+            </Button>
           )}
         </div>
-      )}
-
-      {/* Error State */}
-      {file.status === 'error' && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <AlertCircle className="h-5 w-5 text-red-600" />
-              <span className="text-red-800">
-                {file.analysisError || 'Analysis failed - please try again'}
-              </span>
-            </div>
-            {onRetry && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={onRetry}
-                className="text-red-600 border-red-200 hover:bg-red-50"
-              >
-                Retry
-              </Button>
-            )}
-          </div>
+        
+        <div className="flex space-x-2">
+          {statusData?.status === 'completed' && (
+            <Button 
+              variant="default" 
+              size="sm"
+              onClick={() => onNavigate(`/discovery/analysis/${file.sessionId}`)}
+              className="flex items-center space-x-1"
+            >
+              <span>View Results</span>
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 };
