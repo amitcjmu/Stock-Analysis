@@ -35,7 +35,7 @@ import { UploadArea } from './components/CMDBImport/UploadArea';
 import { FileAnalysis } from './components/CMDBImport/FileAnalysis';
 
 // Hooks
-import { useFileUpload, type UploadedFile } from './hooks/useCMDBImport';
+import { useFileUpload, useDiscoveryFlowStatus, type UploadedFile } from './hooks/useCMDBImport';
 
 // Types
 interface UploadAreaType {
@@ -131,6 +131,10 @@ const CrewAIDataImport: React.FC = () => {
     },
     initialData: []
   });
+
+  // Get discovery flow status for the first uploaded file
+  const firstFile = uploadedFiles[0];
+  const { data: statusData } = useDiscoveryFlowStatus(firstFile?.sessionId || null);
 
   // Handle file drop - triggers CrewAI workflow
   const handleDrop = useCallback((acceptedFiles: File[], type: string) => {
@@ -240,12 +244,12 @@ const CrewAIDataImport: React.FC = () => {
               </div>
             )}
 
-            {/* Agent Orchestration Panel - Shows when workflow starts */}
+            {/* Agent Feedback Panel - Shows when workflow starts */}
             {(workflowStarted || uploadedFiles.length > 0) && uploadedFiles.length > 0 && (
               <div className="mt-8">
                 <AgentFeedbackPanel 
                   sessionId={uploadedFiles[0].sessionId || "unknown-session"}
-                  statusData={null}
+                  statusData={statusData}
                 />
               </div>
             )}

@@ -29,18 +29,37 @@ const AgentFeedbackPanel: React.FC<AgentFeedbackPanelProps> = ({
   sessionId,
   statusData
 }) => {
+  // Show loading state while waiting for data
   if (!statusData) {
     return (
       <Card>
         <CardContent className="pt-6">
           <div className="flex items-center justify-center text-gray-500">
-            <Clock className="h-5 w-5 mr-2" />
-            <span>Waiting for agent feedback...</span>
+            <Clock className="h-5 w-5 mr-2 animate-spin" />
+            <span>Loading agent status...</span>
           </div>
         </CardContent>
       </Card>
     );
   }
+
+  // Extract data from the API response
+  const flowStatus = statusData.flow_status || {};
+  const currentPhase = flowStatus.current_phase || statusData.current_phase || 'unknown';
+  const workflowStatus = flowStatus.status || statusData.status || 'unknown';
+  const cmdbData = flowStatus.cmdb_data || {};
+  const metadata = flowStatus.metadata || statusData.metadata || {};
+  const recordCount = cmdbData.file_data?.length || 0;
+  const filename = metadata.filename || 'Unknown file';
+  
+  console.log('📊 AgentFeedbackPanel received data:', {
+    workflowStatus,
+    currentPhase,
+    recordCount,
+    filename,
+    hasFlowStatus: !!flowStatus,
+    hasCmdbData: !!cmdbData.file_data
+  });
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -90,9 +109,9 @@ const AgentFeedbackPanel: React.FC<AgentFeedbackPanelProps> = ({
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {getStatusIcon(statusData.status)}
-              <Badge className={getStatusColor(statusData.status)}>
-                {statusData.status}
+              {getStatusIcon(workflowStatus)}
+              <Badge className={getStatusColor(workflowStatus)}>
+                {workflowStatus}
               </Badge>
             </div>
           </div>
@@ -101,13 +120,46 @@ const AgentFeedbackPanel: React.FC<AgentFeedbackPanelProps> = ({
           <div className="space-y-4">
             <div>
               <p className="text-sm font-medium text-gray-700">Current Phase:</p>
-              <p className="text-lg">{statusData.current_phase?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Unknown'}</p>
+              <p className="text-lg">{currentPhase?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Unknown'}</p>
             </div>
+            
+            {/* Data Summary */}
+            {recordCount > 0 && (
+              <div className="grid grid-cols-3 gap-4 p-3 bg-gray-50 rounded-lg">
+                <div className="text-center">
+                  <p className="text-lg font-bold text-blue-600">{recordCount}</p>
+                  <p className="text-xs text-gray-600">Records</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-medium text-green-600 truncate" title={filename}>
+                    {filename.length > 12 ? filename.substring(0, 12) + '...' : filename}
+                  </p>
+                  <p className="text-xs text-gray-600">Source File</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-bold text-purple-600">{workflowStatus}</p>
+                  <p className="text-xs text-gray-600">Status</p>
+                </div>
+              </div>
+            )}
             
             {statusData.message && (
               <Alert>
                 <Info className="h-4 w-4" />
                 <AlertDescription>{statusData.message}</AlertDescription>
+              </Alert>
+            )}
+            
+            {/* Progress message for initialization phase */}
+            {workflowStatus === 'running' && currentPhase === 'initialization' && !statusData.message && (
+              <Alert className="border-blue-200 bg-blue-50">
+                <Bot className="h-4 w-4 text-blue-600" />
+                <AlertDescription className="text-blue-800">
+                  <div className="flex items-center space-x-2">
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+                    <span>CrewAI agents are analyzing your {recordCount} records. The Data Ingestion Crew is validating data format and structure...</span>
+                  </div>
+                </AlertDescription>
               </Alert>
             )}
           </div>
