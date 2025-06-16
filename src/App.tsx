@@ -14,6 +14,7 @@ import Assess from "./pages/Assess";
 import Discovery from "./pages/Discovery";
 import DiscoveryIndex from "./pages/discovery/Index";
 import DataImport from "./pages/discovery/CMDBImport";
+import CrewAIDataImport from "./pages/discovery/CrewAIDataImport";
 import Inventory from "./pages/discovery/Inventory";
 import Dependencies from "./pages/discovery/Dependencies";
 import DataCleansing from "./pages/discovery/DataCleansing";
@@ -91,6 +92,7 @@ const App = () => (
             <Route path="/discovery/overview" element={<DiscoveryDashboard />} />
             <Route path="/discovery/dashboard" element={<DiscoveryDashboard />} />
             <Route path="/discovery/import" element={<DataImport />} />
+            <Route path="/discovery/data-import" element={<CrewAIDataImport />} />
             <Route path="/discovery/inventory" element={<Inventory />} />
             <Route path="/discovery/dependencies" element={<Dependencies />} />
             <Route path="/discovery/data-cleansing" element={<DataCleansing />} />
