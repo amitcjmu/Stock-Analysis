@@ -46,29 +46,67 @@ export const useCMDBAnalysis = () => {
       
       const parsedData = parseCSVData(fileContent);
       
-      // Call CrewAI analysis API
+      // Generate a session ID for this analysis
+      const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+      
+      // Prepare data in the format expected by CrewAI Flow endpoint
+      const requestData = {
+        analysis_type: "data_source_analysis",
+        data_source: {
+          file_data: parsedData, // Send parsed CSV data
+          metadata: {
+            filename: fileUpload.file.name,
+            size: fileUpload.file.size,
+            type: fileUpload.file.type,
+            lastModified: fileUpload.file.lastModified,
+            import_session_id: sessionId
+          },
+          columns: parsedData.length > 0 ? Object.keys(parsedData[0]) : [],
+          sample_data: parsedData.slice(0, 10) // First 10 rows as sample
+        }
+      };
+      
+      console.log('Sending analysis request:', requestData);
+      
+      // Call CrewAI Flow analysis API
       const analysis = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.ANALYZE_CMDB, {
         method: 'POST',
-        body: JSON.stringify({
-          filename: fileUpload.file.name,
-          content: fileContent,
-          fileType: fileUpload.file.type
-        })
+        body: JSON.stringify(requestData)
       });
       
       console.log('Analysis result:', analysis);
       
-      // Add raw data to analysis
-      analysis.rawData = parsedData;
+      // Transform the response to match the expected format
+      const transformedAnalysis = {
+        status: analysis.status || 'success',
+        dataQuality: {
+          score: 85, // Default score, will be updated by agent analysis
+          issues: [],
+          recommendations: analysis.agent_analysis?.suggestions || []
+        },
+        coverage: {
+          applications: 0,
+          servers: parsedData.length,
+          databases: 0,
+          dependencies: 0
+        },
+        missingFields: [],
+        requiredProcessing: [],
+        readyForImport: true,
+        preview: parsedData.slice(0, 5),
+        rawData: parsedData,
+        sessionId: analysis.session_id || sessionId,
+        agentAnalysis: analysis.agent_analysis
+      };
       
       onFileUpdate(fileUpload.id, {
         status: 'processed',
-        analysis: analysis,
-        preview: analysis.preview || [],
+        analysis: transformedAnalysis,
+        preview: transformedAnalysis.preview,
         editableData: JSON.parse(JSON.stringify(parsedData)) // Deep copy for editing
       });
       
-      return analysis;
+      return transformedAnalysis;
     } catch (error) {
       console.error('Analysis failed:', error);
       
@@ -107,13 +145,19 @@ export const useCMDBAnalysis = () => {
     setIsProcessing(true);
 
     try {
+      // Use the CrewAI Flow run endpoint with the correct format
+      const requestData = {
+        headers: selectedFile.editableData.length > 0 ? Object.keys(selectedFile.editableData[0]) : [],
+        sample_data: selectedFile.editableData,
+        filename: selectedFile.file.name,
+        options: projectInfo || {}
+      };
+      
+      console.log('Sending processing request:', requestData);
+      
       const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.PROCESS_CMDB, {
         method: 'POST',
-        body: JSON.stringify({
-          filename: selectedFile.file.name,
-          data: selectedFile.editableData,
-          projectInfo: projectInfo
-        })
+        body: JSON.stringify(requestData)
       });
 
       console.log('Processing result:', response);

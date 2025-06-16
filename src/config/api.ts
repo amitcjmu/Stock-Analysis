@@ -71,9 +71,9 @@ export const API_CONFIG = {
   BASE_URL: getBackendUrl(),
   ENDPOINTS: {
     DISCOVERY: {
-      AGENT_ANALYSIS: '/discovery/agent/crew/analysis', // Updated to match backend endpoint
-      ANALYZE_CMDB: '/discovery/analyze-cmdb',
-      PROCESS_CMDB: '/discovery/process-cmdb',
+      AGENT_ANALYSIS: '/discovery/flow/agent/analysis', // Updated to use CrewAI Flow endpoint
+      ANALYZE_CMDB: '/discovery/flow/agent/analysis', // Updated to use CrewAI Flow endpoint
+      PROCESS_CMDB: '/discovery/flow/run', // Updated to use CrewAI Flow endpoint
       CMDB_TEMPLATES: '/discovery/cmdb-templates',
       CMDB_FEEDBACK: '/discovery/cmdb-feedback',
       ASSETS: '/assets/list/paginated',

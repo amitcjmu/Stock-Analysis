@@ -1,0 +1,7 @@
+asset_name,ci_type,environment,ip_address,operating_system,business_owner
+web-server-01,Server,Production,192.168.1.10,Linux,IT Team
+web-server-02,Server,Production,192.168.1.11,Linux,IT Team
+database-server-01,Server,Production,192.168.1.20,Linux,Database Team
+payment-app,Application,Production,,,Finance Team
+user-portal,Application,Production,,,HR Team
+load-balancer-01,Network Device,Production,192.168.1.5,F5 OS,Network Team 
