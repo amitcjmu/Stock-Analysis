@@ -131,55 +131,61 @@ This release resolves critical authentication and data import workflow issues th
 
 ## [0.8.1] - 2025-06-16
 
-### 🎯 **SESSION MANAGEMENT - Data Import Agent Processing Fix**
+### 🎯 **SESSION MANAGEMENT - Multi-Tenant Context-Driven Session Resolution**
 
-This release resolves critical data import agent processing issues and implements the simplified single default session approach for improved user experience and system reliability.
+This release implements the correct multi-tenant session management approach where users can have multiple default sessions (one per client+engagement combination) and the frontend context switcher determines which session to use.
 
-### 🚀 **Session Management Improvements**
+### 🚀 **Multi-Tenant Session Management**
 
-#### **Data Import Agent Processing Fix**
-- **Backend Fix**: Updated `get_context_from_user` function to use user's actual default session instead of falling back to demo session
-- **Session Resolution**: Enhanced session existence validation to find and use user's default session when frontend-generated session IDs don't exist
-- **Context Loading**: Improved user context loading to properly resolve user's default client, engagement, and session
-- **Database Cleanup**: Removed duplicate workflow state records that were causing "Multiple rows found" errors
+#### **Context-Driven Session Resolution**
+- **Frontend Context Headers**: Updated backend to read `X-Client-Account-Id` and `X-Engagement-Id` headers from frontend context switcher
+- **Multiple Default Sessions**: Users can now have multiple default sessions - one per client+engagement combination
+- **Automatic Session Creation**: Backend auto-creates default sessions when users access new client+engagement combinations
+- **Session Reuse**: Existing sessions are reused for subsequent requests to the same client+engagement context
 
-#### **Simplified Session Management Architecture**
-- **Single Default Session**: Implemented one default session per user per engagement approach
-- **User Context Setup**: Created proper user-client-engagement associations with default sessions
-- **Session Auto-Creation**: Added automatic default session creation for users with proper naming convention
-- **Context Enforcement**: Updated backend to always use user's default session for all operations
+#### **Data Isolation and Multi-Tenancy**
+- **Client-Level Isolation**: Different clients have completely separate data and sessions
+- **Engagement-Level Isolation**: Different engagements within same client have separate default sessions
+- **Context-Aware Processing**: All data imports and analysis use the appropriate session based on frontend context
+- **Proper Tenant Scoping**: Session data is properly scoped to specific client+engagement combinations
+
+#### **Enhanced Backend Context Resolution**
+- **Header Processing**: Updated `get_context_from_user()` to read client+engagement from request headers
+- **Session Lookup**: Finds user's default session for specific client+engagement combination
+- **Auto-Creation Logic**: Creates new default sessions with proper naming convention when needed
+- **Fallback Handling**: Graceful fallback to existing sessions or demo context when needed
 
 ### 📊 **Technical Achievements**
-- **Session ID Consistency**: Fixed session ID mismatch between frontend UUID generation and backend session resolution
-- **Database Integrity**: Resolved foreign key constraint violations in workflow states table
-- **Error Handling**: Improved graceful fallback from non-existent sessions to user's default session
-- **API Reliability**: Enhanced data import analysis workflow to use consistent session IDs throughout the process
+- **Session Naming Convention**: Auto-created sessions follow pattern: `{client-name}-{engagement-name}-{username}-default`
+- **Database Integrity**: Sessions properly marked with `is_default=true` and `auto_created=true`
+- **Context Consistency**: All operations within same client+engagement use same session ID
+- **Multi-Context Support**: Users can seamlessly work across different client+engagement combinations
 
 ### 🎯 **Success Metrics**
-- **Data Import Success**: AI crew analysis now properly initializes and processes uploaded files
-- **Session Resolution**: 100% success rate in resolving user's default session for authenticated users
-- **Workflow Consistency**: Eliminated session ID mismatches between frontend and backend
-- **Error Reduction**: Removed "Multiple rows found" and foreign key constraint violation errors
+- **Context Switching**: Frontend context switcher now properly drives backend session resolution
+- **Data Isolation**: Different client+engagement combinations use separate sessions for proper data isolation
+- **Session Auto-Creation**: New sessions automatically created when users access new contexts
+- **Seamless Experience**: Users can switch between contexts without manual session management
 
 ### 🔧 **Implementation Details**
-- **Backend Changes**: Updated `CrewAIFlowService._ensure_session_exists()` and `get_context_from_user()` functions
-- **Database Updates**: Added user account associations and default sessions for existing users
-- **Context Management**: Enhanced request context resolution to use user's actual default session
-- **Frontend Compatibility**: Maintained frontend compatibility while fixing backend session resolution
+- **Backend Changes**: Enhanced `get_context_from_user()` function to process context headers and manage multiple default sessions
+- **Session Management**: Implemented auto-creation of default sessions for new client+engagement combinations
+- **Context Headers**: Backend now properly reads and processes `X-Client-Account-Id` and `X-Engagement-Id` headers
+- **Database Updates**: Sessions created with proper client+engagement associations and naming
 
 ### 📋 **User Impact**
-- **Seamless Data Import**: Users can now successfully upload files and see AI crew analysis progress
-- **Consistent Experience**: All operations use the user's default session for data consistency
-- **Reduced Errors**: Eliminated confusing "AI crew initializing..." stuck states
-- **Clear Context**: Users operate within their designated client, engagement, and session context
+- **Multi-Tenant Support**: Users can work with multiple clients and engagements simultaneously
+- **Context-Aware Data**: Data is properly isolated and scoped to specific client+engagement contexts
+- **Seamless Switching**: Frontend context switcher enables smooth transitions between different contexts
+- **Automatic Provisioning**: Sessions are automatically created when needed without user intervention
 
-### 🔄 **Migration Notes**
-- **Existing Users**: Automatically assigned to Complete Test Client with Azure Transformation engagement
-- **Default Sessions**: Auto-created default sessions for all existing users with proper naming
-- **Data Preservation**: All existing data maintained while improving session management
-- **Backward Compatibility**: Frontend continues to work without changes while backend handles session resolution
+### 🔄 **Architecture Benefits**
+- **True Multi-Tenancy**: Proper data isolation between different client engagements
+- **Scalable Design**: Supports unlimited client+engagement combinations per user
+- **Context-Driven**: Frontend context switcher controls backend session resolution
+- **Automatic Management**: No manual session creation or management required
 
-This release establishes a solid foundation for the simplified session management approach while immediately resolving the data import agent processing issues that were preventing users from successfully analyzing uploaded files.
+This release establishes the correct multi-tenant session management architecture where the frontend context switcher drives backend session resolution, enabling proper data isolation and seamless context switching across different client+engagement combinations.
 
 ## [0.8.26] - 2025-06-09
 

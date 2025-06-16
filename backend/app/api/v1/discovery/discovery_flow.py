@@ -30,21 +30,115 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/flow", tags=["Discovery Flow"])
 
 async def get_context_from_user(
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ) -> RequestContext:
     """
-    Get context from authenticated user's data instead of headers.
-    This is a more reliable way to get context for authenticated endpoints.
+    Get context from authenticated user's data and request headers.
+    Uses client+engagement from frontend context switcher to find appropriate default session.
     """
+    # Extract client and engagement from request headers (sent by frontend context switcher)
+    headers = request.headers
+    client_account_id = (
+        headers.get("x-client-account-id") or 
+        headers.get("x-client-id") or
+        headers.get("client-account-id")
+    )
+    engagement_id = (
+        headers.get("x-engagement-id") or
+        headers.get("engagement-id")
+    )
+    
+    logger.info(f"Context request - User: {current_user.id}, Client: {client_account_id}, Engagement: {engagement_id}")
+    
+    # If client+engagement provided in headers, find the default session for that combination
+    if client_account_id and engagement_id:
+        try:
+            from sqlalchemy import select, and_
+            from app.models.data_import_session import DataImportSession
+            
+            # Find user's default session for this specific client+engagement combination
+            query = (
+                select(DataImportSession)
+                .where(and_(
+                    DataImportSession.created_by == current_user.id,
+                    DataImportSession.client_account_id == client_account_id,
+                    DataImportSession.engagement_id == engagement_id,
+                    DataImportSession.is_default == True
+                ))
+            )
+            result = await db.execute(query)
+            user_session = result.scalar_one_or_none()
+            
+            if user_session:
+                logger.info(f"Found user's default session for client {client_account_id}, engagement {engagement_id}: {user_session.id}")
+                return RequestContext(
+                    client_account_id=client_account_id,
+                    engagement_id=engagement_id,
+                    user_id=str(current_user.id),
+                    session_id=str(user_session.id)
+                )
+            else:
+                # No default session exists for this client+engagement combination
+                # Create one automatically
+                logger.info(f"No default session found for user {current_user.id}, client {client_account_id}, engagement {engagement_id} - creating one")
+                
+                # Get client and engagement names for session naming
+                from app.models.client_account import ClientAccount, Engagement
+                
+                client_query = select(ClientAccount).where(ClientAccount.id == client_account_id)
+                client_result = await db.execute(client_query)
+                client = client_result.scalar_one_or_none()
+                
+                engagement_query = select(Engagement).where(Engagement.id == engagement_id)
+                engagement_result = await db.execute(engagement_query)
+                engagement = engagement_result.scalar_one_or_none()
+                
+                if client and engagement:
+                    # Create default session for this client+engagement combination
+                    session_name = f"{client.name.lower().replace(' ', '-')}-{engagement.name.lower().replace(' ', '-')}-{current_user.email.split('@')[0]}-default"
+                    session_display_name = f"{current_user.email}'s Default Session - {client.name} / {engagement.name}"
+                    
+                    new_session = DataImportSession(
+                        session_name=session_name,
+                        session_display_name=session_display_name,
+                        description=f"Auto-created default session for {current_user.email} in {client.name} / {engagement.name}",
+                        engagement_id=engagement_id,
+                        client_account_id=client_account_id,
+                        is_default=True,
+                        auto_created=True,
+                        session_type='data_import',
+                        status='active',
+                        created_by=current_user.id,
+                        is_mock=False
+                    )
+                    
+                    db.add(new_session)
+                    await db.commit()
+                    await db.refresh(new_session)
+                    
+                    logger.info(f"Created new default session: {new_session.id} for user {current_user.id}, client {client_account_id}, engagement {engagement_id}")
+                    
+                    return RequestContext(
+                        client_account_id=client_account_id,
+                        engagement_id=engagement_id,
+                        user_id=str(current_user.id),
+                        session_id=str(new_session.id)
+                    )
+                    
+        except Exception as e:
+            logger.warning(f"Failed to get/create session for client {client_account_id}, engagement {engagement_id}: {e}")
+    
+    # Fallback: Try to get user context from session management service
     try:
-        # Get user context from the /me endpoint logic
         from app.services.session_management_service import create_session_management_service
         
         service = create_session_management_service(db)
         user_context = await service.get_user_context(current_user.id)
         
         if user_context and user_context.client and user_context.engagement:
+            logger.info(f"Using user context from session management service: client {user_context.client.id}, engagement {user_context.engagement.id}")
             return RequestContext(
                 client_account_id=str(user_context.client.id),
                 engagement_id=str(user_context.engagement.id),
@@ -52,28 +146,26 @@ async def get_context_from_user(
                 session_id=str(user_context.session.id) if user_context.session else None
             )
     except Exception as e:
-        logger.warning(f"Failed to get context from user: {e}")
+        logger.warning(f"Failed to get context from session management service: {e}")
     
-    # If no user context found, try to find user's default session directly
+    # Final fallback: Try to find any default session for the user
     try:
         from sqlalchemy import select
         from app.models.data_import_session import DataImportSession
-        from app.models.client_account import User as UserModel
         
-        # Get user's default session
         query = (
             select(DataImportSession)
-            .join(UserModel, DataImportSession.created_by == UserModel.id)
-            .where(
-                UserModel.id == current_user.id,
+            .where(and_(
+                DataImportSession.created_by == current_user.id,
                 DataImportSession.is_default == True
-            )
+            ))
+            .order_by(DataImportSession.created_at.desc())
         )
         result = await db.execute(query)
         user_default_session = result.scalar_one_or_none()
         
         if user_default_session:
-            logger.info(f"Using user's default session: {user_default_session.id}")
+            logger.info(f"Using user's first default session: {user_default_session.id}")
             return RequestContext(
                 client_account_id=str(user_default_session.client_account_id),
                 engagement_id=str(user_default_session.engagement_id),
@@ -83,7 +175,7 @@ async def get_context_from_user(
     except Exception as e:
         logger.warning(f"Failed to get user's default session: {e}")
     
-    # Fallback to demo context only as last resort
+    # Last resort: Fallback to demo context
     logger.warning(f"No user context found for user {current_user.id}, falling back to demo context")
     return RequestContext(
         client_account_id="11111111-1111-1111-1111-111111111111",

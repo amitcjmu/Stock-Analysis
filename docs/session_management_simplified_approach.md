@@ -1,265 +1,267 @@
-# Session Management - Simplified Single Default Session Approach
+# Session Management - Multi-Tenant Default Session Approach
 
 ## Overview
 
-Based on the analysis of the current implementation and the complexity of full session merging/combining functionality, we're implementing a **simplified approach**: **one single default session per user per engagement**.
+The session management system implements a **multi-tenant default session approach** where:
+- **Users can have multiple default sessions** - one per client+engagement combination
+- **Frontend context switcher** determines which client+engagement context to use
+- **Backend automatically resolves** the appropriate default session based on the client+engagement combination
+- **Sessions are auto-created** when a user accesses a new client+engagement combination
 
 This approach ensures:
-- Every user has a default session they always operate within
-- No complex session merging or combining logic needed
-- Clear data isolation and context management
-- Simplified frontend session management
+- **Data isolation** between different client engagements
+- **Seamless context switching** via frontend context switcher
+- **Automatic session management** without user intervention
+- **Multi-tenancy support** with proper data scoping
 
 ## Core Principles
 
-### 1. User Default Context
-Every user must have:
-- **Default Client Account ID**: The primary client they work with
-- **Default Engagement ID**: The primary engagement within that client
-- **Default Session ID**: The primary session within that engagement
+### 1. Multi-Tenant Session Architecture
+- **One default session per user per client+engagement combination**
+- **Different engagement = Different default session** (for data isolation)
+- **Frontend context switcher** controls which client+engagement context is active
+- **Backend resolves** the appropriate default session based on context headers
 
-### 2. Single Session Operation
-- Users operate within their **single default session**
-- All data imports, analysis, and processing happen within this session
-- Session acts as the user's persistent workspace
-- No session switching or multiple sessions per user
+### 2. Context-Driven Session Resolution
+- **Frontend sends context headers**: `X-Client-Account-Id` and `X-Engagement-Id`
+- **Backend finds/creates** the appropriate default session for that combination
+- **Session auto-creation** when user accesses new client+engagement for the first time
+- **Session reuse** for subsequent requests to the same client+engagement
 
 ### 3. Automatic Session Management
-- Sessions are **auto-created** when users are created or first access the system
-- Session naming: `{client_name}-{engagement_name}-{user_name}-default`
-- Sessions are marked as `is_default=true` and `auto_created=true`
+- **Sessions are auto-created** with proper naming: `{client-name}-{engagement-name}-{username}-default`
+- **Sessions are marked** as `is_default=true` and `auto_created=true`
+- **No manual session creation** required by users
+- **Seamless experience** across different client engagements
 
-## Database Schema Updates
+## Implementation Details
 
-### 1. Update Users Table
-```sql
--- Add default context fields to users table
-ALTER TABLE users 
-ADD COLUMN default_client_account_id UUID REFERENCES client_accounts(id),
-ADD COLUMN default_engagement_id UUID REFERENCES engagements(id),
-ADD COLUMN default_session_id UUID REFERENCES data_import_sessions(id);
+### Frontend Context Switcher
+The frontend context switcher component allows users to:
+- **Select client account** from available options
+- **Select engagement** within the chosen client
+- **Switch between contexts** seamlessly
+- **Send context headers** with every API request
 
--- Add indexes for performance
-CREATE INDEX idx_users_default_client ON users(default_client_account_id);
-CREATE INDEX idx_users_default_engagement ON users(default_engagement_id);
-CREATE INDEX idx_users_default_session ON users(default_session_id);
+```typescript
+// Frontend sends these headers with API requests
+const headers = {
+  'X-Client-Account-Id': selectedClient.id,
+  'X-Engagement-Id': selectedEngagement.id,
+  'Authorization': `Bearer ${token}`
+};
 ```
 
-### 2. Ensure User-Session Association
-```sql
--- Ensure every user has a user_account_association
--- This links users to their default client account with a role
-INSERT INTO user_account_associations (user_id, client_account_id, role, created_by)
-SELECT 
-    u.id,
-    u.default_client_account_id,
-    'member',
-    u.id
-FROM users u
-WHERE u.default_client_account_id IS NOT NULL
-AND NOT EXISTS (
-    SELECT 1 FROM user_account_associations uaa 
-    WHERE uaa.user_id = u.id AND uaa.client_account_id = u.default_client_account_id
-);
-```
+### Backend Context Resolution
+The backend `get_context_from_user` function:
+1. **Reads context headers** from the request
+2. **Finds existing default session** for user+client+engagement combination
+3. **Creates new default session** if none exists
+4. **Returns appropriate RequestContext** with session ID
 
-## Implementation Steps
-
-### Phase 1: Database Migration
-1. **Update User Model** to include default context fields
-2. **Create Migration Script** to add the new columns
-3. **Backfill Existing Users** with default context (assign to demo client/engagement)
-4. **Create Default Sessions** for all existing users
-
-### Phase 2: Backend Service Updates
-1. **Update User Service** to handle default context loading
-2. **Update Session Service** to auto-create default sessions
-3. **Update Context Service** to use user's default session
-4. **Update Authentication** to load user's complete context
-
-### Phase 3: Frontend Updates
-1. **Remove Session Switching UI** (since users have one session)
-2. **Update Context Loading** to use user's default session
-3. **Simplify Data Import** to always use default session
-4. **Update Breadcrumbs** to show current context without switching
-
-### Phase 4: Data Import Fix
-1. **Fix Session Creation** in data import workflow
-2. **Use User's Default Session** instead of generating new UUIDs
-3. **Update Analysis Workflow** to use consistent session IDs
-
-## User Creation Workflow
-
-### New User Registration
 ```python
-async def create_user_with_defaults(
-    email: str,
-    client_account_id: UUID,
-    engagement_id: UUID,
-    role: str = "member"
-) -> User:
-    """Create a new user with default context and session."""
+async def get_context_from_user(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> RequestContext:
+    # Extract client and engagement from request headers
+    client_account_id = headers.get("x-client-account-id")
+    engagement_id = headers.get("x-engagement-id")
     
-    # 1. Create the user
-    user = User(email=email, ...)
-    db.add(user)
-    await db.flush()  # Get user ID
+    # Find user's default session for this client+engagement combination
+    user_session = await find_default_session(
+        user_id=current_user.id,
+        client_account_id=client_account_id,
+        engagement_id=engagement_id
+    )
     
-    # 2. Create default session for the user
-    session_name = f"{client_name}-{engagement_name}-{user.email.split('@')[0]}-default"
-    default_session = DataImportSession(
-        session_name=session_name,
-        session_display_name=f"{user.email}'s Default Session",
+    if not user_session:
+        # Auto-create default session for this combination
+        user_session = await create_default_session(
+            user=current_user,
+            client_account_id=client_account_id,
+            engagement_id=engagement_id
+        )
+    
+    return RequestContext(
+        client_account_id=client_account_id,
         engagement_id=engagement_id,
-        client_account_id=client_account_id,
-        is_default=True,
-        auto_created=True,
-        created_by=user.id
-    )
-    db.add(default_session)
-    await db.flush()  # Get session ID
-    
-    # 3. Update user with default context
-    user.default_client_account_id = client_account_id
-    user.default_engagement_id = engagement_id
-    user.default_session_id = default_session.id
-    
-    # 4. Create user-client association
-    association = UserAccountAssociation(
-        user_id=user.id,
-        client_account_id=client_account_id,
-        role=role,
-        created_by=user.id
-    )
-    db.add(association)
-    
-    await db.commit()
-    return user
-```
-
-### Existing User Context Loading
-```python
-async def get_user_context(user_id: UUID) -> UserContext:
-    """Get user's complete context using their defaults."""
-    
-    user = await get_user_with_defaults(user_id)
-    
-    if not user.default_session_id:
-        # Auto-create default session if missing
-        await create_default_session_for_user(user)
-    
-    return UserContext(
-        user=user,
-        client_account_id=user.default_client_account_id,
-        engagement_id=user.default_engagement_id,
-        session_id=user.default_session_id
+        user_id=str(current_user.id),
+        session_id=str(user_session.id)
     )
 ```
 
-## Data Import Workflow Fix
+### Session Auto-Creation
+When a user accesses a new client+engagement combination:
 
-### Current Problem
-- Frontend generates UUID for session
-- Backend ignores it and uses demo session
-- Analysis workflow fails due to session mismatch
-
-### Solution
 ```python
-async def initiate_data_source_analysis(
-    context: RequestContext,
-    analysis_type: str,
-    data_source: Dict[str, Any]
-) -> Dict[str, Any]:
-    """Use user's default session for all analysis."""
-    
-    # Get user's default session (not demo session)
-    user_context = await get_user_context(context.user_id)
-    
-    # Use user's actual default session
-    session_id = user_context.session_id
-    
-    # Create workflow state with user's session
-    flow_state = DiscoveryFlowState(
-        session_id=session_id,
-        flow_id=session_id,
-        client_account_id=user_context.client_account_id,
-        engagement_id=user_context.engagement_id,
-        user_id=context.user_id,
-        import_session_id=session_id,  # Same as session_id
-        status="running",
-        current_phase="initialization",
-        metadata=metadata
-    )
-    
-    # Continue with analysis...
+# Session naming convention
+session_name = f"{client.name.lower().replace(' ', '-')}-{engagement.name.lower().replace(' ', '-')}-{user.email.split('@')[0]}-default"
+session_display_name = f"{user.email}'s Default Session - {client.name} / {engagement.name}"
+
+# Session creation
+new_session = DataImportSession(
+    session_name=session_name,
+    session_display_name=session_display_name,
+    description=f"Auto-created default session for {user.email} in {client.name} / {engagement.name}",
+    engagement_id=engagement_id,
+    client_account_id=client_account_id,
+    is_default=True,
+    auto_created=True,
+    session_type='data_import',
+    status='active',
+    created_by=user.id,
+    is_mock=False
+)
+```
+
+## Data Isolation and Multi-Tenancy
+
+### Client-Level Isolation
+- **Different clients** = **Completely separate data**
+- **User access control** enforced at client level
+- **Session data scoped** to specific client account
+
+### Engagement-Level Isolation
+- **Different engagements within same client** = **Separate sessions**
+- **Engagement-specific data** stored in separate sessions
+- **Clear separation** of migration projects/phases
+
+### Session-Level Data
+- **All data imports** go to the user's default session for that client+engagement
+- **Analysis results** stored within session context
+- **Workflow states** tied to specific sessions
+
+## User Experience
+
+### Context Switching
+1. **User selects client** from context switcher
+2. **User selects engagement** within that client
+3. **Frontend sends context headers** with subsequent requests
+4. **Backend automatically uses** appropriate default session
+5. **User sees data** specific to that client+engagement combination
+
+### Seamless Operation
+- **No session management UI** needed for users
+- **Automatic session creation** when needed
+- **Consistent data view** within each context
+- **Clear separation** between different client engagements
+
+## Example Scenarios
+
+### Scenario 1: Consultant Working on Multiple Clients
+```
+User: consultant@company.com
+
+Client A + Engagement 1 → Session: client-a-migration-consultant-default
+Client A + Engagement 2 → Session: client-a-modernization-consultant-default  
+Client B + Engagement 1 → Session: client-b-assessment-consultant-default
+```
+
+### Scenario 2: Client User with Multiple Engagements
+```
+User: admin@clientcorp.com
+
+ClientCorp + Cloud Migration → Session: clientcorp-cloud-migration-admin-default
+ClientCorp + Data Center Exit → Session: clientcorp-data-center-exit-admin-default
+```
+
+### Scenario 3: Context Switching
+```
+1. User selects "Client A" + "Migration Project" in context switcher
+   → Backend uses session: client-a-migration-user-default
+   → User sees migration-specific data
+
+2. User switches to "Client A" + "Modernization Project"  
+   → Backend uses session: client-a-modernization-user-default
+   → User sees modernization-specific data
+
+3. User switches to "Client B" + "Assessment Project"
+   → Backend creates/uses session: client-b-assessment-user-default
+   → User sees assessment-specific data
 ```
 
 ## Benefits of This Approach
 
-### 1. Simplicity
-- No complex session merging logic
-- No session switching UI complexity
-- Clear single source of truth for user context
+### 1. Data Isolation
+- **Clear separation** between different client engagements
+- **No data mixing** between projects
+- **Proper multi-tenancy** with context-aware data access
 
-### 2. Data Consistency
-- All user data lives in their default session
-- No data fragmentation across multiple sessions
-- Clear audit trail and data ownership
+### 2. User Experience
+- **Seamless context switching** via frontend UI
+- **No manual session management** required
+- **Automatic session creation** when needed
+- **Consistent data view** within each context
 
-### 3. Performance
-- No session switching overhead
-- Simplified context loading
-- Reduced database queries
+### 3. Scalability
+- **Supports multiple clients** per user
+- **Supports multiple engagements** per client
+- **Automatic session provisioning** as needed
+- **Clean data organization** by context
 
-### 4. User Experience
-- Users don't need to manage multiple sessions
-- Clear understanding of their workspace
-- Consistent data view across all operations
+### 4. Security
+- **Context-aware access control** 
+- **Proper tenant isolation**
+- **Session-level data scoping**
+- **Clear audit trail** per engagement
+
+## Database Schema
+
+### Sessions Table Structure
+```sql
+-- Each user can have multiple default sessions
+-- One per client+engagement combination
+CREATE TABLE data_import_sessions (
+    id UUID PRIMARY KEY,
+    session_name VARCHAR NOT NULL,
+    session_display_name VARCHAR,
+    description TEXT,
+    client_account_id UUID NOT NULL REFERENCES client_accounts(id),
+    engagement_id UUID NOT NULL REFERENCES engagements(id),
+    created_by UUID NOT NULL REFERENCES users(id),
+    is_default BOOLEAN DEFAULT FALSE,
+    auto_created BOOLEAN DEFAULT FALSE,
+    session_type VARCHAR DEFAULT 'data_import',
+    status VARCHAR DEFAULT 'active',
+    is_mock BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    
+    -- Ensure one default session per user per engagement
+    UNIQUE(created_by, engagement_id, is_default) WHERE is_default = TRUE
+);
+```
+
+### Context Resolution Query
+```sql
+-- Find user's default session for specific client+engagement
+SELECT * FROM data_import_sessions 
+WHERE created_by = :user_id 
+  AND client_account_id = :client_id 
+  AND engagement_id = :engagement_id 
+  AND is_default = TRUE;
+```
 
 ## Migration Strategy
 
 ### For Existing Users
-1. **Assign Default Context**: All existing users get assigned to demo client/engagement
-2. **Create Default Sessions**: Auto-create default sessions for all users
-3. **Update User Records**: Backfill default context fields
-4. **Preserve Existing Data**: Migrate existing data to user's default session
+1. **Existing sessions preserved** with current client+engagement associations
+2. **New sessions auto-created** when users access different client+engagement combinations
+3. **Gradual migration** as users switch contexts via frontend
 
 ### For New Users
-1. **Registration Process**: Require client/engagement assignment during registration
-2. **Auto-Session Creation**: Automatically create default session
-3. **Context Enforcement**: Ensure all operations use user's default context
+1. **First session auto-created** when user first accesses any client+engagement
+2. **Additional sessions created** as user accesses different contexts
+3. **Seamless onboarding** with automatic session provisioning
 
-## Context Switcher Simplification
+## Context Switcher Integration
 
-Since users operate within a single default session, the context switcher becomes:
-- **Display Only**: Shows current client > engagement > session
-- **No Switching**: Users can't switch sessions (they have only one)
-- **Admin Function**: Only admins can reassign users to different contexts
-- **Session Info**: Shows session statistics and metadata
+The context switcher component should:
+- **Display current context** clearly (Client > Engagement)
+- **Allow context switching** between available combinations
+- **Send appropriate headers** with API requests
+- **Handle context changes** smoothly
 
-## Future Enhancements (Optional)
-
-If needed later, we can add:
-1. **Session Snapshots**: Create read-only snapshots of sessions at specific points
-2. **Session Cloning**: Allow users to create new sessions based on existing ones
-3. **Multi-Engagement Access**: Allow users to have default sessions in multiple engagements
-4. **Session Templates**: Pre-configured session setups for common scenarios
-
-## Implementation Priority
-
-### Immediate (Fix Current Issues)
-1. Fix data import session creation bug
-2. Update user context loading to use actual user defaults
-3. Create default sessions for existing users
-
-### Short Term (Complete Implementation)
-1. Update database schema with user defaults
-2. Implement auto-session creation for new users
-3. Update frontend to use single session approach
-
-### Long Term (Enhancements)
-1. Admin interface for user context management
-2. Session analytics and reporting
-3. Advanced session configuration options
-
-This simplified approach addresses the core issues while providing a solid foundation for future enhancements if needed. 
+This approach provides the perfect balance between simplicity and functionality, supporting true multi-tenancy while maintaining a seamless user experience. 
