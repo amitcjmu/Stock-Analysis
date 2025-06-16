@@ -68,10 +68,26 @@ class CrewAIFlowService:
             logger.warning("CrewAI Flow not available - using fallback mode")
     
     def _initialize_agents(self) -> Dict[str, Any]:
-        """Initialize agents (reuse existing agent initialization logic)."""
-        # This would typically reuse the existing agent initialization
-        # For now, return empty dict to indicate fallback mode
-        return {}
+        """Initialize Discovery Agents for CrewAI integration."""
+        agents = {}
+        
+        try:
+            # Import and initialize existing discovery agents
+            from app.services.discovery_agents.data_source_intelligence_agent import DataSourceIntelligenceAgent
+            from app.services.discovery_agents.dependency_intelligence_agent import DependencyIntelligenceAgent
+            
+            # Initialize agents
+            agents['data_source_intelligence'] = DataSourceIntelligenceAgent()
+            agents['dependency_intelligence'] = DependencyIntelligenceAgent()
+            
+            logger.info(f"✅ Initialized {len(agents)} Discovery Agents for CrewAI integration")
+            
+        except ImportError as e:
+            logger.error(f"Failed to import discovery agents: {e}")
+        except Exception as e:
+            logger.error(f"Failed to initialize discovery agents: {e}")
+        
+        return agents
     
     async def initiate_discovery_workflow(
         self,

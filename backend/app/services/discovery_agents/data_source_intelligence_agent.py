@@ -15,7 +15,6 @@ if TYPE_CHECKING:
     from app.services.crewai_flow_handlers.flow_state_handler import DiscoveryFlowState
 
 from app.models.agent_communication import ConfidenceLevel, DataClassification, QuestionType, AgentInsight
-from app.services.crewai_flow_service import crewai_flow_service
 from .data_source_handlers import (
     SourceTypeAnalyzer,
     DataStructureAnalyzer,
@@ -63,6 +62,16 @@ class DataSourceIntelligenceAgent:
     def _create_agent(self):
         """Create the CrewAI agent."""
         try:
+            from crewai import Agent
+            
+            # Try to get LLM from crewai service
+            llm = None
+            try:
+                from app.services.crewai_flow_service import crewai_flow_service
+                llm = crewai_flow_service.llm
+            except ImportError:
+                logger.debug("CrewAI flow service not available - agent will use default LLM")
+            
             agent = Agent(
                 role="Data Source Intelligence Specialist",
                 goal="Analyze and understand any given data source, including its structure, quality, and potential value for migration",
@@ -72,13 +81,16 @@ class DataSourceIntelligenceAgent:
                     "You intelligently assess data formats, structures, and content to provide actionable insights. "
                     "You learn from user feedback to continuously improve your analytical capabilities."
                 ),
-                llm=crewai_flow_service.llm,
+                llm=llm,
                 allow_delegation=False,
                 verbose=True,
                 memory=True
             )
             agent.tools = list(self.tools.values())
             return agent
+        except ImportError:
+            logger.error("CrewAI not available - agent creation skipped")
+            return None
         except Exception as e:
             logger.error(f"Failed to create agent: {e}")
             return None
@@ -146,52 +158,62 @@ class DataSourceIntelligenceAgent:
                 else:
                     classification_type = DataClassification.GOOD_DATA  # Default fallback
                 
-                # Store each data item with classification
-                for i, row in enumerate(file_data[:10]):  # Sample first 10 rows for classification
-                    crewai_flow_service.ui_interaction_handler.classification_handler.classify_data_item(
-                        item_id=f"data_row_{i}_{analysis_id}",
-                        data_type="asset_record",
-                        content=row,
-                        classification=classification_type,  # Pass enum, not .value
-                        agent_analysis=classification_data,
-                        confidence=ConfidenceLevel.MEDIUM,  # Pass enum, not .value
+                # Store each data item with classification (when available)
+                try:
+                    from app.services.crewai_flow_service import crewai_flow_service
+                    for i, row in enumerate(file_data[:10]):  # Sample first 10 rows for classification
+                        crewai_flow_service.ui_interaction_handler.classification_handler.classify_data_item(
+                            item_id=f"data_row_{i}_{analysis_id}",
+                            data_type="asset_record",
+                            content=row,
+                            classification=classification_type,  # Pass enum, not .value
+                            agent_analysis=classification_data,
+                            confidence=ConfidenceLevel.MEDIUM,  # Pass enum, not .value
+                            page=page_context,
+                            issues=classification_data.get("issues", []),
+                            recommendations=classification_data.get("recommendations", [])
+                        )
+                except ImportError:
+                    # Skip UI bridge integration if not available
+                    pass
+            
+            # Add insights to UI bridge (when available)
+            try:
+                from app.services.crewai_flow_service import crewai_flow_service
+                for insight in analysis_result["agent_insights"]:
+                    logger.info(f"Adding insight with page_context: {page_context}")
+                    crewai_flow_service.ui_interaction_handler.add_agent_insight(
+                        flow_state=flow_state,
+                        agent_id=self.agent_id,
+                        agent_name=self.agent_name,
+                        insight_type=insight["type"],
+                        title=insight["title"],
+                        description=insight["description"],
+                        confidence=ConfidenceLevel(insight["confidence"]),
+                        supporting_data=insight["supporting_data"],
                         page=page_context,
-                        issues=classification_data.get("issues", []),
-                        recommendations=classification_data.get("recommendations", [])
+                        actionable=insight.get("actionable", True)
                     )
-            
-            # Add insights to UI bridge
-            for insight in analysis_result["agent_insights"]:
-                logger.info(f"Adding insight with page_context: {page_context}")
-                crewai_flow_service.ui_interaction_handler.add_agent_insight(
-                    flow_state=flow_state,
-                    agent_id=self.agent_id,
-                    agent_name=self.agent_name,
-                    insight_type=insight["type"],
-                    title=insight["title"],
-                    description=insight["description"],
-                    confidence=ConfidenceLevel(insight["confidence"]),
-                    supporting_data=insight["supporting_data"],
-                    page=page_context,
-                    actionable=insight.get("actionable", True)
-                )
-            
-            # Add clarification questions to UI bridge
-            for question in analysis_result["clarification_questions"]:
-                logger.info(f"Adding question with page_context: {page_context}")
-                crewai_flow_service.ui_interaction_handler.add_agent_question(
-                    flow_state=flow_state,
-                    agent_id=self.agent_id,
-                    agent_name=self.agent_name,
-                    question_type=QuestionType(question["type"]),
-                    page=page_context,
-                    title=question["title"],
-                    question=question["question"],
-                    context=question["context"],
-                    options=question.get("options"),
-                    confidence=ConfidenceLevel(question["confidence"]),
-                    priority=question["priority"]
-                )
+                
+                # Add clarification questions to UI bridge
+                for question in analysis_result["clarification_questions"]:
+                    logger.info(f"Adding question with page_context: {page_context}")
+                    crewai_flow_service.ui_interaction_handler.add_agent_question(
+                        flow_state=flow_state,
+                        agent_id=self.agent_id,
+                        agent_name=self.agent_name,
+                        question_type=QuestionType(question["type"]),
+                        page=page_context,
+                        title=question["title"],
+                        question=question["question"],
+                        context=question["context"],
+                        options=question.get("options"),
+                        confidence=ConfidenceLevel(question["confidence"]),
+                        priority=question["priority"]
+                    )
+            except ImportError:
+                # Skip UI bridge integration if not available
+                logger.debug("UI bridge not available - skipping insight/question integration")
             
             return analysis_result
             
