@@ -1,0 +1,1 @@
+{"dependency_patterns":{"hosting":["runs_on","hosted_by"],"communication":["calls","connects_to"]}}

@@ -522,6 +522,136 @@ class CrewAIFlowService:
                 "message": f"Flow {flow_id} not found in active flows"
             }
 
+    async def execute_discovery_flow_redesigned(
+        self,
+        headers: List[str],
+        sample_data: List[Dict[str, Any]],
+        filename: str,
+        context: RequestContext,
+        options: Dict[str, Any] = None
+    ) -> Dict[str, Any]:
+        """
+        Execute the redesigned Discovery Flow using the corrected architecture.
+        
+        This method creates and executes the DiscoveryFlowRedesigned with:
+        - Proper flow sequence (field mapping first)
+        - Specialized crews with manager agents
+        - Shared memory and knowledge bases
+        - Agent collaboration and planning
+        """
+        try:
+            logger.info(f"🚀 Starting redesigned Discovery Flow for session {context.session_id}")
+            
+            # Import the redesigned flow
+            from app.services.crewai_flows.discovery_flow_redesigned import DiscoveryFlowRedesigned
+            
+            # Prepare flow data
+            flow_data = {
+                "file_data": sample_data,
+                "metadata": {
+                    "filename": filename,
+                    "headers": headers,
+                    "options": options or {},
+                    "source": "discovery_flow_api",
+                    "timestamp": datetime.utcnow().isoformat()
+                }
+            }
+            
+            # Generate session ID
+            session_id = context.session_id or str(uuid.uuid4())
+            
+            # Create a mock CrewAI service object (since we need it for initialization)
+            crewai_service = type('MockCrewAIService', (), {'llm': None})()
+            
+            # Initialize the redesigned flow
+            flow = DiscoveryFlowRedesigned(
+                crewai_service=crewai_service,
+                context=context,
+                session_id=session_id,
+                client_account_id=context.client_account_id,
+                engagement_id=context.engagement_id,
+                user_id=context.user_id,
+                raw_data=sample_data,
+                metadata=flow_data["metadata"]
+            )
+            
+            # Store the flow for monitoring
+            self._active_flows[session_id] = flow
+            
+            # Start the flow execution in background
+            asyncio.create_task(self._run_redesigned_flow_background(flow, context))
+            
+            # Return immediate response with flow details
+            return {
+                "status": "flow_started",
+                "flow_id": session_id,
+                "session_id": session_id,
+                "architecture": "redesigned_with_crews",
+                "next_phase": "field_mapping",
+                "discovery_plan": getattr(flow.state, 'overall_plan', {}),
+                "crew_coordination": getattr(flow.state, 'crew_coordination', {}),
+                "message": "Redesigned Discovery Flow started successfully"
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to start redesigned Discovery Flow: {e}")
+            raise e
+
+    async def _run_redesigned_flow_background(
+        self,
+        flow: 'DiscoveryFlowRedesigned',
+        context: RequestContext
+    ):
+        """Run the redesigned flow in background and update state."""
+        try:
+            logger.info(f"🔄 Running redesigned flow in background for session {flow.state.session_id}")
+            
+            # Execute the flow (this will trigger the @start method and flow through @listen decorators)
+            result = await asyncio.to_thread(flow.kickoff)
+            
+            logger.info(f"✅ Redesigned flow completed for session {flow.state.session_id}")
+            
+            # Update workflow state in database
+            await self._update_workflow_state_with_new_session(
+                session_id=flow.state.session_id,
+                client_account_id=context.client_account_id,
+                engagement_id=context.engagement_id,
+                status="completed",
+                current_phase="completed",
+                state_data={
+                    "session_id": flow.state.session_id,
+                    "status": "completed",
+                    "current_phase": "completed",
+                    "flow_result": result,
+                    "discovery_summary": getattr(flow.state, 'discovery_summary', {}),
+                    "assessment_flow_package": getattr(flow.state, 'assessment_flow_package', {}),
+                    "completed_at": datetime.utcnow().isoformat()
+                }
+            )
+            
+        except Exception as e:
+            logger.error(f"❌ Redesigned flow background execution failed: {e}")
+            
+            # Update workflow state to error
+            await self._update_workflow_state_with_new_session(
+                session_id=flow.state.session_id,
+                client_account_id=context.client_account_id,
+                engagement_id=context.engagement_id,
+                status="failed", 
+                current_phase="error",
+                state_data={
+                    "session_id": flow.state.session_id,
+                    "status": "failed",
+                    "current_phase": "error",
+                    "error": str(e),
+                    "failed_at": datetime.utcnow().isoformat()
+                }
+            )
+        finally:
+            # Remove from active flows when complete
+            if flow.state.session_id in self._active_flows:
+                del self._active_flows[flow.state.session_id]
+
 
 def create_crewai_flow_service(db: AsyncSession) -> CrewAIFlowService:
     """Factory function to create CrewAI Flow Service."""

@@ -1,0 +1,1 @@
+{"classification_rules":{"servers":["server","host","vm"],"applications":["app","application","service"],"devices":["device","network","switch"]}}

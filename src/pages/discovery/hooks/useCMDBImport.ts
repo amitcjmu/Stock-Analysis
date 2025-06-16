@@ -146,15 +146,15 @@ export const useDiscoveryFlow = () => {
         };
         
         console.log('🚀 Sending request to backend:', {
-          endpoint: '/api/v1/discovery/flow/run',
+          endpoint: '/api/v1/discovery/flow/run-redesigned',
           session_id: currentSessionId,
           filename: file.name,
           headers_count: headers.length,
           sample_data_count: sample_data.length
         });
         
-        // Call the working backend endpoint
-        const response = await apiCall('/api/v1/discovery/flow/run', {
+        // Call the redesigned backend endpoint with proper crew implementation
+        const response = await apiCall('/api/v1/discovery/flow/run-redesigned', {
           method: 'POST',
           body: JSON.stringify(requestBody),
         }) as DiscoveryFlowResponse;

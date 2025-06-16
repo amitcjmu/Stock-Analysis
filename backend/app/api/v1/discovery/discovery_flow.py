@@ -940,5 +940,176 @@ async def get_agentic_analysis_status_public(
             }
         }
 
+# New endpoints for enhanced Discovery Flow with Crew Architecture
+
+@router.get("/crews/status/{flow_id}")
+async def get_crew_status(
+    flow_id: str,
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
+):
+    """Get detailed status of all crews in a Discovery Flow"""
+    try:
+        status = service.get_flow_crew_status(flow_id)
+        if not status:
+            raise HTTPException(status_code=404, detail="Flow not found")
+        
+        return {
+            "flow_id": flow_id,
+            "crew_status": status.get("crew_status", {}),
+            "phase_managers": status.get("phase_managers", {}),
+            "agent_collaboration": status.get("agent_collaboration_map", {}),
+            "current_phase": status.get("current_phase"),
+            "completion_percentage": status.get("completion_percentage", 0)
+        }
+    except Exception as e:
+        logger.error(f"Error getting crew status for flow {flow_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/crews/{crew_name}/details/{flow_id}")
+async def get_crew_details(
+    flow_id: str,
+    crew_name: str,
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
+):
+    """Get detailed information about a specific crew in a flow"""
+    try:
+        crew_info = service.get_crew_details(flow_id, crew_name)
+        if not crew_info:
+            raise HTTPException(status_code=404, detail=f"Crew {crew_name} not found in flow {flow_id}")
+        
+        return crew_info
+    except Exception as e:
+        logger.error(f"Error getting crew details for {crew_name} in flow {flow_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/memory/status/{flow_id}")
+async def get_memory_status(
+    flow_id: str,
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
+):
+    """Get shared memory status and usage for a flow"""
+    try:
+        memory_status = service.get_memory_status(flow_id)
+        if not memory_status:
+            raise HTTPException(status_code=404, detail="Flow memory not found")
+        
+        return memory_status
+    except Exception as e:
+        logger.error(f"Error getting memory status for flow {flow_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/knowledge/status/{flow_id}")
+async def get_knowledge_status(
+    flow_id: str,
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
+):
+    """Get knowledge base status and usage for a flow"""
+    try:
+        knowledge_status = service.get_knowledge_status(flow_id)
+        if not knowledge_status:
+            raise HTTPException(status_code=404, detail="Flow knowledge not found")
+        
+        return knowledge_status
+    except Exception as e:
+        logger.error(f"Error getting knowledge status for flow {flow_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/planning/status/{flow_id}")
+async def get_planning_status(
+    flow_id: str,
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
+):
+    """Get planning status and execution plan for a flow"""
+    try:
+        planning_status = service.get_planning_status(flow_id)
+        if not planning_status:
+            raise HTTPException(status_code=404, detail="Flow planning not found")
+        
+        return planning_status
+    except Exception as e:
+        logger.error(f"Error getting planning status for flow {flow_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/run-redesigned")
+async def run_discovery_flow_redesigned(
+    request: DiscoveryFlowRequest,
+    service: CrewAIFlowService = Depends(get_crewai_flow_service),
+    context: RequestContext = Depends(get_context_from_user)
+):
+    """
+    Execute the redesigned Discovery Flow with proper sequence and crew architecture
+    
+    This endpoint uses the corrected flow sequence:
+    1. Field Mapping Crew (Foundation)
+    2. Data Cleansing Crew (Quality Assurance)  
+    3. Inventory Building Crew (Multi-Domain Classification)
+    4. App-Server Dependency Crew (Hosting Relationships)
+    5. App-App Dependency Crew (Integration Analysis)
+    6. Technical Debt Crew (6R Preparation)
+    7. Discovery Integration (Assessment Flow Preparation)
+    """
+    try:
+        logger.info(f"🚀 Starting redesigned Discovery Flow for user {context.user_id}")
+        
+        # Initialize the redesigned flow
+        flow_result = await service.execute_discovery_flow_redesigned(
+            headers=request.headers,
+            sample_data=request.sample_data,
+            filename=request.filename,
+            context=context,
+            options=request.options or {}
+        )
+        
+        return {
+            "status": "flow_started",
+            "flow_id": flow_result.get("flow_id"),
+            "architecture": "redesigned_with_crews",
+            "sequence": [
+                "field_mapping", "data_cleansing", "inventory_building",
+                "app_server_dependencies", "app_app_dependencies", 
+                "technical_debt", "discovery_integration"
+            ],
+            "message": "Discovery Flow started with corrected architecture",
+            "next_phase": flow_result.get("next_phase", "field_mapping"),
+            "crew_coordination": flow_result.get("crew_coordination"),
+            "planning": flow_result.get("discovery_plan")
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Redesigned Discovery Flow failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Flow execution failed: {str(e)}")
+
+@router.get("/success-criteria/{flow_id}")
+async def get_success_criteria_status(
+    flow_id: str,
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
+):
+    """Get success criteria validation status for all phases"""
+    try:
+        criteria_status = service.get_success_criteria_status(flow_id)
+        if not criteria_status:
+            raise HTTPException(status_code=404, detail="Flow success criteria not found")
+        
+        return criteria_status
+    except Exception as e:
+        logger.error(f"Error getting success criteria for flow {flow_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/collaboration/tracking/{flow_id}")
+async def get_collaboration_tracking(
+    flow_id: str,
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
+):
+    """Get agent collaboration tracking and cross-crew communication"""
+    try:
+        collaboration_data = service.get_collaboration_tracking(flow_id)
+        if not collaboration_data:
+            raise HTTPException(status_code=404, detail="Flow collaboration data not found")
+        
+        return collaboration_data
+    except Exception as e:
+        logger.error(f"Error getting collaboration tracking for flow {flow_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Export router
 __all__ = ["router"] 

@@ -1,8 +1,10 @@
 # Discovery Flow - Correct Design According to Requirements
 
+> **📖 For the complete detailed design with CrewAI Flow plots, agent collaboration, memory management, and comprehensive implementation details, see [DISCOVERY_FLOW_DETAILED_DESIGN.md](./DISCOVERY_FLOW_DETAILED_DESIGN.md)**
+
 ## 🎯 **Proper Flow Sequence**
 
-Based on your requirements, here's how the Discovery Flow should be designed:
+Based on your requirements and following CrewAI best practices for high complexity + high precision use cases, here's how the Discovery Flow should be designed:
 
 ### **Phase 1: Field-Attribute Mapping** (FIRST - Critical Foundation)
 ```python

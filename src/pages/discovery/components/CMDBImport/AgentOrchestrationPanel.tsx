@@ -43,40 +43,58 @@ const AgentOrchestrationPanel: React.FC<AgentOrchestrationPanelProps> = ({
   const [activeTab, setActiveTab] = useState('overview');
   const [crews, setCrews] = useState<CrewProgress[]>([
     {
-      name: 'Data Ingestion Crew',
-      status: 'pending',
-      progress: 0,
-      agents: ['Data Validation Specialist', 'Format Standardizer'],
-      description: 'Validates, cleanses, and standardizes incoming CMDB data',
-      icon: <Database className="h-5 w-5" />,
-      currentTask: 'Waiting to start...'
-    },
-    {
-      name: 'Asset Analysis Crew',
-      status: 'pending', 
-      progress: 0,
-      agents: ['Asset Classification Expert', 'Dependency Analyzer'],
-      description: 'Collaboratively analyzes assets for type, criticality, and relationships',
-      icon: <Search className="h-5 w-5" />,
-      currentTask: 'Waiting for data ingestion...'
-    },
-    {
       name: 'Field Mapping Crew',
       status: 'pending',
       progress: 0,
-      agents: ['Field Mapping Specialist', 'Pattern Recognition Agent'],
-      description: 'Intelligently maps source fields to standard asset attributes',
+      agents: ['Field Mapping Manager', 'Schema Analysis Expert', 'Attribute Mapping Specialist'],
+      description: 'FOUNDATION PHASE: Analyzes data structure and maps fields to standard migration attributes',
       icon: <MapPin className="h-5 w-5" />,
-      currentTask: 'Waiting for asset analysis...'
+      currentTask: 'Ready to analyze data structure...'
     },
     {
-      name: 'Quality Assessment Crew',
+      name: 'Data Cleansing Crew',
       status: 'pending',
       progress: 0,
-      agents: ['Data Quality Analyst', 'Consistency Validator'],
-      description: 'Comprehensive data quality analysis and recommendations',
-      icon: <Shield className="h-5 w-5" />,
-      currentTask: 'Waiting for field mapping...'
+      agents: ['Data Quality Manager', 'Data Validation Expert', 'Data Standardization Specialist'],
+      description: 'QUALITY ASSURANCE: Cleanses and standardizes data using field mapping insights',
+      icon: <Database className="h-5 w-5" />,
+      currentTask: 'Waiting for field mapping completion...'
+    },
+    {
+      name: 'Inventory Building Crew',
+      status: 'pending', 
+      progress: 0,
+      agents: ['Inventory Manager', 'Server Classification Expert', 'Application Discovery Expert', 'Device Classification Expert'],
+      description: 'MULTI-DOMAIN CLASSIFICATION: Classifies assets across servers, applications, and devices',
+      icon: <Search className="h-5 w-5" />,
+      currentTask: 'Waiting for data cleansing...'
+    },
+    {
+      name: 'App-Server Dependency Crew',
+      status: 'pending',
+      progress: 0,
+      agents: ['Dependency Manager', 'Application Topology Expert', 'Infrastructure Relationship Analyst'],
+      description: 'HOSTING RELATIONSHIPS: Maps application-to-server hosting dependencies',
+      icon: <Activity className="h-5 w-5" />,
+      currentTask: 'Waiting for inventory building...'
+    },
+    {
+      name: 'App-App Dependency Crew',
+      status: 'pending',
+      progress: 0,
+      agents: ['Integration Manager', 'Application Integration Expert', 'API Dependency Analyst'],
+      description: 'INTEGRATION ANALYSIS: Maps application-to-application communication patterns',
+      icon: <Zap className="h-5 w-5" />,
+      currentTask: 'Waiting for app-server dependencies...'
+    },
+    {
+      name: 'Technical Debt Crew',
+      status: 'pending',
+      progress: 0,
+      agents: ['Technical Debt Manager', 'Legacy Technology Analyst', 'Modernization Strategy Expert', 'Risk Assessment Specialist'],
+      description: '6R PREPARATION: Assesses technical debt and prepares 6R migration strategies',
+      icon: <Target className="h-5 w-5" />,
+      currentTask: 'Waiting for dependency analysis...'
     }
   ]);
 
