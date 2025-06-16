@@ -14,10 +14,10 @@ import {
   CheckCircle, AlertCircle
 } from 'lucide-react';
 import { apiCall, API_CONFIG } from '../../config/api';
-import { useAppContext } from '../../hooks/useContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Inventory = () => {
-  const { getContextHeaders, context } = useAppContext();
+  const { getAuthHeaders, client, engagement, session } = useAuth();
   
   // Filtering and pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -111,7 +111,7 @@ const Inventory = () => {
       setIsLoading(true);
       setError(null);
       
-      const contextHeaders = getContextHeaders();
+      const contextHeaders = getAuthHeaders();
       
       // Build query parameters for both assets and summary requests
       const params = new URLSearchParams({
@@ -430,7 +430,7 @@ const Inventory = () => {
   const fetchAppMappings = async () => {
     try {
       setMappingLoading(true);
-      const contextHeaders = getContextHeaders();
+      const contextHeaders = getAuthHeaders();
       console.log('Fetching app mappings from:', API_CONFIG.ENDPOINTS.DISCOVERY.APP_MAPPINGS);
       
       const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.APP_MAPPINGS, {
@@ -458,7 +458,7 @@ const Inventory = () => {
   // Fetch applications count for summary - separate from app mappings
   const fetchApplicationsCount = async () => {
     try {
-      const contextHeaders = getContextHeaders();
+      const contextHeaders = getAuthHeaders();
       console.log('🔍 Fetching applications count from:', API_CONFIG.ENDPOINTS.DISCOVERY.APPLICATIONS);
       
       // Try the applications endpoint
@@ -523,7 +523,7 @@ const Inventory = () => {
   const fetchUnlinkedAssets = async () => {
     try {
       setUnlinkedLoading(true);
-      const contextHeaders = getContextHeaders();
+      const contextHeaders = getAuthHeaders();
       
       console.log('🔍 Fetching unlinked assets from API');
       console.log('🔒 Using context headers:', contextHeaders);
@@ -560,7 +560,7 @@ const Inventory = () => {
   // Trigger agent analysis for asset inventory context
   const triggerAgentAnalysis = async (assetsData: any[]) => {
     try {
-      const contextHeaders = getContextHeaders();
+      const contextHeaders = getAuthHeaders();
       console.log('Triggering agent analysis for asset-inventory context');
       
       // Prepare data for agent analysis
@@ -906,7 +906,7 @@ const Inventory = () => {
     
     try {
       setIsBulkOperating(true);
-      const contextHeaders = getContextHeaders();
+      const contextHeaders = getAuthHeaders();
       
       // Filter out empty values from bulkEditData
       const updates = Object.fromEntries(
@@ -971,7 +971,7 @@ const Inventory = () => {
     
     try {
       setIsBulkOperating(true);
-      const contextHeaders = getContextHeaders();
+      const contextHeaders = getAuthHeaders();
       
       await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS_BULK, {
         method: 'DELETE',
@@ -1016,7 +1016,7 @@ const Inventory = () => {
     
     try {
       setIsBulkOperating(true);
-      const contextHeaders = getContextHeaders();
+      const contextHeaders = getAuthHeaders();
       
       const result = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS_CLEANUP, {
         method: 'POST',

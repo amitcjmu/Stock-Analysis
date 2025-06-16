@@ -47,7 +47,7 @@ import {
 } from 'lucide-react';
 
 // Hooks
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 import { useApplications } from '@/hooks/useApplications';
 import { useSixRAnalysis } from '@/hooks/useSixRAnalysis';
 import { useAnalysisQueue } from '@/hooks/useAnalysisQueue';

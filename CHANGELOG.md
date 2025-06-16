@@ -2,6 +2,52 @@
 
 All notable changes to the AI Force Migration Platform will be documented in this file.
 
+## [0.8.12] - 2025-01-16
+
+### 🧹 **CODEBASE CLEANUP - Legacy Code Removal & Import Consolidation**
+
+This release removes redundant legacy code and consolidates authentication patterns to eliminate multiple API calls and improve performance.
+
+### 🚀 **Code Cleanup & Optimization**
+
+#### **Legacy Hook & Service Removal**
+- **Removed**: `src/hooks/useAuth.ts` - Duplicate useAuth hook causing multiple API calls
+- **Removed**: `src/hooks/useContext.tsx` - Legacy compatibility layer marked for deletion
+- **Removed**: `src/services/authService.ts` - Legacy auth service replaced by authApi
+- **Removed**: `src/services/api.ts` - Legacy API service replaced by config/api.ts
+- **Impact**: Eliminated duplicate authentication flows and reduced bundle size
+
+#### **Import Consolidation**
+- **Updated**: All components to use `useAuth` from `@/contexts/AuthContext` instead of legacy hooks
+- **Standardized**: Authentication patterns across 15+ components and pages
+- **Fixed**: Discovery pages (Dependencies, TechDebtAnalysis, Inventory) to use modern auth context
+- **Cleaned**: Component imports from `useAppContext` to `useAuth` with proper property mapping
+
+#### **API Call Optimization**
+- **Resolved**: Multiple API calls with different request IDs during authentication
+- **Consolidated**: Context header generation through single `getAuthHeaders()` method
+- **Improved**: Authentication state management to prevent race conditions
+
+### 📊 **Technical Achievements**
+- **Files Removed**: 4 legacy files (useAuth.ts, useContext.tsx, authService.ts, api.ts)
+- **Components Updated**: 15+ components with consolidated imports
+- **API Calls Reduced**: Eliminated duplicate authentication requests
+- **Bundle Size**: Reduced by removing redundant code paths
+
+### 🎯 **Performance Improvements**
+- **Authentication**: Single source of truth for auth state
+- **API Efficiency**: Reduced redundant network requests
+- **Code Maintainability**: Cleaner import structure and consistent patterns
+- **Development Experience**: Faster hot module reloading with fewer dependencies
+
+### 🔧 **Migration Notes**
+- All `useAuth` imports now point to `@/contexts/AuthContext`
+- Legacy `useAppContext` completely removed - components use modern context hooks
+- Authentication headers now consistently generated via `getAuthHeaders()`
+- No breaking changes for end users - all functionality preserved
+
+---
+
 ## [0.8.11] - 2025-06-15
 
 ### 🎯 **Authentication & Data Import Flow Restoration**

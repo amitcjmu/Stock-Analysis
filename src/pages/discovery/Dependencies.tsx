@@ -6,7 +6,7 @@ import DataClassificationDisplay from '../../components/discovery/DataClassifica
 import AgentInsightsSection from '../../components/discovery/AgentInsightsSection';
 import { Network, Database, Server, ArrowRight, RefreshCw, Filter, Search, MapPin, Activity, AlertTriangle, CheckCircle, Clock, Settings, Eye } from 'lucide-react';
 import { apiCall, API_CONFIG } from '../../config/api';
-import { useAppContext } from '../../hooks/useContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface DependencyItem {
   id: string;
@@ -98,7 +98,7 @@ interface DependencyAnalysisData {
 }
 
 const Dependencies = () => {
-  const { getContextHeaders, context } = useAppContext();
+  const { getAuthHeaders, client, engagement, session } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [dependencyData, setDependencyData] = useState<DependencyAnalysisData | null>(null);
   const [agentRefreshTrigger, setAgentRefreshTrigger] = useState(0);
@@ -121,22 +121,22 @@ const Dependencies = () => {
 
   // Refetch data when context changes (client/engagement/session)
   useEffect(() => {
-    if (context.client && context.engagement) {
+    if (client && engagement) {
       console.log('🔄 Context changed, refetching dependencies data for:', {
-        client: context.client.name,
-        engagement: context.engagement.name,
-        session: context.session?.session_display_name || 'None'
+        client: client.name,
+        engagement: engagement.name,
+        session: session?.name || 'None'
       });
       
       // Refetch dependency analysis for new context
       fetchDependencyAnalysis();
     }
-  }, [context.client, context.engagement, context.session, context.viewMode]);
+  }, [client, engagement, session]);
 
   const fetchDependencyAnalysis = async () => {
     try {
       setIsLoading(true);
-      const contextHeaders = getContextHeaders();
+      const contextHeaders = getAuthHeaders();
       
       // Get assets for dependency analysis
       const assetsResponse = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}?page=1&page_size=1000`, {

@@ -14,7 +14,7 @@ import {
   RefreshCw,
   Lightbulb
 } from 'lucide-react';
-import { useAppContext } from '@/hooks/useContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { apiCall, API_CONFIG } from '@/config/api';
 
 interface LearningStatistics {
@@ -52,7 +52,7 @@ interface FieldMappingSuggestion {
 }
 
 const AgentLearningInsights: React.FC = () => {
-  const { context, getContextHeaders } = useAppContext();
+  const { client, engagement, session, getAuthHeaders } = useAuth();
   const [learningData, setLearningData] = useState<LearningData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,7 +64,7 @@ const AgentLearningInsights: React.FC = () => {
     setError(null);
     
     try {
-      const headers = getContextHeaders();
+      const headers = getAuthHeaders();
       console.log('🧠 Fetching agent learning data with headers:', headers);
       
       const response = await apiCall(
@@ -112,7 +112,7 @@ const AgentLearningInsights: React.FC = () => {
     console.log('🧪 Testing field mapping for:', testField);
     
     try {
-      const headers = getContextHeaders();
+      const headers = getAuthHeaders();
       const response = await apiCall(
         `${API_CONFIG.ENDPOINTS.AGENT_LEARNING.FIELD_MAPPING_SUGGEST}/${encodeURIComponent(testField)}`,
         {
@@ -149,7 +149,7 @@ const AgentLearningInsights: React.FC = () => {
     console.log('🎓 Learning field mapping...');
     
     try {
-      const headers = getContextHeaders();
+      const headers = getAuthHeaders();
       const learningData = {
         original_field: 'application_name',
         mapped_field: 'app_name',

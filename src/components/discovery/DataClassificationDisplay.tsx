@@ -16,7 +16,7 @@ import {
   Edit3
 } from 'lucide-react';
 import { apiCall, API_CONFIG } from '../../config/api';
-import { useAppContext } from '../../hooks/useContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface DataItem {
   id: string;
@@ -45,7 +45,7 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
   refreshTrigger,
   isProcessing = false
 }) => {
-  const { session } = useAppContext();
+  const { session } = useAuth();
   
   const [classifications, setClassifications] = useState<{
     good_data: DataItem[];

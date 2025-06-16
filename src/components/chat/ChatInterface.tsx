@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 import { useMutation } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -17,7 +17,7 @@ interface FeedbackFormData {
 
 const ChatInterface: React.FC = () => {
   const location = useLocation();
-  const { getAuthHeaders, clientAccountId, engagementId } = useAuth();
+  const { getAuthHeaders, client, engagement } = useAuth();
   
   // Feedback form state
   const [rating, setRating] = useState(0);
@@ -32,14 +32,14 @@ const ChatInterface: React.FC = () => {
           headers: getAuthHeaders(),
           body: JSON.stringify({
             ...data,
-            client_account_id: clientAccountId || 'demo',
-            engagement_id: engagementId || 'demo-engagement'
+            client_account_id: client?.id || 'demo',
+            engagement_id: engagement?.id || 'demo-engagement'
           })
         });
       } catch (error) {
         console.error('Error submitting feedback:', error);
         // In demo mode or if using demo client, just return success
-        if (!clientAccountId || clientAccountId === 'demo' || clientAccountId === 'pujyam-corp') {
+        if (!client?.id || client.id === 'demo' || client.id === 'pujyam-corp') {
           return { status: 'success' };
         }
         throw error;

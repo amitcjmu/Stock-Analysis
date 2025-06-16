@@ -10,7 +10,7 @@ import {
   CheckCircle, X, Info, GraduationCap, RotateCcw
 } from 'lucide-react';
 import { apiCall, API_CONFIG } from '../../config/api';
-import { useAppContext } from '../../hooks/useContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface TechDebtItem {
   id: string;
@@ -38,7 +38,7 @@ interface SupportTimeline {
 }
 
 const TechDebtAnalysis = () => {
-  const { client_account_id, engagement_id } = useAppContext();
+  const { client, engagement } = useAuth();
   const [techDebtItems, setTechDebtItems] = useState<TechDebtItem[]>([]);
   const [supportTimelines, setSupportTimelines] = useState<SupportTimeline[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
