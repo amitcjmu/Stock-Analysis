@@ -105,14 +105,29 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
     setSelectedEngagementId(''); // Reset engagement when client changes
     
     try {
-      await switchClient(clientId);
+      // Find the full client data
+      const selectedClient = clients.find(c => c.id === clientId);
+      if (selectedClient) {
+        // Create client data object for AuthContext
+        const clientData = {
+          id: selectedClient.id,
+          name: selectedClient.name,
+          status: selectedClient.status || 'active'
+        };
+        
+        // Update AuthContext with full client data
+        await switchClient(clientId, clientData);
+      } else {
+        // Fallback if client not found in local data
+        await switchClient(clientId);
+      }
       
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['engagements'] });
       
       toast({
         title: "Client switched",
-        description: `Switched to ${clients.find(c => c.id === clientId)?.name || 'selected client'}`,
+        description: `Switched to ${selectedClient?.name || 'selected client'}`,
       });
     } catch (error) {
       console.error('Failed to switch client:', error);
@@ -129,11 +144,26 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
     setSelectedEngagementId(engagementId);
     
     try {
-      await switchEngagement(engagementId);
+      // Find the full engagement data
+      const selectedEngagement = engagements.find(e => e.id === engagementId);
+      if (selectedEngagement) {
+        // Create engagement data object for AuthContext
+        const engagementData = {
+          id: selectedEngagement.id,
+          name: selectedEngagement.name,
+          status: selectedEngagement.status || 'active'
+        };
+        
+        // Update AuthContext with full engagement data
+        await switchEngagement(engagementId, engagementData);
+      } else {
+        // Fallback if engagement not found in local data
+        await switchEngagement(engagementId);
+      }
       
       toast({
         title: "Engagement switched",
-        description: `Switched to ${engagements.find(e => e.id === engagementId)?.name || 'selected engagement'}`,
+        description: `Switched to ${selectedEngagement?.name || 'selected engagement'}`,
       });
     } catch (error) {
       console.error('Failed to switch engagement:', error);

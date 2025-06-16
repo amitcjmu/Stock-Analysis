@@ -104,8 +104,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<User>;
   register: (userData: any) => Promise<any>;
   logout: () => void;
-  switchClient: (clientId: string) => Promise<void>;
-  switchEngagement: (engagementId: string) => Promise<void>;
+  switchClient: (clientId: string, clientData?: Client) => Promise<void>;
+  switchEngagement: (engagementId: string, engagementData?: Engagement) => Promise<void>;
   switchSession: (sessionId: string) => Promise<void>;
   loginWithDemoUser: () => void;
   setCurrentSession: (session: Session | null) => void;
@@ -370,29 +370,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const switchClient = async (clientId: string) => {
+  const switchClient = async (clientId: string, clientData?: Client) => {
     if (isDemoMode) return; // Switching not allowed in demo mode
     try {
-      const response = await apiCall(`/clients/${clientId}`);
-      if (response) {
-        setClient(response);
-        setEngagement(null);
-        setSession(null);
-      }
+      // Use provided client data if available, otherwise create a basic object
+      const newClientData = clientData || {
+        id: clientId,
+        name: 'Loading...', // This will be updated when components fetch the full data
+        status: 'active'
+      };
+      
+      setClient(newClientData);
+      setEngagement(null);
+      setSession(null);
+      
+      console.log('Client switched to:', clientId, newClientData);
     } catch (error) {
       console.error('Error switching client:', error);
       throw error;
     }
   };
 
-  const switchEngagement = async (engagementId: string) => {
+  const switchEngagement = async (engagementId: string, engagementData?: Engagement) => {
     if (isDemoMode) return; // Switching not allowed in demo mode
     try {
-      const response = await apiCall(`/engagements/${engagementId}`);
-      if (response) {
-        setEngagement(response);
-        setSession(null);
-      }
+      // Use provided engagement data if available, otherwise create a basic object
+      const newEngagementData = engagementData || {
+        id: engagementId,
+        name: 'Loading...', // This will be updated when components fetch the full data
+        status: 'active'
+      };
+      
+      setEngagement(newEngagementData);
+      setSession(null);
+      
+      console.log('Engagement switched to:', engagementId, newEngagementData);
     } catch (error) {
       console.error('Error switching engagement:', error);
       throw error;
