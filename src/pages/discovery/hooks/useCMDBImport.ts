@@ -159,13 +159,24 @@ export const useFileAnalysisStatus = (sessionId: string | null) => {
     enabled: !!sessionId,
     refetchInterval: (query) => {
       const data = query.state.data;
-      // Only poll if the workflow is still in progress
-      return data?.workflow_status === 'in_progress' || 
-             data?.status === 'in_progress' ? 2000 : false;
+      // Only poll if the workflow is still running
+      const isRunning = data?.status === 'running' || 
+                       data?.flow_status?.status === 'running' ||
+                       data?.workflow_status === 'running';
+      
+      console.log(`Polling decision for ${sessionId}:`, {
+        status: data?.status,
+        flow_status: data?.flow_status?.status,
+        workflow_status: data?.workflow_status,
+        isRunning,
+        willPoll: isRunning ? 3000 : false
+      });
+      
+      return isRunning ? 3000 : false; // Poll every 3 seconds only when running
     },
-    refetchOnWindowFocus: true,
-    retry: 3,
-    retryDelay: 1000,
+    refetchOnWindowFocus: false, // Disable refetch on window focus to reduce API calls
+    retry: 2, // Reduce retry attempts
+    retryDelay: 2000,
   });
 };
 
