@@ -84,6 +84,10 @@ backend/data/field_mappings.json
 **/models/downloads/
 sentence_transformers_cache/
 
+# Archive directories (legacy code from migrations)
+**/archive_*/
+archive_*/
+
 # Testing
 .pytest_cache/
 .coverage
@@ -103,3 +107,7 @@ Thumbs.db
 .cursor/
 .windsurf/rules/migration.md
 .windsurf/rules/task-list.md
+
+# Archive directories (legacy code from migrations)
+**/archive_*/
+archive_*/

@@ -616,10 +616,10 @@ async def agent_analysis(
             # This is a CMDB file upload - initiate the discovery workflow
             data_source = data.get("data_source")
             
-            logger.info(f"Initiating data source analysis for session: {context.session_id}")
+            logger.info(f"Initiating discovery workflow for session: {context.session_id}")
             
-            # Call the proper method for data source analysis
-            result = await service.initiate_data_source_analysis(data_source, context)
+            # Call the discovery workflow method
+            result = await service.initiate_discovery_workflow(data_source, context)
             
             return {
                 "status": "success",
