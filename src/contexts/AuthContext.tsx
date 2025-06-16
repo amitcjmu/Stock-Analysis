@@ -130,13 +130,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isAuthenticated = !!user;
   const isAdmin = user?.role === 'admin';
 
-  // Debug logging for admin access
+  // Debug logging for admin access with more details
   useEffect(() => {
     console.log('🔍 Auth State Debug:', {
-      user: user ? { id: user.id, role: user.role, full_name: user.full_name } : null,
+      user: user ? { 
+        id: user.id, 
+        role: user.role, 
+        full_name: user.full_name,
+        email: user.email 
+      } : null,
       isAuthenticated,
       isAdmin,
-      isDemoMode
+      isDemoMode,
+      token: tokenStorage.getToken() ? 'present' : 'missing',
+      localStorage_user: tokenStorage.getUser() ? 'present' : 'missing'
     });
   }, [user, isAuthenticated, isAdmin, isDemoMode]);
 
@@ -241,6 +248,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       tokenStorage.setUser(response.user);
       setUser(response.user);
 
+      console.log('🔐 Login Step 1 - Initial user set:', {
+        user: response.user,
+        role: response.user.role,
+        token: response.token.access_token.substring(0, 20) + '...'
+      });
+
       // Small delay to ensure localStorage is updated
       await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -248,6 +261,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       let actualUserRole = response.user.role; // fallback to login response role
       try {
         const context = await apiCall('/me');
+        console.log('🔐 Login Step 2 - Context from /me:', context);
+        
         if (context) {
           setClient(context.client || null);
           setEngagement(context.engagement || null);
@@ -259,6 +274,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const updatedUser = { ...response.user, role: context.user.role };
             tokenStorage.setUser(updatedUser);
             setUser(updatedUser);
+            
+            console.log('🔐 Login Step 3 - User updated with context role:', {
+              updatedUser,
+              actualUserRole,
+              isAdminCheck: updatedUser.role === 'admin'
+            });
           }
         }
       } catch (contextError) {
@@ -272,8 +293,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         : (tokenStorage.getRedirectPath() || '/');
       tokenStorage.clearRedirectPath();
       
+      console.log('🔐 Login Step 4 - Redirect decision:', {
+        actualUserRole,
+        redirectPath,
+        isAdminRole: actualUserRole === 'admin'
+      });
+      
       // Use setTimeout to ensure navigation happens after state updates
       setTimeout(() => {
+        console.log('🔐 Login Step 5 - Navigating to:', redirectPath);
         navigate(redirectPath);
       }, 200);
 

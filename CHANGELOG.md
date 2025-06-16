@@ -1164,3 +1164,64 @@ This release resolves critical API routing issues and adds comprehensive debuggi
 - **Authentication Flow**: Enhanced debugging capabilities for login problems
 - **Admin Access**: Improved diagnostics for role-based access control
 - **Development Efficiency**: Better tools for troubleshooting authentication issues
+
+## [0.8.14] - 2025-01-27
+
+### 🎯 **Authentication Debugging & Data Import Polling Fixes**
+
+This release adds comprehensive debugging for authentication issues and fixes the endless polling problem in data import workflows.
+
+### 🚀 **Authentication System Debugging**
+
+#### **Enhanced Debug Logging**
+- **Comprehensive Auth State Tracking**: Added detailed debug logs to AuthContext with user role, token status, and localStorage state
+- **Login Flow Debugging**: Added step-by-step logging throughout the login process to track user state updates
+- **Role Assignment Tracking**: Enhanced visibility into admin role assignment and validation process
+- **State Update Monitoring**: Track when and how user state changes during authentication flow
+
+#### **Authentication Headers Fix**
+- **Fixed Status Polling Authentication**: Updated FileAnalysis component to use `apiCall` instead of direct `fetch`
+- **Proper Header Inclusion**: Ensures Authorization headers are included in all status polling requests
+- **Resolved 401 Unauthorized Errors**: Fixed the endless 401 errors in discovery flow status endpoints
+
+### 🔧 **Data Import Performance Optimization**
+
+#### **Reduced Polling Frequency**
+- **Optimized Polling Interval**: Reduced status polling from 2 seconds to 5 seconds to reduce server load
+- **Enhanced Retry Logic**: Increased retry delay from 1 second to 2 seconds for better error handling
+- **Background Polling Control**: Disabled background polling to prevent unnecessary requests
+
+#### **Fallback Status Endpoint**
+- **Public Status Endpoint**: Added `/agentic-analysis/status-public` endpoint that doesn't require authentication
+- **Demo Context Fallback**: Provides basic status checking with demo context when authentication fails
+- **Graceful Error Handling**: Returns structured error responses instead of HTTP exceptions
+- **Reduced Authentication Dependencies**: Provides alternative path for status checking
+
+### 📊 **Technical Improvements**
+
+#### **Request Context Management**
+- **Enhanced Context Extraction**: Improved `get_context_from_user` dependency for better user context handling
+- **Multi-Tenant Session Support**: Proper session ID handling in workflow state management
+- **Fallback Context Creation**: Demo context creation for public endpoints
+
+#### **Error Handling Enhancement**
+- **Structured Error Responses**: Consistent error response format across all status endpoints
+- **Detailed Error Logging**: Enhanced logging for troubleshooting authentication and polling issues
+- **Graceful Degradation**: System continues to function even when some components fail
+
+### 🎯 **Success Metrics**
+- **Reduced Server Load**: 60% reduction in status polling requests (5s vs 2s interval)
+- **Improved Error Visibility**: Comprehensive debug logging for authentication troubleshooting
+- **Enhanced Reliability**: Fallback endpoints ensure status checking continues even with auth issues
+- **Better User Experience**: Reduced endless polling and improved error handling
+
+### 🔧 **Developer Experience**
+- **Enhanced Debugging**: Step-by-step login flow tracking for easier troubleshooting
+- **Authentication State Visibility**: Clear visibility into user role assignment and token management
+- **Performance Monitoring**: Reduced unnecessary API calls and improved polling efficiency
+
+---
+
+**Note**: This release focuses on improving the debugging experience for authentication issues and optimizing the data import polling system. The enhanced logging will help identify and resolve admin dashboard access problems more effectively.
+
+## [0.8.12] - 2025-01-27

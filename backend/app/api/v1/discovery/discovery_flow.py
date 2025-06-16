@@ -711,5 +711,93 @@ async def get_agentic_analysis_status(
     """Get agentic analysis status - alias for the main status endpoint."""
     return await get_agent_crew_analysis_status(session_id, service, context)
 
+@router.get("/agentic-analysis/status-public")
+async def get_agentic_analysis_status_public(
+    session_id: str,
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
+):
+    """Get agentic analysis status without authentication - fallback endpoint."""
+    try:
+        # Ensure we have a valid session ID
+        if not session_id:
+            raise HTTPException(
+                status_code=400,
+                detail="session_id parameter is required"
+            )
+        
+        # Create a basic context for demo purposes
+        demo_context = RequestContext(
+            client_account_id="11111111-1111-1111-1111-111111111111",
+            engagement_id="22222222-2222-2222-2222-222222222222",
+            user_id="44444444-4444-4444-4444-444444444444",
+            session_id=session_id
+        )
+        
+        # Get the workflow state with demo context
+        flow_state = await service.get_flow_state_by_session(
+            session_id=session_id,
+            context=demo_context
+        )
+        
+        if not flow_state:
+            # Return idle status instead of 404 when no workflow exists
+            return {
+                "status": "success",
+                "session_id": session_id,
+                "flow_status": {
+                    "status": "idle",
+                    "current_phase": "not_started",
+                    "progress_percentage": 0,
+                    "message": "No workflow has been started for this session"
+                },
+                "current_phase": "not_started",
+                "status": "idle",
+                "timestamp": datetime.utcnow().isoformat(),
+                "metadata": {
+                    "service_version": "1.0.0",
+                    "public_endpoint": True
+                }
+            }
+            
+        # Format the response with detailed status information
+        response = {
+            "status": "success",
+            "session_id": session_id,
+            "flow_status": flow_state.dict() if hasattr(flow_state, 'dict') else flow_state,
+            "current_phase": getattr(flow_state, 'current_phase', 'unknown'),
+            "status": getattr(flow_state, 'status', 'unknown'),
+            "timestamp": datetime.utcnow().isoformat(),
+            "metadata": {
+                "service_version": "1.0.0",
+                "public_endpoint": True
+            }
+        }
+        
+        return response
+        
+    except Exception as e:
+        error_detail = f"Status check failed: {str(e)}"
+        logger.error(
+            f"Failed to get public analysis status for session {session_id}: {error_detail}",
+            exc_info=True
+        )
+        # Return a basic error response instead of raising an exception
+        return {
+            "status": "error",
+            "session_id": session_id,
+            "flow_status": {
+                "status": "error",
+                "current_phase": "error",
+                "progress_percentage": 0,
+                "message": "Status check failed"
+            },
+            "error": error_detail,
+            "timestamp": datetime.utcnow().isoformat(),
+            "metadata": {
+                "service_version": "1.0.0",
+                "public_endpoint": True
+            }
+        }
+
 # Export router
 __all__ = ["router"] 

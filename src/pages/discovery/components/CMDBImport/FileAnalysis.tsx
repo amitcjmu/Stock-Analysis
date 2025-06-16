@@ -15,6 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { UploadedFile } from '../../hooks/useCMDBImport';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { apiCall } from '@/config/api';
 
 interface FileAnalysisProps {
   file: UploadedFile;
@@ -25,7 +26,7 @@ interface FileAnalysisProps {
 export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNavigate }) => {
   const queryClient = useQueryClient();
   
-  // Use the useQuery hook to poll for status updates instead of getQueryState
+  // Use the useQuery hook to poll for status updates with proper authentication
   const { data: statusData, isLoading: isLoadingStatus } = useQuery({
     queryKey: ['fileAnalysisStatus', file.id],
     queryFn: async () => {
@@ -35,21 +36,19 @@ export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNav
       }
       
       try {
-        const response = await fetch(`/api/v1/discovery/flow/agentic-analysis/status?session_id=${file.id}`);
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-        return await response.json();
+        // Use apiCall instead of fetch to include authentication headers
+        const response = await apiCall(`/api/v1/discovery/flow/agentic-analysis/status?session_id=${file.id}`);
+        return response;
       } catch (error) {
         console.warn(`Status polling failed for ${file.id}:`, error);
         return null;
       }
     },
     enabled: file.status === 'analyzing', // Only poll when analyzing
-    refetchInterval: 2000, // Poll every 2 seconds
+    refetchInterval: 5000, // Poll every 5 seconds (reduced from 2 seconds)
     refetchIntervalInBackground: false,
     retry: 3,
-    retryDelay: 1000
+    retryDelay: 2000 // Increased retry delay
   });
   
   // Update the file status when status data changes
