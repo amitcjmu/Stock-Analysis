@@ -321,7 +321,12 @@ class CrewAIFlowService:
 
             # 2. Create Initial State and store it
             flow_state = self._create_new_flow_state(context, metadata)
+            
+            # Ensure the session exists before creating workflow state
             if self.state_service:
+                # Check if session exists, create if it doesn't
+                await self._ensure_session_exists(flow_state, metadata)
+                
                 await self.state_service.create_workflow_state(
                     session_id=flow_state.session_id,
                     client_account_id=flow_state.client_account_id,
@@ -362,17 +367,88 @@ class CrewAIFlowService:
             logger.warning(f"Could not determine user_id or session_id for the context. Generating a fallback flow_id.")
             user_id = f"anonymous_user_{uuid.uuid4().hex[:8]}"
 
+        # Always use the context session_id (which should be the user's default session)
+        # Ignore any import_session_id from the frontend - we want to use user's default session
+        session_id = context.session_id
+        
         return DiscoveryFlowState(
-            session_id=context.session_id,
-            flow_id=context.session_id,
+            session_id=session_id,
+            flow_id=session_id,
             client_account_id=context.client_account_id,
             engagement_id=context.engagement_id,
             user_id=user_id,
-            import_session_id=context.session_id,  # Use session_id as import_session_id
+            import_session_id=session_id,  # Same as session_id
             status="running",
             current_phase="initialization",
             metadata=metadata
         )
+
+    async def _ensure_session_exists(self, flow_state: DiscoveryFlowState, metadata: Dict) -> None:
+        """Ensure the session exists in the database, use user's default session if it doesn't."""
+        try:
+            # Try to import session management service
+            from app.services.session_management_service import create_session_management_service
+            from app.core.database import AsyncSessionLocal
+            
+            async with AsyncSessionLocal() as db:
+                session_service = create_session_management_service(db)
+                
+                # Check if session exists
+                existing_session = await session_service.get_session(flow_state.session_id)
+                
+                if not existing_session:
+                    # Session doesn't exist, try to find user's default session
+                    logger.warning(f"Session {flow_state.session_id} not found, looking for user's default session")
+                    
+                    # Try to find user's default session
+                    from sqlalchemy import select
+                    from app.models.data_import_session import DataImportSession
+                    from app.models.client_account import User
+                    
+                    # Get user's default session
+                    query = (
+                        select(DataImportSession)
+                        .join(User, DataImportSession.created_by == User.id)
+                        .where(
+                            User.id == flow_state.user_id,
+                            DataImportSession.is_default == True
+                        )
+                    )
+                    result = await db.execute(query)
+                    user_default_session = result.scalar_one_or_none()
+                    
+                    if user_default_session:
+                        logger.info(f"Using user's default session: {user_default_session.id}")
+                        # Update flow state to use user's default session
+                        flow_state.session_id = str(user_default_session.id)
+                        flow_state.flow_id = str(user_default_session.id)
+                        flow_state.import_session_id = str(user_default_session.id)
+                    else:
+                        # Fall back to demo session as last resort
+                        logger.warning(f"No default session found for user {flow_state.user_id}, falling back to demo session")
+                        demo_session_id = "33333333-3333-3333-3333-333333333333"
+                        
+                        # Update the flow state to use the demo session
+                        flow_state.session_id = demo_session_id
+                        flow_state.flow_id = demo_session_id
+                        flow_state.import_session_id = demo_session_id
+                        
+                        logger.info(f"Updated flow state to use demo session: {demo_session_id}")
+                
+        except ImportError:
+            logger.warning("Session management service not available, using demo session")
+            # Fallback to demo session
+            demo_session_id = "33333333-3333-3333-3333-333333333333"
+            flow_state.session_id = demo_session_id
+            flow_state.flow_id = demo_session_id
+            flow_state.import_session_id = demo_session_id
+        except Exception as e:
+            logger.error(f"Failed to check session exists: {e}")
+            # Fallback to demo session
+            demo_session_id = "33333333-3333-3333-3333-333333333333"
+            flow_state.session_id = demo_session_id
+            flow_state.flow_id = demo_session_id
+            flow_state.import_session_id = demo_session_id
 
     def get_flow_state(self, flow_id: str, context: RequestContext) -> Optional[DiscoveryFlowState]:
         """

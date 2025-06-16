@@ -54,7 +54,37 @@ async def get_context_from_user(
     except Exception as e:
         logger.warning(f"Failed to get context from user: {e}")
     
-    # Fallback to demo context
+    # If no user context found, try to find user's default session directly
+    try:
+        from sqlalchemy import select
+        from app.models.data_import_session import DataImportSession
+        from app.models.client_account import User as UserModel
+        
+        # Get user's default session
+        query = (
+            select(DataImportSession)
+            .join(UserModel, DataImportSession.created_by == UserModel.id)
+            .where(
+                UserModel.id == current_user.id,
+                DataImportSession.is_default == True
+            )
+        )
+        result = await db.execute(query)
+        user_default_session = result.scalar_one_or_none()
+        
+        if user_default_session:
+            logger.info(f"Using user's default session: {user_default_session.id}")
+            return RequestContext(
+                client_account_id=str(user_default_session.client_account_id),
+                engagement_id=str(user_default_session.engagement_id),
+                user_id=str(current_user.id),
+                session_id=str(user_default_session.id)
+            )
+    except Exception as e:
+        logger.warning(f"Failed to get user's default session: {e}")
+    
+    # Fallback to demo context only as last resort
+    logger.warning(f"No user context found for user {current_user.id}, falling back to demo context")
     return RequestContext(
         client_account_id="11111111-1111-1111-1111-111111111111",
         engagement_id="22222222-2222-2222-2222-222222222222", 

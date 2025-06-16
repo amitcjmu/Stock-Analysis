@@ -126,9 +126,15 @@ export const useFileAnalysis = () => {
 };
 
 interface AnalysisStatusResponse {
-  workflow_status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  status: 'running' | 'completed' | 'failed' | 'idle';
+  session_id: string;
+  flow_status: {
+    status: 'running' | 'completed' | 'failed' | 'idle';
+    current_phase: string;
+    workflow_phases: string[];
+    [key: string]: any;
+  };
   current_phase?: string;
-  status?: string;
   message?: string;
   [key: string]: any;
 }
@@ -141,7 +147,7 @@ export const useFileAnalysisStatus = (sessionId: string | null) => {
       
       try {
         const response = await apiCall<AnalysisStatusResponse>(
-          `/api/v1/discovery/agentic-analysis/status?session_id=${sessionId}`
+          `/api/v1/discovery/flow/agentic-analysis/status?session_id=${sessionId}`
         );
         
         return response;
@@ -189,9 +195,22 @@ export const useFileUpload = () => {
             sessionId: id,
           });
           
-          // Return initial state, the status will be updated by the polling
+          // Use the session ID returned by the backend for polling
+          const actualSessionId = result.session_id || id;
+          
+          // Update the file with the actual session ID from the backend
+          queryClient.setQueryData<UploadedFile[]>(['uploadedFiles'], (old = []) => 
+            old.map(f => f.id === id ? { 
+              ...f, 
+              id: actualSessionId,  // Update to use the actual session ID
+              status: 'analyzing',
+              processingMessages: ['🤖 AI crew is analyzing your file...']
+            } : f)
+          );
+          
+          // Return initial state with the actual session ID
           return {
-            id,
+            id: actualSessionId,  // Use the actual session ID returned by backend
             file,
             type,
             status: 'analyzing' as const,
@@ -261,7 +280,7 @@ export const useFileUpload = () => {
         data.forEach((file) => {
           if (file.status === 'analyzing') {
             // The useFileAnalysisStatus hook will handle the polling automatically
-            // We just need to ensure the query is enabled
+            // We just need to ensure the query is enabled with the actual session ID
             queryClient.invalidateQueries({ 
               queryKey: ['fileAnalysisStatus', file.id] 
             });
