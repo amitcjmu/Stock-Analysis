@@ -55,6 +55,21 @@ interface AnalysisStatusResponse {
   workflow_phases: string[];
   progress_percentage?: number;
   message?: string;
+  // Raw agent data (pass through what CrewAI agents actually produce)
+  flow_status?: any;
+  agent_insights?: any[];
+  agent_results?: Record<string, any>;
+  clarification_questions?: any[];
+  data_quality_assessment?: any;
+  field_mappings?: Record<string, any>;
+  classified_assets?: any[];
+  processing_summary?: {
+    total_records_processed?: number;
+    records_found?: number;
+    data_source?: string;
+    workflow_phase?: string;
+    agent_status?: string;
+  };
   [key: string]: any;
 }
 
@@ -167,9 +182,9 @@ export const useDiscoveryFlowStatus = (sessionId: string | null) => {
     queryFn: async () => {
       if (!sessionId) throw new Error('Session ID is required');
       
-      // Use the correct backend endpoint for status checking
+      // Use the public status endpoint that doesn't require authentication
       const response = await apiCall(
-        `/api/v1/discovery/flow/agent/crew/analysis/status?session_id=${sessionId}`
+        `/api/v1/discovery/flow/agentic-analysis/status-public?session_id=${sessionId}`
       ) as any;
       
       // Extract the actual workflow status from the backend response
@@ -178,14 +193,36 @@ export const useDiscoveryFlowStatus = (sessionId: string | null) => {
       const currentPhase = flowStatus.current_phase || response.current_phase || 'unknown';
       const progressPercentage = flowStatus.progress_percentage || 0;
       
-      // Transform to frontend format
+      console.log('📊 Status response from backend:', {
+        response_status: response.status,
+        flow_status: flowStatus.status,
+        current_phase: currentPhase,
+        progress: progressPercentage
+      });
+      
+      // Simple transformation - just pass through what the agents provide
       return {
         status: workflowStatus,
         session_id: sessionId,
         current_phase: currentPhase,
         workflow_phases: flowStatus.workflow_phases || [],
         progress_percentage: progressPercentage,
-        message: flowStatus.message || response.message
+        message: flowStatus.message || response.message,
+        // Pass through all agent data as-is
+        flow_status: flowStatus,
+        agent_insights: flowStatus.agent_insights || [],
+        agent_results: flowStatus.agent_results || {},
+        clarification_questions: flowStatus.clarification_questions || [],
+        data_quality_assessment: flowStatus.data_quality_assessment || {},
+        field_mappings: flowStatus.field_mappings || {},
+        classified_assets: flowStatus.classified_assets || [],
+        processing_summary: {
+          total_records_processed: flowStatus.cmdb_data?.file_data?.length || 0,
+          records_found: flowStatus.cmdb_data?.file_data?.length || 0,
+          data_source: flowStatus.metadata?.filename || 'Unknown file',
+          workflow_phase: currentPhase,
+          agent_status: workflowStatus
+        }
       } as AnalysisStatusResponse;
     },
     enabled: !!sessionId,

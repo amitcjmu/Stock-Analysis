@@ -17,7 +17,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { UploadedFile, useDiscoveryFlowStatus } from '../../hooks/useCMDBImport';
 import { useQueryClient } from '@tanstack/react-query';
-import AgentOrchestrationPanel from './AgentOrchestrationPanel';
+import AgentFeedbackPanel from './AgentFeedbackPanel';
 
 interface FileAnalysisProps {
   file: UploadedFile;
@@ -208,15 +208,11 @@ export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNav
         )}
       </div>
 
-      {/* CrewAI Agent Orchestration Panel */}
+      {/* CrewAI Agent Feedback Panel */}
       {statusData?.status && ['running', 'in_progress', 'processing', 'completed'].includes(statusData.status) && (
-        <AgentOrchestrationPanel 
-          sessionId={file.sessionId} 
-          flowState={statusData}
-          onStatusUpdate={(status) => {
-            // Handle status updates from the orchestration panel
-            console.log('Status update from orchestration panel:', status);
-          }}
+        <AgentFeedbackPanel 
+          sessionId={file.sessionId || 'unknown'} 
+          statusData={statusData}
         />
       )}
 

@@ -13,7 +13,8 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 try:
-    from crewai.flow.flow import Flow, listen, start, persist
+    from crewai.flow.flow import Flow, listen, start
+    from crewai.flow import persist
     from crewai import Agent, Task, Crew
     from crewai.security import Fingerprint
     CREWAI_FLOW_AVAILABLE = True

@@ -29,7 +29,7 @@ import {
 // Components
 import Sidebar from '../../components/Sidebar';
 import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
-import AgentOrchestrationPanel from './components/CMDBImport/AgentOrchestrationPanel';
+import AgentFeedbackPanel from './components/CMDBImport/AgentFeedbackPanel';
 import { Button } from '@/components/ui/button';
 import { UploadArea } from './components/CMDBImport/UploadArea';
 import { FileAnalysis } from './components/CMDBImport/FileAnalysis';
@@ -243,10 +243,9 @@ const CrewAIDataImport: React.FC = () => {
             {/* Agent Orchestration Panel - Shows when workflow starts */}
             {(workflowStarted || uploadedFiles.length > 0) && uploadedFiles.length > 0 && (
               <div className="mt-8">
-                <AgentOrchestrationPanel 
+                <AgentFeedbackPanel 
                   sessionId={uploadedFiles[0].sessionId || "unknown-session"}
-                  flowState={{}}
-                  onStatusUpdate={(status) => console.log('Flow status:', status)}
+                  statusData={null}
                 />
               </div>
             )}
