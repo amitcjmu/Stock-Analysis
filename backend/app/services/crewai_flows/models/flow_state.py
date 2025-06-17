@@ -26,6 +26,14 @@ class DiscoveryFlowState(BaseModel):
     shared_memory_reference: Any = None  # Direct reference to shared memory instance
     knowledge_base_refs: List[str] = []
     
+    # Learning Privacy and Isolation Controls
+    learning_scope: str = "engagement"  # "engagement", "client", "global", "disabled"
+    cross_client_learning_enabled: bool = False
+    learning_data_sharing_consent: bool = False
+    learning_audit_trail: List[Dict[str, Any]] = []
+    memory_isolation_level: str = "strict"  # "strict", "moderate", "open"
+    data_residency_requirements: Dict[str, Any] = {}
+    
     # Enhanced Phase tracking with manager oversight
     current_phase: str = "initialization"
     phase_managers: Dict[str, str] = Field(default_factory=lambda: {
