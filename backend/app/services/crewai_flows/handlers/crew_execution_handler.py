@@ -348,12 +348,159 @@ class CrewExecutionHandler:
             "discovery_timestamp": datetime.utcnow().isoformat(),
             "crew_execution_summary": state.crew_status
         }
+
+        # **CRITICAL FIX**: Add database persistence
+        database_integration_results = self._persist_discovery_data_to_database(state)
         
         return {
             "discovery_summary": discovery_summary,
-            "assessment_flow_package": assessment_flow_package
+            "assessment_flow_package": assessment_flow_package,
+            "database_integration": database_integration_results
         }
-    
+
+    def _persist_discovery_data_to_database(self, state) -> Dict[str, Any]:
+        """Persist discovery data to database tables - Synchronous wrapper"""
+        import threading
+        import asyncio
+        from datetime import datetime
+        
+        try:
+            # Run async code in a separate thread to avoid event loop conflicts
+            def run_in_thread():
+                return asyncio.run(self._async_persist_discovery_data(state))
+            
+            # Execute in a separate thread
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(run_in_thread)
+                persistence_results = future.result(timeout=60)  # 60 second timeout
+            
+            logger.info(f"✅ Discovery data persisted to database: {persistence_results}")
+            return persistence_results
+        except Exception as e:
+            logger.error(f"❌ Database persistence failed: {e}")
+            return {
+                "status": "failed",
+                "error": str(e),
+                "assets_created": 0,
+                "imports_created": 0,
+                "records_created": 0
+            }
+
+    async def _async_persist_discovery_data(self, state) -> Dict[str, Any]:
+        """Async method to persist discovery data to database"""
+        from app.core.database import AsyncSessionLocal
+        from app.models.data_import import DataImport, RawImportRecord, ImportStatus
+        from app.models.data_import_session import DataImportSession
+        from app.models.data_import.mapping import ImportFieldMapping
+        from sqlalchemy.exc import SQLAlchemyError
+        import uuid as uuid_pkg
+        import hashlib
+        
+        assets_created = 0
+        imports_created = 0 
+        records_created = 0
+        field_mappings_created = 0
+        
+        async with AsyncSessionLocal() as db_session:
+            try:
+                # 1. Create DataImport session record
+                import_session = DataImport(
+                    id=uuid_pkg.uuid4(),
+                    client_account_id=uuid_pkg.UUID(state.client_account_id) if state.client_account_id else None,
+                    engagement_id=uuid_pkg.UUID(state.engagement_id) if state.engagement_id else None,
+                    session_id=uuid_pkg.UUID(state.session_id) if state.session_id else None,
+                    import_name=f"CrewAI Discovery Flow - {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+                    import_type="discovery_flow",
+                    description="Data processed by CrewAI Discovery Flow with specialized crews",
+                    source_filename=state.metadata.get("filename", "discovery_flow_data.csv"),
+                    file_size_bytes=len(str(state.cleaned_data).encode()),
+                    file_type="application/json",
+                    file_hash=hashlib.sha256(str(state.cleaned_data).encode()).hexdigest()[:32],
+                    status=ImportStatus.PROCESSED,
+                    total_records=len(state.cleaned_data),
+                    processed_records=len(state.cleaned_data),
+                    failed_records=0,
+                    import_config={
+                        "discovery_flow_state": {
+                            "crew_status": state.crew_status,
+                            "field_mappings": state.field_mappings.get("mappings", {}),
+                            "asset_inventory": state.asset_inventory,
+                            "technical_debt": state.technical_debt_assessment
+                        }
+                    },
+                    imported_by=uuid_pkg.UUID(state.user_id) if state.user_id and state.user_id != "anonymous" else None,
+                    completed_at=datetime.utcnow()
+                )
+                
+                db_session.add(import_session)
+                await db_session.flush()
+                imports_created = 1
+
+                # 2. Create RawImportRecord entries for each cleaned record
+                for index, record in enumerate(state.cleaned_data):
+                    raw_record = RawImportRecord(
+                        data_import_id=import_session.id,
+                        client_account_id=import_session.client_account_id,
+                        engagement_id=import_session.engagement_id,
+                        session_id=import_session.session_id,
+                        row_number=index + 1,
+                        record_id=record.get("asset_name") or record.get("hostname") or f"record_{index + 1}",
+                        raw_data=record,
+                        is_processed=True,
+                        is_valid=True,
+                        created_at=datetime.utcnow()
+                    )
+                    db_session.add(raw_record)
+                    records_created += 1
+
+                # 3. Create ImportFieldMapping entries
+                field_mappings = state.field_mappings.get("mappings", {})
+                confidence_scores = state.field_mappings.get("confidence_scores", {})
+                
+                for source_field, target_field in field_mappings.items():
+                    field_mapping = ImportFieldMapping(
+                        data_import_id=import_session.id,
+                        source_field=source_field,
+                        target_field=target_field,
+                        confidence_score=confidence_scores.get(source_field, 0.8),
+                        mapping_type="crewai_discovery",
+                        status="approved",
+                        is_validated=True,
+                        validation_method="crewai_agent",
+                        suggested_by="crewai_agent",
+                        created_at=datetime.utcnow()
+                    )
+                    db_session.add(field_mapping)
+                    field_mappings_created += 1
+
+                # 4. Commit all changes
+                await db_session.commit()
+                
+                logger.info(f"✅ Database persistence completed:")
+                logger.info(f"   - Imports created: {imports_created}")
+                logger.info(f"   - Records created: {records_created}")
+                logger.info(f"   - Field mappings created: {field_mappings_created}")
+                
+                return {
+                    "status": "success",
+                    "import_session_id": str(import_session.id),
+                    "assets_created": assets_created,
+                    "imports_created": imports_created,
+                    "records_created": records_created,
+                    "field_mappings_created": field_mappings_created,
+                    "timestamp": datetime.utcnow().isoformat()
+                }
+                
+            except SQLAlchemyError as e:
+                await db_session.rollback()
+                logger.error(f"Database persistence error: {e}")
+                raise
+            except Exception as e:
+                await db_session.rollback()
+                logger.error(f"Unexpected error during persistence: {e}")
+                raise
+
     def _parse_field_mapping_results(self, crew_result, raw_data) -> Dict[str, Any]:
         """Parse results from Field Mapping Crew execution"""
         try:
