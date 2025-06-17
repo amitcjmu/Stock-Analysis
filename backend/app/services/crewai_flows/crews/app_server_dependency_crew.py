@@ -15,7 +15,7 @@ from crewai import Agent, Task, Crew, Process
 # Import advanced CrewAI features with fallbacks
 try:
     from crewai.memory import LongTermMemory
-    from crewai.knowledge import KnowledgeBase
+    from crewai.knowledge.knowledge import Knowledge
     CREWAI_ADVANCED_AVAILABLE = True
 except ImportError:
     CREWAI_ADVANCED_AVAILABLE = False
@@ -23,7 +23,7 @@ except ImportError:
     class LongTermMemory:
         def __init__(self, **kwargs):
             pass
-    class KnowledgeBase:
+    class Knowledge:
         def __init__(self, **kwargs):
             pass
 
@@ -60,14 +60,14 @@ class AppServerDependencyCrew:
             logger.warning(f"Failed to setup shared memory: {e}")
             return None
     
-    def _setup_knowledge_base(self) -> Optional[KnowledgeBase]:
+    def _setup_knowledge_base(self) -> Optional[Knowledge]:
         """Setup knowledge base for dependency analysis patterns"""
         if not CREWAI_ADVANCED_AVAILABLE:
             logger.warning("Knowledge base not available - using fallback")
             return None
         
         try:
-            return KnowledgeBase(
+            return Knowledge(
                 sources=[
                     "backend/app/knowledge_bases/dependency_analysis_patterns.json"
                 ],

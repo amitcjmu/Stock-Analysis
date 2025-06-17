@@ -15,7 +15,8 @@ from crewai import Agent, Task, Crew, Process
 # Import advanced CrewAI features with fallbacks
 try:
     from crewai.memory import LongTermMemory
-    from crewai.knowledge import KnowledgeBase
+    from crewai.knowledge.knowledge import Knowledge
+    from crewai.knowledge.source.json_knowledge_source import JSONKnowledgeSource
     CREWAI_ADVANCED_AVAILABLE = True
 except ImportError:
     CREWAI_ADVANCED_AVAILABLE = False
@@ -23,7 +24,11 @@ except ImportError:
     class LongTermMemory:
         def __init__(self, **kwargs):
             pass
-    class KnowledgeBase:
+    class Knowledge:
+        def __init__(self, collection_name=None, sources=None, **kwargs):
+            self.collection_name = collection_name or "fallback_knowledge"
+            self.sources = sources or []
+    class JSONKnowledgeSource:
         def __init__(self, **kwargs):
             pass
 
@@ -49,32 +54,23 @@ class FieldMappingCrew:
             return None
         
         try:
-            return LongTermMemory(
-                storage_type="vector",
-                embedder_config={
-                    "provider": "openai", 
-                    "model": "text-embedding-3-small"
-                }
-            )
+            return LongTermMemory()
         except Exception as e:
             logger.warning(f"Failed to setup shared memory: {e}")
             return None
     
-    def _setup_knowledge_base(self) -> Optional[KnowledgeBase]:
+    def _setup_knowledge_base(self) -> Optional[Knowledge]:
         """Setup knowledge base for field mapping patterns"""
         if not CREWAI_ADVANCED_AVAILABLE:
             logger.warning("Knowledge base not available - using fallback")
             return None
         
         try:
-            return KnowledgeBase(
-                sources=[
-                    "backend/app/knowledge_bases/field_mapping_patterns.json"
-                ],
-                embedder_config={
-                    "provider": "openai",
-                    "model": "text-embedding-3-small"
-                }
+            # For now, create empty knowledge base to bypass embedding requirements
+            # TODO: Configure proper knowledge sources with DeepInfra embeddings later
+            return Knowledge(
+                collection_name="field_mapping_knowledge",
+                sources=[]
             )
         except Exception as e:
             logger.warning(f"Failed to setup knowledge base: {e}")
@@ -84,50 +80,62 @@ class FieldMappingCrew:
         """Create agents with hierarchical management"""
         
         # Manager Agent for hierarchical coordination
-        field_mapping_manager = Agent(
-            role="Field Mapping Manager",
-            goal="Coordinate field mapping analysis and ensure comprehensive coverage of all data fields",
-            backstory="""You are a senior data architect with 15+ years of experience managing 
+        manager_config = {
+            "role": "Field Mapping Manager",
+            "goal": "Coordinate field mapping analysis and ensure comprehensive coverage of all data fields",
+            "backstory": """You are a senior data architect with 15+ years of experience managing 
             enterprise data migration projects. You excel at coordinating complex field mapping 
             tasks across diverse data sources and ensuring quality outcomes.""",
-            llm=self.llm,
-            memory=self.shared_memory,
-            knowledge=self.knowledge_base,
-            verbose=True,
-            allow_delegation=True,
-            max_delegation=2,
-            planning=True if CREWAI_ADVANCED_AVAILABLE else False
-        )
+            "llm": self.llm,
+            "verbose": True,
+            "allow_delegation": True,
+            "max_delegation": 2,
+            "planning": True if CREWAI_ADVANCED_AVAILABLE else False
+        }
+        if self.shared_memory:
+            manager_config["memory"] = self.shared_memory
+        if self.knowledge_base:
+            manager_config["knowledge"] = self.knowledge_base
+        
+        field_mapping_manager = Agent(**manager_config)
         
         # Schema Analysis Expert - specialist agent
-        schema_analyst = Agent(
-            role="Schema Analysis Expert", 
-            goal="Analyze data structure semantics and understand field relationships for migration mapping",
-            backstory="""You are an expert data analyst specializing in schema analysis for enterprise 
+        analyst_config = {
+            "role": "Schema Analysis Expert", 
+            "goal": "Analyze data structure semantics and understand field relationships for migration mapping",
+            "backstory": """You are an expert data analyst specializing in schema analysis for enterprise 
             systems. You have deep knowledge of CMDB structures and can understand field meanings from 
             context, naming patterns, and data samples.""",
-            llm=self.llm,
-            memory=self.shared_memory,
-            knowledge=self.knowledge_base,
-            verbose=True,
-            collaboration=True if CREWAI_ADVANCED_AVAILABLE else False,
-            tools=self._create_schema_analysis_tools()
-        )
+            "llm": self.llm,
+            "verbose": True,
+            "collaboration": True if CREWAI_ADVANCED_AVAILABLE else False,
+            "tools": self._create_schema_analysis_tools()
+        }
+        if self.shared_memory:
+            analyst_config["memory"] = self.shared_memory
+        if self.knowledge_base:
+            analyst_config["knowledge"] = self.knowledge_base
+        
+        schema_analyst = Agent(**analyst_config)
         
         # Attribute Mapping Specialist - specialist agent  
-        mapping_specialist = Agent(
-            role="Attribute Mapping Specialist",
-            goal="Create precise field mappings with confidence scores for migration standardization",
-            backstory="""You are a specialist in field mapping with extensive experience in migration 
+        specialist_config = {
+            "role": "Attribute Mapping Specialist",
+            "goal": "Create precise field mappings with confidence scores for migration standardization",
+            "backstory": """You are a specialist in field mapping with extensive experience in migration 
             data standardization. You excel at resolving ambiguous mappings and providing accurate 
             confidence scores for field relationships.""",
-            llm=self.llm,
-            memory=self.shared_memory, 
-            knowledge=self.knowledge_base,
-            verbose=True,
-            collaboration=True if CREWAI_ADVANCED_AVAILABLE else False,
-            tools=self._create_mapping_confidence_tools()
-        )
+            "llm": self.llm,
+            "verbose": True,
+            "collaboration": True if CREWAI_ADVANCED_AVAILABLE else False,
+            "tools": self._create_mapping_confidence_tools()
+        }
+        if self.shared_memory:
+            specialist_config["memory"] = self.shared_memory
+        if self.knowledge_base:
+            specialist_config["knowledge"] = self.knowledge_base
+        
+        mapping_specialist = Agent(**specialist_config)
         
         return [field_mapping_manager, schema_analyst, mapping_specialist]
     
@@ -225,13 +233,15 @@ class FieldMappingCrew:
         
         # Add advanced features if available
         if CREWAI_ADVANCED_AVAILABLE:
-            crew_config.update({
+            advanced_config = {
                 "manager_llm": self.llm,
                 "planning": True,
                 "memory": True,
-                "knowledge": self.knowledge_base,
                 "share_crew": True
-            })
+            }
+            if self.knowledge_base:
+                advanced_config["knowledge"] = self.knowledge_base
+            crew_config.update(advanced_config)
         
         logger.info(f"Creating Field Mapping Crew with {process.name if hasattr(process, 'name') else 'sequential'} process")
         return Crew(**crew_config)

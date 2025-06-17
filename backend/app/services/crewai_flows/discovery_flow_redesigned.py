@@ -118,12 +118,11 @@ class DiscoveryFlowRedesigned(Flow[DiscoveryFlowState], PlanningMixin):
         
         # Setup Multi-Tenant Memory Manager for Task 29: Memory Persistence
         try:
-            from app.core.database import get_db
-            db_session = next(get_db())
-            
+            from app.core.database import AsyncSessionLocal
+            # Use AsyncSessionLocal directly instead of get_db() to avoid async generator issues
             self.tenant_memory_manager = TenantMemoryManager(
                 crewai_service=self.crewai_service,
-                database_session=db_session
+                database_session=AsyncSessionLocal
             )
             
             # Configure memory scope based on client preferences
@@ -183,9 +182,12 @@ class DiscoveryFlowRedesigned(Flow[DiscoveryFlowState], PlanningMixin):
         self.session_handler.setup_database_sessions()
         self.callback_handler.setup_callbacks()
         
-        # Planning capabilities
+        # Planning capabilities with proper LLM configuration
         self.planning_enabled = True
+        # Configure planning_llm to use the same LLM as the platform (google/gemma-3-4b-it)
+        # This prevents CrewAI from defaulting to gpt-4o-mini which requires OpenAI API key
         self.planning_llm = self.crewai_service.llm if hasattr(self.crewai_service, 'llm') else None
+        logger.info(f"✅ Planning configured with LLM: {type(self.planning_llm).__name__ if self.planning_llm else 'None'}")
     
     def _determine_memory_scope(self) -> LearningScope:
         """Determine memory scope based on client configuration"""

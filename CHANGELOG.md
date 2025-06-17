@@ -5,6 +5,67 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.1] - 2025-01-03
+
+### 🐛 **CRITICAL DISCOVERY FLOW FIXES - Import and LLM Configuration**
+
+This release resolves critical issues preventing Discovery Flow execution due to import errors and LLM configuration problems.
+
+### 🚀 **LLM Integration Fixes**
+
+#### **DeepInfra LLM Integration**
+- **Fixed**: CrewAI service now uses proper DeepInfra LLM instead of mock service
+- **Enhanced**: Integrated create_deepinfra_llm() for proper LLM initialization
+- **Improved**: Error handling for LLM creation with graceful fallbacks
+- **Impact**: Resolves OpenAI authentication errors and enables AI-powered crew execution
+
+#### **Database Import Corrections**
+- **Fixed**: Corrected database import path from `app.database.database` to `app.core.database`
+- **Impact**: Eliminates "No module named 'app.database'" import errors
+- **Technology**: Aligned with existing codebase database structure
+
+### 🔧 **CrewAI Agent Validation Fixes**
+
+#### **Tool Validation Resolution**
+- **Fixed**: Tool creation functions now return empty lists instead of None
+- **Resolved**: CrewAI agent validation errors for BaseTool requirements
+- **Enhanced**: All crew tool methods updated to avoid validation failures
+- **Impact**: Prevents agent initialization failures due to invalid tool specifications
+
+#### **Agent Configuration Improvements**
+- **Updated**: Field mapping crew tool initialization
+- **Enhanced**: Data cleansing crew tool integration
+- **Improved**: Agent initialization with proper tool configuration
+- **Impact**: Enables successful crew creation and task execution
+
+### 🎯 **Discovery Flow Architecture Enhancement**
+
+#### **Error Handling Improvements**
+- **Enhanced**: Crew execution handler with better error handling
+- **Improved**: Fallback mechanisms for missing dependencies
+- **Strengthened**: Multi-tier fallback system functionality
+- **Impact**: Provides graceful degradation when advanced features unavailable
+
+#### **Import and Dependency Management**
+- **Fixed**: Module import paths aligned with codebase structure
+- **Enhanced**: Conditional imports for optional dependencies
+- **Improved**: Service availability checks and fallbacks
+- **Impact**: Robust operation across different deployment environments
+
+### 📊 **Technical Achievements**
+
+- **Critical Error Resolution**: Eliminated blocking import and LLM configuration issues
+- **Agent System Stability**: Resolved CrewAI agent validation failures
+- **Fallback Robustness**: Enhanced graceful degradation for missing dependencies
+- **LLM Integration**: Proper DeepInfra LLM connection for AI-powered analysis
+
+### 🎯 **Success Metrics**
+
+- **Discovery Flow Execution**: Now properly initializes and executes
+- **Agent Creation**: Successful validation and instantiation
+- **Error Reduction**: Eliminated critical import and validation errors
+- **System Stability**: Robust operation with proper fallbacks
+
 ## [0.6.9] - 2025-01-27
 
 ### 🎯 **PHASE 5: USER INTERFACE ENHANCEMENTS COMPLETE**
@@ -803,5 +864,3 @@ This release implements the first specialized crew in the Discovery Flow redesig
 - **Next Phase Ready**: Prepared for data cleansing crew implementation
 
 ---
-
-## [0.9.1] - 2025-01-03

@@ -12,7 +12,9 @@ from datetime import datetime
 try:
     from crewai.security import Fingerprint
     from crewai.memory import LongTermMemory
-    from crewai.knowledge import KnowledgeBase
+    from crewai.knowledge.knowledge import Knowledge
+    from crewai.knowledge.source.json_knowledge_source import JSONKnowledgeSource
+    from crewai.knowledge.source.text_file_knowledge_source import TextFileKnowledgeSource
     CREWAI_ADVANCED_AVAILABLE = True
 except ImportError as e:
     logging.warning(f"CrewAI advanced features not available: {e}")
@@ -22,7 +24,16 @@ except ImportError as e:
         def __init__(self, **kwargs):
             self.storage_id = "fallback_memory"
     
-    class KnowledgeBase:
+    class Knowledge:
+        def __init__(self, collection_name=None, sources=None, **kwargs):
+            self.collection_name = collection_name or "fallback_knowledge"
+            self.sources = sources or []
+    
+    class JSONKnowledgeSource:
+        def __init__(self, **kwargs):
+            pass
+    
+    class TextFileKnowledgeSource:
         def __init__(self, **kwargs):
             pass
     
@@ -39,42 +50,35 @@ class InitializationHandler:
         self.crewai_service = crewai_service
         self.context = context
     
-    def setup_shared_memory(self) -> LongTermMemory:
+    def setup_shared_memory(self) -> Optional[LongTermMemory]:
         """Initialize shared memory across all crews following CrewAI best practices"""
         if not CREWAI_ADVANCED_AVAILABLE:
             logger.warning("Using fallback memory - CrewAI advanced features not available")
-            return LongTermMemory()
+            return None
         
         try:
-            # Configure LongTermMemory with vector storage as per CrewAI documentation
-            shared_memory = LongTermMemory(
-                storage_type="vector",
-                embedder_config={
-                    "provider": "openai",
-                    "model": "text-embedding-3-small"
-                }
-            )
-            
-            logger.info("✅ Shared memory initialized with vector storage")
-            return shared_memory
+            # For now, disable shared memory to avoid embedding requirements
+            # TODO: Configure with DeepInfra embeddings (thenlper/gte-large) later
+            logger.info("✅ Shared memory bypassed to avoid embedding requirement")
+            return None
             
         except Exception as e:
             logger.error(f"Failed to initialize shared memory: {e}")
             logger.info("Using fallback memory implementation")
-            return LongTermMemory()
+            return None
     
-    def setup_knowledge_bases(self) -> Dict[str, KnowledgeBase]:
+    def setup_knowledge_bases(self) -> Dict[str, Knowledge]:
         """Setup domain-specific knowledge bases following CrewAI best practices"""
         knowledge_bases = {}
         
         if not CREWAI_ADVANCED_AVAILABLE:
             logger.warning("Using fallback knowledge bases - CrewAI advanced features not available")
             return {
-                "field_mapping": KnowledgeBase(),
-                "data_quality": KnowledgeBase(),
-                "asset_classification": KnowledgeBase(),
-                "dependency_patterns": KnowledgeBase(),
-                "modernization": KnowledgeBase()
+                "field_mapping": None,
+                "data_quality": None,
+                "asset_classification": None,
+                "dependency_patterns": None,
+                "modernization": None
             }
         
         # Knowledge base source files
@@ -99,26 +103,19 @@ class InitializationHandler:
         
         for domain, sources in knowledge_sources.items():
             try:
-                # Filter sources to only existing files
-                existing_sources = [source for source in sources if os.path.exists(source)]
+                # For now, skip knowledge bases to avoid embedding requirements
+                # TODO: Configure proper knowledge sources with DeepInfra embeddings (thenlper/gte-large) later
+                knowledge_bases[domain] = None
                 
+                existing_sources = [source for source in sources if os.path.exists(source)]
                 if existing_sources:
-                    knowledge_bases[domain] = KnowledgeBase(
-                        sources=existing_sources,
-                        embedder_config={
-                            "provider": "openai",
-                            "model": "text-embedding-3-small"
-                        }
-                    )
-                    logger.info(f"✅ {domain} knowledge base loaded with {len(existing_sources)} sources")
+                    logger.info(f"✅ {domain} knowledge base bypassed (sources found but skipped to avoid embedding requirement)")
                 else:
-                    # Create placeholder knowledge base
-                    knowledge_bases[domain] = KnowledgeBase()
-                    logger.warning(f"⚠️ {domain} knowledge base created as placeholder - no source files found")
+                    logger.warning(f"⚠️ {domain} knowledge base bypassed - no source files found")
                     
             except Exception as e:
-                logger.error(f"Failed to create {domain} knowledge base: {e}")
-                knowledge_bases[domain] = KnowledgeBase()
+                logger.error(f"Failed to setup {domain} knowledge base: {e}")
+                knowledge_bases[domain] = None
         
         return knowledge_bases
     
@@ -157,7 +154,7 @@ class InitializationHandler:
     def initialize_flow_state(self, session_id: str, client_account_id: str, 
                              engagement_id: str, user_id: str, raw_data: List[Dict[str, Any]],
                              metadata: Dict[str, Any], fingerprint: str, 
-                             shared_memory: LongTermMemory) -> Dict[str, Any]:
+                             shared_memory: Optional[LongTermMemory]) -> Dict[str, Any]:
         """Initialize complete flow state"""
         
         now = datetime.utcnow().isoformat()
@@ -181,7 +178,7 @@ class InitializationHandler:
             "started_at": now,
             "overall_plan": discovery_plan,
             "crew_coordination": crew_coordination,
-            "shared_memory_id": getattr(shared_memory, 'storage_id', 'shared_memory_default'),
+            "shared_memory_id": getattr(shared_memory, 'storage_id', 'shared_memory_default') if shared_memory else 'no_shared_memory',
             "current_phase": "field_mapping"
         }
     
