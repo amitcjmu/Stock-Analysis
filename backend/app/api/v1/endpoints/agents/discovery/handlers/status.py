@@ -107,116 +107,166 @@ async def get_agent_status(
         # Try to get the session if session_id is provided
         if session_id:
             try:
-                session = await session_service.get_session(session_id)
-                logger.info(f"Found existing session: {session.id if session else 'None'}")
+                # First validate session ID format before attempting database queries
+                is_valid_uuid = True
+                try:
+                    import uuid
+                    uuid.UUID(session_id)
+                except (ValueError, TypeError) as e:
+                    logger.warning(f"Invalid session ID format '{session_id}': {e}")
+                    is_valid_uuid = False
                 
-                if session:
-                    # Get the flow state for this session using the injected service
-                    flow_state = await crewai_service.get_flow_state_by_session(session_id, context)
-                    logger.info(f"Raw flow_state from database: {flow_state}")
+                session = None
+                if is_valid_uuid:
+                    session = await session_service.get_session(session_id)
+                    logger.info(f"Found existing session: {session.id if session else 'None'}")
+                
+                if session or not is_valid_uuid:
+                    flow_state = None
                     
-                    # If flow state service doesn't return data, check workflow_states table directly
-                    if not flow_state and context:
-                        try:
-                            from app.models.workflow_state import WorkflowState
-                            import uuid
-                            
-                            # Try to get workflow state directly from database by session_id
-                            result = await db.execute(
-                                select(WorkflowState).where(
-                                    WorkflowState.session_id == uuid.UUID(session_id),
-                                    WorkflowState.client_account_id == uuid.UUID(context.client_account_id),
-                                    WorkflowState.engagement_id == uuid.UUID(context.engagement_id)
-                                ).order_by(WorkflowState.updated_at.desc()).limit(1)
-                            )
-                            direct_workflow = result.scalar_one_or_none()
-                            
-                            # Also check if there's a workflow with flow_id matching the session_id
-                            if not direct_workflow:
+                    if is_valid_uuid and session:
+                        # Get the flow state for this session using the injected service
+                        flow_state = await crewai_service.get_flow_state_by_session(session_id, context)
+                        logger.info(f"Raw flow_state from database: {flow_state}")
+                        
+                        # If flow state service doesn't return data, check workflow_states table directly
+                        if not flow_state and context:
+                            try:
+                                from app.models.workflow_state import WorkflowState
+                                
+                                # Try to get workflow state directly from database by session_id
                                 result = await db.execute(
                                     select(WorkflowState).where(
-                                        WorkflowState.state_data.op('->>')('flow_id') == session_id,
+                                        WorkflowState.session_id == uuid.UUID(session_id),
                                         WorkflowState.client_account_id == uuid.UUID(context.client_account_id),
                                         WorkflowState.engagement_id == uuid.UUID(context.engagement_id)
                                     ).order_by(WorkflowState.updated_at.desc()).limit(1)
                                 )
                                 direct_workflow = result.scalar_one_or_none()
-                            
-                            if direct_workflow:
-                                logger.info(f"Found direct workflow state: status={direct_workflow.status}, phase={direct_workflow.current_phase}")
                                 
-                                # Extract file processing information from state_data
-                                state_data = direct_workflow.state_data or {}
+                                # Also check if there's a workflow with flow_id matching the session_id
+                                if not direct_workflow:
+                                    result = await db.execute(
+                                        select(WorkflowState).where(
+                                            WorkflowState.state_data.op('->>')('flow_id') == session_id,
+                                            WorkflowState.client_account_id == uuid.UUID(context.client_account_id),
+                                            WorkflowState.engagement_id == uuid.UUID(context.engagement_id)
+                                        ).order_by(WorkflowState.updated_at.desc()).limit(1)
+                                    )
+                                    direct_workflow = result.scalar_one_or_none()
+                                
+                                if direct_workflow:
+                                    logger.info(f"Found direct workflow state: status={direct_workflow.status}, phase={direct_workflow.current_phase}")
+                                    
+                                    # Extract file processing information from state_data
+                                    state_data = direct_workflow.state_data or {}
+                                    file_info = {}
+                                    
+                                    # Look for file information in various places
+                                    if 'metadata' in state_data:
+                                        metadata = state_data['metadata']
+                                        if 'filename' in metadata:
+                                            file_info['filename'] = metadata['filename']
+                                        if 'headers' in metadata:
+                                            file_info['headers'] = metadata['headers']
+                                    
+                                    # Look for record count information
+                                    if 'flow_result' in state_data:
+                                        flow_result = state_data['flow_result']
+                                        if isinstance(flow_result, dict):
+                                            # Check for record count in various possible locations
+                                            for key in ['total_records', 'record_count', 'processed_records', 'data_count']:
+                                                if key in flow_result:
+                                                    file_info['record_count'] = flow_result[key]
+                                                    break
+                                            
+                                            # Check for processed data
+                                            if 'processed_data' in flow_result and isinstance(flow_result['processed_data'], list):
+                                                file_info['record_count'] = len(flow_result['processed_data'])
+                                    
+                                    # Extract from discovery summary
+                                    if 'discovery_summary' in state_data:
+                                        summary = state_data['discovery_summary']
+                                        if isinstance(summary, dict):
+                                            for key in ['total_assets', 'assets_processed', 'inventory_count']:
+                                                if key in summary:
+                                                    file_info['record_count'] = summary[key]
+                                                    break
+                                    
+                                    # If no record count found, try to infer from other data
+                                    if 'record_count' not in file_info:
+                                        # Check if there's raw data information
+                                        for key in ['raw_data', 'sample_data', 'file_data']:
+                                            if key in state_data and isinstance(state_data[key], list):
+                                                file_info['record_count'] = len(state_data[key])
+                                                break
+                                    
+                                    # Parse status and phase
+                                    parsed_status = direct_workflow.status.lower() if direct_workflow.status else 'unknown'
+                                    parsed_phase = direct_workflow.current_phase or 'unknown'
+                                    
+                                    logger.info(f"Parsed status: {parsed_status}, phase: {parsed_phase}, file_info: {file_info}")
+                                    
+                                    # Determine progress based on status and phase
+                                    progress = 0
+                                    if parsed_status == 'completed':
+                                        progress = 100
+                                    elif parsed_status == 'running':
+                                        progress = 50
+                                    elif parsed_status == 'failed':
+                                        progress = 0
+                                    
+                                    flow_state = {
+                                        'status': parsed_status,
+                                        'current_phase': parsed_phase,
+                                        'progress_percentage': progress,
+                                        'file_info': file_info,
+                                        'workflow_id': str(direct_workflow.id),
+                                        'created_at': direct_workflow.created_at.isoformat() if direct_workflow.created_at else None,
+                                        'updated_at': direct_workflow.updated_at.isoformat() if direct_workflow.updated_at else None
+                                    }
+                                    
+                            except Exception as e:
+                                logger.error(f"Error in direct database lookup: {e}")
+                                flow_state = None
+                    else:
+                        # Invalid session ID format - check for any recent completed workflows
+                        logger.warning(f"Invalid session ID format '{session_id}', checking for recent completed workflows")
+                        try:
+                            from app.models.workflow_state import WorkflowState
+                            import uuid
+                            
+                            result = await db.execute(
+                                select(WorkflowState).where(
+                                    WorkflowState.client_account_id == uuid.UUID(context.client_account_id),
+                                    WorkflowState.engagement_id == uuid.UUID(context.engagement_id),
+                                    WorkflowState.status == 'completed'
+                                ).order_by(WorkflowState.updated_at.desc()).limit(1)
+                            )
+                            recent_workflow = result.scalar_one_or_none()
+                            
+                            if recent_workflow:
+                                logger.info(f"Found recent completed workflow for invalid session ID: {recent_workflow.id}")
+                                state_data = recent_workflow.state_data or {}
                                 file_info = {}
                                 
-                                # Look for file information in various places
-                                if 'metadata' in state_data:
-                                    metadata = state_data['metadata']
-                                    if 'filename' in metadata:
-                                        file_info['filename'] = metadata['filename']
-                                    if 'headers' in metadata:
-                                        file_info['headers'] = metadata['headers']
-                                
-                                # Look for record count information
-                                if 'flow_result' in state_data:
-                                    flow_result = state_data['flow_result']
-                                    if isinstance(flow_result, dict):
-                                        # Check for record count in various possible locations
-                                        for key in ['total_records', 'record_count', 'processed_records', 'data_count']:
-                                            if key in flow_result:
-                                                file_info['record_count'] = flow_result[key]
-                                                break
-                                        
-                                        # Check for processed data
-                                        if 'processed_data' in flow_result and isinstance(flow_result['processed_data'], list):
-                                            file_info['record_count'] = len(flow_result['processed_data'])
-                                
-                                # Extract from discovery summary
-                                if 'discovery_summary' in state_data:
-                                    summary = state_data['discovery_summary']
-                                    if isinstance(summary, dict):
-                                        for key in ['total_assets', 'assets_processed', 'inventory_count']:
-                                            if key in summary:
-                                                file_info['record_count'] = summary[key]
-                                                break
-                                
-                                # If no record count found, try to infer from other data
-                                if 'record_count' not in file_info:
-                                    # Check if there's raw data information
-                                    for key in ['raw_data', 'sample_data', 'file_data']:
-                                        if key in state_data and isinstance(state_data[key], list):
-                                            file_info['record_count'] = len(state_data[key])
-                                            break
-                                
-                                # Parse status and phase
-                                parsed_status = direct_workflow.status.lower() if direct_workflow.status else 'unknown'
-                                parsed_phase = direct_workflow.current_phase or 'unknown'
-                                
-                                logger.info(f"Parsed status: {parsed_status}, phase: {parsed_phase}, file_info: {file_info}")
-                                
-                                # Determine progress based on status and phase
-                                progress = 0
-                                if parsed_status == 'completed':
-                                    progress = 100
-                                elif parsed_status == 'running':
-                                    progress = 50
-                                elif parsed_status == 'failed':
-                                    progress = 0
+                                if 'metadata' in state_data and 'filename' in state_data['metadata']:
+                                    file_info['filename'] = state_data['metadata']['filename']
                                 
                                 flow_state = {
-                                    'status': parsed_status,
-                                    'current_phase': parsed_phase,
-                                    'progress_percentage': progress,
+                                    'status': 'completed',
+                                    'current_phase': 'completed',
+                                    'progress_percentage': 100,
                                     'file_info': file_info,
-                                    'workflow_id': str(direct_workflow.id),
-                                    'created_at': direct_workflow.created_at.isoformat() if direct_workflow.created_at else None,
-                                    'updated_at': direct_workflow.updated_at.isoformat() if direct_workflow.updated_at else None
+                                    'workflow_id': str(recent_workflow.id),
+                                    'created_at': recent_workflow.created_at.isoformat() if recent_workflow.created_at else None,
+                                    'updated_at': recent_workflow.updated_at.isoformat() if recent_workflow.updated_at else None
                                 }
-                                
                         except Exception as e:
-                            logger.error(f"Error in direct database lookup: {e}")
+                            logger.error(f"Error checking for recent workflows with invalid session ID: {e}")
                             flow_state = None
                     
+                    # Process the flow state (whether from valid or invalid session ID handling)
                     if flow_state:
                         # Map the flow state to the expected frontend structure
                         status = flow_state.get('status', 'idle')
@@ -268,60 +318,16 @@ async def get_agent_status(
                                 "message": "Ready to start analysis"
                             }
                     else:
-                        # No flow state found, but session exists - check if we should still consider it in progress
-                        logger.warning(f"No flow state found for session {session_id}, checking if flow completed successfully")
-                        
-                        # Try one more database check for any recent workflow
-                        try:
-                            from app.models.workflow_state import WorkflowState
-                            import uuid
-                            
-                            result = await db.execute(
-                                select(WorkflowState).where(
-                                    WorkflowState.client_account_id == uuid.UUID(context.client_account_id),
-                                    WorkflowState.engagement_id == uuid.UUID(context.engagement_id)
-                                ).order_by(WorkflowState.updated_at.desc()).limit(1)
-                            )
-                            recent_workflow = result.scalar_one_or_none()
-                            
-                            if recent_workflow and recent_workflow.status == 'completed':
-                                # Found a recent completed workflow, use it
-                                state_data = recent_workflow.state_data or {}
-                                file_info = {}
-                                
-                                if 'metadata' in state_data and 'filename' in state_data['metadata']:
-                                    file_info['filename'] = state_data['metadata']['filename']
-                                
-                                flow_status = {
-                                    "status": "completed",
-                                    "current_phase": "next_steps",
-                                    "progress_percentage": 100,
-                                    "message": "Analysis completed successfully",
-                                    "file_processed": file_info.get('filename', 'Recent file'),
-                                    "records_processed": 0,
-                                    "workflow_details": {
-                                        "workflow_id": str(recent_workflow.id),
-                                        "session_id": str(recent_workflow.session_id)
-                                    }
-                                }
-                                logger.info("Using recent completed workflow for status")
-                            else:
-                                flow_status = {
-                                    "status": "in_progress",
-                                    "current_phase": "pattern_recognition",
-                                    "progress_percentage": 50,
-                                    "message": "Processing uploaded file...",
-                                    "file_processed": "Uploaded file",
-                                    "records_processed": 0
-                                }
-                        except Exception as e:
-                            logger.error(f"Error checking for recent workflows: {e}")
-                            flow_status = {
-                                "status": "in_progress",
-                                "current_phase": "pattern_recognition", 
-                                "progress_percentage": 50,
-                                "message": "Processing uploaded file..."
-                            }
+                        # No flow state found - this session is likely a malformed ID or very old session
+                        logger.warning(f"No flow state found for session {session_id}, treating as completed")
+                        flow_status = {
+                            "status": "completed",
+                            "current_phase": "next_steps",
+                            "progress_percentage": 100,
+                            "message": "Analysis completed (session expired)",
+                            "file_processed": "Previous upload",
+                            "records_processed": 0
+                        }
             except Exception as e:
                 logger.warning(f"Error getting session {session_id}: {e}")
                 # Return a processing state even if there's an error

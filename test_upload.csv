@@ -1,6 +1,0 @@
-asset_name,asset_type,environment,business_criticality,operating_system,location
-WEB-SRV-01,Server,Production,High,Windows Server 2019,Data Center 1
-APP-SRV-02,Server,Production,Critical,Linux RHEL 8,Data Center 1
-DB-SRV-03,Database Server,Production,Critical,Linux Ubuntu 20.04,Data Center 2
-DEV-WS-04,Workstation,Development,Low,Windows 10,Office Building A
-TEST-VM-05,Virtual Machine,Test,Medium,Linux CentOS 7,Cloud Region US-East 
