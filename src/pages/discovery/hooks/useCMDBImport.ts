@@ -269,7 +269,7 @@ export const useDiscoveryFlowStatus = (sessionId: string | null) => {
  * Uses the authenticated endpoint for better security and more detailed status
  */
 export const useAuthenticatedDiscoveryStatus = (sessionId: string | null) => {
-  const { user } = useAuth();
+  const { user, client, engagement } = useAuth();
   
   return useQuery<AnalysisStatusResponse, Error>({
     queryKey: ['authenticatedDiscoveryStatus', sessionId],
@@ -278,9 +278,71 @@ export const useAuthenticatedDiscoveryStatus = (sessionId: string | null) => {
       if (!user) throw new Error('Authentication required');
       
       try {
-        // Call the authenticated endpoint - apiCall will handle auth headers
+        // Get the current context from the auth context
+        let clientId = client?.id || '';
+        let engagementId = engagement?.id || '';
+        
+        console.log('Auth context - Client ID:', clientId, 'Engagement ID:', engagementId);
+        
+        // If we're missing either ID, try to fetch the full context
+        if (!clientId || !engagementId) {
+          try {
+            console.log('Fetching user context from /api/v1/context/me');
+            const contextResponse = await apiCall('/context/me', { method: 'GET' });
+            console.log('User context response:', contextResponse);
+            
+            if (contextResponse?.client?.id) {
+              clientId = contextResponse.client.id;
+            }
+            if (contextResponse?.engagement?.id) {
+              engagementId = contextResponse.engagement.id;
+            }
+          } catch (contextError) {
+            console.error('Failed to fetch user context:', contextError);
+            throw new Error('Failed to load user context. Please ensure you have selected a client and engagement.');
+          }
+        }
+        
+        if (!clientId || !engagementId) {
+          throw new Error('Missing client or engagement context. Please ensure you have selected a client and engagement.');
+        }
+        
+        // Prepare headers for the status request
+        const headers: Record<string, string> = {
+          'X-Client-Account-ID': clientId,
+          'X-Engagement-ID': engagementId,
+          'X-Session-ID': sessionId,
+          'X-Requested-With': 'XMLHttpRequest' // Helps identify AJAX requests
+        };
+        
+        console.log('Making authenticated status request with headers:', headers);
+        
+        // Build query parameters
+        const queryParams = new URLSearchParams({
+          session_id: sessionId,
+          page_context: 'data-import',
+          client_id: clientId,
+          engagement_id: engagementId,
+          ...(user?.id && { user_id: user.id })
+        });
+
+        console.log('Calling authenticated status endpoint with params:', queryParams.toString());
+        
+        // Call the authenticated endpoint with context headers and query params
+        const endpoint = `/api/v1/agents/discovery/agent-status?${queryParams.toString()}`;
+        console.log('Calling authenticated status endpoint:', endpoint);
+        
         const response = await apiCall(
-          `/api/v1/discovery/agent/crew/analysis/status?session_id=${sessionId}`
+          endpoint,
+          {
+            method: 'GET',
+            headers: {
+              ...headers,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            credentials: 'include' // Ensure cookies are sent with the request
+          }
         ) as any;
         
         // Transform response to match AnalysisStatusResponse

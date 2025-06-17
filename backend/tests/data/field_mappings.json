@@ -1,0 +1,14 @@
+{
+  "Memory (GB)": [
+    "ram_gb",
+    "memory (gb)"
+  ],
+  "Business Owner": [
+    "application_owner",
+    "business owner"
+  ],
+  "Criticality": [
+    "dr_tier",
+    "criticality"
+  ]
+}
