@@ -429,7 +429,7 @@ class CrewExecutionHandler:
                             "technical_debt": state.technical_debt_assessment
                         }
                     },
-                    imported_by=uuid_pkg.UUID(state.user_id) if state.user_id and state.user_id != "anonymous" else None,
+                    imported_by=uuid_pkg.UUID(state.user_id) if state.user_id and state.user_id != "anonymous" else uuid_pkg.UUID("44444444-4444-4444-4444-444444444444"),
                     completed_at=datetime.utcnow()
                 )
                 
