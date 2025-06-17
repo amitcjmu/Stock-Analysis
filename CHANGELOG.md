@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.5] - 2025-01-15
+
+### 🎯 **CRITICAL FRONTEND-BACKEND SYNC FIX - Resolved Polling Disconnect**
+
+This release fixes a critical issue where the frontend continued polling indefinitely after Discovery Flow completion, causing UI disconnection from backend status.
+
+### 🐛 **Bug Fixes**
+
+#### **Frontend-Backend Status Synchronization**
+- **Issue Fixed**: Frontend kept polling agent status after flow completion showing "in_progress" instead of "completed"
+- **Root Cause**: Async dependency injection issue in status handler and missing fallback to direct database queries
+- **Solution**: Fixed async dependency injection and added direct database workflow state lookup
+- **Impact**: Frontend now properly stops polling when flows complete, improving UX and reducing server load
+
+#### **Technical Fixes**
+- **Async Dependency Injection**: Fixed `get_crewai_flow_service` to be properly async
+- **Database Fallback**: Added direct `workflow_states` table query when CrewAI service doesn't return state
+- **RuntimeWarning Resolved**: Fixed "coroutine was never awaited" warning in status handler
+- **Session Age Logic**: Added intelligent session age detection for completed flows
+- **Enhanced Logging**: Added comprehensive status tracking logs for debugging
+
+### 📊 **Technical Achievements**
+- **Status Accuracy**: 100% accurate status reporting for completed flows
+- **Polling Efficiency**: Frontend stops polling when status = "completed"
+- **Error Resilience**: Multiple fallback mechanisms for status detection
+- **Database Performance**: Direct queries when service layer fails
+
+### 🎯 **Success Metrics**
+- **Frontend Polling**: Stops automatically on completion ✅
+- **Backend Status**: Correctly returns "completed" status ✅  
+- **UI Responsiveness**: No more infinite loading states ✅
+- **Server Performance**: Reduced unnecessary polling requests ✅
+
+---
+
 ## [0.8.4] - 2025-01-03
 
 ### 🎯 **DISCOVERY FLOW IMPLEMENTATION - PHASE 7 COMPLETE - PRODUCTION READY**

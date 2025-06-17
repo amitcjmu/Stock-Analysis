@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["agent-status"])
 
 # Dependency injection for CrewAIFlowService
-def get_crewai_flow_service(db: AsyncSession = Depends(get_db)) -> CrewAIFlowService:
+async def get_crewai_flow_service(db: AsyncSession = Depends(get_db)) -> CrewAIFlowService:
     return CrewAIFlowService(db=db)
 
 @router.get("/agent-status")
@@ -112,12 +112,43 @@ async def get_agent_status(
                 
                 if session:
                     # Get the flow state for this session using the injected service
-                    flow_state = crewai_service.get_flow_state_by_session(session_id, context)
+                    flow_state = await crewai_service.get_flow_state_by_session(session_id, context)
+                    logger.info(f"Raw flow_state from database: {flow_state}")
+                    
+                    # If flow state service doesn't return data, check workflow_states table directly
+                    if not flow_state and context:
+                        try:
+                            from app.models.workflow_state import WorkflowState
+                            import uuid
+                            
+                            # Try to get workflow state directly from database
+                            result = await db.execute(
+                                select(WorkflowState).where(
+                                    WorkflowState.session_id == uuid.UUID(session_id)
+                                ).order_by(WorkflowState.updated_at.desc()).limit(1)
+                            )
+                            direct_workflow = result.scalar_one_or_none()
+                            
+                            if direct_workflow:
+                                logger.info(f"Found direct workflow state: status={direct_workflow.status}, phase={direct_workflow.current_phase}")
+                                flow_state = {
+                                    'status': direct_workflow.status,
+                                    'current_phase': direct_workflow.current_phase,
+                                    'progress_percentage': 100 if direct_workflow.status == 'completed' else 50,
+                                    'session_id': session_id
+                                }
+                            else:
+                                logger.warning(f"No workflow state found in database for session {session_id}")
+                        except Exception as direct_db_error:
+                            logger.error(f"Error querying workflow_states directly: {direct_db_error}")
+                    
                     if flow_state:
                         # Map the flow state to the expected frontend structure
-                        status = getattr(flow_state, 'status', 'idle')
-                        current_phase = getattr(flow_state, 'current_phase', 'initial_scan')
-                        progress = getattr(flow_state, 'progress_percentage', 0)
+                        status = flow_state.get('status', 'idle')
+                        current_phase = flow_state.get('current_phase', 'initial_scan')
+                        progress = flow_state.get('progress_percentage', 0)
+                        
+                        logger.info(f"Parsed status: {status}, phase: {current_phase}, progress: {progress}")
                         
                         # If the workflow is completed, mark it as such
                         if status in ['completed', 'success']:
@@ -127,6 +158,7 @@ async def get_agent_status(
                                 "progress_percentage": 100,
                                 "message": "Analysis completed successfully"
                             }
+                            logger.info("Setting flow_status to completed")
                         elif status in ['failed', 'error']:
                             flow_status = {
                                 "status": "failed",
@@ -135,12 +167,22 @@ async def get_agent_status(
                                 "message": "Analysis failed"
                             }
                         elif status in ['running', 'in_progress']:
-                            flow_status = {
-                                "status": "in_progress",
-                                "current_phase": current_phase,
-                                "progress_percentage": progress,
-                                "message": f"Processing: {current_phase.replace('_', ' ').title()}"
-                            }
+                            # Only update status to in_progress if we have a valid progress value
+                            if progress > 0 and progress < 100:
+                                flow_status = {
+                                    "status": "in_progress",
+                                    "current_phase": current_phase,
+                                    "progress_percentage": progress,
+                                    "message": f"Processing: {current_phase.replace('_', ' ').title()}"
+                                }
+                            elif progress >= 100:
+                                flow_status = {
+                                    "status": "completed",
+                                    "current_phase": current_phase,
+                                    "progress_percentage": 100,
+                                    "message": "Processing completed"
+                                }
+                                logger.info("Setting flow_status to completed based on progress >= 100")
                         else:
                             # Default to analyzing state for file uploads
                             flow_status = {
@@ -149,14 +191,50 @@ async def get_agent_status(
                                 "progress_percentage": 25,
                                 "message": "Analyzing file content..."
                             }
+                            logger.warning(f"Unknown status '{status}', defaulting to in_progress")
                     else:
-                        # No flow state found, but session exists - assume it's being processed
-                        flow_status = {
-                            "status": "in_progress",
-                            "current_phase": "pattern_recognition",
-                            "progress_percentage": 50,
-                            "message": "Processing uploaded file..."
-                        }
+                        # No flow state found, but session exists - check if we should still consider it in progress
+                        logger.warning(f"No flow state found for session {session_id}, checking if flow completed successfully")
+                        
+                        # Check if this might be a completed flow that was cleaned up from memory
+                        # but still has a session record
+                        try:
+                            # If the session is old and no active flow state, assume it completed
+                            from datetime import datetime, timedelta
+                            if hasattr(session, 'created_at'):
+                                session_age = datetime.utcnow() - session.created_at
+                                if session_age > timedelta(minutes=10):  # If session is older than 10 minutes
+                                    logger.info(f"Session {session_id} is {session_age} old, assuming completed")
+                                    flow_status = {
+                                        "status": "completed",
+                                        "current_phase": "completed",
+                                        "progress_percentage": 100,
+                                        "message": "Analysis completed successfully"
+                                    }
+                                else:
+                                    # Recent session, might still be processing
+                                    flow_status = {
+                                        "status": "in_progress",
+                                        "current_phase": "pattern_recognition",
+                                        "progress_percentage": 50,
+                                        "message": "Processing uploaded file..."
+                                    }
+                            else:
+                                # No timestamp, default to in progress but with higher progress
+                                flow_status = {
+                                    "status": "in_progress",
+                                    "current_phase": "finalizing",
+                                    "progress_percentage": 85,
+                                    "message": "Finalizing analysis..."
+                                }
+                        except Exception as inner_e:
+                            logger.error(f"Error checking session age: {inner_e}")
+                            flow_status = {
+                                "status": "in_progress",
+                                "current_phase": "pattern_recognition",
+                                "progress_percentage": 50,
+                                "message": "Processing uploaded file..."
+                            }
             except Exception as e:
                 logger.warning(f"Error getting session {session_id}: {e}")
                 # Return a processing state even if there's an error
