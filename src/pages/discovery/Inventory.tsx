@@ -621,7 +621,7 @@ const Inventory = () => {
 
   // Refetch data when context changes (client/engagement/session)
   useEffect(() => {
-    if (context.client && context.engagement) {
+    if (client && engagement) {
       const filters = {
         asset_type: selectedFilter,
         environment: selectedEnv,
@@ -631,16 +631,16 @@ const Inventory = () => {
       };
       
       console.log('🔄 Context changed, refetching inventory data for:', {
-        client: context.client.name,
-        engagement: context.engagement.name,
-        session: context.session?.session_display_name || 'None'
+        client: client.name,
+        engagement: engagement.name,
+        session: session?.session_display_name || 'None'
       });
       
       // Force reload from API when context changes (bypass cache)
       fetchAssets(currentPage, filters);
       fetchApplicationsCount();
     }
-  }, [context.client, context.engagement, context.session, context.viewMode]);
+  }, [client, engagement, session]);
 
   // Trigger initial agent panel refresh on component mount
   useEffect(() => {
@@ -665,7 +665,7 @@ const Inventory = () => {
       fetchUnlinkedAssets();
       fetchAppMappings(); // Also load app mappings for linking functionality
     }
-  }, [activeTab, context.client, context.engagement, context.session]);
+  }, [activeTab, client, engagement, session]);
 
   // Add persistence helper functions
   const getCacheKey = (page: number, filters: FilterParams) => {
