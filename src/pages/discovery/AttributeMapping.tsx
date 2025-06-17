@@ -1,11 +1,11 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
-import { Upload, RefreshCw } from 'lucide-react';
+import { Upload, RefreshCw, Zap } from 'lucide-react';
 import { useToast } from '../../hooks/use-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
-import { useCriticalAttributes } from '../../hooks/useAttributeMapping';
+import { useAgenticCriticalAttributes, useTriggerFieldMappingCrew } from '../../hooks/useAttributeMapping';
 import { apiCall, API_CONFIG } from '../../config/api';
 
 import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
@@ -23,25 +23,53 @@ import AgentInsightsSection from '../../components/discovery/AgentInsightsSectio
 import Sidebar from '../../components/Sidebar';
 
 const AttributeMapping: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<string>('mappings');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState('mappings');
 
-  const {
-    data: criticalAttributesData,
-    isLoading: isLoadingCriticalAttributes,
+  // 🤖 Use AGENTIC critical attributes (agent-driven intelligence)
+  const { 
+    data: criticalAttributesData, 
+    isLoading, 
     isError: isErrorCriticalAttributes,
-    refetch: refetchCriticalAttributes,
-  } = useCriticalAttributes();
-  
-  const isLoading = isLoadingCriticalAttributes;
-  const isAnalyzing = false; // Placeholder
+    refetch: refetchCriticalAttributes 
+  } = useAgenticCriticalAttributes();
+
+  // Hook to manually trigger Field Mapping Crew analysis
+  const triggerFieldMappingCrew = useTriggerFieldMappingCrew();
 
   const handleRefreshCriticalAttributes = useCallback(() => {
     refetchCriticalAttributes();
-    toast({ title: 'Refreshing data...' });
-  }, [refetchCriticalAttributes, toast]);
+  }, [refetchCriticalAttributes]);
+
+  // 🤖 NEW: Trigger Field Mapping Crew Analysis
+  const handleTriggerAgentAnalysis = useCallback(async () => {
+    try {
+      setIsAnalyzing(true);
+      toast({
+        title: "🤖 Field Mapping Crew Activated",
+        description: "AI agents are analyzing your data to determine critical attributes...",
+      });
+
+      await triggerFieldMappingCrew.mutateAsync();
+
+      toast({
+        title: "✅ Agent Analysis Complete",
+        description: "Field Mapping Crew has determined critical attributes based on your data patterns.",
+      });
+    } catch (error) {
+      console.error('Failed to trigger agent analysis:', error);
+      toast({
+        title: "❌ Agent Analysis Failed",
+        description: "Failed to trigger Field Mapping Crew analysis. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, [triggerFieldMappingCrew, toast]);
 
   // Handle mapping approval/rejection
   const handleMappingAction = useCallback(async (mappingId: string, action: 'approve' | 'reject') => {
@@ -287,60 +315,155 @@ const AttributeMapping: React.FC = () => {
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="flex-1 p-6 overflow-y-auto">
-          <ContextBreadcrumbs />
-          
-          <div className="mt-6">
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold text-gray-900">Attribute Mapping</h1>
-              <p className="text-gray-600 mt-1">
-                Map imported CMDB fields to the AI Force critical attributes for migration.
-              </p>
-            </div>
+      <div className="flex-1 flex overflow-hidden">
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 p-6 overflow-y-auto">
+            <ContextBreadcrumbs />
+            
+            <div className="mt-6">
+              <div className="mb-6">
+                <h1 className="text-2xl font-bold text-gray-900">Attribute Mapping</h1>
+                <p className="text-gray-600 mt-1">
+                  AI agents dynamically determine critical attributes based on your data patterns.
+                </p>
+                
+                {/* Agent Status Indicator */}
+                {criticalAttributesData?.agent_status && (
+                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Zap className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm font-medium text-blue-900">
+                          {criticalAttributesData.agent_status.discovery_flow_active ? 
+                            '🤖 Field Mapping Crew Analyzing...' : 
+                            '✅ Agent Analysis Complete'
+                          }
+                        </span>
+                      </div>
+                      
+                      {!criticalAttributesData.agent_status.discovery_flow_active && 
+                       criticalAttributesData.statistics.total_attributes === 0 && (
+                        <Button 
+                          onClick={handleTriggerAgentAnalysis}
+                          disabled={isAnalyzing}
+                          size="sm"
+                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                          <Zap className="mr-2 h-4 w-4" />
+                          {isAnalyzing ? 'Analyzing...' : 'Trigger Agent Analysis'}
+                        </Button>
+                      )}
+                    </div>
+                    
+                    {criticalAttributesData.analysis_progress && (
+                      <p className="text-xs text-blue-700 mt-1">
+                        {criticalAttributesData.analysis_progress.current_task} 
+                        {criticalAttributesData.analysis_progress.estimated_completion && 
+                         ` (${criticalAttributesData.analysis_progress.estimated_completion})`}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
 
-            {/* Progress Dashboard */}
-            <ProgressDashboard
-              mappingProgress={{
-                total: mappingProgress.total,
-                mapped: mappingProgress.mapped,
-                critical_mapped: mappingProgress.critical_mapped,
-                accuracy: mappingProgress.accuracy
-              }}
-              isLoading={isAnalyzing}
-            />
+              {/* Progress Dashboard */}
+              <ProgressDashboard
+                mappingProgress={{
+                  total: mappingProgress.total,
+                  mapped: mappingProgress.mapped,
+                  critical_mapped: mappingProgress.critical_mapped,
+                  accuracy: mappingProgress.accuracy
+                }}
+                isLoading={isAnalyzing || criticalAttributesData?.agent_status?.discovery_flow_active}
+              />
 
-            {/* Navigation Tabs */}
-            <NavigationTabs
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-            />
+              {/* Navigation Tabs */}
+              <NavigationTabs
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+              />
 
-            {/* Tab Content */}
-            {renderTabContent()}
+              {/* Tab Content */}
+              {renderTabContent()}
 
-            {/* CrewAI Analysis */}
-            <CrewAnalysisPanel
-              crewAnalysis={crewAnalysis}
-            />
+              {/* CrewAI Analysis */}
+              <CrewAnalysisPanel
+                crewAnalysis={crewAnalysis}
+              />
 
-            {/* Continue Button */}
-            <div className="mt-8 flex justify-center">
-              <Link to="/discovery/data-cleansing">
-                <Button size="lg" className="px-8">
-                  Continue to Data Cleansing
-                  <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </Button>
-              </Link>
+              {/* Continue Button */}
+              <div className="mt-8 flex justify-center">
+                <Link to="/discovery/data-cleansing">
+                  <Button size="lg" className="px-8">
+                    Continue to Data Cleansing
+                    <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </Button>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Right Sidebar - Agent Panels */}
-        <div className="w-96 bg-white border-l border-gray-200 overflow-y-auto">
+        <div className="w-96 bg-white border-l border-gray-200 overflow-y-auto flex-shrink-0">
           <div className="p-4 space-y-4">
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold text-gray-900 mb-2">🤖 Agent Intelligence</h2>
+              <p className="text-sm text-gray-600">AI agents analyze your data to determine critical attributes</p>
+              
+              {/* Agent Status Summary */}
+              {criticalAttributesData?.agent_status && (
+                <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                  <div className="text-xs space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Field Mapping Crew:</span>
+                      <span className={`font-medium ${
+                        criticalAttributesData.agent_status.field_mapping_crew_status === 'completed' ? 'text-green-600' :
+                        criticalAttributesData.agent_status.field_mapping_crew_status === 'analyzing' ? 'text-blue-600' :
+                        'text-gray-600'
+                      }`}>
+                        {criticalAttributesData.agent_status.field_mapping_crew_status}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Learning System:</span>
+                      <span className="font-medium text-green-600">
+                        {criticalAttributesData.agent_status.learning_system_status}
+                      </span>
+                    </div>
+                    {criticalAttributesData.agent_status.crew_agents_used && (
+                      <div className="mt-2">
+                        <span className="text-gray-600 text-xs">Active Agents:</span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {criticalAttributesData.agent_status.crew_agents_used.map((agent, index) => (
+                            <span key={index} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
+                              {agent}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {/* Crew Insights */}
+              {criticalAttributesData?.crew_insights && (
+                <div className="mt-3 p-3 bg-green-50 rounded-lg">
+                  <h3 className="text-sm font-medium text-green-900 mb-2">Crew Analysis Insights</h3>
+                  <div className="text-xs space-y-1">
+                    <div><span className="text-green-700">Method:</span> {criticalAttributesData.crew_insights.analysis_method}</div>
+                    <div><span className="text-green-700">Confidence:</span> {criticalAttributesData.crew_insights.confidence_level}</div>
+                    <div><span className="text-green-700">Learning Applied:</span> {criticalAttributesData.crew_insights.learning_applied ? '✅ Yes' : '❌ No'}</div>
+                  </div>
+                  <p className="text-xs text-green-700 mt-2">{criticalAttributesData.crew_insights.crew_result_summary}</p>
+                </div>
+              )}
+            </div>
+            
             <AgentClarificationPanel pageContext="attribute-mapping" />
             <DataClassificationDisplay pageContext="attribute-mapping" />
             <AgentInsightsSection pageContext="attribute-mapping" />
