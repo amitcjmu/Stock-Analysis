@@ -347,4 +347,71 @@ async def get_workflow_status_clean(
             message=f"Failed to get workflow status: {str(e)}",
             file_processed="Unknown file",
             records_processed=0
+        )
+
+@router.delete("/data-imports/{session_id}/cleanup", response_model=dict)
+async def cleanup_stuck_workflow(
+    session_id: str,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context_dependency),
+    crewai_service: CrewAIFlowService = Depends(get_crewai_flow_service)
+) -> dict:
+    """
+    CLEAN API: Force cleanup of stuck workflow sessions.
+    
+    This endpoint removes stuck workflows from active memory and updates
+    the database status to failed, stopping infinite polling.
+    """
+    try:
+        logger.info(f"CLEAN API: Force cleanup of stuck workflow: {session_id}")
+        
+        # Validate session ID format
+        try:
+            uuid.UUID(session_id)
+        except ValueError:
+            logger.warning(f"CLEAN API: Invalid session ID format: {session_id}")
+            raise HTTPException(status_code=400, detail="Invalid session ID format")
+        
+        # Remove from active flows if present
+        cleanup_result = {"active_flow_removed": False, "database_updated": False}
+        
+        if hasattr(crewai_service, '_active_flows') and session_id in crewai_service._active_flows:
+            del crewai_service._active_flows[session_id]
+            cleanup_result["active_flow_removed"] = True
+            logger.info(f"Removed stuck workflow from active flows: {session_id}")
+        
+        # Update database status to failed
+        try:
+            await crewai_service._update_workflow_state_with_new_session(
+                session_id=session_id,
+                client_account_id=context.client_account_id or "bafd5b46-aaaf-4c95-8142-573699d93171",
+                engagement_id=context.engagement_id or "6e9c8133-4169-4b79-b052-106dc93d0208",
+                status="failed",
+                current_phase="cleanup",
+                state_data={
+                    "status": "failed",
+                    "current_phase": "cleanup",
+                    "message": "Workflow cleaned up due to stuck state",
+                    "cleanup_timestamp": datetime.utcnow().isoformat()
+                }
+            )
+            cleanup_result["database_updated"] = True
+            logger.info(f"Updated database status to failed for session: {session_id}")
+        except Exception as db_error:
+            logger.error(f"Failed to update database for session {session_id}: {db_error}")
+        
+        return {
+            "session_id": session_id,
+            "status": "cleanup_completed",
+            "message": "Stuck workflow has been cleaned up",
+            "cleanup_details": cleanup_result
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"CLEAN API: Error cleaning up workflow {session_id}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to cleanup workflow: {str(e)}"
         ) 

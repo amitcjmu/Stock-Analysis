@@ -299,23 +299,48 @@ class CrewAIFlowService:
                 logger.info("Using fallback workflow execution")
                 result = await self._execute_fallback_workflow(flow)
             
+            # Safely get status and current_phase from flow state
+            # Handle both DiscoveryFlowState and StateWithId objects
+            state_status = "completed"
+            state_phase = "completed"
+            state_data = {}
+            
+            try:
+                # Try to access attributes directly (DiscoveryFlowState)
+                if hasattr(flow.state, 'status'):
+                    state_status = flow.state.status
+                if hasattr(flow.state, 'current_phase'):
+                    state_phase = flow.state.current_phase
+                if hasattr(flow.state, 'model_dump'):
+                    state_data = flow.state.model_dump()
+                elif hasattr(flow.state, '__dict__'):
+                    state_data = flow.state.__dict__
+            except Exception as e:
+                logger.warning(f"Could not access flow state attributes: {e}")
+                # Use default values if state access fails
+                state_status = "completed"
+                state_phase = "completed"
+                state_data = {"status": "completed", "current_phase": "completed"}
+            
             # Update persistent state with a new database session
             await self._update_workflow_state_with_new_session(
                 session_id=session_id,
                 client_account_id=context.client_account_id,
                 engagement_id=context.engagement_id,
-                status=flow.state.status,
-                current_phase=flow.state.current_phase,
-                state_data=flow.state.model_dump()
+                status=state_status,
+                current_phase=state_phase,
+                state_data=state_data
             )
             
         except Exception as e:
             logger.error(f"Workflow failed for session {session_id}: {e}", exc_info=True)
             
-            # Update state with error
-            flow.state.status = "failed"
-            flow.state.current_phase = "error"
-            flow.state.add_error("workflow_execution", str(e))
+            # Update state with error using safe defaults
+            error_state_data = {
+                "status": "failed",
+                "current_phase": "error",
+                "error": str(e)
+            }
             
             # Update persistent state with error using new session
             await self._update_workflow_state_with_new_session(
@@ -324,7 +349,7 @@ class CrewAIFlowService:
                 engagement_id=context.engagement_id,
                 status="failed",
                 current_phase="error",
-                state_data=flow.state.model_dump()
+                state_data=error_state_data
             )
         finally:
             # Clean up active flow tracking
@@ -470,23 +495,41 @@ class CrewAIFlowService:
             # First check if flow is in active flows (for current running flows)
             if session_id in self._active_flows:
                 flow = self._active_flows[session_id]
-                logger.info(f"Found active flow for session {session_id}: status={flow.state.status}")
+                
+                # Safely get status from flow state
+                try:
+                    flow_status = getattr(flow.state, 'status', 'running')
+                    flow_phase = getattr(flow.state, 'current_phase', 'initialization')
+                    flow_progress = getattr(flow.state, 'progress_percentage', 10.0)
+                    flow_started_at = getattr(flow.state, 'started_at', None)
+                    
+                    logger.info(f"Found active flow for session {session_id}: status={flow_status}")
+                except Exception as e:
+                    logger.warning(f"Could not access flow state for session {session_id}: {e}")
+                    flow_status = 'running'
+                    flow_phase = 'initialization'
+                    flow_progress = 10.0
+                    flow_started_at = None
                 
                 # Get file information from flow state
                 file_info = {}
-                if hasattr(flow.state, 'metadata') and flow.state.metadata:
-                    file_info['filename'] = flow.state.metadata.get('filename', 'Unknown file')
-                if hasattr(flow.state, 'raw_data') and flow.state.raw_data:
-                    file_info['record_count'] = len(flow.state.raw_data)
+                try:
+                    if hasattr(flow.state, 'metadata') and flow.state.metadata:
+                        file_info['filename'] = flow.state.metadata.get('filename', 'Unknown file')
+                    if hasattr(flow.state, 'raw_data') and flow.state.raw_data:
+                        file_info['record_count'] = len(flow.state.raw_data)
+                except Exception as e:
+                    logger.warning(f"Could not access flow state metadata: {e}")
+                    file_info = {'filename': 'Unknown file', 'record_count': 0}
                 
                 return {
                     "session_id": session_id,
-                    "status": flow.state.status,
-                    "current_phase": flow.state.current_phase,
-                    "progress_percentage": flow.state.progress_percentage,
+                    "status": flow_status,
+                    "current_phase": flow_phase,
+                    "progress_percentage": flow_progress,
                     "file_info": file_info,
-                    "started_at": flow.state.started_at.isoformat() if flow.state.started_at else None,
-                    "created_at": flow.state.started_at.isoformat() if flow.state.started_at else None,
+                    "started_at": flow_started_at.isoformat() if flow_started_at else None,
+                    "created_at": flow_started_at.isoformat() if flow_started_at else None,
                     "updated_at": datetime.utcnow().isoformat()
                 }
             
