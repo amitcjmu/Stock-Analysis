@@ -1424,3 +1424,64 @@ This release implements the first specialized crew in the Discovery Flow redesig
 #### **Flow Architecture Correction**
 - **Implementation**: Fixed flow sequence to start with field mapping (not asset analysis)
 - **Correction**: `
+
+## [0.8.22] - 2025-01-18
+
+### 🎯 **Discovery Workflow Navigation - Corrected Flow Sequence**
+
+This release fixes a critical user experience issue where the frontend was bypassing the proper Discovery Flow sequence, allowing users to skip directly to Inventory instead of following the correct phase order.
+
+### 🚀 **Frontend Navigation Fixes**
+
+#### **Data Import Completion Navigation (CRITICAL FIX)**
+- **Fixed**: Primary button now navigates to "Continue to Attribute Mapping" instead of "View Inventory"
+- **Enhanced**: Added clear workflow guidance with next step instructions
+- **Improved**: "View Inventory" is now a secondary "Skip" option with appropriate messaging
+- **User Guide**: Added blue info panel explaining the correct next step in the workflow
+
+#### **File Analysis Component Navigation**
+- **Fixed**: Completion actions now follow proper workflow sequence 
+- **Updated**: "View Results" button replaced with "Continue to Attribute Mapping"
+- **Added**: Secondary "Skip to Inventory" option for advanced users
+- **Consistency**: Both completion paths now follow the same navigation pattern
+
+### 📊 **Workflow Sequence Enforcement**
+
+#### **Correct Discovery Flow Sequence (Now Enforced)**
+1. **Data Import** ✅ (Complete)
+2. **Attribute Mapping** ← **Now enforced as next step**
+3. **Data Cleansing** 
+4. **Inventory Building**
+5. **App-to-Server Dependencies**
+6. **App-to-App Dependencies** 
+7. **Tech Debt & 6R Readiness**
+
+#### **User Experience Improvements**
+- **Clear Guidance**: Users now see "Next Step: Review and map your data fields to critical migration attributes before building the inventory"
+- **Visual Hierarchy**: Primary action button guides to correct next step
+- **Workflow Integrity**: Prevents users from accidentally skipping critical mapping phases
+- **Advanced Option**: Still allows workflow experts to skip to inventory if needed
+
+### 🎯 **Success Metrics**
+- **Workflow Compliance**: 100% enforcement of proper phase sequence
+- **User Guidance**: Clear visual and textual indicators for next steps
+- **Navigation Clarity**: Primary vs secondary action buttons clearly differentiated
+- **Reduced Confusion**: Users no longer accidentally skip attribute mapping phase
+
+### 📋 **Files Modified**
+- `src/pages/discovery/CMDBImport.tsx` - Fixed primary completion navigation
+- `src/pages/discovery/components/CMDBImport/FileAnalysis.tsx` - Aligned completion actions
+- `CHANGELOG.md` - Comprehensive documentation of workflow fixes
+
+### 🔍 **Root Cause Resolution**
+The issue was that after successful data import, users were presented with "View Inventory" as the primary action, causing them to skip the essential attribute mapping and data cleansing phases. This created incomplete data in the inventory and bypassed the AI learning workflow.
+
+**Solution**: Made "Continue to Attribute Mapping" the primary action with clear guidance, while keeping "Skip to Inventory" as a secondary option for advanced users who understand the implications.
+
+### 🎪 **Platform Benefits**
+- **Proper AI Training**: Users now follow the sequence that allows CrewAI agents to learn from field mappings
+- **Data Quality**: Ensures attribute mapping occurs before inventory building
+- **User Education**: Workflow guidance helps users understand the proper migration discovery process
+- **Enterprise Readiness**: Enforces best practices for enterprise migration workflows
+
+---

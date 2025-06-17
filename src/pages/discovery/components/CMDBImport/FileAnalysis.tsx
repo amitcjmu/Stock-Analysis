@@ -241,15 +241,26 @@ export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNav
         
         <div className="flex space-x-2">
           {statusData?.status === 'completed' && (
-            <Button 
-              variant="default" 
-              size="sm"
-              onClick={() => onNavigate(`/discovery/analysis/${file.sessionId}`)}
-              className="flex items-center space-x-1"
-            >
-              <span>View Results</span>
-              <ArrowRight className="h-4 w-4" />
-            </Button>
+            <>
+              <Button 
+                variant="default" 
+                size="sm"
+                onClick={() => onNavigate('/discovery/attribute-mapping')}
+                className="flex items-center space-x-1"
+              >
+                <span>Continue to Attribute Mapping</span>
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => onNavigate('/discovery/inventory')}
+                className="flex items-center space-x-1"
+              >
+                <span>Skip to Inventory</span>
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </>
           )}
         </div>
       </div>

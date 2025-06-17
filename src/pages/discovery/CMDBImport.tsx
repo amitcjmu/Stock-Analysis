@@ -495,22 +495,27 @@ const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onNavigate }) => {
             <CheckCircle className="h-4 w-4" />
             <span className="text-sm font-medium">Processing Complete</span>
           </div>
-          <p className="text-sm text-gray-600">{getStatusText()}</p>
+          <p className="text-sm text-gray-600 mb-2">{getStatusText()}</p>
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg mb-4">
+            <p className="text-sm text-blue-800">
+              <strong>Next Step:</strong> Review and map your data fields to critical migration attributes before building the inventory.
+            </p>
+          </div>
           <div className="flex space-x-3 mt-4">
             <Button
-              onClick={() => onNavigate('/discovery/inventory')}
-              className="flex items-center space-x-2"
-            >
-              <Eye className="h-4 w-4" />
-              <span>View Inventory</span>
-            </Button>
-            <Button
-              variant="outline"
               onClick={() => onNavigate('/discovery/attribute-mapping')}
               className="flex items-center space-x-2"
             >
               <ArrowRight className="h-4 w-4" />
-              <span>Attribute Mapping</span>
+              <span>Continue to Attribute Mapping</span>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => onNavigate('/discovery/inventory')}
+              className="flex items-center space-x-2"
+            >
+              <Eye className="h-4 w-4" />
+              <span>Skip to Inventory</span>
             </Button>
           </div>
         </div>
