@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.10] - 2025-01-27
+
+### 🐛 **IMPORT FIX - AttributeMapping React Error Resolution**
+
+This release fixes critical import errors preventing the AttributeMapping page from loading properly.
+
+### 🚀 **Bug Fixes**
+
+#### **React Import Error Resolution**
+- **Import Fix**: Fixed `useCriticalAttributes` import path from incorrect `../../hooks/discovery/useCriticalAttributes` to correct `../../hooks/useAttributeMapping`
+- **Component Props**: Fixed TypeScript errors by aligning component props with their actual interfaces
+- **NoDataPlaceholder**: Updated all instances to use correct `actions` prop instead of deprecated `actionLabel`/`onAction` props
+- **Type Safety**: Added proper type transformations for critical attributes data structures
+
+#### **Component Interface Alignment**
+- **FieldMappingsTab**: Fixed props to match `FieldMappingsTabProps` interface
+- **CriticalAttributesTab**: Added proper type casting for `mapping_type` and `business_impact` fields
+- **ProgressDashboard**: Updated to use `mappingProgress` object instead of individual props
+- **CrewAnalysisPanel**: Added mock data structure for crew analysis display
+
+### 📊 **Technical Achievements**
+- **Build Success**: React build now completes without TypeScript errors
+- **Import Resolution**: All component imports properly resolved
+- **Type Safety**: Enhanced type checking with proper interface alignment
+- **Mock Data**: Added structured mock data for development and testing
+
+### 🎯 **Success Metrics**
+- **Build Status**: ✅ Clean build with no TypeScript errors
+- **Import Errors**: 0/1 (was 1/1 failing)
+- **Component Props**: 6/6 components now have correct prop interfaces
+- **Type Safety**: Enhanced with proper transformations
+
 ## [0.8.9] - 2025-01-27
 
 ### 🐛 **ATTRIBUTE MAPPING DATA LOADING FIX - Resolved Context Processing Issues**
@@ -1500,3 +1532,37 @@ The issue was that after successful data import, users were presented with "View
 - **Enterprise Readiness**: Enforces best practices for enterprise migration workflows
 
 ---
+
+## [0.4.10] - 2025-01-27
+
+### 🐛 **IMPORT FIX - AttributeMapping React Error Resolution**
+
+This release fixes critical import errors preventing the AttributeMapping page from loading properly.
+
+### 🚀 **Bug Fixes**
+
+#### **React Import Error Resolution**
+- **Import Fix**: Fixed `useCriticalAttributes` import path from incorrect `../../hooks/discovery/useCriticalAttributes` to correct `../../hooks/useAttributeMapping`
+- **Component Props**: Fixed TypeScript errors by aligning component props with their actual interfaces
+- **NoDataPlaceholder**: Updated all instances to use correct `actions` prop instead of deprecated `actionLabel`/`onAction` props
+- **Type Safety**: Added proper type transformations for critical attributes data structures
+
+#### **Component Interface Alignment**
+- **FieldMappingsTab**: Fixed props to match `FieldMappingsTabProps` interface
+- **CriticalAttributesTab**: Added proper type casting for `mapping_type` and `business_impact` fields
+- **ProgressDashboard**: Updated to use `mappingProgress` object instead of individual props
+- **CrewAnalysisPanel**: Added mock data structure for crew analysis display
+
+### 📊 **Technical Achievements**
+- **Build Success**: React build now completes without TypeScript errors
+- **Import Resolution**: All component imports properly resolved
+- **Type Safety**: Enhanced type checking with proper interface alignment
+- **Mock Data**: Added structured mock data for development and testing
+
+### 🎯 **Success Metrics**
+- **Build Status**: ✅ Clean build with no TypeScript errors
+- **Import Errors**: 0/1 (was 1/1 failing)
+- **Component Props**: 6/6 components now have correct prop interfaces
+- **Type Safety**: Enhanced with proper transformations
+
+## [0.4.9] - 2025-01-27

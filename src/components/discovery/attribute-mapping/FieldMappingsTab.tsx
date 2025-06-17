@@ -108,22 +108,37 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
       });
       
       if (response && response.fields) {
-        // Ensure all fields have category property
+        // Ensure all fields have category property and deduplicate by name
         const fieldsWithCategories = response.fields.map((field: any) => ({
           ...field,
           category: field.category || 'uncategorized'
         }));
         
-        setAvailableFields(fieldsWithCategories);
-        console.log(`📋 Loaded ${fieldsWithCategories.length} available target fields across ${Object.keys(response.categories || {}).length} categories`);
+        // Deduplicate fields by name to prevent dropdown errors
+        const uniqueFields = fieldsWithCategories.reduce((acc: TargetField[], field: TargetField) => {
+          const existingField = acc.find(f => f.name === field.name);
+          if (!existingField) {
+            acc.push(field);
+          } else {
+            // If duplicate exists, prefer the one with more complete information
+            if (field.description && !existingField.description) {
+              const index = acc.findIndex(f => f.name === field.name);
+              acc[index] = field;
+            }
+          }
+          return acc;
+        }, []);
+        
+        setAvailableFields(uniqueFields);
+        console.log(`📋 Loaded ${uniqueFields.length} unique available target fields across ${Object.keys(response.categories || {}).length} categories`);
       } else {
         console.warn('No fields returned from API, using fallback');
         throw new Error('No fields in response');
       }
     } catch (error) {
       console.error('Failed to load available target fields:', error);
-      // Enhanced fallback with categories
-      setAvailableFields([
+      // Enhanced fallback with categories and deduplication
+      const fallbackFields = [
         { name: 'name', type: 'string', required: true, description: 'Asset name or identifier', category: 'identification' },
         { name: 'hostname', type: 'string', required: true, description: 'Asset hostname', category: 'identification' },
         { name: 'asset_name', type: 'string', required: false, description: 'Asset name', category: 'identification' },
@@ -135,7 +150,18 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
         { name: 'memory_gb', type: 'number', required: false, description: 'Memory in GB', category: 'technical' },
         { name: 'department', type: 'string', required: false, description: 'Department', category: 'business' },
         { name: 'business_owner', type: 'string', required: false, description: 'Business owner', category: 'business' }
-      ]);
+      ];
+      
+      // Apply the same deduplication logic to fallback fields
+      const uniqueFallbackFields = fallbackFields.reduce((acc: TargetField[], field: TargetField) => {
+        const existingField = acc.find(f => f.name === field.name);
+        if (!existingField) {
+          acc.push(field);
+        }
+        return acc;
+      }, []);
+      
+      setAvailableFields(uniqueFallbackFields);
     } finally {
       setLoadingFields(false);
     }
