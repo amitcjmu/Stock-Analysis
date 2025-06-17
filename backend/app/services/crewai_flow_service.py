@@ -284,7 +284,33 @@ class CrewAIFlowService:
         context: RequestContext
     ):
         """Run the workflow in the background with its own database session."""
-        session_id = flow.state.session_id
+        # CRITICAL FIX: Extract session ID more safely from flow
+        session_id = None
+        try:
+            # Try multiple ways to get the session ID
+            if hasattr(flow.state, 'session_id') and flow.state.session_id:
+                session_id = flow.state.session_id
+            elif hasattr(flow, '_init_session_id') and flow._init_session_id:
+                session_id = flow._init_session_id
+            elif hasattr(flow.state, '__dict__') and 'session_id' in flow.state.__dict__:
+                session_id = flow.state.__dict__['session_id']
+            
+            # Fallback: search active flows for this flow instance
+            if not session_id:
+                for sid, active_flow in self._active_flows.items():
+                    if active_flow is flow:
+                        session_id = sid
+                        break
+                        
+            if not session_id:
+                session_id = "unknown_session"
+                logger.error("Could not determine session ID for workflow - using fallback")
+            else:
+                logger.info(f"Successfully extracted session ID: {session_id}")
+                
+        except Exception as e:
+            logger.error(f"Error extracting session ID from flow: {e}")
+            session_id = "unknown_session"
         
         try:
             logger.info(f"Starting workflow execution for session: {session_id}")
@@ -323,14 +349,18 @@ class CrewAIFlowService:
                 state_data = {"status": "completed", "current_phase": "completed"}
             
             # Update persistent state with a new database session
-            await self._update_workflow_state_with_new_session(
-                session_id=session_id,
-                client_account_id=context.client_account_id,
-                engagement_id=context.engagement_id,
-                status=state_status,
-                current_phase=state_phase,
-                state_data=state_data
-            )
+            if session_id and session_id != "unknown_session":
+                await self._update_workflow_state_with_new_session(
+                    session_id=session_id,
+                    client_account_id=context.client_account_id,
+                    engagement_id=context.engagement_id,
+                    status=state_status,
+                    current_phase=state_phase,
+                    state_data=state_data
+                )
+                logger.info(f"Updated database state for session {session_id} to {state_status}")
+            else:
+                logger.error(f"Cannot update database state - invalid session_id: {session_id}")
             
         except Exception as e:
             logger.error(f"Workflow failed for session {session_id}: {e}", exc_info=True)
@@ -343,18 +373,33 @@ class CrewAIFlowService:
             }
             
             # Update persistent state with error using new session
-            await self._update_workflow_state_with_new_session(
-                session_id=session_id,
-                client_account_id=context.client_account_id,
-                engagement_id=context.engagement_id,
-                status="failed",
-                current_phase="error",
-                state_data=error_state_data
-            )
+            if session_id and session_id != "unknown_session":
+                await self._update_workflow_state_with_new_session(
+                    session_id=session_id,
+                    client_account_id=context.client_account_id,
+                    engagement_id=context.engagement_id,
+                    status="failed",
+                    current_phase="error",
+                    state_data=error_state_data
+                )
+                logger.info(f"Updated database state for session {session_id} to failed")
+            else:
+                logger.error(f"Cannot update error state - invalid session_id: {session_id}")
         finally:
             # Clean up active flow tracking
-            if session_id in self._active_flows:
+            if session_id and session_id != "unknown_session" and session_id in self._active_flows:
                 del self._active_flows[session_id]
+                logger.info(f"Cleaned up active flow for session: {session_id}")
+            else:
+                logger.warning(f"Could not clean up active flow - session_id: {session_id}, active_flows: {list(self._active_flows.keys())}")
+                # Emergency cleanup: remove this flow instance from active flows
+                flows_to_remove = []
+                for sid, active_flow in self._active_flows.items():
+                    if active_flow is flow:
+                        flows_to_remove.append(sid)
+                for sid in flows_to_remove:
+                    del self._active_flows[sid]
+                    logger.info(f"Emergency cleanup: removed flow for session {sid}")
     
     async def _ensure_data_import_session_exists(
         self,
