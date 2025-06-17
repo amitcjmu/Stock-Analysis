@@ -160,6 +160,16 @@ class CrewAIFlowService:
             context.client_account_id = str(client_account_uuid)
             context.engagement_id = str(engagement_uuid)
             
+            # CRITICAL FIX: Create data import session first to satisfy foreign key constraint
+            # This prevents the workflow_states foreign key violation
+            await self._ensure_data_import_session_exists(
+                session_id=session_id,
+                client_account_uuid=client_account_uuid,
+                engagement_uuid=engagement_uuid,
+                context=context,
+                metadata=metadata
+            )
+            
             # Smart session management - create initial state data with validated IDs
             initial_state_data = {
                 "session_id": session_id,
@@ -317,6 +327,70 @@ class CrewAIFlowService:
             if session_id in self._active_flows:
                 del self._active_flows[session_id]
     
+    async def _ensure_data_import_session_exists(
+        self,
+        session_id: str,
+        client_account_uuid: uuid.UUID,
+        engagement_uuid: uuid.UUID,
+        context: any,
+        metadata: Dict[str, Any]
+    ):
+        """
+        Ensure data import session exists to satisfy foreign key constraint.
+        Creates the session if it doesn't exist.
+        """
+        from app.core.database import AsyncSessionLocal
+        
+        try:
+            async with AsyncSessionLocal() as db:
+                # Import models conditionally
+                try:
+                    from app.models.data_import_session import DataImportSession
+                    from sqlalchemy import select
+                    
+                    # Check if session already exists
+                    result = await db.execute(
+                        select(DataImportSession).where(DataImportSession.id == uuid.UUID(session_id))
+                    )
+                    existing_session = result.scalar_one_or_none()
+                    
+                    if existing_session:
+                        logger.info(f"Data import session already exists: {session_id}")
+                        return
+                    
+                    # Create new data import session
+                    session_name = f"crewai-discovery-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}"
+                    
+                    new_session = DataImportSession(
+                        id=uuid.UUID(session_id),  # Use the same ID as session_id
+                        session_name=session_name,
+                        client_account_id=client_account_uuid,
+                        engagement_id=engagement_uuid,
+                        description="Auto-created session for CrewAI discovery workflow",
+                        session_type="data_import",
+                        auto_created=True,
+                        source_filename=metadata.get("filename", "discovery_flow.csv"),
+                        status="active",
+                        created_by=uuid.UUID(context.user_id) if context.user_id and context.user_id != "anonymous" else client_account_uuid,
+                        business_context={
+                            "import_purpose": "discovery_flow",
+                            "data_source_description": "CrewAI automated discovery workflow",
+                            "expected_changes": ["asset_classification", "field_mapping", "data_validation"]
+                        }
+                    )
+                    
+                    db.add(new_session)
+                    await db.commit()
+                    logger.info(f"Created data import session: {session_id}")
+                    
+                except ImportError:
+                    logger.warning("DataImportSession model not available - foreign key constraint may fail")
+                
+        except Exception as e:
+            logger.error(f"Failed to ensure data import session: {e}", exc_info=True)
+            # Don't raise exception - let the workflow continue and potentially fail later
+            # This provides graceful degradation if session creation fails
+
     async def _update_workflow_state_with_new_session(
         self,
         session_id: str,
