@@ -7,12 +7,12 @@ import uuid
 import logging
 from datetime import datetime
 from typing import Dict, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel, Field
 
 from app.core.database import get_db
-from app.core.context import get_current_context, RequestContext
+from app.core.context import get_current_context, RequestContext, extract_context_from_request
 from app.core.middleware import get_current_context_dependency
 from app.services.crewai_flow_service import CrewAIFlowService
 
@@ -138,9 +138,9 @@ async def get_crewai_flow_service(db: AsyncSession = Depends(get_db)) -> CrewAIF
 
 @router.post("/data-imports", response_model=UploadResponse)
 async def upload_data_file_clean(
-    request: FileUploadRequest,
+    file_request: FileUploadRequest,
+    request: Request,
     db: AsyncSession = Depends(get_db),
-    context: RequestContext = Depends(get_current_context_dependency),
     crewai_service: CrewAIFlowService = Depends(get_crewai_flow_service)
 ) -> UploadResponse:
     """
@@ -150,10 +150,13 @@ async def upload_data_file_clean(
     Frontend calls: POST /api/v1/data-import/data-imports
     """
     try:
-        logger.info(f"CLEAN API: Starting data upload for file: {request.filename}")
-        logger.info(f"Upload type: {request.upload_type}, Headers: {len(request.headers)}, Data: {len(request.sample_data)}")
-        logger.error(f"🔧 DEBUG: CLEAN API Context received - Client: {context.client_account_id}, Engagement: {context.engagement_id}")
-        logger.error(f"🔧 DEBUG: Context type: {type(context)}, Context dict: {context.to_dict()}")
+        logger.info(f"CLEAN API: Starting data upload for file: {file_request.filename}")
+        logger.info(f"Upload type: {file_request.upload_type}, Headers: {len(file_request.headers)}, Data: {len(file_request.sample_data)}")
+        
+        # FIXED: Extract context directly from request headers (same as critical_attributes.py)
+        from app.core.context import extract_context_from_request
+        context = extract_context_from_request(request)
+        logger.info(f"✅ FIXED CONTEXT from headers: Client: {context.client_account_id}, Engagement: {context.engagement_id}, User: {context.user_id}")
         
         # Generate unique session ID for this workflow
         session_id = str(uuid.uuid4())
@@ -164,13 +167,13 @@ async def upload_data_file_clean(
         
         # Prepare data for CrewAI flow in the expected format
         data_source = {
-            "file_data": request.sample_data,  # The actual data records
+            "file_data": file_request.sample_data,  # The actual data records
             "metadata": {
-                "filename": request.filename,
-                "upload_type": request.upload_type,
-                "headers": request.headers,
-                "total_records": len(request.sample_data),
-                "user_id": request.user_id,
+                "filename": file_request.filename,
+                "upload_type": file_request.upload_type,
+                "headers": file_request.headers,
+                "total_records": len(file_request.sample_data),
+                "user_id": file_request.user_id,
                 "session_id": session_id,
                 "client_account_id": context.client_account_id,
                 "engagement_id": context.engagement_id,

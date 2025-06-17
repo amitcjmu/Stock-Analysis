@@ -55,6 +55,27 @@ const DEMO_CLIENT_ID = '11111111-1111-1111-1111-111111111111';
 const DEMO_ENGAGEMENT_ID = '22222222-2222-2222-2222-222222222222';
 const DEMO_SESSION_ID = '33333333-3333-3333-3333-333333333333';
 
+// --- Context Persistence ---
+const CONTEXT_STORAGE_KEY = 'user_context_selection';
+
+const contextStorage = {
+  getContext: () => {
+    const contextData = localStorage.getItem(CONTEXT_STORAGE_KEY);
+    try {
+      return contextData ? JSON.parse(contextData) : null;
+    } catch (error) {
+      console.error("Failed to parse context data from localStorage", error);
+      return null;
+    }
+  },
+  setContext: (context: any) => {
+    localStorage.setItem(CONTEXT_STORAGE_KEY, JSON.stringify(context));
+  },
+  clearContext: () => {
+    localStorage.removeItem(CONTEXT_STORAGE_KEY);
+  }
+};
+
 const DEMO_USER: User = {
   id: DEMO_USER_ID,
   email: 'demo@democorp.com',
@@ -183,6 +204,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('demoMode');
     tokenStorage.setToken('');
     tokenStorage.setUser(null);
+    contextStorage.clearContext(); // Clear persisted context on logout
     setUser(null);
     setClient(null);
     setEngagement(null);
@@ -202,12 +224,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const token = tokenStorage.getToken();
         const storedUser = tokenStorage.getUser();
+        const persistedContext = contextStorage.getContext();
 
         console.log('🔐 InitializeAuth - Starting with:', {
           hasToken: !!token,
           hasStoredUser: !!storedUser,
           storedUserRole: storedUser?.role,
-          isDemoUser: storedUser?.id === DEMO_USER_ID
+          isDemoUser: storedUser?.id === DEMO_USER_ID,
+          hasPersistedContext: !!persistedContext,
+          persistedContext: persistedContext
         });
 
         if (storedUser?.id === DEMO_USER_ID) {
@@ -222,11 +247,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (validatedUser) {
             tokenStorage.setUser(validatedUser);
             setUser(validatedUser);
-            const context = await apiCall('/me');
-            if (context) {
-              setClient(context.client || null);
-              setEngagement(context.engagement || null);
-              setSession(context.session || null);
+            
+            // Check for persisted user context selection first
+            if (persistedContext && persistedContext.source === 'user_selection') {
+              console.log('🔄 Restoring user context selection:', persistedContext);
+              
+              // Restore user's manual selection
+              if (persistedContext.clientData) {
+                setClient(persistedContext.clientData);
+              }
+              if (persistedContext.engagementData) {
+                setEngagement(persistedContext.engagementData);
+              }
+              
+              // Then fetch current session for this context
+              try {
+                const context = await apiCall('/me');
+                if (context) {
+                  setSession(context.session || null);
+                }
+              } catch (contextError) {
+                console.warn('Failed to fetch session for persisted context:', contextError);
+              }
+            } else {
+              // No persisted selection, use backend defaults
+              const context = await apiCall('/me');
+              if (context) {
+                setClient(context.client || null);
+                setEngagement(context.engagement || null);
+                setSession(context.session || null);
+              }
             }
           } else {
             // Token is invalid, log out
@@ -384,6 +434,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setEngagement(null);
       setSession(null);
       
+      // Store user's manual context selection
+      contextStorage.setContext({
+        clientId: clientId,
+        clientData: newClientData,
+        timestamp: Date.now(),
+        source: 'user_selection'
+      });
+      
       // Fetch updated context from backend to get the appropriate session
       try {
         const context = await apiCall('/me');
@@ -419,6 +477,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       setEngagement(newEngagementData);
       setSession(null);
+      
+      // Store user's manual context selection
+      const existingContext = contextStorage.getContext() || {};
+      contextStorage.setContext({
+        ...existingContext,
+        engagementId: engagementId,
+        engagementData: newEngagementData,
+        timestamp: Date.now(),
+        source: 'user_selection'
+      });
       
       // Fetch updated context from backend to get the appropriate session for this engagement
       try {

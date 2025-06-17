@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, CheckCircle, X, RefreshCw, ChevronDown, ChevronLeft, ChevronRight, Tag } from 'lucide-react';
 import { apiCall, API_CONFIG } from '../../../config/api';
+import { useAuth } from '../../../contexts/AuthContext';
+import { useAuth } from '../../../contexts/AuthContext';
 
 interface FieldMapping {
   id: string;
@@ -55,6 +57,7 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
   onMappingAction,
   onMappingChange
 }) => {
+  const { getAuthHeaders } = useAuth();
   const [availableFields, setAvailableFields] = useState<TargetField[]>([]);
   const [loadingFields, setLoadingFields] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -79,10 +82,45 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
   const fetchAvailableFields = async () => {
     try {
       setLoadingFields(true);
-      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AVAILABLE_TARGET_FIELDS);
+      
+      // Get auth headers including context from AuthContext
+      const authHeaders = getAuthHeaders();
+      
+      // Also check for persisted user context selection
+      const userContextData = localStorage.getItem('user_context_selection');
+      if (userContextData) {
+        try {
+          const context = JSON.parse(userContextData);
+          if (context.clientId && !authHeaders['X-Client-Account-ID']) {
+            authHeaders['X-Client-Account-ID'] = context.clientId;
+          }
+          if (context.engagementId && !authHeaders['X-Engagement-ID']) {
+            authHeaders['X-Engagement-ID'] = context.engagementId;
+          }
+        } catch (err) {
+          console.warn('Failed to parse stored context:', err);
+        }
+      }
+      
+      console.log('🔧 Fetching available fields with headers:', authHeaders);
+      
+      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AVAILABLE_TARGET_FIELDS, {
+        method: 'GET',
+        headers: authHeaders
+      });
+      
       if (response && response.fields) {
-        setAvailableFields(response.fields);
-        console.log(`📋 Loaded ${response.fields.length} available target fields across ${Object.keys(response.categories || {}).length} categories`);
+        // Ensure all fields have category property
+        const fieldsWithCategories = response.fields.map((field: any) => ({
+          ...field,
+          category: field.category || 'uncategorized'
+        }));
+        
+        setAvailableFields(fieldsWithCategories);
+        console.log(`📋 Loaded ${fieldsWithCategories.length} available target fields across ${Object.keys(response.categories || {}).length} categories`);
+      } else {
+        console.warn('No fields returned from API, using fallback');
+        throw new Error('No fields in response');
       }
     } catch (error) {
       console.error('Failed to load available target fields:', error);

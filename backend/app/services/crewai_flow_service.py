@@ -137,26 +137,23 @@ class CrewAIFlowService:
             # Generate session ID
             session_id = context.session_id or str(uuid.uuid4())
             
-            # Validate and convert context IDs to UUIDs with fallbacks FIRST
-            try:
-                client_account_uuid = uuid.UUID(context.client_account_id) if context.client_account_id else None
-            except (ValueError, TypeError):
-                logger.warning(f"Invalid client_account_id format: {context.client_account_id}, using fallback")
-                # Use demo client UUID as fallback
-                client_account_uuid = uuid.UUID("bafd5b46-aaaf-4c95-8142-573699d93171")
+            # Validate and convert context IDs to UUIDs - NO AUTOMATIC FALLBACKS
+            if not context.client_account_id or not context.engagement_id:
+                raise ValueError(f"Missing required context: client_account_id={context.client_account_id}, engagement_id={context.engagement_id}")
             
             try:
-                engagement_uuid = uuid.UUID(context.engagement_id) if context.engagement_id else None
-            except (ValueError, TypeError):
-                logger.warning(f"Invalid engagement_id format: {context.engagement_id}, using fallback")
-                # Use demo engagement UUID as fallback
-                engagement_uuid = uuid.UUID("6e9c8133-4169-4b79-b052-106dc93d0208")
+                client_account_uuid = uuid.UUID(context.client_account_id)
+                logger.info(f"✅ Using client_account_id: {client_account_uuid}")
+            except (ValueError, TypeError) as e:
+                logger.error(f"❌ Invalid client_account_id format: {context.client_account_id}")
+                raise ValueError(f"Invalid client_account_id format: {context.client_account_id}")
             
-            # Ensure we have valid UUIDs (use fallbacks if None)
-            if client_account_uuid is None:
-                client_account_uuid = uuid.UUID("bafd5b46-aaaf-4c95-8142-573699d93171")
-            if engagement_uuid is None:
-                engagement_uuid = uuid.UUID("6e9c8133-4169-4b79-b052-106dc93d0208")
+            try:
+                engagement_uuid = uuid.UUID(context.engagement_id)
+                logger.info(f"✅ Using engagement_id: {engagement_uuid}")
+            except (ValueError, TypeError) as e:
+                logger.error(f"❌ Invalid engagement_id format: {context.engagement_id}")
+                raise ValueError(f"Invalid engagement_id format: {context.engagement_id}")
             
             # Update context with validated UUIDs (convert back to strings)
             context.client_account_id = str(client_account_uuid)
@@ -414,18 +411,14 @@ class CrewAIFlowService:
         This prevents workflow_states foreign key violations and enforces multi-tenant scoping.
         """
         logger.info(f"🔧 CREWAI: Ensuring data import session exists: {session_id}")
+        logger.info(f"🔧 CREWAI: Using provided context - Client: {context.client_account_id}, Engagement: {context.engagement_id}")
         
         try:
             # Use ContextAwareRepository for proper multi-tenant enforcement
             from app.repositories.context_aware_repository import ContextAwareRepository
             from app.models.data_import_session import DataImportSession
-            from app.core.context import get_current_context
             
-            # Get current context for multi-tenant scoping
-            context = get_current_context()
-            logger.info(f"🔧 CREWAI: Using context - Client: {context.client_account_id}, Engagement: {context.engagement_id}")
-            
-            # Create repository with proper context scoping
+            # Create repository with proper context scoping using the PASSED context (not get_current_context)
             session_repo = ContextAwareRepository(
                 db=self.db,
                 model_class=DataImportSession,
@@ -589,20 +582,20 @@ class CrewAIFlowService:
             try:
                 client_uuid = uuid.UUID(context.client_account_id) if context.client_account_id else None
             except (ValueError, TypeError):
-                logger.warning(f"Invalid client_account_id format: {context.client_account_id}, using demo fallback")
-                client_uuid = uuid.UUID("bafd5b46-aaaf-4c95-8142-573699d93171")
+                logger.error(f"Invalid client_account_id format: {context.client_account_id}")
+                raise ValueError(f"Invalid client_account_id format: {context.client_account_id}")
                 
             try:
                 engagement_uuid = uuid.UUID(context.engagement_id) if context.engagement_id else None
             except (ValueError, TypeError):
-                logger.warning(f"Invalid engagement_id format: {context.engagement_id}, using demo fallback") 
-                engagement_uuid = uuid.UUID("6e9c8133-4169-4b79-b052-106dc93d0208")
+                logger.error(f"Invalid engagement_id format: {context.engagement_id}")
+                raise ValueError(f"Invalid engagement_id format: {context.engagement_id}")
             
-            # Ensure we have valid UUIDs (use fallbacks if None)
+            # Ensure we have valid UUIDs - no fallbacks, raise error if missing
             if client_uuid is None:
-                client_uuid = uuid.UUID("bafd5b46-aaaf-4c95-8142-573699d93171")
+                raise ValueError(f"Missing client_account_id in context")
             if engagement_uuid is None:
-                engagement_uuid = uuid.UUID("6e9c8133-4169-4b79-b052-106dc93d0208")
+                raise ValueError(f"Missing engagement_id in context")
             
             workflow_state = await self.state_service.get_active_workflow_for_session(
                 session_id=session_uuid,
