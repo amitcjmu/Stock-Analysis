@@ -351,11 +351,43 @@ class CrewAIFlowService:
         multiple workflow states exist for the same session.
         """
         try:
-            # Use the smart session management to get the primary workflow
+            # First check if flow is in active flows (for current running flows)
+            if session_id in self._active_flows:
+                flow = self._active_flows[session_id]
+                logger.info(f"Found active flow for session {session_id}: status={flow.state.status}")
+                
+                # Get file information from flow state
+                file_info = {}
+                if hasattr(flow.state, 'metadata') and flow.state.metadata:
+                    file_info['filename'] = flow.state.metadata.get('filename', 'Unknown file')
+                if hasattr(flow.state, 'raw_data') and flow.state.raw_data:
+                    file_info['record_count'] = len(flow.state.raw_data)
+                
+                return {
+                    "session_id": session_id,
+                    "status": flow.state.status,
+                    "current_phase": flow.state.current_phase,
+                    "progress_percentage": flow.state.progress_percentage,
+                    "file_info": file_info,
+                    "started_at": flow.state.started_at.isoformat() if flow.state.started_at else None,
+                    "created_at": flow.state.started_at.isoformat() if flow.state.started_at else None,
+                    "updated_at": datetime.utcnow().isoformat()
+                }
+            
+            # Use the smart session management to get the primary workflow from database
+            # Handle UUID parsing more safely
+            try:
+                session_uuid = uuid.UUID(session_id)
+                client_uuid = uuid.UUID(context.client_account_id)
+                engagement_uuid = uuid.UUID(context.engagement_id)
+            except (ValueError, AttributeError) as uuid_error:
+                logger.error(f"Invalid UUID format for session {session_id}: {uuid_error}")
+                return None
+            
             workflow_state = await self.state_service.get_active_workflow_for_session(
-                session_id=session_id,
-                client_account_id=uuid.UUID(context.client_account_id),
-                engagement_id=uuid.UUID(context.engagement_id)
+                session_id=session_uuid,
+                client_account_id=client_uuid,
+                engagement_id=engagement_uuid
             )
             
             if not workflow_state:

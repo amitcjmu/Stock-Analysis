@@ -121,34 +121,108 @@ async def get_agent_status(
                             from app.models.workflow_state import WorkflowState
                             import uuid
                             
-                            # Try to get workflow state directly from database
+                            # Try to get workflow state directly from database by session_id
                             result = await db.execute(
                                 select(WorkflowState).where(
-                                    WorkflowState.session_id == uuid.UUID(session_id)
+                                    WorkflowState.session_id == uuid.UUID(session_id),
+                                    WorkflowState.client_account_id == uuid.UUID(context.client_account_id),
+                                    WorkflowState.engagement_id == uuid.UUID(context.engagement_id)
                                 ).order_by(WorkflowState.updated_at.desc()).limit(1)
                             )
                             direct_workflow = result.scalar_one_or_none()
                             
+                            # Also check if there's a workflow with flow_id matching the session_id
+                            if not direct_workflow:
+                                result = await db.execute(
+                                    select(WorkflowState).where(
+                                        WorkflowState.state_data.op('->>')('flow_id') == session_id,
+                                        WorkflowState.client_account_id == uuid.UUID(context.client_account_id),
+                                        WorkflowState.engagement_id == uuid.UUID(context.engagement_id)
+                                    ).order_by(WorkflowState.updated_at.desc()).limit(1)
+                                )
+                                direct_workflow = result.scalar_one_or_none()
+                            
                             if direct_workflow:
                                 logger.info(f"Found direct workflow state: status={direct_workflow.status}, phase={direct_workflow.current_phase}")
+                                
+                                # Extract file processing information from state_data
+                                state_data = direct_workflow.state_data or {}
+                                file_info = {}
+                                
+                                # Look for file information in various places
+                                if 'metadata' in state_data:
+                                    metadata = state_data['metadata']
+                                    if 'filename' in metadata:
+                                        file_info['filename'] = metadata['filename']
+                                    if 'headers' in metadata:
+                                        file_info['headers'] = metadata['headers']
+                                
+                                # Look for record count information
+                                if 'flow_result' in state_data:
+                                    flow_result = state_data['flow_result']
+                                    if isinstance(flow_result, dict):
+                                        # Check for record count in various possible locations
+                                        for key in ['total_records', 'record_count', 'processed_records', 'data_count']:
+                                            if key in flow_result:
+                                                file_info['record_count'] = flow_result[key]
+                                                break
+                                        
+                                        # Check for processed data
+                                        if 'processed_data' in flow_result and isinstance(flow_result['processed_data'], list):
+                                            file_info['record_count'] = len(flow_result['processed_data'])
+                                
+                                # Extract from discovery summary
+                                if 'discovery_summary' in state_data:
+                                    summary = state_data['discovery_summary']
+                                    if isinstance(summary, dict):
+                                        for key in ['total_assets', 'assets_processed', 'inventory_count']:
+                                            if key in summary:
+                                                file_info['record_count'] = summary[key]
+                                                break
+                                
+                                # If no record count found, try to infer from other data
+                                if 'record_count' not in file_info:
+                                    # Check if there's raw data information
+                                    for key in ['raw_data', 'sample_data', 'file_data']:
+                                        if key in state_data and isinstance(state_data[key], list):
+                                            file_info['record_count'] = len(state_data[key])
+                                            break
+                                
+                                # Parse status and phase
+                                parsed_status = direct_workflow.status.lower() if direct_workflow.status else 'unknown'
+                                parsed_phase = direct_workflow.current_phase or 'unknown'
+                                
+                                logger.info(f"Parsed status: {parsed_status}, phase: {parsed_phase}, file_info: {file_info}")
+                                
+                                # Determine progress based on status and phase
+                                progress = 0
+                                if parsed_status == 'completed':
+                                    progress = 100
+                                elif parsed_status == 'running':
+                                    progress = 50
+                                elif parsed_status == 'failed':
+                                    progress = 0
+                                
                                 flow_state = {
-                                    'status': direct_workflow.status,
-                                    'current_phase': direct_workflow.current_phase,
-                                    'progress_percentage': 100 if direct_workflow.status == 'completed' else 50,
-                                    'session_id': session_id
+                                    'status': parsed_status,
+                                    'current_phase': parsed_phase,
+                                    'progress_percentage': progress,
+                                    'file_info': file_info,
+                                    'workflow_id': str(direct_workflow.id),
+                                    'created_at': direct_workflow.created_at.isoformat() if direct_workflow.created_at else None,
+                                    'updated_at': direct_workflow.updated_at.isoformat() if direct_workflow.updated_at else None
                                 }
-                            else:
-                                logger.warning(f"No workflow state found in database for session {session_id}")
-                        except Exception as direct_db_error:
-                            logger.error(f"Error querying workflow_states directly: {direct_db_error}")
+                                
+                        except Exception as e:
+                            logger.error(f"Error in direct database lookup: {e}")
+                            flow_state = None
                     
                     if flow_state:
                         # Map the flow state to the expected frontend structure
                         status = flow_state.get('status', 'idle')
                         current_phase = flow_state.get('current_phase', 'initial_scan')
                         progress = flow_state.get('progress_percentage', 0)
-                        
-                        logger.info(f"Parsed status: {status}, phase: {current_phase}, progress: {progress}")
+                        file_info = flow_state.get('file_info', {})
                         
                         # If the workflow is completed, mark it as such
                         if status in ['completed', 'success']:
@@ -156,82 +230,95 @@ async def get_agent_status(
                                 "status": "completed",
                                 "current_phase": "next_steps",
                                 "progress_percentage": 100,
-                                "message": "Analysis completed successfully"
+                                "message": "Analysis completed successfully",
+                                "file_processed": file_info.get('filename', 'Unknown file'),
+                                "records_processed": file_info.get('record_count', 0),
+                                "completed_at": flow_state.get('updated_at'),
+                                "workflow_details": {
+                                    "workflow_id": flow_state.get('workflow_id'),
+                                    "session_id": session_id,
+                                    "created_at": flow_state.get('created_at')
+                                }
                             }
                             logger.info("Setting flow_status to completed")
                         elif status in ['failed', 'error']:
                             flow_status = {
-                                "status": "failed",
-                                "current_phase": current_phase,
-                                "progress_percentage": progress,
-                                "message": "Analysis failed"
+                                "status": "failed", 
+                                "current_phase": "error",
+                                "progress_percentage": 0,
+                                "message": "Analysis failed",
+                                "file_processed": file_info.get('filename', 'Unknown file'),
+                                "records_processed": file_info.get('record_count', 0),
+                                "error_details": flow_state.get('error', 'Unknown error')
                             }
-                        elif status in ['running', 'in_progress']:
-                            # Only update status to in_progress if we have a valid progress value
-                            if progress > 0 and progress < 100:
-                                flow_status = {
-                                    "status": "in_progress",
-                                    "current_phase": current_phase,
-                                    "progress_percentage": progress,
-                                    "message": f"Processing: {current_phase.replace('_', ' ').title()}"
-                                }
-                            elif progress >= 100:
-                                flow_status = {
-                                    "status": "completed",
-                                    "current_phase": current_phase,
-                                    "progress_percentage": 100,
-                                    "message": "Processing completed"
-                                }
-                                logger.info("Setting flow_status to completed based on progress >= 100")
-                        else:
-                            # Default to analyzing state for file uploads
+                        elif status in ['running', 'processing', 'in_progress']:
                             flow_status = {
                                 "status": "in_progress",
-                                "current_phase": "content_analysis",
-                                "progress_percentage": 25,
-                                "message": "Analyzing file content..."
+                                "current_phase": current_phase,
+                                "progress_percentage": progress,
+                                "message": f"Processing {current_phase} phase...",
+                                "file_processed": file_info.get('filename', 'Unknown file'),
+                                "records_processed": file_info.get('record_count', 0)
                             }
-                            logger.warning(f"Unknown status '{status}', defaulting to in_progress")
+                        else:
+                            flow_status = {
+                                "status": "idle",
+                                "current_phase": "initial_scan", 
+                                "progress_percentage": 0,
+                                "message": "Ready to start analysis"
+                            }
                     else:
                         # No flow state found, but session exists - check if we should still consider it in progress
                         logger.warning(f"No flow state found for session {session_id}, checking if flow completed successfully")
                         
-                        # Check if this might be a completed flow that was cleaned up from memory
-                        # but still has a session record
+                        # Try one more database check for any recent workflow
                         try:
-                            # If the session is old and no active flow state, assume it completed
-                            from datetime import datetime, timedelta
-                            if hasattr(session, 'created_at'):
-                                session_age = datetime.utcnow() - session.created_at
-                                if session_age > timedelta(minutes=10):  # If session is older than 10 minutes
-                                    logger.info(f"Session {session_id} is {session_age} old, assuming completed")
-                                    flow_status = {
-                                        "status": "completed",
-                                        "current_phase": "completed",
-                                        "progress_percentage": 100,
-                                        "message": "Analysis completed successfully"
+                            from app.models.workflow_state import WorkflowState
+                            import uuid
+                            
+                            result = await db.execute(
+                                select(WorkflowState).where(
+                                    WorkflowState.client_account_id == uuid.UUID(context.client_account_id),
+                                    WorkflowState.engagement_id == uuid.UUID(context.engagement_id)
+                                ).order_by(WorkflowState.updated_at.desc()).limit(1)
+                            )
+                            recent_workflow = result.scalar_one_or_none()
+                            
+                            if recent_workflow and recent_workflow.status == 'completed':
+                                # Found a recent completed workflow, use it
+                                state_data = recent_workflow.state_data or {}
+                                file_info = {}
+                                
+                                if 'metadata' in state_data and 'filename' in state_data['metadata']:
+                                    file_info['filename'] = state_data['metadata']['filename']
+                                
+                                flow_status = {
+                                    "status": "completed",
+                                    "current_phase": "next_steps",
+                                    "progress_percentage": 100,
+                                    "message": "Analysis completed successfully",
+                                    "file_processed": file_info.get('filename', 'Recent file'),
+                                    "records_processed": 0,
+                                    "workflow_details": {
+                                        "workflow_id": str(recent_workflow.id),
+                                        "session_id": str(recent_workflow.session_id)
                                     }
-                                else:
-                                    # Recent session, might still be processing
-                                    flow_status = {
-                                        "status": "in_progress",
-                                        "current_phase": "pattern_recognition",
-                                        "progress_percentage": 50,
-                                        "message": "Processing uploaded file..."
-                                    }
+                                }
+                                logger.info("Using recent completed workflow for status")
                             else:
-                                # No timestamp, default to in progress but with higher progress
                                 flow_status = {
                                     "status": "in_progress",
-                                    "current_phase": "finalizing",
-                                    "progress_percentage": 85,
-                                    "message": "Finalizing analysis..."
+                                    "current_phase": "pattern_recognition",
+                                    "progress_percentage": 50,
+                                    "message": "Processing uploaded file...",
+                                    "file_processed": "Uploaded file",
+                                    "records_processed": 0
                                 }
-                        except Exception as inner_e:
-                            logger.error(f"Error checking session age: {inner_e}")
+                        except Exception as e:
+                            logger.error(f"Error checking for recent workflows: {e}")
                             flow_status = {
                                 "status": "in_progress",
-                                "current_phase": "pattern_recognition",
+                                "current_phase": "pattern_recognition", 
                                 "progress_percentage": 50,
                                 "message": "Processing uploaded file..."
                             }
