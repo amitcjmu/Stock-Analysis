@@ -360,14 +360,76 @@ async def get_agent_status(
             }
         ]
         
+        # Prepare mock pending questions for agent clarifications
+        pending_questions = []
+        if page_context == "attribute-mapping":
+            pending_questions = [
+                {
+                    "id": f"question_{page_context}_1",
+                    "agent_id": "field_mapping_specialist_001",
+                    "agent_name": "Field Mapping Specialist",
+                    "question_type": "validation",
+                    "page": page_context,
+                    "title": "Field Mapping Validation",
+                    "question": "Please review the suggested field mappings. Are the AI-suggested mappings accurate for your organization's data structure?",
+                    "context": {},
+                    "options": ["Approve all mappings", "Review individual mappings", "Reject and re-analyze"],
+                    "confidence": "medium",
+                    "priority": "high",
+                    "created_at": "2025-01-15T10:00:00Z",
+                    "is_resolved": False
+                }
+            ]
+        
+        # Prepare mock data classifications
+        data_classifications = {
+            "good_data": [
+                {
+                    "id": f"good_data_{page_context}_1",
+                    "data_type": "asset_record",
+                    "classification": "good_data",
+                    "content": {"hostname": "server01", "environment": "production"},
+                    "agent_analysis": {
+                        "quality_score": 0.9,
+                        "completeness": 0.85,
+                        "accuracy": 0.95
+                    },
+                    "confidence": "high",
+                    "issues": [],
+                    "recommendations": ["Ready for migration analysis"],
+                    "page": page_context
+                }
+            ],
+            "needs_clarification": [
+                {
+                    "id": f"needs_clarification_{page_context}_1",
+                    "data_type": "asset_record",
+                    "classification": "needs_clarification",
+                    "content": {"hostname": "server02", "environment": "unknown"},
+                    "agent_analysis": {
+                        "quality_score": 0.6,
+                        "completeness": 0.7,
+                        "accuracy": 0.8
+                    },
+                    "confidence": "medium",
+                    "issues": ["Missing business criticality", "Unclear environment designation"],
+                    "recommendations": ["Verify business criticality level", "Confirm environment classification"],
+                    "page": page_context
+                }
+            ],
+            "unusable": []
+        }
+        
         # Prepare the response with the expected structure
         response = {
             "status": "success",
             "session_id": str(session.id) if session and hasattr(session, 'id') else session_id,
             "flow_status": flow_status,  # This is the key structure the frontend expects
             "page_data": {
-                "agent_insights": agent_insights
+                "agent_insights": agent_insights,
+                "pending_questions": pending_questions
             },
+            "data": data_classifications,
             "available_clients": available_clients,
             "available_engagements": available_engagements,
             "available_sessions": available_sessions
