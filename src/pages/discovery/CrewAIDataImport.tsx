@@ -35,7 +35,7 @@ import { UploadArea } from './components/CMDBImport/UploadArea';
 import { FileAnalysis } from './components/CMDBImport/FileAnalysis';
 
 // Hooks
-import { useFileUpload, useDiscoveryFlowStatus, type UploadedFile } from './hooks/useCMDBImport';
+import { useFileUpload, useAuthenticatedDiscoveryStatus, type UploadedFile } from './hooks/useCMDBImport';
 
 // Types
 interface UploadAreaType {
@@ -132,9 +132,16 @@ const CrewAIDataImport: React.FC = () => {
     initialData: []
   });
 
-  // Get discovery flow status for the first uploaded file
+  // Get authenticated discovery flow status for the first uploaded file
   const firstFile = uploadedFiles[0];
-  const { data: statusData } = useDiscoveryFlowStatus(firstFile?.sessionId || null);
+  const { data: statusData, error: statusError } = useAuthenticatedDiscoveryStatus(firstFile?.sessionId || null);
+  
+  // Log any status errors for debugging
+  React.useEffect(() => {
+    if (statusError) {
+      console.error('Error fetching authenticated status:', statusError);
+    }
+  }, [statusError]);
 
   // Handle file drop - triggers CrewAI workflow
   const handleDrop = useCallback((acceptedFiles: File[], type: string) => {

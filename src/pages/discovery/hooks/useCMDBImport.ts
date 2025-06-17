@@ -264,6 +264,91 @@ export const useDiscoveryFlowStatus = (sessionId: string | null) => {
 };
 
 // Simplified file upload hook
+/**
+ * Get discovery flow status with authentication
+ * Uses the authenticated endpoint for better security and more detailed status
+ */
+export const useAuthenticatedDiscoveryStatus = (sessionId: string | null) => {
+  const { user } = useAuth();
+  
+  return useQuery<AnalysisStatusResponse, Error>({
+    queryKey: ['authenticatedDiscoveryStatus', sessionId],
+    queryFn: async () => {
+      if (!sessionId) throw new Error('Session ID is required');
+      if (!user) throw new Error('Authentication required');
+      
+      try {
+        // Call the authenticated endpoint - apiCall will handle auth headers
+        const response = await apiCall(
+          `/api/v1/discovery/agent/crew/analysis/status?session_id=${sessionId}`
+        ) as any;
+        
+        // Transform response to match AnalysisStatusResponse
+        const flowStatus = response.flow_status || {};
+        const workflowStatus = flowStatus.status || response.status || 'unknown';
+        const currentPhase = flowStatus.current_phase || response.current_phase || 'unknown';
+        const progressPercentage = flowStatus.progress_percentage || 0;
+        
+        console.log('🔒 Authenticated status response:', {
+          status: workflowStatus,
+          phase: currentPhase,
+          progress: progressPercentage
+        });
+        
+        return {
+          status: workflowStatus,
+          session_id: sessionId,
+          current_phase: currentPhase,
+          workflow_phases: flowStatus.workflow_phases || [],
+          progress_percentage: progressPercentage,
+          message: flowStatus.message || response.message,
+          flow_status: flowStatus,
+          agent_insights: flowStatus.agent_insights || [],
+          agent_results: flowStatus.agent_results || {},
+          clarification_questions: flowStatus.clarification_questions || [],
+          data_quality_assessment: flowStatus.data_quality_assessment || {},
+          field_mappings: flowStatus.field_mappings || {},
+          classified_assets: flowStatus.classified_assets || [],
+          processing_summary: {
+            total_records_processed: flowStatus.cmdb_data?.file_data?.length || 0,
+            records_found: flowStatus.cmdb_data?.file_data?.length || 0,
+            data_source: flowStatus.metadata?.filename || 'Unknown file',
+            workflow_phase: currentPhase,
+            agent_status: workflowStatus
+          }
+        };
+      } catch (error) {
+        console.error('Error in authenticated status check:', error);
+        throw new Error('Failed to fetch status with authentication');
+      }
+    },
+    enabled: !!sessionId,
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      
+      // Stop polling if workflow is completed, failed, or idle
+      const shouldStopPolling = data?.status === 'completed' || 
+                              data?.status === 'failed' || 
+                              data?.status === 'idle' ||
+                              data?.status === 'error';
+      
+      const shouldPoll = data?.status === 'running' || 
+                        data?.status === 'in_progress' ||
+                        data?.status === 'processing';
+      
+      // Poll every 3 seconds if workflow is running, otherwise stop
+      return shouldPoll ? 3000 : false;
+    },
+    retry: (failureCount, error) => {
+      // Only retry on network errors, not on 4xx errors
+      if (error.message.includes('Failed to fetch') && failureCount < 3) {
+        return true;
+      }
+      return false;
+    }
+  });
+};
+
 export const useFileUpload = () => {
   const queryClient = useQueryClient();
   const discoveryFlow = useDiscoveryFlow();

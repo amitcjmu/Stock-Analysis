@@ -5,6 +5,7 @@ Client Account models for multi-tenant data segregation.
 try:
     from sqlalchemy import Column, String, Text, Boolean, DateTime, UUID, JSON, ForeignKey, UniqueConstraint
     from sqlalchemy.orm import relationship
+    from sqlalchemy.ext.associationproxy import association_proxy
     from sqlalchemy.sql import func
     from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
     SQLALCHEMY_AVAILABLE = True
@@ -30,6 +31,7 @@ class ClientAccount(Base):
     """Client Account model for multi-tenant data segregation."""
     
     __tablename__ = "client_accounts"
+    __table_args__ = {'extend_existing': True}
     
     id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     name = Column(String(255), nullable=False)
@@ -233,6 +235,10 @@ class User(Base):
     
     # Relationships
     user_associations = relationship("UserAccountAssociation", foreign_keys="[UserAccountAssociation.user_id]", back_populates="user", cascade="all, delete-orphan")
+    client_accounts = association_proxy(
+        "user_associations", "client_account",
+        creator=lambda client_account: UserAccountAssociation(client_account=client_account)
+    )
     
     def __repr__(self):
         return f"<User(id={self.id}, email='{self.email}', is_mock={self.is_mock})>"
@@ -263,6 +269,21 @@ class UserAccountAssociation(Base):
     client_account = relationship("ClientAccount", back_populates="user_associations")
     created_by_user = relationship("User", foreign_keys=[created_by])
     
+    def __init__(self, *args, **kwargs):
+        # Allow creating association with a ClientAccount object
+        if 'client_account' in kwargs and isinstance(kwargs['client_account'], ClientAccount):
+            super().__init__(*args, **kwargs)
+        # Allow creating association with a dict that can be used to make a ClientAccount
+        elif 'client_account' in kwargs and isinstance(kwargs['client_account'], dict):
+            account_data = kwargs.pop('client_account')
+            # Ensure we don't pass unexpected arguments to ClientAccount
+            allowed_keys = {c.name for c in ClientAccount.__table__.columns}
+            filtered_data = {k: v for k, v in account_data.items() if k in allowed_keys}
+            kwargs['client_account'] = ClientAccount(**filtered_data)
+            super().__init__(*args, **kwargs)
+        else:
+            super().__init__(*args, **kwargs)
+
     # Unique constraint for user_id and client_account_id
     __table_args__ = (
         UniqueConstraint('user_id', 'client_account_id', name='_user_client_account_uc'),

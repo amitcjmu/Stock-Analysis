@@ -347,7 +347,7 @@ class CrewAIFlowService:
         """
         Get flow state by session ID using smart session management.
         
-        This method uses the smart session resolution to handle cases where
+        This method uses the smart session management to handle cases where
         multiple workflow states exist for the same session.
         """
         try:

@@ -25,7 +25,12 @@ DEMO_SESSION_ID = UUID("33333333-3333-3333-3333-333333333333")
 ADMIN_USER_ID = UUID("55555555-5555-5555-5555-555555555555")
 ADMIN_USER_EMAIL = "admin@democorp.com"
 
-async def get_current_user(token: str = Depends(oauth2_scheme), db = Depends(get_db)):
+async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db = Depends(get_db)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
     try:
         # Handle db-token format (from AuthenticationService)
         if token.startswith("db-token-"):
@@ -73,9 +78,17 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db = Depends(get
             mock_user.engagements = [{"id": str(DEMO_ENGAGEMENT_ID), "name": "Cloud Migration 2024"}]
             return mock_user
 
-    except (JWTError, ValidationError, Exception) as e:
-        pass
-    
+    except (JWTError, ValidationError):
+        raise credentials_exception
+    except Exception:
+        # Fallback for any other error during token processing or DB access
+        # This ensures the app can run in a "demo" mode even if DB is down
+        mock_user = User(id=DEMO_USER_ID, email=DEMO_USER_EMAIL, is_active=True, is_mock=True)
+        mock_user.role = "demo"
+        mock_user.client_accounts = [{"id": str(DEMO_CLIENT_ID), "name": "Democorp"}]
+        mock_user.engagements = [{"id": str(DEMO_ENGAGEMENT_ID), "name": "Cloud Migration 2024"}]
+        return mock_user
+
     # Fallback for any error during token processing or DB access
     mock_user = User(id=DEMO_USER_ID, email=DEMO_USER_EMAIL, is_active=True, is_mock=True)
     mock_user.role = "demo"

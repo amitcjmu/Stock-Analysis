@@ -15,7 +15,7 @@ import {
   Play
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { UploadedFile, useDiscoveryFlowStatus } from '../../hooks/useCMDBImport';
+import { UploadedFile, useAuthenticatedDiscoveryStatus } from '../../hooks/useCMDBImport';
 import { useQueryClient } from '@tanstack/react-query';
 import AgentFeedbackPanel from './AgentFeedbackPanel';
 
@@ -30,13 +30,20 @@ export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNav
   const lastStatusRef = useRef<string | null>(null);
   const [showWorkflowControls, setShowWorkflowControls] = useState(false);
   
-  // Use the updated useDiscoveryFlowStatus hook with proper endpoint and polling logic
+  // Use the authenticated discovery status hook for secure status updates
   const { 
     data: statusData, 
     isLoading: isStatusLoading, 
     error: statusError,
     refetch: refetchStatus 
-  } = useDiscoveryFlowStatus(file.sessionId);
+  } = useAuthenticatedDiscoveryStatus(file.sessionId);
+  
+  // Log any status errors for debugging
+  useEffect(() => {
+    if (statusError) {
+      console.error('Error in authenticated status check:', statusError);
+    }
+  }, [statusError]);
 
   // Only trigger effects when status actually changes (prevent excessive updates)
   useEffect(() => {
