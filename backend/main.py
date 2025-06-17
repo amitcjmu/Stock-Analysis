@@ -12,6 +12,8 @@ import uvicorn
 import os
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
+from contextlib import asynccontextmanager
+from pathlib import Path
 
 # Load environment variables
 load_dotenv()
@@ -55,8 +57,9 @@ API_ROUTES_ENABLED = False
 API_ROUTES_ERROR = None
 
 try:
-    from app.core.config import settings
+    from app.core.config import settings, get_database_url
     print("✅ Configuration loaded successfully")
+    CONFIG_LOADED = True
 except Exception as e:
     print(f"⚠️  Configuration error: {e}")
     # Create minimal settings
@@ -64,7 +67,16 @@ except Exception as e:
         FRONTEND_URL = "http://localhost:8081"
         ENVIRONMENT = "production"
         DEBUG = False
+        ALLOWED_ORIGINS = ["http://localhost:8081"]
+        DATABASE_URL = "postgresql://localhost:5432/migration_db"
+        
+        @property
+        def allowed_origins_list(self):
+            return self.ALLOWED_ORIGINS.split(",") if isinstance(self.ALLOWED_ORIGINS, str) else self.ALLOWED_ORIGINS
+    
     settings = MinimalSettings()
+    def get_database_url():
+        return settings.DATABASE_URL
 
 try:
     from version import __version__, API_TITLE, API_DESCRIPTION, BUILD_INFO
