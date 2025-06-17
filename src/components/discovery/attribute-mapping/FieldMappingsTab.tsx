@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { ArrowRight, CheckCircle, X, RefreshCw, ChevronDown, ChevronLeft, ChevronRight, Tag } from 'lucide-react';
 import { apiCall, API_CONFIG } from '../../../config/api';
 import { useAuth } from '../../../contexts/AuthContext';
-import { useAuth } from '../../../contexts/AuthContext';
-
 interface FieldMapping {
   id: string;
   sourceField: string;
