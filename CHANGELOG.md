@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.8] - 2025-01-27
+
+### 🐛 **DATABASE CONSTRAINT RESOLUTION - Fixed Foreign Key Constraint Issues**
+
+This release resolves critical foreign key constraint violations that were preventing workflow persistence in the data import system.
+
+### 🔧 **Database Constraint Fixes**
+
+#### **Foreign Key Constraint Resolution**
+- **Problem**: `workflow_states` table foreign key constraint (`workflow_states_session_id_fkey`) was failing because sessions were not being created in `data_import_sessions` table first
+- **Error**: `Key (session_id)=(xxx) is not present in table "data_import_sessions"`
+- **Solution**: Added `_ensure_data_import_session_exists()` method to create data import sessions before workflow state creation
+- **Implementation**: Auto-creates `DataImportSession` records with proper context before `WorkflowState` creation
+- **Graceful Degradation**: Includes fallback handling for missing models/imports
+
+#### **Technical Implementation**
+- **New Method**: `_ensure_data_import_session_exists()` in `CrewAIFlowService`
+- **Session Creation**: Creates session with format `crewai-discovery-{timestamp}`
+- **Context Preservation**: Maintains client account, engagement, and user context
+- **UUID Validation**: Continues using UUID validation and fallback logic from previous fixes
+- **Error Handling**: Graceful degradation if session creation fails
+
+### 📊 **Business Impact**
+- **Workflow Persistence**: CrewAI discovery workflows can now persist state to database
+- **Data Integrity**: Proper referential integrity maintained across workflow and session tables
+- **Error Reduction**: Eliminates foreign key constraint violation errors
+- **System Reliability**: More robust workflow state management
+
+### 🎯 **Success Metrics**
+- **Error Resolution**: Foreign key constraint violations eliminated
+- **Workflow Creation**: Sessions can create workflow states successfully
+- **Database Integrity**: Referential integrity maintained between tables
+- **API Stability**: Data import endpoints no longer fail with constraint errors
+
 ## [0.8.7] - 2025-01-27
 
 ### 🔧 **DATA IMPORT MODULARIZATION - Completed Modular Handler Pattern Implementation**
