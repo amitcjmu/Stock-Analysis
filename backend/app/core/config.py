@@ -91,6 +91,10 @@ class Settings(BaseSettings):
         default="meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8", 
         env="CREWAI_MODEL"
     )
+    CREWAI_PLANNING_MODEL: str = Field(
+        default="google/gemma-2-9b-it", 
+        env="CREWAI_PLANNING_MODEL"
+    )
     CREWAI_TEMPERATURE: float = Field(default=0.7, env="CREWAI_TEMPERATURE")
     CREWAI_MAX_TOKENS: int = Field(default=2048, env="CREWAI_MAX_TOKENS")
     

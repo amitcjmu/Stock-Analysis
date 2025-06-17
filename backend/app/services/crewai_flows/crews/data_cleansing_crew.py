@@ -289,11 +289,7 @@ def create_data_cleansing_crew(crewai_service, raw_data: List[Dict[str, Any]],
             memory=shared_memory,  # Access shared insights
             collaboration=True,
             verbose=True,
-            tools=[
-                _create_field_aware_validation_tool(field_mappings),
-                _create_quality_metrics_tool(),
-                _create_data_profiling_tool()
-            ]
+            tools=[]  # Tools will be implemented in Task 7
         )
         
         # Data Standardization Specialist - Enhanced with field context
@@ -307,11 +303,7 @@ def create_data_cleansing_crew(crewai_service, raw_data: List[Dict[str, Any]],
             memory=shared_memory,  # Access field context
             collaboration=True,
             verbose=True,
-            tools=[
-                _create_field_aware_standardization_tool(field_mappings),
-                _create_format_normalization_tool(),
-                _create_data_transformation_tool()
-            ]
+            tools=[]  # Tools will be implemented in Task 7
         )
         
         # Enhanced planning task that leverages field mapping insights
@@ -363,10 +355,7 @@ def create_data_cleansing_crew(crewai_service, raw_data: List[Dict[str, Any]],
             agent=validation_expert,
             context=[planning_task],
             collaboration=[standardization_specialist],
-            tools=[
-                _create_field_aware_validation_tool(field_mappings),
-                _create_quality_metrics_tool()
-            ]
+            tools=[]  # Tools will be implemented in Task 7
         )
         
         # Field-aware standardization task
@@ -394,10 +383,7 @@ def create_data_cleansing_crew(crewai_service, raw_data: List[Dict[str, Any]],
             agent=standardization_specialist,
             context=[validation_task],
             collaboration=[validation_expert],
-            tools=[
-                _create_field_aware_standardization_tool(field_mappings),
-                _create_format_normalization_tool()
-            ]
+            tools=[]  # Tools will be implemented in Task 7
         )
         
         # Create crew with hierarchical process and shared memory
@@ -444,29 +430,35 @@ def _create_fallback_data_cleansing_crew(crewai_service, raw_data: List[Dict[str
 def _create_field_aware_validation_tool(field_mappings: Dict[str, Any]):
     """Create validation tool that uses field mapping insights"""
     # Placeholder for Task 7 - Agent Tools Infrastructure
-    return None
+    # Return empty list for now to avoid validation errors
+    return []
 
 def _create_quality_metrics_tool():
     """Create quality metrics tool"""
     # Placeholder for Task 7 - Agent Tools Infrastructure
-    return None
+    # Return empty list for now to avoid validation errors
+    return []
 
 def _create_data_profiling_tool():
     """Create data profiling tool"""
     # Placeholder for Task 7 - Agent Tools Infrastructure
-    return None
+    # Return empty list for now to avoid validation errors
+    return []
 
 def _create_field_aware_standardization_tool(field_mappings: Dict[str, Any]):
     """Create standardization tool that uses field mapping context"""
     # Placeholder for Task 7 - Agent Tools Infrastructure
-    return None
+    # Return empty list for now to avoid validation errors
+    return []
 
 def _create_format_normalization_tool():
     """Create format normalization tool"""
     # Placeholder for Task 7 - Agent Tools Infrastructure
-    return None
+    # Return empty list for now to avoid validation errors
+    return []
 
 def _create_data_transformation_tool():
     """Create data transformation tool"""
     # Placeholder for Task 7 - Agent Tools Infrastructure
-    return None
+    # Return empty list for now to avoid validation errors
+    return []

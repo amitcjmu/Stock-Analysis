@@ -410,6 +410,7 @@ def create_app_server_dependency_crew(crewai_service, asset_inventory: Dict[str,
             process=Process.hierarchical,
             manager_llm=crewai_service.llm,
             planning=True,
+            planning_llm=getattr(crewai_service, 'planning_llm', crewai_service.llm),
             memory=True,
             verbose=True,
             share_crew=True  # Enable cross-crew collaboration

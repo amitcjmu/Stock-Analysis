@@ -560,8 +560,18 @@ class CrewAIFlowService:
             # Generate session ID
             session_id = context.session_id or str(uuid.uuid4())
             
-            # Create a mock CrewAI service object (since we need it for initialization)
-            crewai_service = type('MockCrewAIService', (), {'llm': None})()
+            # Create a proper CrewAI service object with DeepInfra LLM
+            from app.services.deepinfra_llm import create_deepinfra_llm
+            
+            try:
+                llm = create_deepinfra_llm()
+                crewai_service = type('CrewAIService', (), {'llm': llm})()
+                logger.info("✅ CrewAI service created with DeepInfra LLM")
+            except Exception as llm_error:
+                logger.error(f"Failed to create DeepInfra LLM: {llm_error}")
+                # Fallback to mock service
+                crewai_service = type('MockCrewAIService', (), {'llm': None})()
+                logger.warning("Using mock CrewAI service - LLM operations may fail")
             
             # Initialize the redesigned flow
             flow = DiscoveryFlowRedesigned(

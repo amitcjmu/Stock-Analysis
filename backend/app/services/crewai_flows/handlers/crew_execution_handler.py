@@ -177,10 +177,10 @@ class CrewExecutionHandler:
                 # Pass shared memory and asset inventory
                 shared_memory = getattr(state, 'shared_memory_reference', None)
                 
-                # Create and execute the enhanced crew
+                # Create and execute the enhanced crew with correct arguments
                 crew = create_app_server_dependency_crew(
-                    self.crewai_service,
-                    state.asset_inventory,
+                    crewai_service=self.crewai_service,
+                    asset_inventory=state.asset_inventory,
                     shared_memory=shared_memory
                 )
                 crew_result = crew.kickoff()
@@ -221,13 +221,14 @@ class CrewExecutionHandler:
             try:
                 from app.services.crewai_flows.crews.app_app_dependency_crew import create_app_app_dependency_crew
                 
-                # Pass shared memory and asset inventory
+                # Pass shared memory and asset inventory  
                 shared_memory = getattr(state, 'shared_memory_reference', None)
                 
-                # Create and execute the enhanced crew
+                # Create and execute the enhanced crew with correct arguments
                 crew = create_app_app_dependency_crew(
-                    self.crewai_service,
-                    state.asset_inventory,
+                    crewai_service=self.crewai_service,
+                    asset_inventory=state.asset_inventory,
+                    app_server_dependencies=state.app_server_dependencies,
                     shared_memory=shared_memory
                 )
                 crew_result = crew.kickoff()
@@ -271,18 +272,17 @@ class CrewExecutionHandler:
                 # Pass shared memory and full discovery context
                 shared_memory = getattr(state, 'shared_memory_reference', None)
                 
-                # Create and execute the enhanced crew
+                # Prepare dependencies argument correctly
+                dependencies = {
+                    "app_server_dependencies": state.app_server_dependencies,
+                    "app_app_dependencies": state.app_app_dependencies
+                }
+                
+                # Create and execute the enhanced crew with correct arguments
                 crew = create_technical_debt_crew(
-                    self.crewai_service,
-                    {
-                        "asset_inventory": state.asset_inventory,
-                        "dependencies": {
-                            "app_server": state.app_server_dependencies,
-                            "app_app": state.app_app_dependencies
-                        },
-                        "field_mappings": state.field_mappings,
-                        "data_quality": state.data_quality_metrics
-                    },
+                    crewai_service=self.crewai_service,
+                    asset_inventory=state.asset_inventory,
+                    dependencies=dependencies,
                     shared_memory=shared_memory
                 )
                 crew_result = crew.kickoff()

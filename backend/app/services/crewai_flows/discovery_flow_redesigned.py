@@ -27,7 +27,18 @@ import asyncio
 
 # CrewAI imports with full functionality
 from crewai.flow.flow import Flow, listen, start
-from crewai.planning import PlanningMixin
+
+# Try to import planning, use fallback if not available
+try:
+    from crewai.planning import PlanningMixin
+    PLANNING_AVAILABLE = True
+except ImportError:
+    # Fallback: create a mock PlanningMixin
+    class PlanningMixin:
+        """Mock PlanningMixin for compatibility when crewai.planning is not available"""
+        def __init__(self, *args, **kwargs):
+            super().__init__()
+    PLANNING_AVAILABLE = False
 
 # Local modular imports
 from .models.flow_state import DiscoveryFlowState
@@ -51,9 +62,8 @@ from app.services.crewai_flows.crews.app_app_dependency_crew import AppAppDepend
 from app.services.crewai_flows.crews.technical_debt_crew import TechnicalDebtCrew
 
 # New imports for handlers
-from app.services.crewai_flows.handlers.background_task_handler import BackgroundTaskHandler
-from app.services.crewai_flows.handlers.analysis_handler import AnalysisHandler
-from app.services.crewai_flows.handlers.endpoint_handler import EndpointHandler
+# NOTE: Only importing handlers that actually exist
+# BackgroundTaskHandler, AnalysisHandler, EndpointHandler don't exist yet
 
 logger = logging.getLogger(__name__)
 
@@ -108,7 +118,7 @@ class DiscoveryFlowRedesigned(Flow[DiscoveryFlowState], PlanningMixin):
         
         # Setup Multi-Tenant Memory Manager for Task 29: Memory Persistence
         try:
-            from app.database.database import get_db
+            from app.core.database import get_db
             db_session = next(get_db())
             
             self.tenant_memory_manager = TenantMemoryManager(
