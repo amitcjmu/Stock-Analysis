@@ -151,34 +151,77 @@ async def get_workflow_status_clean(
                 records_processed=0
             )
         
-        # Parse flow state into clean response
-        status_value = flow_state.get('status', 'unknown').lower()
-        current_phase = flow_state.get('current_phase', 'unknown')
-        progress = flow_state.get('progress_percentage', 0)
-        message = flow_state.get('message', 'Processing...')
+        # Transform backend flow state to frontend expected format
+        backend_status = flow_state.get('status', 'unknown').lower()
         
-        # Extract file information
+        # Map backend status to frontend expected status values
+        status_mapping = {
+            'running': 'running',
+            'in_progress': 'in_progress', 
+            'processing': 'running',
+            'completed': 'completed',
+            'failed': 'failed',
+            'error': 'failed',
+            'success': 'completed',
+            'pending': 'in_progress'
+        }
+        
+        frontend_status = status_mapping.get(backend_status, 'in_progress')
+        current_phase = flow_state.get('current_phase', 'processing')
+        
+        # Calculate progress percentage based on phase and status
+        progress_mapping = {
+            'initialization': 10,
+            'data_validation': 20,
+            'field_mapping': 40,
+            'asset_classification': 60,
+            'dependency_analysis': 80,
+            'database_integration': 90,
+            'completed': 100,
+            'error': 0
+        }
+        progress = progress_mapping.get(current_phase, 50)
+        
+        # Ensure progress is 100% if completed
+        if frontend_status == 'completed':
+            progress = 100
+        elif frontend_status == 'failed':
+            progress = 0
+        
+        # Generate appropriate status message
+        if frontend_status == 'completed':
+            message = f"Discovery workflow completed successfully. Data processed and ready for analysis."
+        elif frontend_status == 'failed':
+            message = f"Workflow failed during {current_phase} phase. Please check logs or retry."
+        elif frontend_status == 'running' or frontend_status == 'in_progress':
+            message = f"Processing data through {current_phase} phase..."
+        else:
+            message = f"Workflow status: {frontend_status}"
+        
+        # Extract file information from flow state
         file_info = flow_state.get('file_info', {})
-        filename = file_info.get('filename', 'Unknown file')
-        record_count = file_info.get('record_count', 0)
+        filename = file_info.get('filename') or flow_state.get('metadata', {}).get('filename', 'Unknown file')
+        record_count = file_info.get('record_count') or len(flow_state.get('raw_data', []))
         
         # Extract completion info
         completed_at = None
-        if status_value == 'completed':
-            completed_at = flow_state.get('updated_at') or datetime.utcnow().isoformat()
+        if frontend_status == 'completed':
+            completed_at = (flow_state.get('completed_at') or 
+                          flow_state.get('updated_at') or 
+                          datetime.utcnow().isoformat())
         
         # Build workflow details
         workflow_details = {
-            "workflow_id": flow_state.get('workflow_id'),
-            "created_at": flow_state.get('created_at'),
+            "workflow_id": flow_state.get('workflow_id') or session_id,
+            "created_at": flow_state.get('created_at') or flow_state.get('started_at'),
             "updated_at": flow_state.get('updated_at')
         }
         
-        logger.info(f"CLEAN API: Returning status: {status_value}, phase: {current_phase}, progress: {progress}%")
+        logger.info(f"CLEAN API: Returning status: {frontend_status}, phase: {current_phase}, progress: {progress}%")
         
         return WorkflowStatusResponse(
             session_id=session_id,
-            status=status_value,
+            status=frontend_status,
             current_phase=current_phase,
             progress_percentage=progress,
             message=message,
@@ -192,4 +235,14 @@ async def get_workflow_status_clean(
         raise
     except Exception as e:
         logger.error(f"CLEAN API: Error getting workflow status for session {session_id}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to get workflow status: {str(e)}") 
+        
+        # Return a failed status instead of raising an exception to give frontend useful info
+        return WorkflowStatusResponse(
+            session_id=session_id,
+            status="failed",
+            current_phase="error",
+            progress_percentage=0,
+            message=f"Failed to get workflow status: {str(e)}",
+            file_processed="Unknown file",
+            records_processed=0
+        ) 

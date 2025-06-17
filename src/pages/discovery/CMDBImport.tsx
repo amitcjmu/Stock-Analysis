@@ -354,10 +354,31 @@ interface FileAnalysisProps {
 }
 
 const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onNavigate }) => {
-  const { data: status } = useWorkflowStatus(file.session_id || null);
+  const { data: status, error: statusError, isLoading } = useWorkflowStatus(file.session_id || null);
+  
+  // Derive actual status from workflow status if available
+  const getActualStatus = () => {
+    if (status) {
+      // Use backend workflow status as source of truth
+      switch (status.status) {
+        case 'running':
+        case 'in_progress':
+          return 'processing';
+        case 'completed':
+          return 'completed';
+        case 'failed':
+          return 'failed';
+        default:
+          return file.status;
+      }
+    }
+    return file.status;
+  };
+  
+  const actualStatus = getActualStatus();
   
   const getStatusIcon = () => {
-    switch (file.status) {
+    switch (actualStatus) {
       case 'uploading':
         return <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />;
       case 'processing':
@@ -372,7 +393,7 @@ const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onNavigate }) => {
   };
   
   const getStatusColor = () => {
-    switch (file.status) {
+    switch (actualStatus) {
       case 'completed':
         return 'bg-green-50 border-green-200';
       case 'failed':
@@ -384,6 +405,33 @@ const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onNavigate }) => {
     }
   };
   
+  const getStatusText = () => {
+    if (statusError) {
+      return "Unable to check status";
+    }
+    
+    if (isLoading && file.session_id) {
+      return "Checking status...";
+    }
+    
+    if (status) {
+      return status.message || `Processing: ${status.current_phase}`;
+    }
+    
+    switch (actualStatus) {
+      case 'uploading':
+        return 'Uploading file...';
+      case 'processing':
+        return 'Processing data...';
+      case 'completed':
+        return 'Processing completed successfully';
+      case 'failed':
+        return 'Processing failed';
+      default:
+        return 'Waiting to process';
+    }
+  };
+  
   return (
     <div className={`border rounded-lg p-6 ${getStatusColor()}`}>
       <div className="flex items-start justify-between mb-4">
@@ -391,7 +439,14 @@ const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onNavigate }) => {
           {getStatusIcon()}
           <div>
             <h3 className="text-lg font-semibold text-gray-900">{file.filename}</h3>
-            <p className="text-sm text-gray-600">{file.record_count} records</p>
+            <p className="text-sm text-gray-600">
+              {status?.records_processed || file.record_count} records
+              {file.session_id && (
+                <span className="ml-2 text-xs text-gray-400">
+                  Session: {file.session_id.substring(0, 8)}...
+                </span>
+              )}
+            </p>
           </div>
         </div>
         
@@ -400,46 +455,88 @@ const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onNavigate }) => {
             <div className="text-sm font-medium text-gray-900">
               {status.progress_percentage}% Complete
             </div>
-            <div className="text-sm text-gray-600">{status.current_phase}</div>
+            <div className="text-sm text-gray-600 capitalize">
+              {status.current_phase?.replace(/_/g, ' ')}
+            </div>
           </div>
         )}
       </div>
       
-      {status && (
+      {status && actualStatus === 'processing' && (
         <div className="mb-4">
+          <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
+            <span>Progress</span>
+            <span>{status.progress_percentage}%</span>
+          </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div 
               className="bg-blue-600 h-2 rounded-full transition-all duration-300"
               style={{ width: `${status.progress_percentage}%` }}
             ></div>
           </div>
-          <p className="text-sm text-gray-600 mt-2">{status.message}</p>
+          <p className="text-sm text-gray-600 mt-2">{getStatusText()}</p>
         </div>
       )}
       
-      {file.status === 'completed' && (
-        <div className="flex space-x-3">
-          <Button
-            onClick={() => onNavigate('/discovery/inventory')}
-            className="flex items-center space-x-2"
-          >
-            <Eye className="h-4 w-4" />
-            <span>View Inventory</span>
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => onNavigate('/discovery/attribute-mapping')}
-            className="flex items-center space-x-2"
-          >
-            <ArrowRight className="h-4 w-4" />
-            <span>Attribute Mapping</span>
-          </Button>
+      {!status && actualStatus === 'processing' && file.session_id && (
+        <div className="mb-4">
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="bg-blue-600 h-2 rounded-full animate-pulse w-1/3"></div>
+          </div>
+          <p className="text-sm text-gray-600 mt-2">
+            {isLoading ? "Checking workflow status..." : "Processing started..."}
+          </p>
         </div>
       )}
       
-      {file.error_message && (
+      {actualStatus === 'completed' && (
+        <div className="mb-4">
+          <div className="flex items-center space-x-2 text-green-600 mb-2">
+            <CheckCircle className="h-4 w-4" />
+            <span className="text-sm font-medium">Processing Complete</span>
+          </div>
+          <p className="text-sm text-gray-600">{getStatusText()}</p>
+          <div className="flex space-x-3 mt-4">
+            <Button
+              onClick={() => onNavigate('/discovery/inventory')}
+              className="flex items-center space-x-2"
+            >
+              <Eye className="h-4 w-4" />
+              <span>View Inventory</span>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => onNavigate('/discovery/attribute-mapping')}
+              className="flex items-center space-x-2"
+            >
+              <ArrowRight className="h-4 w-4" />
+              <span>Attribute Mapping</span>
+            </Button>
+          </div>
+        </div>
+      )}
+      
+      {(file.error_message || (actualStatus === 'failed' && status?.message)) && (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-sm text-red-600">{file.error_message}</p>
+          <div className="flex items-center space-x-2 text-red-600 mb-1">
+            <AlertCircle className="h-4 w-4" />
+            <span className="text-sm font-medium">Processing Failed</span>
+          </div>
+          <p className="text-sm text-red-600">
+            {file.error_message || status?.message || "Unknown error occurred"}
+          </p>
+        </div>
+      )}
+      
+      {statusError && (
+        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div className="flex items-center space-x-2 text-yellow-600 mb-1">
+            <AlertTriangle className="h-4 w-4" />
+            <span className="text-sm font-medium">Status Check Failed</span>
+          </div>
+          <p className="text-sm text-yellow-600">
+            Unable to check workflow status. The process may still be running.
+          </p>
         </div>
       )}
     </div>
