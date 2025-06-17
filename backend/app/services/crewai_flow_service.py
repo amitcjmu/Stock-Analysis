@@ -102,6 +102,8 @@ class CrewAIFlowService:
         - Failed/completed workflows (creates new workflow) 
         - Database duplication issues through smart session resolution
         """
+        print(f"🔧 PRINT DEBUG: initiate_discovery_workflow called with context.session_id: {context.session_id}")
+        logger.info(f"🔧 DEBUG: initiate_discovery_workflow called with context.session_id: {context.session_id}")
         try:
             # Parse and validate input data (reuse existing logic)
             file_data = data_source.get("file_data")
@@ -162,6 +164,7 @@ class CrewAIFlowService:
             
             # CRITICAL FIX: Create data import session first to satisfy foreign key constraint
             # This prevents the workflow_states foreign key violation
+            logger.info(f"🔧 DEBUG: About to call _ensure_data_import_session_exists for session: {session_id}")
             await self._ensure_data_import_session_exists(
                 session_id=session_id,
                 client_account_uuid=client_account_uuid,
@@ -169,6 +172,7 @@ class CrewAIFlowService:
                 context=context,
                 metadata=metadata
             )
+            logger.info(f"🔧 DEBUG: _ensure_data_import_session_exists completed for session: {session_id}")
             
             # Smart session management - create initial state data with validated IDs
             initial_state_data = {
@@ -336,61 +340,74 @@ class CrewAIFlowService:
         metadata: Dict[str, Any]
     ):
         """
-        Ensure data import session exists to satisfy foreign key constraint.
-        Creates the session if it doesn't exist.
+        Ensure data import session exists using proper repository pattern.
+        This prevents workflow_states foreign key violations and enforces multi-tenant scoping.
         """
-        from app.core.database import AsyncSessionLocal
+        logger.info(f"🔧 CREWAI: Ensuring data import session exists: {session_id}")
         
         try:
-            async with AsyncSessionLocal() as db:
-                # Import models conditionally
-                try:
-                    from app.models.data_import_session import DataImportSession
-                    from sqlalchemy import select
-                    
-                    # Check if session already exists
-                    result = await db.execute(
-                        select(DataImportSession).where(DataImportSession.id == uuid.UUID(session_id))
-                    )
-                    existing_session = result.scalar_one_or_none()
-                    
-                    if existing_session:
-                        logger.info(f"Data import session already exists: {session_id}")
-                        return
-                    
-                    # Create new data import session
-                    session_name = f"crewai-discovery-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}"
-                    
-                    new_session = DataImportSession(
-                        id=uuid.UUID(session_id),  # Use the same ID as session_id
-                        session_name=session_name,
-                        client_account_id=client_account_uuid,
-                        engagement_id=engagement_uuid,
-                        description="Auto-created session for CrewAI discovery workflow",
-                        session_type="data_import",
-                        auto_created=True,
-                        source_filename=metadata.get("filename", "discovery_flow.csv"),
-                        status="active",
-                        created_by=uuid.UUID(context.user_id) if context.user_id and context.user_id != "anonymous" else client_account_uuid,
-                        business_context={
-                            "import_purpose": "discovery_flow",
-                            "data_source_description": "CrewAI automated discovery workflow",
-                            "expected_changes": ["asset_classification", "field_mapping", "data_validation"]
-                        }
-                    )
-                    
-                    db.add(new_session)
-                    await db.commit()
-                    logger.info(f"Created data import session: {session_id}")
-                    
-                except ImportError:
-                    logger.warning("DataImportSession model not available - foreign key constraint may fail")
-                
+            # Use ContextAwareRepository for proper multi-tenant enforcement
+            from app.repositories.context_aware_repository import ContextAwareRepository
+            from app.models.data_import_session import DataImportSession
+            from app.core.context import get_current_context
+            
+            # Get current context for multi-tenant scoping
+            context = get_current_context()
+            logger.info(f"🔧 CREWAI: Using context - Client: {context.client_account_id}, Engagement: {context.engagement_id}")
+            
+            # Create repository with proper context scoping
+            session_repo = ContextAwareRepository(
+                db=self.db,
+                model_class=DataImportSession,
+                client_account_id=context.client_account_id,
+                engagement_id=context.engagement_id
+            )
+            
+            # Check if session already exists using repository
+            session_uuid = uuid.UUID(session_id)
+            existing_session = await session_repo.get_by_id(session_uuid)
+            
+            if existing_session:
+                logger.info(f"✅ CREWAI: Data import session already exists: {session_id}")
+                return
+            
+            # Create session using repository pattern (automatically applies context)
+            demo_user_uuid = uuid.UUID("44444444-4444-4444-4444-444444444444")
+            
+            session_data = {
+                "id": session_uuid,
+                "session_name": f"crewai-discovery-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}",
+                "description": "Auto-created session for CrewAI discovery workflow",
+                "is_default": False,
+                "session_type": "data_import",
+                "auto_created": True,
+                "source_filename": metadata.get("filename", "discovery_flow.csv"),
+                "status": "active",
+                "created_by": demo_user_uuid,
+                "business_context": {
+                    "import_purpose": "discovery_flow",
+                    "data_source_description": "CrewAI automated discovery workflow",
+                    "expected_changes": ["asset_classification", "field_mapping", "data_validation"]
+                },
+                "agent_insights": {
+                    "classification_confidence": 0.0,
+                    "data_quality_issues": [],
+                    "recommendations": [],
+                    "learning_outcomes": []
+                }
+            }
+            
+            # Create session using repository (enforces multi-tenant scoping)
+            new_session = await session_repo.create(**session_data)
+            await self.db.commit()
+            
+            logger.info(f"✅ CREWAI: Successfully created data import session with repository pattern: {session_id}")
+            
         except Exception as e:
-            logger.error(f"Failed to ensure data import session: {e}", exc_info=True)
-            # Don't raise exception - let the workflow continue and potentially fail later
-            # This provides graceful degradation if session creation fails
-
+            logger.error(f"❌ CREWAI: Failed to create session with repository pattern: {e}")
+            await self.db.rollback()
+            raise
+    
     async def _update_workflow_state_with_new_session(
         self,
         session_id: str,
