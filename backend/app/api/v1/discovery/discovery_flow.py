@@ -1063,6 +1063,9 @@ async def run_discovery_flow_redesigned(
         return {
             "status": "flow_started",
             "flow_id": flow_result.get("flow_id"),
+            "session_id": flow_result.get("session_id") or flow_result.get("flow_id"),  # Frontend needs this for polling
+            "workflow_status": "running",
+            "current_phase": flow_result.get("next_phase", "field_mapping"),
             "architecture": "redesigned_with_crews",
             "sequence": [
                 "field_mapping", "data_cleansing", "inventory_building",
@@ -1072,7 +1075,12 @@ async def run_discovery_flow_redesigned(
             "message": "Discovery Flow started with corrected architecture",
             "next_phase": flow_result.get("next_phase", "field_mapping"),
             "crew_coordination": flow_result.get("crew_coordination"),
-            "planning": flow_result.get("discovery_plan")
+            "planning": flow_result.get("discovery_plan"),
+            "flow_result": flow_result,
+            "next_steps": {
+                "ready_for_assessment": False,
+                "recommended_actions": ["Monitor crew progress", "Review field mappings when available"]
+            }
         }
         
     except Exception as e:
