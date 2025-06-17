@@ -15,18 +15,68 @@ import {
   Activity,
   Brain,
   Zap,
-  Target
+  Target,
+  Crown,
+  Link,
+  TrendingUp,
+  Lightbulb,
+  Network,
+  BarChart3,
+  Settings,
+  MessageSquare
 } from 'lucide-react';
+
+interface AgentInfo {
+  name: string;
+  role: string;
+  status: 'idle' | 'active' | 'completed' | 'error';
+  isManager?: boolean;
+  collaborations?: string[];
+  currentTask?: string;
+  performance?: {
+    tasks_completed: number;
+    success_rate: number;
+    avg_duration: number;
+  };
+}
 
 interface CrewProgress {
   name: string;
   status: 'pending' | 'running' | 'completed' | 'failed';
   progress: number;
-  agents: string[];
+  agents: AgentInfo[];
   description: string;
   icon: React.ReactNode;
   results?: any;
   currentTask?: string;
+  manager?: string;
+  collaboration_status?: {
+    intra_crew: number;
+    cross_crew: number;
+    memory_sharing: boolean;
+    knowledge_utilization: number;
+  };
+  planning_status?: {
+    strategy: string;
+    coordination_score: number;
+    adaptive_triggers: string[];
+  };
+}
+
+interface CollaborationData {
+  total_collaborations: number;
+  active_collaborations: number;
+  cross_crew_insights: number;
+  memory_utilization: number;
+  knowledge_sharing_score: number;
+}
+
+interface PlanningData {
+  coordination_strategy: string;
+  success_criteria_met: number;
+  adaptive_adjustments: number;
+  optimization_score: number;
+  predicted_completion: string;
 }
 
 interface AgentOrchestrationPanelProps {
@@ -41,95 +91,374 @@ const AgentOrchestrationPanel: React.FC<AgentOrchestrationPanelProps> = ({
   onStatusUpdate
 }) => {
   const [activeTab, setActiveTab] = useState('overview');
+  const [collaborationData, setCollaborationData] = useState<any>(null);
+  const [planningData, setPlanningData] = useState<any>(null);
   const [crews, setCrews] = useState<CrewProgress[]>([
     {
       name: 'Field Mapping Crew',
       status: 'pending',
       progress: 0,
-      agents: ['Field Mapping Manager', 'Schema Analysis Expert', 'Attribute Mapping Specialist'],
-      description: 'FOUNDATION PHASE: Analyzes data structure and maps fields to standard migration attributes',
+      manager: 'Field Mapping Manager',
+      agents: [
+        {
+          name: 'Field Mapping Manager',
+          role: 'Coordinates field mapping analysis',
+          status: 'idle',
+          isManager: true,
+          collaborations: ['Schema Analysis Expert', 'Attribute Mapping Specialist'],
+          performance: { tasks_completed: 0, success_rate: 0, avg_duration: 0 }
+        },
+        {
+          name: 'Schema Analysis Expert',
+          role: 'Analyzes data structure semantics',
+          status: 'idle',
+          collaborations: ['Field Mapping Manager', 'Attribute Mapping Specialist'],
+          performance: { tasks_completed: 0, success_rate: 0, avg_duration: 0 }
+        },
+        {
+          name: 'Attribute Mapping Specialist',
+          role: 'Creates precise field mappings',
+          status: 'idle',
+          collaborations: ['Field Mapping Manager', 'Schema Analysis Expert'],
+          performance: { tasks_completed: 0, success_rate: 0, avg_duration: 0 }
+        }
+      ],
+      description: 'FOUNDATION PHASE: Analyzes data structure and maps fields to standard migration attributes using hierarchical coordination',
       icon: <MapPin className="h-5 w-5" />,
-      currentTask: 'Ready to analyze data structure...'
+      currentTask: 'Ready to analyze data structure...',
+      collaboration_status: {
+        intra_crew: 0,
+        cross_crew: 0,
+        memory_sharing: false,
+        knowledge_utilization: 0
+      },
+      planning_status: {
+        strategy: 'hierarchical',
+        coordination_score: 0,
+        adaptive_triggers: []
+      }
     },
     {
       name: 'Data Cleansing Crew',
       status: 'pending',
       progress: 0,
-      agents: ['Data Quality Manager', 'Data Validation Expert', 'Data Standardization Specialist'],
-      description: 'QUALITY ASSURANCE: Cleanses and standardizes data using field mapping insights',
+      manager: 'Data Quality Manager',
+      agents: [
+        {
+          name: 'Data Quality Manager',
+          role: 'Ensures comprehensive data quality',
+          status: 'idle',
+          isManager: true,
+          collaborations: ['Data Validation Expert', 'Data Standardization Specialist'],
+          performance: { tasks_completed: 0, success_rate: 0, avg_duration: 0 }
+        },
+        {
+          name: 'Data Validation Expert',
+          role: 'Validates data using field mappings',
+          status: 'idle',
+          collaborations: ['Data Quality Manager', 'Data Standardization Specialist'],
+          performance: { tasks_completed: 0, success_rate: 0, avg_duration: 0 }
+        },
+        {
+          name: 'Data Standardization Specialist',
+          role: 'Standardizes data formats',
+          status: 'idle',
+          collaborations: ['Data Quality Manager', 'Data Validation Expert'],
+          performance: { tasks_completed: 0, success_rate: 0, avg_duration: 0 }
+        }
+      ],
+      description: 'QUALITY ASSURANCE: Cleanses and standardizes data using field mapping insights with memory-enhanced validation',
       icon: <Database className="h-5 w-5" />,
-      currentTask: 'Waiting for field mapping completion...'
+      currentTask: 'Waiting for field mapping completion...',
+      collaboration_status: {
+        intra_crew: 0,
+        cross_crew: 0,
+        memory_sharing: false,
+        knowledge_utilization: 0
+      },
+      planning_status: {
+        strategy: 'memory_enhanced',
+        coordination_score: 0,
+        adaptive_triggers: []
+      }
     },
     {
       name: 'Inventory Building Crew',
       status: 'pending', 
       progress: 0,
-      agents: ['Inventory Manager', 'Server Classification Expert', 'Application Discovery Expert', 'Device Classification Expert'],
-      description: 'MULTI-DOMAIN CLASSIFICATION: Classifies assets across servers, applications, and devices',
+      manager: 'Inventory Manager',
+      agents: [
+        {
+          name: 'Inventory Manager',
+          role: 'Coordinates multi-domain classification',
+          status: 'idle',
+          isManager: true,
+          collaborations: ['Server Expert', 'Application Expert', 'Device Expert'],
+          performance: { tasks_completed: 0, success_rate: 0, avg_duration: 0 }
+        },
+        {
+          name: 'Server Classification Expert',
+          role: 'Classifies server infrastructure',
+          status: 'idle',
+          collaborations: ['Inventory Manager', 'Application Expert'],
+          performance: { tasks_completed: 0, success_rate: 0, avg_duration: 0 }
+        },
+        {
+          name: 'Application Discovery Expert',
+          role: 'Identifies application assets',
+          status: 'idle',
+          collaborations: ['Inventory Manager', 'Server Expert', 'Device Expert'],
+          performance: { tasks_completed: 0, success_rate: 0, avg_duration: 0 }
+        },
+        {
+          name: 'Device Classification Expert',
+          role: 'Classifies network devices',
+          status: 'idle',
+          collaborations: ['Inventory Manager', 'Application Expert'],
+          performance: { tasks_completed: 0, success_rate: 0, avg_duration: 0 }
+        }
+      ],
+      description: 'MULTI-DOMAIN CLASSIFICATION: Cross-domain collaboration for comprehensive asset classification with shared insights',
       icon: <Search className="h-5 w-5" />,
-      currentTask: 'Waiting for data cleansing...'
+      currentTask: 'Waiting for data cleansing...',
+      collaboration_status: {
+        intra_crew: 0,
+        cross_crew: 0,
+        memory_sharing: false,
+        knowledge_utilization: 0
+      },
+      planning_status: {
+        strategy: 'cross_domain_collaboration',
+        coordination_score: 0,
+        adaptive_triggers: []
+      }
     },
     {
       name: 'App-Server Dependency Crew',
       status: 'pending',
       progress: 0,
-      agents: ['Dependency Manager', 'Application Topology Expert', 'Infrastructure Relationship Analyst'],
-      description: 'HOSTING RELATIONSHIPS: Maps application-to-server hosting dependencies',
+      manager: 'Dependency Manager',
+      agents: [
+        {
+          name: 'Dependency Manager',
+          role: 'Orchestrates hosting relationship mapping',
+          status: 'idle',
+          isManager: true,
+          collaborations: ['Topology Expert', 'Relationship Analyst'],
+          performance: { tasks_completed: 0, success_rate: 0, avg_duration: 0 }
+        },
+        {
+          name: 'Application Topology Expert',
+          role: 'Maps application hosting patterns',
+          status: 'idle',
+          collaborations: ['Dependency Manager', 'Relationship Analyst'],
+          performance: { tasks_completed: 0, success_rate: 0, avg_duration: 0 }
+        },
+        {
+          name: 'Infrastructure Relationship Analyst',
+          role: 'Analyzes server-app relationships',
+          status: 'idle',
+          collaborations: ['Dependency Manager', 'Topology Expert'],
+          performance: { tasks_completed: 0, success_rate: 0, avg_duration: 0 }
+        }
+      ],
+      description: 'HOSTING RELATIONSHIPS: Maps application-to-server hosting dependencies with topology intelligence',
       icon: <Activity className="h-5 w-5" />,
-      currentTask: 'Waiting for inventory building...'
+      currentTask: 'Waiting for inventory building...',
+      collaboration_status: {
+        intra_crew: 0,
+        cross_crew: 0,
+        memory_sharing: false,
+        knowledge_utilization: 0
+      },
+      planning_status: {
+        strategy: 'topology_intelligent',
+        coordination_score: 0,
+        adaptive_triggers: []
+      }
     },
     {
       name: 'App-App Dependency Crew',
       status: 'pending',
       progress: 0,
-      agents: ['Integration Manager', 'Application Integration Expert', 'API Dependency Analyst'],
-      description: 'INTEGRATION ANALYSIS: Maps application-to-application communication patterns',
+      manager: 'Integration Manager',
+      agents: [
+        {
+          name: 'Integration Manager',
+          role: 'Coordinates integration dependency analysis',
+          status: 'idle',
+          isManager: true,
+          collaborations: ['Integration Expert', 'API Analyst'],
+          performance: { tasks_completed: 0, success_rate: 0, avg_duration: 0 }
+        },
+        {
+          name: 'Application Integration Expert',
+          role: 'Maps communication patterns',
+          status: 'idle',
+          collaborations: ['Integration Manager', 'API Analyst'],
+          performance: { tasks_completed: 0, success_rate: 0, avg_duration: 0 }
+        },
+        {
+          name: 'API Dependency Analyst',
+          role: 'Analyzes service dependencies',
+          status: 'idle',
+          collaborations: ['Integration Manager', 'Integration Expert'],
+          performance: { tasks_completed: 0, success_rate: 0, avg_duration: 0 }
+        }
+      ],
+      description: 'INTEGRATION ANALYSIS: Maps application-to-application communication patterns with API intelligence',
       icon: <Zap className="h-5 w-5" />,
-      currentTask: 'Waiting for app-server dependencies...'
+      currentTask: 'Waiting for app-server dependencies...',
+      collaboration_status: {
+        intra_crew: 0,
+        cross_crew: 0,
+        memory_sharing: false,
+        knowledge_utilization: 0
+      },
+      planning_status: {
+        strategy: 'api_intelligent',
+        coordination_score: 0,
+        adaptive_triggers: []
+      }
     },
     {
       name: 'Technical Debt Crew',
       status: 'pending',
       progress: 0,
-      agents: ['Technical Debt Manager', 'Legacy Technology Analyst', 'Modernization Strategy Expert', 'Risk Assessment Specialist'],
-      description: '6R PREPARATION: Assesses technical debt and prepares 6R migration strategies',
+      manager: 'Technical Debt Manager',
+      agents: [
+        {
+          name: 'Technical Debt Manager',
+          role: 'Coordinates 6R strategy preparation',
+          status: 'idle',
+          isManager: true,
+          collaborations: ['Legacy Analyst', 'Modernization Expert', 'Risk Specialist'],
+          performance: { tasks_completed: 0, success_rate: 0, avg_duration: 0 }
+        },
+        {
+          name: 'Legacy Technology Analyst',
+          role: 'Assesses technology stack age',
+          status: 'idle',
+          collaborations: ['Technical Debt Manager', 'Modernization Expert'],
+          performance: { tasks_completed: 0, success_rate: 0, avg_duration: 0 }
+        },
+        {
+          name: 'Modernization Strategy Expert',
+          role: 'Recommends 6R strategies',
+          status: 'idle',
+          collaborations: ['Technical Debt Manager', 'Legacy Analyst', 'Risk Specialist'],
+          performance: { tasks_completed: 0, success_rate: 0, avg_duration: 0 }
+        },
+        {
+          name: 'Risk Assessment Specialist',
+          role: 'Evaluates migration risks',
+          status: 'idle',
+          collaborations: ['Technical Debt Manager', 'Modernization Expert'],
+          performance: { tasks_completed: 0, success_rate: 0, avg_duration: 0 }
+        }
+      ],
+      description: '6R PREPARATION: Synthesizes all insights for comprehensive 6R migration strategy with risk intelligence',
       icon: <Target className="h-5 w-5" />,
-      currentTask: 'Waiting for dependency analysis...'
+      currentTask: 'Waiting for dependency analysis...',
+      collaboration_status: {
+        intra_crew: 0,
+        cross_crew: 0,
+        memory_sharing: false,
+        knowledge_utilization: 0
+      },
+      planning_status: {
+        strategy: 'comprehensive_synthesis',
+        coordination_score: 0,
+        adaptive_triggers: []
+      }
     }
   ]);
 
   const [overallProgress, setOverallProgress] = useState(0);
   const [currentPhase, setCurrentPhase] = useState('Initializing...');
 
-  // Update crews based on flow state
+  // Fetch collaboration and planning data
   useEffect(() => {
-    if (flowState?.phase_progress) {
-      const updatedCrews = crews.map(crew => {
-        const phaseKey = crew.name.toLowerCase().replace(' crew', '').replace(' ', '_');
-        const phaseData = flowState.phase_progress[phaseKey];
-        
-        if (phaseData) {
-          return {
-            ...crew,
-            status: phaseData.status === 'completed' ? 'completed' : 
-                   phaseData.status === 'failed' ? 'failed' :
-                   phaseData.progress > 0 ? 'running' : 'pending',
-            progress: phaseData.progress || 0,
-            currentTask: phaseData.status === 'completed' ? 'Completed successfully' :
-                        phaseData.status === 'running' ? 'Processing...' :
-                        phaseData.status === 'failed' ? 'Failed - see errors' :
-                        'Waiting...',
-            results: phaseData
-          };
+    const fetchEnhancedData = async () => {
+      if (flowState?.flow_id) {
+        try {
+          // Fetch collaboration analytics
+          const collaborationResponse = await fetch(`/api/v1/discovery/flow/collaboration/analytics/${flowState.flow_id}`);
+          if (collaborationResponse.ok) {
+            const collaborationData = await collaborationResponse.json();
+            setCollaborationData({
+              total_collaborations: collaborationData.agent_collaboration?.total_events || 0,
+              active_collaborations: collaborationData.agent_collaboration?.active_collaborations || 0,
+              cross_crew_insights: collaborationData.cross_crew_sharing?.shared_insights || 0,
+              memory_utilization: collaborationData.cross_crew_sharing?.memory_utilization || 0,
+              knowledge_sharing_score: collaborationData.knowledge_utilization?.effectiveness_score || 0
+            });
+          }
+
+          // Fetch planning intelligence
+          const planningResponse = await fetch(`/api/v1/discovery/flow/planning/intelligence/${flowState.flow_id}`);
+          if (planningResponse.ok) {
+            const planningData = await planningResponse.json();
+            setPlanningData({
+              coordination_strategy: planningData.coordination_plan?.strategy || 'Not set',
+              success_criteria_met: planningData.coordination_plan?.success_criteria_met || 0,
+              adaptive_adjustments: planningData.dynamic_planning?.adjustments_count || 0,
+              optimization_score: planningData.planning_intelligence?.optimization_score || 0,
+              predicted_completion: planningData.planning_intelligence?.predicted_completion || 'Unknown'
+            });
+          }
+
+          // Fetch detailed crew monitoring
+          const crewResponse = await fetch(`/api/v1/discovery/flow/crews/monitoring/${flowState.flow_id}`);
+          if (crewResponse.ok) {
+            const crewData = await crewResponse.json();
+            updateCrewsWithMonitoringData(crewData);
+          }
+        } catch (error) {
+          console.error('Failed to fetch enhanced monitoring data:', error);
         }
-        return crew;
-      });
+      }
+    };
+
+    fetchEnhancedData();
+    const interval = setInterval(fetchEnhancedData, 5000); // Update every 5 seconds
+    return () => clearInterval(interval);
+  }, [flowState?.flow_id]);
+
+  const updateCrewsWithMonitoringData = (monitoringData: any) => {
+    const updatedCrews = crews.map(crew => {
+      const crewKey = crew.name.toLowerCase().replace(' crew', '').replace(' ', '_');
+      const crewMonitoring = monitoringData.crews?.[crewKey];
       
-      setCrews(updatedCrews);
-      setOverallProgress(flowState.overall_progress || 0);
-      setCurrentPhase(flowState.current_phase || 'Initializing...');
-    }
-  }, [flowState]);
+      if (crewMonitoring) {
+        return {
+          ...crew,
+          status: crewMonitoring.status === 'completed' ? 'completed' : 
+                 crewMonitoring.status === 'failed' ? 'failed' :
+                 crewMonitoring.progress > 0 ? 'running' : 'pending',
+          progress: crewMonitoring.progress || 0,
+          currentTask: crewMonitoring.current_task || crew.currentTask,
+          agents: crew.agents.map((agent, index) => ({
+            ...agent,
+            status: crewMonitoring.agents?.[index]?.status || agent.status,
+            currentTask: crewMonitoring.agents?.[index]?.current_task || agent.currentTask,
+            performance: crewMonitoring.agents?.[index]?.performance || agent.performance
+          })),
+          collaboration_status: {
+            intra_crew: crewMonitoring.performance_metrics?.collaboration_score || 0,
+            cross_crew: crewMonitoring.performance_metrics?.cross_crew_score || 0,
+            memory_sharing: crewMonitoring.performance_metrics?.memory_sharing || false,
+            knowledge_utilization: crewMonitoring.performance_metrics?.knowledge_score || 0
+          }
+        };
+      }
+      return crew;
+    });
+    
+    setCrews(updatedCrews);
+    setOverallProgress(monitoringData.overall_progress || 0);
+    setCurrentPhase(monitoringData.current_phase || 'Initializing...');
+  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -214,7 +543,7 @@ const AgentOrchestrationPanel: React.FC<AgentOrchestrationPanelProps> = ({
               {crew.agents.map((agent, idx) => (
                 <Badge key={idx} variant="outline" className="text-xs">
                   <Users className="h-3 w-3 mr-1" />
-                  {agent}
+                  {agent.name}
                 </Badge>
               ))}
             </div>

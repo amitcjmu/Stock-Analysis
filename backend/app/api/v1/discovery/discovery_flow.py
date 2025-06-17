@@ -1100,16 +1100,361 @@ async def get_collaboration_tracking(
     flow_id: str,
     service: CrewAIFlowService = Depends(get_crewai_flow_service)
 ):
-    """Get agent collaboration tracking and cross-crew communication"""
+    """Get collaboration tracking data for flow."""
     try:
-        collaboration_data = service.get_collaboration_tracking(flow_id)
-        if not collaboration_data:
-            raise HTTPException(status_code=404, detail="Flow collaboration data not found")
+        flow_instance = service.get_flow_instance(flow_id)
+        if not flow_instance:
+            raise HTTPException(status_code=404, detail="Flow not found")
         
-        return collaboration_data
+        if hasattr(flow_instance, 'get_collaboration_status'):
+            collaboration_data = flow_instance.get_collaboration_status()
+            return jsonable_encoder(collaboration_data)
+        else:
+            return {"available": False, "reason": "Collaboration tracking not implemented"}
+            
     except Exception as e:
-        logger.error(f"Error getting collaboration tracking for flow {flow_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Failed to get collaboration tracking: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get collaboration tracking: {str(e)}")
+
+# ==================================================================================
+# PHASE 5: NEW API ENDPOINTS FOR UI ENHANCEMENTS
+# ==================================================================================
+
+@router.get("/crews/monitoring/{flow_id}")
+async def get_crew_monitoring_data(
+    flow_id: str,
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
+):
+    """Get comprehensive crew monitoring data for UI display."""
+    try:
+        flow_instance = service.get_flow_instance(flow_id)
+        if not flow_instance:
+            raise HTTPException(status_code=404, detail="Flow not found")
+        
+        monitoring_data = {
+            "flow_id": flow_id,
+            "crews": {},
+            "overall_status": "unknown",
+            "phases": []
+        }
+        
+        # Get status for each crew type
+        crew_types = [
+            "field_mapping", "data_cleansing", "inventory_building",
+            "app_server_dependencies", "app_app_dependencies", "technical_debt"
+        ]
+        
+        for crew_type in crew_types:
+            try:
+                if hasattr(flow_instance, f'get_{crew_type}_status'):
+                    crew_status = getattr(flow_instance, f'get_{crew_type}_status')()
+                    monitoring_data["crews"][crew_type] = {
+                        "status": crew_status.get("status", "unknown"),
+                        "progress": crew_status.get("progress", 0),
+                        "agents": crew_status.get("agents", []),
+                        "current_task": crew_status.get("current_task", None),
+                        "started_at": crew_status.get("started_at", None),
+                        "completed_at": crew_status.get("completed_at", None),
+                        "performance_metrics": crew_status.get("performance_metrics", {})
+                    }
+                else:
+                    monitoring_data["crews"][crew_type] = {
+                        "status": "not_implemented",
+                        "progress": 0,
+                        "agents": [],
+                        "current_task": None
+                    }
+            except Exception as e:
+                monitoring_data["crews"][crew_type] = {
+                    "status": "error",
+                    "error": str(e),
+                    "progress": 0
+                }
+        
+        # Get overall flow status
+        if hasattr(flow_instance, 'get_current_status'):
+            overall_status = flow_instance.get_current_status()
+            monitoring_data["overall_status"] = overall_status.get("status", "unknown")
+            monitoring_data["current_phase"] = overall_status.get("current_phase", "unknown")
+        
+        return jsonable_encoder(monitoring_data)
+        
+    except Exception as e:
+        logger.error(f"Failed to get crew monitoring data: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get crew monitoring data: {str(e)}")
+
+@router.get("/memory/analytics/{flow_id}")
+async def get_memory_analytics(
+    flow_id: str,
+    report_type: str = "summary",
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
+):
+    """Get memory analytics data for visualization."""
+    try:
+        flow_instance = service.get_flow_instance(flow_id)
+        if not flow_instance:
+            raise HTTPException(status_code=404, detail="Flow not found")
+        
+        if hasattr(flow_instance, 'get_memory_analytics_report'):
+            analytics_data = flow_instance.get_memory_analytics_report(report_type)
+            return jsonable_encoder(analytics_data)
+        else:
+            return {"available": False, "reason": "Memory analytics not implemented"}
+            
+    except Exception as e:
+        logger.error(f"Failed to get memory analytics: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get memory analytics: {str(e)}")
+
+@router.get("/planning/intelligence/{flow_id}")
+async def get_planning_intelligence(
+    flow_id: str,
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
+):
+    """Get planning intelligence data for visualization."""
+    try:
+        flow_instance = service.get_flow_instance(flow_id)
+        if not flow_instance:
+            raise HTTPException(status_code=404, detail="Flow not found")
+        
+        planning_data = {
+            "flow_id": flow_id,
+            "planning_available": False,
+            "coordination_plan": {},
+            "dynamic_planning": {},
+            "success_criteria": {},
+            "adaptive_workflow": {},
+            "planning_intelligence": {}
+        }
+        
+        # Get coordination plan
+        if hasattr(flow_instance, 'coordinate_crew_planning'):
+            try:
+                coordination_result = flow_instance.coordinate_crew_planning({
+                    "record_count": 1000,
+                    "field_count": 20,
+                    "data_quality_score": 0.8
+                })
+                planning_data["coordination_plan"] = coordination_result
+                planning_data["planning_available"] = True
+            except Exception as e:
+                planning_data["coordination_plan"] = {"error": str(e)}
+        
+        # Get dynamic planning
+        if hasattr(flow_instance, 'create_dynamic_plan'):
+            try:
+                complexity_analysis = {"overall_complexity": "medium"}
+                dynamic_plan = flow_instance.create_dynamic_plan(complexity_analysis)
+                planning_data["dynamic_planning"] = dynamic_plan
+            except Exception as e:
+                planning_data["dynamic_planning"] = {"error": str(e)}
+        
+        # Get planning intelligence
+        if hasattr(flow_instance, 'apply_planning_intelligence'):
+            try:
+                intelligence_result = flow_instance.apply_planning_intelligence({
+                    "data_complexity": "medium",
+                    "historical_performance": 0.8
+                })
+                planning_data["planning_intelligence"] = intelligence_result
+            except Exception as e:
+                planning_data["planning_intelligence"] = {"error": str(e)}
+        
+        return jsonable_encoder(planning_data)
+        
+    except Exception as e:
+        logger.error(f"Failed to get planning intelligence: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get planning intelligence: {str(e)}")
+
+@router.get("/collaboration/analytics/{flow_id}")
+async def get_collaboration_analytics(
+    flow_id: str,
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
+):
+    """Get collaboration analytics for advanced dashboard."""
+    try:
+        flow_instance = service.get_flow_instance(flow_id)
+        if not flow_instance:
+            raise HTTPException(status_code=404, detail="Flow not found")
+        
+        analytics_data = {
+            "flow_id": flow_id,
+            "collaboration_available": False,
+            "agent_collaboration": {},
+            "cross_crew_sharing": {},
+            "knowledge_utilization": {},
+            "collaboration_effectiveness": {}
+        }
+        
+        # Get collaboration status
+        if hasattr(flow_instance, 'get_collaboration_status'):
+            collaboration_status = flow_instance.get_collaboration_status()
+            analytics_data["agent_collaboration"] = collaboration_status
+            analytics_data["collaboration_available"] = True
+        
+        # Get memory analytics
+        if hasattr(flow_instance, 'get_memory_analytics_report'):
+            memory_analytics = flow_instance.get_memory_analytics_report("detailed")
+            analytics_data["cross_crew_sharing"] = memory_analytics.get("report", {}).get("cross_domain_insights", {})
+            analytics_data["knowledge_utilization"] = memory_analytics.get("report", {}).get("knowledge_utilization", {})
+        
+        return jsonable_encoder(analytics_data)
+        
+    except Exception as e:
+        logger.error(f"Failed to get collaboration analytics: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get collaboration analytics: {str(e)}")
+
+@router.get("/agents/performance/{flow_id}")
+async def get_agent_performance_metrics(
+    flow_id: str,
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
+):
+    """Get detailed agent performance metrics."""
+    try:
+        flow_instance = service.get_flow_instance(flow_id)
+        if not flow_instance:
+            raise HTTPException(status_code=404, detail="Flow not found")
+        
+        performance_data = {
+            "flow_id": flow_id,
+            "agents": {},
+            "crews": {},
+            "learning_metrics": {},
+            "success_rates": {}
+        }
+        
+        # Get learning effectiveness metrics
+        if hasattr(flow_instance, 'get_learning_effectiveness_metrics'):
+            learning_metrics = flow_instance.get_learning_effectiveness_metrics()
+            performance_data["learning_metrics"] = learning_metrics
+        
+        # Get callback metrics
+        if hasattr(flow_instance, 'get_callback_metrics'):
+            callback_metrics = flow_instance.get_callback_metrics()
+            performance_data["callback_metrics"] = callback_metrics
+        
+        return jsonable_encoder(performance_data)
+        
+    except Exception as e:
+        logger.error(f"Failed to get agent performance metrics: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get agent performance metrics: {str(e)}")
+
+@router.post("/planning/optimize/{flow_id}")
+async def optimize_planning(
+    flow_id: str,
+    optimization_request: Dict[str, Any],
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
+):
+    """Optimize planning based on current performance data."""
+    try:
+        flow_instance = service.get_flow_instance(flow_id)
+        if not flow_instance:
+            raise HTTPException(status_code=404, detail="Flow not found")
+        
+        optimization_result = {
+            "flow_id": flow_id,
+            "optimization_applied": False,
+            "recommendations": [],
+            "performance_impact": {}
+        }
+        
+        # Apply adaptive workflow management
+        if hasattr(flow_instance, 'adapt_workflow_strategy'):
+            try:
+                current_performance = optimization_request.get("current_performance", {
+                    "overall_performance": 0.8,
+                    "resource_utilization": 0.6,
+                    "time_efficiency": 0.75
+                })
+                
+                adaptation_result = flow_instance.adapt_workflow_strategy(current_performance)
+                optimization_result["optimization_applied"] = adaptation_result.get("adapted", False)
+                optimization_result["workflow_adaptation"] = adaptation_result
+            except Exception as e:
+                optimization_result["workflow_adaptation_error"] = str(e)
+        
+        # Apply planning intelligence
+        if hasattr(flow_instance, 'apply_planning_intelligence'):
+            try:
+                planning_context = optimization_request.get("planning_context", {
+                    "data_complexity": "medium",
+                    "historical_performance": 0.8
+                })
+                
+                intelligence_result = flow_instance.apply_planning_intelligence(planning_context)
+                optimization_result["planning_intelligence"] = intelligence_result
+                optimization_result["recommendations"] = intelligence_result.get("recommendations", [])
+            except Exception as e:
+                optimization_result["planning_intelligence_error"] = str(e)
+        
+        return jsonable_encoder(optimization_result)
+        
+    except Exception as e:
+        logger.error(f"Failed to optimize planning: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to optimize planning: {str(e)}")
+
+@router.get("/ui/dashboard-data/{flow_id}")
+async def get_dashboard_data(
+    flow_id: str,
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
+):
+    """Get comprehensive dashboard data for UI components."""
+    try:
+        flow_instance = service.get_flow_instance(flow_id)
+        if not flow_instance:
+            raise HTTPException(status_code=404, detail="Flow not found")
+        
+        dashboard_data = {
+            "flow_id": flow_id,
+            "timestamp": datetime.utcnow().isoformat(),
+            "crew_monitoring": {},
+            "memory_analytics": {},
+            "planning_status": {},
+            "collaboration_tracking": {},
+            "performance_metrics": {},
+            "success_criteria": {}
+        }
+        
+        # Aggregate data from all endpoints
+        try:
+            # Crew monitoring data
+            crew_monitoring = await get_crew_monitoring_data(flow_id, service)
+            dashboard_data["crew_monitoring"] = crew_monitoring
+        except Exception as e:
+            dashboard_data["crew_monitoring"] = {"error": str(e)}
+        
+        try:
+            # Memory analytics
+            memory_analytics = await get_memory_analytics(flow_id, "summary", service)
+            dashboard_data["memory_analytics"] = memory_analytics
+        except Exception as e:
+            dashboard_data["memory_analytics"] = {"error": str(e)}
+        
+        try:
+            # Planning intelligence
+            planning_intelligence = await get_planning_intelligence(flow_id, service)
+            dashboard_data["planning_status"] = planning_intelligence
+        except Exception as e:
+            dashboard_data["planning_status"] = {"error": str(e)}
+        
+        try:
+            # Collaboration analytics
+            collaboration_analytics = await get_collaboration_analytics(flow_id, service)
+            dashboard_data["collaboration_tracking"] = collaboration_analytics
+        except Exception as e:
+            dashboard_data["collaboration_tracking"] = {"error": str(e)}
+        
+        try:
+            # Performance metrics
+            performance_metrics = await get_agent_performance_metrics(flow_id, service)
+            dashboard_data["performance_metrics"] = performance_metrics
+        except Exception as e:
+            dashboard_data["performance_metrics"] = {"error": str(e)}
+        
+        return jsonable_encoder(dashboard_data)
+        
+    except Exception as e:
+        logger.error(f"Failed to get dashboard data: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get dashboard data: {str(e)}")
 
 # Export router
 __all__ = ["router"] 
