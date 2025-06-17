@@ -18,6 +18,7 @@ from app.api.v1.endpoints import (
     sessions_router,
     context_router,
     test_discovery_router,
+    agents_router,
 )
 from app.api.v1.discovery import discovery_flow_router
 
@@ -56,6 +57,9 @@ api_router.include_router(user_approvals_router, prefix="/admin/approvals", tags
 
 # Include context router
 api_router.include_router(context_router, prefix="", tags=["Context"])
+
+# Include agents router
+api_router.include_router(agents_router, prefix="/agents", tags=["Agents"])
 
 # Include test discovery router for debugging
 api_router.include_router(test_discovery_router, prefix="/test-discovery", tags=["Test Discovery"])
