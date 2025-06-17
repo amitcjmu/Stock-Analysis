@@ -135,11 +135,36 @@ class CrewAIFlowService:
             # Generate session ID
             session_id = context.session_id or str(uuid.uuid4())
             
-            # Smart session management - check for existing workflows
+            # Validate and convert context IDs to UUIDs with fallbacks FIRST
+            try:
+                client_account_uuid = uuid.UUID(context.client_account_id) if context.client_account_id else None
+            except (ValueError, TypeError):
+                logger.warning(f"Invalid client_account_id format: {context.client_account_id}, using fallback")
+                # Use demo client UUID as fallback
+                client_account_uuid = uuid.UUID("bafd5b46-aaaf-4c95-8142-573699d93171")
+            
+            try:
+                engagement_uuid = uuid.UUID(context.engagement_id) if context.engagement_id else None
+            except (ValueError, TypeError):
+                logger.warning(f"Invalid engagement_id format: {context.engagement_id}, using fallback")
+                # Use demo engagement UUID as fallback
+                engagement_uuid = uuid.UUID("6e9c8133-4169-4b79-b052-106dc93d0208")
+            
+            # Ensure we have valid UUIDs (use fallbacks if None)
+            if client_account_uuid is None:
+                client_account_uuid = uuid.UUID("bafd5b46-aaaf-4c95-8142-573699d93171")
+            if engagement_uuid is None:
+                engagement_uuid = uuid.UUID("6e9c8133-4169-4b79-b052-106dc93d0208")
+            
+            # Update context with validated UUIDs (convert back to strings)
+            context.client_account_id = str(client_account_uuid)
+            context.engagement_id = str(engagement_uuid)
+            
+            # Smart session management - create initial state data with validated IDs
             initial_state_data = {
                 "session_id": session_id,
-                "client_account_id": context.client_account_id,
-                "engagement_id": context.engagement_id,
+                "client_account_id": context.client_account_id,  # Now has validated UUID string
+                "engagement_id": context.engagement_id,  # Now has validated UUID string
                 "user_id": context.user_id or "anonymous",
                 "status": "running",
                 "current_phase": "initialization",
@@ -153,8 +178,8 @@ class CrewAIFlowService:
             # Use smart session management to handle duplicates
             workflow_state, is_new, message = await self.state_service.get_or_create_workflow_state(
                 session_id=session_id,
-                client_account_id=uuid.UUID(context.client_account_id),
-                engagement_id=uuid.UUID(context.engagement_id),
+                client_account_id=client_account_uuid,
+                engagement_id=engagement_uuid,
                 workflow_type="discovery",
                 current_phase="initialization",
                 initial_state_data=initial_state_data,
@@ -375,14 +400,30 @@ class CrewAIFlowService:
                 }
             
             # Use the smart session management to get the primary workflow from database
-            # Handle UUID parsing more safely
+            # Handle UUID parsing more safely with fallbacks
             try:
                 session_uuid = uuid.UUID(session_id)
-                client_uuid = uuid.UUID(context.client_account_id)
-                engagement_uuid = uuid.UUID(context.engagement_id)
-            except (ValueError, AttributeError) as uuid_error:
-                logger.error(f"Invalid UUID format for session {session_id}: {uuid_error}")
+            except (ValueError, TypeError):
+                logger.error(f"Invalid session UUID format: {session_id}")
                 return None
+            
+            try:
+                client_uuid = uuid.UUID(context.client_account_id) if context.client_account_id else None
+            except (ValueError, TypeError):
+                logger.warning(f"Invalid client_account_id format: {context.client_account_id}, using demo fallback")
+                client_uuid = uuid.UUID("bafd5b46-aaaf-4c95-8142-573699d93171")
+                
+            try:
+                engagement_uuid = uuid.UUID(context.engagement_id) if context.engagement_id else None
+            except (ValueError, TypeError):
+                logger.warning(f"Invalid engagement_id format: {context.engagement_id}, using demo fallback") 
+                engagement_uuid = uuid.UUID("6e9c8133-4169-4b79-b052-106dc93d0208")
+            
+            # Ensure we have valid UUIDs (use fallbacks if None)
+            if client_uuid is None:
+                client_uuid = uuid.UUID("bafd5b46-aaaf-4c95-8142-573699d93171")
+            if engagement_uuid is None:
+                engagement_uuid = uuid.UUID("6e9c8133-4169-4b79-b052-106dc93d0208")
             
             workflow_state = await self.state_service.get_active_workflow_for_session(
                 session_id=session_uuid,
