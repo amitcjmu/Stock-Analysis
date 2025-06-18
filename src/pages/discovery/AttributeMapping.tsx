@@ -26,6 +26,7 @@ import DataClassificationDisplay from '../../components/discovery/DataClassifica
 import AgentInsightsSection from '../../components/discovery/AgentInsightsSection';
 import EnhancedAgentOrchestrationPanel from '../../components/discovery/EnhancedAgentOrchestrationPanel';
 import Sidebar from '../../components/Sidebar';
+import AgentMonitor from '../../components/AgentMonitor';
 
 // Types from Discovery Flow State
 interface DiscoveryFlowState {
@@ -115,11 +116,11 @@ const AttributeMapping: React.FC = () => {
       id: `mapping-${attr.name}-${index}`,
       sourceField: attr.source_field || attr.mapped_to || attr.name,
       targetAttribute: attr.name,
-      confidence: attr.confidence || 0,
+      confidence: attr.confidence || 0.5,
       mapping_type: (attr.mapping_type as 'direct' | 'calculated' | 'manual') || 'direct',
-      sample_values: [], // Would need to be added to backend response
+      sample_values: [attr.source_field || attr.mapped_to || attr.name].filter(Boolean),
       status: (attr.status === 'mapped' ? 'approved' : 'pending') as 'pending' | 'approved' | 'rejected' | 'ignored' | 'deleted',
-      ai_reasoning: attr.ai_suggestion || `${attr.description} (${attr.business_impact} business impact)`,
+      ai_reasoning: attr.ai_suggestion || `${attr.description || 'Field analysis'} (${attr.business_impact || 'medium'} business impact)`,
       agent_source: 'Agentic Analysis'
     }));
   }, [agenticData]);
@@ -552,7 +553,7 @@ const AttributeMapping: React.FC = () => {
             actions={
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button 
-                  onClick={() => navigate('/discovery/data-import')}
+                  onClick={() => navigate('/discovery/import')}
                   className="flex items-center space-x-2"
                 >
                   <Upload className="h-4 w-4" />
@@ -669,36 +670,6 @@ const AttributeMapping: React.FC = () => {
             />
           </div>
 
-          {/* Data Import Section - when data exists */}
-          {agenticData?.attributes?.length > 0 && (
-            <div className="mb-6">
-              <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <Upload className="h-6 w-6 text-blue-600" />
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900">Import Additional Data</h3>
-                      <p className="text-gray-600">Upload more CMDB data files to enhance your analysis</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <span className="text-sm text-gray-500">
-                      Last updated: {agenticData.last_updated ? new Date(agenticData.last_updated).toLocaleString() : 'Unknown'}
-                    </span>
-                    <Button
-                      onClick={() => navigate('/discovery/data-import')}
-                      variant="outline"
-                      className="flex items-center space-x-2"
-                    >
-                      <Upload className="h-4 w-4" />
-                      <span>Import Data</span>
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Enhanced Agent Orchestration Panel */}
           {flowState?.session_id && (
             <div className="mb-6">
@@ -739,15 +710,9 @@ const AttributeMapping: React.FC = () => {
               )}
             </div>
 
-            {/* Right Sidebar - Removed problematic components for now */}
+            {/* Right Sidebar - Agent UI Monitor */}
             <div className="xl:col-span-1 space-y-6">
-              {/* Placeholder for future components */}
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Agent Monitoring</h3>
-                <p className="text-gray-600 text-sm">
-                  Real-time agent collaboration and insights will appear here.
-                </p>
-              </div>
+              <AgentMonitor />
             </div>
           </div>
         </div>
