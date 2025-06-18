@@ -119,7 +119,7 @@ const AttributeMapping: React.FC = () => {
       confidence: attr.confidence || 0.5,
       mapping_type: (attr.mapping_type as 'direct' | 'calculated' | 'manual') || 'direct',
       sample_values: [attr.source_field || attr.mapped_to || attr.name].filter(Boolean),
-      status: (attr.status === 'mapped' ? 'approved' : 'pending') as 'pending' | 'approved' | 'rejected' | 'ignored' | 'deleted',
+      status: 'pending' as 'pending' | 'approved' | 'rejected' | 'ignored' | 'deleted',
       ai_reasoning: attr.ai_suggestion || `${attr.description || 'Field analysis'} (${attr.business_impact || 'medium'} business impact)`,
       agent_source: 'Agentic Analysis'
     }));
@@ -603,7 +603,7 @@ const AttributeMapping: React.FC = () => {
                 <h1 className="text-3xl font-bold text-gray-900">Attribute Mapping & AI Training</h1>
                 <p className="text-gray-600">
                   {agenticData?.attributes?.length > 0 
-                    ? `Analyzing ${agenticData.attributes.length} attributes with ${agenticData.statistics.migration_critical_count} migration-critical fields identified` 
+                    ? `${agenticData.statistics.total_attributes} analysis attributes identified from ${flowState?.raw_data?.length || 1} imported record(s) with ${agenticData.statistics.migration_critical_count} migration-critical fields` 
                     : 'Train the AI crew to understand your data\'s attribute associations and field mappings'
                   }
                 </p>

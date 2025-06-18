@@ -43,14 +43,14 @@ export interface AgentMonitorData {
 }
 
 export const useAgentMonitor = () => {
-  const { getContextHeaders } = useAuth();
+  const { getAuthHeaders } = useAuth();
 
   return useQuery<AgentMonitorData>({
     queryKey: ['agent-monitor'],
     queryFn: async () => {
       const response = await apiCall('agents/monitor', {
         method: 'GET',
-        headers: getContextHeaders()
+        headers: getAuthHeaders()
       });
       return response;
     },

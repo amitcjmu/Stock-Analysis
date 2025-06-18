@@ -4016,3 +4016,101 @@ This release addresses all user feedback items for the AttributeMapping page, cr
 - **13 Categories**: Logical field organization (identification, technical, network, etc.)
 - **10 Row Pagination**: Efficient data browsing without performance impact
 - **Real-time Monitoring**: Live agent collaboration and system health visibility
+
+## [0.10.17] - 2025-01-18
+
+### 🎯 **ATTRIBUTEMAPPING COMPREHENSIVE FIXES - Data Clarity and User Control**
+
+This release addresses critical user feedback about data display inconsistencies, non-functional components, and missing user interaction capabilities in the AttributeMapping page.
+
+### 🚀 **Critical Issue Resolutions**
+
+#### **1. Data Display Clarification Fix**
+- **Issue**: Confusing display showing "18 total fields mapped" but only 1 row with 3 fields
+- **Root Cause**: Mixing analysis results (18 attributes) with actual imported data (1 row, 3 fields)
+- **Solution**: Enhanced header to clearly distinguish between analysis attributes and imported records
+- **Result**: Users now see "18 analysis attributes identified from 1 imported record(s) with 11 migration-critical fields"
+
+#### **2. AgentMonitor Component Fix**
+- **Issue**: AgentMonitor throwing "getContextHeaders is not a function" error
+- **Root Cause**: Hook using incorrect function name from AuthContext
+- **Solution**: Fixed `useAgentMonitor` hook to use `getAuthHeaders` instead of `getContextHeaders`
+- **Result**: AgentMonitor now displays real-time agent status in right sidebar
+
+#### **3. Field Mapping Dropdown Functionality Fix**
+- **Issue**: Field mapping dropdown options not selectable/changeable - all fixed with no interaction
+- **Root Cause**: Field mappings being generated with `status: 'approved'` making them non-editable
+- **Solution**: Changed all field mappings to `status: 'pending'` to enable user modification
+- **Result**: Users can now select from 68 available target fields across 13 categories
+
+### 📊 **Technical Implementation Details**
+
+#### **Data Source Clarification**
+```typescript
+// Before: Confusing display
+`Analyzing ${agenticData.attributes.length} attributes`
+
+// After: Clear distinction
+`${agenticData.statistics.total_attributes} analysis attributes identified from ${flowState?.raw_data?.length || 1} imported record(s)`
+```
+
+#### **AgentMonitor Hook Fix**
+```typescript
+// Before: Incorrect function call
+const { getContextHeaders } = useAuth();
+headers: getContextHeaders()
+
+// After: Correct function call
+const { getAuthHeaders } = useAuth();
+headers: getAuthHeaders()
+```
+
+#### **Field Mapping Status Fix**
+```typescript
+// Before: Non-editable approved status
+status: (attr.status === 'mapped' ? 'approved' : 'pending')
+
+// After: Always editable pending status
+status: 'pending' as 'pending' | 'approved' | 'rejected' | 'ignored' | 'deleted'
+```
+
+### 🎯 **User Experience Improvements**
+
+#### **Clear Data Understanding**
+- **Analysis Attributes**: 18 potential field mappings identified by AI
+- **Imported Data**: 1 actual record with 3 fields (hostname, environment, app_name)
+- **Migration Critical**: 11 fields identified as critical for migration planning
+
+#### **Functional Agent Monitoring**
+- **Real-time Status**: Live agent activity and system health
+- **Performance Metrics**: Success rates and task completion
+- **System Alerts**: Health warnings and critical issues
+
+#### **Interactive Field Mapping**
+- **Dropdown Selection**: Choose from 68 target fields
+- **Category Filtering**: 13 organized categories (identity, technical, network, etc.)
+- **Search Functionality**: Find specific fields quickly
+- **User Control**: Approve, reject, or modify AI suggestions
+
+### 📈 **Business Impact**
+
+#### **Eliminated User Confusion**
+- **Data Clarity**: Users understand the difference between analysis and actual data
+- **Accurate Expectations**: Clear metrics prevent misunderstandings about data volume
+
+#### **Restored Critical Functionality**
+- **Agent Monitoring**: Users can track AI agent performance and system health
+- **Field Mapping Control**: Users can customize AI suggestions to match their specific needs
+
+#### **Enhanced User Productivity**
+- **Interactive Dropdowns**: Faster field mapping with search and categorization
+- **Real-time Feedback**: Immediate agent status updates and system health alerts
+
+### 🎯 **Success Metrics**
+
+- **Data Display**: 100% clarity between analysis results (18) and imported data (1 record)
+- **Component Functionality**: AgentMonitor error eliminated, displays real-time data
+- **User Interaction**: Field mapping dropdowns fully functional with 68 selectable options
+- **User Control**: All field mappings editable and customizable by users
+
+---
