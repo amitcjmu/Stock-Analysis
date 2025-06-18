@@ -36,6 +36,15 @@ services:
       - ENVIRONMENT=development
       - DEBUG=true
       - PYTHONPATH=/app
+      # Disable OpenTelemetry to prevent connection errors
+      - OTEL_SDK_DISABLED=true
+      - OTEL_TRACES_EXPORTER=none
+      - OTEL_METRICS_EXPORTER=none
+      - OTEL_LOGS_EXPORTER=none
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=
+      - OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=  
+      - OTEL_EXPORTER_OTLP_LOGS_ENDPOINT=
+      - OTEL_PYTHON_DISABLED_INSTRUMENTATIONS=all
     ports:
       - "8000:8000"
     depends_on:

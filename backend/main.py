@@ -3,6 +3,14 @@ AI Force Migration Platform - FastAPI Backend
 Main application entry point with CORS, routing, and WebSocket support.
 """
 
+# Disable OpenTelemetry before any other imports to prevent connection errors
+import os
+os.environ.setdefault("OTEL_SDK_DISABLED", "true")
+os.environ.setdefault("OTEL_TRACES_EXPORTER", "none")
+os.environ.setdefault("OTEL_METRICS_EXPORTER", "none")
+os.environ.setdefault("OTEL_LOGS_EXPORTER", "none")
+os.environ.setdefault("OTEL_PYTHON_DISABLED_INSTRUMENTATIONS", "all")
+
 import sys
 import traceback
 import logging

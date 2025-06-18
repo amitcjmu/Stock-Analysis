@@ -3499,3 +3499,49 @@ This release completes the fingerprint removal and resolves critical logger erro
 ---
 
 ## [0.7.3] - 2025-01-27
+
+## [0.7.5] - 2025-01-27
+
+### 🎯 **OPENTELEMETRY CONNECTION ERROR RESOLUTION**
+
+This release resolves OpenTelemetry connection errors that were causing log spam and potential performance issues.
+
+### 🚀 **Telemetry System Cleanup**
+
+#### **OpenTelemetry Connection Error Fix**
+- **Problem**: OpenTelemetry auto-instrumentation trying to export spans to non-existent telemetry collector
+- **Error**: `Connection refused [Errno 111]` to localhost:4318 telemetry endpoint
+- **Root Cause**: OpenTelemetry packages installed but no collector service configured
+- **Solution**: Comprehensive OpenTelemetry disabling at application and environment level
+
+#### **Multi-Layer OpenTelemetry Disabling**
+- **Application Level**: Added OTEL environment variable setting in main.py before imports
+- **Container Level**: Added comprehensive OTEL disable flags in docker-compose.yml
+- **Environment Variables**: Set OTEL_SDK_DISABLED=true and disabled all exporters
+- **Instrumentation**: Disabled Python auto-instrumentation with OTEL_PYTHON_DISABLED_INSTRUMENTATIONS=all
+
+### 🔧 **Technical Implementation**
+
+#### **Environment Configuration**
+- **Docker Compose**: Added OTEL_SDK_DISABLED, OTEL_TRACES_EXPORTER=none, OTEL_METRICS_EXPORTER=none
+- **Application**: Set environment variables before any imports to prevent auto-instrumentation
+- **Comprehensive**: Disabled traces, metrics, logs, and all Python instrumentations
+
+#### **Clean Backend Operation**
+- **Log Cleanup**: Eliminated recurring connection error spam in backend logs
+- **Performance**: Removed unnecessary telemetry export attempts
+- **Stability**: Backend now runs without connection error noise
+
+### 📊 **Business Impact**
+- **Clean Logs**: Backend logs now focus on application events without telemetry noise
+- **Improved Performance**: No more failed telemetry export attempts consuming resources
+- **Better Monitoring**: Actual application issues more visible without telemetry error spam
+
+### 🎯 **Success Metrics**
+- **Error Elimination**: Zero OpenTelemetry connection errors in logs
+- **Discovery Flow**: Continues to function perfectly without telemetry interference
+- **Clean Operation**: Backend startup and operation without connection error noise
+
+---
+
+## [0.7.4] - 2025-01-27
