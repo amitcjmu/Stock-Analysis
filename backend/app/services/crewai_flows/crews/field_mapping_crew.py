@@ -241,17 +241,24 @@ class FieldMappingCrew:
         
         # Add advanced features if available
         if CREWAI_ADVANCED_AVAILABLE:
+            # Ensure manager_llm uses our configured LLM and not gpt-4o-mini
             advanced_config = {
-                "manager_llm": self.llm,
+                "manager_llm": self.llm,  # Critical: Use our DeepInfra LLM
                 "planning": True,
+                "planning_llm": self.llm,  # Force planning to use our LLM too
                 "memory": True,
                 "share_crew": True
             }
             if self.knowledge_base:
                 advanced_config["knowledge"] = self.knowledge_base
             crew_config.update(advanced_config)
+            
+            # Additional environment override to prevent any gpt-4o-mini fallback
+            import os
+            os.environ["OPENAI_MODEL_NAME"] = str(self.llm.model) if hasattr(self.llm, 'model') else "deepinfra/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
         
         logger.info(f"Creating Field Mapping Crew with {process.name if hasattr(process, 'name') else 'sequential'} process")
+        logger.info(f"Using LLM: {self.llm.model if hasattr(self.llm, 'model') else 'Unknown'}")
         return Crew(**crew_config)
     
     def _create_schema_analysis_tools(self):

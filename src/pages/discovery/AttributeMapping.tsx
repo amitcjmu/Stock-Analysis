@@ -169,26 +169,76 @@ const AttributeMapping: React.FC = () => {
     };
   }, [agenticData]);
 
-  // Initialize Discovery Flow on component mount (if needed)
+  // Initialize Discovery Flow on component mount (if needed) - DISABLED to prevent constant requests
   useEffect(() => {
-    const initializeDiscoveryFlow = async () => {
+    const checkDataAvailability = async () => {
       if (!client || !engagement) return;
       
-      // Only initialize if we don't have agentic data and no flow state
+      // Only log status, don't automatically initialize flow
       if (agenticData?.attributes?.length > 0) {
-        console.log('✅ Using agentic data, skipping Discovery Flow initialization');
+        console.log('✅ Using agentic data, Discovery Flow initialization not needed');
         return;
       }
       
+      console.log('ℹ️ No agentic data available. User can manually trigger analysis if needed.');
+      
+      // Check if data is available but don't automatically trigger flow
       try {
-        // Check if we have data from navigation state or need to load it
+        const state = location.state as any;
+        let rawData = [];
+        
+        if (state?.importedData && state.importedData.length > 0) {
+          rawData = state.importedData;
+          console.log(`ℹ️ Data available from navigation state: ${rawData.length} records`);
+        } else {
+          // Just check latest import without triggering flow
+          try {
+            const latestImportResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.LATEST_IMPORT);
+            rawData = latestImportResponse?.data || [];
+            if (rawData.length > 0) {
+              console.log(`ℹ️ Data available from latest import: ${rawData.length} records`);
+            }
+          } catch (error) {
+            console.warn('Could not check latest import:', error);
+          }
+        }
+        
+        if (rawData.length === 0) {
+          console.log('ℹ️ No data available for Discovery Flow. Import data first.');
+        }
+        
+      } catch (error) {
+        console.error('❌ Failed to check data availability:', error);
+      }
+    };
+    
+    // Only check data availability, don't auto-initialize
+    checkDataAvailability();
+  }, [client, engagement, agenticData]); // Removed dependencies that triggered re-runs
+
+  // Manual trigger for field mapping analysis
+  const handleTriggerFieldMappingCrew = useCallback(async () => {
+    try {
+      setIsAnalyzing(true);
+      toast({
+        title: "🤖 Triggering Field Mapping Analysis",
+        description: "Starting field mapping analysis with latest data...",
+      });
+
+      // Check if we need to initialize Discovery Flow first
+      if (!flowState?.session_id && !agenticData?.attributes?.length) {
+        toast({
+          title: "🚀 Initializing Discovery Flow",
+          description: "Setting up Discovery Flow for field mapping analysis...",
+        });
+
+        // Get data from navigation state or latest import
         const state = location.state as any;
         let rawData = [];
         
         if (state?.importedData && state.importedData.length > 0) {
           rawData = state.importedData;
         } else {
-          // Load from latest import
           try {
             const latestImportResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.LATEST_IMPORT);
             rawData = latestImportResponse?.data || [];
@@ -198,52 +248,35 @@ const AttributeMapping: React.FC = () => {
         }
         
         if (rawData.length === 0) {
-          console.warn('No data available for Discovery Flow initialization');
+          toast({
+            title: "❌ No Data Available",
+            description: "Please import CMDB data first before running field mapping analysis.",
+            variant: "destructive"
+          });
           return;
         }
-        
+
         // Initialize Discovery Flow with data
         await initializeFlow.mutateAsync({
-          client_account_id: client.id,
-          engagement_id: engagement.id,
+          client_account_id: client!.id,
+          engagement_id: engagement!.id,
           user_id: user?.id || 'anonymous',
           raw_data: rawData,
           metadata: {
-            source: 'attribute_mapping_page',
+            source: 'attribute_mapping_manual_trigger',
             filename: state?.filename || 'imported_data.csv'
           }
         });
         
-        console.log('✅ Discovery Flow initialized for AttributeMapping');
-        
-      } catch (error) {
-        console.error('❌ Failed to initialize Discovery Flow:', error);
-        toast({
-          title: "Flow Initialization Failed",
-          description: "Unable to initialize Discovery Flow. Please try importing data first.",
-          variant: "destructive"
-        });
+        console.log('✅ Discovery Flow initialized for manual field mapping analysis');
       }
-    };
-    
-    initializeDiscoveryFlow();
-  }, [client, engagement, user, location.state, initializeFlow, toast, agenticData]);
-
-  // Manual trigger for field mapping analysis
-  const handleTriggerFieldMappingCrew = useCallback(async () => {
-    try {
-      setIsAnalyzing(true);
-      toast({
-        title: "🤖 Triggering Field Mapping Analysis",
-        description: "Re-analyzing field mappings with latest data...",
-      });
 
       // Refetch agentic data to trigger new analysis
       await refetchAgentic();
 
       toast({
         title: "✅ Analysis Complete", 
-        description: "Field mapping analysis has been refreshed.",
+        description: "Field mapping analysis has been completed.",
       });
     } catch (error) {
       console.error('Failed to trigger field mapping analysis:', error);
@@ -255,7 +288,7 @@ const AttributeMapping: React.FC = () => {
     } finally {
       setIsAnalyzing(false);
     }
-  }, [refetchAgentic, toast]);
+  }, [refetchAgentic, toast, flowState, agenticData, initializeFlow, client, engagement, user, location.state]);
 
   // Manual refresh function for data updates
   const handleManualRefresh = useCallback(async () => {

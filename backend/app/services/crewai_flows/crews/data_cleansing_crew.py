@@ -236,15 +236,22 @@ class DataCleansingCrew:
         
         # Add advanced features if available
         if CREWAI_ADVANCED_AVAILABLE:
+            # Ensure manager_llm uses our configured LLM and not gpt-4o-mini
             crew_config.update({
-                "manager_llm": self.llm,
+                "manager_llm": self.llm,  # Critical: Use our DeepInfra LLM
                 "planning": True,
+                "planning_llm": self.llm,  # Force planning to use our LLM too
                 "memory": True,
                 "knowledge": self.knowledge_base,
                 "share_crew": True
             })
+            
+            # Additional environment override to prevent any gpt-4o-mini fallback
+            import os
+            os.environ["OPENAI_MODEL_NAME"] = str(self.llm.model) if hasattr(self.llm, 'model') else "deepinfra/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
         
         logger.info(f"Creating Data Cleansing Crew with {process.name if hasattr(process, 'name') else 'sequential'} process")
+        logger.info(f"Using LLM: {self.llm.model if hasattr(self.llm, 'model') else 'Unknown'}")
         return Crew(**crew_config)
     
     def _create_validation_tools(self):
