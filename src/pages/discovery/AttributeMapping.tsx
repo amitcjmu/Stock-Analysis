@@ -79,7 +79,7 @@ interface MappingProgress {
 }
 
 const AttributeMapping: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'mappings' | 'data'>('mappings');
+  const [activeTab, setActiveTab] = useState<'mappings' | 'data' | 'critical'>('critical');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { toast } = useToast();
   const { user, client, engagement, session } = useAuth();
@@ -167,6 +167,28 @@ const AttributeMapping: React.FC = () => {
         field_mapping: agenticData.statistics.assessment_ready
       }
     };
+  }, [agenticData]);
+
+  // Convert agentic critical attributes to the format expected by CriticalAttributesTab
+  const criticalAttributes = useMemo(() => {
+    if (!agenticData?.attributes) return [];
+    
+    return agenticData.attributes.map(attr => ({
+      name: attr.name,
+      description: attr.description,
+      category: attr.category,
+      required: attr.migration_critical || false,
+      status: (attr.status === 'mapped' ? 'mapped' : 'unmapped') as 'mapped' | 'unmapped' | 'partially_mapped',
+      mapped_to: attr.mapped_to,
+      source_field: attr.source_field,
+      confidence: attr.confidence,
+      quality_score: attr.quality_score,
+      completeness_percentage: attr.completeness_percentage,
+      mapping_type: (attr.mapping_type as 'direct' | 'calculated' | 'manual' | 'derived') || 'direct',
+      ai_suggestion: attr.ai_suggestion,
+      business_impact: (attr.business_impact as 'high' | 'medium' | 'low') || 'medium',
+      migration_critical: attr.migration_critical || false
+    }));
   }, [agenticData]);
 
   // Initialize Discovery Flow on component mount (if needed) - DISABLED to prevent constant requests
@@ -451,6 +473,14 @@ const AttributeMapping: React.FC = () => {
         return (
           <ImportedDataTab />
         );
+      case 'critical':
+        return (
+          <CriticalAttributesTab 
+            criticalAttributes={criticalAttributes}
+            isAnalyzing={isAnalyzing}
+            fieldMappings={fieldMappings}
+          />
+        );
       default:
         return (
           <div className="p-8 text-center">
@@ -461,7 +491,7 @@ const AttributeMapping: React.FC = () => {
   };
 
   // Show loading state while initializing
-  if (isFlowStateLoading && !flowState) {
+  if ((isFlowStateLoading && !flowState) || isAgenticLoading) {
     return (
       <div className="flex min-h-screen bg-gray-50">
         <div className="hidden lg:block w-64 border-r bg-white">
@@ -470,8 +500,12 @@ const AttributeMapping: React.FC = () => {
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <Brain className="h-12 w-12 text-blue-600 animate-pulse mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Initializing Discovery Flow</h2>
-            <p className="text-gray-600">Setting up Field Mapping Crew and shared memory...</p>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              {isAgenticLoading ? 'Loading Attribute Data' : 'Initializing Discovery Flow'}
+            </h2>
+            <p className="text-gray-600">
+              {isAgenticLoading ? 'Fetching field mapping analysis...' : 'Setting up Field Mapping Crew and shared memory...'}
+            </p>
           </div>
         </div>
       </div>
@@ -505,7 +539,7 @@ const AttributeMapping: React.FC = () => {
   }
 
   // Show no data state
-  if (!flowState?.raw_data?.length) {
+  if (!agenticData?.attributes?.length && !isAgenticLoading) {
     return (
       <div className="flex min-h-screen bg-gray-50">
         <div className="hidden lg:block w-64 border-r bg-white">
@@ -516,13 +550,28 @@ const AttributeMapping: React.FC = () => {
             title="No Data Available"
             description="No data available for field mapping analysis. Please import data first."
             actions={
-              <Button 
-                onClick={() => navigate('/discovery/cmdb-import')}
-                className="flex items-center space-x-2"
-              >
-                <Upload className="h-4 w-4" />
-                <span>Import Data</span>
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button 
+                  onClick={() => navigate('/discovery/data-import')}
+                  className="flex items-center space-x-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  <span>Import Data</span>
+                </Button>
+                <Button 
+                  onClick={handleTriggerFieldMappingCrew}
+                  disabled={isAnalyzing}
+                  variant="outline"
+                  className="flex items-center space-x-2"
+                >
+                  {isAnalyzing ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Zap className="h-4 w-4" />
+                  )}
+                  <span>{isAnalyzing ? 'Analyzing...' : 'Trigger Analysis'}</span>
+                </Button>
+              </div>
             }
           />
         </div>
@@ -550,19 +599,36 @@ const AttributeMapping: React.FC = () => {
             <div className="flex items-center space-x-3">
               <Database className="h-8 w-8 text-blue-600" />
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Attribute Mapping</h1>
-                <p className="text-gray-600">CrewAI Field Mapping Crew Analysis</p>
+                <h1 className="text-3xl font-bold text-gray-900">Attribute Mapping & AI Training</h1>
+                <p className="text-gray-600">
+                  {agenticData?.attributes?.length > 0 
+                    ? `Analyzing ${agenticData.attributes.length} attributes with ${agenticData.statistics.migration_critical_count} migration-critical fields identified` 
+                    : 'Train the AI crew to understand your data\'s attribute associations and field mappings'
+                  }
+                </p>
               </div>
             </div>
             
             <div className="flex items-center space-x-3">
-              {/* Data Status */}
-              <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${
-                agenticData?.attributes?.length > 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+              {/* Data Status with more detail */}
+              <div className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium ${
+                agenticData?.attributes?.length > 0 ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-gray-100 text-gray-600 border border-gray-200'
               }`}>
                 <Activity className="h-4 w-4" />
-                <span>{agenticData?.attributes?.length > 0 ? `${agenticData.attributes.length} Attributes` : 'No Data'}</span>
+                <span>
+                  {agenticData?.attributes?.length > 0 
+                    ? `${agenticData.attributes.length} Attributes (${agenticData.statistics.migration_critical_count} Critical)` 
+                    : 'No Data Available'
+                  }
+                </span>
               </div>
+              
+              {/* Analysis Quality Score */}
+              {agenticData?.statistics?.avg_quality_score && (
+                <div className="flex items-center space-x-2 px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800">
+                  <span className="font-medium">{agenticData.statistics.avg_quality_score}% Quality</span>
+                </div>
+              )}
               
               {/* Manual Refresh Button */}
               <Button
@@ -603,6 +669,36 @@ const AttributeMapping: React.FC = () => {
             />
           </div>
 
+          {/* Data Import Section - when data exists */}
+          {agenticData?.attributes?.length > 0 && (
+            <div className="mb-6">
+              <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <Upload className="h-6 w-6 text-blue-600" />
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">Import Additional Data</h3>
+                      <p className="text-gray-600">Upload more CMDB data files to enhance your analysis</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <span className="text-sm text-gray-500">
+                      Last updated: {agenticData.last_updated ? new Date(agenticData.last_updated).toLocaleString() : 'Unknown'}
+                    </span>
+                    <Button
+                      onClick={() => navigate('/discovery/data-import')}
+                      variant="outline"
+                      className="flex items-center space-x-2"
+                    >
+                      <Upload className="h-4 w-4" />
+                      <span>Import Data</span>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Enhanced Agent Orchestration Panel */}
           {flowState?.session_id && (
             <div className="mb-6">
@@ -620,7 +716,7 @@ const AttributeMapping: React.FC = () => {
               <div className="mb-6">
                 <NavigationTabs 
                   activeTab={activeTab} 
-                  onTabChange={(tabId: string) => setActiveTab(tabId as 'mappings' | 'data')}
+                  onTabChange={(tabId: string) => setActiveTab(tabId as 'mappings' | 'data' | 'critical')}
                 />
               </div>
 

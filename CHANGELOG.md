@@ -1,6 +1,51 @@
 # AI Force Migration Platform - Change Log
 
-## [0.10.13] - 2025-01-18
+## [0.10.15] - 2025-01-18
+
+### 🎯 **ATTRIBUTEMAPPING UI FIX - Data Display and Import Restoration**
+
+This release fixes the AttributeMapping page to properly display the backend data that was already working, and restores missing import functionality that users need.
+
+### 🚀 **User Interface and Data Display Fixes**
+
+#### **AttributeMapping Page Data Display Fix**
+- **Data Detection**: Fixed component to properly check `agenticData?.attributes?.length` instead of `flowState?.raw_data?.length`
+- **Loading States**: Added proper loading state while fetching attribute data
+- **Data Visualization**: Enhanced header to show detailed statistics when data is available
+- **User Feedback**: Clear indicators showing 18 attributes with 11 migration-critical fields
+
+#### **Data Import Functionality Restoration**
+- **Import Access**: Added "Import Additional Data" section to AttributeMapping page when data exists
+- **Import Navigation**: Multiple pathways to data import functionality
+- **User Control**: Manual analysis trigger and refresh buttons
+- **No Data State**: Improved no-data state with import and analysis options
+
+#### **Enhanced User Experience**
+- **Tab Structure**: Added Critical Attributes tab as default view showing analyzed data
+- **Data Transformation**: Proper type conversion from backend API to frontend components
+- **Status Indicators**: Quality score, completeness percentage, and analysis status
+- **Real-time Updates**: Manual refresh capability to get latest analysis
+
+### 📊 **Technical Implementation**
+- **File**: `src/pages/discovery/AttributeMapping.tsx`
+- **Backend Integration**: Proper use of `/api/v1/data-import/agentic-critical-attributes` endpoint
+- **Data Flow**: Fixed data checking logic to use actual available data source
+- **Type Safety**: Added data transformation to match component interfaces
+- **Error Handling**: Better error states and loading indicators
+
+### 🎯 **Business Impact**
+- **User Productivity**: Users can now see their analyzed data immediately
+- **Data Import Access**: Restored ability to import additional data files
+- **Migration Planning**: Clear view of 18 analyzed attributes with critical field identification
+- **User Confidence**: Transparent data loading and analysis status
+
+### 🎪 **User Experience Improvements**
+- **Immediate Data Display**: No more "No Data Available" when data exists
+- **Multiple Import Options**: Import buttons in no-data state and main interface
+- **Analysis Control**: Users can manually trigger field mapping analysis
+- **Clear Navigation**: Better tab structure with Critical Attributes as primary view
+
+## [0.10.14] - 2025-01-18
 
 ### 🎯 **CRITICAL BUG FIXES - Request Spam & LLM Fallback Elimination**
 
