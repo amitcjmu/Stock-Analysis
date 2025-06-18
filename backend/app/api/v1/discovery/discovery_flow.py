@@ -28,7 +28,7 @@ from app.api.v1.dependencies import get_crewai_flow_service
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/flow", tags=["Discovery Flow"])
+router = APIRouter(tags=["Discovery Flow"])
 
 async def get_context_from_user(
     request: Request,

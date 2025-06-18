@@ -24,6 +24,7 @@ import uuid
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 import asyncio
+import os
 
 # CrewAI imports with full functionality
 from crewai.flow.flow import Flow, listen, start
@@ -184,10 +185,19 @@ class DiscoveryFlowRedesigned(Flow[DiscoveryFlowState], PlanningMixin):
         
         # Planning capabilities with proper LLM configuration
         self.planning_enabled = True
-        # Configure planning_llm to use the same LLM as the platform (google/gemma-3-4b-it)
+        # Configure planning_llm to use the same LLM as the platform (DeepInfra)
         # This prevents CrewAI from defaulting to gpt-4o-mini which requires OpenAI API key
         self.planning_llm = self.crewai_service.llm if hasattr(self.crewai_service, 'llm') else None
-        logger.info(f"✅ Planning configured with LLM: {type(self.planning_llm).__name__ if self.planning_llm else 'None'}")
+        
+        # If planning_llm is None, disable planning to prevent failures
+        if self.planning_llm is None:
+            self.planning_enabled = False
+            logger.warning("⚠️ Planning disabled - no LLM available")
+        else:
+            logger.info(f"✅ Planning configured with DeepInfra LLM: {type(self.planning_llm).__name__}")
+        
+        # Ensure all advanced features use DeepInfra instead of OpenAI
+        self._configure_crewai_for_deepinfra()
     
     def _determine_memory_scope(self) -> LearningScope:
         """Determine memory scope based on client configuration"""
@@ -2053,3 +2063,24 @@ class DiscoveryFlowRedesigned(Flow[DiscoveryFlowState], PlanningMixin):
         except Exception as e:
             logger.error(f"Failed to secure data access: {e}")
             return {"secured": False, "error": str(e)} 
+
+    def _configure_crewai_for_deepinfra(self):
+        """Configure all CrewAI features to use DeepInfra instead of OpenAI"""
+        import os
+        
+        try:
+            # Set DeepInfra API key for CrewAI components that might try to use OpenAI
+            if hasattr(self.crewai_service, 'settings') and self.crewai_service.settings.DEEPINFRA_API_KEY:
+                # Set OpenAI environment variables to use DeepInfra
+                os.environ['OPENAI_API_KEY'] = self.crewai_service.settings.DEEPINFRA_API_KEY
+                os.environ['OPENAI_BASE_URL'] = 'https://api.deepinfra.com/v1/openai'
+                
+                # Configure for embeddings (if needed by memory/knowledge features)
+                os.environ['OPENAI_EMBEDDING_MODEL'] = 'sentence-transformers/all-MiniLM-L6-v2'
+                
+                logger.info("✅ CrewAI configured to use DeepInfra for all advanced features")
+            else:
+                logger.warning("⚠️ DeepInfra API key not available - some features may be disabled")
+                
+        except Exception as e:
+            logger.warning(f"Failed to configure CrewAI for DeepInfra: {e}")

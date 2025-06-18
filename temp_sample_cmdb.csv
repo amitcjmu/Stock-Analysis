@@ -1,0 +1,6 @@
+asset_name,ci_type,environment,owner,location,ip_address,os_type
+server-01,Server,Production,john.doe@company.com,DC-East,192.168.1.10,Linux
+app-web-01,Application,Development,jane.smith@company.com,DC-West,192.168.1.20,Windows
+database-prod,Database,Production,admin@company.com,DC-East,192.168.1.30,Linux
+load-balancer-01,Network,Production,network.team@company.com,DC-East,192.168.1.40,Linux
+web-server-02,Server,Staging,staging.team@company.com,DC-West,192.168.1.50,Windows 

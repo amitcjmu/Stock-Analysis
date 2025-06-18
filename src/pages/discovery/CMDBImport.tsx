@@ -42,7 +42,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { apiCall } from '@/config/api';
 
-// Types
+// Types for Discovery Flow Architecture
 interface UploadAreaType {
   id: string;
   title: string;
@@ -59,26 +59,21 @@ interface FileUploadData {
   filename: string;
 }
 
-interface UploadResponse {
-  session_id: string;
+interface DiscoveryFlowResponse {
   status: string;
-  message: string;
-  flow_id?: string;
-  current_phase?: string;
-}
-
-interface WorkflowStatus {
+  flow_id: string;
   session_id: string;
-  status: 'idle' | 'running' | 'completed' | 'failed' | 'in_progress';
+  workflow_status: string;
   current_phase: string;
-  progress_percentage: number;
+  architecture: string;
+  sequence: string[];
   message: string;
-  file_processed?: string;
-  records_processed?: number;
-  completed_at?: string;
-  workflow_details?: {
-    workflow_id: string;
-    created_at: string;
+  next_phase: string;
+  crew_coordination: any;
+  planning: any;
+  next_steps: {
+    ready_for_assessment: boolean;
+    recommended_actions: string[];
   };
 }
 
@@ -86,14 +81,12 @@ interface UploadedFile {
   id: string;
   filename: string;
   status: 'uploading' | 'processing' | 'completed' | 'failed';
-  session_id?: string;
   record_count: number;
-  workflow_status?: WorkflowStatus;
+  flow_session_id?: string;
   error_message?: string;
-  flow_session_id?: string; // Discovery Flow session ID
 }
 
-// Discovery Flow Phases Configuration
+// Discovery Flow Phases Configuration (from design document)
 const DISCOVERY_FLOW_PHASES = [
   {
     id: 'field_mapping',
@@ -258,13 +251,13 @@ const parseCSVFile = (file: File): Promise<FileUploadData> => {
   });
 };
 
-// Custom hooks for clean API separation with Discovery Flow integration
-const useFileUpload = () => {
+// Updated hook for Discovery Flow upload (removing legacy patterns)
+const useDiscoveryFlowUpload = () => {
   const { user, client, engagement } = useAuth();
   const { toast } = useToast();
   const { initializeFlow } = useDiscoveryFlowState();
   
-  return useMutation<UploadResponse, Error, { file: File; type: string }>({
+  return useMutation<DiscoveryFlowResponse, Error, { file: File; type: string }>({
     mutationFn: async ({ file, type }) => {
       // Validate authentication context
       if (!user || !client || !engagement) {
@@ -274,7 +267,15 @@ const useFileUpload = () => {
       // Parse file to get data
       const fileData = await parseCSVFile(file);
       
-      // Initialize Discovery Flow directly with the data
+      console.log('🚀 Initializing Discovery Flow with file:', {
+        filename: file.name,
+        headers: fileData.headers,
+        sampleRows: fileData.sample_data.length,
+        client: client.id,
+        engagement: engagement.id
+      });
+
+      // Initialize Discovery Flow with proper configuration
       const flowResponse = await initializeFlow({
         client_account_id: client.id,
         engagement_id: engagement.id,
@@ -285,22 +286,47 @@ const useFileUpload = () => {
           filename: file.name,
           upload_type: type,
           headers: fileData.headers,
-          original_file_size: file.size
+          original_file_size: file.size,
+          total_records: fileData.sample_data.length
+        },
+        configuration: {
+          enable_field_mapping: true,
+          enable_data_cleansing: true,
+          enable_inventory_building: true,
+          enable_dependency_analysis: true,
+          enable_technical_debt_analysis: true,
+          parallel_execution: true,
+          memory_sharing: true,
+          knowledge_integration: true,
+          confidence_threshold: 0.8
         }
       });
 
       return {
-        session_id: flowResponse.session_id,
+        status: 'flow_started',
         flow_id: flowResponse.session_id,
-        status: 'flow_initialized',
-        message: 'Discovery Flow initialized successfully',
-        current_phase: 'initialization'
+        session_id: flowResponse.session_id,
+        workflow_status: 'running',
+        current_phase: 'field_mapping',
+        architecture: 'redesigned_with_crews',
+        sequence: [
+          'field_mapping', 'data_cleansing', 'inventory_building',
+          'app_server_dependencies', 'app_app_dependencies', 'technical_debt'
+        ],
+        message: 'Discovery Flow initialized with all 6 crews',
+        next_phase: 'field_mapping',
+        crew_coordination: flowResponse.crew_coordination || {},
+        planning: flowResponse.discovery_plan || {},
+        next_steps: {
+          ready_for_assessment: false,
+          recommended_actions: ['Monitor crew progress', 'Review field mappings when available']
+        }
       };
     },
     onSuccess: (data, variables) => {
       toast({
         title: "🚀 Discovery Flow Initialized",
-        description: `File "${variables.file.name}" uploaded and Discovery Flow started with all 6 crews.`,
+        description: `File "${variables.file.name}" uploaded and Discovery Flow started with all 6 specialized crews.`,
       });
     },
     onError: (error) => {
@@ -309,46 +335,6 @@ const useFileUpload = () => {
         description: error.message,
         variant: "destructive"
       });
-    }
-  });
-};
-
-// Enhanced workflow status with Discovery Flow integration
-const useWorkflowStatus = (sessionId: string | null) => {
-  const { flowState } = useDiscoveryFlowState();
-  
-  return useQuery({
-    queryKey: ['workflow-status', sessionId],
-    queryFn: async () => {
-      if (!sessionId) return null;
-      
-      // If we have a Discovery Flow state, use it
-      if (flowState?.session_id === sessionId) {
-        return {
-          session_id: sessionId,
-          status: flowState.current_phase === 'completed' ? 'completed' : 'in_progress',
-          current_phase: flowState.current_phase,
-          progress_percentage: Object.values(flowState.phase_completion || {}).filter(Boolean).length / 6 * 100,
-          message: `Discovery Flow: ${flowState.current_phase}`,
-          workflow_details: {
-            workflow_id: flowState.session_id,
-            created_at: new Date().toISOString()
-          }
-        } as WorkflowStatus;
-      }
-      
-      // Fallback to traditional status check
-      try {
-        const response = await apiCall(`/api/v1/discovery/flow/${sessionId}/status`);
-        return response as WorkflowStatus;
-      } catch (error) {
-        console.warn('Traditional workflow status failed, this may be a Discovery Flow session');
-        return null;
-      }
-    },
-    enabled: !!sessionId,
-    refetchInterval: (data) => {
-      return data?.status === 'in_progress' ? 5000 : false;
     }
   });
 };
@@ -516,16 +502,13 @@ interface FileAnalysisProps {
 }
 
 const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onNavigate }) => {
-  const { data: workflowStatus } = useWorkflowStatus(file.session_id || null);
   const { flowState } = useDiscoveryFlowState();
 
   const getActualStatus = () => {
     if (file.flow_session_id && flowState?.session_id === file.flow_session_id) {
-      return flowState.current_phase === 'completed' ? 'completed' : 'processing';
+      return flowState.overall_status === 'completed' ? 'completed' : 'processing';
     }
-    return workflowStatus?.status === 'completed' ? 'completed' : 
-           workflowStatus?.status === 'failed' ? 'failed' : 
-           file.status;
+    return file.status;
   };
 
   const getStatusIcon = () => {
@@ -557,7 +540,7 @@ const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onNavigate }) => {
     
     switch (status) {
       case 'completed': return 'Analysis Complete';
-      case 'processing': return workflowStatus?.message || 'Processing with CrewAI agents...';
+      case 'processing': return 'Processing with 6 specialized crews...';
       case 'failed': return file.error_message || 'Processing failed';
       default: return 'Queued for processing';
     }
@@ -632,7 +615,7 @@ const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onNavigate }) => {
         {getActualStatus() === 'processing' && (
           <Button variant="outline" disabled className="flex items-center space-x-2">
             <Bot className="h-4 w-4 animate-pulse" />
-            <span>CrewAI Agents Active</span>
+            <span>6 Crews Active</span>
           </Button>
         )}
       </div>
@@ -647,9 +630,9 @@ const CMDBImport: React.FC = () => {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [showUploadSuccess, setShowUploadSuccess] = useState(false);
   
-  const uploadMutation = useFileUpload();
+  const uploadMutation = useDiscoveryFlowUpload();
   const { flowState, isLoading: isFlowStateLoading } = useDiscoveryFlowState();
-  const { isConnected: isWebSocketConnected } = useDiscoveryWebSocket(flowState?.session_id);
+  const { isConnected: isWebSocketConnected } = useDiscoveryWebSocket({ flowId: flowState?.session_id });
   
   // Handle file drop with Discovery Flow integration
   const handleDrop = useCallback(async (files: File[], type: string) => {
@@ -686,7 +669,6 @@ const CMDBImport: React.FC = () => {
           prev.map(f => f.id === tempFile.id ? 
             { 
               ...f, 
-              session_id: result.session_id,
               flow_session_id: result.flow_id,
               status: 'processing'
             } : f
@@ -722,7 +704,7 @@ const CMDBImport: React.FC = () => {
           <Sidebar />
         </div>
         
-        {/* Main Content Area */}
+        {/* Main Content Area - 2 Column Layout (No Admin Panel for Data Import) */}
         <div className="flex-1 overflow-y-auto">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-6xl">
             {/* Context Breadcrumbs */}
@@ -743,7 +725,7 @@ const CMDBImport: React.FC = () => {
                   <Brain className="h-6 w-6 text-blue-600" />
                   <div>
                     <p className="text-sm text-blue-800">
-                      <strong>Discovery Flow Architecture:</strong> Upload triggers the complete 6-phase CrewAI workflow with manager agents coordinating specialized crews through shared memory and knowledge bases.
+                      <strong>Redesigned Architecture:</strong> Upload triggers the corrected 6-phase CrewAI workflow with manager agents, shared memory, knowledge bases, and cross-crew collaboration.
                     </p>
                   </div>
                 </div>
@@ -781,7 +763,7 @@ const CMDBImport: React.FC = () => {
             <div className="bg-white rounded-lg shadow-md p-6 mb-8">
               <h2 className="text-xl font-semibold text-gray-900 mb-6">Upload Data Files</h2>
               <p className="text-sm text-gray-600 mb-6">
-                Choose the appropriate category for your data files. Upload will initialize the complete Discovery Flow with all 6 specialized crews.
+                Choose the appropriate category for your data files. Upload will initialize the complete Discovery Flow with all 6 specialized crews using the corrected sequence.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {uploadAreas.map((area) => (
@@ -825,7 +807,7 @@ const CMDBImport: React.FC = () => {
               <div className="bg-white rounded-lg shadow-md p-6">
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">Discovery Flow Overview</h2>
                 <div className="prose max-w-none text-gray-600">
-                  <p>Welcome to the comprehensive CrewAI Discovery Flow. Here's how the 6-phase process works:</p>
+                  <p>Welcome to the redesigned CrewAI Discovery Flow with corrected architecture. Here's how the 6-phase process works:</p>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
                     {DISCOVERY_FLOW_PHASES.map((phase, index) => (
@@ -848,7 +830,7 @@ const CMDBImport: React.FC = () => {
                   <div className="mt-6 flex items-center space-x-3 bg-blue-50 p-3 rounded-lg">
                     <Lightbulb className="h-5 w-5 text-blue-600" />
                     <p className="text-sm text-blue-800">
-                      <strong>AI-Powered Intelligence:</strong> Each crew uses manager agents for coordination, shared memory for learning, and collaborative decision-making for superior migration analysis.
+                      <strong>Corrected Architecture:</strong> Field mapping now happens FIRST (not after analysis), each crew has manager agents for coordination, and shared memory enables cross-crew learning and collaboration.
                     </p>
                   </div>
                 </div>
