@@ -5,6 +5,7 @@ Main application entry point with CORS, routing, and WebSocket support.
 
 import sys
 import traceback
+import logging
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -17,6 +18,48 @@ from pathlib import Path
 
 # Load environment variables
 load_dotenv()
+
+# Configure logging to suppress verbose LLM logs
+def configure_logging():
+    """Configure logging levels to suppress verbose LLM library logs."""
+    # Set up basic logging configuration
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        datefmt='%H:%M:%S'
+    )
+    
+    # Suppress verbose LLM-related logs - set to ERROR to only show critical issues
+    logging.getLogger("httpx").setLevel(logging.ERROR)
+    logging.getLogger("LiteLLM").setLevel(logging.ERROR) 
+    logging.getLogger("litellm").setLevel(logging.ERROR)
+    logging.getLogger("openai").setLevel(logging.ERROR)
+    logging.getLogger("crewai").setLevel(logging.ERROR)
+    logging.getLogger("CrewAI").setLevel(logging.ERROR)
+    logging.getLogger("deepinfra").setLevel(logging.ERROR)
+    
+    # Additional LLM-related loggers
+    logging.getLogger("urllib3").setLevel(logging.ERROR)
+    logging.getLogger("requests").setLevel(logging.ERROR)
+    logging.getLogger("httpcore").setLevel(logging.ERROR)
+    logging.getLogger("h11").setLevel(logging.ERROR)
+    
+    # Suppress SQL query logs unless they're errors
+    logging.getLogger("sqlalchemy.engine").setLevel(logging.ERROR)
+    logging.getLogger("sqlalchemy.pool").setLevel(logging.ERROR)
+    
+    # Keep application logs visible at INFO level
+    logging.getLogger("app").setLevel(logging.INFO)
+    logging.getLogger("uvicorn").setLevel(logging.INFO)
+    logging.getLogger("uvicorn.access").setLevel(logging.WARNING)  # Reduce access logs
+    
+    # Root logger
+    logging.getLogger().setLevel(logging.INFO)
+    
+    print("✅ Logging configured - LLM library logs suppressed to ERROR level")
+
+# Configure logging before any other imports
+configure_logging()
 
 # Initialize basic app first to ensure health check is always available
 app = FastAPI(
