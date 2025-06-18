@@ -1,11 +1,11 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
-import { Upload, RefreshCw, Zap, AlertCircle } from 'lucide-react';
+import { Upload, RefreshCw, Zap } from 'lucide-react';
 import { useToast } from '../../hooks/use-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
-import { useAgenticCriticalAttributes, useTriggerFieldMappingCrew } from '../../hooks/useAttributeMapping';
+import { useTriggerFieldMappingCrew } from '../../hooks/useAttributeMapping';
 import { apiCall, API_CONFIG } from '../../config/api';
 
 import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
@@ -25,111 +25,11 @@ import Sidebar from '../../components/Sidebar';
 const AttributeMapping: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('mappings');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [quickLoad, setQuickLoad] = useState(false);
   const { toast } = useToast();
-  const { user, isAuthenticated, loginWithDemoUser, isLoading: authLoading } = useAuth();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // Performance monitoring
-  const [loadStartTime] = useState(Date.now());
-  const [apiCallsStatus, setApiCallsStatus] = useState({
-    criticalAttributes: 'pending',
-    fieldMappings: 'pending'
-  });
-
-  // Quick auth check - if not authenticated and taking too long, offer demo mode
-  useEffect(() => {
-    const authTimer = setTimeout(() => {
-      if (!authLoading && !isAuthenticated && !user) {
-        console.warn('⚠️ Authentication taking too long, offering demo mode');
-        toast({
-          title: 'Authentication Issue',
-          description: 'Would you like to continue with demo mode?',
-          action: (
-            <Button size="sm" onClick={loginWithDemoUser}>
-              Demo Mode
-            </Button>
-          ),
-        });
-      }
-    }, 3000); // 3 second auth timeout
-
-    return () => clearTimeout(authTimer);
-  }, [authLoading, isAuthenticated, user, loginWithDemoUser, toast]);
-
-  // Performance timeout - if page takes too long, enable quick load mode
-  useEffect(() => {
-    const performanceTimer = setTimeout(() => {
-      const loadTime = Date.now() - loadStartTime;
-      if (loadTime > 10000) { // 10 seconds
-        console.warn('⚠️ Page loading slowly, enabling quick load mode');
-        setQuickLoad(true);
-        toast({
-          title: 'Slow Loading Detected',
-          description: 'Switching to quick load mode for better performance',
-          variant: 'default'
-        });
-      }
-    }, 10000);
-
-    return () => clearTimeout(performanceTimer);
-  }, [loadStartTime, toast]);
-
-  // 🤖 Use AGENTIC critical attributes with timeout and fallback
-  const { 
-    data: criticalAttributesData, 
-    isLoading: isCriticalAttributesLoading, 
-    isError: isErrorCriticalAttributes,
-    refetch: refetchCriticalAttributes 
-  } = useQuery({
-    queryKey: ['agentic-critical-attributes'],
-    queryFn: async () => {
-      try {
-        setApiCallsStatus(prev => ({ ...prev, criticalAttributes: 'loading' }));
-        
-        // Create timeout for the API call
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), quickLoad ? 5000 : 15000);
-
-        const response = await apiCall('/api/v1/data-import/agentic-critical-attributes', {
-          signal: controller.signal
-        });
-        
-        clearTimeout(timeoutId);
-        setApiCallsStatus(prev => ({ ...prev, criticalAttributes: 'success' }));
-        return response;
-      } catch (error) {
-        setApiCallsStatus(prev => ({ ...prev, criticalAttributes: 'failed' }));
-        console.warn('Agentic endpoint failed, using fallback:', error);
-        
-        // Quick fallback data to unblock UI
-        return {
-          critical_attributes: [],
-          statistics: {
-            total_attributes: 0,
-            mapped_count: 0,
-            migration_critical_count: 0,
-            avg_quality_score: 0,
-            overall_completeness: 0,
-            assessment_ready: false
-          },
-          analysis_summary: {
-            crew_execution: 'fallback',
-            analysis_result: 'Using fallback mode due to slow API response',
-            recommendation: 'Try refreshing the page or check your connection'
-          },
-          agentic_analysis: 'fallback_mode',
-          timestamp: new Date().toISOString()
-        };
-      }
-    },
-    enabled: isAuthenticated,
-    staleTime: 30 * 1000,
-    retry: 1,
-    refetchOnWindowFocus: false // Disable to prevent unnecessary calls
-  });
-
-  // 🤖 Field mappings with improved error handling
+  // 🤖 NEW: Fetch real field mappings from agents (context-aware)
   const { 
     data: fieldMappingsData, 
     isLoading: isLoadingFieldMappings,
@@ -138,93 +38,22 @@ const AttributeMapping: React.FC = () => {
   } = useQuery({
     queryKey: ['context-field-mappings'],
     queryFn: async () => {
-      try {
-        setApiCallsStatus(prev => ({ ...prev, fieldMappings: 'loading' }));
-        
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), quickLoad ? 5000 : 10000);
-
-        const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.SIMPLE_FIELD_MAPPINGS, {
-          method: 'GET',
-          signal: controller.signal
-        });
-        
-        clearTimeout(timeoutId);
-        setApiCallsStatus(prev => ({ ...prev, fieldMappings: 'success' }));
-        return response;
-      } catch (error) {
-        setApiCallsStatus(prev => ({ ...prev, fieldMappings: 'failed' }));
-        console.warn('Field mappings API failed, using fallback:', error);
-        
-        return {
-          success: false,
-          mappings: [],
-          message: 'Field mappings temporarily unavailable',
-          fallback: true
-        };
-      }
+      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.SIMPLE_FIELD_MAPPINGS, {
+        method: 'GET'
+      });
+      return response;
     },
-    enabled: isAuthenticated,
-    staleTime: 5 * 60 * 1000,
-    retry: 1,
-    refetchOnWindowFocus: false
+    enabled: true,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 2
   });
-
-  // Early loading state for auth
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Sidebar />
-        <div className="ml-64 h-screen flex flex-col overflow-hidden">
-          <div className="flex-1 p-6">
-            <ContextBreadcrumbs />
-            <div className="mt-6">
-              <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-                <div className="animate-pulse mb-4">
-                  <div className="h-4 bg-gray-200 rounded w-1/4 mx-auto mb-4"></div>
-                  <div className="h-8 bg-gray-200 rounded w-1/2 mx-auto mb-6"></div>
-                </div>
-                <p className="text-gray-600">Initializing authentication...</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Auth required state
-  if (!isAuthenticated || !user) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Sidebar />
-        <div className="ml-64 h-screen flex flex-col overflow-hidden">
-          <div className="flex-1 p-6">
-            <ContextBreadcrumbs />
-            <div className="mt-6">
-              <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-                <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Authentication Required</h3>
-                <p className="text-gray-600 mb-4">Please authenticate to access attribute mapping.</p>
-                <Button onClick={loginWithDemoUser} className="bg-blue-600 hover:bg-blue-700 text-white">
-                  Continue with Demo Mode
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const isLoading = isCriticalAttributesLoading || isLoadingFieldMappings;
 
   // Hook to manually trigger Field Mapping Crew analysis
   const triggerFieldMappingCrew = useTriggerFieldMappingCrew();
 
-  const handleRefreshCriticalAttributes = useCallback(() => {
-    refetchCriticalAttributes();
-  }, [refetchCriticalAttributes]);
+  const handleRefreshFieldMappings = useCallback(() => {
+    refetchFieldMappings();
+  }, [refetchFieldMappings]);
 
   // 🤖 NEW: Trigger Field Mapping Crew Analysis
   const handleTriggerAgentAnalysis = useCallback(async () => {
@@ -278,7 +107,7 @@ const AttributeMapping: React.FC = () => {
           description: 'AI will learn from this feedback'
         });
         // Refresh the data
-        refetchCriticalAttributes();
+        refetchFieldMappings();
       }
     } catch (error) {
       console.error('Error handling mapping action:', error);
@@ -288,7 +117,7 @@ const AttributeMapping: React.FC = () => {
         variant: 'destructive'
       });
     }
-  }, [user, toast, refetchCriticalAttributes]);
+  }, [user, toast, refetchFieldMappings]);
 
   // Handle mapping changes
   const handleMappingChange = useCallback(async (mappingId: string, newMapping: any) => {
@@ -315,7 +144,7 @@ const AttributeMapping: React.FC = () => {
           description: 'Changes saved successfully'
         });
         // Refresh the data
-        refetchCriticalAttributes();
+        refetchFieldMappings();
       }
     } catch (error) {
       console.error('Error handling mapping change:', error);
@@ -325,7 +154,7 @@ const AttributeMapping: React.FC = () => {
         variant: 'destructive'
       });
     }
-  }, [user, toast, refetchCriticalAttributes]);
+  }, [user, toast, refetchFieldMappings]);
 
   const mappingProgress = useMemo(() => {
     // Calculate from field mappings data if available
@@ -341,7 +170,7 @@ const AttributeMapping: React.FC = () => {
       ];
       
       const criticalMappings = mappings.filter(m => 
-        criticalFields.includes(m.targetAttribute.toLowerCase()) && m.status === 'approved'
+        criticalFields.includes(m.targetAttribute.toLowerCase())
       ).length;
       
       const avgConfidence = mappings.length > 0 
@@ -350,24 +179,26 @@ const AttributeMapping: React.FC = () => {
       
       return {
         total: fieldMappingsData.import_info?.total_fields || totalMappings,
-        mapped: approvedMappings,
+        mapped: totalMappings,
         critical_mapped: criticalMappings,
         accuracy: Math.round(avgConfidence * 100),
       };
     }
     
-    // Fallback to critical attributes data
-    if (!criticalAttributesData || !criticalAttributesData.statistics) {
+    // Fallback to field mappings data
+    if (isLoadingFieldMappings || !fieldMappingsData || !fieldMappingsData.success) {
       return { total: 0, mapped: 0, critical_mapped: 0, accuracy: 0 };
     }
-    const { statistics } = criticalAttributesData;
     return {
-      total: statistics.total_attributes,
-      mapped: statistics.mapped_count,
-      critical_mapped: statistics.migration_critical_mapped,
-      accuracy: Math.round(statistics.avg_quality_score || 0),
+      total: fieldMappingsData.import_info?.total_fields || fieldMappingsData.mappings.length,
+      mapped: fieldMappingsData.mappings.length,
+      critical_mapped: fieldMappingsData.mappings.filter(m => 
+        ['asset_id', 'name', 'hostname', 'asset_type', 'operating_system', 
+         'ip_address', 'environment', 'business_owner', 'datacenter'].includes(m.targetAttribute.toLowerCase())
+      ).length,
+      accuracy: Math.round((fieldMappingsData.mappings.reduce((sum, m) => sum + (m.confidence || 0), 0) / fieldMappingsData.mappings.length) * 100) || 0,
     };
-  }, [criticalAttributesData, fieldMappingsData]);
+  }, [fieldMappingsData, isLoadingFieldMappings]);
 
   // 🤖 Real field mappings from agents (context-aware, not mock data)
   const fieldMappings = useMemo(() => {
@@ -394,18 +225,61 @@ const AttributeMapping: React.FC = () => {
     }
   ];
 
+  // 🤖 Use AGENTIC critical attributes (agent-driven intelligence) - FIXED: Simplified to avoid hook ordering issues
+  const { 
+    data: criticalAttributesData, 
+    isLoading, 
+    isError: isErrorCriticalAttributes,
+    refetch: refetchCriticalAttributes 
+  } = useQuery({
+    queryKey: ['agentic-critical-attributes'],
+    queryFn: async () => {
+      try {
+        const response = await apiCall('/api/v1/data-import/agentic-critical-attributes');
+        return response;
+      } catch (error) {
+        console.warn('Agentic endpoint failed, using fallback:', error);
+        
+        // Simple fallback without complex nested calls
+        return {
+          attributes: [],
+          statistics: {
+            total_attributes: 0,
+            mapped_count: 0,
+            pending_count: 0,
+            unmapped_count: 0,
+            migration_critical_count: 0,
+            migration_critical_mapped: 0,
+            overall_completeness: 0,
+            avg_quality_score: 0,
+            assessment_ready: false,
+          },
+          recommendations: {
+            next_priority: "Upload data to enable analysis",
+            assessment_readiness: "No data available for analysis",
+            quality_improvement: "Import CMDB data to get started"
+          },
+          analysis_summary: {
+            crew_execution: 'fallback',
+            analysis_result: 'Using fallback mode due to API issues',
+            recommendation: 'Try refreshing the page'
+          },
+          agentic_analysis: 'fallback_mode',
+          last_updated: new Date().toISOString()
+        };
+      }
+    },
+    enabled: true,
+    staleTime: 30 * 1000,
+    retry: 1,
+    refetchOnWindowFocus: false,
+    // FIXED: No conditional refetchInterval that could cause hook variations
+    refetchInterval: false
+  });
+
   // Transform critical attributes to match component interface
   const transformedCriticalAttributes = useMemo(() => {
-    // First try to use existing critical attributes data
-    if (criticalAttributesData?.attributes && criticalAttributesData.attributes.length > 0) {
-      return criticalAttributesData.attributes.map(attr => ({
-        ...attr,
-        mapping_type: (attr.mapping_type as 'direct' | 'calculated' | 'manual' | 'derived') || undefined,
-        business_impact: attr.business_impact as 'high' | 'medium' | 'low'
-      }));
-    }
-    
-    // If no critical attributes, create them from field mappings
+    // First try to use existing field mappings
     if (fieldMappings && fieldMappings.length > 0) {
       // Define critical migration attributes
       const criticalFieldMap = {
@@ -448,7 +322,7 @@ const AttributeMapping: React.FC = () => {
     }
     
     return [];
-  }, [criticalAttributesData, fieldMappings]);
+  }, [fieldMappings]);
 
   // Render tab content based on active tab
   const renderTabContent = () => {
@@ -486,7 +360,7 @@ const AttributeMapping: React.FC = () => {
     }
   };
 
-  if (isErrorCriticalAttributes) {
+  if (isErrorFieldMappings) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Sidebar />
@@ -498,7 +372,7 @@ const AttributeMapping: React.FC = () => {
                 title="Error Loading Data"
                 description="There was an error loading the attribute mapping data. Please try refreshing the page."
                 actions={
-                  <Button onClick={handleRefreshCriticalAttributes} className="bg-blue-600 hover:bg-blue-700 text-white">
+                  <Button onClick={handleRefreshFieldMappings} className="bg-blue-600 hover:bg-blue-700 text-white">
                     <RefreshCw className="mr-2 h-4 w-4" />
                     Refresh
                   </Button>
@@ -511,7 +385,7 @@ const AttributeMapping: React.FC = () => {
     );
   }
 
-  if (isLoading) {
+  if (isLoadingFieldMappings) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Sidebar />
@@ -537,7 +411,7 @@ const AttributeMapping: React.FC = () => {
     );
   }
 
-  if (!criticalAttributesData || mappingProgress.total === 0) {
+  if (!fieldMappingsData || mappingProgress.total === 0) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Sidebar />
@@ -547,7 +421,7 @@ const AttributeMapping: React.FC = () => {
             <div className="mt-6">
               <NoDataPlaceholder
                 title="No Data Available"
-                description="No critical attributes data found. Please upload and process your data first."
+                description="No field mappings data found. Please upload and process your data first."
                 actions={
                   <Button onClick={() => window.location.href = '/discovery/data-import'} className="bg-blue-600 hover:bg-blue-700 text-white">
                     <Upload className="mr-2 h-4 w-4" />
@@ -579,21 +453,21 @@ const AttributeMapping: React.FC = () => {
                 </p>
                 
                 {/* Agent Status Indicator */}
-                {criticalAttributesData?.agent_status && (
+                {fieldMappingsData?.agent_status && (
                   <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <Zap className="h-4 w-4 text-blue-600" />
                         <span className="text-sm font-medium text-blue-900">
-                          {criticalAttributesData.agent_status.discovery_flow_active ? 
+                          {fieldMappingsData.agent_status.discovery_flow_active ? 
                             '🤖 Field Mapping Crew Analyzing...' : 
                             '✅ Agent Analysis Complete'
                           }
                         </span>
                       </div>
                       
-                      {!criticalAttributesData.agent_status.discovery_flow_active && 
-                       criticalAttributesData.statistics.total_attributes === 0 && (
+                      {!fieldMappingsData.agent_status.discovery_flow_active && 
+                       fieldMappingsData.mappings.length === 0 && (
                         <Button 
                           onClick={handleTriggerAgentAnalysis}
                           disabled={isAnalyzing}
@@ -606,11 +480,11 @@ const AttributeMapping: React.FC = () => {
                       )}
                     </div>
                     
-                    {criticalAttributesData.analysis_progress && (
+                    {fieldMappingsData.analysis_progress && (
                       <p className="text-xs text-blue-700 mt-1">
-                        {criticalAttributesData.analysis_progress.current_task} 
-                        {criticalAttributesData.analysis_progress.estimated_completion && 
-                         ` (${criticalAttributesData.analysis_progress.estimated_completion})`}
+                        {fieldMappingsData.analysis_progress.current_task} 
+                        {fieldMappingsData.analysis_progress.estimated_completion && 
+                         ` (${fieldMappingsData.analysis_progress.estimated_completion})`}
                       </p>
                     )}
                   </div>
@@ -625,7 +499,7 @@ const AttributeMapping: React.FC = () => {
                   critical_mapped: mappingProgress.critical_mapped,
                   accuracy: mappingProgress.accuracy
                 }}
-                isLoading={isAnalyzing || criticalAttributesData?.agent_status?.discovery_flow_active}
+                isLoading={isAnalyzing || fieldMappingsData?.agent_status?.discovery_flow_active}
               />
 
               {/* Navigation Tabs */}
@@ -665,30 +539,30 @@ const AttributeMapping: React.FC = () => {
               <p className="text-sm text-gray-600">AI agents analyze your data to determine critical attributes</p>
               
               {/* Agent Status Summary */}
-              {criticalAttributesData?.agent_status && (
+              {fieldMappingsData?.agent_status && (
                 <div className="mt-3 p-3 bg-gray-50 rounded-lg">
                   <div className="text-xs space-y-1">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Field Mapping Crew:</span>
                       <span className={`font-medium ${
-                        criticalAttributesData.agent_status.field_mapping_crew_status === 'completed' ? 'text-green-600' :
-                        criticalAttributesData.agent_status.field_mapping_crew_status === 'analyzing' ? 'text-blue-600' :
+                        fieldMappingsData.agent_status.field_mapping_crew_status === 'completed' ? 'text-green-600' :
+                        fieldMappingsData.agent_status.field_mapping_crew_status === 'analyzing' ? 'text-blue-600' :
                         'text-gray-600'
                       }`}>
-                        {criticalAttributesData.agent_status.field_mapping_crew_status}
+                        {fieldMappingsData.agent_status.field_mapping_crew_status}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Learning System:</span>
                       <span className="font-medium text-green-600">
-                        {criticalAttributesData.agent_status.learning_system_status}
+                        {fieldMappingsData.agent_status.learning_system_status}
                       </span>
                     </div>
-                    {criticalAttributesData.agent_status.crew_agents_used && (
+                    {fieldMappingsData.agent_status.crew_agents_used && (
                       <div className="mt-2">
                         <span className="text-gray-600 text-xs">Active Agents:</span>
                         <div className="flex flex-wrap gap-1 mt-1">
-                          {criticalAttributesData.agent_status.crew_agents_used.map((agent, index) => (
+                          {fieldMappingsData.agent_status.crew_agents_used.map((agent, index) => (
                             <span key={index} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
                               {agent}
                             </span>
@@ -701,15 +575,15 @@ const AttributeMapping: React.FC = () => {
               )}
               
               {/* Crew Insights */}
-              {criticalAttributesData?.crew_insights && (
+              {fieldMappingsData?.crew_insights && (
                 <div className="mt-3 p-3 bg-green-50 rounded-lg">
                   <h3 className="text-sm font-medium text-green-900 mb-2">Crew Analysis Insights</h3>
                   <div className="text-xs space-y-1">
-                    <div><span className="text-green-700">Method:</span> {criticalAttributesData.crew_insights.analysis_method}</div>
-                    <div><span className="text-green-700">Confidence:</span> {criticalAttributesData.crew_insights.confidence_level}</div>
-                    <div><span className="text-green-700">Learning Applied:</span> {criticalAttributesData.crew_insights.learning_applied ? '✅ Yes' : '❌ No'}</div>
+                    <div><span className="text-green-700">Method:</span> {fieldMappingsData.crew_insights.analysis_method}</div>
+                    <div><span className="text-green-700">Confidence:</span> {fieldMappingsData.crew_insights.confidence_level}</div>
+                    <div><span className="text-green-700">Learning Applied:</span> {fieldMappingsData.crew_insights.learning_applied ? '✅ Yes' : '❌ No'}</div>
                   </div>
-                  <p className="text-xs text-green-700 mt-2">{criticalAttributesData.crew_insights.crew_result_summary}</p>
+                  <p className="text-xs text-green-700 mt-2">{fieldMappingsData.crew_insights.crew_result_summary}</p>
                 </div>
               )}
             </div>

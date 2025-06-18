@@ -17,7 +17,7 @@ openai>=1.0.0
 # CrewAI and AI frameworks
 crewai>=0.121.0
 crewai-tools
-litellm>=1.55.0
+# litellm>=1.55.0  # REMOVED: Replaced with custom DeepInfra LLM implementation
 openlit>=0.1.0
 
 # LangChain ecosystem

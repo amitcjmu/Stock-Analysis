@@ -1,0 +1,278 @@
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { Button } from '../../components/ui/button';
+import { Upload, RefreshCw, Zap, AlertCircle } from 'lucide-react';
+import { useToast } from '../../hooks/use-toast';
+import { useAuth } from '../../contexts/AuthContext';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { useTriggerFieldMappingCrew } from '../../hooks/useAttributeMapping';
+import { apiCall, API_CONFIG } from '../../config/api';
+
+import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
+import NoDataPlaceholder from '../../components/NoDataPlaceholder';
+import ProgressDashboard from '../../components/discovery/attribute-mapping/ProgressDashboard';
+import FieldMappingsTab from '../../components/discovery/attribute-mapping/FieldMappingsTab';
+import CriticalAttributesTab from '../../components/discovery/attribute-mapping/CriticalAttributesTab';
+import ImportedDataTab from '../../components/discovery/attribute-mapping/ImportedDataTab';
+import TrainingProgressTab from '../../components/discovery/attribute-mapping/TrainingProgressTab';
+import CrewAnalysisPanel from '../../components/discovery/attribute-mapping/CrewAnalysisPanel';
+import NavigationTabs from '../../components/discovery/attribute-mapping/NavigationTabs';
+import AgentClarificationPanel from '../../components/discovery/AgentClarificationPanel';
+import DataClassificationDisplay from '../../components/discovery/DataClassificationDisplay';
+import AgentInsightsSection from '../../components/discovery/AgentInsightsSection';
+import Sidebar from '../../components/Sidebar';
+
+const AttributeMapping: React.FC = () => {
+  // All hooks called at the top level, no conditional calls
+  const [activeTab, setActiveTab] = useState<string>('mappings');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  
+  const { toast } = useToast();
+  const { user, isAuthenticated, loginWithDemoUser, isLoading: authLoading } = useAuth();
+  const queryClient = useQueryClient();
+  const triggerFieldMappingCrew = useTriggerFieldMappingCrew();
+
+  // Simple data fetching with consistent hooks
+  const { 
+    data: criticalAttributesData, 
+    isLoading: isCriticalAttributesLoading, 
+    refetch: refetchCriticalAttributes 
+  } = useQuery({
+    queryKey: ['agentic-critical-attributes'],
+    queryFn: async () => {
+      try {
+        const response = await apiCall('/api/v1/data-import/agentic-critical-attributes');
+        return response;
+      } catch (error) {
+        console.warn('API failed, using fallback:', error);
+        return {
+          attributes: [],
+          statistics: {
+            total_attributes: 0,
+            mapped_count: 0,
+            migration_critical_count: 0,
+            avg_quality_score: 0,
+            overall_completeness: 0,
+            assessment_ready: false
+          },
+          analysis_summary: {
+            crew_execution: 'fallback',
+            analysis_result: 'Fallback mode',
+            recommendation: 'Refresh to retry'
+          }
+        };
+      }
+    },
+    enabled: true,
+    staleTime: 30000,
+    retry: 1
+  });
+
+  const { 
+    data: fieldMappingsData, 
+    isLoading: isLoadingFieldMappings,
+    refetch: refetchFieldMappings 
+  } = useQuery({
+    queryKey: ['context-field-mappings'],
+    queryFn: async () => {
+      try {
+        const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.SIMPLE_FIELD_MAPPINGS);
+        return response;
+      } catch (error) {
+        console.warn('Field mappings failed, using fallback:', error);
+        return {
+          success: false,
+          mappings: [],
+          message: 'Field mappings temporarily unavailable'
+        };
+      }
+    },
+    enabled: true,
+    staleTime: 300000,
+    retry: 1
+  });
+
+  // Simple computed values
+  const isLoading = authLoading || isCriticalAttributesLoading || isLoadingFieldMappings;
+
+  // Simple callbacks
+  const handleRefresh = useCallback(() => {
+    refetchCriticalAttributes();
+    refetchFieldMappings();
+  }, [refetchCriticalAttributes, refetchFieldMappings]);
+
+  const handleTriggerCrewAnalysis = useCallback(async () => {
+    if (isAnalyzing) return;
+    
+    setIsAnalyzing(true);
+    try {
+      await triggerFieldMappingCrew.mutateAsync();
+      toast({
+        title: "Analysis Started",
+        description: "Field mapping crew analysis has been triggered",
+      });
+    } catch (error) {
+      toast({
+        title: "Analysis Failed",
+        description: "Failed to trigger crew analysis",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, [isAnalyzing, triggerFieldMappingCrew, toast]);
+
+  // Simple loading state
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Sidebar />
+        <div className="ml-64 h-screen flex flex-col overflow-hidden">
+          <div className="flex-1 p-6">
+            <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+              <p className="text-gray-600">Loading...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Simple auth check
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Sidebar />
+        <div className="ml-64 h-screen flex flex-col overflow-hidden">
+          <div className="flex-1 p-6">
+            <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+              <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                Authentication Required
+              </h2>
+              <p className="text-gray-600 mb-6">
+                Please log in to access the attribute mapping features.
+              </p>
+              <Button onClick={loginWithDemoUser}>
+                Continue with Demo
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Main content
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Sidebar />
+      <div className="ml-64 h-screen flex flex-col overflow-hidden">
+        <div className="flex-1 p-6">
+          <ContextBreadcrumbs />
+          
+          <div className="mt-6">
+            <div className="bg-white rounded-lg shadow-sm">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h1 className="text-2xl font-bold text-gray-900">Attribute Mapping</h1>
+                    <p className="text-gray-600 mt-1">
+                      Map imported data fields to critical migration attributes
+                    </p>
+                  </div>
+                  <div className="flex space-x-3">
+                    <Button
+                      onClick={handleRefresh}
+                      variant="outline"
+                      size="sm"
+                      disabled={isLoading}
+                    >
+                      <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                      Refresh
+                    </Button>
+                    
+                    <Button
+                      onClick={handleTriggerCrewAnalysis}
+                      disabled={isAnalyzing}
+                      size="sm"
+                    >
+                      <Zap className={`h-4 w-4 mr-2 ${isAnalyzing ? 'animate-pulse' : ''}`} />
+                      {isAnalyzing ? 'Analyzing...' : 'Trigger Analysis'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-6">
+                {isLoading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    <p className="text-gray-600 mt-2">Loading data...</p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {/* Critical Attributes Summary */}
+                    <div className="bg-blue-50 rounded-lg p-4">
+                      <h3 className="font-medium text-blue-900 mb-2">Critical Attributes Status</h3>
+                      <div className="grid grid-cols-4 gap-4 text-sm">
+                        <div>
+                          <div className="text-blue-600 font-semibold">
+                            {criticalAttributesData?.statistics?.total_attributes || 0}
+                          </div>
+                          <div className="text-blue-800">Total Attributes</div>
+                        </div>
+                        <div>
+                          <div className="text-green-600 font-semibold">
+                            {criticalAttributesData?.statistics?.mapped_count || 0}
+                          </div>
+                          <div className="text-blue-800">Mapped</div>
+                        </div>
+                        <div>
+                          <div className="text-orange-600 font-semibold">
+                            {criticalAttributesData?.statistics?.migration_critical_count || 0}
+                          </div>
+                          <div className="text-blue-800">Migration Critical</div>
+                        </div>
+                        <div>
+                          <div className="text-purple-600 font-semibold">
+                            {Math.round(criticalAttributesData?.statistics?.avg_quality_score || 0)}%
+                          </div>
+                          <div className="text-blue-800">Quality Score</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Field Mappings Summary */}
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <h3 className="font-medium text-gray-900 mb-2">Field Mappings</h3>
+                      <div className="text-sm text-gray-600">
+                        {fieldMappingsData?.success ? (
+                          <p>✅ {fieldMappingsData.mappings?.length || 0} field mappings available</p>
+                        ) : (
+                          <p>⚠️ Field mappings temporarily unavailable</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Quick Actions */}
+                    <div className="flex flex-wrap gap-3">
+                      <Link to="/discovery/import-wizard">
+                        <Button variant="outline" size="sm">
+                          <Upload className="h-4 w-4 mr-2" />
+                          Import Data
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AttributeMapping;

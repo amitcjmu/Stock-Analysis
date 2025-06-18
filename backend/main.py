@@ -31,8 +31,7 @@ def configure_logging():
     
     # Suppress verbose LLM-related logs - set to ERROR to only show critical issues
     logging.getLogger("httpx").setLevel(logging.ERROR)
-    logging.getLogger("LiteLLM").setLevel(logging.ERROR) 
-    logging.getLogger("litellm").setLevel(logging.ERROR)
+    # LiteLLM references removed - using custom DeepInfra implementation
     logging.getLogger("openai").setLevel(logging.ERROR)
     #logging.getLogger("crewai").setLevel(logging.ERROR)
     #logging.getLogger("CrewAI").setLevel(logging.ERROR)

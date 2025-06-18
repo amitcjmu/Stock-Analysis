@@ -253,7 +253,7 @@ async def _execute_field_mapping_crew(
         from crewai import Agent, Task, Crew, Process, LLM
         from app.core.config import settings
         
-        # Configure LLM for DeepInfra (FIX: Use custom LLM instead of CrewAI wrapper)
+        # Configure LLM for DeepInfra (FIX: Use custom LLM instead of LiteLLM wrapper)
         llm = None
         if settings.DEEPINFRA_API_KEY:
             try:
@@ -267,7 +267,7 @@ async def _execute_field_mapping_crew(
                     max_tokens=1000,
                     reasoning_effort="none"  # CRITICAL: This actually works with our custom LLM
                 )
-                logger.info("✅ Custom DeepInfra LLM configured (bypassing CrewAI wrapper)")
+                logger.info("✅ Custom DeepInfra LLM configured (bypassing LiteLLM wrapper)")
             except Exception as e:
                 logger.error(f"Failed to configure custom LLM: {e}")
                 llm = None

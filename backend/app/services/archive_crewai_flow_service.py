@@ -29,19 +29,16 @@ try:
 except ImportError:
     LANGCHAIN_AVAILABLE = False
 
-# Conditional import for CrewAI
+# Conditional import for CrewAI components  
 try:
-    import crewai
+    from crewai import Agent, Task, Crew, LLM
     CREWAI_AVAILABLE = True
 except ImportError:
     CREWAI_AVAILABLE = False
+    Agent = Task = Crew = LLM = None
 
-# Conditional import for LiteLLM
-try:
-    import litellm
-    LITELLM_AVAILABLE = True
-except ImportError:
-    LITELLM_AVAILABLE = False
+# LiteLLM removed - now using custom DeepInfra LLM implementation
+LITELLM_AVAILABLE = False
 
 # Local Imports
 from app.services.crewai_flow_handlers.discovery_handlers.discovery_workflow_manager import DiscoveryWorkflowManager

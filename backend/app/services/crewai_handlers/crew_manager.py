@@ -67,26 +67,28 @@ class CrewManager:
             os.environ['EMBEDDING_MODEL'] = 'sentence-transformers/all-MiniLM-L6-v2'
             os.environ['EMBEDDING_PROVIDER'] = 'local'
             
-            # Configure DeepInfra
+            # Configure DeepInfra directly for CrewAI
             if hasattr(self.settings, 'DEEPINFRA_API_KEY') and self.settings.DEEPINFRA_API_KEY:
-                os.environ['LITELLM_API_KEY'] = self.settings.DEEPINFRA_API_KEY
+                os.environ['OPENAI_API_KEY'] = self.settings.DEEPINFRA_API_KEY
+                os.environ['OPENAI_BASE_URL'] = 'https://api.deepinfra.com/v1/openai'
             
             logger.info("CrewAI environment configured")
         except Exception as e:
             logger.warning(f"Error configuring environment: {e}")
     
     def _initialize_llm(self):
-        """Initialize the LiteLLM configuration for DeepInfra."""
+        """Initialize the CrewAI LLM configuration for DeepInfra."""
         try:
             if not self.settings.DEEPINFRA_API_KEY:
                 logger.error("DeepInfra API key is required but not provided")
                 self.llm = None
                 return
             
-            # Initialize LiteLLM for DeepInfra with optimized settings
+            # Initialize CrewAI LLM for DeepInfra with optimized settings
             self.llm = self.LLM(
                 model="deepinfra/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
                 api_key=self.settings.DEEPINFRA_API_KEY,
+                base_url="https://api.deepinfra.com/v1/openai",
                 temperature=0.0,
                 max_tokens=1500,
                 top_p=0.1,
@@ -95,10 +97,10 @@ class CrewManager:
                 reasoning_effort="none"
             )
             
-            logger.info("LLM initialized successfully with DeepInfra")
+            logger.info("CrewAI LLM initialized successfully with DeepInfra")
             
         except Exception as e:
-            logger.error(f"Failed to initialize LLM: {e}")
+            logger.error(f"Failed to initialize CrewAI LLM: {e}")
             self.llm = None
     
     def reinitialize_with_fresh_llm(self) -> None:

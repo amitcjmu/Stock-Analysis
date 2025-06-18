@@ -63,7 +63,7 @@ const ProgressDashboard: React.FC<ProgressDashboardProps> = ({ mappingProgress, 
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-bold text-indigo-600">
-              {Math.round(progress.accuracy * 100)}%
+              {Math.round(progress.accuracy)}%
             </h3>
             <p className="text-xs text-gray-600">Accuracy</p>
           </div>

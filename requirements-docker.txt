@@ -18,7 +18,7 @@ crewai-tools
 langchain>=0.2.0,<0.3.0
 langchain-community>=0.2.0,<0.3.0
 langchain-openai>=0.1.8
-litellm
+# litellm  # REMOVED: Replaced with custom DeepInfra LLM implementation
 
 # Environment and configuration
 python-dotenv>=1.0.0

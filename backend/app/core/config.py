@@ -56,7 +56,7 @@ class Settings(BaseSettings):
         env="DEEPINFRA_MODEL"
     )
     DEEPINFRA_BASE_URL: str = Field(
-        default="https://api.deepinfra.com/v1/inference",
+        default="https://api.deepinfra.com/v1/openai/chat/completions",
         env="DEEPINFRA_BASE_URL"
     )
     
