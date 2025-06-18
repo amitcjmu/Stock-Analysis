@@ -20,6 +20,9 @@ This release completes the modernization of all Pydantic schema validations by m
 - **asset_schemas.py**: Migrated `orm_mode` to `from_attributes` in ConfigDict
 - **context.py**: Updated 4 schema classes with ConfigDict patterns
 - **sixr_analysis.py**: Migrated Config class with json_encoders and use_enum_values
+- **core/config.py**: Updated Settings class with ConfigDict for environment configuration
+- **engagement.py**: Migrated 2 schema classes (EngagementSession, Engagement) to ConfigDict
+- **migration.py**: Updated 2 response schemas (MigrationListResponse, MigrationResponse) to ConfigDict
 
 ### 📊 **Technical Achievements**
 - **Compatibility**: Full Pydantic V2 compatibility across all schema modules

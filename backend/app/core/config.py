@@ -9,7 +9,7 @@ except ImportError:
     # Fallback for older pydantic versions
     from pydantic import BaseSettings
 
-from pydantic import Field
+from pydantic import Field, ConfigDict
 import os
 from typing import Optional
 
@@ -128,11 +128,12 @@ class Settings(BaseSettings):
     CREWAI_RETRY_WAIT_SECONDS: int = 2
     CREWAI_FLOW_TTL_HOURS: int = 1
     
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = True
-        extra = "ignore"  # Ignore extra environment variables
+    model_config = ConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+        extra="ignore"  # Ignore extra environment variables
+    )
 
 
 # Create global settings instance

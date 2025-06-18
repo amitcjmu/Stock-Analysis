@@ -4,7 +4,7 @@ Pydantic schemas for migration-related API operations.
 
 from datetime import datetime
 from typing import Optional, Dict, Any, List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 from app.models.migration import MigrationStatus, MigrationPhase
 
@@ -48,6 +48,8 @@ class MigrationUpdate(BaseModel):
 
 class MigrationListResponse(BaseModel):
     """Schema for migration list response."""
+    model_config = ConfigDict(from_attributes=True)
+    
     id: int
     name: str
     status: MigrationStatus
@@ -58,12 +60,11 @@ class MigrationListResponse(BaseModel):
     created_at: datetime
     target_completion_date: Optional[datetime]
 
-    class Config:
-        from_attributes = True
-
 
 class MigrationResponse(BaseModel):
     """Schema for detailed migration response."""
+    model_config = ConfigDict(from_attributes=True)
+    
     id: int
     name: str
     description: Optional[str]
@@ -84,9 +85,6 @@ class MigrationResponse(BaseModel):
     risk_assessment: Optional[Dict[str, Any]]
     cost_estimates: Optional[Dict[str, Any]]
     settings: Optional[Dict[str, Any]]
-
-    class Config:
-        from_attributes = True
 
 
 class MigrationProgressResponse(BaseModel):
