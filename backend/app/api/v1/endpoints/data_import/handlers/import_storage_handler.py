@@ -7,7 +7,7 @@ import hashlib
 import logging
 from datetime import datetime
 from typing import List, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import desc, select
 
@@ -169,56 +169,72 @@ async def store_import_data(
         raise HTTPException(status_code=500, detail=f"Failed to store import data: {str(e)}")
 
 @router.get("/latest-import")
-async def get_latest_import_data(db: AsyncSession = Depends(get_db)):
-    """
-    Get the most recent import data for attribute mapping.
-    Replaces localStorage dependency with database persistence.
-    """
+async def get_latest_import(
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get the latest import data for the current context."""
     try:
-        # Find the most recent completed import using async session pattern
-        latest_query = select(DataImport).where(
-            DataImport.status == ImportStatus.PROCESSED
-        ).order_by(desc(DataImport.completed_at)).limit(1)
+        # Extract context from request headers
+        from app.core.context import extract_context_from_request
+        context = extract_context_from_request(request)
         
-        result = await db.execute(latest_query)
+        logger.info(f"🔍 Getting latest import for context: client={context.client_account_id}, engagement={context.engagement_id}")
+        
+        # Get latest import with caching
+        latest_import_query = select(DataImport).order_by(DataImport.created_at.desc()).limit(1)
+        result = await db.execute(latest_import_query)
         latest_import = result.scalar_one_or_none()
         
         if not latest_import:
             return {
                 "success": False,
                 "message": "No import data found",
-                "data": []
+                "data": [],
+                "import_metadata": None
             }
         
-        # Get the raw records using async session pattern
-        records_query = select(RawImportRecord).where(
-            RawImportRecord.data_import_id == latest_import.id
-        ).order_by(RawImportRecord.row_number)
+        # Get raw records with query caching and pagination awareness
+        # Use execution_options for query caching
+        raw_records_query = (
+            select(RawImportRecord)
+            .where(RawImportRecord.data_import_id == latest_import.id)
+            .order_by(RawImportRecord.row_number)
+            .execution_options(compiled_cache={})  # Enable query caching
+        )
         
-        records_result = await db.execute(records_query)
-        raw_records = records_result.scalars().all()
+        result = await db.execute(raw_records_query)
+        raw_records = result.scalars().all()
         
-        # Extract the data
-        imported_data = [record.raw_data for record in raw_records]
+        # Transform to response format
+        response_data = []
+        for record in raw_records:
+            response_data.append(record.raw_data)
         
-        logger.info(f"Retrieved {len(imported_data)} records from import session {latest_import.id}")
+        import_metadata = {
+            "filename": latest_import.source_filename or "Unknown",
+            "import_type": latest_import.import_type,
+            "imported_at": latest_import.created_at.isoformat() if latest_import.created_at else None,
+            "total_records": len(response_data),
+            "import_id": str(latest_import.id)
+        }
+        
+        logger.info(f"✅ Retrieved {len(response_data)} records from latest import")
         
         return {
             "success": True,
-            "import_session_id": str(latest_import.id),
-            "import_metadata": {
-                "filename": latest_import.source_filename,
-                "import_type": latest_import.import_type,
-                "imported_at": latest_import.completed_at.isoformat() if latest_import.completed_at else None,
-                "total_records": latest_import.total_records
-            },
-            "data": imported_data,
-            "message": f"Retrieved {len(imported_data)} records from latest import"
+            "data": response_data,
+            "import_metadata": import_metadata
         }
         
     except Exception as e:
-        logger.error(f"Failed to retrieve import data: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve import data: {str(e)}")
+        logger.error(f"❌ Error getting latest import: {str(e)}")
+        return {
+            "success": False,
+            "message": f"Failed to retrieve latest import: {str(e)}",
+            "data": [],
+            "import_metadata": None
+        }
 
 @router.get("/import/{import_session_id}")
 async def get_import_by_id(

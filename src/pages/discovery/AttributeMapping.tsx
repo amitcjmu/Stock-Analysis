@@ -165,6 +165,35 @@ const AttributeMapping: React.FC = () => {
   }, [user, toast, refetchCriticalAttributes]);
 
   const mappingProgress = useMemo(() => {
+    // Calculate from field mappings data if available
+    if (fieldMappingsData && fieldMappingsData.success && fieldMappingsData.mappings) {
+      const mappings = fieldMappingsData.mappings;
+      const totalMappings = mappings.length;
+      const approvedMappings = mappings.filter(m => m.status === 'approved').length;
+      
+      // Define critical attributes for migration (6R readiness)
+      const criticalFields = [
+        'asset_id', 'name', 'hostname', 'asset_type', 'operating_system', 
+        'ip_address', 'environment', 'business_owner', 'datacenter'
+      ];
+      
+      const criticalMappings = mappings.filter(m => 
+        criticalFields.includes(m.targetAttribute.toLowerCase())
+      ).length;
+      
+      const avgConfidence = mappings.length > 0 
+        ? mappings.reduce((sum, m) => sum + (m.confidence || 0), 0) / mappings.length 
+        : 0;
+      
+      return {
+        total: fieldMappingsData.import_info?.total_fields || totalMappings,
+        mapped: totalMappings,
+        critical_mapped: criticalMappings,
+        accuracy: Math.round(avgConfidence * 100),
+      };
+    }
+    
+    // Fallback to critical attributes data
     if (!criticalAttributesData || !criticalAttributesData.statistics) {
       return { total: 0, mapped: 0, critical_mapped: 0, accuracy: 0 };
     }
@@ -173,9 +202,9 @@ const AttributeMapping: React.FC = () => {
       total: statistics.total_attributes,
       mapped: statistics.mapped_count,
       critical_mapped: statistics.migration_critical_mapped,
-      accuracy: statistics.avg_quality_score,
+      accuracy: Math.round(statistics.avg_quality_score || 0),
     };
-  }, [criticalAttributesData]);
+  }, [criticalAttributesData, fieldMappingsData]);
 
   // 🤖 Real field mappings from agents (context-aware, not mock data)
   const fieldMappings = useMemo(() => {

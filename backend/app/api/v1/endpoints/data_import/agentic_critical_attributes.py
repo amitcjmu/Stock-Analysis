@@ -731,4 +731,89 @@ def _analysis_in_progress_response() -> Dict[str, Any]:
             "current_task": "Agents collaboratively analyzing field criticality"
         },
         "last_updated": datetime.utcnow().isoformat()
-    } 
+    }
+
+
+@router.get("/agent-clarifications")
+async def get_agent_clarifications(
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get agent clarification questions in MCQ format."""
+    try:
+        # Extract context from request headers
+        context = extract_context_from_request(request)
+        
+        # Mock MCQ questions for field mapping clarifications
+        mock_questions = [
+            {
+                "id": "field_mapping_1",
+                "agent_id": "field_mapping_specialist",
+                "agent_name": "Field Mapping Specialist",
+                "question_type": "field_mapping_verification",
+                "page": "attribute-mapping",
+                "title": "Field Mapping Verification",
+                "question": "Should 'Application_Owner' field be mapped to 'business_owner' critical attribute?",
+                "options": [
+                    "Yes, map Application_Owner → business_owner",
+                    "No, map Application_Owner → technical_owner", 
+                    "No, map Application_Owner → department",
+                    "Skip this field mapping"
+                ],
+                "context": {
+                    "source_field": "Application_Owner",
+                    "target_options": ["business_owner", "technical_owner", "department"],
+                    "confidence": 0.75,
+                    "sample_values": ["John Doe", "IT Department", "Finance Team"]
+                },
+                "confidence": "medium",
+                "priority": "normal",
+                "created_at": datetime.utcnow().isoformat(),
+                "is_resolved": False
+            },
+            {
+                "id": "field_mapping_2", 
+                "agent_id": "field_mapping_specialist",
+                "agent_name": "Field Mapping Specialist",
+                "question_type": "field_categorization",
+                "page": "attribute-mapping",
+                "title": "Field Categorization",
+                "question": "How should 'Location_U' field be categorized for migration planning?",
+                "options": [
+                    "Critical - Required for migration planning",
+                    "Important - Useful but not critical",
+                    "Optional - Nice to have",
+                    "Ignore - Not relevant for migration"
+                ],
+                "context": {
+                    "source_field": "Location_U",
+                    "field_type": "location",
+                    "sample_values": ["U1", "U2", "U3", "U4"],
+                    "confidence": 0.65
+                },
+                "confidence": "medium",
+                "priority": "low",
+                "created_at": datetime.utcnow().isoformat(),
+                "is_resolved": False
+            }
+        ]
+        
+        return {
+            "status": "success",
+            "page_data": {
+                "pending_questions": mock_questions,
+                "total_questions": len(mock_questions),
+                "page_context": "attribute-mapping"
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error getting agent clarifications: {str(e)}")
+        return {
+            "status": "error",
+            "message": f"Failed to get agent clarifications: {str(e)}",
+            "page_data": {
+                "pending_questions": [],
+                "total_questions": 0
+            }
+        } 

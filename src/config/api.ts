@@ -122,7 +122,8 @@ export const API_CONFIG = {
       AVAILABLE_TARGET_FIELDS: '/data-import/available-target-fields',
       CRITICAL_ATTRIBUTES_STATUS: '/data-import/critical-attributes-status',
       CONTEXT_FIELD_MAPPINGS: '/data-import/context-field-mappings',
-      SIMPLE_FIELD_MAPPINGS: '/data-import/simple-field-mappings'
+      SIMPLE_FIELD_MAPPINGS: '/data-import/simple-field-mappings',
+      AGENT_CLARIFICATIONS: '/data-import/agent-clarifications'
     },
     MONITORING: {
       STATUS: '/monitoring/status',

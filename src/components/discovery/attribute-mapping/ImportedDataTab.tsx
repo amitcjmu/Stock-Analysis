@@ -1,7 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Database, FileText, Download, Search } from 'lucide-react';
-import { useAuth } from '../../../contexts/AuthContext';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { 
+  Database, 
+  FileText, 
+  Search, 
+  Download,
+  ChevronLeft,
+  ChevronRight
+} from 'lucide-react';
 import { apiCall, API_CONFIG } from '../../../config/api';
+import { getAuthHeaders } from '../../../utils/auth';
 
 interface ImportedDataTabProps {
   className?: string;
@@ -26,64 +34,77 @@ interface ImportMetadata {
 }
 
 const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => {
-  const { getAuthHeaders } = useAuth();
-  const [importData, setImportData] = useState<ImportRecord[]>([]);
-  const [importMetadata, setImportMetadata] = useState<ImportMetadata | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
-  
-  const recordsPerPage = 50;
-  const totalPages = Math.ceil(importData.length / recordsPerPage);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [recordsPerPage] = useState(10);
 
-  useEffect(() => {
-    fetchImportedData();
-  }, []);
-
-  const fetchImportedData = async () => {
-    try {
-      setIsLoading(true);
-      
+  // 🚀 React Query with caching - prevents unnecessary API calls
+  const { 
+    data: importResponse, 
+    isLoading, 
+    error: queryError,
+    isStale
+  } = useQuery({
+    queryKey: ['imported-data'],
+    queryFn: async () => {
       const authHeaders = getAuthHeaders();
-      
-      // Get the latest import data
       const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.LATEST_IMPORT, {
         method: 'GET',
         headers: authHeaders
       });
+      return response;
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutes - data stays fresh for 10 mins
+    gcTime: 30 * 60 * 1000, // 30 minutes - keep in cache for 30 mins
+    retry: 2,
+    refetchOnWindowFocus: false, // Don't refetch when user returns to tab
+    refetchOnMount: false, // Don't refetch if data is still fresh
+  });
 
-      if (response.success) {
-        // Transform the raw data array into ImportRecord format
-        const transformedData = (response.data || []).map((rawRecord: any, index: number) => ({
-          id: `row_${index + 1}`,
-          row_number: index + 1,
-          record_id: rawRecord.Asset_ID || rawRecord.hostname || rawRecord.asset_name || `row_${index + 1}`,
-          raw_data: rawRecord,
-          is_processed: true,
-          is_valid: true,
-          created_at: new Date().toISOString()
-        }));
-        
-        setImportData(transformedData);
-        setImportMetadata(response.import_metadata || null);
-        
-        // Set default visible columns (first 6 columns from raw data)
-        if (response.data && response.data.length > 0) {
-          const columns = Object.keys(response.data[0]);
-          setSelectedColumns(columns.slice(0, 6));
-        }
-      } else {
-        setError(response.message || 'Failed to load imported data');
-      }
-    } catch (err) {
-      console.error('Error fetching imported data:', err);
-      setError('Failed to load imported data');
-    } finally {
-      setIsLoading(false);
+  // Transform and memoize data to prevent unnecessary recalculations
+  const { importData, importMetadata, error } = useMemo(() => {
+    if (queryError) {
+      return { 
+        importData: [], 
+        importMetadata: null, 
+        error: 'Failed to load imported data' 
+      };
     }
-  };
+
+    if (!importResponse || !importResponse.success) {
+      return { 
+        importData: [], 
+        importMetadata: null, 
+        error: importResponse?.message || 'Failed to load imported data' 
+      };
+    }
+
+    // Transform the raw data array into ImportRecord format
+    const transformedData = (importResponse.data || []).map((rawRecord: any, index: number) => ({
+      id: `row_${index + 1}`,
+      row_number: index + 1,
+      record_id: rawRecord.Asset_ID || rawRecord.hostname || rawRecord.asset_name || `row_${index + 1}`,
+      raw_data: rawRecord,
+      is_processed: true,
+      is_valid: true,
+      created_at: new Date().toISOString()
+    }));
+
+    return {
+      importData: transformedData,
+      importMetadata: importResponse.import_metadata || null,
+      error: null
+    };
+  }, [importResponse, queryError]);
+
+  // Set default columns when data loads (memoized)
+  useEffect(() => {
+    if (importData.length > 0 && selectedColumns.length === 0) {
+      const columns = Object.keys(importData[0].raw_data);
+      setSelectedColumns(columns.slice(0, 6));
+    }
+  }, [importData, selectedColumns.length]);
 
   const filteredData = importData.filter(record => {
     if (!searchTerm) return true;
