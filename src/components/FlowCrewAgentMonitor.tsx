@@ -93,6 +93,7 @@ const FlowCrewAgentMonitor: React.FC = () => {
   const [activeTab, setActiveTab] = useState('flows');
   const [selectedFlow, setSelectedFlow] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [isStartingFlow, setIsStartingFlow] = useState(false);
   
   const { getAuthHeaders } = useAuth();
 
@@ -382,9 +383,9 @@ const FlowCrewAgentMonitor: React.FC = () => {
         current_phase: crewDef.phase,
         started_at: new Date().toISOString(),
         collaboration_metrics: {
-          internal_effectiveness: 0.85,
-          cross_crew_sharing: 0.72,
-          memory_utilization: 0.88
+          internal_effectiveness: 0,  // Will be populated from real CrewAI task completion data
+          cross_crew_sharing: 0,      // Will be populated from real agent collaboration metrics  
+          memory_utilization: 0       // Will be populated from real shared memory usage
         }
       };
     });
@@ -506,6 +507,71 @@ const FlowCrewAgentMonitor: React.FC = () => {
     }
   };
 
+  const startTestDiscoveryFlow = async () => {
+    try {
+      setIsStartingFlow(true);
+      
+      // Create a sample Discovery Flow request with mock CMDB data
+      const testRequest = {
+        headers: ['asset_name', 'asset_type', 'environment', 'business_criticality', 'server_name'],
+        sample_data: [
+          {
+            asset_name: 'WebServer01',
+            asset_type: 'Application Server',
+            environment: 'Production',
+            business_criticality: 'High',
+            server_name: 'PROD-WEB-01'
+          },
+          {
+            asset_name: 'Database01',
+            asset_type: 'Database Server',
+            environment: 'Production', 
+            business_criticality: 'Critical',
+            server_name: 'PROD-DB-01'
+          },
+          {
+            asset_name: 'TestApp',
+            asset_type: 'Application',
+            environment: 'Test',
+            business_criticality: 'Low',
+            server_name: 'TEST-APP-01'
+          }
+        ],
+        filename: 'test_discovery_flow.csv',
+        options: {
+          test_mode: true,
+          generate_task_data: true
+        }
+      };
+
+      const response = await fetch('/api/v1/discovery/flow/run', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify(testRequest)
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Discovery Flow started:', result);
+        
+        // Refresh monitoring data to show the new flow
+        setTimeout(() => {
+          fetchMonitoringData();
+        }, 2000); // Wait 2 seconds for flow to initialize
+      } else {
+        const error = await response.text();
+        console.error('Failed to start Discovery Flow:', error);
+      }
+    } catch (error) {
+      console.error('Error starting test Discovery Flow:', error);
+    } finally {
+      setIsStartingFlow(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -551,14 +617,24 @@ const FlowCrewAgentMonitor: React.FC = () => {
           <h2 className="text-2xl font-bold text-gray-900">CrewAI Flow Monitor</h2>
           <p className="text-gray-600">Real-time monitoring of Discovery Flows, Crews, and Agents</p>
         </div>
-        <Button 
-          onClick={fetchMonitoringData} 
-          disabled={refreshing}
-          variant="outline"
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
+        <div className="flex space-x-2">
+          <Button 
+            onClick={fetchMonitoringData} 
+            disabled={refreshing}
+            variant="outline"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Button 
+            onClick={startTestDiscoveryFlow} 
+            disabled={isStartingFlow}
+            variant="default"
+          >
+            <Play className={`h-4 w-4 mr-2 ${isStartingFlow ? 'animate-spin' : ''}`} />
+            {isStartingFlow ? 'Starting...' : 'Start Test Flow'}
+          </Button>
+        </div>
       </div>
 
       {/* System Health Overview */}
