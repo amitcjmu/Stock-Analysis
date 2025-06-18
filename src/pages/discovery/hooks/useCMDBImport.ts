@@ -226,40 +226,14 @@ export const useDiscoveryFlowStatus = (sessionId: string | null) => {
       } as AnalysisStatusResponse;
     },
     enabled: !!sessionId,
-    refetchInterval: (query) => {
-      const data = query.state.data;
-      
-      // Stop polling if workflow is completed, failed, or idle
-      const shouldStopPolling = data?.status === 'completed' || 
-                               data?.status === 'failed' || 
-                               data?.status === 'idle' ||
-                               data?.status === 'error';
-      
-      const shouldPoll = data?.status === 'running' || 
-                        data?.status === 'in_progress' ||
-                        data?.status === 'processing';
-      
-      console.log(`📊 Polling decision for ${sessionId}:`, {
-        status: data?.status,
-        current_phase: data?.current_phase,
-        shouldPoll,
-        shouldStopPolling,
-        willPoll: shouldPoll ? 3000 : false
-      });
-      
-      // Poll every 3 seconds if workflow is running, otherwise stop
-      return shouldPoll ? 3000 : false;
-    },
-    refetchOnWindowFocus: false,
-    retry: (failureCount, error) => {
-      // Don't retry if workflow is completed or failed intentionally
-      if (error?.message?.includes('completed') || error?.message?.includes('failed')) {
-        return false;
-      }
-      // Only retry up to 2 times for network errors
-      return failureCount < 2;
-    },
-    retryDelay: 1000,
+    staleTime: Infinity, // Never automatically consider data stale
+    gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
+    refetchInterval: false, // DISABLED: No automatic polling - use manual refresh only
+    refetchOnWindowFocus: false, // DISABLED: No refetch on focus
+    refetchOnMount: false, // DISABLED: No refetch on mount after initial load
+    refetchOnReconnect: false, // DISABLED: No refetch on reconnect
+    retry: 1, // Minimal retries
+    retryDelay: 2000 // 2 second delay between retries
   });
 };
 

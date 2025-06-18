@@ -630,9 +630,10 @@ interface DiscoveryFlowResultsProps {
 const DiscoveryFlowResults: React.FC<DiscoveryFlowResultsProps> = ({ sessionId, onNavigateToMapping }) => {
   const [flowResults, setFlowResults] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchFlowResults = async () => {
+  const fetchFlowResults = async () => {
+    setIsLoading(true);
       try {
         console.log('🔍 Fetching Discovery Flow results for session:', sessionId);
         
@@ -740,6 +741,31 @@ const DiscoveryFlowResults: React.FC<DiscoveryFlowResultsProps> = ({ sessionId, 
       }
     };
 
+  // Manual refresh function
+  const handleManualRefresh = async () => {
+    try {
+      toast({
+        title: "🔄 Refreshing Results",
+        description: "Fetching latest Discovery Flow results...",
+      });
+      
+      await fetchFlowResults();
+      
+      toast({
+        title: "✅ Results Refreshed", 
+        description: "Latest Discovery Flow results have been loaded.",
+      });
+    } catch (error) {
+      console.error('Failed to refresh results:', error);
+      toast({
+        title: "❌ Refresh Failed",
+        description: "Failed to refresh results. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  useEffect(() => {
     if (sessionId) {
       fetchFlowResults();
     }
@@ -781,13 +807,31 @@ const DiscoveryFlowResults: React.FC<DiscoveryFlowResultsProps> = ({ sessionId, 
       {/* Summary Card */}
       <Card className="border-green-200 bg-green-50">
         <CardHeader>
-          <CardTitle className="text-xl flex items-center text-green-800">
-            <CheckCircle className="h-6 w-6 mr-2" />
-            Discovery Flow Completed Successfully!
-          </CardTitle>
-          <CardDescription className="text-green-700">
-            All 6 CrewAI crews have completed their analysis. Your data is ready for the next phase.
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-xl flex items-center text-green-800">
+                <CheckCircle className="h-6 w-6 mr-2" />
+                Discovery Flow Completed Successfully!
+              </CardTitle>
+              <CardDescription className="text-green-700">
+                All 6 CrewAI crews have completed their analysis. Your data is ready for the next phase.
+              </CardDescription>
+            </div>
+            <Button
+              onClick={handleManualRefresh}
+              disabled={isLoading}
+              variant="outline"
+              size="sm"
+              className="flex items-center space-x-2"
+            >
+              {isLoading ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              <span>Refresh</span>
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">

@@ -147,19 +147,14 @@ export const useAgenticCriticalAttributes = () => {
         }
       }
     },
-    staleTime: 30 * 1000, // 30 seconds (shorter for faster updates)
-    gcTime: 5 * 60 * 1000, // 5 minutes cache time
-    refetchInterval: (data) => {
-      // Auto-refresh if agents are actively analyzing
-      if (data?.agent_status?.discovery_flow_active || 
-          data?.agent_status?.field_mapping_crew_status === 'analyzing') {
-        return 10 * 1000; // 10 seconds
-      }
-      return false; // No auto-refresh when idle
-    },
-    refetchOnWindowFocus: true, // Refresh when user returns to tab
-    retry: 1, // Reduce retries to prevent long waits
-    timeout: 15000 // 15 second timeout
+    staleTime: Infinity, // Never automatically consider data stale
+    gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
+    refetchInterval: false, // DISABLED: No automatic polling
+    refetchOnWindowFocus: false, // DISABLED: No refetch on focus
+    refetchOnMount: false, // DISABLED: No refetch on mount after initial load
+    refetchOnReconnect: false, // DISABLED: No refetch on network reconnect
+    retry: 1, // Minimal retries
+    retryDelay: 2000 // 2 second delay between retries
   });
 };
 

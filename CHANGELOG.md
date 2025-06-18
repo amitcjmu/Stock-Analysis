@@ -1,5 +1,67 @@
 # AI Force Migration Platform - Change Log
 
+## [0.10.11] - 2025-01-21
+
+### 🎯 **POLLING ELIMINATION - Manual Refresh Control**
+
+This release eliminates all automatic polling and continuous API requests to prevent request flooding, replacing them with user-controlled manual refresh buttons for better performance and resource management.
+
+### 🚀 **Request Management Improvements**
+
+#### **Automatic Polling Elimination**
+- **Query Configuration**: Disabled all `refetchInterval` settings across Discovery Flow hooks
+- **Focus Refetch**: Disabled `refetchOnWindowFocus` to prevent unwanted requests when switching tabs
+- **Mount Refetch**: Disabled `refetchOnMount` for cached data to reduce redundant requests
+- **Reconnect Refetch**: Disabled `refetchOnReconnect` to prevent request storms on network changes
+- **Stale Time**: Set to `Infinity` for manual control over data freshness
+
+#### **Manual Refresh Controls**
+- **AttributeMapping Page**: Added "Refresh Data" button in header for manual data updates
+- **Discovery Flow Results**: Added refresh button in results card header
+- **User Control**: Users now have complete control over when to fetch updates
+- **Toast Notifications**: Added feedback for refresh operations (success/failure)
+- **Loading States**: Proper loading indicators during manual refresh operations
+
+#### **Performance Optimizations**
+- **Cache Management**: Extended cache time to 30 minutes for better performance
+- **Retry Logic**: Reduced retry attempts to minimize failed request loops
+- **Timeout Handling**: 15-second timeouts to prevent hanging requests
+- **Graceful Fallbacks**: Fallback data structures to prevent UI blocking
+
+### 📊 **Updated Components**
+
+#### **Hook Updates**
+- **useAgenticCriticalAttributes**: Completely disabled automatic polling
+- **useDiscoveryFlowState**: Disabled active flow discovery polling
+- **useDiscoveryFlowStatus**: Replaced continuous polling with manual refresh only
+- **All Discovery Hooks**: Consistent polling elimination across the platform
+
+#### **UI Enhancements**
+- **Manual Refresh Buttons**: Added to all data-dependent components
+- **Status Indicators**: Show data freshness and availability instead of polling status
+- **User Feedback**: Clear success/error messages for refresh operations
+- **Loading States**: Proper visual feedback during data fetching
+
+### 🎯 **Business Impact**
+- **Performance**: Eliminated continuous API request flooding
+- **Resource Efficiency**: Reduced server load and bandwidth usage
+- **User Control**: Users decide when to fetch updates, improving UX
+- **Stability**: Prevented request storms that could impact system performance
+
+### 🔧 **Technical Achievements**
+- **Zero Automatic Polling**: No background requests without user action
+- **Consistent Patterns**: Unified manual refresh approach across all components
+- **Error Handling**: Robust error handling for manual refresh operations
+- **Cache Optimization**: Intelligent caching to reduce redundant requests
+
+### 🎪 **Developer Experience**
+- **Clear Patterns**: Consistent manual refresh implementation
+- **Debugging**: Easier to debug without continuous background requests
+- **Predictable Behavior**: Data updates only when user initiates them
+- **Performance Monitoring**: Clearer understanding of actual API usage
+
+---
+
 ## [0.10.10] - 2025-01-21
 
 ### 🎯 **PYDANTIC V2 MIGRATION - Modernization Complete**

@@ -193,8 +193,12 @@ export const useDiscoveryFlowState = () => {
       }
       return response.json();
     },
-    enabled: !flowState.flow_fingerprint,
-    refetchInterval: 3000, // Check for active flows every 3 seconds
+    enabled: false, // DISABLED: No automatic active flow discovery
+    staleTime: Infinity, // Never automatically consider data stale
+    refetchInterval: false, // DISABLED: No automatic polling
+    refetchOnWindowFocus: false, // DISABLED: No refetch on focus
+    refetchOnMount: false, // DISABLED: No refetch on mount
+    refetchOnReconnect: false // DISABLED: No refetch on reconnect
   });
 
      // Update flow state when status changes
