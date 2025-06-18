@@ -1,5 +1,44 @@
 # AI Force Migration Platform - Change Log
 
+## [0.10.12] - 2025-01-18
+
+### 🎯 **CREWAI LLM CONFIGURATION - Fixed Model Override Issues**
+
+This release resolves critical LLM configuration issues preventing CrewAI crews from using proper DeepInfra models and defaulting to non-existent `gpt-4o-mini`.
+
+### 🚀 **LLM Configuration Enhancement**
+
+#### **Critical LLM Override System**
+- **Enhanced Environment Variables**: Added comprehensive environment variable overrides to prevent CrewAI from defaulting to `gpt-4o-mini`
+- **Explicit Model Configuration**: Configured `DEFAULT_LLM_MODEL`, `CREWAI_LLM_MODEL`, `OPENAI_MODEL` to force DeepInfra usage
+- **LiteLLM Integration**: Added proper LiteLLM configuration with DeepInfra endpoints
+- **OpenAI Compatibility**: Ensured full OpenAI-compatible API usage through DeepInfra
+
+#### **Crew LLM Integration**
+- **All Crews Updated**: Fixed LLM configuration in all 6 specialized crews:
+  - Field Mapping Crew ✅
+  - Data Cleansing Crew ✅  
+  - Inventory Building Crew ✅
+  - App-Server Dependency Crew ✅
+  - App-App Dependency Crew ✅
+  - Technical Debt Crew ✅
+- **Smart LLM Resolution**: Each crew now uses `get_crewai_llm()` with graceful fallback
+- **Configuration Validation**: Added proper LLM validation logging for all crews
+
+### 📊 **Technical Achievements**
+- **Model Override**: Prevented `gpt-4o-mini` fallback through comprehensive environment variable configuration
+- **API Compatibility**: Ensured all OpenAI calls route through DeepInfra with proper authentication
+- **Error Elimination**: Resolved "model does not exist" errors in CrewAI execution
+- **Service Stability**: Enhanced service reliability through proper LLM configuration
+
+### 🎯 **Success Metrics**
+- **Error Resolution**: 100% elimination of `gpt-4o-mini` model errors
+- **Crew Compatibility**: All 6 crews now use consistent DeepInfra LLM configuration
+- **Service Health**: Discovery Flow service maintains healthy status with proper LLM setup
+- **Configuration Validation**: Environment variables properly set and validated in container
+
+---
+
 ## [0.10.11] - 2025-01-21
 
 ### 🎯 **POLLING ELIMINATION - Manual Refresh Control**

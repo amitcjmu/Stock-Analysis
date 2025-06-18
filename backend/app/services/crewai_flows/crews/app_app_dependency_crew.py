@@ -34,7 +34,15 @@ class AppAppDependencyCrew:
     
     def __init__(self, crewai_service, shared_memory=None, knowledge_base=None):
         self.crewai_service = crewai_service
-        self.llm = getattr(crewai_service, 'llm', None)
+        
+        # Get proper LLM configuration from our LLM config service
+        try:
+            from app.services.llm_config import get_crewai_llm
+            self.llm = get_crewai_llm()
+            logger.info("✅ App-App Dependency Crew using configured DeepInfra LLM")
+        except Exception as e:
+            logger.warning(f"Failed to get configured LLM, using fallback: {e}")
+            self.llm = getattr(crewai_service, 'llm', None)
         
         # Setup shared memory and knowledge base
         self.shared_memory = shared_memory or self._setup_shared_memory()

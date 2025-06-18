@@ -162,7 +162,25 @@ def configure_openai_environment_variables():
     crewai_model = getattr(settings, 'CREWAI_LLM_MODEL', 'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8')
     os.environ["OPENAI_MODEL_NAME"] = f"deepinfra/{crewai_model}"
     
+    # CRITICAL: Override CrewAI's default model settings to prevent gpt-4o-mini usage
+    # Set explicit environment variables that CrewAI uses for model selection
+    os.environ["DEFAULT_LLM_MODEL"] = f"deepinfra/{crewai_model}"
+    os.environ["CREWAI_LLM_MODEL"] = f"deepinfra/{crewai_model}"
+    
+    # Force all OpenAI calls to use DeepInfra endpoint
+    os.environ["OPENAI_BASE_URL"] = llm_config.deepinfra_base_url
+    
+    # Override LiteLLM configurations to use DeepInfra
+    os.environ["LITELLM_API_KEY"] = llm_config.deepinfra_api_key
+    os.environ["LITELLM_BASE_URL"] = llm_config.deepinfra_base_url
+    os.environ["LITELLM_MODEL"] = f"deepinfra/{crewai_model}"
+    
+    # Set model name without provider prefix for direct OpenAI compatibility
+    os.environ["OPENAI_MODEL"] = crewai_model
+    
     logger.info(f"✅ OpenAI environment variables configured for DeepInfra with model: {crewai_model}")
+    logger.info(f"✅ API Base: {llm_config.deepinfra_base_url}")
+    logger.info(f"✅ Model override: {crewai_model} (preventing gpt-4o-mini fallback)")
 
 
 # Initialize environment variables on import
