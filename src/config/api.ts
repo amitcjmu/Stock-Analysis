@@ -120,7 +120,9 @@ export const API_CONFIG = {
       GET_IMPORT: '/data-import/import',
       LIST_IMPORTS: '/data-import/imports',
       AVAILABLE_TARGET_FIELDS: '/data-import/available-target-fields',
-      CRITICAL_ATTRIBUTES_STATUS: '/data-import/critical-attributes-status'
+      CRITICAL_ATTRIBUTES_STATUS: '/data-import/critical-attributes-status',
+      CONTEXT_FIELD_MAPPINGS: '/data-import/context-field-mappings',
+      SIMPLE_FIELD_MAPPINGS: '/data-import/simple-field-mappings'
     },
     MONITORING: {
       STATUS: '/monitoring/status',

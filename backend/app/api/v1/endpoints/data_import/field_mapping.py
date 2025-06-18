@@ -5,7 +5,7 @@ Handles field mapping operations, target field definitions, and AI-powered mappi
 
 from datetime import datetime
 from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import and_, select
 import logging
@@ -599,3 +599,236 @@ async def suggest_mappings_for_import(
     except Exception as e:
         logger.error(f"Error suggesting mappings for import {import_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to suggest field mappings") 
+
+@router.get("/context-field-mappings")
+async def get_context_field_mappings(
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get field mappings for the current user context (client + engagement)."""
+    try:
+        # Extract context from request headers
+        from app.core.context import extract_context_from_request
+        context = extract_context_from_request(request)
+        
+        if not context.client_account_id or not context.engagement_id:
+            # Use demo context as fallback
+            context.client_account_id = "demo-client-123"
+            context.engagement_id = "demo-engagement-456"
+            
+        # Get the latest import for this context
+        latest_query = select(DataImport).where(
+            and_(
+                DataImport.status == ImportStatus.PROCESSED,
+                DataImport.client_account_id == context.client_account_id,
+                DataImport.engagement_id == context.engagement_id
+            )
+        ).order_by(DataImport.completed_at.desc()).limit(1)
+        
+        result = await db.execute(latest_query)
+        latest_import = result.scalar_one_or_none()
+        
+        if not latest_import:
+            return {
+                "success": False,
+                "message": "No processed imports found for current context",
+                "mappings": [],
+                "context": {
+                    "client_account_id": context.client_account_id,
+                    "engagement_id": context.engagement_id
+                }
+            }
+        
+        # Get field mappings for this import
+        mappings_query = select(ImportFieldMapping).where(
+            ImportFieldMapping.data_import_id == latest_import.id
+        )
+        mappings_result = await db.execute(mappings_query)
+        mappings = mappings_result.scalars().all()
+        
+        # Transform mappings to include agent confidence and reasoning
+        transformed_mappings = []
+        for mapping in mappings:
+            transformed_mappings.append({
+                "id": str(mapping.id),
+                "sourceField": mapping.source_field,
+                "targetAttribute": mapping.target_field,
+                "confidence": mapping.confidence_score or 0.0,
+                "mapping_type": mapping.mapping_type or "direct",
+                "sample_values": mapping.sample_values or [],
+                "status": mapping.status or "pending",
+                "ai_reasoning": mapping.original_ai_suggestion or f"Agent mapped {mapping.source_field} to {mapping.target_field}",
+                "is_user_defined": mapping.is_user_defined or False,
+                "user_feedback": mapping.user_feedback,
+                "created_at": mapping.created_at.isoformat() if mapping.created_at else None,
+                "validation_method": mapping.validation_method,
+                "is_validated": mapping.is_validated or False
+            })
+        
+        return {
+            "success": True,
+            "mappings": transformed_mappings,
+            "total_mappings": len(transformed_mappings),
+            "import_info": {
+                "import_id": str(latest_import.id),
+                "filename": latest_import.filename,
+                "completed_at": latest_import.completed_at.isoformat() if latest_import.completed_at else None
+            },
+            "context": {
+                "client_account_id": context.client_account_id,
+                "engagement_id": context.engagement_id
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get context field mappings: {e}")
+        return {
+            "success": False,
+            "message": f"Failed to retrieve field mappings: {str(e)}",
+            "mappings": []
+        }
+
+@router.get("/simple-field-mappings")
+async def get_simple_field_mappings(
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get simplified field mappings based on latest import data."""
+    try:
+        # Get the latest import regardless of context for now
+        latest_query = select(DataImport).where(
+            DataImport.status == ImportStatus.PROCESSED
+        ).order_by(DataImport.completed_at.desc()).limit(1)
+        
+        result = await db.execute(latest_query)
+        latest_import = result.scalar_one_or_none()
+        
+        if not latest_import:
+            return {
+                "success": False,
+                "message": "No processed imports found",
+                "mappings": []
+            }
+        
+        # Get sample data to create intelligent mappings
+        from app.models.data_import import RawImportRecord
+        sample_query = select(RawImportRecord).where(
+            RawImportRecord.data_import_id == latest_import.id
+        ).limit(3)
+        
+        sample_result = await db.execute(sample_query)
+        sample_records = sample_result.scalars().all()
+        
+        if not sample_records:
+            return {
+                "success": False,
+                "message": "No sample data found",
+                "mappings": []
+            }
+        
+        # Extract field names from the first record
+        if sample_records:
+            import json
+            sample_data = json.loads(sample_records[0].raw_data) if isinstance(sample_records[0].raw_data, str) else sample_records[0].raw_data
+            field_names = list(sample_data.keys()) if isinstance(sample_data, dict) else []
+        else:
+            field_names = []
+        
+        # Create intelligent field mappings based on field names
+        mappings = []
+        field_mapping_rules = {
+            # Identity fields
+            'asset_id': {'target': 'asset_id', 'confidence': 0.95, 'category': 'identification'},
+            'asset_name': {'target': 'name', 'confidence': 0.90, 'category': 'identification'},
+            'hostname': {'target': 'hostname', 'confidence': 0.95, 'category': 'identification'},
+            'server_name': {'target': 'hostname', 'confidence': 0.85, 'category': 'identification'},
+            'name': {'target': 'name', 'confidence': 0.80, 'category': 'identification'},
+            
+            # Technical fields
+            'asset_type': {'target': 'asset_type', 'confidence': 0.95, 'category': 'technical'},
+            'operating_system': {'target': 'operating_system', 'confidence': 0.90, 'category': 'technical'},
+            'os_version': {'target': 'os_version', 'confidence': 0.85, 'category': 'technical'},
+            'cpu_cores': {'target': 'cpu_cores', 'confidence': 0.90, 'category': 'technical'},
+            'memory_gb': {'target': 'memory_gb', 'confidence': 0.90, 'category': 'technical'},
+            'ram_gb': {'target': 'memory_gb', 'confidence': 0.85, 'category': 'technical'},
+            'storage_gb': {'target': 'storage_gb', 'confidence': 0.90, 'category': 'technical'},
+            
+            # Network fields
+            'ip_address': {'target': 'ip_address', 'confidence': 0.95, 'category': 'network'},
+            'ip_addr': {'target': 'ip_address', 'confidence': 0.90, 'category': 'network'},
+            
+            # Environment fields
+            'environment': {'target': 'environment', 'confidence': 0.95, 'category': 'environment'},
+            'datacenter': {'target': 'datacenter', 'confidence': 0.90, 'category': 'environment'},
+            'location_datacenter': {'target': 'datacenter', 'confidence': 0.85, 'category': 'environment'},
+            
+            # Business fields
+            'business_owner': {'target': 'business_owner', 'confidence': 0.85, 'category': 'business'},
+            'application_owner': {'target': 'business_owner', 'confidence': 0.80, 'category': 'business'},
+            'department': {'target': 'department', 'confidence': 0.85, 'category': 'business'},
+        }
+        
+        mapping_id = 1
+        for field_name in field_names:
+            field_lower = field_name.lower()
+            
+            # Check for direct matches
+            if field_lower in field_mapping_rules:
+                rule = field_mapping_rules[field_lower]
+                mappings.append({
+                    "id": str(mapping_id),
+                    "sourceField": field_name,
+                    "targetAttribute": rule['target'],
+                    "confidence": rule['confidence'],
+                    "mapping_type": "direct",
+                    "sample_values": [],
+                    "status": "pending" if rule['confidence'] < 0.90 else "approved",
+                    "ai_reasoning": f"Agent identified {field_name} as {rule['target']} based on field name pattern matching",
+                    "is_user_defined": False,
+                    "category": rule['category']
+                })
+                mapping_id += 1
+            else:
+                # Check for partial matches
+                for pattern, rule in field_mapping_rules.items():
+                    if pattern in field_lower or field_lower in pattern:
+                        mappings.append({
+                            "id": str(mapping_id),
+                            "sourceField": field_name,
+                            "targetAttribute": rule['target'],
+                            "confidence": max(0.60, rule['confidence'] - 0.20),  # Lower confidence for partial matches
+                            "mapping_type": "derived",
+                            "sample_values": [],
+                            "status": "pending",
+                            "ai_reasoning": f"Agent suggested {field_name} maps to {rule['target']} based on partial pattern match",
+                            "is_user_defined": False,
+                            "category": rule['category']
+                        })
+                        mapping_id += 1
+                        break
+        
+        return {
+            "success": True,
+            "mappings": mappings,
+            "total_mappings": len(mappings),
+            "import_info": {
+                "import_id": str(latest_import.id),
+                "filename": latest_import.source_filename or "Unknown",
+                "completed_at": latest_import.completed_at.isoformat() if latest_import.completed_at else None,
+                "total_fields": len(field_names)
+            },
+            "agent_analysis": {
+                "confidence": "high" if len(mappings) > 5 else "medium",
+                "total_fields_analyzed": len(field_names),
+                "mappings_suggested": len(mappings),
+                "high_confidence_mappings": len([m for m in mappings if m["confidence"] >= 0.85])
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get simple field mappings: {e}")
+        return {
+            "success": False,
+            "message": f"Failed to retrieve field mappings: {str(e)}",
+            "mappings": []
+        }

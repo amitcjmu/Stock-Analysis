@@ -4,7 +4,7 @@ import { Button } from '../../components/ui/button';
 import { Upload, RefreshCw, Zap } from 'lucide-react';
 import { useToast } from '../../hooks/use-toast';
 import { useAuth } from '../../contexts/AuthContext';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { useAgenticCriticalAttributes, useTriggerFieldMappingCrew } from '../../hooks/useAttributeMapping';
 import { apiCall, API_CONFIG } from '../../config/api';
 
@@ -36,6 +36,25 @@ const AttributeMapping: React.FC = () => {
     isError: isErrorCriticalAttributes,
     refetch: refetchCriticalAttributes 
   } = useAgenticCriticalAttributes();
+
+  // 🤖 NEW: Fetch real field mappings from agents (context-aware)
+  const { 
+    data: fieldMappingsData, 
+    isLoading: isLoadingFieldMappings,
+    isError: isErrorFieldMappings,
+    refetch: refetchFieldMappings 
+  } = useQuery({
+    queryKey: ['context-field-mappings'],
+    queryFn: async () => {
+      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.SIMPLE_FIELD_MAPPINGS, {
+        method: 'GET'
+      });
+      return response;
+    },
+    enabled: true,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 2
+  });
 
   // Hook to manually trigger Field Mapping Crew analysis
   const triggerFieldMappingCrew = useTriggerFieldMappingCrew();
@@ -158,29 +177,16 @@ const AttributeMapping: React.FC = () => {
     };
   }, [criticalAttributesData]);
 
-  // Mock field mappings data for now - this should come from a separate API call
-  const fieldMappings = [
-    {
-      id: '1',
-      sourceField: 'server_name',
-      targetAttribute: 'hostname',
-      confidence: 0.95,
-      mapping_type: 'direct' as const,
-      sample_values: ['server-01', 'server-02'],
-      status: 'pending' as const,
-      ai_reasoning: 'Direct mapping based on field name similarity'
-    },
-    {
-      id: '2',
-      sourceField: 'ip_addr',
-      targetAttribute: 'ip_address',
-      confidence: 0.90,
-      mapping_type: 'direct' as const,
-      sample_values: ['192.168.1.1', '192.168.1.2'],
-      status: 'approved' as const,
-      ai_reasoning: 'IP address format detected'
+  // 🤖 Real field mappings from agents (context-aware, not mock data)
+  const fieldMappings = useMemo(() => {
+    if (isLoadingFieldMappings || !fieldMappingsData || !fieldMappingsData.success) {
+      // Return empty array while loading or if no data
+      return [];
     }
-  ];
+    
+    // Return the actual field mappings from agents
+    return fieldMappingsData.mappings || [];
+  }, [fieldMappingsData, isLoadingFieldMappings]);
 
   // Mock crew analysis data
   const crewAnalysis = [
@@ -238,9 +244,9 @@ const AttributeMapping: React.FC = () => {
 
   if (isErrorCriticalAttributes) {
     return (
-      <div className="flex h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50">
         <Sidebar />
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="ml-64 h-screen flex flex-col overflow-hidden">
           <div className="flex-1 p-6">
             <ContextBreadcrumbs />
             <div className="mt-6">
@@ -263,9 +269,9 @@ const AttributeMapping: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50">
         <Sidebar />
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="ml-64 h-screen flex flex-col overflow-hidden">
           <div className="flex-1 p-6">
             <ContextBreadcrumbs />
             <div className="mt-6">
@@ -289,9 +295,9 @@ const AttributeMapping: React.FC = () => {
 
   if (!criticalAttributesData || mappingProgress.total === 0) {
     return (
-      <div className="flex h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50">
         <Sidebar />
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="ml-64 h-screen flex flex-col overflow-hidden">
           <div className="flex-1 p-6">
             <ContextBreadcrumbs />
             <div className="mt-6">
@@ -313,9 +319,9 @@ const AttributeMapping: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50">
       <Sidebar />
-      <div className="flex-1 flex overflow-hidden">
+      <div className="ml-64 h-screen flex overflow-hidden">
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 p-6 overflow-y-auto">

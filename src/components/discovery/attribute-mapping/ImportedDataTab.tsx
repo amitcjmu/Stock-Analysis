@@ -49,16 +49,27 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
       const authHeaders = getAuthHeaders();
       
       // Get the latest import data
-      const response = await apiCall(API_CONFIG.ENDPOINTS.DATA_IMPORT.LATEST_IMPORT, {
+      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.LATEST_IMPORT, {
         method: 'GET',
         headers: authHeaders
       });
 
       if (response.success) {
-        setImportData(response.data || []);
+        // Transform the raw data array into ImportRecord format
+        const transformedData = (response.data || []).map((rawRecord: any, index: number) => ({
+          id: `row_${index + 1}`,
+          row_number: index + 1,
+          record_id: rawRecord.Asset_ID || rawRecord.hostname || rawRecord.asset_name || `row_${index + 1}`,
+          raw_data: rawRecord,
+          is_processed: true,
+          is_valid: true,
+          created_at: new Date().toISOString()
+        }));
+        
+        setImportData(transformedData);
         setImportMetadata(response.import_metadata || null);
         
-        // Set default visible columns (first 6 columns)
+        // Set default visible columns (first 6 columns from raw data)
         if (response.data && response.data.length > 0) {
           const columns = Object.keys(response.data[0]);
           setSelectedColumns(columns.slice(0, 6));
