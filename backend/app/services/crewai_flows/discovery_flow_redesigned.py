@@ -97,6 +97,9 @@ class DiscoveryFlowRedesigned(Flow[DiscoveryFlowState], PlanningMixin):
         self._init_raw_data = kwargs.get('raw_data', [])
         self._init_metadata = kwargs.get('metadata', {})
         
+        # Initialize flow ID early to avoid access issues
+        self._flow_id = str(uuid.uuid4())
+        
         # Initialize Flow and Planning
         super().__init__()
         
@@ -115,7 +118,12 @@ class DiscoveryFlowRedesigned(Flow[DiscoveryFlowState], PlanningMixin):
         # Setup components through handlers
         self._setup_components()
         
-        logger.info(f"Discovery Flow Redesigned initialized: {self.flow_id}")
+        logger.info(f"Discovery Flow Redesigned initialized: {self._flow_id}")
+    
+    @property
+    def flow_id(self):
+        """Access the flow ID without conflicting with CrewAI Flow properties"""
+        return self._flow_id
     
     def _setup_components(self):
         """Setup all flow components through handlers"""
@@ -176,9 +184,6 @@ class DiscoveryFlowRedesigned(Flow[DiscoveryFlowState], PlanningMixin):
         
         # Setup Memory Analytics for Task 35
         self.memory_analytics = self._setup_memory_analytics()
-        
-        # Setup flow ID for event tracking (replaces fingerprinting)
-        self.flow_id = str(uuid.uuid4())
         
         # Setup database sessions and callbacks
         self.session_handler.setup_database_sessions()
@@ -472,7 +477,7 @@ class DiscoveryFlowRedesigned(Flow[DiscoveryFlowState], PlanningMixin):
             user_id=self._init_user_id,
             raw_data=self._init_raw_data,
             metadata=self._init_metadata,
-            flow_id=self.flow_id,
+            flow_id=self._flow_id,
             shared_memory=self.shared_memory
         )
         

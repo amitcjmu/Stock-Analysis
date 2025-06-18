@@ -8,6 +8,9 @@ import os
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 
+# Initialize logger first before any usage
+logger = logging.getLogger(__name__)
+
 # CrewAI imports for advanced features
 try:
     from crewai.memory import LongTermMemory
@@ -16,6 +19,7 @@ try:
     logger.info("✅ CrewAI advanced features available")
 except ImportError:
     logger.warning("CrewAI advanced features not available - using fallbacks")
+    CREWAI_ADVANCED_AVAILABLE = False
     
     # Fallback classes
     class LongTermMemory:
@@ -33,8 +37,6 @@ except ImportError:
     class TextFileKnowledgeSource:
         def __init__(self, **kwargs):
             pass
-    
-logger = logging.getLogger(__name__)
 
 class InitializationHandler:
     """Handles flow initialization and setup"""

@@ -924,8 +924,19 @@ class CrewAIFlowService:
         try:
             logger.info(f"🚀 Starting redesigned Discovery Flow for session {context.session_id}")
             
-            # Import the redesigned flow
-            from app.services.crewai_flows.discovery_flow_redesigned import DiscoveryFlowRedesigned
+            # Import the redesigned flow with error handling
+            try:
+                from app.services.crewai_flows.discovery_flow_redesigned import DiscoveryFlowRedesigned
+                REDESIGNED_FLOW_AVAILABLE = True
+            except Exception as import_error:
+                logger.error(f"Failed to import DiscoveryFlowRedesigned: {import_error}")
+                return {
+                    "status": "error",
+                    "message": f"Redesigned flow not available: {import_error}",
+                    "session_id": context.session_id,
+                    "workflow_status": "failed",
+                    "current_phase": "error"
+                }
             
             # Prepare flow data
             flow_data = {
