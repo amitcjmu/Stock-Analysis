@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.5] - 2025-01-28
+
+### 🎯 **WebSocket Removal for Vercel+Railway Compatibility**
+
+This release removes all WebSocket dependencies to ensure reliable deployment with Vercel frontend connecting to Railway backend.
+
+### 🚀 **Production Deployment Compatibility**
+
+#### **WebSocket Infrastructure Removal**
+- **Backend**: Removed `websocket/manager.py`, `endpoints/websocket.py`, `endpoints/sixr_websocket.py`
+- **Frontend**: Removed `useDiscoveryWebSocket.ts`, `useWebSocketMonitoring.ts` hooks
+- **API Router**: Removed WebSocket router from API configuration
+- **Main App**: Removed WebSocket endpoint and connection management infrastructure
+
+#### **HTTP Polling Implementation**
+- **Real-time Updates**: HTTP polling every 2 seconds for active flows using CrewAI Event Listener
+- **Flow Status**: `/api/v1/discovery/flow/status/{flow_id}` polled for live updates  
+- **Flow Events**: `/api/v1/discovery/flow/events/{flow_id}` polled every 5 seconds
+- **Active Discovery**: `/api/v1/discovery/flow/active` for fallback flow detection
+
+#### **Component Updates**
+- **DataCleansing**: Replaced WebSocket status with HTTP polling indicators
+- **AttributeMapping**: Updated to use polling-based real-time monitoring
+- **CMDBImport**: Removed WebSocket connection status, added HTTP polling mode indicator
+- **User Experience**: Seamless transition from WebSocket to polling (transparent to users)
+
+### 📊 **Technical Achievements**
+- **Deployment Compatibility**: 100% compatible with Vercel serverless functions + Railway backend
+- **No Connection Issues**: Eliminated WebSocket persistence problems with serverless architecture
+- **Maintained Real-time Feel**: 2-second polling provides near real-time experience
+- **Event-Based System**: Leverages existing CrewAI Event Listener for efficient updates
+
+### 🎯 **Success Metrics**
+- **Vercel Compatibility**: Full support for serverless function limitations
+- **Railway Integration**: Reliable backend connection without persistent connections
+- **Performance**: Efficient polling intervals with minimal overhead
+- **User Experience**: No degradation in real-time monitoring capabilities
+
+---
+
 ## [0.10.4] - 2025-01-27
 
 ### 🎯 **DISCOVERY FLOW ERROR RESOLUTION**

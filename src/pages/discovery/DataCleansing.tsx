@@ -7,7 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { apiCall, API_CONFIG } from '@/config/api';
 
 // CrewAI Discovery Flow Integration
-import useDiscoveryWebSocket from '@/hooks/useDiscoveryWebSocket';
+// Removed WebSocket dependency - using HTTP polling instead
 import { useDiscoveryFlowState } from '@/hooks/useDiscoveryFlowState';
 
 // Components
@@ -100,10 +100,8 @@ const DataCleansing: React.FC = () => {
     getCrewStatus
   } = useDiscoveryFlowState();
 
-  // WebSocket for real-time crew monitoring
-  const {
-    isConnected: isWebSocketConnected
-  } = useDiscoveryWebSocket({ flowId: flowState?.session_id });
+  // Real-time monitoring via HTTP polling (no WebSocket needed)
+  const isPollingActive = !!flowState && flowState.overall_status === 'in_progress';
 
   // Derived state from Discovery Flow
   const rawData = useMemo(() => {
@@ -528,12 +526,12 @@ const DataCleansing: React.FC = () => {
             </div>
             
             <div className="flex items-center space-x-3">
-              {/* WebSocket Status */}
+              {/* Real-time Status */}
               <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${
-                isWebSocketConnected ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                isPollingActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
               }`}>
                 <Activity className="h-4 w-4" />
-                <span>{isWebSocketConnected ? 'Live Monitoring' : 'Connecting...'}</span>
+                <span>{isPollingActive ? 'Live Monitoring' : 'Monitoring Ready'}</span>
               </div>
               
               {/* Crew Analysis Button */}

@@ -6,7 +6,7 @@ Main application entry point with CORS, routing, and WebSocket support.
 import sys
 import traceback
 import logging
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn
@@ -166,19 +166,9 @@ except Exception as e:
     API_ROUTES_ENABLED = False
     API_ROUTES_ERROR = str(e)
 
-# Try to import WebSocket manager
-try:
-    from app.websocket.manager import ConnectionManager
-    manager = ConnectionManager()
-    WEBSOCKET_ENABLED = True
-    print("✅ WebSocket manager loaded")
-except Exception as e:
-    print(f"⚠️  WebSocket manager not available: {e}")
-    WEBSOCKET_ENABLED = False
-    class DummyConnectionManager:
-        def __init__(self):
-            pass
-    manager = DummyConnectionManager()
+# WebSocket support removed for Vercel+Railway compatibility
+WEBSOCKET_ENABLED = False
+print("ℹ️  WebSocket support disabled - using HTTP polling for Vercel+Railway compatibility")
 
 # CORS middleware configuration
 # Build origins list from multiple sources
@@ -330,20 +320,7 @@ async def startup_event():
             import traceback
             traceback.print_exc()
 
-if WEBSOCKET_ENABLED:
-    @app.websocket("/ws/{client_id}")
-    async def websocket_endpoint(websocket: WebSocket, client_id: str):
-        """WebSocket endpoint for real-time updates."""
-        try:
-            await manager.connect(websocket, client_id)
-            while True:
-                data = await websocket.receive_text()
-                await manager.send_personal_message(f"Echo: {data}", client_id)
-        except WebSocketDisconnect:
-            manager.disconnect(client_id)
-            await manager.broadcast(f"Client {client_id} disconnected")
-        except Exception as e:
-            print(f"WebSocket error: {e}")
+# WebSocket endpoint removed - using HTTP polling for Vercel+Railway compatibility
 
 if __name__ == "__main__":
     # Port assignment - Use Railway PORT or default to 8000 for local development

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiCall } from '../config/api';
 
@@ -76,155 +76,155 @@ interface InitializeFlowParams {
   };
 }
 
+export interface FlowEvent {
+  event_type: string;
+  timestamp: string;
+  data: any;
+}
+
+const initialState: DiscoveryFlowState = {
+  session_id: '',
+  flow_fingerprint: undefined,
+  client_account_id: '',
+  engagement_id: '',
+  user_id: '',
+  current_phase: 'initialization',
+  phase_completion: {},
+  crew_status: {},
+  field_mappings: {
+    mappings: {},
+    confidence_scores: {},
+    unmapped_fields: [],
+    validation_results: {},
+    agent_insights: {}
+  },
+  raw_data: [],
+  cleaned_data: [],
+  asset_inventory: {},
+  agent_collaboration_map: {},
+  shared_memory_id: '',
+  shared_memory_reference: null,
+  overall_plan: {},
+  crew_coordination: {},
+  errors: [],
+  warnings: [],
+  
+  // Add missing required fields
+  data_quality_metrics: {},
+  app_server_dependencies: {},
+  app_app_dependencies: {},
+  technical_debt_assessment: {},
+  discovery_summary: {},
+  assessment_flow_package: {},
+  
+  // Real-time monitoring fields
+  agent_performance_metrics: {},
+  collaboration_activities: [],
+  memory_analytics: {},
+  knowledge_base_status: {},
+  
+  // Planning and intelligence fields
+  planning_status: {},
+  success_criteria_tracking: {},
+  performance_analytics: {},
+  
+  // Status and completion fields
+  completion_percentage: 0,
+  estimated_remaining_time: 'Calculating...',
+  overall_status: 'initializing'
+};
+
 export const useDiscoveryFlowState = () => {
+  const [flowState, setFlowState] = useState<DiscoveryFlowState>(initialState);
   const [currentFlowId, setCurrentFlowId] = useState<string | null>(null);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
-  // Get flow state using CrewAI Event Listener API (proper flow tracking)
-  const { data: flowState, isLoading, error } = useQuery<DiscoveryFlowState>({
-    queryKey: ['discovery-flow-state', currentFlowId],
-    queryFn: async (): Promise<DiscoveryFlowState> => {
-      // Use flow_id (from flow creation) as primary identifier
-      if (!currentFlowId) {
-        throw new Error('No flow ID available for status tracking');
-      }
+     // Query for flow status using event-based approach
+   const { data: flowStatus, isLoading: isStatusLoading, error: statusError } = useQuery({
+     queryKey: ['discovery-flow-status', flowState.flow_fingerprint],
+     queryFn: async () => {
+       if (!flowState.flow_fingerprint) return null;
+       
+       const response = await apiCall(`/api/v1/discovery/flow/status/${flowState.flow_fingerprint}`, {
+         method: 'GET',
+       });
+       if (!response.ok) {
+         throw new Error('Failed to fetch flow status');
+       }
+       return response.json();
+     },
+     enabled: !!flowState.flow_fingerprint && flowState.overall_status !== 'completed',
+     refetchInterval: 2000, // Poll every 2 seconds for active flows
+     staleTime: 1000, // Consider data stale after 1 second
+   });
 
-      console.log('🔍 Fetching flow status using CrewAI Event Listener API for flow_id:', currentFlowId);
-
-      try {
-        // Use the new event-based flow status endpoint
-        const response = await apiCall(`/api/v1/discovery/flow/status/${currentFlowId}`, {
-          method: 'GET',
-        });
-
-        console.log('✅ Flow status response from Event Listener:', response);
-
-        if (response.status === 'not_found') {
-          console.log('⚠️ Flow not found in Event Listener, checking available flows:', response.available_flows);
-          throw new Error(`Flow ${currentFlowId} not found or not yet started`);
-        }
-
-        // Transform event listener response to DiscoveryFlowState format
-        const transformedState: DiscoveryFlowState = {
-          session_id: currentSessionId || currentFlowId,
-          flow_fingerprint: currentFlowId,
-          client_account_id: 'demo-client',
-          engagement_id: 'demo-engagement', 
-          user_id: 'demo-user',
-          current_phase: response.current_phase || 'initialization',
-          phase_completion: response.completed_phases?.reduce((acc: Record<string, boolean>, phase: string) => {
-            acc[phase] = true;
-            return acc;
-          }, {}) || {},
-          crew_status: response.recent_events?.reduce((acc: Record<string, any>, event: any) => {
-            if (event.crew_name) {
-              acc[event.crew_name] = {
-                status: event.status,
-                progress: response.progress || 0,
-                last_activity: event.timestamp
-              };
-            }
-            return acc;
-          }, {}) || {},
-          field_mappings: {
-            mappings: {},
-            confidence_scores: {},
-            unmapped_fields: [],
-            validation_results: {},
-            agent_insights: {}
-          },
-          raw_data: [],
-          cleaned_data: [],
-          asset_inventory: {},
-          agent_collaboration_map: {},
-          shared_memory_id: '',
-          shared_memory_reference: null,
-          overall_plan: {},
-          crew_coordination: {},
-          errors: [],
-          warnings: [],
-          
-          // Add missing required fields
-          data_quality_metrics: {},
-          app_server_dependencies: {},
-          app_app_dependencies: {},
-          technical_debt_assessment: {},
-          discovery_summary: {},
-          assessment_flow_package: {},
-          
-          // Real-time monitoring fields
-          agent_performance_metrics: {},
-          collaboration_activities: [],
-          memory_analytics: {},
-          knowledge_base_status: {},
-          
-          // Planning and intelligence fields
-          planning_status: {},
-          success_criteria_tracking: {},
-          performance_analytics: {},
-          
-          // Status and completion fields
-          completion_percentage: response.progress || 0,
-          estimated_remaining_time: response.duration_seconds ? `${Math.ceil(response.duration_seconds / 60)} minutes` : 'Calculating...',
-          overall_status: response.status === 'completed' ? 'completed' : 
-                        response.status === 'running' ? 'in_progress' : 
-                        response.status === 'error' ? 'failed' : 'initializing'
-        };
-
-        return transformedState;
-
-      } catch (error) {
-        console.error('❌ Error fetching flow status:', error);
-        
-        // Check for active flows as fallback
-        try {
-          const activeFlowsResponse = await apiCall('/api/v1/discovery/flow/active', {
-            method: 'GET',
-          });
-          
-          console.log('🔍 Available active flows:', activeFlowsResponse);
-          
-          if (activeFlowsResponse.active_flows?.length > 0) {
-            // Try to use the most recent active flow
-            const latestFlow = activeFlowsResponse.flow_details?.[0];
-            if (latestFlow) {
-              console.log('🔄 Using latest active flow:', latestFlow.flow_id);
-              setCurrentFlowId(latestFlow.flow_id);
-            }
-          }
-        } catch (activeFlowError) {
-          console.error('❌ Error checking active flows:', activeFlowError);
-        }
-
-        throw error;
-      }
-    },
-    enabled: !!currentFlowId,
-    refetchInterval: 2000, // Poll every 2 seconds for real-time updates
-    refetchIntervalInBackground: true,
-    retry: 3,
-    retryDelay: 1000,
-  });
-
-  // Get flow events for debugging and detailed monitoring
+  // Query for flow events (for debugging/detailed monitoring)
   const { data: flowEvents } = useQuery({
-    queryKey: ['discovery-flow-events', currentFlowId],
+    queryKey: ['discovery-flow-events', flowState.flow_fingerprint],
     queryFn: async () => {
-      if (!currentFlowId) return [];
+      if (!flowState.flow_fingerprint) return [];
       
-      console.log('🔍 Fetching flow events for flow_id:', currentFlowId);
-      
-      const response = await apiCall(`/api/v1/discovery/flow/events/${currentFlowId}?limit=20`, {
+      const response = await apiCall(`/api/v1/discovery/flow/events/${flowState.flow_fingerprint}`, {
         method: 'GET',
       });
-      
-      console.log('📊 Flow events:', response.events);
-      return response.events || [];
+      if (!response.ok) {
+        return []; // Graceful fallback if events not available
+      }
+      return response.json();
     },
-    enabled: !!currentFlowId,
-    refetchInterval: 5000, // Refresh events every 5 seconds
+    enabled: !!flowState.flow_fingerprint,
+    refetchInterval: 5000, // Check for new events every 5 seconds
   });
+
+  // Query for active flows (fallback discovery)
+  const { data: activeFlows } = useQuery({
+    queryKey: ['discovery-active-flows'],
+    queryFn: async () => {
+      const response = await apiCall('/api/v1/discovery/flow/active', {
+        method: 'GET',
+      });
+      if (!response.ok) {
+        return [];
+      }
+      return response.json();
+    },
+    enabled: !flowState.flow_fingerprint,
+    refetchInterval: 3000, // Check for active flows every 3 seconds
+  });
+
+     // Update flow state when status changes
+   useEffect(() => {
+     if (flowStatus && typeof flowStatus === 'object') {
+       const status = flowStatus as any; // Type assertion for API response
+       setFlowState(prev => ({
+         ...prev,
+         flow_fingerprint: status.flow_fingerprint || prev.flow_fingerprint,
+         session_id: status.session_id || prev.session_id,
+         current_phase: status.current_phase || prev.current_phase,
+         completion_percentage: status.completion_percentage || prev.completion_percentage,
+         crew_status: status.crew_status || prev.crew_status,
+         errors: status.errors || prev.errors,
+         warnings: status.warnings || prev.warnings,
+         overall_status: status.overall_status || prev.overall_status
+       }));
+     }
+   }, [flowStatus]);
+
+     // Auto-discover active flows if no flow_fingerprint set
+   useEffect(() => {
+     if (!flowState.flow_fingerprint && activeFlows && Array.isArray(activeFlows) && activeFlows.length > 0) {
+       const latestFlow = activeFlows[0] as any; // Type assertion for API response
+       setFlowState(prev => ({
+         ...prev,
+         flow_fingerprint: latestFlow.flow_fingerprint || prev.flow_fingerprint,
+         session_id: latestFlow.session_id || prev.session_id,
+         current_phase: latestFlow.current_phase || prev.current_phase,
+         completion_percentage: latestFlow.completion_percentage || 0,
+         overall_status: latestFlow.overall_status || 'running'
+       }));
+     }
+   }, [activeFlows, flowState.flow_fingerprint]);
 
   // Functions to manage flow identifiers
   const setFlowId = useCallback((flowId: string | null) => {
@@ -233,16 +233,16 @@ export const useDiscoveryFlowState = () => {
   }, []);
 
   const setSessionId = useCallback((sessionId: string | null) => {
-    console.log('🆔 Setting session ID (legacy compatibility):', sessionId);
+    console.log('�� Setting session ID (legacy compatibility):', sessionId);
     setCurrentSessionId(sessionId);
   }, []);
 
   // Set flow identifier from flow creation response
-  const setFlowIdentifiers = useCallback((response: { flow_id?: string; session_id?: string; flow_fingerprint?: string }) => {
+  const setFlowIdentifiers = useCallback((response: { flow_fingerprint?: string; session_id?: string }) => {
     console.log('🆔 Setting flow identifiers from response:', response);
     
-    // Use flow_id as primary identifier for event tracking
-    const flowId = response.flow_id;
+    // Use flow_fingerprint as primary identifier for event tracking
+    const flowId = response.flow_fingerprint;
     const sessionId = response.session_id;
     
     if (flowId) {
@@ -282,39 +282,70 @@ export const useDiscoveryFlowState = () => {
       console.log('✅ Discovery Flow initialized with event tracking:', data);
       
       // Invalidate and refetch the flow state to start event tracking
-      queryClient.invalidateQueries({ queryKey: ['discovery-flow-state'] });
+      queryClient.invalidateQueries({ queryKey: ['discovery-flow-status'] });
       
       // Additional logging for debugging
-      console.log('Flow ID for event tracking:', data.flow_id);
+      console.log('Flow ID for event tracking:', data.flow_fingerprint);
       console.log('Session ID for compatibility:', data.session_id);
-      console.log('Event tracking will use flow_id as primary identifier');
+      console.log('Event tracking will use flow_fingerprint as primary identifier');
     },
     onError: (error) => {
       console.error('❌ Discovery Flow initialization failed:', error);
     },
   });
 
+  const executePhase = useCallback(async (phase: string, data: any) => {
+    try {
+      if (!flowState.flow_fingerprint) {
+        throw new Error('No active flow to execute phase');
+      }
+
+      const response = await apiCall(`/api/v1/discovery/flow/${flowState.flow_fingerprint}/execute/${phase}`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to execute phase: ${phase}`);
+      }
+
+      const result = await response.json();
+      
+      // Status will be updated automatically via polling
+      return result;
+    } catch (error) {
+      setFlowState(prev => ({
+        ...prev,
+        errors: [...prev.errors, error instanceof Error ? error.message : 'Unknown error'],
+        warnings: [...prev.warnings, error instanceof Error ? error.message : 'Unknown error'],
+        overall_status: 'failed'
+      }));
+      throw error;
+    }
+  }, [flowState.flow_fingerprint]);
+
+  const resetFlow = useCallback(() => {
+    setFlowState(initialState);
+    queryClient.removeQueries({ queryKey: ['discovery-flow-status'] });
+    queryClient.removeQueries({ queryKey: ['discovery-flow-events'] });
+  }, [queryClient]);
+
   return {
-    // State
     flowState,
-    flowEvents,
-    isLoading,
-    error,
+    flowEvents: flowEvents || [],
+    isLoading: isStatusLoading,
+    error: statusError,
     currentFlowId,
     currentSessionId,
-    
-    // Actions
     initializeFlow,
     setFlowId,
     setSessionId,
     setFlowIdentifiers,
-    
-    // Helper functions
-    invalidateState: () => queryClient.invalidateQueries({ queryKey: ['discovery-flow-state'] }),
-    refreshState: () => queryClient.refetchQueries({ queryKey: ['discovery-flow-state'] }),
-    
-    // Event tracking helpers
+    executePhase,
+    resetFlow,
+    invalidateState: () => queryClient.invalidateQueries({ queryKey: ['discovery-flow-status'] }),
+    refreshState: () => queryClient.refetchQueries({ queryKey: ['discovery-flow-status'] }),
     getFlowEvents: () => flowEvents || [],
-    isEventTrackingActive: () => !!currentFlowId,
+    isEventTrackingActive: !!flowState.flow_fingerprint,
   };
 }; 

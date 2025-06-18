@@ -12,7 +12,6 @@ from app.api.v1.endpoints import (
     asset_inventory_router,
     monitoring_router,
     chat_router,
-    websocket_router,
     agent_learning_router,
     data_import_router,
     sessions_router,
@@ -45,7 +44,7 @@ api_router.include_router(asset_inventory_router, prefix="/assets", tags=["Asset
 api_router.include_router(data_import_router, prefix="/data-import", tags=["Data Import"])
 api_router.include_router(monitoring_router, prefix="/monitoring", tags=["Monitoring"])
 api_router.include_router(chat_router, prefix="/chat", tags=["Chat"])
-api_router.include_router(websocket_router, prefix="/ws", tags=["WebSocket"])
+# WebSocket router removed - using HTTP polling for Vercel+Railway compatibility
 api_router.include_router(auth_router, prefix="/auth", tags=["Authentication"])
 api_router.include_router(agent_learning_router, prefix="/agent-learning", tags=["Agent Learning"])
 api_router.include_router(sessions_router, prefix="/sessions", tags=["Sessions"])

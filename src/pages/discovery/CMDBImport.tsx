@@ -32,7 +32,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 
 // CrewAI Discovery Flow Integration
-import useDiscoveryWebSocket from '../../hooks/useDiscoveryWebSocket';
+// Removed WebSocket dependency - using HTTP polling instead
 import { useDiscoveryFlowState } from '../../hooks/useDiscoveryFlowState';
 
 // Components
@@ -1091,13 +1091,11 @@ const CMDBImport: React.FC = () => {
                     </p>
                   </div>
                 </div>
-                {/* WebSocket Status */}
+                {/* Real-time Status */}
                 <div className="flex items-center space-x-2 mt-2">
-                  <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${
-                    isWebSocketConnected ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                  }`}>
+                  <div className="flex items-center space-x-2 px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800">
                     <Activity className="h-4 w-4" />
-                    <span>{isWebSocketConnected ? 'Real-time Monitoring Active' : 'Connecting to Monitoring...'}</span>
+                    <span>HTTP Polling Mode Active</span>
                   </div>
                 </div>
               </div>
