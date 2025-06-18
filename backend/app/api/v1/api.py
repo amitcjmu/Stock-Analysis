@@ -21,6 +21,7 @@ from app.api.v1.endpoints import (
 )
 
 from app.api.v1.discovery import discovery_flow_router
+from app.api.v1.routes.llm_health import router as llm_health_router
 
 from app.api.v1.admin.client_management import router as client_management_router
 from app.api.v1.admin.engagement_management import router as engagement_management_router
@@ -41,6 +42,7 @@ api_router.include_router(sixr_router, prefix="/sixr", tags=["6R Analysis"])
 api_router.include_router(discovery_router, prefix="/discovery", tags=["Discovery"])
 api_router.include_router(discovery_flow_router, prefix="/discovery/flow", tags=["Discovery Flow"])
 api_router.include_router(asset_inventory_router, prefix="/assets", tags=["Asset Inventory"])
+api_router.include_router(llm_health_router, prefix="/llm", tags=["LLM Health"])
 api_router.include_router(data_import_router, prefix="/data-import", tags=["Data Import"])
 api_router.include_router(monitoring_router, prefix="/monitoring", tags=["Monitoring"])
 api_router.include_router(chat_router, prefix="/chat", tags=["Chat"])

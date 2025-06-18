@@ -189,16 +189,17 @@ class DiscoveryFlowRedesigned(Flow[DiscoveryFlowState], PlanningMixin):
         self.session_handler.setup_database_sessions()
         self.callback_handler.setup_callbacks()
         
+        # Configure CrewAI to use proper DeepInfra LLMs
+        self._configure_crewai_for_deepinfra()
+        
         # Planning capabilities with proper LLM configuration
         self.planning_enabled = True
-        # Configure planning_llm to use the same LLM as the platform (DeepInfra)
-        # This prevents CrewAI from defaulting to gpt-4o-mini which requires OpenAI API key
-        self.planning_llm = self.crewai_service.llm if hasattr(self.crewai_service, 'llm') else None
+        # planning_llm is set in _configure_crewai_for_deepinfra()
         
         # If planning_llm is None, disable planning to prevent failures
-        if self.planning_llm is None:
+        if not hasattr(self, 'planning_llm') or self.planning_llm is None:
             self.planning_enabled = False
-            logger.warning("⚠️ Planning disabled - no LLM available")
+            logger.warning("⚠️ Planning disabled - no valid LLM configuration")
         else:
             logger.info(f"✅ Planning configured with DeepInfra LLM: {type(self.planning_llm).__name__}")
         
@@ -2071,22 +2072,35 @@ class DiscoveryFlowRedesigned(Flow[DiscoveryFlowState], PlanningMixin):
             return {"secured": False, "error": str(e)} 
 
     def _configure_crewai_for_deepinfra(self):
-        """Configure all CrewAI features to use DeepInfra instead of OpenAI"""
-        import os
-        
+        """Configure all CrewAI features to use DeepInfra with proper LLM setup"""
         try:
-            # Set DeepInfra API key for CrewAI components that might try to use OpenAI
-            if hasattr(self.crewai_service, 'settings') and self.crewai_service.settings.DEEPINFRA_API_KEY:
-                # Set OpenAI environment variables to use DeepInfra
-                os.environ['OPENAI_API_KEY'] = self.crewai_service.settings.DEEPINFRA_API_KEY
-                os.environ['OPENAI_BASE_URL'] = 'https://api.deepinfra.com/v1/openai'
-                
-                # Configure for embeddings (if needed by memory/knowledge features)
-                os.environ['OPENAI_EMBEDDING_MODEL'] = 'sentence-transformers/all-MiniLM-L6-v2'
-                
-                logger.info("✅ CrewAI configured to use DeepInfra for all advanced features")
-            else:
-                logger.warning("⚠️ DeepInfra API key not available - some features may be disabled")
+            # Import the new LLM configuration
+            from app.services.llm_config import get_crewai_llm, get_embedding_llm, get_chat_llm, configure_openai_environment_variables
+            
+            # Configure environment variables for OpenAI compatibility
+            configure_openai_environment_variables()
+            
+            # Get configured LLMs for different use cases
+            self.crewai_llm = get_crewai_llm()  # meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8
+            self.embedding_llm = get_embedding_llm()  # thenlper/gte-large
+            self.chat_llm = get_chat_llm()  # google/gemma-3-4b-it
+            
+            # Update the crewai_service to use the proper LLMs
+            if hasattr(self.crewai_service, 'llm'):
+                self.crewai_service.crewai_llm = self.crewai_llm
+                self.crewai_service.embedding_llm = self.embedding_llm
+                self.crewai_service.chat_llm = self.chat_llm
+            
+            # Configure planning LLM to use CrewAI LLM
+            self.planning_llm = self.crewai_llm
+            
+            logger.info("✅ CrewAI configured with proper DeepInfra LLMs:")
+            logger.info(f"  - CrewAI LLM: meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8")
+            logger.info(f"  - Embedding LLM: thenlper/gte-large")
+            logger.info(f"  - Chat LLM: google/gemma-3-4b-it")
                 
         except Exception as e:
-            logger.warning(f"Failed to configure CrewAI for DeepInfra: {e}")
+            logger.error(f"Failed to configure CrewAI LLMs: {e}")
+            # Fallback to basic configuration
+            self.planning_enabled = False
+            logger.warning("⚠️ LLM configuration failed - some features may be disabled")

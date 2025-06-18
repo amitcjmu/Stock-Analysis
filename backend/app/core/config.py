@@ -98,6 +98,20 @@ class Settings(BaseSettings):
     CREWAI_TEMPERATURE: float = Field(default=0.7, env="CREWAI_TEMPERATURE")
     CREWAI_MAX_TOKENS: int = Field(default=2048, env="CREWAI_MAX_TOKENS")
     
+    # LLM Model Configuration for different use cases (following user specifications)
+    CREWAI_LLM_MODEL: str = Field(
+        default="meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+        env="CREWAI_LLM_MODEL"
+    )
+    EMBEDDING_LLM_MODEL: str = Field(
+        default="thenlper/gte-large",
+        env="EMBEDDING_LLM_MODEL"
+    )
+    CHAT_LLM_MODEL: str = Field(
+        default="google/gemma-3-4b-it",
+        env="CHAT_LLM_MODEL"
+    )
+    
     # Migration specific settings
     MAX_ASSETS_PER_SCAN: int = Field(default=1000, env="MAX_ASSETS_PER_SCAN")
     DEFAULT_MIGRATION_TIMELINE_DAYS: int = Field(default=90, env="DEFAULT_MIGRATION_TIMELINE_DAYS")

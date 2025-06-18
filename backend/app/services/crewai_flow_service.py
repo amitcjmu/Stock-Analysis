@@ -953,17 +953,32 @@ class CrewAIFlowService:
             # Generate session ID for user session tracking
             session_id = context.session_id or str(uuid.uuid4())
             
-            # Create a proper CrewAI service object with DeepInfra LLM
-            from app.services.deepinfra_llm import create_deepinfra_llm
+            # Create a proper CrewAI service object with configured LLMs
+            from app.services.llm_config import get_crewai_llm, get_embedding_llm, get_chat_llm
             
             try:
-                llm = create_deepinfra_llm()
-                crewai_service = type('CrewAIService', (), {'llm': llm})()
-                logger.info("✅ CrewAI service created with DeepInfra LLM")
+                # Get the primary LLM for CrewAI activities
+                crewai_llm = get_crewai_llm()
+                embedding_llm = get_embedding_llm()
+                chat_llm = get_chat_llm()
+                
+                # Create service with all LLM types
+                crewai_service = type('CrewAIService', (), {
+                    'llm': crewai_llm,
+                    'crewai_llm': crewai_llm,
+                    'embedding_llm': embedding_llm,
+                    'chat_llm': chat_llm
+                })()
+                logger.info("✅ CrewAI service created with configured DeepInfra LLMs")
             except Exception as llm_error:
-                logger.error(f"Failed to create DeepInfra LLM: {llm_error}")
+                logger.error(f"Failed to create configured LLMs: {llm_error}")
                 # Fallback to mock service
-                crewai_service = type('MockCrewAIService', (), {'llm': None})()
+                crewai_service = type('MockCrewAIService', (), {
+                    'llm': None,
+                    'crewai_llm': None,
+                    'embedding_llm': None,
+                    'chat_llm': None
+                })()
                 logger.warning("Using mock CrewAI service - LLM operations may fail")
             
             # Initialize the redesigned flow
