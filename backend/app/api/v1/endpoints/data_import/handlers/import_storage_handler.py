@@ -194,13 +194,11 @@ async def get_latest_import(
                 "import_metadata": None
             }
         
-        # Get raw records with query caching and pagination awareness
-        # Use execution_options for query caching
+        # Get raw records with proper async query
         raw_records_query = (
             select(RawImportRecord)
             .where(RawImportRecord.data_import_id == latest_import.id)
             .order_by(RawImportRecord.row_number)
-            .execution_options(compiled_cache={})  # Enable query caching
         )
         
         result = await db.execute(raw_records_query)

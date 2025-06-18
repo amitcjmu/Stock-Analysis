@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 
-from app.core.database import get_db
+from app.core.database import get_db, AsyncSessionLocal
 from app.core.context import RequestContext, get_current_context, extract_context_from_request
 from app.models.data_import import ImportFieldMapping, DataImport
 
@@ -94,10 +94,10 @@ async def get_agentic_critical_attributes(
         # Trigger Field Mapping Crew analysis
         logger.info("🚀 Triggering Field Mapping Crew for critical attributes analysis")
         
-        # Execute crew analysis in background
-        asyncio.create_task(_execute_field_mapping_crew_background(context, data_import, db))
+        # Execute crew analysis in background with independent session
+        asyncio.create_task(_execute_field_mapping_crew_background(context, data_import))
         
-        # Get current analysis results (either from crew or fallback)
+        # Get current analysis results (either from crew or fallback) - use main session
         analysis_result = await _execute_field_mapping_crew(context, data_import, db)
         
         # Extract attributes from analysis result
@@ -681,15 +681,19 @@ async def _fallback_field_analysis(data_import: DataImport, db: AsyncSession) ->
 
 async def _execute_field_mapping_crew_background(
     context: RequestContext,
-    data_import: DataImport,
-    db: AsyncSession
+    data_import: DataImport
 ):
-    """Execute field mapping crew analysis in background."""
+    """Execute field mapping crew analysis in background with independent session."""
     try:
         logger.info("🚀 Background: Starting Field Mapping Crew analysis")
-        result = await _execute_field_mapping_crew(context, data_import, db)
-        logger.info("✅ Background: Field Mapping Crew analysis completed")
-        return result
+        
+        # Create independent database session for background task
+        from app.core.database import AsyncSessionLocal
+        async with AsyncSessionLocal() as background_db:
+            result = await _execute_field_mapping_crew(context, data_import, background_db)
+            logger.info("✅ Background: Field Mapping Crew analysis completed")
+            return result
+            
     except Exception as e:
         logger.error(f"Background Field Mapping Crew analysis failed: {e}")
         return None
