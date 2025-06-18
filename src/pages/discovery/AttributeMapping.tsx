@@ -1,7 +1,7 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
-import { Upload, RefreshCw, Zap } from 'lucide-react';
+import { Upload, RefreshCw, Zap, AlertCircle } from 'lucide-react';
 import { useToast } from '../../hooks/use-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
@@ -25,19 +25,111 @@ import Sidebar from '../../components/Sidebar';
 const AttributeMapping: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('mappings');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [quickLoad, setQuickLoad] = useState(false);
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, isAuthenticated, loginWithDemoUser, isLoading: authLoading } = useAuth();
   const queryClient = useQueryClient();
 
-  // 🤖 Use AGENTIC critical attributes (agent-driven intelligence)
+  // Performance monitoring
+  const [loadStartTime] = useState(Date.now());
+  const [apiCallsStatus, setApiCallsStatus] = useState({
+    criticalAttributes: 'pending',
+    fieldMappings: 'pending'
+  });
+
+  // Quick auth check - if not authenticated and taking too long, offer demo mode
+  useEffect(() => {
+    const authTimer = setTimeout(() => {
+      if (!authLoading && !isAuthenticated && !user) {
+        console.warn('⚠️ Authentication taking too long, offering demo mode');
+        toast({
+          title: 'Authentication Issue',
+          description: 'Would you like to continue with demo mode?',
+          action: (
+            <Button size="sm" onClick={loginWithDemoUser}>
+              Demo Mode
+            </Button>
+          ),
+        });
+      }
+    }, 3000); // 3 second auth timeout
+
+    return () => clearTimeout(authTimer);
+  }, [authLoading, isAuthenticated, user, loginWithDemoUser, toast]);
+
+  // Performance timeout - if page takes too long, enable quick load mode
+  useEffect(() => {
+    const performanceTimer = setTimeout(() => {
+      const loadTime = Date.now() - loadStartTime;
+      if (loadTime > 10000) { // 10 seconds
+        console.warn('⚠️ Page loading slowly, enabling quick load mode');
+        setQuickLoad(true);
+        toast({
+          title: 'Slow Loading Detected',
+          description: 'Switching to quick load mode for better performance',
+          variant: 'default'
+        });
+      }
+    }, 10000);
+
+    return () => clearTimeout(performanceTimer);
+  }, [loadStartTime, toast]);
+
+  // 🤖 Use AGENTIC critical attributes with timeout and fallback
   const { 
     data: criticalAttributesData, 
-    isLoading, 
+    isLoading: isCriticalAttributesLoading, 
     isError: isErrorCriticalAttributes,
     refetch: refetchCriticalAttributes 
-  } = useAgenticCriticalAttributes();
+  } = useQuery({
+    queryKey: ['agentic-critical-attributes'],
+    queryFn: async () => {
+      try {
+        setApiCallsStatus(prev => ({ ...prev, criticalAttributes: 'loading' }));
+        
+        // Create timeout for the API call
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), quickLoad ? 5000 : 15000);
 
-  // 🤖 NEW: Fetch real field mappings from agents (context-aware)
+        const response = await apiCall('/api/v1/data-import/agentic-critical-attributes', {
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        setApiCallsStatus(prev => ({ ...prev, criticalAttributes: 'success' }));
+        return response;
+      } catch (error) {
+        setApiCallsStatus(prev => ({ ...prev, criticalAttributes: 'failed' }));
+        console.warn('Agentic endpoint failed, using fallback:', error);
+        
+        // Quick fallback data to unblock UI
+        return {
+          critical_attributes: [],
+          statistics: {
+            total_attributes: 0,
+            mapped_count: 0,
+            migration_critical_count: 0,
+            avg_quality_score: 0,
+            overall_completeness: 0,
+            assessment_ready: false
+          },
+          analysis_summary: {
+            crew_execution: 'fallback',
+            analysis_result: 'Using fallback mode due to slow API response',
+            recommendation: 'Try refreshing the page or check your connection'
+          },
+          agentic_analysis: 'fallback_mode',
+          timestamp: new Date().toISOString()
+        };
+      }
+    },
+    enabled: isAuthenticated,
+    staleTime: 30 * 1000,
+    retry: 1,
+    refetchOnWindowFocus: false // Disable to prevent unnecessary calls
+  });
+
+  // 🤖 Field mappings with improved error handling
   const { 
     data: fieldMappingsData, 
     isLoading: isLoadingFieldMappings,
@@ -46,15 +138,86 @@ const AttributeMapping: React.FC = () => {
   } = useQuery({
     queryKey: ['context-field-mappings'],
     queryFn: async () => {
-      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.SIMPLE_FIELD_MAPPINGS, {
-        method: 'GET'
-      });
-      return response;
+      try {
+        setApiCallsStatus(prev => ({ ...prev, fieldMappings: 'loading' }));
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), quickLoad ? 5000 : 10000);
+
+        const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.SIMPLE_FIELD_MAPPINGS, {
+          method: 'GET',
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        setApiCallsStatus(prev => ({ ...prev, fieldMappings: 'success' }));
+        return response;
+      } catch (error) {
+        setApiCallsStatus(prev => ({ ...prev, fieldMappings: 'failed' }));
+        console.warn('Field mappings API failed, using fallback:', error);
+        
+        return {
+          success: false,
+          mappings: [],
+          message: 'Field mappings temporarily unavailable',
+          fallback: true
+        };
+      }
     },
-    enabled: true,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: 2
+    enabled: isAuthenticated,
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+    refetchOnWindowFocus: false
   });
+
+  // Early loading state for auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Sidebar />
+        <div className="ml-64 h-screen flex flex-col overflow-hidden">
+          <div className="flex-1 p-6">
+            <ContextBreadcrumbs />
+            <div className="mt-6">
+              <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+                <div className="animate-pulse mb-4">
+                  <div className="h-4 bg-gray-200 rounded w-1/4 mx-auto mb-4"></div>
+                  <div className="h-8 bg-gray-200 rounded w-1/2 mx-auto mb-6"></div>
+                </div>
+                <p className="text-gray-600">Initializing authentication...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Auth required state
+  if (!isAuthenticated || !user) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Sidebar />
+        <div className="ml-64 h-screen flex flex-col overflow-hidden">
+          <div className="flex-1 p-6">
+            <ContextBreadcrumbs />
+            <div className="mt-6">
+              <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+                <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Authentication Required</h3>
+                <p className="text-gray-600 mb-4">Please authenticate to access attribute mapping.</p>
+                <Button onClick={loginWithDemoUser} className="bg-blue-600 hover:bg-blue-700 text-white">
+                  Continue with Demo Mode
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const isLoading = isCriticalAttributesLoading || isLoadingFieldMappings;
 
   // Hook to manually trigger Field Mapping Crew analysis
   const triggerFieldMappingCrew = useTriggerFieldMappingCrew();

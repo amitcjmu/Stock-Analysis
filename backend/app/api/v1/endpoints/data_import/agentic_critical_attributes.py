@@ -97,8 +97,9 @@ async def get_agentic_critical_attributes(
         # Execute crew analysis in background with independent session
         asyncio.create_task(_execute_field_mapping_crew_background(context, data_import))
         
-        # Get current analysis results (either from crew or fallback) - use main session
-        analysis_result = await _execute_field_mapping_crew(context, data_import, db)
+        # Return immediately with fallback analysis - don't wait for heavy CrewAI processing
+        logger.info("⚡ Using fast fallback analysis while CrewAI processes in background")
+        analysis_result = await _fallback_field_analysis(data_import, db)
         
         # Extract attributes from analysis result
         attributes_analyzed = analysis_result.get("attributes_analyzed", [])
@@ -252,21 +253,23 @@ async def _execute_field_mapping_crew(
         from crewai import Agent, Task, Crew, Process, LLM
         from app.core.config import settings
         
-        # Configure LLM for DeepInfra (FIX: Proper LLM configuration)
+        # Configure LLM for DeepInfra (FIX: Use custom LLM instead of CrewAI wrapper)
         llm = None
         if settings.DEEPINFRA_API_KEY:
             try:
-                # Create LLM instance with DeepInfra configuration
-                llm = LLM(
-                    model="deepinfra/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
-                    api_key=settings.DEEPINFRA_API_KEY,
+                # Use our custom DeepInfra LLM that properly handles reasoning_effort=none
+                from app.services.deepinfra_llm import create_deepinfra_llm
+                
+                llm = create_deepinfra_llm(
+                    api_token=settings.DEEPINFRA_API_KEY,
+                    model_id="meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
                     temperature=0.1,
                     max_tokens=1000,
-                    top_p=0.9
+                    reasoning_effort="none"  # CRITICAL: This actually works with our custom LLM
                 )
-                logger.info("✅ LLM configured for DeepInfra")
+                logger.info("✅ Custom DeepInfra LLM configured (bypassing CrewAI wrapper)")
             except Exception as e:
-                logger.error(f"Failed to configure LLM: {e}")
+                logger.error(f"Failed to configure custom LLM: {e}")
                 llm = None
         
         if not llm:

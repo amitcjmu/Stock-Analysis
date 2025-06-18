@@ -34,8 +34,8 @@ def configure_logging():
     logging.getLogger("LiteLLM").setLevel(logging.ERROR) 
     logging.getLogger("litellm").setLevel(logging.ERROR)
     logging.getLogger("openai").setLevel(logging.ERROR)
-    logging.getLogger("crewai").setLevel(logging.ERROR)
-    logging.getLogger("CrewAI").setLevel(logging.ERROR)
+    #logging.getLogger("crewai").setLevel(logging.ERROR)
+    #logging.getLogger("CrewAI").setLevel(logging.ERROR)
     logging.getLogger("deepinfra").setLevel(logging.ERROR)
     
     # Additional LLM-related loggers

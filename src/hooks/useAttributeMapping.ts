@@ -103,17 +103,52 @@ export const useAgenticCriticalAttributes = () => {
     queryKey: ['agentic-critical-attributes'],
     queryFn: async () => {
       try {
-        // Try the new agentic endpoint first
-        const response = await apiCall('/api/v1/data-import/agentic-critical-attributes');
+        // Create a timeout promise
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Request timeout')), 15000); // 15 second timeout
+        });
+
+        // Try the new agentic endpoint first with timeout
+        const apiCallPromise = apiCall('/api/v1/data-import/agentic-critical-attributes');
+        
+        const response = await Promise.race([apiCallPromise, timeoutPromise]);
         return response;
       } catch (error) {
-        console.warn('Agentic endpoint not available, falling back to legacy endpoint:', error);
-        // Fallback to legacy endpoint if agentic is not available
-        const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.CRITICAL_ATTRIBUTES_STATUS);
-        return response;
+        console.warn('Agentic endpoint failed or timed out, falling back to basic analysis:', error);
+        
+        // Quick fallback to prevent indefinite loading
+        try {
+          const fallbackResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.CRITICAL_ATTRIBUTES_STATUS);
+          return fallbackResponse;
+        } catch (fallbackError) {
+          console.warn('Fallback also failed, returning empty state:', fallbackError);
+          
+          // Return minimal data to unblock the UI
+          return {
+            attributes: [],
+            statistics: {
+              total_attributes: 0,
+              mapped_count: 0,
+              pending_count: 0,
+              unmapped_count: 0,
+              migration_critical_count: 0,
+              migration_critical_mapped: 0,
+              overall_completeness: 0,
+              avg_quality_score: 0,
+              assessment_ready: false,
+            },
+            recommendations: {
+              next_priority: "Upload data to enable analysis",
+              assessment_readiness: "No data available for analysis",
+              quality_improvement: "Import CMDB data to get started"
+            },
+            last_updated: new Date().toISOString()
+          };
+        }
       }
     },
-    staleTime: 30 * 1000, // 30 seconds (shorter for agent analysis)
+    staleTime: 30 * 1000, // 30 seconds (shorter for faster updates)
+    gcTime: 5 * 60 * 1000, // 5 minutes cache time
     refetchInterval: (data) => {
       // Auto-refresh if agents are actively analyzing
       if (data?.agent_status?.discovery_flow_active || 
@@ -122,7 +157,9 @@ export const useAgenticCriticalAttributes = () => {
       }
       return false; // No auto-refresh when idle
     },
-    refetchOnWindowFocus: true // Refresh when user returns to tab
+    refetchOnWindowFocus: true, // Refresh when user returns to tab
+    retry: 1, // Reduce retries to prevent long waits
+    timeout: 15000 // 15 second timeout
   });
 };
 
