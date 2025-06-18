@@ -1,14 +1,16 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { 
   Database, 
   FileText, 
   Search, 
   Download,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  RefreshCw
 } from 'lucide-react';
 import { apiCall, API_CONFIG } from '../../../config/api';
+import { useToast } from '../../../hooks/use-toast';
 
 interface ImportedDataTabProps {
   className?: string;
@@ -37,13 +39,18 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
   const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [recordsPerPage] = useState(10);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   // 🚀 React Query with caching - prevents unnecessary API calls
   const { 
     data: importResponse, 
     isLoading, 
     error: queryError,
-    isStale
+    isStale,
+    refetch
   } = useQuery({
     queryKey: ['imported-data'],
     queryFn: async () => {
@@ -58,6 +65,42 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
     refetchOnWindowFocus: false, // Don't refetch when user returns to tab
     refetchOnMount: false, // Don't refetch if data is still fresh
   });
+
+  // 🔄 Refresh function that clears both React Query and SQLAlchemy caches
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      // 1. Clear React Query cache for imported data
+      queryClient.removeQueries({ queryKey: ['imported-data'] });
+      
+      // 2. Call backend to clear SQLAlchemy cache
+      try {
+        await apiCall('/api/v1/data-import/clear-cache', {
+          method: 'POST',
+        });
+      } catch (cacheError) {
+        console.warn('Failed to clear backend cache:', cacheError);
+        // Continue with refresh even if cache clear fails
+      }
+      
+      // 3. Force fresh data fetch
+      await refetch();
+      
+      toast({
+        title: "Data Refreshed",
+        description: "Imported data has been refreshed successfully.",
+      });
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      toast({
+        title: "Refresh Failed",
+        description: "Failed to refresh imported data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Transform and memoize data to prevent unnecessary recalculations
   const { importData, importMetadata, error } = useMemo(() => {
@@ -164,9 +207,19 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
   if (error) {
     return (
       <div className={`bg-white rounded-lg border shadow-sm p-6 ${className}`}>
-        <div className="flex items-center justify-center py-8 text-red-600">
-          <FileText className="w-6 h-6 mr-2" />
-          <span>{error}</span>
+        <div className="flex flex-col items-center justify-center py-8">
+          <div className="flex items-center text-red-600 mb-4">
+            <FileText className="w-6 h-6 mr-2" />
+            <span>{error}</span>
+          </div>
+          <button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span>{isRefreshing ? 'Refreshing...' : 'Retry'}</span>
+          </button>
         </div>
       </div>
     );
@@ -185,14 +238,30 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
                 {importMetadata.filename} • {importData.length} records
               </span>
             )}
+            {isStale && (
+              <span className="text-xs text-orange-500 bg-orange-50 px-2 py-1 rounded">
+                Data may be outdated
+              </span>
+            )}
           </div>
-          <button
-            onClick={exportData}
-            className="flex items-center space-x-2 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-          >
-            <Download className="w-4 h-4" />
-            <span>Export CSV</span>
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="flex items-center space-x-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              title="Refresh data and clear cache"
+            >
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
+            </button>
+            <button
+              onClick={exportData}
+              className="flex items-center space-x-2 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              <Download className="w-4 h-4" />
+              <span>Export CSV</span>
+            </button>
+          </div>
         </div>
 
         {/* Search and Filters */}

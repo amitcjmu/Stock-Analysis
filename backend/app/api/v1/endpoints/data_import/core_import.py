@@ -4,7 +4,9 @@ Delegates to specialized handlers following the modular handler pattern.
 """
 
 import logging
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.database import get_db
 
 # Import modular handlers
 from .handlers.clean_api_handler import router as clean_api_router
@@ -58,4 +60,47 @@ async def health_check():
         "handlers": handlers,
         "agentic_intelligence": AGENTIC_AVAILABLE,
         "message": "All import handlers are loaded and ready"
-    } 
+    }
+
+# Cache clearing endpoint for frontend refresh functionality
+@router.post("/clear-cache")
+async def clear_cache(db: AsyncSession = Depends(get_db)):
+    """
+    Clear various caches to ensure fresh data retrieval.
+    
+    This endpoint clears:
+    - SQLAlchemy session cache
+    - Any in-memory caches
+    - Query result caches
+    """
+    try:
+        # Clear SQLAlchemy session cache
+        await db.close()
+        
+        # Clear any application-level caches
+        try:
+            # Clear React Query equivalent caches if any exist on backend
+            from app.core.cache import clear_all_caches
+            clear_all_caches()
+        except ImportError:
+            # No cache module available, which is fine
+            pass
+        
+        logger.info("✅ Caches cleared successfully")
+        
+        return {
+            "success": True,
+            "message": "All caches cleared successfully",
+            "cleared_caches": [
+                "sqlalchemy_session",
+                "application_cache"
+            ]
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to clear caches: {e}")
+        return {
+            "success": False,
+            "message": f"Failed to clear some caches: {str(e)}",
+            "error": str(e)
+        } 

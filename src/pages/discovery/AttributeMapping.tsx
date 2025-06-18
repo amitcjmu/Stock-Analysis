@@ -178,7 +178,7 @@ const AttributeMapping: React.FC = () => {
       ];
       
       const criticalMappings = mappings.filter(m => 
-        criticalFields.includes(m.targetAttribute.toLowerCase())
+        criticalFields.includes(m.targetAttribute.toLowerCase()) && m.status === 'approved'
       ).length;
       
       const avgConfidence = mappings.length > 0 
@@ -187,7 +187,7 @@ const AttributeMapping: React.FC = () => {
       
       return {
         total: fieldMappingsData.import_info?.total_fields || totalMappings,
-        mapped: totalMappings,
+        mapped: approvedMappings,
         critical_mapped: criticalMappings,
         accuracy: Math.round(avgConfidence * 100),
       };

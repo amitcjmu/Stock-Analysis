@@ -249,19 +249,29 @@ async def _execute_field_mapping_crew(
     """
     try:
         # Import CrewAI components
-        from crewai import Agent, Task, Crew, Process
+        from crewai import Agent, Task, Crew, Process, LLM
+        from app.core.config import settings
         
-        # Try to get LLM configuration
+        # Configure LLM for DeepInfra (FIX: Proper LLM configuration)
         llm = None
-        try:
-            from app.services.crewai_flow_service import CrewAIFlowService
-            # Try to initialize service to get LLM config
-            temp_service = CrewAIFlowService(db)
-            # For now, use a simple LLM config
-            llm = None  # CrewAI will use default
-        except Exception as e:
-            logger.warning(f"Could not initialize CrewAI service: {e}")
-            llm = None
+        if settings.DEEPINFRA_API_KEY:
+            try:
+                # Create LLM instance with DeepInfra configuration
+                llm = LLM(
+                    model="deepinfra/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+                    api_key=settings.DEEPINFRA_API_KEY,
+                    temperature=0.1,
+                    max_tokens=1000,
+                    top_p=0.9
+                )
+                logger.info("✅ LLM configured for DeepInfra")
+            except Exception as e:
+                logger.error(f"Failed to configure LLM: {e}")
+                llm = None
+        
+        if not llm:
+            logger.info("Using enhanced fallback field analysis (CrewAI not available)")
+            return await _fallback_field_analysis(data_import, db)
         
         # Get sample data from import
         sample_data = await _get_sample_data_from_import(data_import, db)
@@ -269,15 +279,16 @@ async def _execute_field_mapping_crew(
         if not sample_data:
             raise Exception("No sample data available for analysis")
         
-        # CREATE FIELD MAPPING CREW WITH SIMPLIFIED CONFIGURATION
+        # CREATE FIELD MAPPING CREW WITH PROPER LLM CONFIGURATION
         
         # 1. Field Mapping Manager (Coordinator)
         field_mapping_manager = Agent(
             role="Field Mapping Manager",
             goal="Coordinate field mapping analysis and determine critical migration attributes",
             backstory="Expert coordinator with deep knowledge of migration patterns and critical attribute identification. Manages team of specialists to analyze data structure and determine migration-critical fields.",
-            verbose=True,
-            allow_delegation=True
+            verbose=False,
+            allow_delegation=True,
+            llm=llm  # FIX: Pass LLM to agent
         )
         
         # 2. Schema Analysis Expert
@@ -285,7 +296,8 @@ async def _execute_field_mapping_crew(
             role="Schema Analysis Expert", 
             goal="Analyze data structure and understand field semantics for migration planning",
             backstory="Expert in data schema analysis with 15+ years experience in CMDB and migration data structures. Understands field meanings from context and naming patterns.",
-            verbose=True
+            verbose=False,
+            llm=llm  # FIX: Pass LLM to agent
         )
         
         # 3. Attribute Mapping Specialist
@@ -293,7 +305,8 @@ async def _execute_field_mapping_crew(
             role="Attribute Mapping Specialist",
             goal="Determine which attributes are critical for migration success",
             backstory="Specialist in migration attribute analysis with expertise in identifying business-critical, technical-critical, and dependency-critical fields for successful migrations.",
-            verbose=True
+            verbose=False,
+            llm=llm  # FIX: Pass LLM to agent
         )
         
         # CREATE SIMPLIFIED TASKS
@@ -368,7 +381,7 @@ async def _execute_field_mapping_crew(
             agents=[field_mapping_manager, schema_expert, mapping_specialist],
             tasks=[schema_analysis_task, critical_attrs_task, coordination_task],
             process=Process.sequential,
-            verbose=True
+            verbose=False
         )
         
         logger.info("🚀 Executing Field Mapping Crew for critical attributes analysis")
@@ -390,10 +403,12 @@ async def _execute_field_mapping_crew(
         
     except ImportError as e:
         logger.error(f"CrewAI not available: {e}")
+        logger.info("Using enhanced fallback field analysis (CrewAI not available)")
         # Fallback to enhanced field analysis
         return await _fallback_field_analysis(data_import, db)
     except Exception as e:
         logger.error(f"Field Mapping Crew execution failed: {e}")
+        logger.info("Using enhanced fallback field analysis (CrewAI not available)")
         # Also fallback on any execution error
         return await _fallback_field_analysis(data_import, db)
 

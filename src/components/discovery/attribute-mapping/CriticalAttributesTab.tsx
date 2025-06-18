@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, AlertTriangle, Clock, ArrowRight, Target, TrendingUp, RefreshCw } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Clock, ArrowRight, Target, TrendingUp, RefreshCw, Check, X, Edit2 } from 'lucide-react';
 import { apiCall, API_CONFIG } from '../../../config/api';
+import { useAuth } from '../../../contexts/AuthContext';
+import { useToast } from '../../../hooks/use-toast';
 
 interface CriticalAttribute {
   name: string;
@@ -36,6 +38,10 @@ const CriticalAttributesTab: React.FC<CriticalAttributesTabProps> = ({
   const [loading, setLoading] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [processingMappings, setProcessingMappings] = useState<Set<string>>(new Set());
+  
+  const { user } = useAuth();
+  const { toast } = useToast();
 
   // Watch for field mapping changes and update critical attributes
   useEffect(() => {
@@ -193,6 +199,143 @@ const CriticalAttributesTab: React.FC<CriticalAttributesTabProps> = ({
 
   const stats = getStatistics();
   const filteredAttributes = getFilteredAttributes();
+
+  // Handle mapping approval/rejection for critical attributes
+  const handleMappingAction = async (attributeName: string, action: 'approve' | 'reject') => {
+    try {
+      setProcessingMappings(prev => new Set(prev).add(attributeName));
+      
+      // Find the related field mapping
+      const relatedMapping = fieldMappings.find(mapping => 
+        mapping.targetAttribute.toLowerCase() === attributeName.toLowerCase()
+      );
+      
+      if (!relatedMapping) {
+        toast({
+          title: 'Error',
+          description: 'No field mapping found for this attribute',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_LEARNING, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          learning_type: 'field_mapping_action',
+          mapping_id: relatedMapping.id || `${attributeName}_${Date.now()}`,
+          action: action,
+          context: {
+            page: 'critical-attributes',
+            user_id: user?.id,
+            attribute_name: attributeName
+          }
+        })
+      });
+
+      if (response.status === 'success') {
+        toast({ 
+          title: action === 'approve' ? 'Mapping approved' : 'Mapping rejected',
+          description: `Critical attribute "${attributeName}" has been ${action}d`
+        });
+        
+        // Update local state
+        setCriticalAttributes(prev => 
+          prev.map(attr => 
+            attr.name === attributeName 
+              ? { 
+                  ...attr, 
+                  status: action === 'approve' ? 'mapped' as const : 'unmapped' as const,
+                  quality_score: action === 'approve' ? Math.min(95, (attr.confidence || 0.8) * 100) : 0,
+                  completeness_percentage: action === 'approve' ? 100 : 0
+                }
+              : attr
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error handling mapping action:', error);
+      toast({ 
+        title: 'Error', 
+        description: `Failed to ${action} mapping for ${attributeName}`,
+        variant: 'destructive'
+      });
+    } finally {
+      setProcessingMappings(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(attributeName);
+        return newSet;
+      });
+    }
+  };
+
+  // Handle alternative field selection
+  const handleAlternativeMapping = async (attributeName: string, newSourceField: string) => {
+    try {
+      setProcessingMappings(prev => new Set(prev).add(attributeName));
+
+      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_LEARNING, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          learning_type: 'field_mapping_change',
+          mapping_id: `${attributeName}_${Date.now()}`,
+          new_mapping: {
+            source_field: newSourceField,
+            target_field: attributeName,
+            mapping_type: 'manual'
+          },
+          context: {
+            page: 'critical-attributes',
+            user_id: user?.id,
+            attribute_name: attributeName
+          }
+        })
+      });
+
+      if (response.status === 'success') {
+        toast({ 
+          title: 'Mapping updated',
+          description: `Critical attribute "${attributeName}" mapped to "${newSourceField}"`
+        });
+        
+        // Update local state
+        setCriticalAttributes(prev => 
+          prev.map(attr => 
+            attr.name === attributeName 
+              ? { 
+                  ...attr, 
+                  status: 'mapped' as const,
+                  mapped_to: newSourceField,
+                  source_field: newSourceField,
+                  mapping_type: 'manual' as const,
+                  quality_score: 90,
+                  completeness_percentage: 100
+                }
+              : attr
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error updating mapping:', error);
+      toast({ 
+        title: 'Error', 
+        description: `Failed to update mapping for ${attributeName}`,
+        variant: 'destructive'
+      });
+    } finally {
+      setProcessingMappings(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(attributeName);
+        return newSet;
+      });
+    }
+  };
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-8">
@@ -374,6 +517,72 @@ const CriticalAttributesTab: React.FC<CriticalAttributesTabProps> = ({
                 {attribute.ai_suggestion && (
                   <div className="mt-3 p-2 bg-blue-50 rounded text-xs text-blue-700">
                     <strong>AI Suggestion:</strong> {attribute.ai_suggestion}
+                  </div>
+                )}
+                
+                {/* Interactive Controls */}
+                {attribute.status !== 'mapped' && (
+                  <div className="mt-4 flex items-center space-x-3">
+                    <span className="text-sm font-medium text-gray-700">Actions:</span>
+                    
+                    {/* Approve/Reject buttons if there's a suggested mapping */}
+                    {attribute.source_field && (
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleMappingAction(attribute.name, 'approve')}
+                          disabled={processingMappings.has(attribute.name)}
+                          className="flex items-center space-x-1 px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 disabled:opacity-50"
+                        >
+                          <Check className="h-3 w-3" />
+                          <span>Approve</span>
+                        </button>
+                        <button
+                          onClick={() => handleMappingAction(attribute.name, 'reject')}
+                          disabled={processingMappings.has(attribute.name)}
+                          className="flex items-center space-x-1 px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 disabled:opacity-50"
+                        >
+                          <X className="h-3 w-3" />
+                          <span>Reject</span>
+                        </button>
+                      </div>
+                    )}
+                    
+                    {/* Alternative mapping selector */}
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs text-gray-600">Map to:</span>
+                      <select
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            handleAlternativeMapping(attribute.name, e.target.value);
+                            e.target.value = ''; // Reset selection
+                          }
+                        }}
+                        disabled={processingMappings.has(attribute.name)}
+                        className="text-xs px-2 py-1 border border-gray-300 rounded disabled:opacity-50"
+                      >
+                        <option value="">Select field...</option>
+                        {fieldMappings.map((mapping, idx) => (
+                          <option key={idx} value={mapping.sourceField}>
+                            {mapping.sourceField}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    {processingMappings.has(attribute.name) && (
+                      <div className="flex items-center space-x-1 text-blue-600">
+                        <RefreshCw className="h-3 w-3 animate-spin" />
+                        <span className="text-xs">Processing...</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {/* Show success message for mapped attributes */}
+                {attribute.status === 'mapped' && (
+                  <div className="mt-4 flex items-center space-x-2 text-green-600">
+                    <CheckCircle className="h-4 w-4" />
+                    <span className="text-sm">Successfully mapped to {attribute.mapped_to}</span>
                   </div>
                 )}
               </div>
