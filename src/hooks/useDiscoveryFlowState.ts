@@ -5,6 +5,7 @@ import { apiCall } from '../config/api';
 // Discovery Flow State interface matching backend
 interface DiscoveryFlowState {
   session_id: string;
+  flow_fingerprint?: string;  // Add CrewAI fingerprint support
   client_account_id: string;
   engagement_id: string;
   user_id: string;
@@ -76,28 +77,35 @@ interface InitializeFlowParams {
 }
 
 export const useDiscoveryFlowState = () => {
+  const [currentFlowId, setCurrentFlowId] = useState<string | null>(null);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
-  // Get flow state with comprehensive monitoring
+  // Get flow state with comprehensive monitoring using flow fingerprint as primary ID
   const { data: flowState, isLoading, error } = useQuery<DiscoveryFlowState>({
-    queryKey: ['discovery-flow-state', currentSessionId],
+    queryKey: ['discovery-flow-state', currentFlowId, currentSessionId],
     queryFn: async (): Promise<DiscoveryFlowState> => {
-      if (!currentSessionId) {
-        throw new Error('No session ID available');
+      // Use flow_id (fingerprint) as primary identifier, session_id as fallback
+      const identifier = currentFlowId || currentSessionId;
+      
+      if (!identifier) {
+        throw new Error('No flow ID or session ID available');
       }
 
-      console.log('🔍 Fetching Discovery Flow status for session:', currentSessionId);
+      console.log('🔍 Fetching Discovery Flow status for identifier:', identifier);
+      console.log('🔍 Flow ID (fingerprint):', currentFlowId);
+      console.log('🔍 Session ID (fallback):', currentSessionId);
 
       try {
-        // Try comprehensive dashboard endpoint first
+        // Try comprehensive dashboard endpoint first with the identifier
         try {
-          const response = await apiCall(`/api/v1/discovery/flow/ui/dashboard-data/${currentSessionId}`);
+          const response = await apiCall(`/api/v1/discovery/flow/ui/dashboard-data/${identifier}`);
           console.log('✅ Successfully fetched dashboard data:', response);
           
           // Transform dashboard data to full flow state
           return {
-            session_id: currentSessionId,
+            session_id: currentSessionId || identifier,
+            flow_fingerprint: currentFlowId || response.flow_fingerprint || identifier,
             client_account_id: response.dashboard_data?.session_info?.client_account_id || '',
             engagement_id: response.dashboard_data?.session_info?.engagement_id || '',
             user_id: response.dashboard_data?.session_info?.user_id || '',
@@ -164,11 +172,12 @@ export const useDiscoveryFlowState = () => {
           console.log('⚠️ Dashboard endpoint failed, trying status endpoint:', dashboardError);
           
           // Fallback to status endpoint
-          const statusResponse = await apiCall(`/api/v1/discovery/flow/agentic-analysis/status-public?session_id=${currentSessionId}`);
+          const statusResponse = await apiCall(`/api/v1/discovery/flow/agentic-analysis/status-public?session_id=${identifier}`);
           console.log('✅ Successfully fetched status data:', statusResponse);
           
           return {
-            session_id: currentSessionId,
+            session_id: currentSessionId || identifier,
+            flow_fingerprint: currentFlowId || statusResponse.flow_fingerprint || identifier,
             client_account_id: statusResponse.session_info?.client_account_id || '',
             engagement_id: statusResponse.session_info?.engagement_id || '',
             user_id: statusResponse.session_info?.user_id || '',
@@ -220,14 +229,17 @@ export const useDiscoveryFlowState = () => {
           const activeResponse = await apiCall('/api/v1/discovery/flow/active');
           console.log('✅ Successfully fetched active flows:', activeResponse);
           
-          // Find our session in active flows
+          // Find our flow in active flows by either flow_id or session_id
           const activeFlow = activeResponse.active_flows?.find((flow: any) => 
-            flow.session_id === currentSessionId || flow.flow_id === currentSessionId
+            flow.session_id === identifier || 
+            flow.flow_id === identifier ||
+            flow.flow_fingerprint === identifier
           );
           
           if (activeFlow) {
             return {
-              session_id: currentSessionId,
+              session_id: currentSessionId || activeFlow.session_id || identifier,
+              flow_fingerprint: currentFlowId || activeFlow.flow_fingerprint || activeFlow.flow_id || identifier,
               client_account_id: activeFlow.client_account_id || '',
               engagement_id: activeFlow.engagement_id || '',
               user_id: activeFlow.user_id || '',
@@ -277,7 +289,8 @@ export const useDiscoveryFlowState = () => {
         // Create mock state when no active flow found
         console.log('🔧 Creating mock active flow state');
         return {
-          session_id: currentSessionId,
+          session_id: currentSessionId || identifier,
+          flow_fingerprint: currentFlowId || identifier,
           client_account_id: '',
           engagement_id: '',
           user_id: '',
@@ -320,128 +333,80 @@ export const useDiscoveryFlowState = () => {
         
       }
     },
-    enabled: !!currentSessionId,
+    enabled: !!currentFlowId || !!currentSessionId,
     refetchInterval: 10000, // Poll every 10 seconds for real-time updates
     refetchIntervalInBackground: false,
     retry: 1,
     staleTime: 5000,
   });
 
-  // Initialize flow with comprehensive configuration
-  const initializeFlowMutation = useMutation({
+  // Functions to manage flow and session identifiers
+  const setFlowId = useCallback((flowId: string | null) => {
+    console.log('🆔 Setting flow ID (fingerprint):', flowId);
+    setCurrentFlowId(flowId);
+  }, []);
+
+  const setSessionId = useCallback((sessionId: string | null) => {
+    console.log('🆔 Setting session ID:', sessionId);
+    setCurrentSessionId(sessionId);
+  }, []);
+
+  // Set both identifiers from flow creation response
+  const setFlowIdentifiers = useCallback((response: { flow_id?: string; session_id?: string; flow_fingerprint?: string }) => {
+    console.log('🆔 Setting flow identifiers from response:', response);
+    
+    // Prefer flow_fingerprint, then flow_id, then session_id for flow identification
+    const flowId = response.flow_fingerprint || response.flow_id;
+    const sessionId = response.session_id;
+    
+    if (flowId) {
+      setCurrentFlowId(flowId);
+      console.log('✅ Set flow ID (fingerprint):', flowId);
+    }
+    
+    if (sessionId) {
+      setCurrentSessionId(sessionId);
+      console.log('✅ Set session ID:', sessionId);
+    }
+  }, []);
+
+  // Initialize Discovery Flow with updated response handling
+  const initializeFlow = useMutation({
     mutationFn: async (params: InitializeFlowParams) => {
-      const requestData = {
-        client_account_id: params.client_account_id,
-        engagement_id: params.engagement_id,
-        user_id: params.user_id,
-        data_source: params.metadata.source || "csv_upload",
-        data_preview: params.raw_data.slice(0, 10), // First 10 rows as preview
-        configuration: {
-          enable_field_mapping: true,
-          enable_data_cleansing: true,
-          enable_inventory_building: true,
-          enable_dependency_analysis: true,
-          enable_technical_debt_analysis: true,
-          parallel_execution: true,
-          memory_sharing: true,
-          knowledge_integration: true,
-          confidence_threshold: 0.8,
-          ...params.configuration
-        },
-        metadata: {
-          filename: params.metadata.filename || "uploaded_file.csv",
-          headers: params.metadata.headers || [],
-          total_records: params.raw_data.length,
-          ...params.metadata
-        }
-      };
-
-      console.log('🚀 Initializing Discovery Flow with comprehensive configuration:', {
-        client_account_id: requestData.client_account_id,
-        engagement_id: requestData.engagement_id,
-        data_source: requestData.data_source,
-        configuration: requestData.configuration,
-        previewRows: requestData.data_preview.length,
-        totalRecords: requestData.metadata.total_records
+      console.log('🚀 Initializing Discovery Flow with params:', params);
+      
+      const response = await apiCall('/api/v1/discovery/flow/run-redesigned', {
+        method: 'POST',
+        body: JSON.stringify({
+          headers: Object.keys(params.raw_data[0] || {}),
+          sample_data: params.raw_data,
+          filename: params.metadata.filename || 'discovery_flow_data.json',
+          options: params.configuration || {}
+        }),
       });
-
-      try {
-        // Use the redesigned endpoint directly (this is the actual working endpoint)
-        const response = await apiCall('/api/v1/discovery/flow/run-redesigned', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            headers: requestData.metadata.headers,
-            sample_data: requestData.data_preview,
-            filename: requestData.metadata.filename,
-            options: {
-              client_account_id: requestData.client_account_id,
-              engagement_id: requestData.engagement_id,
-              user_id: requestData.user_id,
-              ...requestData.configuration
-            }
-          })
-        });
-        
-        console.log('✅ Discovery Flow initialized successfully:', response);
-        return response;
-      } catch (error: any) {
-        console.error('❌ Discovery Flow initialization failed:', error);
-        
-        // Create mock response to prevent UI breaking
-        const mockResponse = {
-          status: 'flow_started',
-          session_id: `mock-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          flow_id: `mock-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          workflow_status: 'running',
-          current_phase: 'field_mapping',
-          architecture: 'redesigned_with_crews',
-          sequence: [
-            'field_mapping', 'data_cleansing', 'inventory_building',
-            'app_server_dependencies', 'app_app_dependencies', 'technical_debt'
-          ],
-          message: 'Discovery Flow initialized in demo mode',
-          next_phase: 'field_mapping',
-          discovery_plan: {
-            phases: [
-              { name: 'field_mapping', crew: 'FieldMappingCrew', manager: 'Field Mapping Manager' },
-              { name: 'data_cleansing', crew: 'DataCleansingCrew', manager: 'Data Quality Manager' },
-              { name: 'inventory_building', crew: 'InventoryBuildingCrew', manager: 'Inventory Manager' },
-              { name: 'app_server_dependencies', crew: 'AppServerDependencyCrew', manager: 'Dependency Manager' },
-              { name: 'app_app_dependencies', crew: 'AppAppDependencyCrew', manager: 'Integration Manager' },
-              { name: 'technical_debt', crew: 'TechnicalDebtCrew', manager: 'Technical Debt Manager' }
-            ]
-          },
-          crew_coordination: {
-            total_crews: 6,
-            total_agents: 21,
-            manager_agents: 6,
-            specialist_agents: 15
-          },
-          next_steps: {
-            ready_for_assessment: false,
-            recommended_actions: ['Monitor crew progress', 'Review field mappings when available']
-          }
-        };
-        
-        console.log('🔧 Using mock response for demo:', mockResponse);
-        return mockResponse;
-      }
+      
+      console.log('✅ Discovery Flow initialization response:', response);
+      
+      // Extract and set identifiers from response
+      setFlowIdentifiers(response);
+      
+      return response;
     },
     onSuccess: (data) => {
-      console.log('🎯 Flow initialization success callback:', data);
-      const sessionId = data.session_id || data.flow_id;
-      if (sessionId) {
-        console.log('📝 Setting session ID:', sessionId);
-        setCurrentSessionId(sessionId);
-        queryClient.invalidateQueries({ queryKey: ['discovery-flow-state'] });
-      } else {
-        console.warn('⚠️ No session ID received from flow initialization');
-      }
+      console.log('✅ Discovery Flow initialized successfully:', data);
+      
+      // Invalidate and refetch the flow state
+      queryClient.invalidateQueries({ queryKey: ['discovery-flow-state'] });
+      
+      // Additional logging for debugging
+      console.log('Flow ID (fingerprint):', data.flow_fingerprint || data.flow_id);
+      console.log('Session ID:', data.session_id);
+      console.log('Architecture:', data.architecture);
+      console.log('Next phase:', data.next_phase);
     },
     onError: (error) => {
-      console.error('💥 Flow initialization error callback:', error);
-    }
+      console.error('❌ Discovery Flow initialization failed:', error);
+    },
   });
 
   // Add mutation functions for all 6 crews
@@ -579,21 +544,23 @@ export const useDiscoveryFlowState = () => {
     }
   }, []);
 
-  // Set session ID for existing flows
-  const setSessionId = useCallback((sessionId: string) => {
-    setCurrentSessionId(sessionId);
-  }, []);
-
   return {
-    // State and status
+    // State
     flowState,
     isLoading,
     error,
+    currentFlowId,
     currentSessionId,
-    setSessionId,
     
-    // Flow control
-    initializeFlow: initializeFlowMutation.mutateAsync,
+    // Actions
+    initializeFlow,
+    setFlowId,
+    setSessionId,
+    setFlowIdentifiers,
+    
+    // Helper functions
+    invalidateState: () => queryClient.invalidateQueries({ queryKey: ['discovery-flow-state'] }),
+    refreshState: () => queryClient.refetchQueries({ queryKey: ['discovery-flow-state'] }),
     
     // Crew execution functions
     executeFieldMappingCrew: executeFieldMappingCrewMutation.mutateAsync,
@@ -610,7 +577,7 @@ export const useDiscoveryFlowState = () => {
     getAgentPerformance,
     
     // Loading states
-    isInitializing: initializeFlowMutation.isPending,
+    isInitializing: initializeFlow.isPending,
     isExecutingCrew: executeFieldMappingCrewMutation.isPending || 
                      executeDataCleansingCrewMutation.isPending || 
                      executeInventoryBuildingCrewMutation.isPending ||

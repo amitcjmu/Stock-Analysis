@@ -524,33 +524,58 @@ class CrewAIFlowService:
         context: RequestContext
     ) -> Optional[Dict[str, Any]]:
         """
-        Get flow state by session ID using smart session management.
+        Get flow state by session ID or flow fingerprint.
         
-        This method uses the smart session management to handle cases where
-        multiple workflow states exist for the same session.
+        Now supports both:
+        - CrewAI flow fingerprints (primary identifier)
+        - Session IDs (legacy compatibility)
         """
         try:
-            # First check if flow is in active flows (for current running flows)
+            # Check if the ID is a CrewAI fingerprint or session ID
+            flow = None
+            identifier_type = "unknown"
+            
+            # First, try direct lookup (works for both fingerprints and session IDs)
             if session_id in self._active_flows:
                 flow = self._active_flows[session_id]
+                identifier_type = "direct_lookup"
+                logger.info(f"Found flow by direct lookup: {session_id}")
+            
+            # If not found, try mapping lookups
+            elif hasattr(self, '_session_fingerprint_map') and session_id in self._session_fingerprint_map:
+                # Session ID -> Fingerprint mapping
+                fingerprint = self._session_fingerprint_map[session_id]
+                if fingerprint in self._active_flows:
+                    flow = self._active_flows[fingerprint]
+                    identifier_type = "session_to_fingerprint"
+                    logger.info(f"Found flow by session->fingerprint mapping: {session_id} -> {fingerprint}")
+            
+            elif hasattr(self, '_fingerprint_session_map') and session_id in self._fingerprint_session_map:
+                # Fingerprint -> Session ID mapping (if someone passed fingerprint as session_id)
+                mapped_session = self._fingerprint_session_map[session_id]
+                if mapped_session in self._active_flows:
+                    flow = self._active_flows[mapped_session]
+                    identifier_type = "fingerprint_to_session"
+                    logger.info(f"Found flow by fingerprint->session mapping: {session_id} -> {mapped_session}")
+            
+            # If found in active flows, return its state
+            if flow:
+                # Get flow state safely
+                flow_status = getattr(flow.state, 'status', 'unknown')
+                flow_phase = getattr(flow.state, 'current_phase', 'initialization')
+                flow_progress = getattr(flow.state, 'progress_percentage', 0.0)
+                flow_started_at = getattr(flow.state, 'started_at', None)
                 
-                # Safely get status from flow state
-                try:
-                    flow_status = getattr(flow.state, 'status', 'running')
-                    flow_phase = getattr(flow.state, 'current_phase', 'initialization')
-                    flow_progress = getattr(flow.state, 'progress_percentage', 10.0)
-                    flow_started_at = getattr(flow.state, 'started_at', None)
-                    
-                    logger.info(f"Found active flow for session {session_id}: status={flow_status}")
-                except Exception as e:
-                    logger.warning(f"Could not access flow state for session {session_id}: {e}")
-                    flow_status = 'running'
-                    flow_phase = 'initialization'
-                    flow_progress = 10.0
-                    flow_started_at = None
+                # Parse started_at safely
+                if isinstance(flow_started_at, str):
+                    try:
+                        flow_started_at = datetime.fromisoformat(flow_started_at.replace('Z', '+00:00'))
+                    except ValueError:
+                        flow_started_at = None
                 
-                # Get file information from flow state
-                file_info = {}
+                # Get file info safely
+                file_info = {'filename': 'Discovery Flow Data', 'record_count': 0}
+                
                 try:
                     if hasattr(flow.state, 'metadata') and flow.state.metadata:
                         file_info['filename'] = flow.state.metadata.get('filename', 'Unknown file')
@@ -560,15 +585,23 @@ class CrewAIFlowService:
                     logger.warning(f"Could not access flow state metadata: {e}")
                     file_info = {'filename': 'Unknown file', 'record_count': 0}
                 
+                # Return comprehensive flow state with fingerprint info
                 return {
                     "session_id": session_id,
+                    "flow_fingerprint": getattr(flow, 'fingerprint', {}).get('uuid_str', session_id),
+                    "fingerprint_metadata": getattr(flow, 'fingerprint', {}).get('metadata', {}),
                     "status": flow_status,
                     "current_phase": flow_phase,
                     "progress_percentage": flow_progress,
                     "file_info": file_info,
                     "started_at": flow_started_at.isoformat() if flow_started_at else None,
                     "created_at": flow_started_at.isoformat() if flow_started_at else None,
-                    "updated_at": datetime.utcnow().isoformat()
+                    "updated_at": datetime.utcnow().isoformat(),
+                    "identifier_type": identifier_type,
+                    "crew_status": getattr(flow.state, 'crew_status', {}),
+                    "phase_completion": getattr(flow.state, 'phase_completion', {}),
+                    "discovery_summary": getattr(flow.state, 'discovery_summary', {}),
+                    "field_mappings": getattr(flow.state, 'field_mappings', {})
                 }
             
             # Use the smart session management to get the primary workflow from database
@@ -584,47 +617,54 @@ class CrewAIFlowService:
             except (ValueError, TypeError):
                 logger.error(f"Invalid client_account_id format: {context.client_account_id}")
                 raise ValueError(f"Invalid client_account_id format: {context.client_account_id}")
-                
+            
+            # Try to load from database using enhanced session management
             try:
-                engagement_uuid = uuid.UUID(context.engagement_id) if context.engagement_id else None
-            except (ValueError, TypeError):
-                logger.error(f"Invalid engagement_id format: {context.engagement_id}")
-                raise ValueError(f"Invalid engagement_id format: {context.engagement_id}")
-            
-            # Ensure we have valid UUIDs - no fallbacks, raise error if missing
-            if client_uuid is None:
-                raise ValueError(f"Missing client_account_id in context")
-            if engagement_uuid is None:
-                raise ValueError(f"Missing engagement_id in context")
-            
-            workflow_state = await self.state_service.get_active_workflow_for_session(
-                session_id=session_uuid,
-                client_account_id=client_uuid,
-                engagement_id=engagement_uuid
-            )
-            
-            if not workflow_state:
-                logger.warning(f"No workflow state found for session {session_id}")
+                from app.services.session_management_service import SessionManagementService
+                from app.models.workflow import Workflow, WorkflowStatus
+                
+                session_service = SessionManagementService(self.db)
+                
+                # Get the primary workflow for this session using the enhanced method
+                workflow = await session_service.get_primary_workflow_enhanced(
+                    session_uuid=session_uuid,
+                    client_account_uuid=client_uuid,
+                    engagement_uuid=uuid.UUID(context.engagement_id) if context.engagement_id else None
+                )
+                
+                if workflow:
+                    logger.info(f"Found workflow in database: {workflow.id}")
+                    
+                    # Transform database workflow to flow state format
+                    return {
+                        "session_id": session_id,
+                        "workflow_id": str(workflow.id),
+                        "flow_fingerprint": getattr(workflow, 'flow_fingerprint', session_id),
+                        "status": workflow.status.value.lower() if workflow.status else "unknown",
+                        "current_phase": workflow.current_phase or "unknown",
+                        "progress_percentage": workflow.progress_percentage or 0,
+                        "file_info": {
+                            "filename": "Database Workflow",
+                            "record_count": 0
+                        },
+                        "started_at": workflow.created_at.isoformat() if workflow.created_at else None,
+                        "created_at": workflow.created_at.isoformat() if workflow.created_at else None,
+                        "updated_at": workflow.updated_at.isoformat() if workflow.updated_at else None,
+                        "identifier_type": "database_lookup"
+                    }
+                else:
+                    logger.warning(f"No workflow found in database for session {session_id}")
+                    return None
+                    
+            except ImportError:
+                logger.warning("Session management service not available for database lookup")
                 return None
-            
-            # Extract state data and add database metadata
-            state_data = workflow_state.state_data or {}
-            
-            # Ensure the state has all required fields for API compatibility
-            state_data.update({
-                "session_id": session_id,
-                "status": workflow_state.status,
-                "current_phase": workflow_state.current_phase,
-                "workflow_type": workflow_state.workflow_type,
-                "created_at": workflow_state.created_at.isoformat() if workflow_state.created_at else None,
-                "updated_at": workflow_state.updated_at.isoformat() if workflow_state.updated_at else None
-            })
-            
-            logger.debug(f"Retrieved workflow state for session {session_id}: status={workflow_state.status}")
-            return state_data
-            
+            except Exception as e:
+                logger.error(f"Database lookup failed for session {session_id}: {e}")
+                return None
+        
         except Exception as e:
-            logger.error(f"Failed to get persistent state for session {session_id}: {e}")
+            logger.error(f"Error in get_flow_state_by_session for {session_id}: {e}")
             return None
     
     def get_active_flows_summary(self) -> Dict[str, Any]:
@@ -783,6 +823,7 @@ class CrewAIFlowService:
         - Specialized crews with manager agents
         - Shared memory and knowledge bases
         - Agent collaboration and planning
+        - CrewAI fingerprinting as primary identifier
         """
         try:
             logger.info(f"🚀 Starting redesigned Discovery Flow for session {context.session_id}")
@@ -802,7 +843,7 @@ class CrewAIFlowService:
                 }
             }
             
-            # Generate session ID
+            # Generate session ID for user session tracking
             session_id = context.session_id or str(uuid.uuid4())
             
             # Create a proper CrewAI service object with DeepInfra LLM
@@ -830,22 +871,38 @@ class CrewAIFlowService:
                 metadata=flow_data["metadata"]
             )
             
-            # Store the flow for monitoring
-            self._active_flows[session_id] = flow
+            # CRITICAL FIX: Use CrewAI fingerprint as PRIMARY identifier
+            flow_fingerprint = flow.fingerprint.uuid_str
+            logger.info(f"✅ CrewAI Flow fingerprint generated: {flow_fingerprint}")
+            
+            # Store the flow by BOTH fingerprint (primary) and session_id (legacy compatibility)
+            self._active_flows[flow_fingerprint] = flow  # Primary storage by fingerprint
+            self._active_flows[session_id] = flow        # Legacy compatibility
+            
+            # Create mapping for fingerprint <-> session_id lookup
+            if not hasattr(self, '_fingerprint_session_map'):
+                self._fingerprint_session_map = {}
+            if not hasattr(self, '_session_fingerprint_map'):
+                self._session_fingerprint_map = {}
+            
+            self._fingerprint_session_map[flow_fingerprint] = session_id
+            self._session_fingerprint_map[session_id] = flow_fingerprint
             
             # Start the flow execution in background
             asyncio.create_task(self._run_redesigned_flow_background(flow, context))
             
-            # Return immediate response with flow details
+            # Return immediate response with FLOW FINGERPRINT as primary ID
             return {
                 "status": "flow_started",
-                "flow_id": session_id,
-                "session_id": session_id,
+                "flow_id": flow_fingerprint,      # PRIMARY: CrewAI fingerprint
+                "flow_fingerprint": flow_fingerprint,  # Explicit fingerprint
+                "session_id": session_id,         # SECONDARY: User session ID  
                 "architecture": "redesigned_with_crews",
                 "next_phase": "field_mapping",
                 "discovery_plan": getattr(flow.state, 'overall_plan', {}),
                 "crew_coordination": getattr(flow.state, 'crew_coordination', {}),
-                "message": "Redesigned Discovery Flow started successfully"
+                "fingerprint_metadata": flow.fingerprint.metadata,
+                "message": "Redesigned Discovery Flow started with CrewAI fingerprinting"
             }
             
         except Exception as e:
