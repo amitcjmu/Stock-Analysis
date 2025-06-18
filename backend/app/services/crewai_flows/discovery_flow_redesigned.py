@@ -68,6 +68,12 @@ from app.services.crewai_flows.crews.technical_debt_crew import TechnicalDebtCre
 
 logger = logging.getLogger(__name__)
 
+# CrewAI Event Listener Integration
+# Following https://docs.crewai.com/concepts/event-listener#properly-registering-your-listener
+import backend.app.services.crewai_flows.event_listeners  # This loads the event listener
+
+from backend.app.services.crewai_flows.event_listeners import discovery_flow_listener
+
 class DiscoveryFlowRedesigned(Flow[DiscoveryFlowState], PlanningMixin):
     """
     Discovery Flow with Corrected Architecture following CrewAI Best Practices

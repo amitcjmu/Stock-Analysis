@@ -26,6 +26,9 @@ from app.services.crewai_flow_service import CrewAIFlowService
 from app.services.workflow_state_service import WorkflowStateService
 from app.api.v1.dependencies import get_crewai_flow_service
 
+# Import the event listener for flow tracking
+from backend.app.services.crewai_flows.event_listeners import discovery_flow_listener
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Discovery Flow"])
@@ -1481,4 +1484,101 @@ async def get_dashboard_data(
         raise HTTPException(status_code=500, detail=f"Failed to get dashboard data: {str(e)}")
 
 # Export router
-__all__ = ["router"] 
+__all__ = ["router"]
+
+@router.get("/flow/status/{flow_id}")
+async def get_flow_status_by_id(
+    flow_id: str,
+    context: RequestContext = Depends(get_request_context)
+):
+    """
+    Get real-time flow status using CrewAI Event Listener.
+    
+    This endpoint uses the proper CrewAI Event Listener pattern instead of
+    hardcoded session IDs, providing reliable flow tracking using flow IDs.
+    """
+    logger.info(f"🔍 Getting flow status for flow_id: {flow_id}")
+    
+    try:
+        # Get status from CrewAI Event Listener
+        flow_status = discovery_flow_listener.get_flow_status(flow_id)
+        
+        if flow_status.get("status") == "not_found":
+            logger.warning(f"Flow {flow_id} not found in event listener")
+            return {
+                "status": "not_found",
+                "message": f"Flow {flow_id} not found or not yet started",
+                "available_flows": discovery_flow_listener.get_active_flows()
+            }
+        
+        logger.info(f"✅ Flow status retrieved: {flow_status['status']} - {flow_status['progress']}%")
+        return flow_status
+        
+    except Exception as e:
+        logger.error(f"❌ Error getting flow status: {e}")
+        return {
+            "status": "error",
+            "message": f"Error retrieving flow status: {str(e)}"
+        }
+
+@router.get("/flow/events/{flow_id}")
+async def get_flow_events(
+    flow_id: str,
+    limit: int = 50,
+    context: RequestContext = Depends(get_request_context)
+):
+    """
+    Get flow events from CrewAI Event Listener for debugging and monitoring.
+    """
+    logger.info(f"🔍 Getting flow events for flow_id: {flow_id}, limit: {limit}")
+    
+    try:
+        events = discovery_flow_listener.get_flow_events(flow_id, limit)
+        
+        logger.info(f"✅ Retrieved {len(events)} events for flow {flow_id}")
+        return {
+            "flow_id": flow_id,
+            "events": events,
+            "total_events": len(events)
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error getting flow events: {e}")
+        return {
+            "flow_id": flow_id,
+            "events": [],
+            "error": str(e)
+        }
+
+@router.get("/flow/active")
+async def get_active_flows(
+    context: RequestContext = Depends(get_request_context)
+):
+    """
+    Get list of currently active flows from CrewAI Event Listener.
+    """
+    logger.info("🔍 Getting active flows")
+    
+    try:
+        active_flows = discovery_flow_listener.get_active_flows()
+        
+        # Get detailed status for each active flow
+        flow_details = []
+        for flow_id in active_flows:
+            status = discovery_flow_listener.get_flow_status(flow_id)
+            flow_details.append(status)
+        
+        logger.info(f"✅ Found {len(active_flows)} active flows")
+        return {
+            "active_flows": active_flows,
+            "flow_details": flow_details,
+            "total_active": len(active_flows)
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error getting active flows: {e}")
+        return {
+            "active_flows": [],
+            "flow_details": [],
+            "error": str(e)
+        } 

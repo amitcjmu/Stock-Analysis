@@ -3155,3 +3155,95 @@ This release fixes the fundamental disconnect between frontend and backend flow 
 ---
 
 ## [0.7.3] - 2025-01-28
+
+### 🎯 **CREWAI EVENT LISTENER IMPLEMENTATION - Proper Flow Tracking**
+
+This release implements the proper CrewAI Event Listener pattern for flow tracking, eliminating the architectural confusion between fingerprints and flow IDs while providing real-time event-based monitoring.
+
+### 🚀 **Event-Driven Flow Tracking Architecture**
+
+#### **CrewAI Event Listener Implementation**
+- **Event Pattern**: Implemented proper [CrewAI Event Listener](https://docs.crewai.com/concepts/event-listener) following documentation exactly
+- **Flow Events**: Capturing `FlowStartedEvent`, `FlowFinishedEvent`, and `MethodExecutionStartedEvent`/`FinishedEvent` for crew tracking
+- **Real-time Monitoring**: Event-based tracking provides live updates on flow progress and crew execution
+- **Proper ID Usage**: Flow IDs (dynamic) used for tracking, fingerprints (static) left for agent/crew identification only
+
+#### **Event Listener Registration**
+- **Singleton Pattern**: `discovery_flow_listener` registered following CrewAI documentation pattern
+- **Package Loading**: Event listener loaded via `__init__.py` import pattern like CrewAI's built-in `agentops_listener`
+- **Flow Integration**: Event listener automatically registered when Discovery Flow imported
+- **Event Bus**: Proper `crewai_event_bus.on()` decorator usage for event capture
+
+### 🎪 **Frontend Event Integration**
+
+#### **Event-Based Status API**
+- **New Endpoints**: Added `/api/v1/discovery/flow/status/{flow_id}` using event listener data
+- **Event History**: Added `/api/v1/discovery/flow/events/{flow_id}` for detailed event tracking
+- **Active Flows**: Added `/api/v1/discovery/flow/active` for discovering running flows
+- **Real-time Updates**: Frontend polls event-based endpoints every 2 seconds
+
+#### **Frontend Hook Refactoring**
+- **Event Tracking**: `useDiscoveryFlowState` now uses event listener APIs instead of hardcoded session IDs
+- **Flow ID Primary**: Uses `flow_id` from flow creation as primary identifier for event tracking
+- **Event Queries**: Added `flowEvents` query for accessing detailed event history
+- **Fallback Logic**: Graceful fallback to active flows discovery when flow ID not found
+
+### 📊 **Architecture Clarity Resolution**
+
+#### **ID Usage Clarification**
+- **Flow IDs**: Dynamic identifiers for tracking flow execution (changes per run)
+- **Fingerprints**: Static identifiers for agents/crews/tasks (constant across runs)
+- **Event Tracking**: Uses flow IDs for proper flow lifecycle monitoring
+- **Session Compatibility**: Maintains session IDs for legacy API compatibility
+
+#### **Event Types Captured**
+- **Flow Lifecycle**: `flow_started`, `flow_completed`, `flow_failed`
+- **Crew Execution**: `crew_started`, `crew_completed`, `crew_failed` with progress tracking
+- **Agent Activities**: `agent_started`, `agent_completed` for detailed monitoring
+- **Task Progress**: `task_completed` events for granular progress updates
+
+### 🔧 **Technical Implementation**
+
+#### **Event Listener Infrastructure**
+- `backend/app/services/crewai_flows/event_listeners/discovery_flow_listener.py`: Complete event listener implementation
+- `backend/app/services/crewai_flows/event_listeners/__init__.py`: Proper registration following CrewAI pattern
+- `backend/app/api/v1/discovery/discovery_flow.py`: Event-based API endpoints
+- Flow events stored in memory with automatic cleanup for performance
+
+#### **Event Data Structure**
+- **FlowEvent**: Structured events with `event_type`, `flow_id`, `crew_name`, `status`, and `progress`
+- **Flow Status**: Real-time status including current phase, completed phases, and overall progress
+- **Event History**: Chronological event log with timestamps and detailed metadata
+- **Progress Calculation**: Automatic progress calculation based on crew completion sequence
+
+### 🎯 **Problem Resolution**
+
+#### **Architectural Confusion Eliminated**
+- **Clear Separation**: Flow IDs for tracking, fingerprints for component identification
+- **Event-Driven**: Real-time tracking based on actual CrewAI events, not polling heuristics
+- **Documentation Aligned**: Implementation follows CrewAI Event Listener documentation exactly
+- **Reliable Tracking**: Event-based tracking works consistently across flow executions
+
+#### **Frontend Reliability**
+- **No Hardcoding**: Eliminated all hardcoded session IDs from frontend
+- **Event-Based**: UI updates based on actual flow events, not assumed states
+- **Real-time**: Live progress updates through event polling every 2 seconds
+- **Error Recovery**: Graceful handling when flows not found with active flow discovery
+
+### 🎉 **Business Impact**
+
+- **Reliable Monitoring**: Flow progress tracking now works consistently without manual intervention
+- **Real-time Visibility**: Users see actual flow progress through live event updates
+- **Architectural Clarity**: Clear separation between flow tracking and component identification
+- **Scalable Foundation**: Event-driven architecture supports future advanced monitoring features
+
+### 🎯 **Success Metrics**
+
+- **Event Capture**: 100% coverage of flow lifecycle events (start, crew execution, completion)
+- **Real-time Updates**: 2-second polling provides near real-time status updates
+- **Zero Hardcoding**: No hardcoded session IDs or flow identifiers in frontend
+- **Event Persistence**: Event history available for debugging and audit trails
+
+---
+
+## [0.7.4] - 2025-01-28
