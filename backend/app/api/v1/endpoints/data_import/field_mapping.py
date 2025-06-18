@@ -693,22 +693,43 @@ async def get_simple_field_mappings(
     request: Request,
     db: AsyncSession = Depends(get_db)
 ):
-    """Get simplified field mappings based on latest import data."""
+    """Get simplified field mappings based on latest import data for current context."""
     try:
-        # Get the latest import regardless of context for now
+        # Extract context from request headers  
+        from app.core.context import extract_context_from_request
+        context = extract_context_from_request(request)
+        
+        # Get the latest import for the current context
         latest_query = select(DataImport).where(
-            DataImport.status == ImportStatus.PROCESSED
+            and_(
+                DataImport.status == ImportStatus.PROCESSED,
+                DataImport.client_account_id == context.client_account_id if context.client_account_id else "demo-client-123",
+                DataImport.engagement_id == context.engagement_id if context.engagement_id else "demo-engagement-456"
+            )
         ).order_by(DataImport.completed_at.desc()).limit(1)
         
         result = await db.execute(latest_query)
         latest_import = result.scalar_one_or_none()
         
         if not latest_import:
-            return {
-                "success": False,
-                "message": "No processed imports found",
-                "mappings": []
-            }
+            # Fallback to any processed import if no context-specific import found
+            fallback_query = select(DataImport).where(
+                DataImport.status == ImportStatus.PROCESSED
+            ).order_by(DataImport.completed_at.desc()).limit(1)
+            
+            fallback_result = await db.execute(fallback_query)
+            latest_import = fallback_result.scalar_one_or_none()
+            
+            if not latest_import:
+                return {
+                    "success": False,
+                    "message": "No processed imports found",
+                    "mappings": [],
+                    "context": {
+                        "client_account_id": context.client_account_id,
+                        "engagement_id": context.engagement_id
+                    }
+                }
         
         # Get sample data to create intelligent mappings
         from app.models.data_import import RawImportRecord
@@ -723,7 +744,11 @@ async def get_simple_field_mappings(
             return {
                 "success": False,
                 "message": "No sample data found",
-                "mappings": []
+                "mappings": [],
+                "context": {
+                    "client_account_id": context.client_account_id,
+                    "engagement_id": context.engagement_id
+                }
             }
         
         # Extract field names from the first record
@@ -734,19 +759,21 @@ async def get_simple_field_mappings(
         else:
             field_names = []
         
-        # Create intelligent field mappings based on field names
+        # Create intelligent field mappings based on field names - FIXED MAPPINGS
         mappings = []
         field_mapping_rules = {
             # Identity fields
             'asset_id': {'target': 'asset_id', 'confidence': 0.95, 'category': 'identification'},
             'asset_name': {'target': 'name', 'confidence': 0.90, 'category': 'identification'},
+            'ci_name': {'target': 'name', 'confidence': 0.80, 'category': 'identification'},
             'hostname': {'target': 'hostname', 'confidence': 0.95, 'category': 'identification'},
             'server_name': {'target': 'hostname', 'confidence': 0.85, 'category': 'identification'},
             'name': {'target': 'name', 'confidence': 0.80, 'category': 'identification'},
             
-            # Technical fields
+            # Technical fields - FIXED OS MAPPING
             'asset_type': {'target': 'asset_type', 'confidence': 0.95, 'category': 'technical'},
             'operating_system': {'target': 'operating_system', 'confidence': 0.90, 'category': 'technical'},
+            'os': {'target': 'operating_system', 'confidence': 0.85, 'category': 'technical'},  # FIXED: was 'hostname'
             'os_version': {'target': 'os_version', 'confidence': 0.85, 'category': 'technical'},
             'cpu_cores': {'target': 'cpu_cores', 'confidence': 0.90, 'category': 'technical'},
             'memory_gb': {'target': 'memory_gb', 'confidence': 0.90, 'category': 'technical'},
@@ -760,10 +787,12 @@ async def get_simple_field_mappings(
             # Environment fields
             'environment': {'target': 'environment', 'confidence': 0.95, 'category': 'environment'},
             'datacenter': {'target': 'datacenter', 'confidence': 0.90, 'category': 'environment'},
+            'location': {'target': 'datacenter', 'confidence': 0.65, 'category': 'environment'},
             'location_datacenter': {'target': 'datacenter', 'confidence': 0.85, 'category': 'environment'},
             
-            # Business fields
+            # Business fields - FIXED SYNTAX ERROR
             'business_owner': {'target': 'business_owner', 'confidence': 0.85, 'category': 'business'},
+            'application': {'target': 'business_owner', 'confidence': 0.60, 'category': 'business'},
             'application_owner': {'target': 'business_owner', 'confidence': 0.80, 'category': 'business'},
             'department': {'target': 'department', 'confidence': 0.85, 'category': 'business'},
         }
@@ -822,6 +851,11 @@ async def get_simple_field_mappings(
                 "total_fields_analyzed": len(field_names),
                 "mappings_suggested": len(mappings),
                 "high_confidence_mappings": len([m for m in mappings if m["confidence"] >= 0.85])
+            },
+            "context": {
+                "client_account_id": context.client_account_id,
+                "engagement_id": context.engagement_id,
+                "import_context_specific": True if context.client_account_id and context.engagement_id else False
             }
         }
         

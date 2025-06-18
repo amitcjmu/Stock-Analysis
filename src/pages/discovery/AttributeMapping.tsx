@@ -1,596 +1,653 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
-import { Upload, RefreshCw, Zap } from 'lucide-react';
+import { Upload, RefreshCw, Zap, Brain, Users, Activity, Database } from 'lucide-react';
 import { useToast } from '../../hooks/use-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
-import { useTriggerFieldMappingCrew } from '../../hooks/useAttributeMapping';
 import { apiCall, API_CONFIG } from '../../config/api';
 
+// CrewAI Discovery Flow Integration
+import { useDiscoveryWebSocket } from '../../hooks/useDiscoveryWebSocket';
+import { useDiscoveryFlowState } from '../../hooks/useDiscoveryFlowState';
+
+// Components
 import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
 import NoDataPlaceholder from '../../components/NoDataPlaceholder';
 import ProgressDashboard from '../../components/discovery/attribute-mapping/ProgressDashboard';
 import FieldMappingsTab from '../../components/discovery/attribute-mapping/FieldMappingsTab';
 import CriticalAttributesTab from '../../components/discovery/attribute-mapping/CriticalAttributesTab';
 import ImportedDataTab from '../../components/discovery/attribute-mapping/ImportedDataTab';
-import TrainingProgressTab from '../../components/discovery/attribute-mapping/TrainingProgressTab';
 import CrewAnalysisPanel from '../../components/discovery/attribute-mapping/CrewAnalysisPanel';
 import NavigationTabs from '../../components/discovery/attribute-mapping/NavigationTabs';
 import AgentClarificationPanel from '../../components/discovery/AgentClarificationPanel';
 import DataClassificationDisplay from '../../components/discovery/DataClassificationDisplay';
 import AgentInsightsSection from '../../components/discovery/AgentInsightsSection';
+import EnhancedAgentOrchestrationPanel from '../../components/discovery/EnhancedAgentOrchestrationPanel';
 import Sidebar from '../../components/Sidebar';
+
+// Types from Discovery Flow State
+interface DiscoveryFlowState {
+  session_id: string;
+  client_account_id: string;
+  engagement_id: string;
+  current_phase: string;
+  phase_completion: Record<string, boolean>;
+  crew_status: Record<string, any>;
+  field_mappings: {
+    mappings: Record<string, any>;
+    confidence_scores: Record<string, number>;
+    unmapped_fields: string[];
+    validation_results: Record<string, any>;
+    agent_insights: Record<string, any>;
+  };
+  raw_data: any[];
+  asset_inventory: Record<string, any>;
+  agent_collaboration_map: Record<string, string[]>;
+  shared_memory_id: string;
+}
+
+interface FieldMapping {
+  id: string;
+  sourceField: string;
+  targetAttribute: string;
+  confidence: number;
+  mapping_type: 'direct' | 'calculated' | 'manual';
+  sample_values: string[];
+  status: 'pending' | 'approved' | 'rejected' | 'ignored' | 'deleted';
+  ai_reasoning: string;
+  agent_source?: string;
+}
+
+interface CrewAnalysis {
+  agent: string;
+  task: string;
+  findings: string[];
+  recommendations: string[];
+  confidence: number;
+  crew: string;
+  collaboration_insights?: string[];
+}
+
+interface MappingProgress {
+  total: number;
+  mapped: number;
+  critical_mapped: number;
+  accuracy: number;
+  crew_completion_status: Record<string, boolean>;
+}
 
 const AttributeMapping: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('mappings');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, client, engagement, session } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  // 🤖 NEW: Fetch real field mappings from agents (context-aware)
-  const { 
-    data: fieldMappingsData, 
-    isLoading: isLoadingFieldMappings,
-    isError: isErrorFieldMappings,
-    refetch: refetchFieldMappings 
-  } = useQuery({
-    queryKey: ['context-field-mappings'],
-    queryFn: async () => {
-      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.SIMPLE_FIELD_MAPPINGS, {
-        method: 'GET'
+  // Discovery Flow State Integration
+  const {
+    flowState,
+    isLoading: isFlowStateLoading,
+    error: flowStateError,
+    initializeFlow,
+    executeFieldMappingCrew,
+    getCrewStatus
+  } = useDiscoveryFlowState();
+
+  // WebSocket for real-time crew monitoring
+  const {
+    flowStatus,
+    crewUpdates,
+    isConnected: isWebSocketConnected
+  } = useDiscoveryWebSocket(flowState?.session_id);
+
+  // Derived state from Discovery Flow
+  const fieldMappings = useMemo(() => {
+    if (!flowState?.field_mappings?.mappings) return [];
+    
+    return Object.entries(flowState.field_mappings.mappings).map(([sourceField, mapping]: [string, any]) => ({
+      id: `mapping-${sourceField}`,
+      sourceField,
+      targetAttribute: mapping.target_attribute || 'unmapped',
+      confidence: flowState.field_mappings.confidence_scores[sourceField] || 0,
+      mapping_type: mapping.mapping_type || 'direct',
+      sample_values: mapping.sample_values || [],
+      status: mapping.status || 'pending',
+      ai_reasoning: mapping.ai_reasoning || flowState.field_mappings.agent_insights[sourceField] || 'Agent analysis pending',
+      agent_source: mapping.agent_source || 'Field Mapping Crew'
+    }));
+  }, [flowState]);
+
+  // Crew Analysis from Discovery Flow State
+  const crewAnalysis = useMemo(() => {
+    if (!flowState?.crew_status?.field_mapping) return [];
+    
+    const fieldMappingCrewStatus = flowState.crew_status.field_mapping;
+    const analyses: CrewAnalysis[] = [];
+    
+    // Field Mapping Manager Analysis
+    if (fieldMappingCrewStatus.manager_analysis) {
+      analyses.push({
+        agent: "Field Mapping Manager",
+        task: "Coordinate field mapping strategy and agent collaboration",
+        findings: fieldMappingCrewStatus.manager_analysis.findings || ["Coordinating field mapping analysis"],
+        recommendations: fieldMappingCrewStatus.manager_analysis.recommendations || ["Review agent results for validation"],
+        confidence: fieldMappingCrewStatus.manager_analysis.confidence || 0.9,
+        crew: "Field Mapping Crew",
+        collaboration_insights: fieldMappingCrewStatus.manager_analysis.collaboration_insights
       });
-      return response;
-    },
-    enabled: true,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: 2
-  });
+    }
+    
+    // Schema Analysis Expert Analysis
+    if (fieldMappingCrewStatus.schema_expert_analysis) {
+      analyses.push({
+        agent: "Schema Analysis Expert",
+        task: "Analyze data structure semantics and field relationships",
+        findings: fieldMappingCrewStatus.schema_expert_analysis.findings || ["Analyzing field semantics"],
+        recommendations: fieldMappingCrewStatus.schema_expert_analysis.recommendations || ["Validate field relationships"],
+        confidence: fieldMappingCrewStatus.schema_expert_analysis.confidence || 0.85,
+        crew: "Field Mapping Crew"
+      });
+    }
+    
+    // Attribute Mapping Specialist Analysis
+    if (fieldMappingCrewStatus.mapping_specialist_analysis) {
+      analyses.push({
+        agent: "Attribute Mapping Specialist", 
+        task: "Create precise field mappings with confidence scoring",
+        findings: fieldMappingCrewStatus.mapping_specialist_analysis.findings || ["Creating field mappings"],
+        recommendations: fieldMappingCrewStatus.mapping_specialist_analysis.recommendations || ["Review mapping confidence scores"],
+        confidence: fieldMappingCrewStatus.mapping_specialist_analysis.confidence || 0.8,
+        crew: "Field Mapping Crew"
+      });
+    }
+    
+    return analyses;
+  }, [flowState]);
 
-  // Hook to manually trigger Field Mapping Crew analysis
-  const triggerFieldMappingCrew = useTriggerFieldMappingCrew();
+  // Mapping Progress from Discovery Flow State
+  const mappingProgress = useMemo(() => {
+    if (!flowState || !fieldMappings.length) {
+      return { 
+        total: 0, 
+        mapped: 0, 
+        critical_mapped: 0, 
+        accuracy: 0,
+        crew_completion_status: {}
+      };
+    }
+    
+    const totalMappings = fieldMappings.length;
+    const mappedCount = fieldMappings.filter(m => m.targetAttribute !== 'unmapped').length;
+    const criticalMappings = fieldMappings.filter(m => 
+      ['asset_name', 'asset_type', 'hostname', 'ip_address', 'operating_system', 'environment'].includes(m.targetAttribute.toLowerCase())
+    ).length;
+    const avgConfidence = fieldMappings.length > 0 
+      ? fieldMappings.reduce((sum, m) => sum + m.confidence, 0) / fieldMappings.length 
+      : 0;
+    
+    return {
+      total: totalMappings,
+      mapped: mappedCount,
+      critical_mapped: criticalMappings,
+      accuracy: Math.round(avgConfidence * 100),
+      crew_completion_status: flowState.phase_completion || {}
+    };
+  }, [fieldMappings, flowState]);
 
-  const handleRefreshFieldMappings = useCallback(() => {
-    refetchFieldMappings();
-  }, [refetchFieldMappings]);
+  // Initialize Discovery Flow on component mount
+  useEffect(() => {
+    const initializeDiscoveryFlow = async () => {
+      if (!client || !engagement) return;
+      
+      try {
+        // Check if we have data from navigation state or need to load it
+        const state = location.state as any;
+        let rawData = [];
+        
+        if (state?.importedData && state.importedData.length > 0) {
+          rawData = state.importedData;
+        } else {
+          // Load from latest import
+          const latestImportResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.LATEST_IMPORT);
+          rawData = latestImportResponse?.data || [];
+        }
+        
+        if (rawData.length === 0) {
+          console.warn('No data available for Discovery Flow initialization');
+          return;
+        }
+        
+        // Initialize Discovery Flow with data
+        await initializeFlow({
+          client_account_id: client.id,
+          engagement_id: engagement.id,
+          user_id: user?.id || 'anonymous',
+          raw_data: rawData,
+          metadata: {
+            source: 'attribute_mapping_page',
+            filename: state?.filename || 'imported_data.csv'
+          }
+        });
+        
+        console.log('✅ Discovery Flow initialized for AttributeMapping');
+        
+      } catch (error) {
+        console.error('❌ Failed to initialize Discovery Flow:', error);
+        toast({
+          title: "Flow Initialization Failed",
+          description: "Unable to initialize Discovery Flow. Please try importing data first.",
+          variant: "destructive"
+        });
+      }
+    };
+    
+    initializeDiscoveryFlow();
+  }, [client, engagement, user, location.state, initializeFlow, toast]);
 
-  // 🤖 NEW: Trigger Field Mapping Crew Analysis
-  const handleTriggerAgentAnalysis = useCallback(async () => {
+  // Execute Field Mapping Crew Analysis
+  const handleTriggerFieldMappingCrew = useCallback(async () => {
+    if (!flowState?.session_id) {
+      toast({
+        title: "Flow Not Ready",
+        description: "Discovery Flow must be initialized first",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     try {
       setIsAnalyzing(true);
       toast({
         title: "🤖 Field Mapping Crew Activated",
-        description: "AI agents are analyzing your data to determine critical attributes...",
+        description: "Manager coordinating Schema Expert and Mapping Specialist...",
       });
 
-      await triggerFieldMappingCrew.mutateAsync();
+      await executeFieldMappingCrew(flowState.session_id);
 
       toast({
-        title: "✅ Agent Analysis Complete",
-        description: "Field Mapping Crew has determined critical attributes based on your data patterns.",
+        title: "✅ Field Mapping Crew Complete", 
+        description: "Agents have completed field mapping analysis with shared insights.",
       });
     } catch (error) {
-      console.error('Failed to trigger agent analysis:', error);
+      console.error('Failed to execute Field Mapping Crew:', error);
       toast({
-        title: "❌ Agent Analysis Failed",
-        description: "Failed to trigger Field Mapping Crew analysis. Please try again.",
+        title: "❌ Crew Execution Failed",
+        description: "Field Mapping Crew encountered an error. Please try again.",
         variant: "destructive"
       });
     } finally {
       setIsAnalyzing(false);
     }
-  }, [triggerFieldMappingCrew, toast]);
+  }, [flowState, executeFieldMappingCrew, toast]);
 
-  // Handle mapping approval/rejection
+  // Handle mapping actions with agent learning
   const handleMappingAction = useCallback(async (mappingId: string, action: 'approve' | 'reject') => {
+    if (!flowState?.session_id) return;
+    
+    const mapping = fieldMappings.find(m => m.id === mappingId);
+    if (!mapping) return;
+
     try {
-      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_LEARNING, {
+      // Send learning feedback to Discovery Flow
+      await apiCall(`/api/v1/discovery/flow/${flowState.session_id}/agent-learning`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          learning_type: 'field_mapping_action',
-          mapping_id: mappingId,
-          action: action,
+          learning_type: 'field_mapping_feedback',
+          crew: 'field_mapping',
+          agent: 'Attribute Mapping Specialist',
+          original_prediction: {
+            source_field: mapping.sourceField,
+            target_attribute: mapping.targetAttribute,
+            confidence: mapping.confidence
+          },
+          user_correction: {
+            action: action,
+            feedback_type: action === 'approve' ? 'positive' : 'negative'
+          },
           context: {
-            page: 'attribute-mapping',
-            user_id: user?.id
+            sample_values: mapping.sample_values,
+            reasoning: mapping.ai_reasoning,
+            shared_memory_id: flowState.shared_memory_id
           }
         })
       });
 
-      if (response.status === 'success') {
-        toast({ 
-          title: action === 'approve' ? 'Mapping approved' : 'Mapping rejected',
-          description: 'AI will learn from this feedback'
-        });
-        // Refresh the data
-        refetchFieldMappings();
-      }
+      toast({
+        title: action === 'approve' ? 'Mapping Approved' : 'Mapping Rejected',
+        description: 'Shared memory updated for crew learning'
+      });
+      
+      // Refresh flow state
+      queryClient.invalidateQueries({ queryKey: ['discovery-flow-state'] });
+      
     } catch (error) {
       console.error('Error handling mapping action:', error);
-      toast({ 
-        title: 'Error', 
+      toast({
+        title: 'Error',
         description: 'Failed to process mapping action',
         variant: 'destructive'
       });
     }
-  }, [user, toast, refetchFieldMappings]);
+  }, [flowState, fieldMappings, toast, queryClient]);
 
   // Handle mapping changes
-  const handleMappingChange = useCallback(async (mappingId: string, newMapping: any) => {
+  const handleMappingChange = useCallback(async (mappingId: string, newTarget: string) => {
+    if (!flowState?.session_id) return;
+    
+    const mapping = fieldMappings.find(m => m.id === mappingId);
+    if (!mapping) return;
+
     try {
-      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_LEARNING, {
+      // Send correction to Discovery Flow for shared memory update
+      await apiCall(`/api/v1/discovery/flow/${flowState.session_id}/agent-learning`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          learning_type: 'field_mapping_change',
-          mapping_id: mappingId,
-          new_mapping: newMapping,
+          learning_type: 'field_mapping_correction',
+          crew: 'field_mapping',
+          agent: 'Attribute Mapping Specialist',
+          original_prediction: {
+            source_field: mapping.sourceField,
+            target_attribute: mapping.targetAttribute,
+            confidence: mapping.confidence
+          },
+          user_correction: {
+            new_target_attribute: newTarget,
+            feedback_type: 'manual_change',
+            reason: 'User selected different target field'
+          },
           context: {
-            page: 'attribute-mapping',
-            user_id: user?.id
+            sample_values: mapping.sample_values,
+            shared_memory_id: flowState.shared_memory_id
           }
         })
       });
 
-      if (response.status === 'success') {
-        toast({ 
-          title: 'Mapping updated',
-          description: 'Changes saved successfully'
-        });
-        // Refresh the data
-        refetchFieldMappings();
-      }
+      toast({
+        title: 'Mapping Updated',
+        description: 'Field mapping updated in shared crew memory'
+      });
+      
+      // Refresh flow state
+      queryClient.invalidateQueries({ queryKey: ['discovery-flow-state'] });
+      
     } catch (error) {
       console.error('Error handling mapping change:', error);
-      toast({ 
-        title: 'Error', 
-        description: 'Failed to save mapping changes',
+      toast({
+        title: 'Error',
+        description: 'Failed to update mapping',
         variant: 'destructive'
       });
     }
-  }, [user, toast, refetchFieldMappings]);
+  }, [flowState, fieldMappings, toast, queryClient]);
 
-  const mappingProgress = useMemo(() => {
-    // Calculate from field mappings data if available
-    if (fieldMappingsData && fieldMappingsData.success && fieldMappingsData.mappings) {
-      const mappings = fieldMappingsData.mappings;
-      const totalMappings = mappings.length;
-      const approvedMappings = mappings.filter(m => m.status === 'approved').length;
-      
-      // Define critical attributes for migration (6R readiness)
-      const criticalFields = [
-        'asset_id', 'name', 'hostname', 'asset_type', 'operating_system', 
-        'ip_address', 'environment', 'business_owner', 'datacenter'
-      ];
-      
-      const criticalMappings = mappings.filter(m => 
-        criticalFields.includes(m.targetAttribute.toLowerCase())
-      ).length;
-      
-      const avgConfidence = mappings.length > 0 
-        ? mappings.reduce((sum, m) => sum + (m.confidence || 0), 0) / mappings.length 
-        : 0;
-      
-      return {
-        total: fieldMappingsData.import_info?.total_fields || totalMappings,
-        mapped: totalMappings,
-        critical_mapped: criticalMappings,
-        accuracy: Math.round(avgConfidence * 100),
-      };
-    }
+  // Navigate to next phase
+  const handleContinueToDataCleansing = useCallback(() => {
+    if (!flowState?.session_id) return;
     
-    // Fallback to field mappings data
-    if (isLoadingFieldMappings || !fieldMappingsData || !fieldMappingsData.success) {
-      return { total: 0, mapped: 0, critical_mapped: 0, accuracy: 0 };
-    }
-    return {
-      total: fieldMappingsData.import_info?.total_fields || fieldMappingsData.mappings.length,
-      mapped: fieldMappingsData.mappings.length,
-      critical_mapped: fieldMappingsData.mappings.filter(m => 
-        ['asset_id', 'name', 'hostname', 'asset_type', 'operating_system', 
-         'ip_address', 'environment', 'business_owner', 'datacenter'].includes(m.targetAttribute.toLowerCase())
-      ).length,
-      accuracy: Math.round((fieldMappingsData.mappings.reduce((sum, m) => sum + (m.confidence || 0), 0) / fieldMappingsData.mappings.length) * 100) || 0,
-    };
-  }, [fieldMappingsData, isLoadingFieldMappings]);
-
-  // 🤖 Real field mappings from agents (context-aware, not mock data)
-  const fieldMappings = useMemo(() => {
-    if (isLoadingFieldMappings || !fieldMappingsData || !fieldMappingsData.success) {
-      // Return empty array while loading or if no data
-      return [];
-    }
-    
-    // Return the actual field mappings from agents
-    return fieldMappingsData.mappings || [];
-  }, [fieldMappingsData, isLoadingFieldMappings]);
-
-  // Mock crew analysis data with dynamic field count
-  const crewAnalysis = [
-    {
-      agent: 'Field Mapping Agent',
-      task: 'Analyze field mappings',
-      findings: [
-        `Found ${fieldMappingsData?.mappings?.length || 0} potential field mappings`, 
-        'High confidence on technical fields'
-      ],
-      recommendations: ['Review business fields manually', 'Approve technical mappings'],
-      confidence: 0.85
-    }
-  ];
-
-  // 🤖 Use AGENTIC critical attributes (agent-driven intelligence) - FIXED: Simplified to avoid hook ordering issues
-  const { 
-    data: criticalAttributesData, 
-    isLoading, 
-    isError: isErrorCriticalAttributes,
-    refetch: refetchCriticalAttributes 
-  } = useQuery({
-    queryKey: ['agentic-critical-attributes'],
-    queryFn: async () => {
-      try {
-        const response = await apiCall('/api/v1/data-import/agentic-critical-attributes');
-        return response;
-      } catch (error) {
-        console.warn('Agentic endpoint failed, using fallback:', error);
-        
-        // Simple fallback without complex nested calls
-        return {
-          attributes: [],
-          statistics: {
-            total_attributes: 0,
-            mapped_count: 0,
-            pending_count: 0,
-            unmapped_count: 0,
-            migration_critical_count: 0,
-            migration_critical_mapped: 0,
-            overall_completeness: 0,
-            avg_quality_score: 0,
-            assessment_ready: false,
-          },
-          recommendations: {
-            next_priority: "Upload data to enable analysis",
-            assessment_readiness: "No data available for analysis",
-            quality_improvement: "Import CMDB data to get started"
-          },
-          analysis_summary: {
-            crew_execution: 'fallback',
-            analysis_result: 'Using fallback mode due to API issues',
-            recommendation: 'Try refreshing the page'
-          },
-          agentic_analysis: 'fallback_mode',
-          last_updated: new Date().toISOString()
-        };
+    navigate('/discovery/data-cleansing', {
+      state: {
+        flow_session_id: flowState.session_id,
+        flow_state: flowState,
+        from_phase: 'field_mapping'
       }
-    },
-    enabled: true,
-    staleTime: 30 * 1000,
-    retry: 1,
-    refetchOnWindowFocus: false,
-    // FIXED: No conditional refetchInterval that could cause hook variations
-    refetchInterval: false
-  });
+    });
+  }, [flowState, navigate]);
 
-  // Transform critical attributes to match component interface
-  const transformedCriticalAttributes = useMemo(() => {
-    // First try to use existing field mappings
-    if (fieldMappings && fieldMappings.length > 0) {
-      // Define critical migration attributes
-      const criticalFieldMap = {
-        'name': { category: 'identification', required: true, business_impact: 'high' },
-        'hostname': { category: 'identification', required: true, business_impact: 'high' },
-        'asset_type': { category: 'technical', required: true, business_impact: 'high' },
-        'operating_system': { category: 'technical', required: true, business_impact: 'medium' },
-        'ip_address': { category: 'network', required: true, business_impact: 'medium' },
-        'environment': { category: 'environment', required: true, business_impact: 'high' },
-        'business_owner': { category: 'business', required: true, business_impact: 'high' },
-        'cpu_cores': { category: 'technical', required: false, business_impact: 'medium' },
-        'memory_gb': { category: 'technical', required: false, business_impact: 'medium' },
-        'storage_gb': { category: 'technical', required: false, business_impact: 'medium' },
-        'location': { category: 'environment', required: false, business_impact: 'medium' },
-        'department': { category: 'business', required: false, business_impact: 'low' }
-      };
-      
-      return Object.entries(criticalFieldMap).map(([fieldName, config]) => {
-        const relatedMapping = fieldMappings.find(mapping => 
-          mapping.targetAttribute.toLowerCase() === fieldName.toLowerCase()
-        );
-        
-        return {
-          name: fieldName,
-          description: `Critical attribute: ${fieldName.replace('_', ' ')}`,
-          category: config.category,
-          required: config.required,
-          status: relatedMapping ? 'mapped' as const : 'unmapped' as const,
-          mapped_to: relatedMapping?.sourceField,
-          source_field: relatedMapping?.sourceField,
-          confidence: relatedMapping?.confidence,
-          quality_score: relatedMapping ? Math.round((relatedMapping.confidence || 0) * 100) : 0,
-          completeness_percentage: relatedMapping ? 100 : 0,
-          mapping_type: relatedMapping?.mapping_type as 'direct' | 'calculated' | 'manual' | 'derived' | undefined,
-          ai_suggestion: relatedMapping?.ai_reasoning || `AI analysis needed for ${fieldName}`,
-          business_impact: config.business_impact as 'high' | 'medium' | 'low',
-          migration_critical: config.required
-        };
-      });
-    }
-    
-    return [];
-  }, [fieldMappings]);
+  // Check if can continue to next phase
+  const canContinueToDataCleansing = () => {
+    return flowState?.phase_completion?.field_mapping || 
+           (mappingProgress.mapped > 0 && mappingProgress.critical_mapped >= 3);
+  };
 
-  // Render tab content based on active tab
   const renderTabContent = () => {
+    const commonProps = {
+      fieldMappings,
+      onMappingAction: handleMappingAction,
+      onMappingChange: handleMappingChange,
+      isLoading: isFlowStateLoading || isAnalyzing,
+      flowState,
+      crewAnalysis
+    };
+
     switch (activeTab) {
-      case 'data':
-        return <ImportedDataTab />;
       case 'mappings':
         return (
-          <FieldMappingsTab
-            fieldMappings={fieldMappings}
-            isAnalyzing={isAnalyzing}
-            onMappingAction={handleMappingAction}
-            onMappingChange={handleMappingChange}
+          <FieldMappingsTab 
+            {...commonProps}
+            availableTargetFields={flowState?.field_mappings?.validation_results?.available_targets || []}
+            sharedMemoryInsights={flowState?.field_mappings?.agent_insights || {}}
           />
         );
       case 'critical':
         return (
-          <CriticalAttributesTab
-            criticalAttributes={transformedCriticalAttributes}
-            isAnalyzing={isAnalyzing}
-            fieldMappings={fieldMappings}
+          <CriticalAttributesTab 
+            {...commonProps}
+            criticalAttributes={flowState?.field_mappings?.validation_results?.critical_attributes || []}
+            agentRecommendations={crewAnalysis.flatMap(a => a.recommendations)}
           />
         );
-      case 'progress':
-        return <TrainingProgressTab fieldMappings={fieldMappings} />;
-      default:
+      case 'data':
         return (
-          <FieldMappingsTab
-            fieldMappings={fieldMappings}
-            isAnalyzing={isAnalyzing}
-            onMappingAction={handleMappingAction}
-            onMappingChange={handleMappingChange}
+          <ImportedDataTab 
+            data={flowState?.raw_data || []}
+            isLoading={isFlowStateLoading}
+            dataQualityMetrics={flowState?.crew_status?.field_mapping?.data_quality_analysis}
           />
         );
+      default:
+        return null;
     }
   };
 
-  if (isErrorFieldMappings) {
+  // Show loading state while initializing
+  if (isFlowStateLoading && !flowState) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Sidebar />
-        <div className="ml-64 h-screen flex flex-col overflow-hidden">
-          <div className="flex-1 p-6">
-            <ContextBreadcrumbs />
-            <div className="mt-6">
-              <NoDataPlaceholder
-                title="Error Loading Data"
-                description="There was an error loading the attribute mapping data. Please try refreshing the page."
-                actions={
-                  <Button onClick={handleRefreshFieldMappings} className="bg-blue-600 hover:bg-blue-700 text-white">
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Refresh
-                  </Button>
-                }
-              />
-            </div>
+      <div className="flex min-h-screen bg-gray-50">
+        <div className="hidden lg:block w-64 border-r bg-white">
+          <Sidebar />
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <Brain className="h-12 w-12 text-blue-600 animate-pulse mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Initializing Discovery Flow</h2>
+            <p className="text-gray-600">Setting up Field Mapping Crew and shared memory...</p>
           </div>
         </div>
       </div>
     );
   }
 
-  if (isLoadingFieldMappings) {
+  // Show error state
+  if (flowStateError) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Sidebar />
-        <div className="ml-64 h-screen flex flex-col overflow-hidden">
-          <div className="flex-1 p-6">
-            <ContextBreadcrumbs />
-            <div className="mt-6">
-              <div className="bg-white rounded-lg shadow-sm p-8">
-                <div className="animate-pulse">
-                  <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
-                  <div className="h-8 bg-gray-200 rounded w-1/2 mb-6"></div>
-                  <div className="space-y-3">
-                    <div className="h-4 bg-gray-200 rounded"></div>
-                    <div className="h-4 bg-gray-200 rounded w-5/6"></div>
-                    <div className="h-4 bg-gray-200 rounded w-4/6"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+      <div className="flex min-h-screen bg-gray-50">
+        <div className="hidden lg:block w-64 border-r bg-white">
+          <Sidebar />
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <NoDataPlaceholder
+            title="Discovery Flow Error"
+            description={`Failed to initialize Discovery Flow: ${flowStateError.message}`}
+            icon={Brain}
+            actions={[
+              {
+                label: "Return to Data Import",
+                onClick: () => navigate('/discovery/cmdb-import'),
+                variant: "default"
+              }
+            ]}
+          />
         </div>
       </div>
     );
   }
 
-  if (!fieldMappingsData || mappingProgress.total === 0) {
+  // Show no data state
+  if (!flowState?.raw_data?.length) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Sidebar />
-        <div className="ml-64 h-screen flex flex-col overflow-hidden">
-          <div className="flex-1 p-6">
-            <ContextBreadcrumbs />
-            <div className="mt-6">
-              <NoDataPlaceholder
-                title="No Data Available"
-                description="No field mappings data found. Please upload and process your data first."
-                actions={
-                  <Button onClick={() => window.location.href = '/discovery/data-import'} className="bg-blue-600 hover:bg-blue-700 text-white">
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload Data
-                  </Button>
-                }
-              />
-            </div>
-          </div>
+      <div className="flex min-h-screen bg-gray-50">
+        <div className="hidden lg:block w-64 border-r bg-white">
+          <Sidebar />
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <NoDataPlaceholder
+            title="No Data Available"
+            description="No data available for field mapping analysis. Please import data first."
+            icon={Upload}
+            actions={[
+              {
+                label: "Import Data",
+                onClick: () => navigate('/discovery/cmdb-import'),
+                variant: "default"
+              }
+            ]}
+          />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Sidebar />
-      <div className="ml-64 h-screen flex overflow-hidden">
-        {/* Main Content Area */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 p-6 overflow-y-auto">
+    <div className="flex min-h-screen bg-gray-50">
+      {/* Sidebar */}
+      <div className="hidden lg:block w-64 border-r bg-white">
+        <Sidebar />
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-7xl">
+          {/* Context Breadcrumbs */}
+          <div className="mb-6">
             <ContextBreadcrumbs />
+          </div>
+
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-3">
+              <Database className="h-8 w-8 text-blue-600" />
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Attribute Mapping</h1>
+                <p className="text-gray-600">CrewAI Field Mapping Crew Analysis</p>
+              </div>
+            </div>
             
-            <div className="mt-6">
-              <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">Attribute Mapping</h1>
-                <p className="text-gray-600 mt-1">
-                  AI agents dynamically determine critical attributes based on your data patterns.
-                </p>
-                
-                {/* Agent Status Indicator */}
-                {fieldMappingsData?.agent_status && (
-                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <Zap className="h-4 w-4 text-blue-600" />
-                        <span className="text-sm font-medium text-blue-900">
-                          {fieldMappingsData.agent_status.discovery_flow_active ? 
-                            '🤖 Field Mapping Crew Analyzing...' : 
-                            '✅ Agent Analysis Complete'
-                          }
-                        </span>
-                      </div>
-                      
-                      {!fieldMappingsData.agent_status.discovery_flow_active && 
-                       fieldMappingsData.mappings.length === 0 && (
-                        <Button 
-                          onClick={handleTriggerAgentAnalysis}
-                          disabled={isAnalyzing}
-                          size="sm"
-                          className="bg-blue-600 hover:bg-blue-700 text-white"
-                        >
-                          <Zap className="mr-2 h-4 w-4" />
-                          {isAnalyzing ? 'Analyzing...' : 'Trigger Agent Analysis'}
-                        </Button>
-                      )}
-                    </div>
-                    
-                    {fieldMappingsData.analysis_progress && (
-                      <p className="text-xs text-blue-700 mt-1">
-                        {fieldMappingsData.analysis_progress.current_task} 
-                        {fieldMappingsData.analysis_progress.estimated_completion && 
-                         ` (${fieldMappingsData.analysis_progress.estimated_completion})`}
-                      </p>
-                    )}
-                  </div>
+            <div className="flex items-center space-x-3">
+              {/* WebSocket Status */}
+              <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${
+                isWebSocketConnected ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+              }`}>
+                <Activity className="h-4 w-4" />
+                <span>{isWebSocketConnected ? 'Live Monitoring' : 'Connecting...'}</span>
+              </div>
+              
+              {/* Crew Analysis Button */}
+              <Button
+                onClick={handleTriggerFieldMappingCrew}
+                disabled={isAnalyzing || !flowState?.session_id}
+                className="flex items-center space-x-2"
+              >
+                {isAnalyzing ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Zap className="h-4 w-4" />
                 )}
-              </div>
-
-              {/* Progress Dashboard */}
-              <ProgressDashboard
-                mappingProgress={{
-                  total: mappingProgress.total,
-                  mapped: mappingProgress.mapped,
-                  critical_mapped: mappingProgress.critical_mapped,
-                  accuracy: mappingProgress.accuracy
-                }}
-                isLoading={isAnalyzing || fieldMappingsData?.agent_status?.discovery_flow_active}
-              />
-
-              {/* Navigation Tabs */}
-              <NavigationTabs
-                activeTab={activeTab}
-                onTabChange={setActiveTab}
-              />
-
-              {/* Tab Content */}
-              {renderTabContent()}
-
-              {/* CrewAI Analysis */}
-              <CrewAnalysisPanel
-                crewAnalysis={crewAnalysis}
-              />
-
-              {/* Continue Button */}
-              <div className="mt-8 flex justify-center">
-                <Link to="/discovery/data-cleansing">
-                  <Button size="lg" className="px-8">
-                    Continue to Data Cleansing
-                    <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </Button>
-                </Link>
-              </div>
+                <span>{isAnalyzing ? 'Crew Active' : 'Trigger Field Mapping Crew'}</span>
+              </Button>
             </div>
           </div>
-        </div>
 
-        {/* Right Sidebar - Agent Panels */}
-        <div className="w-96 bg-white border-l border-gray-200 overflow-y-auto flex-shrink-0">
-          <div className="p-4 space-y-4">
-            <div className="mb-4">
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">🤖 Agent Intelligence</h2>
-              <p className="text-sm text-gray-600">AI agents analyze your data to determine critical attributes</p>
-              
-              {/* Agent Status Summary */}
-              {fieldMappingsData?.agent_status && (
-                <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                  <div className="text-xs space-y-1">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Field Mapping Crew:</span>
-                      <span className={`font-medium ${
-                        fieldMappingsData.agent_status.field_mapping_crew_status === 'completed' ? 'text-green-600' :
-                        fieldMappingsData.agent_status.field_mapping_crew_status === 'analyzing' ? 'text-blue-600' :
-                        'text-gray-600'
-                      }`}>
-                        {fieldMappingsData.agent_status.field_mapping_crew_status}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Learning System:</span>
-                      <span className="font-medium text-green-600">
-                        {fieldMappingsData.agent_status.learning_system_status}
-                      </span>
-                    </div>
-                    {fieldMappingsData.agent_status.crew_agents_used && (
-                      <div className="mt-2">
-                        <span className="text-gray-600 text-xs">Active Agents:</span>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {fieldMappingsData.agent_status.crew_agents_used.map((agent, index) => (
-                            <span key={index} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
-                              {agent}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-              
-              {/* Crew Insights */}
-              {fieldMappingsData?.crew_insights && (
-                <div className="mt-3 p-3 bg-green-50 rounded-lg">
-                  <h3 className="text-sm font-medium text-green-900 mb-2">Crew Analysis Insights</h3>
-                  <div className="text-xs space-y-1">
-                    <div><span className="text-green-700">Method:</span> {fieldMappingsData.crew_insights.analysis_method}</div>
-                    <div><span className="text-green-700">Confidence:</span> {fieldMappingsData.crew_insights.confidence_level}</div>
-                    <div><span className="text-green-700">Learning Applied:</span> {fieldMappingsData.crew_insights.learning_applied ? '✅ Yes' : '❌ No'}</div>
-                  </div>
-                  <p className="text-xs text-green-700 mt-2">{fieldMappingsData.crew_insights.crew_result_summary}</p>
+          {/* Progress Dashboard */}
+          <div className="mb-6">
+            <ProgressDashboard 
+              mappingProgress={mappingProgress} 
+              isLoading={isAnalyzing}
+              crewStatus={flowState?.crew_status?.field_mapping}
+              phaseCompletion={flowState?.phase_completion}
+            />
+          </div>
+
+          {/* Enhanced Agent Orchestration Panel */}
+          {flowState?.session_id && (
+            <div className="mb-6">
+              <EnhancedAgentOrchestrationPanel
+                sessionId={flowState.session_id}
+                flowState={flowState}
+                currentPhase="field_mapping"
+                showOnlyCurrentPhase={true}
+              />
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+            {/* Main Content */}
+            <div className="xl:col-span-3">
+              {/* Navigation Tabs */}
+              <div className="mb-6">
+                <NavigationTabs 
+                  activeTab={activeTab} 
+                  onTabChange={setActiveTab}
+                  fieldMappingsCount={fieldMappings.length}
+                  criticalAttributesCount={mappingProgress.critical_mapped}
+                  importedDataCount={flowState?.raw_data?.length || 0}
+                />
+              </div>
+
+              {/* Tab Content */}
+              <div className="bg-white rounded-lg shadow-md">
+                {renderTabContent()}
+              </div>
+
+              {/* Continue Button */}
+              {canContinueToDataCleansing() && (
+                <div className="mt-6 flex justify-end">
+                  <Button
+                    onClick={handleContinueToDataCleansing}
+                    className="flex items-center space-x-2 bg-green-600 hover:bg-green-700"
+                  >
+                    <span>Continue to Data Cleansing</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
                 </div>
               )}
             </div>
-            
-            <AgentClarificationPanel pageContext="attribute-mapping" />
-            <DataClassificationDisplay pageContext="attribute-mapping" />
-            <AgentInsightsSection pageContext="attribute-mapping" />
+
+            {/* Right Sidebar */}
+            <div className="xl:col-span-1 space-y-6">
+              {/* Crew Analysis Panel */}
+              {crewAnalysis.length > 0 && (
+                <CrewAnalysisPanel 
+                  analysis={crewAnalysis}
+                  isLoading={isAnalyzing}
+                  sharedMemoryInsights={flowState?.field_mappings?.agent_insights}
+                />
+              )}
+
+              {/* Agent Clarification Panel */}
+              <AgentClarificationPanel 
+                sessionId={flowState?.session_id || ''}
+                context="attribute-mapping"
+                crewContext="field_mapping"
+              />
+
+              {/* Data Classification Display */}
+              <DataClassificationDisplay 
+                sessionId={flowState?.session_id || ''}
+                context="attribute-mapping"
+              />
+
+              {/* Agent Insights Section */}
+              <AgentInsightsSection 
+                sessionId={flowState?.session_id || ''}
+                context="attribute-mapping"
+                agentCollaborationMap={flowState?.agent_collaboration_map?.field_mapping || []}
+              />
+            </div>
           </div>
         </div>
       </div>
