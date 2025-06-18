@@ -182,8 +182,8 @@ class AgentRegistry:
                 "Organizational pattern learning"
             ],
             api_endpoints=[
-                "/api/v1/discovery/field-mapping",
-                "/api/v1/discovery/attribute-mapping"
+                "/api/v1/data-import/simple-field-mappings",
+                "/api/v1/data-import/context-field-mappings"
             ],
             description="Advanced field mapping with learning integration and custom attribute capabilities.",
             learning_enabled=True
@@ -667,6 +667,68 @@ class AgentRegistry:
                 if hasattr(agent, key):
                     setattr(agent, key, value)
     
+    def update_agent_performance(self, agent_id: str, task_duration: float, task_success: bool, memory_used: float = 0.0, confidence: float = 0.0):
+        """Update agent performance metrics from actual task completion."""
+        if agent_id in self.agents:
+            agent = self.agents[agent_id]
+            
+            # Update task completion count
+            agent.tasks_completed += 1
+            
+            # Update success rate (running average)
+            if agent.tasks_completed == 1:
+                agent.success_rate = 1.0 if task_success else 0.0
+            else:
+                # Calculate running average
+                current_successes = agent.success_rate * (agent.tasks_completed - 1)
+                new_successes = current_successes + (1 if task_success else 0)
+                agent.success_rate = new_successes / agent.tasks_completed
+            
+            # Update average execution time (running average)
+            if agent.tasks_completed == 1:
+                agent.avg_execution_time = task_duration
+            else:
+                # Calculate running average
+                total_time = agent.avg_execution_time * (agent.tasks_completed - 1)
+                agent.avg_execution_time = (total_time + task_duration) / agent.tasks_completed
+            
+            # Update other metrics
+            if memory_used > 0:
+                agent.memory_utilization = memory_used
+            if confidence > 0:
+                agent.confidence = confidence
+            
+            agent.last_heartbeat = datetime.utcnow()
+            
+            logger.info(f"Updated performance for agent {agent_id}: {agent.tasks_completed} tasks, {agent.success_rate:.2%} success rate")
+        else:
+            logger.warning(f"Agent {agent_id} not found for performance update")
+    
+    def record_task_completion(self, agent_name: str, crew_name: str, task_info: Dict[str, Any]):
+        """Record task completion from CrewAI callback system."""
+        # Find agent by name (since callback might not have agent_name)
+        agent_id = None
+        for aid, agent in self.agents.items():
+            if agent.name.lower() == agent_name.lower() or agent.role.lower() == agent_name.lower():
+                agent_id = aid
+                break
+        
+        if agent_id:
+            duration = task_info.get("duration", 0.0)
+            success = task_info.get("success", True)
+            quality_score = task_info.get("quality_score", 0.0)
+            
+            self.update_agent_performance(
+                agent_id=agent_id,
+                task_duration=duration,
+                task_success=success,
+                confidence=quality_score
+            )
+            
+            logger.info(f"Recorded task completion for {agent_name} in {crew_name}: {duration:.2f}s, success={success}")
+        else:
+            logger.warning(f"Could not find agent for task completion: {agent_name}")
+    
     def get_agent(self, agent_id: str) -> Optional[AgentRegistration]:
         """Get agent by ID."""
         return self.agents.get(agent_id)
@@ -730,7 +792,15 @@ class AgentRegistry:
                 "learning_enabled": agent.learning_enabled,
                 "cross_page_communication": agent.cross_page_communication,
                 "modular_handlers": agent.modular_handlers,
-                "api_endpoints": agent.api_endpoints
+                "api_endpoints": agent.api_endpoints,
+                "performance_metrics": {
+                    "tasks_completed": agent.tasks_completed,
+                    "success_rate": agent.success_rate,
+                    "avg_execution_time": agent.avg_execution_time,
+                    "memory_utilization": agent.memory_utilization,
+                    "confidence": agent.confidence,
+                    "last_heartbeat": agent.last_heartbeat.isoformat() if agent.last_heartbeat else None
+                }
             }
         return capabilities
     

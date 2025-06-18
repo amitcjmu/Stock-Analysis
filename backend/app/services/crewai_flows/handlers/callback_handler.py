@@ -9,6 +9,14 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
+# Import agent registry for performance tracking
+try:
+    from app.services.agent_registry import agent_registry
+    AGENT_REGISTRY_AVAILABLE = True
+except ImportError:
+    AGENT_REGISTRY_AVAILABLE = False
+    logger.warning("Agent registry not available for performance tracking")
+
 class CallbackHandler:
     """Handles comprehensive callback system for monitoring"""
     
@@ -135,6 +143,17 @@ class CallbackHandler:
             
             # Log task completion
             logger.info(f"Task Completion - {completion_entry['task_name']}: {completion_entry['status']} in {completion_entry['duration']}s")
+            
+            # Record in agent registry for real performance tracking
+            if AGENT_REGISTRY_AVAILABLE and completion_entry["agent"] != "unknown":
+                try:
+                    agent_registry.record_task_completion(
+                        agent_name=completion_entry["agent"],
+                        crew_name=completion_entry["crew"],
+                        task_info=task_info
+                    )
+                except Exception as registry_error:
+                    logger.warning(f"Failed to record task completion in agent registry: {registry_error}")
             
         except Exception as e:
             logger.error(f"Error in task completion callback: {e}")

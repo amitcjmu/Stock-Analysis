@@ -590,57 +590,82 @@ async def get_flow_agent_tasks(
     service: CrewAIFlowService = Depends(get_crewai_flow_service)
 ):
     """
-    Get detailed agent task information for a specific flow.
+    Get detailed agent task information for a specific flow using CrewAI replay functionality.
     
     Returns real-time agent task execution details including:
-    - Current agent tasks and their status
-    - Task execution timeline
-    - Agent performance within this flow
-    - Task dependencies and execution order
-    - Error states and retry information
+    - Actual task completion data from CrewAI replay
+    - Task execution timeline with real durations
+    - Agent performance metrics from actual executions
+    - Task success/failure rates
+    - Error states and debugging information
     """
     try:
-        # Get flow status with focus on agent tasks
-        flow_status = service.get_flow_status(session_id)
+        # Use CrewAI replay functionality to get real task data
+        task_history = await service.get_task_execution_history(session_id)
         
-        if not flow_status:
-            raise HTTPException(status_code=404, detail=f"Flow not found: {session_id}")
+        if "error" in task_history:
+            # Fall back to flow status if replay is not available
+            flow_status = service.get_flow_status(session_id)
+            
+            if not flow_status or flow_status.get("status") == "not_found":
+                raise HTTPException(status_code=404, detail=f"Flow not found: {session_id}")
+            
+            # Return basic flow info if replay not available
+            return {
+                "success": True,
+                "timestamp": datetime.utcnow().isoformat(),
+                "session_id": session_id,
+                "agent_tasks": {
+                    "replay_available": False,
+                    "error": task_history["error"],
+                    "fallback_data": flow_status,
+                    "message": "CrewAI replay not available, showing basic flow status"
+                }
+            }
         
-        # Extract and enhance agent task information
-        agent_tasks = flow_status.get("agent_tasks", [])
-        current_agent = flow_status.get("current_agent")
-        execution_timeline = flow_status.get("execution_timeline", [])
+        # Update agent performance metrics from real task data
+        performance_update = await service.update_agent_performance_from_tasks(session_id)
         
-        # Organize tasks by agent and phase
+        # Organize tasks by agent and crew
         tasks_by_agent = {}
-        tasks_by_phase = {}
+        tasks_by_crew = {}
         
-        for task in agent_tasks:
+        for task in task_history.get("tasks", []):
             agent_name = task.get("agent_name", "unknown")
-            phase = task.get("phase", "unknown")
+            crew_name = task.get("crew_name", "unknown")
             
             if agent_name not in tasks_by_agent:
                 tasks_by_agent[agent_name] = []
             tasks_by_agent[agent_name].append(task)
             
-            if phase not in tasks_by_phase:
-                tasks_by_phase[phase] = []
-            tasks_by_phase[phase].append(task)
+            if crew_name not in tasks_by_crew:
+                tasks_by_crew[crew_name] = []
+            tasks_by_crew[crew_name].append(task)
+        
+        # Calculate performance statistics
+        all_tasks = task_history.get("tasks", [])
         
         return {
             "success": True,
             "timestamp": datetime.utcnow().isoformat(),
             "session_id": session_id,
             "agent_tasks": {
-                "current_agent": current_agent,
-                "all_tasks": agent_tasks,
+                "replay_available": True,
+                "source": "crewai_replay_tasks_from_latest_crew_kickoff",
+                "all_tasks": all_tasks,
                 "tasks_by_agent": tasks_by_agent,
-                "tasks_by_phase": tasks_by_phase,
-                "execution_timeline": execution_timeline,
-                "total_tasks": len(agent_tasks),
-                "completed_tasks": len([t for t in agent_tasks if t.get("status") == "completed"]),
-                "active_tasks": len([t for t in agent_tasks if t.get("status") == "running"]),
-                "failed_tasks": len([t for t in agent_tasks if t.get("status") == "failed"])
+                "tasks_by_crew": tasks_by_crew,
+                "statistics": {
+                    "total_tasks": task_history.get("total_tasks", 0),
+                    "completed_tasks": task_history.get("completed_tasks", 0),
+                    "success_rate": (task_history.get("completed_tasks", 0) / max(task_history.get("total_tasks", 1), 1)) * 100,
+                    "total_duration": sum(t.get("duration", 0) for t in all_tasks),
+                    "avg_task_duration": sum(t.get("duration", 0) for t in all_tasks) / max(len(all_tasks), 1),
+                    "unique_agents": len(tasks_by_agent),
+                    "unique_crews": len(tasks_by_crew)
+                },
+                "performance_update": performance_update,
+                "replay_timestamp": task_history.get("replay_timestamp")
             }
         }
         

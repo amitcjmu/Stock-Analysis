@@ -731,6 +731,100 @@ class CrewAIFlowService:
             "remaining_active_flows": len(self._active_flows),
             "cleanup_timestamp": datetime.utcnow().isoformat()
         }
+    
+    async def get_task_execution_history(self, flow_id: str) -> Dict[str, Any]:
+        """Get task execution history using CrewAI's replay functionality."""
+        try:
+            if flow_id not in self._active_flows:
+                logger.warning(f"Flow {flow_id} not found for task history")
+                return {"error": "Flow not found", "tasks": []}
+            
+            flow = self._active_flows[flow_id]
+            
+            # Check if CrewAI replay is available
+            if not hasattr(flow, 'replay_tasks_from_latest_crew_kickoff'):
+                logger.warning("CrewAI replay functionality not available on this flow")
+                return {"error": "Replay not available", "tasks": []}
+            
+            # Use CrewAI's native replay functionality
+            try:
+                # Get task execution data from the latest crew kickoff
+                replay_data = flow.replay_tasks_from_latest_crew_kickoff()
+                
+                # Transform CrewAI task data into our monitoring format
+                tasks = []
+                for task_data in replay_data.get('tasks', []):
+                    tasks.append({
+                        "task_id": task_data.get('id', 'unknown'),
+                        "task_name": task_data.get('description', 'Unknown Task'),
+                        "agent_name": task_data.get('agent', {}).get('role', 'Unknown Agent'),
+                        "crew_name": task_data.get('crew_name', 'Unknown Crew'),
+                        "status": task_data.get('status', 'unknown'),
+                        "duration": task_data.get('execution_time', 0),
+                        "success": task_data.get('status') == 'completed',
+                        "output_size": len(str(task_data.get('output', ''))),
+                        "started_at": task_data.get('started_at', ''),
+                        "completed_at": task_data.get('completed_at', ''),
+                        "quality_score": task_data.get('quality_score', 0.0)
+                    })
+                
+                return {
+                    "flow_id": flow_id,
+                    "tasks": tasks,
+                    "total_tasks": len(tasks),
+                    "completed_tasks": len([t for t in tasks if t['success']]),
+                    "replay_timestamp": datetime.utcnow().isoformat()
+                }
+                
+            except Exception as replay_error:
+                logger.error(f"CrewAI replay failed for flow {flow_id}: {replay_error}")
+                return {"error": f"Replay failed: {str(replay_error)}", "tasks": []}
+                
+        except Exception as e:
+            logger.error(f"Error getting task execution history for flow {flow_id}: {e}")
+            return {"error": str(e), "tasks": []}
+    
+    async def update_agent_performance_from_tasks(self, flow_id: str) -> Dict[str, Any]:
+        """Update agent performance metrics from actual task completion data."""
+        try:
+            # Import agent registry
+            from app.services.agent_registry import agent_registry
+            
+            # Get task execution history
+            task_history = await self.get_task_execution_history(flow_id)
+            
+            if "error" in task_history:
+                return {"error": task_history["error"]}
+            
+            # Group tasks by agent and update performance
+            updated_agents = []
+            for task in task_history.get("tasks", []):
+                agent_name = task["agent_name"]
+                
+                # Record task completion in agent registry
+                agent_registry.record_task_completion(
+                    agent_name=agent_name,
+                    crew_name=task["crew_name"],
+                    task_info={
+                        "duration": task["duration"],
+                        "success": task["success"],
+                        "quality_score": task["quality_score"]
+                    }
+                )
+                
+                if agent_name not in updated_agents:
+                    updated_agents.append(agent_name)
+            
+            return {
+                "flow_id": flow_id,
+                "updated_agents": updated_agents,
+                "total_tasks_processed": len(task_history.get("tasks", [])),
+                "update_timestamp": datetime.utcnow().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Error updating agent performance from tasks for flow {flow_id}: {e}")
+            return {"error": str(e)}
 
     def get_configuration(self) -> Dict[str, Any]:
         """Get current service configuration."""
