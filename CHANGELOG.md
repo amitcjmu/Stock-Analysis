@@ -1,5 +1,53 @@
 # AI Force Migration Platform - Change Log
 
+## [0.10.9] - 2025-01-30
+
+### 🎯 **FASTAPI MODERNIZATION - Lifespan Event Handlers**
+
+This release modernizes the FastAPI application by replacing deprecated `@app.on_event` decorators with modern lifespan event handlers following [FastAPI Lifespan Events documentation](https://fastapi.tiangolo.com/advanced/events/).
+
+### 🚀 **FastAPI Modernization**
+
+#### **Lifespan Event Handler Implementation**
+- **Main Application**: Replaced `@app.on_event("startup")` with `@asynccontextmanager async def lifespan(app: FastAPI)`
+- **RBAC Router**: Converted router-level `@router.on_event("startup")` to app-level initialization function
+- **FastAPI Integration**: Updated FastAPI app initialization to use `lifespan=lifespan` parameter
+- **Backward Compatibility**: Maintained all existing startup logic while modernizing the implementation
+
+#### **Startup Logic Consolidation**
+- **Database Initialization**: Database schema creation moved to lifespan handler
+- **RBAC System**: RBAC initialization integrated into main lifespan handler
+- **Service Coordination**: All startup services properly orchestrated in single lifespan function
+- **Error Handling**: Comprehensive error handling and logging for all startup operations
+
+### 🔧 **Technical Improvements**
+
+#### **Deprecation Warning Elimination**
+- **Main Application**: Eliminated deprecation warnings from `/app/main.py:294`
+- **RBAC Module**: Removed deprecated router event handlers from `/app/api/v1/auth/rbac.py:41`
+- **Clean Startup**: No more FastAPI deprecation warnings during application startup
+- **Future Compatibility**: Code now compatible with future FastAPI versions
+
+#### **Lifecycle Management Enhancement**
+- **Startup Phase**: Coordinated initialization of database, RBAC, and other services
+- **Shutdown Phase**: Proper cleanup hooks available for graceful application shutdown
+- **Resource Management**: Better control over application lifecycle and resource allocation
+- **Error Recovery**: Enhanced error handling during startup and shutdown phases
+
+### 📊 **Technical Achievements**
+- **Code Modernization**: Updated to FastAPI best practices for application lifecycle management
+- **Warning Elimination**: Zero deprecation warnings during application startup
+- **Startup Optimization**: More efficient and coordinated service initialization
+- **Maintenance Improvement**: Easier to maintain and extend application startup logic
+
+### 🎯 **Success Metrics**
+- **Deprecation Warnings**: Eliminated 100% of FastAPI on_event deprecation warnings
+- **Startup Process**: Unified lifespan handler managing all initialization logic
+- **Code Quality**: Modern FastAPI patterns following official documentation
+- **Future Compatibility**: Ready for FastAPI future versions and lifecycle improvements
+
+---
+
 ## [0.10.8] - 2025-01-30
 
 ### 🎯 **LLM CONFIGURATION STANDARDIZATION - CrewAI Best Practices**

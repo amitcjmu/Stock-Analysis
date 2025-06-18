@@ -68,13 +68,61 @@ def configure_logging():
 # Configure logging before any other imports
 configure_logging()
 
+# Lifespan event handler (replaces deprecated @app.on_event)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup logic
+    print("🚀 Application starting up...")
+    
+    # Initialize RBAC system
+    try:
+        from app.api.v1.auth.rbac import initialize_rbac_system
+        await initialize_rbac_system()
+    except Exception as e:
+        print(f"⚠️  RBAC initialization warning: {e}")
+    
+    print("✅ Startup logic completed.")
+
+    # Create database tables
+    if DATABASE_ENABLED:
+        try:
+            print("🔧 Initializing database schema...")
+            # Create a synchronous engine for migrations or sync operations
+            sync_engine_url = settings.DATABASE_URL.replace("postgresql+asyncpg", "postgresql+psycopg")
+            sync_engine = create_engine(sync_engine_url)
+
+            # Log registered tables
+            if hasattr(Base, 'metadata'):
+                table_names = list(Base.metadata.tables.keys())
+                print(f"SQLAlchemy metadata has {len(table_names)} tables registered.")
+                print(f"Registered tables: {table_names}")
+
+            # Use a synchronous connection to create tables
+            # The async version was causing issues during initial setup
+            Base.metadata.create_all(bind=sync_engine)
+            
+            print("✅✅✅ Database schema initialization command executed successfully.")
+            
+        except Exception as e:
+            print(f"❌❌❌ Database schema initialization failed: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    # Yield control to the application
+    yield
+    
+    # Shutdown logic (if needed)
+    print("🔄 Application shutting down...")
+    print("✅ Shutdown logic completed.")
+
 # Initialize basic app first to ensure health check is always available
 app = FastAPI(
     title="AI Force Migration Platform API",
     description="AI-powered cloud migration management platform",
     version="0.2.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
+    lifespan=lifespan
 )
 
 # Basic health check that's always available
@@ -291,42 +339,7 @@ async def health_check():
         "error": API_ROUTES_ERROR
     }
 
-@app.on_event("startup")
-async def startup_event():
-    """
-    Application startup event.
-    Initializes services and creates database tables.
-    """
-    print("🚀 Application starting up...")
-    
-    # Initialize services here if needed
-    
-    print("✅ Startup logic completed.")
 
-    # Create database tables
-    if DATABASE_ENABLED:
-        try:
-            print("🔧 Initializing database schema...")
-            # Create a synchronous engine for migrations or sync operations
-            sync_engine_url = settings.DATABASE_URL.replace("postgresql+asyncpg", "postgresql+psycopg")
-            sync_engine = create_engine(sync_engine_url)
-
-            # Log registered tables
-            if hasattr(Base, 'metadata'):
-                table_names = list(Base.metadata.tables.keys())
-                print(f"SQLAlchemy metadata has {len(table_names)} tables registered.")
-                print(f"Registered tables: {table_names}")
-
-            # Use a synchronous connection to create tables
-            # The async version was causing issues during initial setup
-            Base.metadata.create_all(bind=sync_engine)
-            
-            print("✅✅✅ Database schema initialization command executed successfully.")
-            
-        except Exception as e:
-            print(f"❌❌❌ Database schema initialization failed: {e}")
-            import traceback
-            traceback.print_exc()
 
 # WebSocket endpoint removed - using HTTP polling for Vercel+Railway compatibility
 

@@ -38,9 +38,10 @@ router.include_router(admin_router, tags=["Admin Operations"])
 router.include_router(demo_router, tags=["Demo Functions"])
 
 
-@router.on_event("startup")
-async def startup_event():
-    """Initialize RBAC system on startup."""
+# Note: RBAC initialization moved to main application lifespan handler
+# Router-level event handlers are deprecated - use app-level lifespan instead
+async def initialize_rbac_system():
+    """Initialize RBAC system - called from main app lifespan."""
     try:
         logger.info("Initializing modular RBAC system...")
         
