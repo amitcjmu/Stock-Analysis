@@ -42,91 +42,93 @@ export const useDiscoveryFlowState = () => {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
-  // Get flow state - Updated to use working endpoint
+  // Get flow state - Updated to use working endpoints only
   const { data: flowState, isLoading, error } = useQuery({
     queryKey: ['discovery-flow-state', currentSessionId],
     queryFn: async () => {
       if (!currentSessionId) return null;
       
       try {
-        // Try the UI dashboard endpoint which should have the flow data
-        const response = await apiCall(`/api/v1/discovery/flow/ui/dashboard-data/${currentSessionId}`);
-        return response as DiscoveryFlowState;
-      } catch (dashboardError) {
-        console.log('Dashboard endpoint failed, trying active flows:', dashboardError);
+        console.log('🔍 Checking flow state for session:', currentSessionId);
         
-        try {
-          // Fallback: Get all active flows and find our session
-          const activeResponse = await apiCall('/api/v1/discovery/flow/active');
-          const activeFlows = activeResponse.active_flows || [];
-          const ourFlow = activeFlows.find((flow: any) => flow.session_id === currentSessionId);
-          
-          if (ourFlow) {
-            return ourFlow as DiscoveryFlowState;
-          } else {
-            // Create a minimal state object if flow not found but session exists
-            return {
-              session_id: currentSessionId,
-              client_account_id: '',
-              engagement_id: '',
-              user_id: '',
-              current_phase: 'field_mapping',
-              phase_completion: { field_mapping: false },
-              crew_status: { field_mapping: 'pending' },
-              field_mappings: {
-                mappings: {},
-                confidence_scores: {},
-                unmapped_fields: [],
-                validation_results: {},
-                agent_insights: {}
-              },
-              raw_data: [],
-              cleaned_data: [],
-              asset_inventory: {},
-              agent_collaboration_map: {},
-              shared_memory_id: '',
-              overall_plan: {},
-              crew_coordination: {},
-              errors: [],
-              warnings: []
-            } as DiscoveryFlowState;
-          }
-        } catch (activeError) {
-          console.log('Active flows failed, creating default state:', activeError);
-          
-          // Return a minimal working state to prevent infinite loading
-          return {
-            session_id: currentSessionId,
-            client_account_id: '',
-            engagement_id: '',
-            user_id: '',
-            current_phase: 'field_mapping',
-            phase_completion: { field_mapping: false },
-            crew_status: { field_mapping: 'pending' },
-            field_mappings: {
-              mappings: {},
-              confidence_scores: {},
-              unmapped_fields: [],
-              validation_results: {},
-              agent_insights: {}
-            },
-            raw_data: [],
-            cleaned_data: [],
-            asset_inventory: {},
-            agent_collaboration_map: {},
-            shared_memory_id: '',
-            overall_plan: {},
-            crew_coordination: {},
-            errors: [],
-            warnings: []
-          } as DiscoveryFlowState;
+        // Method 1: Try to get all active flows and find our session
+        const activeResponse = await apiCall('/api/v1/discovery/flow/active');
+        console.log('📋 Active flows response:', activeResponse);
+        
+        const activeFlows = activeResponse.active_flows || [];
+        const ourFlow = activeFlows.find((flow: any) => 
+          flow.session_id === currentSessionId || flow.flow_id === currentSessionId
+        );
+        
+        if (ourFlow) {
+          console.log('✅ Found flow in active flows:', ourFlow);
+          return ourFlow as DiscoveryFlowState;
         }
+        
+        console.log('⚠️ Flow not found in active flows, creating mock state');
+        // Create a working state object if flow not found but session exists
+        return {
+          session_id: currentSessionId,
+          client_account_id: '',
+          engagement_id: '',
+          user_id: '',
+          current_phase: 'field_mapping',
+          phase_completion: { field_mapping: false },
+          crew_status: { field_mapping: 'active' },
+          field_mappings: {
+            mappings: {},
+            confidence_scores: {},
+            unmapped_fields: [],
+            validation_results: {},
+            agent_insights: {}
+          },
+          raw_data: [],
+          cleaned_data: [],
+          asset_inventory: {},
+          agent_collaboration_map: {},
+          shared_memory_id: '',
+          overall_plan: {},
+          crew_coordination: {},
+          errors: [],
+          warnings: []
+        } as DiscoveryFlowState;
+        
+      } catch (error) {
+        console.log('❌ All status checks failed, using fallback state:', error);
+        
+        // Return a minimal working state to prevent infinite loading
+        return {
+          session_id: currentSessionId,
+          client_account_id: '',
+          engagement_id: '',
+          user_id: '',
+          current_phase: 'field_mapping',
+          phase_completion: { field_mapping: false },
+          crew_status: { field_mapping: 'pending' },
+          field_mappings: {
+            mappings: {},
+            confidence_scores: {},
+            unmapped_fields: [],
+            validation_results: {},
+            agent_insights: {}
+          },
+          raw_data: [],
+          cleaned_data: [],
+          asset_inventory: {},
+          agent_collaboration_map: {},
+          shared_memory_id: '',
+          overall_plan: {},
+          crew_coordination: {},
+          errors: [],
+          warnings: []
+        } as DiscoveryFlowState;
       }
     },
     enabled: !!currentSessionId,
-    refetchInterval: 5000, // Slow down polling to reduce errors
+    refetchInterval: 10000, // Further slow down polling to reduce errors
     refetchIntervalInBackground: false, // Stop background polling
-    retry: 2, // Limit retry attempts
+    retry: 1, // Minimal retry attempts
+    staleTime: 5000, // Consider data stale after 5 seconds
   });
 
   // Initialize flow - Updated for better error handling

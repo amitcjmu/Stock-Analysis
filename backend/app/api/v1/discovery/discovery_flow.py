@@ -1407,6 +1407,22 @@ async def get_dashboard_data(
 ):
     """Get comprehensive dashboard data for UI components."""
     try:
+        # Check if the service has the required method
+        if not hasattr(service, 'get_flow_instance'):
+            logger.warning(f"Service missing get_flow_instance method, returning basic dashboard data")
+            return {
+                "flow_id": flow_id,
+                "timestamp": datetime.utcnow().isoformat(),
+                "status": "service_unavailable",
+                "message": "Dashboard service temporarily unavailable",
+                "crew_monitoring": {"error": "Service method not available"},
+                "memory_analytics": {"error": "Service method not available"},
+                "planning_status": {"error": "Service method not available"},
+                "collaboration_tracking": {"error": "Service method not available"},
+                "performance_metrics": {"error": "Service method not available"},
+                "success_criteria": {"error": "Service method not available"}
+            }
+        
         flow_instance = service.get_flow_instance(flow_id)
         if not flow_instance:
             raise HTTPException(status_code=404, detail="Flow not found")
