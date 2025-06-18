@@ -9,7 +9,6 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { apiCall, API_CONFIG } from '../../../config/api';
-import { getAuthHeaders } from '../../../utils/auth';
 
 interface ImportedDataTabProps {
   className?: string;
@@ -48,10 +47,8 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
   } = useQuery({
     queryKey: ['imported-data'],
     queryFn: async () => {
-      const authHeaders = getAuthHeaders();
       const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.LATEST_IMPORT, {
         method: 'GET',
-        headers: authHeaders
       });
       return response;
     },
@@ -119,6 +116,8 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
     (currentPage - 1) * recordsPerPage,
     currentPage * recordsPerPage
   );
+
+  const totalPages = Math.ceil(filteredData.length / recordsPerPage);
 
   const allColumns = importData.length > 0 ? Object.keys(importData[0].raw_data) : [];
 
