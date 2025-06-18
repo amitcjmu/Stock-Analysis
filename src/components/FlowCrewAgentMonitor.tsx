@@ -111,17 +111,70 @@ const FlowCrewAgentMonitor: React.FC = () => {
         headers: getAuthHeaders()
       });
       
+      // Fetch Discovery Flow specific active flows
+      const discoveryFlowResponse = await fetch('/api/v1/discovery/flow/active', {
+        headers: getAuthHeaders()
+      });
+      
       if (!flowsResponse.ok) {
         throw new Error('Failed to fetch flows data');
       }
       
       const flowsData = await flowsResponse.json();
       const agentRegistryData = agentRegistryResponse.ok ? await agentRegistryResponse.json() : null;
+      const discoveryFlowData = discoveryFlowResponse.ok ? await discoveryFlowResponse.json() : null;
+      
+      // Debug logging
+      console.log('🔍 Monitoring Data Sources:', {
+        crewaiFlows: flowsData?.crewai_flows?.active_flows?.length || 0,
+        discoveryFlows: discoveryFlowData?.flow_details?.length || 0,
+        discoveryFlowData: discoveryFlowData
+      });
       
       // Transform the data to match our interface
       const activeFlows: DiscoveryFlow[] = [];
       
-      if (flowsData.crewai_flows && flowsData.crewai_flows.active_flows) {
+      // Priority 1: Use Discovery Flow data if available (more accurate)
+      if (discoveryFlowData && discoveryFlowData.flow_details && discoveryFlowData.flow_details.length > 0) {
+        for (const flow of discoveryFlowData.flow_details) {
+          try {
+            // Get detailed crew monitoring for this flow  
+            const crewResponse = await fetch(`/api/v1/discovery/flow/crews/monitoring/${flow.flow_id}`, {
+              headers: getAuthHeaders()
+            });
+            
+            let crews: Crew[] = [];
+            if (crewResponse.ok) {
+              const crewData = await crewResponse.json();
+              crews = transformCrewData(crewData);
+            } else {
+              // If no specific crew data, create default crews
+              crews = createAllAvailableCrews(agentRegistryData);
+            }
+            
+            activeFlows.push({
+              flow_id: flow.flow_id || `discovery_flow_${Date.now()}`,
+              status: flow.status as FlowStatus,
+              current_phase: flow.current_phase || 'initialization',
+              progress: flow.progress || 0,
+              crews,
+              started_at: flow.start_time,
+              estimated_completion: flow.estimated_completion,
+              performance_metrics: {
+                overall_efficiency: 0.85,
+                crew_coordination: 0.78,
+                agent_collaboration: 0.92
+              },
+              events_count: flow.recent_events?.length || 0,
+              last_event: flow.recent_events?.[0]?.event_type || 'Flow running'
+            });
+          } catch (flowError) {
+            console.warn(`Failed to get details for Discovery Flow ${flow.flow_id}:`, flowError);
+          }
+        }
+      }
+      // Fallback: Use CrewAI flows data  
+      else if (flowsData.crewai_flows && flowsData.crewai_flows.active_flows) {
         for (const flow of flowsData.crewai_flows.active_flows) {
           try {
             // Get detailed crew monitoring for this flow

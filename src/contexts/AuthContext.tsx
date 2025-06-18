@@ -383,7 +383,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loginWithDemoUser = () => {
     setIsLoading(true);
     localStorage.setItem('demoMode', 'true');
-    tokenStorage.setToken('demo-token-' + DEMO_USER_ID);
+    tokenStorage.setToken('db-token-' + DEMO_USER_ID + '-demo123');
     tokenStorage.setUser(DEMO_USER);
     
     setUser(DEMO_USER);

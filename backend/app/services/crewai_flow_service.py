@@ -49,16 +49,24 @@ class CrewAIFlowService:
     - Native DiscoveryFlowState format throughout
     """
     
-    def __init__(self, db: AsyncSession):
-        from app.services.workflow_state_service import WorkflowStateService
-        
+    def __init__(self, db: Optional[AsyncSession] = None):
         self.db = db
-        self.state_service = WorkflowStateService(self.db)
+        
+        # Only initialize state service if database is available
+        if db:
+            from app.services.workflow_state_service import WorkflowStateService
+            self.state_service = WorkflowStateService(self.db)
+        else:
+            self.state_service = None
+        
         self.service_available = CREWAI_FLOW_AVAILABLE
         
         # Active flows tracking (for monitoring and management)
         self._active_flows: Dict[str, DiscoveryFlow] = {}
         self._flow_creation_lock = asyncio.Lock()
+        
+        # Flow registry for ID management (replaces fingerprinting)
+        self._flow_registry: Dict[str, Dict[str, Any]] = {}
         
         # Initialize agents (reuse existing logic)
         self.agents = self._initialize_agents()
@@ -104,6 +112,18 @@ class CrewAIFlowService:
         """
         print(f"🔧 PRINT DEBUG: initiate_discovery_workflow called with context.session_id: {context.session_id}")
         logger.info(f"🔧 DEBUG: initiate_discovery_workflow called with context.session_id: {context.session_id}")
+        
+        # Check if database is available for workflow state management
+        if not self.db or not self.state_service:
+            logger.error("Database not available - cannot initiate workflow with state management")
+            return {
+                "status": "error",
+                "message": "Database not available for workflow state management",
+                "session_id": context.session_id,
+                "workflow_status": "failed",
+                "current_phase": "error"
+            }
+        
         try:
             # Parse and validate input data (reuse existing logic)
             file_data = data_source.get("file_data")
@@ -1028,6 +1048,63 @@ class CrewAIFlowService:
             # Remove from active flows when complete
             if flow.state.session_id in self._active_flows:
                 del self._active_flows[flow.state.session_id]
+
+    def generate_flow_id(self, flow_type: str, session_id: str, 
+                        client_account_id: str, engagement_id: str) -> str:
+        """Generate unique flow ID replacing fingerprinting system"""
+        try:
+            # Create a unique flow ID combining type and context
+            timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+            short_uuid = str(uuid.uuid4())[:8]
+            
+            flow_id = f"{flow_type}_{session_id}_{timestamp}_{short_uuid}"
+            
+            logger.info(f"✅ Generated flow ID: {flow_id}")
+            return flow_id
+            
+        except Exception as e:
+            logger.error(f"Failed to generate flow ID: {e}")
+            # Fallback flow ID
+            fallback_id = f"{flow_type}_{session_id}_{uuid.uuid4().hex[:8]}"
+            logger.warning(f"Using fallback flow ID: {fallback_id}")
+            return fallback_id
+    
+    def register_flow(self, flow_id: str, flow_type: str, metadata: Dict[str, Any]):
+        """Register flow in the service registry"""
+        try:
+            self._flow_registry[flow_id] = {
+                "flow_id": flow_id,
+                "flow_type": flow_type,
+                "metadata": metadata,
+                "registered_at": datetime.utcnow().isoformat(),
+                "status": "registered"
+            }
+            
+            logger.info(f"✅ Registered flow: {flow_id}")
+            
+        except Exception as e:
+            logger.error(f"Failed to register flow {flow_id}: {e}")
+    
+    def get_flow_info(self, flow_id: str) -> Dict[str, Any]:
+        """Get flow information from registry"""
+        try:
+            if flow_id in self._flow_registry:
+                return self._flow_registry[flow_id]
+            else:
+                logger.warning(f"Flow {flow_id} not found in registry")
+                return {
+                    "flow_id": flow_id,
+                    "metadata": {},
+                    "status": "not_found"
+                }
+                
+        except Exception as e:
+            logger.error(f"Failed to get flow info for {flow_id}: {e}")
+            return {
+                "flow_id": flow_id,
+                "metadata": {},
+                "status": "error"
+            }
 
 
 def create_crewai_flow_service(db: AsyncSession) -> CrewAIFlowService:

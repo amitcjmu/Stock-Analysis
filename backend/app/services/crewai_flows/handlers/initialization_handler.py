@@ -10,37 +10,30 @@ from datetime import datetime
 
 # CrewAI imports for advanced features
 try:
-    from crewai.security import Fingerprint
     from crewai.memory import LongTermMemory
-    from crewai.knowledge.knowledge import Knowledge
-    from crewai.knowledge.source.json_knowledge_source import JSONKnowledgeSource
-    from crewai.knowledge.source.text_file_knowledge_source import TextFileKnowledgeSource
+    from crewai.knowledge import Knowledge, JSONKnowledgeSource, TextFileKnowledgeSource
     CREWAI_ADVANCED_AVAILABLE = True
-except ImportError as e:
-    logging.warning(f"CrewAI advanced features not available: {e}")
-    CREWAI_ADVANCED_AVAILABLE = False
+    logger.info("✅ CrewAI advanced features available")
+except ImportError:
+    logger.warning("CrewAI advanced features not available - using fallbacks")
+    
     # Fallback classes
     class LongTermMemory:
         def __init__(self, **kwargs):
             self.storage_id = "fallback_memory"
-    
+            
     class Knowledge:
         def __init__(self, collection_name=None, sources=None, **kwargs):
-            self.collection_name = collection_name or "fallback_knowledge"
-            self.sources = sources or []
-    
+            self.collection_name = collection_name
+            
     class JSONKnowledgeSource:
         def __init__(self, **kwargs):
             pass
-    
+            
     class TextFileKnowledgeSource:
         def __init__(self, **kwargs):
             pass
     
-    class Fingerprint:
-        def __init__(self, **kwargs):
-            self.uuid_str = "fallback_fingerprint"
-
 logger = logging.getLogger(__name__)
 
 class InitializationHandler:
@@ -119,37 +112,53 @@ class InitializationHandler:
         
         return knowledge_bases
     
-    def setup_fingerprint(self, session_id: str, client_account_id: str, 
-                         engagement_id: str, raw_data: List[Dict[str, Any]]) -> Fingerprint:
-        """Setup flow fingerprint for session management"""
-        
-        if not CREWAI_ADVANCED_AVAILABLE:
-            # Create fallback fingerprint
-            fingerprint = Fingerprint()
-            fingerprint.uuid_str = f"{session_id}_{client_account_id}_{engagement_id}"
-            return fingerprint
+    def setup_flow_id(self, session_id: str, client_account_id: str, 
+                     engagement_id: str, raw_data: List[Dict[str, Any]]) -> str:
+        """Setup flow ID using the flow service for session management"""
         
         try:
-            # Create fingerprint with flow context
-            fingerprint_data = {
+            # Import flow service for proper ID generation
+            from app.services.crewai_flow_service import CrewAIFlowService
+            
+            # Create flow service instance
+            flow_service = CrewAIFlowService()
+            
+            # Generate unique flow ID using the service
+            flow_id = flow_service.generate_flow_id(
+                flow_type="discovery_redesigned",
+                session_id=session_id,
+                client_account_id=client_account_id,
+                engagement_id=engagement_id
+            )
+            
+            # Create flow metadata
+            flow_metadata = {
                 "session_id": session_id,
                 "client_account_id": client_account_id,
                 "engagement_id": engagement_id,
                 "data_sample_size": len(raw_data),
                 "data_headers": list(raw_data[0].keys()) if raw_data else [],
-                "flow_type": "discovery_redesigned"
+                "flow_type": "discovery_redesigned",
+                "created_at": datetime.utcnow().isoformat()
             }
             
-            fingerprint = Fingerprint(**fingerprint_data)
-            logger.info(f"✅ Flow fingerprint created: {fingerprint.uuid_str}")
-            return fingerprint
+            # Register flow with the service
+            flow_service.register_flow(
+                flow_id=flow_id,
+                flow_type="discovery_redesigned",
+                metadata=flow_metadata
+            )
+            
+            logger.info(f"✅ Flow ID created and registered: {flow_id}")
+            return flow_id
             
         except Exception as e:
-            logger.error(f"Failed to create fingerprint: {e}")
-            # Fallback fingerprint
-            fingerprint = Fingerprint()
-            fingerprint.uuid_str = f"{session_id}_{client_account_id}_{engagement_id}"
-            return fingerprint
+            logger.error(f"Failed to create flow ID: {e}")
+            # Fallback flow ID generation
+            import uuid
+            flow_id = f"discovery_redesigned_{session_id}_{uuid.uuid4().hex[:8]}"
+            logger.warning(f"Using fallback flow ID: {flow_id}")
+            return flow_id
     
     def initialize_flow_state(self, session_id: str, client_account_id: str, 
                              engagement_id: str, user_id: str, raw_data: List[Dict[str, Any]],

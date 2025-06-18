@@ -121,6 +121,10 @@ class DiscoveryFlowEventListener(BaseEventListener):
             """Track when Discovery Flow starts execution"""
             flow_id = self._extract_flow_id(source, event)
             
+            if not flow_id:
+                logger.warning("⚠️ FlowStartedEvent received but could not extract flow_id, skipping tracking")
+                return
+            
             self._add_flow_event(
                 flow_id=flow_id,
                 event_type="flow_started",
@@ -151,6 +155,10 @@ class DiscoveryFlowEventListener(BaseEventListener):
             """Track when Discovery Flow completes"""
             flow_id = self._extract_flow_id(source, event)
             
+            if not flow_id:
+                logger.warning("⚠️ FlowFinishedEvent received but could not extract flow_id, skipping tracking")
+                return
+            
             self._add_flow_event(
                 flow_id=flow_id,
                 event_type="flow_completed",
@@ -177,6 +185,11 @@ class DiscoveryFlowEventListener(BaseEventListener):
         def on_method_started(source, event: MethodExecutionStartedEvent):
             """Track when crew execution methods start"""
             flow_id = self._extract_flow_id(source, event)
+            
+            if not flow_id:
+                logger.warning("⚠️ MethodExecutionStartedEvent received but could not extract flow_id, skipping tracking")
+                return
+                
             method_name = getattr(event, 'method_name', 'unknown_method')
             
             # Extract crew name from method name
@@ -207,6 +220,11 @@ class DiscoveryFlowEventListener(BaseEventListener):
         def on_method_finished(source, event: MethodExecutionFinishedEvent):
             """Track when crew execution methods complete"""
             flow_id = self._extract_flow_id(source, event)
+            
+            if not flow_id:
+                logger.warning("⚠️ MethodExecutionFinishedEvent received but could not extract flow_id, skipping tracking")
+                return
+                
             method_name = getattr(event, 'method_name', 'unknown_method')
             
             crew_name = self._extract_crew_name_from_method(method_name)
@@ -243,6 +261,11 @@ class DiscoveryFlowEventListener(BaseEventListener):
         def on_method_failed(source, event: MethodExecutionFailedEvent):
             """Track when crew execution methods fail"""
             flow_id = self._extract_flow_id(source, event)
+            
+            if not flow_id:
+                logger.warning("⚠️ MethodExecutionFailedEvent received but could not extract flow_id, skipping tracking")
+                return
+                
             method_name = getattr(event, 'method_name', 'unknown_method')
             error = getattr(event, 'error', 'Unknown error')
             
@@ -263,7 +286,8 @@ class DiscoveryFlowEventListener(BaseEventListener):
             )
             
             # Update flow status to handle error
-            self.flow_status[flow_id] = "error"
+            if flow_id in self.flow_status:
+                self.flow_status[flow_id] = "error"
             
             logger.error(f"❌ Crew failed - {crew_name} in flow {flow_id}: {error}")
         
@@ -272,6 +296,11 @@ class DiscoveryFlowEventListener(BaseEventListener):
         def on_agent_started(source, event: AgentExecutionStartedEvent):
             """Track agent execution start"""
             flow_id = self._extract_flow_id(source, event)
+            
+            if not flow_id:
+                logger.warning("⚠️ AgentExecutionStartedEvent received but could not extract flow_id, skipping tracking")
+                return
+                
             agent_name = getattr(event, 'agent', {}).get('role', 'unknown_agent')
             
             self._add_flow_event(
@@ -290,6 +319,11 @@ class DiscoveryFlowEventListener(BaseEventListener):
         def on_agent_completed(source, event: AgentExecutionCompletedEvent):
             """Track agent execution completion"""
             flow_id = self._extract_flow_id(source, event)
+            
+            if not flow_id:
+                logger.warning("⚠️ AgentExecutionCompletedEvent received but could not extract flow_id, skipping tracking")
+                return
+                
             agent_name = getattr(event, 'agent', {}).get('role', 'unknown_agent')
             
             self._add_flow_event(
@@ -310,6 +344,11 @@ class DiscoveryFlowEventListener(BaseEventListener):
         def on_task_completed(source, event: TaskCompletedEvent):
             """Track task completion for progress updates"""
             flow_id = self._extract_flow_id(source, event)
+            
+            if not flow_id:
+                logger.warning("⚠️ TaskCompletedEvent received but could not extract flow_id, skipping tracking")
+                return
+                
             task_description = getattr(event, 'task', {}).get('description', 'unknown_task')
             
             self._add_flow_event(
@@ -328,25 +367,72 @@ class DiscoveryFlowEventListener(BaseEventListener):
         logger.info("✅ Discovery Flow Event Listeners registered successfully")
     
     def _extract_flow_id(self, source, event) -> str:
-        """Extract flow ID from event source or event data"""
-        # Try multiple approaches to get flow ID
-        
-        # Method 1: From source object
-        if hasattr(source, 'state') and hasattr(source.state, 'session_id'):
-            return source.state.session_id
-        
-        # Method 2: From event data
-        if hasattr(event, 'flow_id'):
-            return event.flow_id
-        
-        # Method 3: From source session
-        if hasattr(source, 'session_id'):
-            return source.session_id
-        
-        # Method 4: Generate fallback ID
-        fallback_id = f"flow_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
-        logger.warning(f"Could not extract flow ID, using fallback: {fallback_id}")
-        return fallback_id
+        """Extract flow ID from event source using CrewAI Flow Service integration"""
+        try:
+            # Import CrewAI Flow Service for proper flow ID resolution
+            from app.services.crewai_flow_service import CrewAIFlowService
+            
+            # Method 1: From source object state (most reliable)
+            if hasattr(source, 'state') and hasattr(source.state, 'session_id'):
+                session_id = source.state.session_id
+                if session_id:
+                    return session_id
+            
+            # Method 2: From event data
+            if hasattr(event, 'flow_id'):
+                flow_id = event.flow_id
+                if flow_id:
+                    return flow_id
+            
+            # Method 3: From source session
+            if hasattr(source, 'session_id'):
+                session_id = source.session_id
+                if session_id:
+                    return session_id
+            
+            # Method 4: From source flow ID directly
+            if hasattr(source, 'flow_id'):
+                flow_id = source.flow_id
+                if flow_id:
+                    return flow_id
+                    
+            # Method 5: From source ID (CrewAI Flow UUID)
+            if hasattr(source, 'id'):
+                source_id = source.id
+                if source_id:
+                    return source_id
+            
+            # Method 6: Query CrewAI Flow Service for active flows
+            # Get the current active flow from the flow service
+            try:
+                # Create a temporary service instance to query active flows
+                service = CrewAIFlowService()
+                active_flows = service.get_all_active_flows()
+                
+                if active_flows:
+                    # Return the most recent active flow ID
+                    flow_ids = list(active_flows.keys()) if isinstance(active_flows, dict) else active_flows
+                    if flow_ids:
+                        most_recent_flow = flow_ids[-1]  # Get the last/most recent flow
+                        logger.info(f"🔍 Using most recent active flow from service: {most_recent_flow}")
+                        return most_recent_flow
+                        
+            except Exception as service_error:
+                logger.warning(f"Could not query CrewAI Flow Service: {service_error}")
+            
+            # Method 7: Last resort - log comprehensive error and return None
+            logger.error(f"❌ Could not extract flow ID from any source:")
+            logger.error(f"   Source type: {type(source)}")
+            logger.error(f"   Source attributes: {[attr for attr in dir(source) if not attr.startswith('_')]}")
+            logger.error(f"   Event type: {type(event)}")
+            logger.error(f"   Event attributes: {[attr for attr in dir(event) if not attr.startswith('_')]}")
+            
+            # Return None instead of fallback ID to prevent ghost flows
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error in _extract_flow_id: {e}")
+            return None
     
     def _extract_crew_name_from_method(self, method_name: str) -> Optional[str]:
         """Extract crew name from method name like 'execute_field_mapping_crew'"""
@@ -400,6 +486,10 @@ class DiscoveryFlowEventListener(BaseEventListener):
     
     def _add_flow_event(self, flow_id: str, event_type: str, source: str, **kwargs):
         """Add event to flow tracking"""
+        if not flow_id:
+            logger.warning(f"⚠️ Attempted to add event {event_type} with None flow_id, skipping")
+            return
+            
         if flow_id not in self.flow_events:
             self.flow_events[flow_id] = []
         

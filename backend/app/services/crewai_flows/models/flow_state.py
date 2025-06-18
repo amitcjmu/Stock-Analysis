@@ -9,12 +9,12 @@ from pydantic import BaseModel, Field
 class DiscoveryFlowState(BaseModel):
     """Enhanced state for Discovery Flow with CrewAI best practices"""
     
-    # Flow identification
+    # Flow identification - using flow service instead of fingerprinting
     session_id: str = ""
     client_account_id: str = ""
     engagement_id: str = ""
     user_id: str = ""
-    flow_fingerprint: str = ""
+    flow_id: str = ""
     
     # Planning and coordination
     overall_plan: Dict[str, Any] = {}

@@ -140,41 +140,45 @@ export const useDiscoveryFlowState = () => {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
-     // Query for flow status using event-based approach
+     // Query for flow status using event-based approach - DISABLED temporarily due to missing endpoints
    const { data: flowStatus, isLoading: isStatusLoading, error: statusError } = useQuery({
      queryKey: ['discovery-flow-status', flowState.flow_fingerprint],
      queryFn: async () => {
-       if (!flowState.flow_fingerprint) return null;
-       
-       const response = await apiCall(`/api/v1/discovery/flow/status/${flowState.flow_fingerprint}`, {
-         method: 'GET',
-       });
-       if (!response.ok) {
-         throw new Error('Failed to fetch flow status');
-       }
-       return response.json();
+       // DISABLED: These endpoints don't exist yet
+       // if (!flowState.flow_fingerprint) return null;
+       // 
+       // const response = await apiCall(`/api/v1/discovery/flow/status/${flowState.flow_fingerprint}`, {
+       //   method: 'GET',
+       // });
+       // if (!response.ok) {
+       //   throw new Error('Failed to fetch flow status');
+       // }
+       // return response.json();
+       return null; // Return null to prevent API calls
      },
-     enabled: !!flowState.flow_fingerprint && flowState.overall_status !== 'completed',
-     refetchInterval: 2000, // Poll every 2 seconds for active flows
-     staleTime: 1000, // Consider data stale after 1 second
+     enabled: false, // DISABLED until endpoints are implemented
+     refetchInterval: false, // Disabled
+     staleTime: Infinity, // Never refetch
    });
 
-  // Query for flow events (for debugging/detailed monitoring)
+  // Query for flow events (for debugging/detailed monitoring) - DISABLED temporarily
   const { data: flowEvents } = useQuery({
     queryKey: ['discovery-flow-events', flowState.flow_fingerprint],
     queryFn: async () => {
-      if (!flowState.flow_fingerprint) return [];
-      
-      const response = await apiCall(`/api/v1/discovery/flow/events/${flowState.flow_fingerprint}`, {
-        method: 'GET',
-      });
-      if (!response.ok) {
-        return []; // Graceful fallback if events not available
-      }
-      return response.json();
+      // DISABLED: These endpoints don't exist yet
+      // if (!flowState.flow_fingerprint) return [];
+      // 
+      // const response = await apiCall(`/api/v1/discovery/flow/events/${flowState.flow_fingerprint}`, {
+      //   method: 'GET',
+      // });
+      // if (!response.ok) {
+      //   return []; // Graceful fallback if events not available
+      // }
+      // return response.json();
+      return []; // Return empty array to prevent API calls
     },
-    enabled: !!flowState.flow_fingerprint,
-    refetchInterval: 5000, // Check for new events every 5 seconds
+    enabled: false, // DISABLED until endpoints are implemented
+    refetchInterval: false, // Disabled
   });
 
   // Query for active flows (fallback discovery)

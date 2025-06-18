@@ -4,31 +4,37 @@ Properly integrates Discovery Agents with CrewAI Flows, Crews, and Tasks
 Following CrewAI documentation patterns and including database persistence
 """
 
-import logging
-import asyncio
-import uuid
-import json
-from typing import Dict, List, Any, Optional
 from datetime import datetime
+from typing import Dict, Any, List, Optional
+import uuid
 from pydantic import BaseModel, Field
+import asyncio
+import json
+import logging
 
+# Initialize logger first before any imports that might use it
+logger = logging.getLogger(__name__)
+
+# CrewAI Flow imports with graceful fallback
+CREWAI_FLOW_AVAILABLE = False
 try:
-    from crewai.flow.flow import Flow, listen, start
-    from crewai.flow import persist
-    from crewai import Agent, Task, Crew
-    from crewai.security import Fingerprint
+    from crewai import Flow, Agent, Task, Crew, LLM
+    from crewai.flow.flow import listen, start
+    from crewai.flow.persistence import persist
     CREWAI_FLOW_AVAILABLE = True
-except ImportError:
-    CREWAI_FLOW_AVAILABLE = False
-    # Mock classes for development without CrewAI
+    logger.info("✅ CrewAI Flow imports successful")
+except ImportError as e:
+    logger.warning(f"CrewAI Flow not available: {e}")
+    
+    # Fallback Flow implementation
     class Flow:
         def __init__(self): 
             # Initialize with empty state for compatibility
-            self.state = type('MockState', (), {})()
+            self.state = None
         def __class_getitem__(cls, item):
             return cls
         def kickoff(self):
-            return "Mock result"
+            return {}
     
     def listen(condition):
         def decorator(func):
@@ -47,25 +53,23 @@ except ImportError:
 
 from app.core.context import RequestContext
 
-logger = logging.getLogger(__name__)
-
 
 class DiscoveryFlowState(BaseModel):
     """
-    Discovery Flow State using CrewAI Fingerprinting for session management.
+    Discovery Flow State using flow service integration for session management.
     
-    This state uses CrewAI's built-in fingerprinting system for tracking
-    and manages the complete discovery workflow with agent coordination.
+    This state uses the flow service for tracking and manages the complete 
+    discovery workflow with agent coordination.
     """
     
-    # Context Information - Using CrewAI Fingerprinting patterns
+    # Context Information - Using flow service patterns
     session_id: str = ""
     client_account_id: str = ""
     engagement_id: str = ""
     user_id: str = ""
     
-    # CrewAI Fingerprinting integration
-    fingerprint_id: Optional[str] = None
+    # Flow service integration (replaces fingerprinting)
+    flow_id: Optional[str] = None
     flow_metadata: Dict[str, Any] = Field(default_factory=dict)
     
     # Input Data
@@ -107,102 +111,117 @@ class DiscoveryFlowState(BaseModel):
     updated_at: Optional[str] = Field(default_factory=lambda: datetime.utcnow().isoformat())
     started_at: Optional[str] = Field(default_factory=lambda: datetime.utcnow().isoformat())
     completed_at: Optional[str] = None
-    
+
     def add_error(self, phase: str, error: str, details: Optional[Dict] = None):
-        """Add an error to the flow state."""
-        self.errors.append({
+        """Add error to the flow state"""
+        error_entry = {
             "phase": phase,
             "error": error,
-            "details": details or {},
-            "timestamp": datetime.utcnow().isoformat()
-        })
+            "timestamp": datetime.utcnow().isoformat(),
+            "details": details or {}
+        }
+        self.errors.append(error_entry)
         self.updated_at = datetime.utcnow().isoformat()
-    
+
     def add_warning(self, message: str):
-        """Add a warning to the flow state."""
+        """Add warning to the flow state"""
         self.warnings.append(message)
         self.updated_at = datetime.utcnow().isoformat()
-    
+
     def mark_phase_complete(self, phase: str, results: Dict[str, Any] = None):
-        """Mark a phase as complete and store results."""
+        """Mark a phase as completed"""
         self.phases_completed[phase] = True
         if results:
             self.agent_results[phase] = results
         self.updated_at = datetime.utcnow().isoformat()
 
 
-@persist()  # Enable CrewAI state persistence with fingerprinting
+@persist()  # Enable CrewAI state persistence
 class DiscoveryFlow(Flow[DiscoveryFlowState]):
     """
-    Discovery Flow using CrewAI Flows with proper agent integration.
+    Discovery Flow for CMDB data processing using CrewAI agents.
     
-    This flow coordinates Discovery Agents through Crews and Tasks:
-    - Data Source Intelligence Agent for data analysis
-    - CMDB Data Analyst Agent for field mapping
-    - Asset Intelligence Agent for classification
-    - Dependency Intelligence Agent for relationship mapping
-    
-    Includes database integration that saves processed assets.
+    This flow processes CMDB data through multiple phases:
+    1. Data source analysis
+    2. Field mapping 
+    3. Asset classification
+    4. Dependency analysis
+    5. Database integration
     """
     
-    def __init__(self, crewai_service, context: RequestContext, **kwargs):
+    def __init__(self, crewai_service, context, **kwargs):
         # Store initialization parameters first
         self._init_session_id = kwargs.get('session_id', str(uuid.uuid4()))
-        self._init_client_account_id = kwargs.get('client_account_id', context.client_account_id)
-        self._init_engagement_id = kwargs.get('engagement_id', context.engagement_id)
-        self._init_user_id = kwargs.get('user_id', context.user_id or "anonymous")
+        self._init_client_account_id = kwargs.get('client_account_id', '')
+        self._init_engagement_id = kwargs.get('engagement_id', '')
+        self._init_user_id = kwargs.get('user_id', '')
         self._init_cmdb_data = kwargs.get('cmdb_data', {})
         self._init_metadata = kwargs.get('metadata', {})
+        self._init_context = context
         
-        # Initialize the Flow (this creates the empty state)
         super().__init__()
         
-        # Initialize state if not created by CrewAI
-        if not hasattr(self, 'state') or self.state is None:
-            self.state = DiscoveryFlowState()
-        
-        # Store services and context
+        # Store services
         self.crewai_service = crewai_service
         self.context = context
         
-        # Initialize agents from existing discovery services
+        # Initialize state
+        if not hasattr(self, 'state') or self.state is None:
+            self.state = DiscoveryFlowState()
+        
+        # Initialize agents
         self._initialize_discovery_agents()
         
-        # Generate CrewAI fingerprint for this flow
-        self._setup_flow_fingerprint()
+        # Setup flow ID for tracking using flow service
+        self._setup_flow_id()
         
-        logger.info(f"Discovery Flow initialized with fingerprint: {self.fingerprint.uuid_str}")
+        logger.info(f"Discovery Flow initialized with ID: {self._flow_id}")
     
-    def _setup_flow_fingerprint(self):
-        """Setup CrewAI fingerprinting for flow tracking."""
+    def _setup_flow_id(self):
+        """Setup flow ID using the flow service for tracking."""
         try:
-            if CREWAI_FLOW_AVAILABLE:
-                # Use CrewAI fingerprinting for unique flow identification
-                seed = f"discovery_flow_{self._init_session_id}_{self._init_client_account_id}"
-                self.fingerprint = Fingerprint.generate(
-                    seed=seed,
-                    metadata={
-                        "flow_type": "discovery",
-                        "session_id": self._init_session_id,
-                        "client_account_id": self._init_client_account_id,
-                        "engagement_id": self._init_engagement_id,
-                        "created_at": datetime.utcnow().isoformat()
-                    }
-                )
-                logger.info(f"CrewAI fingerprint generated: {self.fingerprint.uuid_str}")
-            else:
-                # Fallback fingerprint
-                self.fingerprint = type('MockFingerprint', (), {
-                    'uuid_str': str(uuid.uuid4()),
-                    'metadata': {}
-                })()
+            # Import flow service for proper ID generation
+            from app.services.crewai_flow_service import CrewAIFlowService
+            
+            # Create flow service instance
+            flow_service = CrewAIFlowService()
+            
+            # Generate unique flow ID using the service
+            self._flow_id = flow_service.generate_flow_id(
+                flow_type="discovery",
+                session_id=self._init_session_id,
+                client_account_id=self._init_client_account_id,
+                engagement_id=self._init_engagement_id
+            )
+            
+            # Create flow metadata
+            flow_metadata = {
+                "flow_type": "discovery",
+                "session_id": self._init_session_id,
+                "client_account_id": self._init_client_account_id,
+                "engagement_id": self._init_engagement_id,
+                "created_at": datetime.utcnow().isoformat()
+            }
+            
+            # Register flow with the service
+            flow_service.register_flow(
+                flow_id=self._flow_id,
+                flow_type="discovery",
+                metadata=flow_metadata
+            )
+            
+            logger.info(f"Flow ID generated and registered: {self._flow_id}")
+            
         except Exception as e:
-            logger.error(f"Failed to setup fingerprint: {e}")
-            # Create mock fingerprint
-            self.fingerprint = type('MockFingerprint', (), {
-                'uuid_str': str(uuid.uuid4()),
-                'metadata': {}
-            })()
+            logger.error(f"Failed to setup flow ID: {e}")
+            # Create fallback flow ID
+            self._flow_id = f"discovery_flow_{self._init_session_id}_{uuid.uuid4().hex[:8]}"
+            logger.warning(f"Using fallback flow ID: {self._flow_id}")
+    
+    @property
+    def flow_id(self):
+        """Get the flow ID"""
+        return getattr(self, '_flow_id', None)
     
     def _initialize_discovery_agents(self):
         """Initialize the Discovery Agents for CrewAI integration."""
@@ -233,9 +252,9 @@ class DiscoveryFlow(Flow[DiscoveryFlowState]):
     @start()
     def initialize_discovery(self):
         """
-        Initialize the discovery workflow with CrewAI fingerprinting.
+        Initialize the discovery workflow with flow service integration.
         
-        Sets up the flow state with proper context and fingerprint tracking.
+        Sets up the flow state with proper context and flow ID tracking.
         """
         logger.info(f"🚀 Starting Discovery Flow initialization")
         
@@ -247,9 +266,23 @@ class DiscoveryFlow(Flow[DiscoveryFlowState]):
         self.state.cmdb_data = self._init_cmdb_data
         self.state.metadata = self._init_metadata
         
-        # Set fingerprint information
-        self.state.fingerprint_id = self.fingerprint.uuid_str
-        self.state.flow_metadata = self.fingerprint.metadata
+        # Set flow ID information
+        self.state.flow_id = self._flow_id
+        # Get flow metadata from the flow service if available
+        try:
+            from app.services.crewai_flow_service import CrewAIFlowService
+            flow_service = CrewAIFlowService()
+            flow_info = flow_service.get_flow_info(self._flow_id)
+            self.state.flow_metadata = flow_info.get('metadata', {})
+        except Exception as e:
+            logger.warning(f"Could not retrieve flow metadata: {e}")
+            self.state.flow_metadata = {
+                "flow_type": "discovery",
+                "session_id": self._init_session_id,
+                "client_account_id": self._init_client_account_id,
+                "engagement_id": self._init_engagement_id,
+                "created_at": datetime.utcnow().isoformat()
+            }
         
         # Set processing status
         self.state.current_phase = "initialization"
@@ -262,7 +295,7 @@ class DiscoveryFlow(Flow[DiscoveryFlowState]):
             return "initialization_failed"
         
         logger.info(f"✅ Discovery Flow initialized with {len(cmdb_data)} records")
-        logger.info(f"Flow fingerprint: {self.state.fingerprint_id}")
+        logger.info(f"Flow ID: {self._flow_id}")
         return "initialized"
     
     @listen(initialize_discovery)
@@ -707,7 +740,7 @@ class DiscoveryFlow(Flow[DiscoveryFlowState]):
                 "dependencies_identified": total_dependencies,
                 "phases_completed": sum(1 for completed in self.state.phases_completed.values() if completed),
                 "database_integration": previous_result == "database_integration_completed",
-                "fingerprint_id": self.state.fingerprint_id,
+                "flow_id": self._flow_id,
                 "session_id": self.state.session_id,
                 "processing_time": (
                     datetime.fromisoformat(self.state.completed_at) - 
@@ -719,7 +752,7 @@ class DiscoveryFlow(Flow[DiscoveryFlowState]):
             
             logger.info(f"✅ Discovery Flow completed for session: {self.state.session_id}")
             logger.info(f"Database assets created: {database_assets}")
-            logger.info(f"Fingerprint: {self.state.fingerprint_id}")
+            logger.info(f"Flow ID: {self._flow_id}")
             
             return "discovery_completed"
             
