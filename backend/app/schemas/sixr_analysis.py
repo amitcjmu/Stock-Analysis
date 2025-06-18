@@ -1,5 +1,5 @@
 from typing import List, Dict, Any, Optional, Union
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from datetime import datetime
 from enum import Enum
 from app.models.asset import SixRStrategy
@@ -91,12 +91,12 @@ class SixRParameterBase(BaseModel):
             raise ValueError('Parameter must be between 1.0 and 10.0')
         return float(v)
 
-    class Config:
-        """Pydantic configuration."""
-        json_encoders = {
+    model_config = ConfigDict(
+        json_encoders={
             datetime: lambda v: v.isoformat()
-        }
-        use_enum_values = True
+        },
+        use_enum_values=True
+    )
 
 class SixRParameters(SixRParameterBase):
     """6R analysis parameters with metadata."""

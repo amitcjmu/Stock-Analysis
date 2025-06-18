@@ -5,7 +5,7 @@ Pydantic schemas for user registration, approval, and access control.
 
 from typing import Dict, List, Any, Optional
 from datetime import datetime
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict, ValidationInfo
 from enum import Enum
 
 # =========================
@@ -69,15 +69,17 @@ class PasswordChangeRequest(BaseModel):
     new_password: str = Field(..., min_length=8, description="New password (minimum 8 characters)")
     confirm_password: str = Field(..., description="Confirm new password")
     
-    @validator('new_password')
-    def validate_new_password(cls, v):
+    @field_validator('new_password')
+    @classmethod
+    def validate_new_password(cls, v: str) -> str:
         if len(v) < 8:
             raise ValueError('New password must be at least 8 characters long')
         return v
     
-    @validator('confirm_password')
-    def passwords_match(cls, v, values):
-        if 'new_password' in values and v != values['new_password']:
+    @field_validator('confirm_password')
+    @classmethod
+    def passwords_match(cls, v: str, info: ValidationInfo) -> str:
+        if 'new_password' in info.data and v != info.data['new_password']:
             raise ValueError('Passwords do not match')
         return v
 
@@ -104,14 +106,16 @@ class UserRegistrationRequest(BaseModel):
         "weekly_reports": True
     }
     
-    @validator('registration_reason')
-    def validate_registration_reason(cls, v):
+    @field_validator('registration_reason')
+    @classmethod
+    def validate_registration_reason(cls, v: str) -> str:
         if len(v.strip()) < 10:
             raise ValueError('Registration reason must be at least 10 characters')
         return v.strip()
     
-    @validator('organization')
-    def validate_organization(cls, v):
+    @field_validator('organization')
+    @classmethod
+    def validate_organization(cls, v: str) -> str:
         if len(v.strip()) < 2:
             raise ValueError('Organization name must be at least 2 characters')
         return v.strip()
@@ -144,8 +148,9 @@ class UserApprovalRequest(BaseModel):
     client_access: List[ClientAccessRequest] = []
     approval_notes: Optional[str] = Field(None, max_length=1000)
     
-    @validator('client_access')
-    def validate_client_access(cls, v):
+    @field_validator('client_access')
+    @classmethod
+    def validate_client_access(cls, v: List[ClientAccessRequest]) -> List[ClientAccessRequest]:
         if not v:
             raise ValueError('At least one client access must be specified')
         return v
@@ -163,8 +168,9 @@ class UserRejectionRequest(BaseModel):
     user_id: str
     rejection_reason: str = Field(..., min_length=10, max_length=1000)
     
-    @validator('rejection_reason')
-    def validate_rejection_reason(cls, v):
+    @field_validator('rejection_reason')
+    @classmethod
+    def validate_rejection_reason(cls, v: str) -> str:
         if len(v.strip()) < 10:
             raise ValueError('Rejection reason must be at least 10 characters')
         return v.strip()
@@ -282,7 +288,7 @@ class ClientAccessInfo(BaseModel):
     access_count: int = 0
 
 # =========================
-# Audit and Logging Schemas
+# Logging and Monitoring Schemas
 # =========================
 
 class AccessLogEntry(BaseModel):
@@ -311,7 +317,7 @@ class AccessLogResponse(BaseModel):
     page_size: int = 50
 
 # =========================
-# Admin Dashboard Schemas
+# Dashboard and Analytics Schemas
 # =========================
 
 class AdminDashboardStats(BaseModel):
@@ -336,7 +342,7 @@ class SystemHealthStatus(BaseModel):
     last_check: datetime
 
 # =========================
-# Error Response Schemas
+# Generic/Utility Schemas
 # =========================
 
 class ErrorResponse(BaseModel):
@@ -346,10 +352,6 @@ class ErrorResponse(BaseModel):
     error_code: Optional[str] = None
     details: Optional[Dict[str, Any]] = None
 
-# =========================
-# Success Response Schemas
-# =========================
-
 class SuccessResponse(BaseModel):
     """Schema for success responses."""
     status: str = "success"
@@ -357,7 +359,7 @@ class SuccessResponse(BaseModel):
     data: Optional[Dict[str, Any]] = None
 
 # =========================
-# Utility Schemas
+# Pagination and Filtering Schemas
 # =========================
 
 class PaginationParams(BaseModel):

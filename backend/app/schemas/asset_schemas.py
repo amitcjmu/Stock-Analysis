@@ -1,7 +1,7 @@
 """
 Pydantic Schemas for Assets
 """
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Any, Dict
 from uuid import UUID
 from datetime import datetime
@@ -9,16 +9,14 @@ from datetime import datetime
 from app.models.asset import AssetType, AssetStatus, SixRStrategy
 
 class AssetBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True, use_enum_values=True)
+    
     name: str = Field(..., description="The name of the asset.")
     asset_type: AssetType = Field(..., description="The type of the asset.")
     description: Optional[str] = None
     environment: Optional[str] = None
     business_owner: Optional[str] = None
     technical_owner: Optional[str] = None
-
-    class Config:
-        orm_mode = True
-        use_enum_values = True
 
 class AssetCreate(AssetBase):
     pass

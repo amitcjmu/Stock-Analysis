@@ -6,22 +6,23 @@ Pydantic models for user context data.
 
 from typing import Dict, List, Optional, Any
 from uuid import UUID
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 
 class ClientBase(BaseModel):
     """Client account information."""
+    model_config = ConfigDict(from_attributes=True)
+    
     id: UUID
     name: str
     description: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
-
 class EngagementBase(BaseModel):
     """Engagement information."""
+    model_config = ConfigDict(from_attributes=True)
+    
     id: UUID
     name: str
     description: Optional[str] = None
@@ -29,11 +30,10 @@ class EngagementBase(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
-
 class SessionBase(BaseModel):
     """Session information."""
+    model_config = ConfigDict(from_attributes=True)
+    
     id: UUID
     name: str
     description: Optional[str] = None
@@ -44,16 +44,12 @@ class SessionBase(BaseModel):
     updated_at: datetime
     metadata: Optional[Dict[str, Any]] = None
 
-    class Config:
-        from_attributes = True
-
 class UserContext(BaseModel):
     """Complete user context including client, engagement, and session."""
+    model_config = ConfigDict(from_attributes=True)
+    
     user: Dict[str, Any]
     client: Optional[ClientBase] = None
     engagement: Optional[EngagementBase] = None
     session: Optional[SessionBase] = None
     available_sessions: List[SessionBase] = Field(default_factory=list)
-
-    class Config:
-        from_attributes = True

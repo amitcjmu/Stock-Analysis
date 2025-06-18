@@ -5,7 +5,7 @@ Pydantic schemas for client and engagement management with business context.
 
 from typing import Dict, List, Any, Optional, Union
 from datetime import datetime
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict, ValidationInfo
 from enum import Enum
 
 # =========================
@@ -82,8 +82,9 @@ class ClientAccountCreate(BaseModel):
     budget_constraints: Optional[Dict[str, Any]] = None
     timeline_constraints: Optional[Dict[str, Any]] = None
     
-    @validator('account_name')
-    def validate_account_name(cls, v):
+    @field_validator('account_name')
+    @classmethod
+    def validate_account_name(cls, v: str) -> str:
         if len(v.strip()) < 2:
             raise ValueError('Account name must be at least 2 characters')
         return v.strip()
@@ -120,6 +121,8 @@ class ClientAccountUpdate(BaseModel):
 
 class ClientAccountResponse(BaseModel):
     """Schema for client account response."""
+    model_config = ConfigDict(from_attributes=True)
+    
     id: str
     account_name: str
     industry: str
@@ -158,9 +161,6 @@ class ClientAccountResponse(BaseModel):
     total_engagements: int = 0
     active_engagements: int = 0
 
-    class Config:
-        from_attributes = True
-
 # =========================
 # Engagement Management Schemas
 # =========================
@@ -189,16 +189,18 @@ class EngagementCreate(BaseModel):
     discovery_preferences: Dict[str, Any] = Field(default_factory=dict, description="Discovery phase preferences")
     assessment_criteria: Dict[str, Any] = Field(default_factory=dict, description="Assessment and strategy criteria")
     
-    @validator('engagement_description')
-    def validate_description(cls, v):
+    @field_validator('engagement_description')
+    @classmethod
+    def validate_description(cls, v: str) -> str:
         if len(v.strip()) < 10:
             raise ValueError('Engagement description must be at least 10 characters')
         return v.strip()
     
-    @validator('planned_end_date')
-    def validate_dates(cls, v, values):
-        if v and 'planned_start_date' in values and values['planned_start_date']:
-            if v <= values['planned_start_date']:
+    @field_validator('planned_end_date')
+    @classmethod
+    def validate_dates(cls, v: Optional[datetime], info: ValidationInfo) -> Optional[datetime]:
+        if v and 'planned_start_date' in info.data and info.data['planned_start_date']:
+            if v <= info.data['planned_start_date']:
                 raise ValueError('Planned end date must be after start date')
         return v
 
@@ -234,6 +236,8 @@ class EngagementUpdate(BaseModel):
 
 class EngagementResponse(BaseModel):
     """Schema for engagement response."""
+    model_config = ConfigDict(from_attributes=True)
+    
     id: str
     engagement_name: str
     client_account_id: str
@@ -272,9 +276,6 @@ class EngagementResponse(BaseModel):
     total_sessions: int = 0
     total_assets: int = 0
 
-    class Config:
-        from_attributes = True
-
 # =========================
 # Session Management Schemas
 # =========================
@@ -290,8 +291,9 @@ class SessionCreate(BaseModel):
     import_preferences: Dict[str, Any] = Field(default_factory=dict)
     agent_settings: Dict[str, Any] = Field(default_factory=dict)
     
-    @validator('session_name')
-    def validate_session_name(cls, v):
+    @field_validator('session_name')
+    @classmethod
+    def validate_session_name(cls, v: Optional[str]) -> Optional[str]:
         if v and len(v.strip()) < 2:
             raise ValueError('Session name must be at least 2 characters if provided')
         return v.strip() if v else None
@@ -313,6 +315,8 @@ class SessionUpdate(BaseModel):
 
 class SessionResponse(BaseModel):
     """Schema for session response."""
+    model_config = ConfigDict(from_attributes=True)
+    
     id: str
     engagement_id: str
     session_name: str
@@ -335,9 +339,6 @@ class SessionResponse(BaseModel):
     created_at: datetime
     updated_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True
 
 # =========================
 # Bulk Operations Schemas
@@ -406,6 +407,8 @@ class SessionSearchFilters(BaseModel):
 
 class ClientDashboardStats(BaseModel):
     """Schema for client dashboard statistics."""
+    model_config = ConfigDict(from_attributes=True)
+    
     total_clients: int
     active_clients: int
     clients_by_industry: Dict[str, int]
@@ -413,11 +416,10 @@ class ClientDashboardStats(BaseModel):
     clients_by_cloud_provider: Dict[str, int]
     recent_client_registrations: List[ClientAccountResponse]
 
-    class Config:
-        from_attributes = True
-
 class EngagementDashboardStats(BaseModel):
     """Schema for engagement dashboard statistics."""
+    model_config = ConfigDict(from_attributes=True)
+    
     total_engagements: int
     active_engagements: int
     engagements_by_type: Dict[str, int]
@@ -425,11 +427,10 @@ class EngagementDashboardStats(BaseModel):
     avg_engagement_duration_days: float
     recent_engagements: List[EngagementResponse]
 
-    class Config:
-        from_attributes = True
-
 class SessionDashboardStats(BaseModel):
     """Schema for session dashboard statistics."""
+    model_config = ConfigDict(from_attributes=True)
+    
     total_sessions: int
     active_sessions: int
     sessions_by_type: Dict[str, int]
@@ -437,9 +438,6 @@ class SessionDashboardStats(BaseModel):
     average_completion_time_hours: float
     total_assets_processed: int
     recent_session_activity: List[SessionResponse]
-
-    class Config:
-        from_attributes = True
 
 class UserDashboardStats(BaseModel):
     total_users: int
@@ -472,13 +470,12 @@ class AdminPaginationParams(BaseModel):
 
 class PaginatedResponse(BaseModel):
     """Schema for paginated responses."""
+    model_config = ConfigDict(from_attributes=True)
+    
     items: List[Union[ClientAccountResponse, EngagementResponse, SessionResponse]]
     total_items: int
     total_pages: int
     current_page: int
     page_size: int
     has_next: bool
-    has_previous: bool
-
-    class Config:
-        from_attributes = True 
+    has_previous: bool 
