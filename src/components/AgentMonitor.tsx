@@ -6,55 +6,60 @@ import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 
-type AgentStatus = 'Active' | 'Idle' | 'Error' | 'Offline' | 'Success' | 'Failed' | 'In Progress' | 'Healthy' | 'Warning' | 'Critical';
-
-interface MemoryUsage {
-  current: number;
-  peak: number;
-}
-
-interface Performance {
-  success_rate: number;
-}
-
-interface Agent {
-  id: string;
-  name: string;
-  status: AgentStatus;
-  current_task?: string;
-  last_active: string;
-  memory_usage: MemoryUsage;
-  performance: Performance;
-}
-
-interface SystemHealth {
-  status: AgentStatus;
-  issues: string[];
-}
-
-interface Metrics {
-  active_agents: number;
-  total_agents: number;
-  total_tasks_completed: number;
-  average_success_rate: number;
-  system_health: SystemHealth;
-}
-
-interface Activity {
-  agent_name: string;
-  action: string;
-  timestamp: string;
-  status: AgentStatus;
-}
-
-interface MonitorData {
-  metrics: Metrics;
-  agents: Agent[];
-  recent_activities: Activity[];
+interface AgentMonitorResponse {
+  success: boolean;
+  data: {
+    timestamp: string;
+    system_status: string;
+    active_agents: {
+      total: number;
+      active: number;
+      idle: number;
+      error: number;
+    };
+    crew_status: {
+      [key: string]: {
+        status: string;
+        progress: number;
+        agents: string[];
+        last_activity: string | null;
+      };
+    };
+    performance_metrics: {
+      avg_response_time: number;
+      success_rate: number;
+      total_tasks_completed: number;
+      tasks_in_progress: number;
+      failed_tasks: number;
+    };
+    recent_activities: Array<{
+      timestamp: string;
+      agent: string;
+      action: string;
+      status: string;
+      details: string;
+    }>;
+    resource_usage: {
+      cpu_usage: number;
+      memory_usage: number;
+      api_calls_per_minute: number;
+      tokens_consumed: number;
+    };
+    alerts: Array<{
+      severity: string;
+      message: string;
+    }>;
+    context: {
+      client_id: string | null;
+      engagement_id: string | null;
+      user_id: string | null;
+    };
+  };
+  message: string;
 }
 
 const AgentMonitor = () => {
-  const { data, isLoading, isError, error } = useAgentMonitor<MonitorData>();
+  const { data, isLoading, isError, error } = useAgentMonitor();
 
   if (isLoading) {
     return (
@@ -78,54 +83,54 @@ const AgentMonitor = () => {
     );
   }
 
-  const getStatusColor = (status: AgentStatus): string => {
-    const colors: Record<AgentStatus, string> = {
-      'Active': 'bg-green-100 text-green-800',
-      'Idle': 'bg-yellow-100 text-yellow-800',
-      'Error': 'bg-red-100 text-red-800',
-      'Offline': 'bg-gray-100 text-gray-800',
-      'Success': 'bg-green-100 text-green-800',
-      'Failed': 'bg-red-100 text-red-800',
-      'In Progress': 'bg-blue-100 text-blue-800',
-      'Healthy': 'bg-green-100 text-green-800',
-      'Warning': 'bg-yellow-100 text-yellow-800',
-      'Critical': 'bg-red-100 text-red-800'
+  if (!data?.success || !data?.data) {
+    return (
+      <div className="p-8">
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <p>No agent monitoring data available</p>
+        </Alert>
+      </div>
+    );
+  }
+
+  const monitorData = data.data;
+
+  const getStatusColor = (status: string): string => {
+    const colors: Record<string, string> = {
+      'active': 'bg-green-100 text-green-800',
+      'idle': 'bg-yellow-100 text-yellow-800',
+      'error': 'bg-red-100 text-red-800',
+      'pending': 'bg-blue-100 text-blue-800',
+      'healthy': 'bg-green-100 text-green-800',
+      'success': 'bg-green-100 text-green-800',
+      'completed': 'bg-green-100 text-green-800',
+      'failed': 'bg-red-100 text-red-800',
+      'warning': 'bg-yellow-100 text-yellow-800'
     };
-    return colors[status] || 'bg-gray-100 text-gray-800';
+    return colors[status.toLowerCase()] || 'bg-gray-100 text-gray-800';
   };
 
-  const formatBytes = (bytes: number) => {
-    const units = ['B', 'KB', 'MB', 'GB'];
-    let value = bytes;
-    let unitIndex = 0;
-    
-    while (value >= 1024 && unitIndex < units.length - 1) {
-      value /= 1024;
-      unitIndex++;
-    }
-    
-    return `${value.toFixed(1)} ${units[unitIndex]}`;
-  };
-
-  const formatTime = (timestamp: string) => {
+  const formatTime = (timestamp: string | null) => {
+    if (!timestamp) return 'Never';
     return new Date(timestamp).toLocaleTimeString();
   };
 
-  const getAlertVariant = (status: AgentStatus): AlertVariant => {
-    return status === 'Critical' ? 'destructive' : 'warning';
+  const formatPercentage = (value: number) => {
+    return Math.round(value * 100);
   };
 
   return (
     <div className="space-y-6">
       {/* System Health Alert */}
-      {data.metrics.system_health.status !== 'Healthy' && (
-        <Alert variant={getAlertVariant(data.metrics.system_health.status)}>
+      {monitorData.alerts && monitorData.alerts.length > 0 && (
+        <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <div className="ml-2">
-            <p className="font-medium">System Health: {data.metrics.system_health.status}</p>
+            <p className="font-medium">System Alerts</p>
             <ul className="mt-1 text-sm list-disc list-inside">
-              {data.metrics.system_health.issues.map((issue, index) => (
-                <li key={index}>{issue}</li>
+              {monitorData.alerts.map((alert, index) => (
+                <li key={index}>{alert.message}</li>
               ))}
             </ul>
           </div>
@@ -138,7 +143,9 @@ const AgentMonitor = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Active Agents</p>
-              <h3 className="text-2xl font-bold text-gray-900">{data.metrics.active_agents}/{data.metrics.total_agents}</h3>
+              <h3 className="text-2xl font-bold text-gray-900">
+                {monitorData.active_agents.active}/{monitorData.active_agents.total}
+              </h3>
             </div>
             <Bot className="h-8 w-8 text-blue-600" />
           </div>
@@ -148,7 +155,9 @@ const AgentMonitor = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Tasks Completed</p>
-              <h3 className="text-2xl font-bold text-gray-900">{data.metrics.total_tasks_completed}</h3>
+              <h3 className="text-2xl font-bold text-gray-900">
+                {monitorData.performance_metrics.total_tasks_completed}
+              </h3>
             </div>
             <CheckCircle className="h-8 w-8 text-green-600" />
           </div>
@@ -158,7 +167,9 @@ const AgentMonitor = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Success Rate</p>
-              <h3 className="text-2xl font-bold text-gray-900">{data.metrics.average_success_rate}%</h3>
+              <h3 className="text-2xl font-bold text-gray-900">
+                {formatPercentage(monitorData.performance_metrics.success_rate)}%
+              </h3>
             </div>
             <Activity className="h-8 w-8 text-purple-600" />
           </div>
@@ -167,58 +178,56 @@ const AgentMonitor = () => {
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">System Health</p>
-              <h3 className="text-2xl font-bold text-gray-900">{data.metrics.system_health.status}</h3>
+              <p className="text-sm font-medium text-gray-600">System Status</p>
+              <h3 className="text-lg font-bold text-gray-900">{monitorData.system_status}</h3>
             </div>
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(data.metrics.system_health.status)}`}>
-              {data.metrics.system_health.status}
-            </span>
+            <Badge className={getStatusColor(monitorData.system_status)}>
+              {monitorData.system_status}
+            </Badge>
           </div>
         </Card>
       </div>
 
-      {/* Agent Status Grid */}
+      {/* Crew Status Grid */}
       <Card>
         <div className="p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Agent Status</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Crew Status</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {data.agents.map((agent) => (
-              <Card key={agent.id} className="p-4">
+            {Object.entries(monitorData.crew_status).map(([crewName, crew]) => (
+              <Card key={crewName} className="p-4">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h3 className="font-medium text-gray-900">{agent.name}</h3>
-                    <p className="text-sm text-gray-500">ID: {agent.id}</p>
+                    <h3 className="font-medium text-gray-900">
+                      {crewName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </h3>
+                    <p className="text-sm text-gray-500">{crew.agents.length} agents</p>
                   </div>
-                  <Badge className={getStatusColor(agent.status)}>{agent.status}</Badge>
+                  <Badge className={getStatusColor(crew.status)}>{crew.status}</Badge>
                 </div>
 
                 <div className="space-y-3">
-                  {agent.current_task && (
-                    <div className="text-sm">
-                      <span className="text-gray-600">Current Task:</span>
-                      <span className="ml-2">{agent.current_task}</span>
+                  <div>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span>Progress</span>
+                      <span>{crew.progress}%</span>
                     </div>
-                  )}
-
-                  <div className="flex items-center text-sm">
-                    <Clock className="h-4 w-4 text-gray-400 mr-2" />
-                    <span>Last Active: {formatTime(agent.last_active)}</span>
+                    <Progress value={crew.progress} className="h-2" />
                   </div>
 
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Success Rate</span>
-                      <span>{agent.performance.success_rate}%</span>
+                  <div className="text-sm">
+                    <span className="text-gray-600">Agents:</span>
+                    <div className="mt-1">
+                      {crew.agents.map((agent, index) => (
+                        <Badge key={index} variant="outline" className="mr-1 mb-1">
+                          {agent}
+                        </Badge>
+                      ))}
                     </div>
-                    <Progress value={agent.performance.success_rate} />
                   </div>
 
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center">
-                      <Activity className="h-4 w-4 text-gray-400 mr-2" />
-                      <span>Memory Usage</span>
-                    </div>
-                    <span>{formatBytes(agent.memory_usage.current)} / {formatBytes(agent.memory_usage.peak)}</span>
+                  <div className="flex items-center text-sm text-gray-500">
+                    <Clock className="h-4 w-4 mr-1" />
+                    Last activity: {formatTime(crew.last_activity)}
                   </div>
                 </div>
               </Card>
@@ -227,24 +236,51 @@ const AgentMonitor = () => {
         </div>
       </Card>
 
+      {/* Resource Usage */}
+      <Card>
+        <div className="p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Resource Usage</h2>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="text-center">
+              <p className="text-sm text-gray-600 mb-2">CPU Usage</p>
+              <div className="text-2xl font-bold text-gray-900">{monitorData.resource_usage.cpu_usage}%</div>
+              <Progress value={monitorData.resource_usage.cpu_usage} className="h-2 mt-2" />
+            </div>
+            <div className="text-center">
+              <p className="text-sm text-gray-600 mb-2">Memory Usage</p>
+              <div className="text-2xl font-bold text-gray-900">{monitorData.resource_usage.memory_usage}%</div>
+              <Progress value={monitorData.resource_usage.memory_usage} className="h-2 mt-2" />
+            </div>
+            <div className="text-center">
+              <p className="text-sm text-gray-600 mb-2">API Calls/min</p>
+              <div className="text-2xl font-bold text-gray-900">{monitorData.resource_usage.api_calls_per_minute}</div>
+            </div>
+            <div className="text-center">
+              <p className="text-sm text-gray-600 mb-2">Tokens Used</p>
+              <div className="text-2xl font-bold text-gray-900">{monitorData.resource_usage.tokens_consumed.toLocaleString()}</div>
+            </div>
+          </div>
+        </div>
+      </Card>
+
       {/* Recent Activities */}
       <Card>
         <div className="p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activities</h2>
-          <div className="space-y-4">
-            {data.recent_activities.map((activity, index) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="font-medium text-gray-900">{activity.agent_name}</p>
-                  <p className="text-sm text-gray-600">{activity.action}</p>
-                  <p className="text-sm text-gray-500">{formatTime(activity.timestamp)}</p>
+          <div className="space-y-3">
+            {monitorData.recent_activities.map((activity, index) => (
+              <div key={index} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
+                <div className="flex-shrink-0">
+                  <Badge className={getStatusColor(activity.status)}>{activity.status}</Badge>
                 </div>
-                <Badge className={getStatusColor(activity.status)}>
-                  {activity.status === 'Success' && <CheckCircle className="h-4 w-4 mr-1" />}
-                  {activity.status === 'Failed' && <XCircle className="h-4 w-4 mr-1" />}
-                  {activity.status === 'In Progress' && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-                  {activity.status}
-                </Badge>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900">{activity.agent}</p>
+                  <p className="text-sm text-gray-600">{activity.action}</p>
+                  <p className="text-xs text-gray-500">{activity.details}</p>
+                </div>
+                <div className="text-xs text-gray-500">
+                  {formatTime(activity.timestamp)}
+                </div>
               </div>
             ))}
           </div>

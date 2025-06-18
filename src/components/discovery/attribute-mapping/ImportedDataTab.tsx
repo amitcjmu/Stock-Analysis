@@ -11,6 +11,9 @@ import {
 } from 'lucide-react';
 import { apiCall, API_CONFIG } from '../../../config/api';
 import { useToast } from '../../../hooks/use-toast';
+import { useClient } from '../../../contexts/ClientContext';
+import { useEngagement } from '../../../contexts/EngagementContext';
+import { useAuth } from '../../../contexts/AuthContext';
 
 interface ImportedDataTabProps {
   className?: string;
@@ -43,8 +46,11 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { currentClient } = useClient();
+  const { currentEngagement } = useEngagement();
+  const { getAuthHeaders } = useAuth();
 
-  // 🚀 React Query with caching - prevents unnecessary API calls
+  // 🚀 React Query with context-aware caching
   const { 
     data: importResponse, 
     isLoading, 
@@ -52,31 +58,52 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
     isStale,
     refetch
   } = useQuery({
-    queryKey: ['imported-data'],
+    queryKey: ['imported-data', currentClient?.id, currentEngagement?.id],
     queryFn: async () => {
+      const headers = getAuthHeaders();
+      if (currentClient?.id) {
+        headers['X-Client-ID'] = currentClient.id;
+      }
+      if (currentEngagement?.id) {
+        headers['X-Engagement-ID'] = currentEngagement.id;
+      }
+      
       const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.LATEST_IMPORT, {
         method: 'GET',
+        headers
       });
       return response;
     },
-    staleTime: 10 * 60 * 1000, // 10 minutes - data stays fresh for 10 mins
-    gcTime: 30 * 60 * 1000, // 30 minutes - keep in cache for 30 mins
+    enabled: !!currentClient && !!currentEngagement, // Only run query when context is available
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
     retry: 2,
-    refetchOnWindowFocus: false, // Don't refetch when user returns to tab
-    refetchOnMount: false, // Don't refetch if data is still fresh
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   // 🔄 Refresh function that clears both React Query and SQLAlchemy caches
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      // 1. Clear React Query cache for imported data
-      queryClient.removeQueries({ queryKey: ['imported-data'] });
+      // 1. Clear React Query cache for imported data with context
+      queryClient.removeQueries({ 
+        queryKey: ['imported-data', currentClient?.id, currentEngagement?.id] 
+      });
       
-      // 2. Call backend to clear SQLAlchemy cache
+      // 2. Call backend to clear SQLAlchemy cache with context headers
       try {
+        const headers = getAuthHeaders();
+        if (currentClient?.id) {
+          headers['X-Client-ID'] = currentClient.id;
+        }
+        if (currentEngagement?.id) {
+          headers['X-Engagement-ID'] = currentEngagement.id;
+        }
+        
         await apiCall('/api/v1/data-import/clear-cache', {
           method: 'POST',
+          headers
         });
       } catch (cacheError) {
         console.warn('Failed to clear backend cache:', cacheError);
@@ -193,12 +220,23 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
     URL.revokeObjectURL(url);
   };
 
+  if (!currentClient || !currentEngagement) {
+    return (
+      <div className={`bg-white rounded-lg border shadow-sm p-6 ${className}`}>
+        <div className="flex items-center justify-center py-8">
+          <Database className="w-6 h-6 animate-pulse text-blue-500 mr-2" />
+          <span className="text-gray-600">Loading context...</span>
+        </div>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className={`bg-white rounded-lg border shadow-sm p-6 ${className}`}>
         <div className="flex items-center justify-center py-8">
           <Database className="w-6 h-6 animate-pulse text-blue-500 mr-2" />
-          <span className="text-gray-600">Loading imported data...</span>
+          <span className="text-gray-600">Loading imported data for {currentEngagement.name}...</span>
         </div>
       </div>
     );
