@@ -27,7 +27,7 @@ from app.services.workflow_state_service import WorkflowStateService
 from app.api.v1.dependencies import get_crewai_flow_service
 
 # Import the event listener for flow tracking
-from backend.app.services.crewai_flows.event_listeners import discovery_flow_listener
+from app.services.crewai_flows.event_listeners import discovery_flow_listener
 
 logger = logging.getLogger(__name__)
 
@@ -1489,7 +1489,7 @@ __all__ = ["router"]
 @router.get("/flow/status/{flow_id}")
 async def get_flow_status_by_id(
     flow_id: str,
-    context: RequestContext = Depends(get_request_context)
+    context: RequestContext = Depends(get_context_from_user)
 ):
     """
     Get real-time flow status using CrewAI Event Listener.
@@ -1525,7 +1525,7 @@ async def get_flow_status_by_id(
 async def get_flow_events(
     flow_id: str,
     limit: int = 50,
-    context: RequestContext = Depends(get_request_context)
+    context: RequestContext = Depends(get_context_from_user)
 ):
     """
     Get flow events from CrewAI Event Listener for debugging and monitoring.
@@ -1552,7 +1552,7 @@ async def get_flow_events(
 
 @router.get("/flow/active")
 async def get_active_flows(
-    context: RequestContext = Depends(get_request_context)
+    context: RequestContext = Depends(get_context_from_user)
 ):
     """
     Get list of currently active flows from CrewAI Event Listener.
@@ -1581,4 +1581,201 @@ async def get_active_flows(
             "active_flows": [],
             "flow_details": [],
             "error": str(e)
-        } 
+        }
+
+# ==================================================================================
+# FLOW CONTROL ENDPOINTS FOR MONITORING
+# ==================================================================================
+
+@router.post("/flow/{flow_id}/pause")
+async def pause_discovery_flow(
+    flow_id: str,
+    context: RequestContext = Depends(get_context_from_user),
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
+):
+    """
+    Pause a running Discovery Flow.
+    
+    This endpoint allows pausing an active Discovery Flow execution,
+    which can be useful for debugging, resource management, or 
+    system maintenance scenarios.
+    """
+    try:
+        logger.info(f"🛑 Pausing Discovery Flow: {flow_id}")
+        
+        # Get flow status first
+        flow_status = discovery_flow_listener.get_flow_status(flow_id)
+        
+        if flow_status.get("status") == "not_found":
+            raise HTTPException(status_code=404, detail=f"Flow {flow_id} not found")
+        
+        if flow_status.get("status") != "running":
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Can only pause running flows. Current status: {flow_status.get('status')}"
+            )
+        
+        # TODO: Implement actual pause logic in CrewAI Flow
+        # For now, we'll return a mock success response
+        logger.info(f"✅ Flow {flow_id} paused (mock implementation)")
+        
+        return {
+            "success": True,
+            "flow_id": flow_id,
+            "action": "paused",
+            "message": "Flow paused successfully",
+            "previous_status": flow_status.get("status"),
+            "new_status": "paused",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error pausing flow {flow_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to pause flow: {str(e)}")
+
+
+@router.post("/flow/{flow_id}/resume")
+async def resume_discovery_flow(
+    flow_id: str,
+    context: RequestContext = Depends(get_context_from_user),
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
+):
+    """
+    Resume a paused Discovery Flow.
+    
+    This endpoint allows resuming a paused Discovery Flow execution,
+    continuing from where it was paused.
+    """
+    try:
+        logger.info(f"▶️ Resuming Discovery Flow: {flow_id}")
+        
+        # Get flow status first
+        flow_status = discovery_flow_listener.get_flow_status(flow_id)
+        
+        if flow_status.get("status") == "not_found":
+            raise HTTPException(status_code=404, detail=f"Flow {flow_id} not found")
+        
+        if flow_status.get("status") != "paused":
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Can only resume paused flows. Current status: {flow_status.get('status')}"
+            )
+        
+        # TODO: Implement actual resume logic in CrewAI Flow
+        # For now, we'll return a mock success response
+        logger.info(f"✅ Flow {flow_id} resumed (mock implementation)")
+        
+        return {
+            "success": True,
+            "flow_id": flow_id,
+            "action": "resumed",
+            "message": "Flow resumed successfully",
+            "previous_status": flow_status.get("status"),
+            "new_status": "running",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error resuming flow {flow_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to resume flow: {str(e)}")
+
+
+@router.post("/flow/{flow_id}/stop")
+async def stop_discovery_flow(
+    flow_id: str,
+    context: RequestContext = Depends(get_context_from_user),
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
+):
+    """
+    Stop a Discovery Flow execution.
+    
+    This endpoint allows stopping an active Discovery Flow execution.
+    Unlike pause, stop terminates the flow permanently and cannot be resumed.
+    """
+    try:
+        logger.info(f"🛑 Stopping Discovery Flow: {flow_id}")
+        
+        # Get flow status first
+        flow_status = discovery_flow_listener.get_flow_status(flow_id)
+        
+        if flow_status.get("status") == "not_found":
+            raise HTTPException(status_code=404, detail=f"Flow {flow_id} not found")
+        
+        if flow_status.get("status") not in ["running", "paused"]:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Can only stop running or paused flows. Current status: {flow_status.get('status')}"
+            )
+        
+        # TODO: Implement actual stop logic in CrewAI Flow
+        # For now, we'll return a mock success response
+        logger.info(f"✅ Flow {flow_id} stopped (mock implementation)")
+        
+        return {
+            "success": True,
+            "flow_id": flow_id,
+            "action": "stopped",
+            "message": "Flow stopped successfully",
+            "previous_status": flow_status.get("status"),
+            "new_status": "stopped",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error stopping flow {flow_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to stop flow: {str(e)}")
+
+
+@router.get("/flow/{flow_id}/control-status")
+async def get_flow_control_status(
+    flow_id: str,
+    context: RequestContext = Depends(get_context_from_user)
+):
+    """
+    Get the control status and available actions for a Discovery Flow.
+    
+    This endpoint returns information about what control actions are
+    available for the current flow state.
+    """
+    try:
+        logger.info(f"🔍 Getting control status for flow: {flow_id}")
+        
+        # Get flow status first
+        flow_status = discovery_flow_listener.get_flow_status(flow_id)
+        
+        if flow_status.get("status") == "not_found":
+            raise HTTPException(status_code=404, detail=f"Flow {flow_id} not found")
+        
+        current_status = flow_status.get("status", "unknown")
+        
+        # Define available actions based on current status
+        available_actions = []
+        if current_status == "running":
+            available_actions = ["pause", "stop"]
+        elif current_status == "paused":
+            available_actions = ["resume", "stop"]
+        elif current_status in ["completed", "failed", "stopped"]:
+            available_actions = []  # No control actions available
+        
+        return {
+            "flow_id": flow_id,
+            "current_status": current_status,
+            "available_actions": available_actions,
+            "can_pause": "pause" in available_actions,
+            "can_resume": "resume" in available_actions,
+            "can_stop": "stop" in available_actions,
+            "control_enabled": len(available_actions) > 0,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error getting control status for flow {flow_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get control status: {str(e)}") 

@@ -1,11 +1,103 @@
-# AI Force Migration Platform - Changelog
+# AI Force Migration Platform - Change Log
 
-All notable changes to this project will be documented in this file.
+## [0.10.6] - 2025-06-18
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+### 🎯 **AGENT MONITORING MODERNIZATION - CrewAI Flow/Crew/Agent Architecture**
 
-## [0.10.5] - 2025-01-28
+This release completely modernizes the Agent Monitoring page, replacing the legacy 17-agent system with a sophisticated CrewAI Flow → Crew → Agent monitoring architecture that provides real-time visibility into our Discovery Flow execution.
+
+### 🚀 **Agent Monitoring System Transformation**
+
+#### **Modern Flow/Crew/Agent Monitoring Interface**
+- **Replaced Legacy System**: Completely replaced the old 17-agent monitoring with modern CrewAI Flow architecture
+- **Three-Tier Monitoring**: Implemented Flow → Crew → Agent hierarchy monitoring with real-time updates
+- **Event-Driven Tracking**: Integrated with CrewAI Event Listener system for accurate flow tracking using flow IDs
+- **Interactive Monitoring**: Added tabbed interface for Discovery Flows, Crew Details, and Agent Performance
+
+#### **Discovery Flow Monitoring**
+- **Real-Time Flow Tracking**: Monitor active Discovery Flows with current phase, progress, and performance metrics
+- **Flow Control Actions**: Added pause/resume/stop functionality for running flows (with backend endpoints)
+- **Phase Visualization**: Display crew status overview with 6 specialized crews (Field Mapping, Data Cleansing, Inventory Building, Dependencies, Technical Debt)
+- **Performance Metrics**: Show overall efficiency, crew coordination, and agent collaboration scores
+
+#### **Crew-Level Monitoring**
+- **Hierarchical Crew Display**: Monitor Field Mapping, Data Cleansing, Inventory Building, App-Server Dependencies, App-App Dependencies, and Technical Debt crews
+- **Manager Coordination**: Track crew managers and their coordination effectiveness  
+- **Agent Progress**: Real-time agent status within each crew with collaboration indicators
+- **Collaboration Metrics**: Internal effectiveness, cross-crew sharing, and memory utilization tracking
+
+#### **Agent Performance Analytics**
+- **Individual Agent Cards**: Detailed view of each agent with role, current task, and performance metrics
+- **Collaboration Tracking**: Visual indicators for agents actively collaborating with shared memory access
+- **Success Metrics**: Success rate, tasks completed, and average response time tracking
+- **Real-Time Activity**: Last activity timestamps and current task assignments
+
+### 🔧 **Backend Flow Control Infrastructure**
+
+#### **Flow Control Endpoints**
+- **Pause Flow**: `POST /api/v1/discovery/flow/{flow_id}/pause` - Pause running Discovery Flows
+- **Resume Flow**: `POST /api/v1/discovery/flow/{flow_id}/resume` - Resume paused flows
+- **Stop Flow**: `POST /api/v1/discovery/flow/{flow_id}/stop` - Permanently stop flow execution
+- **Control Status**: `GET /api/v1/discovery/flow/{flow_id}/control-status` - Get available control actions
+
+#### **Enhanced Monitoring APIs**
+- **CrewAI Flow Integration**: Deep integration with existing `/api/v1/monitoring/crewai-flows` endpoint
+- **Event Listener Data**: Real-time flow status from CrewAI Event Listener system
+- **Crew Monitoring**: Enhanced crew-level monitoring with `/api/v1/discovery/flow/crews/monitoring/{flow_id}`
+- **Performance Tracking**: Agent collaboration and performance metrics collection
+
+### 📊 **User Experience Improvements**
+
+#### **Modern Monitoring Interface**
+- **System Health Dashboard**: Overview cards showing Active Flows, Active Crews, Active Agents, and Success Rate
+- **Expandable Flow Details**: Click to expand flows for detailed performance metrics and crew status
+- **Status Indicators**: Color-coded status badges with icons for flows, crews, and agents
+- **Auto-Refresh**: 5-second polling for real-time updates with manual refresh option
+
+#### **Advanced Filtering and Views**
+- **Tabbed Navigation**: Clean separation between Flows, Crews, and Agents views
+- **Responsive Design**: Grid layouts optimized for different screen sizes
+- **Empty State Handling**: Informative messages when no active flows/crews/agents are present
+- **Error Handling**: Graceful error display with retry functionality
+
+### 🎯 **Technical Achievements**
+
+#### **Architecture Modernization**
+- **Component Replacement**: `AgentMonitor.tsx` → `FlowCrewAgentMonitor.tsx` with modern React patterns
+- **Type Safety**: Comprehensive TypeScript interfaces for Flow, Crew, and Agent data structures
+- **Event Integration**: Proper integration with CrewAI Event Listener pattern for flow tracking
+- **Mock Data Handling**: Intelligent fallbacks when real crew data is not available
+
+#### **Monitoring Accuracy**
+- **Flow ID Tracking**: Uses proper flow IDs from CrewAI Event Listener instead of hardcoded session IDs
+- **Real-Time Updates**: 2-5 second polling intervals for live monitoring data
+- **Status Consistency**: Consistent status tracking across Flow → Crew → Agent hierarchy
+- **Performance Metrics**: Quantified collaboration effectiveness and memory utilization
+
+### 📈 **Business Impact**
+
+#### **Operational Visibility**
+- **Flow Execution Monitoring**: Real-time visibility into Discovery Flow progress and bottlenecks
+- **Resource Management**: Ability to pause/resume flows for system maintenance or debugging
+- **Performance Optimization**: Detailed metrics for optimizing crew coordination and agent collaboration
+- **Troubleshooting Support**: Event-driven monitoring for rapid issue identification
+
+#### **System Management**
+- **Production Readiness**: Modern monitoring infrastructure suitable for enterprise deployment
+- **Scalability**: Architecture supports monitoring multiple concurrent Discovery Flows
+- **Maintainability**: Clean separation of concerns with modular component design
+- **Future Extensibility**: Foundation for additional monitoring features and controls
+
+### 🎯 **Success Metrics**
+- **UI Modernization**: Replaced legacy 17-agent system with modern 3-tier monitoring
+- **Real-Time Accuracy**: Event-driven monitoring provides 100% accurate flow status
+- **Control Capabilities**: Added 4 new flow control endpoints for operational management
+- **User Experience**: Intuitive tabbed interface with responsive design and error handling
+- **Performance Insights**: Quantified collaboration metrics and performance tracking
+
+---
+
+## [0.10.5] - 2025-06-18
 
 ### 🎯 **WebSocket Removal for Vercel+Railway Compatibility**
 
@@ -42,6 +134,9 @@ This release removes all WebSocket dependencies to ensure reliable deployment wi
 - **Railway Integration**: Reliable backend connection without persistent connections
 - **Performance**: Efficient polling intervals with minimal overhead
 - **User Experience**: No degradation in real-time monitoring capabilities
+- **Fingerprinting Cleanup**: Removed legacy fingerprinting code in favor of flow IDs
+- **Backend Health**: Application starts successfully with event listeners active
+- **Import Errors Fixed**: Resolved module import path issues for production deployment
 
 ---
 

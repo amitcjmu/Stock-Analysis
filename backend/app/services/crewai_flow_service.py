@@ -524,39 +524,22 @@ class CrewAIFlowService:
         context: RequestContext
     ) -> Optional[Dict[str, Any]]:
         """
-        Get flow state by session ID or flow fingerprint.
+        Get flow state by session ID or flow ID.
         
         Now supports both:
-        - CrewAI flow fingerprints (primary identifier)
-        - Session IDs (legacy compatibility)
+        - Generated flow IDs (primary identifier from event system)
+        - Session IDs (secondary compatibility)
         """
         try:
-            # Check if the ID is a CrewAI fingerprint or session ID
+            # Check if the ID is a flow ID or session ID
             flow = None
             identifier_type = "unknown"
             
-            # First, try direct lookup (works for both fingerprints and session IDs)
+            # Try direct lookup (works for both flow IDs and session IDs)
             if session_id in self._active_flows:
                 flow = self._active_flows[session_id]
                 identifier_type = "direct_lookup"
                 logger.info(f"Found flow by direct lookup: {session_id}")
-            
-            # If not found, try mapping lookups
-            elif hasattr(self, '_session_fingerprint_map') and session_id in self._session_fingerprint_map:
-                # Session ID -> Fingerprint mapping
-                fingerprint = self._session_fingerprint_map[session_id]
-                if fingerprint in self._active_flows:
-                    flow = self._active_flows[fingerprint]
-                    identifier_type = "session_to_fingerprint"
-                    logger.info(f"Found flow by session->fingerprint mapping: {session_id} -> {fingerprint}")
-            
-            elif hasattr(self, '_fingerprint_session_map') and session_id in self._fingerprint_session_map:
-                # Fingerprint -> Session ID mapping (if someone passed fingerprint as session_id)
-                mapped_session = self._fingerprint_session_map[session_id]
-                if mapped_session in self._active_flows:
-                    flow = self._active_flows[mapped_session]
-                    identifier_type = "fingerprint_to_session"
-                    logger.info(f"Found flow by fingerprint->session mapping: {session_id} -> {mapped_session}")
             
             # If found in active flows, return its state
             if flow:
@@ -585,11 +568,10 @@ class CrewAIFlowService:
                     logger.warning(f"Could not access flow state metadata: {e}")
                     file_info = {'filename': 'Unknown file', 'record_count': 0}
                 
-                # Return comprehensive flow state with fingerprint info
+                # Return comprehensive flow state with event tracking
                 return {
                     "session_id": session_id,
-                    "flow_fingerprint": getattr(flow, 'fingerprint', {}).get('uuid_str', session_id),
-                    "fingerprint_metadata": getattr(flow, 'fingerprint', {}).get('metadata', {}),
+                    "flow_id": session_id,  # Use session_id as flow_id for compatibility
                     "status": flow_status,
                     "current_phase": flow_phase,
                     "progress_percentage": flow_progress,
@@ -639,7 +621,7 @@ class CrewAIFlowService:
                     return {
                         "session_id": session_id,
                         "workflow_id": str(workflow.id),
-                        "flow_fingerprint": getattr(workflow, 'flow_fingerprint', session_id),
+                        "flow_id": session_id,  # Use session_id as flow_id for compatibility
                         "status": workflow.status.value.lower() if workflow.status else "unknown",
                         "current_phase": workflow.current_phase or "unknown",
                         "progress_percentage": workflow.progress_percentage or 0,
@@ -871,38 +853,27 @@ class CrewAIFlowService:
                 metadata=flow_data["metadata"]
             )
             
-            # CRITICAL FIX: Use CrewAI fingerprint as PRIMARY identifier
-            flow_fingerprint = flow.fingerprint.uuid_str
-            logger.info(f"✅ CrewAI Flow fingerprint generated: {flow_fingerprint}")
+            # UPDATED: Use flow ID as PRIMARY identifier (not fingerprint)
+            flow_id = str(uuid.uuid4())  # Generate unique flow ID
+            logger.info(f"✅ Flow ID generated: {flow_id}")
             
-            # Store the flow by BOTH fingerprint (primary) and session_id (legacy compatibility)
-            self._active_flows[flow_fingerprint] = flow  # Primary storage by fingerprint
-            self._active_flows[session_id] = flow        # Legacy compatibility
-            
-            # Create mapping for fingerprint <-> session_id lookup
-            if not hasattr(self, '_fingerprint_session_map'):
-                self._fingerprint_session_map = {}
-            if not hasattr(self, '_session_fingerprint_map'):
-                self._session_fingerprint_map = {}
-            
-            self._fingerprint_session_map[flow_fingerprint] = session_id
-            self._session_fingerprint_map[session_id] = flow_fingerprint
+            # Store the flow by flow_id (primary) and session_id (secondary for compatibility)
+            self._active_flows[flow_id] = flow        # Primary storage by flow_id
+            self._active_flows[session_id] = flow     # Secondary for legacy compatibility
             
             # Start the flow execution in background
             asyncio.create_task(self._run_redesigned_flow_background(flow, context))
             
-            # Return immediate response with FLOW FINGERPRINT as primary ID
+            # Return immediate response with FLOW ID as primary identifier
             return {
                 "status": "flow_started",
-                "flow_id": flow_fingerprint,      # PRIMARY: CrewAI fingerprint
-                "flow_fingerprint": flow_fingerprint,  # Explicit fingerprint
+                "flow_id": flow_id,               # PRIMARY: Generated flow ID
                 "session_id": session_id,         # SECONDARY: User session ID  
                 "architecture": "redesigned_with_crews",
                 "next_phase": "field_mapping",
                 "discovery_plan": getattr(flow.state, 'overall_plan', {}),
                 "crew_coordination": getattr(flow.state, 'crew_coordination', {}),
-                "fingerprint_metadata": flow.fingerprint.metadata,
-                "message": "Redesigned Discovery Flow started with CrewAI fingerprinting"
+                "message": "Redesigned Discovery Flow started with event tracking"
             }
             
         except Exception as e:

@@ -70,9 +70,9 @@ logger = logging.getLogger(__name__)
 
 # CrewAI Event Listener Integration
 # Following https://docs.crewai.com/concepts/event-listener#properly-registering-your-listener
-import backend.app.services.crewai_flows.event_listeners  # This loads the event listener
+import app.services.crewai_flows.event_listeners  # This loads the event listener
 
-from backend.app.services.crewai_flows.event_listeners import discovery_flow_listener
+from app.services.crewai_flows.event_listeners import discovery_flow_listener
 
 class DiscoveryFlowRedesigned(Flow[DiscoveryFlowState], PlanningMixin):
     """
@@ -115,7 +115,7 @@ class DiscoveryFlowRedesigned(Flow[DiscoveryFlowState], PlanningMixin):
         # Setup components through handlers
         self._setup_components()
         
-        logger.info(f"Discovery Flow Redesigned initialized: {self.fingerprint.uuid_str}")
+        logger.info(f"Discovery Flow Redesigned initialized: {self.flow_id}")
     
     def _setup_components(self):
         """Setup all flow components through handlers"""
@@ -177,13 +177,8 @@ class DiscoveryFlowRedesigned(Flow[DiscoveryFlowState], PlanningMixin):
         # Setup Memory Analytics for Task 35
         self.memory_analytics = self._setup_memory_analytics()
         
-        # Setup fingerprint and sessions
-        self.fingerprint = self.initialization_handler.setup_fingerprint(
-            self._init_session_id, 
-            self._init_client_account_id, 
-            self._init_engagement_id,
-            self._init_raw_data
-        )
+        # Setup flow ID for event tracking (replaces fingerprinting)
+        self.flow_id = str(uuid.uuid4())
         
         # Setup database sessions and callbacks
         self.session_handler.setup_database_sessions()
@@ -477,7 +472,7 @@ class DiscoveryFlowRedesigned(Flow[DiscoveryFlowState], PlanningMixin):
             user_id=self._init_user_id,
             raw_data=self._init_raw_data,
             metadata=self._init_metadata,
-            fingerprint=self.fingerprint.uuid_str,
+            flow_id=self.flow_id,
             shared_memory=self.shared_memory
         )
         

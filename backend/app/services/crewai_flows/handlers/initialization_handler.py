@@ -153,7 +153,7 @@ class InitializationHandler:
     
     def initialize_flow_state(self, session_id: str, client_account_id: str, 
                              engagement_id: str, user_id: str, raw_data: List[Dict[str, Any]],
-                             metadata: Dict[str, Any], fingerprint: str, 
+                             metadata: Dict[str, Any], flow_id: str, 
                              shared_memory: Optional[LongTermMemory]) -> Dict[str, Any]:
         """Initialize complete flow state"""
         
@@ -170,7 +170,7 @@ class InitializationHandler:
             "client_account_id": client_account_id,
             "engagement_id": engagement_id,
             "user_id": user_id,
-            "flow_fingerprint": fingerprint,
+            "flow_id": flow_id,
             "raw_data": raw_data,
             "metadata": metadata,
             "created_at": now,
