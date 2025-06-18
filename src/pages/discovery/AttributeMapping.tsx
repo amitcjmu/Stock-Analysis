@@ -217,23 +217,75 @@ const AttributeMapping: React.FC = () => {
     return fieldMappingsData.mappings || [];
   }, [fieldMappingsData, isLoadingFieldMappings]);
 
-  // Mock crew analysis data
+  // Mock crew analysis data with dynamic field count
   const crewAnalysis = [
     {
       agent: 'Field Mapping Agent',
       task: 'Analyze field mappings',
-      findings: ['Found 18 potential field mappings', 'High confidence on technical fields'],
+      findings: [
+        `Found ${fieldMappingsData?.mappings?.length || 0} potential field mappings`, 
+        'High confidence on technical fields'
+      ],
       recommendations: ['Review business fields manually', 'Approve technical mappings'],
       confidence: 0.85
     }
   ];
 
   // Transform critical attributes to match component interface
-  const transformedCriticalAttributes = criticalAttributesData?.attributes?.map(attr => ({
-    ...attr,
-    mapping_type: (attr.mapping_type as 'direct' | 'calculated' | 'manual' | 'derived') || undefined,
-    business_impact: attr.business_impact as 'high' | 'medium' | 'low'
-  })) || [];
+  const transformedCriticalAttributes = useMemo(() => {
+    // First try to use existing critical attributes data
+    if (criticalAttributesData?.attributes && criticalAttributesData.attributes.length > 0) {
+      return criticalAttributesData.attributes.map(attr => ({
+        ...attr,
+        mapping_type: (attr.mapping_type as 'direct' | 'calculated' | 'manual' | 'derived') || undefined,
+        business_impact: attr.business_impact as 'high' | 'medium' | 'low'
+      }));
+    }
+    
+    // If no critical attributes, create them from field mappings
+    if (fieldMappings && fieldMappings.length > 0) {
+      // Define critical migration attributes
+      const criticalFieldMap = {
+        'name': { category: 'identification', required: true, business_impact: 'high' },
+        'hostname': { category: 'identification', required: true, business_impact: 'high' },
+        'asset_type': { category: 'technical', required: true, business_impact: 'high' },
+        'operating_system': { category: 'technical', required: true, business_impact: 'medium' },
+        'ip_address': { category: 'network', required: true, business_impact: 'medium' },
+        'environment': { category: 'environment', required: true, business_impact: 'high' },
+        'business_owner': { category: 'business', required: true, business_impact: 'high' },
+        'cpu_cores': { category: 'technical', required: false, business_impact: 'medium' },
+        'memory_gb': { category: 'technical', required: false, business_impact: 'medium' },
+        'storage_gb': { category: 'technical', required: false, business_impact: 'medium' },
+        'location': { category: 'environment', required: false, business_impact: 'medium' },
+        'department': { category: 'business', required: false, business_impact: 'low' }
+      };
+      
+      return Object.entries(criticalFieldMap).map(([fieldName, config]) => {
+        const relatedMapping = fieldMappings.find(mapping => 
+          mapping.targetAttribute.toLowerCase() === fieldName.toLowerCase()
+        );
+        
+        return {
+          name: fieldName,
+          description: `Critical attribute: ${fieldName.replace('_', ' ')}`,
+          category: config.category,
+          required: config.required,
+          status: relatedMapping ? 'mapped' as const : 'unmapped' as const,
+          mapped_to: relatedMapping?.sourceField,
+          source_field: relatedMapping?.sourceField,
+          confidence: relatedMapping?.confidence,
+          quality_score: relatedMapping ? Math.round((relatedMapping.confidence || 0) * 100) : 0,
+          completeness_percentage: relatedMapping ? 100 : 0,
+          mapping_type: relatedMapping?.mapping_type as 'direct' | 'calculated' | 'manual' | 'derived' | undefined,
+          ai_suggestion: relatedMapping?.ai_reasoning || `AI analysis needed for ${fieldName}`,
+          business_impact: config.business_impact as 'high' | 'medium' | 'low',
+          migration_critical: config.required
+        };
+      });
+    }
+    
+    return [];
+  }, [criticalAttributesData, fieldMappings]);
 
   // Render tab content based on active tab
   const renderTabContent = () => {
@@ -258,7 +310,7 @@ const AttributeMapping: React.FC = () => {
           />
         );
       case 'progress':
-        return <TrainingProgressTab />;
+        return <TrainingProgressTab fieldMappings={fieldMappings} />;
       default:
         return (
           <FieldMappingsTab
