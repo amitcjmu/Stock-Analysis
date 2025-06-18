@@ -40,17 +40,29 @@ async def get_agentic_critical_attributes(
         if not context.client_account_id or not context.engagement_id:
             logger.warning(f"Missing context information: client={context.client_account_id}, engagement={context.engagement_id}")
             return {
-                "critical_attributes": [],
+                "attributes": [],
                 "statistics": {
                     "total_attributes": 0,
                     "mapped_count": 0,
+                    "pending_count": 0,
+                    "unmapped_count": 0,
                     "migration_critical_count": 0,
-                    "avg_quality_score": 0,
+                    "migration_critical_mapped": 0,
                     "overall_completeness": 0,
+                    "avg_quality_score": 0,
                     "assessment_ready": False
                 },
-                "message": "Missing client or engagement context. Please ensure you're accessing from a valid session.",
-                "agentic_analysis": "context_missing"
+                "recommendations": {
+                    "next_priority": "Missing client or engagement context",
+                    "assessment_readiness": "Please ensure you're accessing from a valid session",
+                    "quality_improvement": "Valid session required for analysis"
+                },
+                "agent_status": {
+                    "discovery_flow_active": False,
+                    "field_mapping_crew_status": "context_missing",
+                    "learning_system_status": "unavailable"
+                },
+                "last_updated": datetime.utcnow().isoformat()
             }
         
         import_query = select(DataImport).where(
@@ -67,17 +79,29 @@ async def get_agentic_critical_attributes(
         if not data_import:
             logger.warning("No processed data import found")
             return {
-                "critical_attributes": [],
+                "attributes": [],
                 "statistics": {
                     "total_attributes": 0,
                     "mapped_count": 0,
+                    "pending_count": 0,
+                    "unmapped_count": 0,
                     "migration_critical_count": 0,
-                    "avg_quality_score": 0,
+                    "migration_critical_mapped": 0,
                     "overall_completeness": 0,
+                    "avg_quality_score": 0,
                     "assessment_ready": False
                 },
-                "message": "No processed data import found. Please import CMDB data first.",
-                "agentic_analysis": "not_available"
+                "recommendations": {
+                    "next_priority": "No processed data import found. Please import CMDB data first.",
+                    "assessment_readiness": "Please import CMDB data first.",
+                    "quality_improvement": "Please import CMDB data first."
+                },
+                "agent_status": {
+                    "discovery_flow_active": False,
+                    "field_mapping_crew_status": "not_available",
+                    "learning_system_status": "unavailable"
+                },
+                "last_updated": datetime.utcnow().isoformat()
             }
         
         logger.info(f"✅ Found import: {data_import.id}, status: {data_import.status}")
@@ -106,16 +130,29 @@ async def get_agentic_critical_attributes(
         statistics = analysis_result.get("statistics", {
             "total_attributes": 0,
             "mapped_count": 0,
+            "pending_count": 0,
+            "unmapped_count": 0,
             "migration_critical_count": 0,
-            "avg_quality_score": 0,
+            "migration_critical_mapped": 0,
             "overall_completeness": 0,
+            "avg_quality_score": 0,
             "assessment_ready": False
         })
         
         # Format response for frontend
         return {
-            "critical_attributes": attributes_analyzed,
+            "attributes": attributes_analyzed,
             "statistics": statistics,
+            "recommendations": {
+                "next_priority": analysis_result.get("recommendation", "Continue with migration planning"),
+                "assessment_readiness": "Field analysis completed with enhanced patterns",
+                "quality_improvement": f"Analyzed {len(attributes_analyzed)} fields for migration planning"
+            },
+            "agent_status": {
+                "discovery_flow_active": False,
+                "field_mapping_crew_status": "completed_fallback",
+                "learning_system_status": "ready"
+            },
             "analysis_summary": {
                 "crew_execution": analysis_result.get("crew_execution", "unknown"),
                 "analysis_result": analysis_result.get("analysis_result", "Analysis completed"),
@@ -123,25 +160,35 @@ async def get_agentic_critical_attributes(
                 "total_fields_analyzed": analysis_result.get("total_fields_analyzed", len(attributes_analyzed)),
                 "migration_critical_identified": analysis_result.get("migration_critical_identified", statistics.get("migration_critical_count", 0))
             },
-            "agentic_analysis": "completed",
-            "timestamp": datetime.utcnow().isoformat()
+            "last_updated": datetime.utcnow().isoformat()
         }
         
     except Exception as e:
         logger.error(f"Agentic critical attributes analysis failed: {e}")
         return {
-            "critical_attributes": [],
+            "attributes": [],
             "statistics": {
                 "total_attributes": 0,
                 "mapped_count": 0,
+                "pending_count": 0,
+                "unmapped_count": 0,
                 "migration_critical_count": 0,
-                "avg_quality_score": 0,
+                "migration_critical_mapped": 0,
                 "overall_completeness": 0,
+                "avg_quality_score": 0,
                 "assessment_ready": False
             },
-            "error": str(e),
-            "agentic_analysis": "failed",
-            "timestamp": datetime.utcnow().isoformat()
+            "recommendations": {
+                "next_priority": f"Analysis failed: {str(e)}",
+                "assessment_readiness": "Please try again or contact support",
+                "quality_improvement": "System error occurred during analysis"
+            },
+            "agent_status": {
+                "discovery_flow_active": False,
+                "field_mapping_crew_status": "failed",
+                "learning_system_status": "error"
+            },
+            "last_updated": datetime.utcnow().isoformat()
         }
 
 
@@ -568,7 +615,21 @@ async def _fallback_field_analysis(data_import: DataImport, db: AsyncSession) ->
         return {
             "crew_execution": "fallback_no_data",
             "analysis_result": "No field mappings available for analysis",
-            "recommendation": "Import CMDB data first, then try agent analysis"
+            "total_fields_analyzed": 0,
+            "migration_critical_identified": 0,
+            "recommendation": "Import CMDB data first, then try agent analysis",
+            "attributes_analyzed": [],
+            "statistics": {
+                "total_attributes": 0,
+                "mapped_count": 0,
+                "pending_count": 0,
+                "unmapped_count": 0,
+                "migration_critical_count": 0,
+                "migration_critical_mapped": 0,
+                "overall_completeness": 0,
+                "avg_quality_score": 0,
+                "assessment_ready": False
+            }
         }
     
     # Enhanced intelligent field analysis using migration patterns
@@ -674,7 +735,10 @@ async def _fallback_field_analysis(data_import: DataImport, db: AsyncSession) ->
         "statistics": {
             "total_attributes": total_attributes,
             "mapped_count": mapped_count,
+            "pending_count": 0,  # All attributes are processed in fallback
+            "unmapped_count": 0,  # All attributes are mapped in this analysis
             "migration_critical_count": migration_critical_count,
+            "migration_critical_mapped": migration_critical_count,  # All critical attrs are mapped
             "avg_quality_score": avg_quality_score,
             "overall_completeness": overall_completeness,
             "assessment_ready": assessment_ready
