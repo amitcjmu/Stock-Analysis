@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 
 // CrewAI Discovery Flow Integration
-import { useDiscoveryWebSocket } from '../../hooks/useDiscoveryWebSocket';
+import useDiscoveryWebSocket from '../../hooks/useDiscoveryWebSocket';
 import { useDiscoveryFlowState } from '../../hooks/useDiscoveryFlowState';
 
 // Components

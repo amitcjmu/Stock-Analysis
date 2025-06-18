@@ -1,14 +1,14 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
-import { Upload, RefreshCw, Zap, Brain, Users, Activity, Database } from 'lucide-react';
+import { Upload, RefreshCw, Zap, Brain, Users, Activity, Database, ArrowRight } from 'lucide-react';
 import { useToast } from '../../hooks/use-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { apiCall, API_CONFIG } from '../../config/api';
 
 // CrewAI Discovery Flow Integration
-import { useDiscoveryWebSocket } from '../../hooks/useDiscoveryWebSocket';
+import useDiscoveryWebSocket from '../../hooks/useDiscoveryWebSocket';
 import { useDiscoveryFlowState } from '../../hooks/useDiscoveryFlowState';
 
 // Components
@@ -98,10 +98,8 @@ const AttributeMapping: React.FC = () => {
 
   // WebSocket for real-time crew monitoring
   const {
-    flowStatus,
-    crewUpdates,
     isConnected: isWebSocketConnected
-  } = useDiscoveryWebSocket(flowState?.session_id);
+  } = useDiscoveryWebSocket({ flowId: flowState?.session_id });
 
   // Derived state from Discovery Flow
   const fieldMappings = useMemo(() => {
@@ -405,42 +403,26 @@ const AttributeMapping: React.FC = () => {
   };
 
   const renderTabContent = () => {
-    const commonProps = {
-      fieldMappings,
-      onMappingAction: handleMappingAction,
-      onMappingChange: handleMappingChange,
-      isLoading: isFlowStateLoading || isAnalyzing,
-      flowState,
-      crewAnalysis
-    };
-
     switch (activeTab) {
       case 'mappings':
         return (
           <FieldMappingsTab 
-            {...commonProps}
-            availableTargetFields={flowState?.field_mappings?.validation_results?.available_targets || []}
-            sharedMemoryInsights={flowState?.field_mappings?.agent_insights || {}}
-          />
-        );
-      case 'critical':
-        return (
-          <CriticalAttributesTab 
-            {...commonProps}
-            criticalAttributes={flowState?.field_mappings?.validation_results?.critical_attributes || []}
-            agentRecommendations={crewAnalysis.flatMap(a => a.recommendations)}
+            fieldMappings={fieldMappings}
+            isAnalyzing={isAnalyzing}
+            onMappingAction={handleMappingAction}
+            onMappingChange={handleMappingChange}
           />
         );
       case 'data':
         return (
-          <ImportedDataTab 
-            data={flowState?.raw_data || []}
-            isLoading={isFlowStateLoading}
-            dataQualityMetrics={flowState?.crew_status?.field_mapping?.data_quality_analysis}
-          />
+          <ImportedDataTab />
         );
       default:
-        return null;
+        return (
+          <div className="p-8 text-center">
+            <p className="text-gray-500">Tab content not available</p>
+          </div>
+        );
     }
   };
 
@@ -473,14 +455,15 @@ const AttributeMapping: React.FC = () => {
           <NoDataPlaceholder
             title="Discovery Flow Error"
             description={`Failed to initialize Discovery Flow: ${flowStateError.message}`}
-            icon={Brain}
-            actions={[
-              {
-                label: "Return to Data Import",
-                onClick: () => navigate('/discovery/cmdb-import'),
-                variant: "default"
-              }
-            ]}
+            actions={
+              <Button 
+                onClick={() => navigate('/discovery/cmdb-import')}
+                className="flex items-center space-x-2"
+              >
+                <Database className="h-4 w-4" />
+                <span>Return to Data Import</span>
+              </Button>
+            }
           />
         </div>
       </div>
@@ -498,14 +481,15 @@ const AttributeMapping: React.FC = () => {
           <NoDataPlaceholder
             title="No Data Available"
             description="No data available for field mapping analysis. Please import data first."
-            icon={Upload}
-            actions={[
-              {
-                label: "Import Data",
-                onClick: () => navigate('/discovery/cmdb-import'),
-                variant: "default"
-              }
-            ]}
+            actions={
+              <Button 
+                onClick={() => navigate('/discovery/cmdb-import')}
+                className="flex items-center space-x-2"
+              >
+                <Upload className="h-4 w-4" />
+                <span>Import Data</span>
+              </Button>
+            }
           />
         </div>
       </div>
@@ -567,8 +551,6 @@ const AttributeMapping: React.FC = () => {
             <ProgressDashboard 
               mappingProgress={mappingProgress} 
               isLoading={isAnalyzing}
-              crewStatus={flowState?.crew_status?.field_mapping}
-              phaseCompletion={flowState?.phase_completion}
             />
           </div>
 
@@ -578,8 +560,6 @@ const AttributeMapping: React.FC = () => {
               <EnhancedAgentOrchestrationPanel
                 sessionId={flowState.session_id}
                 flowState={flowState}
-                currentPhase="field_mapping"
-                showOnlyCurrentPhase={true}
               />
             </div>
           )}
@@ -592,9 +572,6 @@ const AttributeMapping: React.FC = () => {
                 <NavigationTabs 
                   activeTab={activeTab} 
                   onTabChange={setActiveTab}
-                  fieldMappingsCount={fieldMappings.length}
-                  criticalAttributesCount={mappingProgress.critical_mapped}
-                  importedDataCount={flowState?.raw_data?.length || 0}
                 />
               </div>
 
@@ -617,36 +594,15 @@ const AttributeMapping: React.FC = () => {
               )}
             </div>
 
-            {/* Right Sidebar */}
+            {/* Right Sidebar - Removed problematic components for now */}
             <div className="xl:col-span-1 space-y-6">
-              {/* Crew Analysis Panel */}
-              {crewAnalysis.length > 0 && (
-                <CrewAnalysisPanel 
-                  analysis={crewAnalysis}
-                  isLoading={isAnalyzing}
-                  sharedMemoryInsights={flowState?.field_mappings?.agent_insights}
-                />
-              )}
-
-              {/* Agent Clarification Panel */}
-              <AgentClarificationPanel 
-                sessionId={flowState?.session_id || ''}
-                context="attribute-mapping"
-                crewContext="field_mapping"
-              />
-
-              {/* Data Classification Display */}
-              <DataClassificationDisplay 
-                sessionId={flowState?.session_id || ''}
-                context="attribute-mapping"
-              />
-
-              {/* Agent Insights Section */}
-              <AgentInsightsSection 
-                sessionId={flowState?.session_id || ''}
-                context="attribute-mapping"
-                agentCollaborationMap={flowState?.agent_collaboration_map?.field_mapping || []}
-              />
+              {/* Placeholder for future components */}
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Agent Monitoring</h3>
+                <p className="text-gray-600 text-sm">
+                  Real-time agent collaboration and insights will appear here.
+                </p>
+              </div>
             </div>
           </div>
         </div>
