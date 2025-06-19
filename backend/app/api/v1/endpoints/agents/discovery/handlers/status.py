@@ -90,10 +90,29 @@ async def _get_dynamic_agent_insights(db: AsyncSession, context: RequestContext)
             total_fields = len(mappings)
             mapping_percentage = (mapped_fields / total_fields * 100) if total_fields > 0 else 0
             
+            # Format for frontend AgentInsightsSection component
+            confidence_score = 0.9 if mapping_percentage > 80 else 0.7
+            confidence_level = "high" if confidence_score > 0.8 else "medium" if confidence_score > 0.6 else "low"
+            
             insights.append({
+                "id": f"field-mapping-{datetime.utcnow().timestamp()}",
+                "agent_id": "field-mapping-expert", 
+                "agent_name": "Field Mapping Expert",
+                "insight_type": "migration_readiness",
+                "title": "Field Mapping Progress",
+                "description": f"{mapped_fields} of {total_fields} fields mapped ({mapping_percentage:.0f}% completion)",
+                "confidence": confidence_level,
+                "supporting_data": {
+                    "mapped_fields": mapped_fields,
+                    "total_fields": total_fields,
+                    "percentage": mapping_percentage
+                },
+                "actionable": mapping_percentage < 100,
+                "page": "attribute-mapping",
+                "created_at": datetime.utcnow().isoformat(),
+                # Keep original format for backward compatibility
                 "agent": "Field Mapping Expert",
                 "insight": f"{mapped_fields} of {total_fields} fields mapped ({mapping_percentage:.0f}% completion)",
-                "confidence": 0.9 if mapping_percentage > 80 else 0.7,
                 "priority": "high" if mapping_percentage < 50 else "medium",
                 "timestamp": datetime.utcnow().isoformat(),
                 "data_source": "actual_import_analysis"
@@ -101,10 +120,27 @@ async def _get_dynamic_agent_insights(db: AsyncSession, context: RequestContext)
         
         # Data Quality Analysis
         quality_score = (latest_import.processed_records / latest_import.total_records * 100) if latest_import.total_records > 0 else 0
+        quality_confidence = "high" if quality_score > 90 else "medium" if quality_score > 70 else "low"
+        
         insights.append({
+            "id": f"data-quality-{datetime.utcnow().timestamp()}",
+            "agent_id": "data-quality-analyst",
+            "agent_name": "Data Quality Analyst", 
+            "insight_type": "quality_assessment",
+            "title": "Data Processing Quality",
+            "description": f"{latest_import.processed_records} of {latest_import.total_records} records processed successfully ({quality_score:.0f}% quality)",
+            "confidence": quality_confidence,
+            "supporting_data": {
+                "processed_records": latest_import.processed_records,
+                "total_records": latest_import.total_records,
+                "quality_score": quality_score
+            },
+            "actionable": quality_score < 90,
+            "page": "attribute-mapping",
+            "created_at": datetime.utcnow().isoformat(),
+            # Keep original format for backward compatibility
             "agent": "Data Quality Analyst",
             "insight": f"{latest_import.processed_records} of {latest_import.total_records} records processed successfully ({quality_score:.0f}% quality)",
-            "confidence": 0.95,
             "priority": "high" if quality_score < 90 else "medium",
             "timestamp": datetime.utcnow().isoformat(),
             "data_source": "actual_import_quality"
@@ -113,9 +149,24 @@ async def _get_dynamic_agent_insights(db: AsyncSession, context: RequestContext)
         # Asset Classification Readiness
         if latest_import.total_records > 0:
             insights.append({
+                "id": f"asset-classification-{datetime.utcnow().timestamp()}",
+                "agent_id": "asset-classification-specialist",
+                "agent_name": "Asset Classification Specialist",
+                "insight_type": "organizational_patterns", 
+                "title": "Asset Classification Readiness",
+                "description": f"Ready to classify {latest_import.total_records} assets from '{latest_import.import_name}'",
+                "confidence": "high",
+                "supporting_data": {
+                    "total_assets": latest_import.total_records,
+                    "import_name": latest_import.import_name,
+                    "source_file": latest_import.source_filename
+                },
+                "actionable": True,
+                "page": "attribute-mapping",
+                "created_at": datetime.utcnow().isoformat(),
+                # Keep original format for backward compatibility
                 "agent": "Asset Classification Specialist", 
                 "insight": f"Ready to classify {latest_import.total_records} assets from '{latest_import.import_name}'",
-                "confidence": 0.85,
                 "priority": "medium",
                 "timestamp": datetime.utcnow().isoformat(),
                 "data_source": "import_readiness_analysis"
@@ -123,10 +174,26 @@ async def _get_dynamic_agent_insights(db: AsyncSession, context: RequestContext)
         
         # File Analysis Insight
         if latest_import.source_filename:
+            file_size_kb = latest_import.file_size_bytes/1024 if latest_import.file_size_bytes else 0
             insights.append({
+                "id": f"file-analysis-{datetime.utcnow().timestamp()}",
+                "agent_id": "data-source-intelligence",
+                "agent_name": "Data Source Intelligence",
+                "insight_type": "data_volume",
+                "title": "File Analysis Complete",
+                "description": f"Analyzed '{latest_import.source_filename}' - {file_size_kb:.1f}KB data source",
+                "confidence": "high",
+                "supporting_data": {
+                    "filename": latest_import.source_filename,
+                    "file_size_kb": file_size_kb,
+                    "total_records": latest_import.total_records
+                },
+                "actionable": False,
+                "page": "attribute-mapping",
+                "created_at": datetime.utcnow().isoformat(),
+                # Keep original format for backward compatibility
                 "agent": "Data Source Intelligence",
-                "insight": f"Analyzed '{latest_import.source_filename}' - {latest_import.file_size_bytes/1024:.1f}KB data source",
-                "confidence": 0.88,
+                "insight": f"Analyzed '{latest_import.source_filename}' - {file_size_kb:.1f}KB data source",
                 "priority": "low",
                 "timestamp": datetime.utcnow().isoformat(),
                 "data_source": "file_analysis"
@@ -142,17 +209,39 @@ def _get_fallback_agent_insights():
     """Fallback agent insights when no data is available."""
     return [
         {
+            "id": f"discovery-coordinator-{datetime.utcnow().timestamp()}",
+            "agent_id": "discovery-coordinator",
+            "agent_name": "Discovery Coordinator",
+            "insight_type": "data_availability",
+            "title": "Awaiting Data Import",
+            "description": "Waiting for data import to begin analysis",
+            "confidence": "medium",
+            "supporting_data": {"status": "waiting_for_data"},
+            "actionable": True,
+            "page": "attribute-mapping",
+            "created_at": datetime.utcnow().isoformat(),
+            # Keep original format for backward compatibility
             "agent": "Discovery Coordinator",
             "insight": "Waiting for data import to begin analysis",
-            "confidence": 0.6,
             "priority": "low",
             "timestamp": datetime.utcnow().isoformat(),
             "data_source": "fallback_message"
         },
         {
+            "id": f"system-status-{datetime.utcnow().timestamp()}",
+            "agent_id": "system-status",
+            "agent_name": "System Status",
+            "insight_type": "migration_readiness",
+            "title": "System Ready",
+            "description": "All discovery agents ready and standing by",
+            "confidence": "high",
+            "supporting_data": {"agents_ready": True},
+            "actionable": False,
+            "page": "attribute-mapping",
+            "created_at": datetime.utcnow().isoformat(),
+            # Keep original format for backward compatibility
             "agent": "System Status",
             "insight": "All discovery agents ready and standing by",
-            "confidence": 0.9,
             "priority": "medium", 
             "timestamp": datetime.utcnow().isoformat(),
             "data_source": "system_status"

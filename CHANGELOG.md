@@ -1,6 +1,37 @@
 # AI Force Migration Platform - Change Log
 
-## [0.19.6] - 2025-06-19
+## [0.19.7] - 2025-01-03
+
+### 🐛 **UI Responsiveness & Display Fixes**
+
+This release fixes critical user interface issues that were preventing proper real-time updates and data display in the Attribute Mapping page.
+
+### 🚀 **User Interface Improvements**
+
+#### **Field Mappings UI Responsiveness Fix**
+- **Implementation**: Added local state management for mapping approval status in Field Mappings tab
+- **Technology**: React useState with immediate UI updates and error rollback
+- **Integration**: Optimistic UI updates with API call for backend persistence
+- **Benefits**: Instant visual feedback when approving/rejecting field mappings
+
+#### **Agent Insights Display Fix**
+- **Implementation**: Updated backend agent insights API to match frontend component expectations
+- **Technology**: Enhanced data structure with proper field names (title, description, agent_name, confidence)
+- **Integration**: Maintained backward compatibility while adding frontend-compatible format
+- **Benefits**: Agent insights now display meaningful information instead of undefined values
+
+### 📊 **Technical Achievements**
+- **UI Responsiveness**: Field mapping approvals now update immediately in the interface
+- **Data Format Standardization**: Agent insights API now returns proper structure for frontend consumption
+- **Error Handling**: Optimistic updates with automatic rollback on API errors
+- **Backward Compatibility**: Maintained original API fields while adding new frontend-compatible fields
+
+### 🎯 **Success Metrics**
+- **User Experience**: Eliminated UI lag when approving field mappings
+- **Data Display**: Agent insights now show real-time, meaningful information
+- **Error Recovery**: Failed approvals automatically revert UI state with user notification
+
+## [0.19.6] - 2025-01-03
 
 ### 🎯 **FIELD MAPPING APPROVAL SYSTEM** 
 

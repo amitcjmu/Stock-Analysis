@@ -86,6 +86,9 @@ const AttributeMapping: React.FC = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // Track approved/rejected mappings locally to update UI immediately
+  const [mappingStatuses, setMappingStatuses] = useState<Record<string, 'pending' | 'approved' | 'rejected'>>({});
 
   // Use the agentic critical attributes as the primary data source
   const { 
@@ -111,18 +114,21 @@ const AttributeMapping: React.FC = () => {
   const fieldMappings = useMemo(() => {
     if (!agenticData?.attributes) return [];
     
-    return agenticData.attributes.map((attr, index) => ({
-      id: `mapping-${attr.name}-${index}`,
-      sourceField: attr.source_field || attr.mapped_to || attr.name,
-      targetAttribute: attr.name,
-      confidence: attr.confidence || 0.5,
-      mapping_type: (attr.mapping_type as 'direct' | 'calculated' | 'manual') || 'direct',
-      sample_values: [attr.source_field || attr.mapped_to || attr.name].filter(Boolean),
-      status: 'pending' as 'pending' | 'approved' | 'rejected' | 'ignored' | 'deleted',
-      ai_reasoning: attr.ai_suggestion || `${attr.description || 'Field analysis'} (${attr.business_impact || 'medium'} business impact)`,
-      agent_source: 'Agentic Analysis'
-    }));
-  }, [agenticData]);
+    return agenticData.attributes.map((attr, index) => {
+      const mappingId = `mapping-${attr.name}-${index}`;
+      return {
+        id: mappingId,
+        sourceField: attr.source_field || attr.mapped_to || attr.name,
+        targetAttribute: attr.name,
+        confidence: attr.confidence || 0.5,
+        mapping_type: (attr.mapping_type as 'direct' | 'calculated' | 'manual') || 'direct',
+        sample_values: [attr.source_field || attr.mapped_to || attr.name].filter(Boolean),
+        status: mappingStatuses[mappingId] || 'pending' as 'pending' | 'approved' | 'rejected' | 'ignored' | 'deleted',
+        ai_reasoning: attr.ai_suggestion || `${attr.description || 'Field analysis'} (${attr.business_impact || 'medium'} business impact)`,
+        agent_source: 'Agentic Analysis'
+      };
+    });
+  }, [agenticData, mappingStatuses]);
 
   // Create crew analysis from agentic data
   const crewAnalysis = useMemo(() => {
@@ -345,6 +351,12 @@ const AttributeMapping: React.FC = () => {
       return;
     }
 
+    // Immediately update local state for instant UI feedback
+    setMappingStatuses(prev => ({
+      ...prev,
+      [mappingId]: action === 'approve' ? 'approved' : 'rejected'
+    }));
+
     try {
       console.log(`🔧 ${action}ing mapping:`, mapping);
       
@@ -384,13 +396,20 @@ const AttributeMapping: React.FC = () => {
       
     } catch (error) {
       console.error(`❌ Error ${action}ing mapping:`, error);
+      
+      // Revert the local state on error
+      setMappingStatuses(prev => ({
+        ...prev,
+        [mappingId]: 'pending'
+      }));
+      
       toast({
         title: 'Error',
         description: `Failed to ${action} mapping. Please try again.`,
         variant: 'destructive'
       });
     }
-  }, [fieldMappings, user, client, engagement, toast, refetchAgentic, queryClient]);
+  }, [fieldMappings, toast, refetchAgentic, queryClient]);
 
   // Handle mapping changes
   const handleMappingChange = useCallback(async (mappingId: string, newTarget: string) => {
