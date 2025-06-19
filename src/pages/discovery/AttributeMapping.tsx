@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { Upload, RefreshCw, Zap, Brain, Users, Activity, Database, ArrowRight } from 'lucide-react';
@@ -89,6 +89,9 @@ const AttributeMapping: React.FC = () => {
   
   // Track approved/rejected mappings locally to update UI immediately
   const [mappingStatuses, setMappingStatuses] = useState<Record<string, 'pending' | 'approved' | 'rejected'>>({});
+
+  // Track if we've already processed the upload trigger to prevent infinite loops
+  const uploadProcessedRef = useRef(false);
 
   // Use the agentic critical attributes as the primary data source
   const { 
@@ -205,8 +208,18 @@ const AttributeMapping: React.FC = () => {
       const state = location.state as any;
       
       // Check if we're coming from data import with trigger flag
-      if (state?.trigger_discovery_flow && state?.file_id) {
+      if (state?.trigger_discovery_flow && state?.file_id && !uploadProcessedRef.current) {
         console.log('🚀 Triggered from data import, initializing Discovery Flow with uploaded data');
+        console.log('📋 Navigation state:', {
+          file_id: state.file_id,
+          validation_session_id: state.validation_session_id,
+          import_session_id: state.import_session_id,
+          filename: state.filename,
+          upload_context: state.upload_context
+        });
+        
+        // Mark as processed to prevent re-processing
+        uploadProcessedRef.current = true;
         
         try {
           setIsAnalyzing(true);
@@ -219,17 +232,25 @@ const AttributeMapping: React.FC = () => {
           // Get uploaded file data from validation session
           let rawData = [];
           try {
-            // First try to get data from the validation session
-            const validationResponse = await apiCall(`/api/v1/data-import/validation-session/${state.validation_session_id}`);
-            if (validationResponse?.raw_data) {
-              rawData = validationResponse.raw_data;
-              console.log(`✅ Loaded ${rawData.length} records from validation session`);
+            // Only try to get data from validation session if we have a valid session ID
+            if (state.validation_session_id && state.validation_session_id !== 'undefined') {
+              console.log(`📝 Loading data from validation session: ${state.validation_session_id}`);
+              const validationResponse = await apiCall(`/api/v1/data-import/validation-session/${state.validation_session_id}`);
+              if (validationResponse?.raw_data) {
+                rawData = validationResponse.raw_data;
+                console.log(`✅ Loaded ${rawData.length} records from validation session`);
+              }
+            } else {
+              console.log('ℹ️ No valid validation session ID, skipping validation session lookup');
             }
           } catch (error) {
             console.warn('Could not load from validation session, trying latest import:', error);
-            
-            // Fallback to latest import
+          }
+          
+          // If no data from validation session, try latest import as fallback
+          if (rawData.length === 0) {
             try {
+              console.log('📝 Trying to load data from latest import');
               const latestImportResponse = await apiCall('/api/v1/discovery/latest-import');
               rawData = latestImportResponse?.data || [];
               console.log(`✅ Loaded ${rawData.length} records from latest import`);
@@ -311,7 +332,7 @@ const AttributeMapping: React.FC = () => {
     };
     
     handleUploadedData();
-  }, [client, engagement, location.state, initializeFlow, toast, refetchAgentic, agenticData]);
+  }, [client, engagement, initializeFlow, toast, refetchAgentic, agenticData]);
 
   // Manual trigger for field mapping analysis
   const handleTriggerFieldMappingCrew = useCallback(async () => {

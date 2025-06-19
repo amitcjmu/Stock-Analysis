@@ -94,7 +94,8 @@ const DataCleansing: React.FC = () => {
   const {
     flowState,
     isLoading: isFlowStateLoading,
-    error: flowStateError
+    error: flowStateError,
+    executePhase
     // TEMPORARILY DISABLED: initializeFlow, executeDataCleansingCrew, getCrewStatus
   } = useDiscoveryFlowState();
 
@@ -181,7 +182,11 @@ const DataCleansing: React.FC = () => {
         description: "Manager coordinating Quality Expert and Standardization Specialist...",
       });
 
-      await executeDataCleansingCrew(flowState.session_id);
+      await executePhase('data_cleansing', { 
+        session_id: flowState.session_id,
+        raw_data: rawData,
+        field_mappings: flowState.field_mappings
+      });
 
       toast({
         title: "✅ Data Cleansing Crew Complete", 
@@ -197,7 +202,7 @@ const DataCleansing: React.FC = () => {
     } finally {
       setIsAnalyzing(false);
     }
-  }, [flowState, executeDataCleansingCrew, toast]);
+  }, [flowState, executePhase, rawData, toast]);
 
   // Handle fixing an issue
   const handleFixIssue = useCallback(async (issueId: string, fixData: any) => {

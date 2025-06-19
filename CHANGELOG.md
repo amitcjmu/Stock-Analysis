@@ -1,5 +1,51 @@
 # AI Force Migration Platform - Change Log
 
+## [0.20.5] - 2025-01-03
+
+### 🎯 **DATA CLEANSING PAGE ERROR FIX - API Function Reference Correction**
+
+This release resolves a critical ReferenceError in the Data Cleansing page that was preventing the component from loading properly.
+
+### 🚀 **Critical Fix**
+
+#### **ReferenceError Resolution**
+- **Fixed**: `ReferenceError: executeDataCleansingCrew is not defined` in DataCleansing component
+- **Root Cause**: Component was calling `executeDataCleansingCrew` function that was commented out in useDiscoveryFlowState hook
+- **Solution**: Replaced with proper `executePhase('data_cleansing', ...)` API call using available hook functions
+- **Impact**: Data Cleansing page now loads without JavaScript errors and can trigger crew analysis
+
+#### **API Integration Correction**
+- **Updated**: `handleTriggerDataCleansingCrew` function to use `executePhase` with proper parameters
+- **Enhanced**: Data payload includes session_id, raw_data, and field_mappings for proper crew execution
+- **Improved**: Error handling maintains original toast notifications and user feedback
+- **Technical**: Proper dependency management in useCallback hook with correct function references
+
+### 🔧 **Technical Improvements**
+
+#### **Hook Function Alignment**
+- **Corrected**: useDiscoveryFlowState destructuring to include `executePhase` function
+- **Removed**: Reference to non-existent `executeDataCleansingCrew` function
+- **Maintained**: All existing functionality while using correct API surface
+- **Verified**: Build compilation successful with no TypeScript errors
+
+#### **Data Cleansing Crew Integration**
+- **Parameter Structure**: Proper data payload for crew execution with session context
+- **Field Mapping Context**: Includes field_mappings from flow state for crew intelligence
+- **Raw Data Access**: Passes raw_data to crew for quality analysis
+- **Error Recovery**: Maintains robust error handling and user feedback patterns
+
+### 📊 **Business Impact**
+- **Page Accessibility**: Data Cleansing page now loads without blocking JavaScript errors
+- **Crew Functionality**: Users can trigger Data Cleansing Crew analysis with proper parameters
+- **Workflow Continuity**: Discovery Flow progression no longer blocked by component errors
+- **User Experience**: Seamless navigation to Data Cleansing phase without technical barriers
+
+### 🎯 **Success Metrics**
+- **Error Elimination**: 100% resolution of ReferenceError blocking page load
+- **Build Success**: Clean TypeScript compilation with no function reference errors
+- **Crew Integration**: Proper API integration for Data Cleansing Crew execution
+- **Component Stability**: Data Cleansing page stable and functional across navigation flows
+
 ## [0.20.4] - 2025-01-03
 
 ### 🎯 **INFINITE LOOP FIX & DATA PERSISTENCE - Critical Issue Resolution**
