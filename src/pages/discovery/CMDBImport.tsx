@@ -31,6 +31,7 @@ import Sidebar from '../../components/Sidebar';
 import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { DataImportValidationService, ValidationAgentResult } from '@/services/dataImportValidationService';
 
 // Data Import Validation Agents
 interface DataImportAgent {
@@ -39,12 +40,7 @@ interface DataImportAgent {
   role: string;
   icon: any;
   status: 'pending' | 'analyzing' | 'completed' | 'failed';
-  result?: {
-    validation: 'passed' | 'failed' | 'warning';
-    message: string;
-    details: string[];
-    confidence: number;
-  };
+  result?: ValidationAgentResult;
 }
 
 interface UploadFile {
@@ -52,7 +48,7 @@ interface UploadFile {
   filename: string;
   size: number;
   type: string;
-  status: 'uploading' | 'validating' | 'approved' | 'rejected' | 'error';
+  status: 'uploading' | 'validating' | 'approved' | 'rejected' | 'approved_with_warnings' | 'error';
   upload_progress: number;
   validation_progress: number;
   agents_completed: number;
@@ -61,6 +57,8 @@ interface UploadFile {
   privacy_clearance: boolean;
   format_validation: boolean;
   error_message?: string;
+  validation_session_id?: string;
+  agent_results?: ValidationAgentResult[];
 }
 
 // Upload categories for proper data handling
@@ -227,111 +225,115 @@ const DataImport: React.FC = () => {
     setValidationAgents(agents);
 
     try {
-      // Simulate file upload progress
-      for (let progress = 0; progress <= 100; progress += 10) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        setUploadedFiles(prev => prev.map(f => 
-          f.id === uploadFile.id 
-            ? { ...f, upload_progress: progress }
-            : f
-        ));
-      }
-
-      // Start validation process
+      // Update upload progress to show uploading
       setUploadedFiles(prev => prev.map(f => 
         f.id === uploadFile.id 
-          ? { ...f, status: 'validating' }
+          ? { ...f, upload_progress: 50 }
           : f
       ));
 
-      // Execute validation agents sequentially
-      for (let i = 0; i < agents.length; i++) {
-        const agent = agents[i];
+      // Start validation process - call real backend
+      setUploadedFiles(prev => prev.map(f => 
+        f.id === uploadFile.id 
+          ? { ...f, status: 'validating', upload_progress: 100 }
+          : f
+      ));
+
+      // Set all agents to analyzing state
+      setValidationAgents(prev => prev.map(a => ({ ...a, status: 'analyzing' as const })));
+
+      // Call backend validation service
+      const validationResponse = await DataImportValidationService.validateFile(file, categoryId);
+
+      if (validationResponse.success) {
+        // Update agents with real results from backend
+        const backendAgentResults = validationResponse.agent_results;
         
-        // Update agent status to analyzing
-        setValidationAgents(prev => prev.map(a => 
-          a.id === agent.id 
-            ? { ...a, status: 'analyzing' }
-            : a
-        ));
+                 // Map backend results to frontend agent format
+         const updatedAgents: DataImportAgent[] = agents.map(agent => {
+           const backendResult = backendAgentResults.find(r => r.agent_id === agent.id);
+           if (backendResult) {
+             return {
+               ...agent,
+               status: 'completed' as const,
+               result: backendResult
+             };
+           }
+           return { ...agent, status: 'completed' as const };
+         });
 
-        // Simulate agent analysis (in real implementation, this would call backend)
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        setValidationAgents(updatedAgents);
 
-        // Simulate agent result (in real implementation, this would be from backend)
-        const isSuccess = Math.random() > 0.1; // 90% success rate
-        const result = {
-          validation: isSuccess ? 'passed' : (Math.random() > 0.5 ? 'warning' : 'failed'),
-          message: isSuccess 
-            ? `${agent.name} validation passed successfully`
-            : `${agent.name} detected potential issues`,
-          details: isSuccess 
-            ? ['File format valid', 'No security threats detected', 'Data structure correct']
-            : ['File format concerns', 'Review required', 'Manual validation needed'],
-          confidence: isSuccess ? 0.95 : 0.65
-        };
-
-        // Update agent with result
-        setValidationAgents(prev => prev.map(a => 
-          a.id === agent.id 
-            ? { ...a, status: 'completed', result }
-            : a
-        ));
-
-        // Update file progress
+        // Update file with final results
+        const finalStatus = validationResponse.file_status;
         setUploadedFiles(prev => prev.map(f => 
           f.id === uploadFile.id 
             ? { 
                 ...f, 
-                agents_completed: i + 1,
-                validation_progress: Math.round(((i + 1) / agents.length) * 100),
-                security_clearance: agent.id === 'security_scanner' ? isSuccess : f.security_clearance,
-                privacy_clearance: agent.id === 'privacy_analyzer' ? isSuccess : f.privacy_clearance,
-                format_validation: agent.id === 'format_validator' ? isSuccess : f.format_validation
+                status: finalStatus,
+                validation_progress: 100,
+                agents_completed: backendAgentResults.length,
+                security_clearance: validationResponse.security_clearances.security_clearance,
+                privacy_clearance: validationResponse.security_clearances.privacy_clearance,
+                format_validation: validationResponse.security_clearances.format_validation,
+                validation_session_id: validationResponse.validation_session.file_id,
+                agent_results: backendAgentResults
               }
             : f
         ));
-      }
 
-      // Final validation result
-      const allAgentsPassed = agents.every(a => a.result?.validation === 'passed');
-      const hasWarnings = agents.some(a => a.result?.validation === 'warning');
-      
-      const finalStatus = allAgentsPassed ? 'approved' : (hasWarnings ? 'approved' : 'rejected');
-      
-      setUploadedFiles(prev => prev.map(f => 
-        f.id === uploadFile.id 
-          ? { ...f, status: finalStatus }
-          : f
-      ));
-
-      if (finalStatus === 'approved') {
-        toast({
-          title: "✅ Data Import Approved",
-          description: `${file.name} passed all validation checks and is ready for field mapping.`
-        });
+        // Show appropriate toast message
+        if (finalStatus === 'approved') {
+          toast({
+            title: "✅ Data Import Approved",
+            description: `${file.name} passed all validation checks and is ready for field mapping.`
+          });
+        } else if (finalStatus === 'approved_with_warnings') {
+          toast({
+            title: "⚠️ Data Import Approved with Warnings",
+            description: "File validation completed with warnings. Review agent feedback before proceeding.",
+            variant: "default"
+          });
+        } else {
+          toast({
+            title: "❌ Data Import Rejected",
+            description: "File validation failed. Review agent feedback to understand the issues.",
+            variant: "destructive"
+          });
+        }
       } else {
-        toast({
-          title: "⚠️ Data Import Issues Detected",
-          description: "File validation completed with warnings. Review agent feedback.",
-          variant: "destructive"
-        });
+        throw new Error('Validation service returned unsuccessful response');
       }
 
     } catch (error) {
-      console.error('File upload failed:', error);
+      console.error('File validation failed:', error);
+      
+      // Set all agents to failed state
+      setValidationAgents(prev => prev.map(a => ({ ...a, status: 'failed' as const })));
+      
+      // Update file with error
       setUploadedFiles(prev => prev.map(f => 
         f.id === uploadFile.id 
-          ? { ...f, status: 'error', error_message: 'Upload failed' }
+          ? { 
+              ...f, 
+              status: 'error', 
+              error_message: error instanceof Error ? error.message : 'Validation failed'
+            }
           : f
       ));
+
+      toast({
+        title: "🚨 Validation Failed",
+        description: error instanceof Error ? error.message : "An unknown error occurred during validation.",
+        variant: "destructive"
+      });
     }
   }, [toast]);
 
   // Navigate to next step
   const handleProceedToAttributeMapping = useCallback((fileId: string) => {
     const file = uploadedFiles.find(f => f.id === fileId);
-    if (file?.status === 'approved') {
+    if (file?.status === 'approved' || file?.status === 'approved_with_warnings') {
       navigate('/discovery/attribute-mapping', {
         state: {
           imported_file: file,
@@ -365,6 +367,7 @@ const DataImport: React.FC = () => {
       case 'uploading': return <Loader2 className="h-5 w-5 animate-spin text-blue-500" />;
       case 'validating': return <Brain className="h-5 w-5 animate-pulse text-orange-500" />;
       case 'approved': return <CheckCircle className="h-5 w-5 text-green-500" />;
+      case 'approved_with_warnings': return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
       case 'rejected': return <AlertTriangle className="h-5 w-5 text-red-500" />;
       case 'error': return <AlertCircle className="h-5 w-5 text-red-500" />;
       default: return <FileCheck className="h-5 w-5 text-gray-400" />;
@@ -376,6 +379,7 @@ const DataImport: React.FC = () => {
       case 'uploading': return 'bg-blue-100 text-blue-800';
       case 'validating': return 'bg-orange-100 text-orange-800';
       case 'approved': return 'bg-green-100 text-green-800';
+      case 'approved_with_warnings': return 'bg-yellow-100 text-yellow-800';
       case 'rejected': return 'bg-red-100 text-red-800';
       case 'error': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
@@ -535,7 +539,7 @@ const DataImport: React.FC = () => {
                     )}
 
                     {/* Validation Progress */}
-                    {(file.status === 'validating' || file.status === 'approved' || file.status === 'rejected') && (
+                    {(file.status === 'validating' || file.status === 'approved' || file.status === 'approved_with_warnings' || file.status === 'rejected') && (
                       <div className="space-y-4">
                         <div className="space-y-2">
                           <div className="flex items-center justify-between text-sm">
@@ -625,7 +629,7 @@ const DataImport: React.FC = () => {
                         )}
 
                         {/* Action Buttons */}
-                        {file.status === 'approved' && (
+                        {(file.status === 'approved' || file.status === 'approved_with_warnings') && (
                           <div className="flex justify-end space-x-3 pt-4 border-t">
                             <Button
                               onClick={() => handleProceedToAttributeMapping(file.id)}
@@ -635,6 +639,15 @@ const DataImport: React.FC = () => {
                               <ArrowRight className="h-4 w-4 ml-2" />
                             </Button>
                           </div>
+                        )}
+
+                        {file.status === 'approved_with_warnings' && (
+                          <Alert className="border-yellow-200 bg-yellow-50">
+                            <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                            <AlertDescription className="text-yellow-800">
+                              File validation completed with warnings. Review agent feedback before proceeding to field mapping.
+                            </AlertDescription>
+                          </Alert>
                         )}
 
                         {file.status === 'rejected' && (

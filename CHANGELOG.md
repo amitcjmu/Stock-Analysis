@@ -1,5 +1,57 @@
 # AI Force Migration Platform - Change Log
 
+## [0.20.1] - 2025-01-03
+
+### 🎯 **DATA IMPORT VALIDATION FIX - Real Backend Agent Feedback**
+
+This release fixes the critical data import validation issue where users were unable to get proper agent feedback during file uploads.
+
+### 🚀 **Data Import Validation Fix**
+
+#### **Backend Integration Restored**
+- **Issue Identified**: Frontend was only simulating agent validation instead of calling real backend API
+- **Fix Applied**: Updated CMDBImport.tsx to call actual `DataImportValidationService.validateFile()` 
+- **Backend Connection**: Properly integrated with `/api/v1/data-import/validate-upload` endpoint
+- **Agent Feedback**: Users now receive real validation results from all 4-6 specialized agents
+
+#### **Real Agent Validation Results**
+- **Format Validation Agent**: Actual file format, size, and encoding validation
+- **Security Analysis Agent**: Real threat pattern detection and malicious content scanning
+- **Privacy Protection Agent**: Genuine PII identification and GDPR compliance checking
+- **Data Quality Agent**: Actual data completeness, accuracy, and consistency assessment
+- **Category-Specific Agents**: Infrastructure, dependency, and compliance validators as needed
+
+#### **Enhanced User Experience**
+- **Detailed Feedback**: Users see specific agent validation results with confidence scores
+- **Clear Status**: Approved, Approved with Warnings, or Rejected status with explanations
+- **Error Handling**: Proper error messages when validation fails with backend connectivity
+- **Progress Tracking**: Real-time agent analysis status instead of simulated progress
+
+### 🔧 **Technical Implementation**
+
+#### **Frontend Service Integration**
+- **New Service**: Created `DataImportValidationService` for backend communication
+- **Type Safety**: Added `ValidationAgentResult` interfaces matching backend response
+- **Status Support**: Added `approved_with_warnings` status to UI components
+- **Error Handling**: Comprehensive error handling for API call failures
+
+#### **Backend Validation System**
+- **Endpoint Verified**: `/api/v1/data-import/validate-upload` properly routed and functional
+- **Agent Orchestration**: Real multi-agent validation with persistent session storage
+- **Response Format**: Structured validation responses with security clearances and next steps
+
+### 📊 **Business Impact**
+- **User Unblocking**: Users no longer stuck with "no agent feedback to review" 
+- **Validation Integrity**: Real security and privacy validation instead of fake simulation
+- **Confidence Building**: Actual agent feedback builds user trust in the platform
+- **Flow Completion**: Users can now complete data import → field mapping workflow
+
+### 🎯 **Success Metrics**
+- **Real Validation**: 100% actual backend agent validation (0% simulation)
+- **User Feedback**: Complete agent validation results with detailed explanations
+- **Error Reduction**: Proper error handling when validation services are unavailable
+- **Workflow Completion**: Users can progress from data import to attribute mapping
+
 ## [0.20.0] - 2025-01-03
 
 ### 🎯 **DISCOVERY FLOW RESTRUCTURE - Complete Page Architecture Revolution**
