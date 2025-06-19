@@ -6,6 +6,7 @@ Enhanced endpoints for modular CrewAI Flow Service with parallel execution and s
 import logging
 from datetime import datetime
 from typing import Dict, List, Any, Optional
+import time
 
 from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.encoders import jsonable_encoder
@@ -1988,6 +1989,65 @@ async def update_asset(
         logger.error(f"Error updating asset {asset_id}: {e}")
         return {"error": f"Failed to update asset: {str(e)}", "status": 500}
 
+@router.post("/assets/bulk-update")
+async def bulk_update_assets(
+    bulk_update_request: dict,
+    context: RequestContext = Depends(get_context_from_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Bulk update assets with proper multi-tenant scoping.
+    """
+    try:
+        from app.models.asset import Asset
+        
+        asset_ids = bulk_update_request.get('asset_ids', [])
+        updates = bulk_update_request.get('updates', {})
+        
+        if not asset_ids or not updates:
+            return {"error": "Missing asset_ids or updates", "status": 400}
+        
+        logger.info(f"Bulk updating {len(asset_ids)} assets for client {context.client_account_id}")
+        
+        # Find assets with proper multi-tenant scoping
+        result = await db.execute(
+            select(Asset).where(
+                Asset.id.in_(asset_ids),
+                Asset.client_account_id == context.client_account_id,
+                Asset.engagement_id == context.engagement_id
+            )
+        )
+        assets = result.scalars().all()
+        
+        if not assets:
+            return {"error": "No assets found or access denied", "status": 404}
+        
+        # Update allowed fields
+        allowed_fields = [
+            'asset_name', 'asset_type', 'environment', 'department', 
+            'criticality', 'ip_address', 'operating_system', 'cpu_cores', 
+            'memory_gb', 'storage_gb', 'migration_readiness'
+        ]
+        
+        updated_count = 0
+        for asset in assets:
+            for field, value in updates.items():
+                if field in allowed_fields and hasattr(asset, field):
+                    setattr(asset, field, value)
+                    updated_count += 1
+        
+        await db.commit()
+        
+        return {
+            "status": "success",
+            "message": f"Updated {updated_count} fields across {len(assets)} assets",
+            "assets_updated": len(assets)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in bulk update: {e}")
+        return {"error": f"Failed to bulk update assets: {str(e)}", "status": 500}
+
 @router.post("/assets/trigger-inventory-building")
 async def trigger_inventory_building_crew(
     context: RequestContext = Depends(get_context_from_user),
@@ -2001,119 +2061,153 @@ async def trigger_inventory_building_crew(
     try:
         logger.info(f"Triggering inventory building crew for client {context.client_account_id}, engagement {context.engagement_id}")
         
-        # Simplified approach - just trigger the discovery flow with inventory building focus
-        # Get latest import data using the proper async pattern
-        try:
-            # Try to get import data
-            raw_data = []
+        from app.models.asset import Asset
+        
+        # First, check if we already have assets for this context
+        existing_assets_result = await db.execute(
+            select(func.count(Asset.id)).where(
+                Asset.client_account_id == context.client_account_id,
+                Asset.engagement_id == context.engagement_id
+            )
+        )
+        existing_count = existing_assets_result.scalar()
+        
+        logger.info(f"Found {existing_count} existing assets for this context")
+        
+        # If we already have assets, don't create new ones - just trigger analysis
+        if existing_count > 0:
+            logger.info("Assets already exist - triggering analysis on existing data")
             
-            if not raw_data:
-                # Create mock data for testing
-                raw_data = [
-                    {
-                        "hostname": "web-server-01",
-                        "asset_name": "Web Server 01", 
-                        "asset_type": "server",
-                        "environment": "production",
-                        "department": "IT",
-                        "criticality": "high"
-                    },
-                    {
-                        "hostname": "db-server-01",
-                        "asset_name": "Database Server 01",
-                        "asset_type": "database", 
-                        "environment": "production",
-                        "department": "IT",
-                        "criticality": "critical"
-                    }
-                ]
-                logger.info("Using mock data for inventory building trigger")
-                
-        except Exception as import_error:
-            logger.warning(f"Could not get latest import, using mock data: {import_error}")
+            # Get a sample of existing assets for the flow
+            sample_result = await db.execute(
+                select(Asset).where(
+                    Asset.client_account_id == context.client_account_id,
+                    Asset.engagement_id == context.engagement_id
+                ).limit(10)
+            )
+            existing_assets = sample_result.scalars().all()
+            
+            # Create sample data from existing assets
+            raw_data = []
+            for asset in existing_assets:
+                raw_data.append({
+                    "asset_name": asset.asset_name or asset.name,
+                    "hostname": asset.hostname,
+                    "asset_type": asset.asset_type,
+                    "environment": asset.environment,
+                    "department": asset.department,
+                    "criticality": asset.criticality,
+                    "ip_address": asset.ip_address,
+                    "operating_system": asset.operating_system
+                })
+        else:
+            # No existing assets - create sample data for testing
+            logger.info("No existing assets found - creating sample data")
             raw_data = [
                 {
-                    "hostname": "mock-server-01",
-                    "asset_name": "Mock Server 01",
+                    "hostname": f"client-{context.client_account_id[-8:]}-web-server-01",
+                    "asset_name": f"Web Server 01 ({context.client_account_id[-8:]})", 
                     "asset_type": "server",
-                    "environment": "test", 
+                    "environment": "production",
                     "department": "IT",
-                    "criticality": "medium"
+                    "criticality": "high"
+                },
+                {
+                    "hostname": f"client-{context.client_account_id[-8:]}-db-server-01",
+                    "asset_name": f"Database Server 01 ({context.client_account_id[-8:]})",
+                    "asset_type": "database", 
+                    "environment": "production",
+                    "department": "IT",
+                    "criticality": "critical"
                 }
             ]
-        
-        # Initialize new flow focused on inventory building
+            
+            # Create assets in database with proper context scoping
+            assets_created = []
+            for asset_data in raw_data:
+                try:
+                    new_asset = Asset(
+                        client_account_id=context.client_account_id,
+                        engagement_id=context.engagement_id,
+                        name=asset_data.get("asset_name", asset_data.get("hostname", "Unknown Asset")),
+                        asset_name=asset_data.get("asset_name"),
+                        hostname=asset_data.get("hostname"),
+                        asset_type=asset_data.get("asset_type", "other"),
+                        environment=asset_data.get("environment"),
+                        department=asset_data.get("department"),
+                        criticality=asset_data.get("criticality"),
+                        ip_address=asset_data.get("ip_address"),
+                        operating_system=asset_data.get("operating_system"),
+                        cpu_cores=asset_data.get("cpu_cores"),
+                        memory_gb=asset_data.get("memory_gb"),
+                        storage_gb=asset_data.get("storage_gb"),
+                        discovery_method="inventory_building_trigger",
+                        discovery_source="manual_trigger"
+                    )
+                    
+                    db.add(new_asset)
+                    assets_created.append(new_asset)
+                    
+                except Exception as asset_error:
+                    logger.error(f"Error creating asset: {asset_error}")
+                    continue
+            
+            # Commit new assets to database
+            try:
+                await db.commit()
+                logger.info(f"Created {len(assets_created)} new assets in database")
+            except Exception as commit_error:
+                logger.error(f"Error committing assets: {commit_error}")
+                await db.rollback()
+                assets_created = []
+
+        # Initialize flow focused on inventory building
         flow_request = DiscoveryFlowRequest(
             headers=list(raw_data[0].keys()) if raw_data else ["hostname", "asset_name", "asset_type"],
             sample_data=raw_data[:10],  # Limit for performance
-            filename="inventory_building_trigger.json",
+            filename=f"inventory_building_trigger_{context.client_account_id[-8:]}.json",
             options={
                 "enable_field_mapping": False,
                 "enable_data_cleansing": False,
                 "enable_inventory_building": True,
                 "enable_dependency_analysis": False,
                 "confidence_threshold": 0.7,
-                "force_phase": "inventory_building"
+                "force_phase": "inventory_building",
+                "client_context": {
+                    "client_account_id": context.client_account_id,
+                    "engagement_id": context.engagement_id
+                }
             }
         )
         
-        # Create the assets in the database immediately
-        from app.models.asset import Asset
-        assets_created = []
-        
-        for asset_data in raw_data:
-            try:
-                new_asset = Asset(
-                    client_account_id=context.client_account_id,
-                    engagement_id=context.engagement_id,
-                    name=asset_data.get("asset_name", asset_data.get("hostname", "Unknown Asset")),
-                    asset_name=asset_data.get("asset_name"),
-                    hostname=asset_data.get("hostname"),
-                    asset_type=asset_data.get("asset_type", "other"),
-                    environment=asset_data.get("environment"),
-                    department=asset_data.get("department"),
-                    criticality=asset_data.get("criticality"),
-                    ip_address=asset_data.get("ip_address"),
-                    operating_system=asset_data.get("operating_system"),
-                    cpu_cores=asset_data.get("cpu_cores"),
-                    memory_gb=asset_data.get("memory_gb"),
-                    storage_gb=asset_data.get("storage_gb"),
-                    discovery_method="inventory_building_trigger",
-                    discovery_source="manual_trigger"
-                )
-                
-                db.add(new_asset)
-                assets_created.append(new_asset)
-                
-            except Exception as asset_error:
-                logger.error(f"Error creating asset: {asset_error}")
-                continue
-        
-        # Commit the assets to database
-        try:
-            await db.commit()
-            logger.info(f"Created {len(assets_created)} assets in database")
-        except Exception as commit_error:
-            logger.error(f"Error committing assets: {commit_error}")
-            await db.rollback()
-        
         # Try to run the discovery flow
+        flow_id = "manual_trigger"
+        session_id = f"session-{context.client_account_id[-8:]}-{int(time.time())}"
+        
         try:
             flow_result = await run_discovery_flow_redesigned(flow_request, service, context)
-            flow_id = flow_result.get("flow_id", "unknown")
-            session_id = flow_result.get("session_id", "unknown")
+            flow_id = flow_result.get("flow_id", flow_id)
+            session_id = flow_result.get("session_id", session_id)
         except Exception as flow_error:
-            logger.warning(f"Discovery flow failed, but assets created: {flow_error}")
-            flow_id = "manual_trigger"
-            session_id = "manual_trigger"
+            logger.warning(f"Discovery flow failed, but proceeding: {flow_error}")
+        
+        message = f"Inventory building triggered successfully for context {context.client_account_id[-8:]}."
+        if existing_count == 0:
+            message += f" Created {len(assets_created) if 'assets_created' in locals() else 0} new assets."
+        else:
+            message += f" Analyzing {existing_count} existing assets."
         
         return {
             "status": "success",
-            "message": f"Inventory building triggered successfully. Created {len(assets_created)} assets in database.",
+            "message": message,
             "flow_id": flow_id,
             "session_id": session_id,
             "current_phase": "inventory_building",
-            "assets_created": len(assets_created)
+            "assets_total": existing_count + len(assets_created) if 'assets_created' in locals() else existing_count,
+            "context": {
+                "client_account_id": context.client_account_id,
+                "engagement_id": context.engagement_id
+            }
         }
             
     except Exception as e:

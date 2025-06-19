@@ -135,8 +135,9 @@ export const useInventoryLogic = () => {
       if (!client || !engagement) return;
       
       const state = location.state as any;
+      console.log('🔍 Navigation state from Data Cleansing:', state);
       
-      if (state?.from_phase === 'data_cleansing' && state?.flow_session_id && !uploadProcessedRef.current) {
+      if (state?.from_phase === 'data_cleansing' && !uploadProcessedRef.current) {
         uploadProcessedRef.current = true;
         
         try {
@@ -144,33 +145,56 @@ export const useInventoryLogic = () => {
           
           toast({
             title: "🚀 Asset Inventory Phase Started",
-            description: "Initializing Inventory Manager and Classification Specialists...",
+            description: "Transitioning from Data Cleansing to Inventory Building...",
           });
 
+          // First, fetch existing assets to see if we already have data
+          console.log('🔍 Checking for existing assets before triggering crew...');
+          await fetchAssets();
+
+          // If we have flow session ID, try to execute phase
           if (state.flow_session_id) {
-            await executePhase('inventory_building', { 
-              session_id: state.flow_session_id,
-              previous_phase: 'data_cleansing',
-              cleansing_progress: state.cleansing_progress,
-              client_account_id: client.id,
-              engagement_id: engagement.id
-            });
+            console.log('🔄 Executing inventory building phase with session:', state.flow_session_id);
+            try {
+              await executePhase('inventory_building', { 
+                session_id: state.flow_session_id,
+                previous_phase: 'data_cleansing',
+                cleansing_progress: state.cleansing_progress,
+                client_account_id: client.id,
+                engagement_id: engagement.id
+              });
+              
+              // Update flow state to reflect progression
+              setFlowState(prev => ({
+                ...prev,
+                session_id: state.flow_session_id,
+                current_phase: 'inventory_building',
+                phase_completion: {
+                  ...prev?.phase_completion,
+                  field_mapping: true,
+                  data_cleansing: true,
+                  inventory_building: false // Set to false initially, will be updated after analysis
+                }
+              }));
+            } catch (phaseError) {
+              console.warn('Phase execution failed, proceeding with manual trigger:', phaseError);
+            }
           }
 
-          setTimeout(() => {
-            fetchAssets();
-          }, 2000);
+          // Always trigger inventory building analysis to ensure we have the latest data
+          console.log('🤖 Triggering inventory building analysis...');
+          await handleTriggerInventoryBuildingCrew();
 
           toast({
-            title: "✅ Inventory Building Started",
-            description: "Crew is analyzing assets and building comprehensive inventory.",
+            title: "✅ Inventory Building Initialized",
+            description: "Assets are being analyzed and classified. Analysis will continue in background.",
           });
 
         } catch (error) {
           console.error('❌ Failed to initialize Inventory Building phase:', error);
           toast({
             title: "❌ Phase Initialization Failed",
-            description: "Could not start Inventory Building phase. Please try manually triggering analysis.",
+            description: "Could not start Inventory Building phase automatically. Please trigger analysis manually.",
             variant: "destructive"
           });
         } finally {
@@ -180,7 +204,7 @@ export const useInventoryLogic = () => {
     };
     
     handleNavigationFromDataCleansing();
-  }, [client, engagement, executePhase, toast, location.state]);
+  }, [client, engagement, executePhase, toast, location.state, fetchAssets, handleTriggerInventoryBuildingCrew, setFlowState]);
 
   // Fetch assets from API
   const fetchAssets = useCallback(async (page = 1, filterParams: FilterParams = {}) => {
@@ -360,18 +384,21 @@ export const useInventoryLogic = () => {
     }
   }, [selectedAssets, getAuthHeaders, toast, currentPage, filters, fetchAssets]);
 
-  const handleAssetClassificationUpdate = useCallback(async (assetId: string, currentClassification: string) => {
+  const handleAssetClassificationUpdate = useCallback(async (assetId: string, fieldValue: string) => {
     try {
-      // Show a simple dialog to get the new asset type
-      const availableTypes = ['server', 'database', 'application', 'device', 'storage', 'network'];
-      const newAssetType = prompt(
-        `Update asset type for asset ${assetId}:\n\nAvailable types: ${availableTypes.join(', ')}\n\nCurrent: ${currentClassification}`,
-        currentClassification
-      );
+      // Parse field:value format
+      let updateField = 'asset_type';
+      let updateValue = fieldValue;
       
-      if (!newAssetType || newAssetType === currentClassification) {
-        return; // User cancelled or no change
+      if (fieldValue.includes(':')) {
+        [updateField, updateValue] = fieldValue.split(':', 2);
+      } else {
+        // Legacy support - assume asset_type
+        updateField = 'asset_type';
+        updateValue = fieldValue;
       }
+
+      console.log(`🔄 Updating asset ${assetId} - ${updateField}: ${updateValue}`);
 
       const contextHeaders = getAuthHeaders();
       
@@ -382,7 +409,7 @@ export const useInventoryLogic = () => {
           ...contextHeaders
         },
         body: JSON.stringify({
-          asset_type: newAssetType,
+          [updateField]: updateValue,
           confidence_score: 0.95 // High confidence for manual updates
         })
       });
@@ -391,13 +418,13 @@ export const useInventoryLogic = () => {
         // Update local state
         setAssets(prev => prev.map(asset => 
           asset.id === assetId 
-            ? { ...asset, asset_type: newAssetType, confidence_score: 0.95 }
+            ? { ...asset, [updateField]: updateValue, confidence_score: 0.95 }
             : asset
         ));
 
         toast({
-          title: "✅ Classification Updated",
-          description: `Asset reclassified as ${newAssetType}.`
+          title: "✅ Asset Updated",
+          description: `${updateField.replace('_', ' ')} updated to ${updateValue}.`
         });
 
         // Refresh data to get updated summary
@@ -407,10 +434,10 @@ export const useInventoryLogic = () => {
       }
 
     } catch (error) {
-      console.error('❌ Error updating classification:', error);
+      console.error('❌ Error updating asset:', error);
       toast({
         title: "❌ Update Failed",
-        description: `Failed to update asset classification: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        description: `Failed to update asset: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive"
       });
     }

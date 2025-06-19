@@ -8,8 +8,9 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Database, Server, HardDrive, RefreshCw, Router, Shield, Cpu, Cloud, Zap,
   ChevronRight, CheckCircle, AlertCircle, ArrowRight, Users, Brain,
-  Filter, Search, Download, Plus
+  Filter, Search, Download, Plus, Lightbulb, Target, TrendingUp, Activity
 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface AssetInventory {
   id?: string;
@@ -99,6 +100,106 @@ export const InventoryContent: React.FC<InventoryContentProps> = ({
   onContinueToAppServerDependencies,
   canContinueToAppServerDependencies
 }) => {
+  // State for inline editing
+  const [editingAsset, setEditingAsset] = React.useState<string | null>(null);
+  const [editingField, setEditingField] = React.useState<string | null>(null);
+
+  // Available options for dropdowns
+  const assetTypeOptions = [
+    { value: 'server', label: 'Server', icon: Server },
+    { value: 'database', label: 'Database', icon: Database },
+    { value: 'application', label: 'Application', icon: Cpu },
+    { value: 'network', label: 'Network Device', icon: Router },
+    { value: 'storage', label: 'Storage Device', icon: HardDrive },
+    { value: 'other', label: 'Other', icon: Shield }
+  ];
+
+  const environmentOptions = [
+    { value: 'production', label: 'Production' },
+    { value: 'staging', label: 'Staging' },
+    { value: 'development', label: 'Development' },
+    { value: 'testing', label: 'Testing' },
+    { value: 'qa', label: 'QA' },
+    { value: 'disaster_recovery', label: 'Disaster Recovery' }
+  ];
+
+  const criticalityOptions = [
+    { value: 'critical', label: 'Critical' },
+    { value: 'high', label: 'High' },
+    { value: 'medium', label: 'Medium' },
+    { value: 'low', label: 'Low' }
+  ];
+
+  // Handle inline field update
+  const handleFieldUpdate = async (assetId: string, field: string, newValue: string) => {
+    try {
+      // Create a specialized handler that includes field information
+      await onClassificationUpdate(assetId, `${field}:${newValue}`);
+      setEditingAsset(null);
+      setEditingField(null);
+    } catch (error) {
+      console.error('Failed to update field:', error);
+    }
+  };
+
+  // Render editable field
+  const renderEditableField = (asset: AssetInventory, field: string, currentValue: string, options: any[]) => {
+    const isEditing = editingAsset === asset.id && editingField === field;
+    
+    if (isEditing) {
+      return (
+        <Select
+          value={currentValue}
+          onValueChange={(value) => handleFieldUpdate(asset.id || '', field, value)}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditingAsset(null);
+              setEditingField(null);
+            }
+          }}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {options.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                <div className="flex items-center gap-2">
+                  {option.icon && <option.icon className="h-4 w-4" />}
+                  {option.label}
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      );
+    }
+
+    return (
+      <button
+        className="text-left hover:bg-gray-100 p-1 rounded w-full"
+        onClick={() => {
+          setEditingAsset(asset.id || '');
+          setEditingField(field);
+        }}
+      >
+        {field === 'asset_type' && (
+          <div className="flex items-center gap-2">
+            {getTypeIcon(currentValue)}
+            <Badge variant="secondary">{currentValue || 'Unknown'}</Badge>
+          </div>
+        )}
+        {field === 'environment' && (
+          <Badge variant="outline">{currentValue || 'Unknown'}</Badge>
+        )}
+        {field === 'criticality' && (
+          <Badge variant={currentValue === 'High' || currentValue === 'Critical' ? 'destructive' : 'secondary'}>
+            {currentValue || 'Unknown'}
+          </Badge>
+        )}
+      </button>
+    );
+  };
 
   const getTypeIcon = (type: string) => {
     const iconMap: Record<string, React.ReactNode> = {
@@ -281,20 +382,13 @@ export const InventoryContent: React.FC<InventoryContentProps> = ({
                     <div className="text-sm text-gray-500">ID: {asset.id}</div>
                   </td>
                   <td className="p-2">
-                    <div className="flex items-center gap-2">
-                      {getTypeIcon(asset.asset_type || 'Unknown')}
-                      <Badge variant="secondary">{asset.asset_type || 'Unknown'}</Badge>
-                    </div>
+                    {renderEditableField(asset, 'asset_type', asset.asset_type || '', assetTypeOptions)}
                   </td>
                   <td className="p-2">
-                    <Badge variant="outline">{asset.environment || 'Unknown'}</Badge>
+                    {renderEditableField(asset, 'environment', asset.environment || '', environmentOptions)}
                   </td>
                   <td className="p-2">
-                    <Badge 
-                      variant={asset.criticality === 'High' ? 'destructive' : 'secondary'}
-                    >
-                      {asset.criticality || 'Unknown'}
-                    </Badge>
+                    {renderEditableField(asset, 'criticality', asset.criticality || '', criticalityOptions)}
                   </td>
                   <td className="p-2">
                     <span className={getReadinessColor(asset.migration_readiness || 0)}>
