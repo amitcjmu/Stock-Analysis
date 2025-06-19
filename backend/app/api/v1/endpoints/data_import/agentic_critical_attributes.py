@@ -30,7 +30,11 @@ async def get_agentic_critical_attributes(
     
     Uses AI agents to analyze imported data and determine critical migration attributes.
     Falls back to enhanced pattern analysis when CrewAI is not available.
+    
+    ⚡ OPTIMIZED: Fast response with fallback analysis, CrewAI execution on demand only.
     """
+    start_time = datetime.utcnow()
+    
     # Extract context directly from request
     context = extract_context_from_request(request)
     logger.info(f"🤖 AGENTIC Critical Attributes Analysis - Context: {context}")
@@ -61,6 +65,10 @@ async def get_agentic_critical_attributes(
                     "discovery_flow_active": False,
                     "field_mapping_crew_status": "context_missing",
                     "learning_system_status": "unavailable"
+                },
+                "performance": {
+                    "response_time_ms": (datetime.utcnow() - start_time).total_seconds() * 1000,
+                    "optimization": "fast_path_no_context"
                 },
                 "last_updated": datetime.utcnow().isoformat()
             }
@@ -101,28 +109,18 @@ async def get_agentic_critical_attributes(
                     "field_mapping_crew_status": "not_available",
                     "learning_system_status": "unavailable"
                 },
+                "performance": {
+                    "response_time_ms": (datetime.utcnow() - start_time).total_seconds() * 1000,
+                    "optimization": "fast_path_no_data"
+                },
                 "last_updated": datetime.utcnow().isoformat()
             }
         
         logger.info(f"✅ Found import: {data_import.id}, status: {data_import.status}")
         
-        # Try to get discovery flow service for advanced analysis
-        try:
-            from app.services.discovery_flow_service import DiscoveryFlowService
-            discovery_service = DiscoveryFlowService(db)
-            logger.info("✅ Discovery flow service available")
-        except ImportError:
-            logger.warning("Discovery flow service not available")
-            discovery_service = None
-        
-        # Trigger Field Mapping Crew analysis
-        logger.info("🚀 Triggering Field Mapping Crew for critical attributes analysis")
-        
-        # Execute crew analysis in background with independent session
-        asyncio.create_task(_execute_field_mapping_crew_background(context, data_import))
-        
-        # Return immediately with fallback analysis - don't wait for heavy CrewAI processing
-        logger.info("⚡ Using fast fallback analysis while CrewAI processes in background")
+        # ⚡ PERFORMANCE OPTIMIZATION: Only use fast fallback analysis on page load
+        # Don't trigger heavy CrewAI operations automatically - user must explicitly request them
+        logger.info("⚡ Using fast fallback analysis for quick page load (CrewAI available on demand)")
         analysis_result = await _fallback_field_analysis(data_import, db)
         
         # Extract attributes from analysis result
@@ -139,6 +137,8 @@ async def get_agentic_critical_attributes(
             "assessment_ready": False
         })
         
+        response_time = (datetime.utcnow() - start_time).total_seconds() * 1000
+        
         # Format response for frontend
         return {
             "attributes": attributes_analyzed,
@@ -150,21 +150,36 @@ async def get_agentic_critical_attributes(
             },
             "agent_status": {
                 "discovery_flow_active": False,
-                "field_mapping_crew_status": "completed_fallback",
-                "learning_system_status": "ready"
+                "field_mapping_crew_status": "available_on_demand",
+                "learning_system_status": "ready",
+                "crew_ai_available": True,
+                "optimization_active": "fast_fallback_analysis"
             },
             "analysis_summary": {
-                "crew_execution": analysis_result.get("crew_execution", "unknown"),
+                "crew_execution": analysis_result.get("crew_execution", "fast_fallback"),
                 "analysis_result": analysis_result.get("analysis_result", "Analysis completed"),
                 "recommendation": analysis_result.get("recommendation", "Continue with migration planning"),
                 "total_fields_analyzed": analysis_result.get("total_fields_analyzed", len(attributes_analyzed)),
                 "migration_critical_identified": analysis_result.get("migration_critical_identified", statistics.get("migration_critical_count", 0))
+            },
+            "performance": {
+                "response_time_ms": response_time,
+                "optimization": "fast_fallback_analysis",
+                "database_queries": 2,
+                "crew_ai_execution": "skipped_for_performance"
+            },
+            "crew_actions": {
+                "trigger_full_analysis": "/api/v1/data-import/trigger-field-mapping-crew",
+                "view_crew_status": "/api/v1/discovery/agents/agent-status",
+                "get_clarifications": "/api/v1/data-import/agent-clarifications"
             },
             "last_updated": datetime.utcnow().isoformat()
         }
         
     except Exception as e:
         logger.error(f"Agentic critical attributes analysis failed: {e}")
+        response_time = (datetime.utcnow() - start_time).total_seconds() * 1000
+        
         return {
             "attributes": [],
             "statistics": {
@@ -187,6 +202,11 @@ async def get_agentic_critical_attributes(
                 "discovery_flow_active": False,
                 "field_mapping_crew_status": "failed",
                 "learning_system_status": "error"
+            },
+            "performance": {
+                "response_time_ms": response_time,
+                "optimization": "error_fast_path",
+                "error": str(e)
             },
             "last_updated": datetime.utcnow().isoformat()
         }
