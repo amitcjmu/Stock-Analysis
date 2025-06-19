@@ -199,11 +199,46 @@ const DataImport: React.FC = () => {
   const handleFileUpload = useCallback(async (files: File[], categoryId: string) => {
     if (files.length === 0) return;
 
-    // Validate authentication context for agentic flow integration
-    if (!client || !engagement || !user) {
+    // Debug authentication state
+    console.log('🔍 Upload Debug - Auth State:', {
+      user: user ? { id: user.id, role: user.role, name: user.full_name } : null,
+      client: client ? { id: client.id, name: client.name } : null,
+      engagement: engagement ? { id: engagement.id, name: engagement.name } : null,
+      session: session ? { id: session.id } : null,
+      categoryId,
+      fileCount: files.length
+    });
+
+    // For admin users, allow upload even without client/engagement context (demo mode)
+    const isAdmin = user?.role === 'admin';
+    const hasContext = client && engagement;
+    
+    if (!user) {
       toast({
         title: "Authentication Required",
-        description: "Please ensure you have selected a client and engagement before uploading data.",
+        description: "Please log in before uploading data.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!hasContext && !isAdmin) {
+      toast({
+        title: "Context Required",
+        description: "Please select a client and engagement before uploading data.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Provide demo context for admin users if needed
+    const effectiveClient = client || (isAdmin ? { id: 'demo-client', name: 'Demo Client' } : null);
+    const effectiveEngagement = engagement || (isAdmin ? { id: 'demo-engagement', name: 'Demo Engagement' } : null);
+
+    if (!effectiveClient || !effectiveEngagement) {
+      toast({
+        title: "Context Error",
+        description: "Unable to determine client/engagement context.",
         variant: "destructive"
       });
       return;
@@ -254,14 +289,26 @@ const DataImport: React.FC = () => {
       setValidationAgents(prev => prev.map(a => ({ ...a, status: 'analyzing' as const })));
 
       // Call backend validation service with authentication context
+      console.log('🔍 About to call validation service with:', {
+        filename: file.name,
+        size: file.size,
+        type: file.type,
+        categoryId,
+        effectiveClient: effectiveClient.id,
+        effectiveEngagement: effectiveEngagement.id,
+        userId: user.id
+      });
+      
       const validationResponse = await DataImportValidationService.validateFile(file, categoryId, {
         // Include authentication context for agentic flow integration
-        client_account_id: client.id,
-        engagement_id: engagement.id,
+        client_account_id: effectiveClient.id,
+        engagement_id: effectiveEngagement.id,
         user_id: user.id,
         session_id: session?.id || `session-${Date.now()}`,
         headers: getAuthHeaders()
       });
+      
+      console.log('🔍 Validation service response:', validationResponse);
 
       if (validationResponse.success) {
         // Update agents with real results from backend
@@ -346,12 +393,17 @@ const DataImport: React.FC = () => {
         variant: "destructive"
       });
     }
-  }, [toast]);
+  }, [toast, client, engagement, user, session, getAuthHeaders]);
 
   // Navigate to Discovery Flow (Attribute Mapping) with authentication context
   const handleProceedToAttributeMapping = useCallback((fileId: string) => {
     const file = uploadedFiles.find(f => f.id === fileId);
     if (file?.status === 'approved' || file?.status === 'approved_with_warnings') {
+      // For admin users, use demo context if needed
+      const isAdmin = user?.role === 'admin';
+      const effectiveClient = client || (isAdmin ? { id: 'demo-client', name: 'Demo Client' } : null);
+      const effectiveEngagement = engagement || (isAdmin ? { id: 'demo-engagement', name: 'Demo Engagement' } : null);
+      
       // Navigate to Attribute Mapping - the entry point for Discovery Flow
       navigate('/discovery/attribute-mapping', {
         state: {
@@ -359,8 +411,8 @@ const DataImport: React.FC = () => {
           validation_agents: validationAgents,
           from_data_import: true,
           // Include authentication context for agentic flow
-          client_account_id: client?.id,
-          engagement_id: engagement?.id,
+          client_account_id: effectiveClient?.id,
+          engagement_id: effectiveEngagement?.id,
           user_id: user?.id,
           session_id: session?.id || `session-${Date.now()}`,
           // Pass validation data for the Discovery Flow
@@ -545,13 +597,30 @@ const DataImport: React.FC = () => {
                         id={`file-${category.id}`}
                         accept={category.acceptedTypes.join(',')}
                         onChange={(e) => {
+                          console.log('🔍 File Input Change Event:', {
+                            categoryId: category.id,
+                            files: e.target.files,
+                            fileCount: e.target.files?.length || 0
+                          });
                           const files = Array.from(e.target.files || []);
-                          handleFileUpload(files, category.id);
+                          if (files.length > 0) {
+                            console.log('🔍 Calling handleFileUpload with:', files[0].name);
+                            handleFileUpload(files, category.id);
+                          } else {
+                            console.log('🔍 No files selected');
+                          }
                         }}
                         className="hidden"
                       />
                       <Button
-                        onClick={() => document.getElementById(`file-${category.id}`)?.click()}
+                        onClick={() => {
+                          console.log('🔍 Upload Button Clicked:', {
+                            categoryId: category.id,
+                            categoryTitle: category.title,
+                            inputElement: document.getElementById(`file-${category.id}`)
+                          });
+                          document.getElementById(`file-${category.id}`)?.click();
+                        }}
                         variant="outline"
                         className="w-full"
                       >
