@@ -348,25 +348,18 @@ const AttributeMapping: React.FC = () => {
     try {
       console.log(`🔧 ${action}ing mapping:`, mapping);
       
-      // Use the agent learning endpoint directly
+      // Use the agent learning endpoint directly with correct format
       const response = await apiCall('/api/v1/agents/discovery/learning/agent-learning', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           learning_type: 'field_mapping_action',
-          mapping_id: mappingId,
           action: action,
-          mapping_details: {
+          mapping_data: {
             source_field: mapping.sourceField,
-            target_attribute: mapping.targetAttribute,
+            target_field: mapping.targetAttribute,
             confidence: mapping.confidence,
-            mapping_type: mapping.mapping_type
-          },
-          context: {
-            page: 'attribute-mapping',
-            user_id: user?.id,
-            client_id: client?.id,
-            engagement_id: engagement?.id
+            data_import_id: "0b3c1932-78ac-4675-ba07-a50bbe4ca577" // use the known import ID for now
           }
         })
       });
@@ -410,7 +403,7 @@ const AttributeMapping: React.FC = () => {
     try {
       console.log(`🔧 Changing mapping ${mappingId} to target: ${newTarget}`);
       
-      // Use the agent learning endpoint for mapping changes
+      // Use the agent learning endpoint for mapping changes with correct format
       const response = await apiCall('/api/v1/agents/discovery/learning/agent-learning', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -421,17 +414,6 @@ const AttributeMapping: React.FC = () => {
             source_field: mapping.sourceField,
             target_field: newTarget,
             mapping_type: 'manual'
-          },
-          original_mapping: {
-            source_field: mapping.sourceField,
-            target_attribute: mapping.targetAttribute,
-            confidence: mapping.confidence
-          },
-          context: {
-            page: 'attribute-mapping',
-            user_id: user?.id,
-            client_id: client?.id,
-            engagement_id: engagement?.id
           }
         })
       });

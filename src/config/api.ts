@@ -93,7 +93,7 @@ export const API_CONFIG = {
       AGENT_CLARIFICATION: '/discovery/agents/agent-clarification',
       AGENT_STATUS: '/discovery/agents/agent-status',
       AGENTIC_ANALYSIS_STATUS: '/discovery/flow/agent/crew/analysis/status',
-      AGENT_LEARNING: '/discovery/agents/agent-learning',
+      AGENT_LEARNING: '/agents/discovery/learning/agent-learning',
       APPLICATION_PORTFOLIO: '/discovery/agents/application-portfolio',
       APPLICATION_VALIDATION: '/discovery/agents/application-validation',
       READINESS_ASSESSMENT: '/discovery/agents/readiness-assessment',

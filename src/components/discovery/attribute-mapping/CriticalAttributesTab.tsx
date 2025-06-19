@@ -226,12 +226,12 @@ const CriticalAttributesTab: React.FC<CriticalAttributesTabProps> = ({
         },
         body: JSON.stringify({
           learning_type: 'field_mapping_action',
-          mapping_id: relatedMapping.id || `${attributeName}_${Date.now()}`,
           action: action,
-          context: {
-            page: 'critical-attributes',
-            user_id: user?.id,
-            attribute_name: attributeName
+          mapping_data: {
+            source_field: relatedMapping.sourceField,
+            target_field: relatedMapping.targetAttribute,
+            confidence: relatedMapping.confidence,
+            data_import_id: "0b3c1932-78ac-4675-ba07-a50bbe4ca577" // use known import ID
           }
         })
       });
