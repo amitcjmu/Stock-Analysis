@@ -928,25 +928,15 @@ const CMDBImport: React.FC = () => {
     refreshState
   } = useDiscoveryFlowState();
 
-  // Check for flow completion
+  // Check for flow completion - TEMPORARILY MORE PERMISSIVE to show upload areas
   const isFlowCompleted = useMemo(() => {
-    // Check if we have a flow that's completed  
-    if (flowState?.overall_status === 'completed') {
+    // Only consider flow completed if we have explicit completion AND data
+    if (flowState?.overall_status === 'completed' && uploadedFiles.length > 0) {
       return true;
     }
     
-    // Check if we have a completed session or flow ID set manually
-    if (completedSessionId || completedFlowId) {
-      return true;
-    }
-    
-    // Check if current flow is completed
-    if (currentFlowId && flowState?.flow_fingerprint === currentFlowId && flowState?.overall_status === 'completed') {
-      return true;
-    }
-    
-    return false;
-  }, [flowState, completedSessionId, completedFlowId, currentFlowId]);
+    return false; // Default to allowing uploads
+  }, [flowState, uploadedFiles]);
 
   // Set identifiers from URL or browser logs on component mount
   useEffect(() => {

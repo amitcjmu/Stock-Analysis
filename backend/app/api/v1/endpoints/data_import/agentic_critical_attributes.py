@@ -668,105 +668,158 @@ async def _fallback_field_analysis(data_import: DataImport, db: AsyncSession) ->
     mapping_dict = {m.source_field: m.target_field for m in existing_mappings}
     mapping_status_dict = {m.source_field: m.status for m in existing_mappings}
     
-    # Enhanced intelligent field analysis using migration patterns
-    critical_patterns = {
-        # Identity fields - critical for asset tracking
-        "hostname": {"critical": True, "category": "identity", "business_impact": "high", "confidence": 0.95},
-        "server_name": {"critical": True, "category": "identity", "business_impact": "high", "confidence": 0.95},
-        "asset_name": {"critical": True, "category": "identity", "business_impact": "high", "confidence": 0.95},
-        "computer_name": {"critical": True, "category": "identity", "business_impact": "high", "confidence": 0.95},
+    # Asset Model Field Mapping - Map raw data fields to actual Asset model fields
+    asset_field_mappings = {
+        # Core identity fields (Asset model: name, asset_name, hostname)
+        "hostname": {"target": "hostname", "critical": True, "category": "identity", "confidence": 0.95},
+        "name": {"target": "name", "critical": True, "category": "identity", "confidence": 0.95},
+        "asset_name": {"target": "asset_name", "critical": True, "category": "identity", "confidence": 0.95},
+        "server_name": {"target": "hostname", "critical": True, "category": "identity", "confidence": 0.90},
+        "ci_name": {"target": "name", "critical": True, "category": "identity", "confidence": 0.90},
         
-        # Network fields - critical for connectivity
-        "ip_address": {"critical": True, "category": "network", "business_impact": "high", "confidence": 0.90},
-        "ip_addr": {"critical": True, "category": "network", "business_impact": "high", "confidence": 0.90},
-        "network_ip": {"critical": True, "category": "network", "business_impact": "high", "confidence": 0.90},
+        # Network fields (Asset model: ip_address, fqdn, mac_address)
+        "ip_address": {"target": "ip_address", "critical": True, "category": "network", "confidence": 0.95},
+        "ip": {"target": "ip_address", "critical": True, "category": "network", "confidence": 0.90},
+        "fqdn": {"target": "fqdn", "critical": True, "category": "network", "confidence": 0.95},
+        "mac_address": {"target": "mac_address", "critical": True, "category": "network", "confidence": 0.95},
+        "mac": {"target": "mac_address", "critical": True, "category": "network", "confidence": 0.90},
         
-        # Environment fields - critical for planning
-        "environment": {"critical": True, "category": "business", "business_impact": "high", "confidence": 0.88},
-        "env": {"critical": True, "category": "business", "business_impact": "high", "confidence": 0.88},
-        "stage": {"critical": True, "category": "business", "business_impact": "high", "confidence": 0.85},
+        # Environment fields (Asset model: environment, location, datacenter)
+        "environment": {"target": "environment", "critical": True, "category": "business", "confidence": 0.95},
+        "env": {"target": "environment", "critical": True, "category": "business", "confidence": 0.90},
+        "location": {"target": "location", "critical": False, "category": "operational", "confidence": 0.85},
+        "datacenter": {"target": "datacenter", "critical": False, "category": "operational", "confidence": 0.85},
         
-        # Application fields - critical for business continuity
-        "application_name": {"critical": True, "category": "application", "business_impact": "high", "confidence": 0.87},
-        "app_name": {"critical": True, "category": "application", "business_impact": "high", "confidence": 0.87},
-        "application": {"critical": True, "category": "application", "business_impact": "high", "confidence": 0.87},
+        # Application fields (Asset model: application_name, technology_stack)
+        "application": {"target": "application_name", "critical": True, "category": "application", "confidence": 0.95},
+        "application_name": {"target": "application_name", "critical": True, "category": "application", "confidence": 0.95},
+        "app_name": {"target": "application_name", "critical": True, "category": "application", "confidence": 0.90},
+        "technology_stack": {"target": "technology_stack", "critical": False, "category": "technical", "confidence": 0.80},
         
-        # Technical fields - critical for sizing
-        "operating_system": {"critical": True, "category": "technical", "business_impact": "medium", "confidence": 0.85},
-        "os": {"critical": True, "category": "technical", "business_impact": "medium", "confidence": 0.85},
-        "cpu_cores": {"critical": True, "category": "technical", "business_impact": "medium", "confidence": 0.82},
-        "memory_gb": {"critical": True, "category": "technical", "business_impact": "medium", "confidence": 0.82},
-        "ram": {"critical": True, "category": "technical", "business_impact": "medium", "confidence": 0.82},
+        # Technical specifications (Asset model: operating_system, os_version, cpu_cores, memory_gb, storage_gb)
+        "operating_system": {"target": "operating_system", "critical": True, "category": "technical", "confidence": 0.95},
+        "os": {"target": "operating_system", "critical": True, "category": "technical", "confidence": 0.90},
+        "os_version": {"target": "os_version", "critical": False, "category": "technical", "confidence": 0.85},
+        "cpu_cores": {"target": "cpu_cores", "critical": True, "category": "technical", "confidence": 0.95},
+        "memory_gb": {"target": "memory_gb", "critical": True, "category": "technical", "confidence": 0.95},
+        "ram": {"target": "memory_gb", "critical": True, "category": "technical", "confidence": 0.90},
+        "memory": {"target": "memory_gb", "critical": True, "category": "technical", "confidence": 0.90},
+        "storage_gb": {"target": "storage_gb", "critical": True, "category": "technical", "confidence": 0.95},
+        "disk": {"target": "storage_gb", "critical": True, "category": "technical", "confidence": 0.85},
+        "storage": {"target": "storage_gb", "critical": True, "category": "technical", "confidence": 0.85},
         
-        # Business context fields
-        "business_criticality": {"critical": True, "category": "business", "business_impact": "high", "confidence": 0.90},
-        "criticality": {"critical": True, "category": "business", "business_impact": "high", "confidence": 0.90},
-        "owner": {"critical": False, "category": "business", "business_impact": "medium", "confidence": 0.75},
-        "department": {"critical": False, "category": "business", "business_impact": "low", "confidence": 0.70}
+        # Business fields (Asset model: business_criticality, business_owner, department)
+        "business_criticality": {"target": "business_criticality", "critical": True, "category": "business", "confidence": 0.95},
+        "criticality": {"target": "business_criticality", "critical": True, "category": "business", "confidence": 0.90},
+        "business_owner": {"target": "business_owner", "critical": False, "category": "business", "confidence": 0.85},
+        "owner": {"target": "business_owner", "critical": False, "category": "business", "confidence": 0.80},
+        "department": {"target": "department", "critical": False, "category": "business", "confidence": 0.85},
+        
+        # Asset type (Asset model: asset_type)
+        "asset_type": {"target": "asset_type", "critical": True, "category": "classification", "confidence": 0.95},
+        "type": {"target": "asset_type", "critical": True, "category": "classification", "confidence": 0.85},
+        "server_type": {"target": "asset_type", "critical": True, "category": "classification", "confidence": 0.85}
     }
     
-    # ✅ FIX: Analyze ALL fields from imported data with enhanced intelligence
+    # ✅ FIX: Analyze ONLY fields that exist in imported data using Asset model mappings
     analyzed_attributes = []
     migration_critical_count = 0
     
-    for field_name in all_field_names:
-        source_field = field_name.lower()
-        # Use existing mapping target if available, otherwise suggest standard mapping
-        target_field = mapping_dict.get(field_name, field_name.lower().replace(' ', '_').replace('(', '').replace(')', ''))
+    for source_field_name in all_field_names:
+        # Find the best Asset model field mapping for this source field
+        source_field_lower = source_field_name.lower().replace('_', '').replace('-', '').replace(' ', '')
         
-        # Check for pattern matches (enhanced pattern matching)
-        pattern_match = None
-        for pattern, info in critical_patterns.items():
-            if pattern in source_field or source_field in pattern:
-                pattern_match = info
+        # Find best Asset field mapping
+        best_target = None
+        best_confidence = 0.0
+        best_metadata = None
+        
+        for mapping_key, metadata in asset_field_mappings.items():
+            mapping_key_lower = mapping_key.lower().replace('_', '').replace('-', '').replace(' ', '')
+            
+            # Exact match
+            if source_field_lower == mapping_key_lower:
+                best_target = metadata["target"]
+                best_confidence = metadata["confidence"]
+                best_metadata = metadata
                 break
+            
+            # Partial match - source field contains mapping key or vice versa
+            elif mapping_key_lower in source_field_lower or source_field_lower in mapping_key_lower:
+                if metadata["confidence"] > best_confidence:
+                    best_target = metadata["target"]
+                    best_confidence = metadata["confidence"] * 0.8  # Reduce confidence for partial match
+                    best_metadata = metadata
         
-        # If no direct match, use intelligent heuristics
-        if not pattern_match:
-            if any(keyword in source_field for keyword in ['name', 'host', 'server', 'asset', 'ci_name']):
-                pattern_match = {"critical": True, "category": "identity", "business_impact": "high", "confidence": 0.80}
-            elif any(keyword in source_field for keyword in ['ip', 'address', 'network']):
-                pattern_match = {"critical": True, "category": "network", "business_impact": "high", "confidence": 0.75}
-            elif any(keyword in source_field for keyword in ['cpu', 'memory', 'ram', 'disk', 'storage', 'cores', 'gb']):
-                pattern_match = {"critical": True, "category": "technical", "business_impact": "medium", "confidence": 0.70}
-            elif any(keyword in source_field for keyword in ['type', 'server_type', 'ci_type']):
-                pattern_match = {"critical": True, "category": "classification", "business_impact": "high", "confidence": 0.75}
-            elif any(keyword in source_field for keyword in ['location', 'status']):
-                pattern_match = {"critical": False, "category": "operational", "business_impact": "medium", "confidence": 0.65}
+        # Default categorization if no Asset mapping found
+        if not best_metadata:
+            # Analyze field name patterns for unknown fields
+            if any(keyword in source_field_lower for keyword in ['id', 'key', 'name', 'hostname']):
+                category = "identity"
+                is_critical = True
+                confidence = 0.7
+            elif any(keyword in source_field_lower for keyword in ['ip', 'network', 'address', 'fqdn', 'mac']):
+                category = "network"
+                is_critical = True
+                confidence = 0.7
+            elif any(keyword in source_field_lower for keyword in ['cpu', 'memory', 'disk', 'storage', 'ram']):
+                category = "technical"
+                is_critical = True
+                confidence = 0.7
+            elif any(keyword in source_field_lower for keyword in ['app', 'application', 'service']):
+                category = "application"
+                is_critical = True
+                confidence = 0.7
+            elif any(keyword in source_field_lower for keyword in ['env', 'environment', 'stage']):
+                category = "business"
+                is_critical = True
+                confidence = 0.7
             else:
-                pattern_match = {"critical": False, "category": "supporting", "business_impact": "low", "confidence": 0.60}
+                category = "custom"
+                is_critical = False
+                confidence = 0.5
+            
+            best_target = source_field_name.lower().replace(' ', '_')  # Use source field as target if no mapping
+            best_confidence = confidence
+        else:
+            category = best_metadata["category"]
+            is_critical = best_metadata["critical"]
         
-        # Build attribute status
-        is_migration_critical = pattern_match["critical"]
+        # Use existing user mapping if available, otherwise suggest Asset model target
+        user_target_field = mapping_dict.get(source_field_name, best_target)
+        
+        # Build attribute status based on user approval
+        is_migration_critical = is_critical
         if is_migration_critical:
             migration_critical_count += 1
         
         # Check if this field is already mapped and approved by user
-        field_approval_status = mapping_status_dict.get(field_name, None)
+        field_approval_status = mapping_status_dict.get(source_field_name, None)
         if field_approval_status == "approved":
             mapping_status = "mapped"
         elif field_approval_status == "rejected":
             mapping_status = "unmapped" 
-        elif field_name in mapping_dict:
+        elif source_field_name in mapping_dict:
             mapping_status = "pending"  # Has mapping but not yet approved
         else:
             mapping_status = "unmapped"  # No mapping at all
         
         analyzed_attributes.append({
-            "name": target_field,
-            "description": f"Enhanced analysis: {field_name} -> {target_field}",
-            "category": pattern_match["category"],
+            "name": user_target_field,  # Use user's target or suggested Asset field
+            "description": f"Source field '{source_field_name}' maps to Asset model field '{best_target}'",
+            "category": category,
             "required": is_migration_critical,
             "status": mapping_status,
-            "mapped_to": field_name,
-            "source_field": field_name,
-            "confidence": pattern_match["confidence"],
-            "quality_score": int(pattern_match["confidence"] * 100),
+            "mapped_to": source_field_name,  # ACTUAL source field from imported data
+            "source_field": source_field_name,  # ACTUAL source field from imported data
+            "target_field": best_target,  # Suggested Asset model field
+            "confidence": best_confidence,
+            "quality_score": int(best_confidence * 100),
             "completeness_percentage": 100 if mapping_status == "mapped" else 0,
-            "mapping_type": "enhanced_fallback",
-            "ai_suggestion": f"Enhanced pattern analysis identified this as {pattern_match['category']} field with {pattern_match['business_impact']} business impact",
-            "business_impact": pattern_match["business_impact"],
-            "migration_critical": is_migration_critical
+            "mapping_type": "asset_model_mapping",
+            "ai_suggestion": f"Maps to Asset model field '{best_target}' in {category} category",
+            "migration_critical": is_migration_critical,
+            "data_exists": True  # Confirmed - this field exists in imported data
         })
     
     # Calculate statistics based on actual mapping approval status

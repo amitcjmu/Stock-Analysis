@@ -90,14 +90,12 @@ const DataCleansing: React.FC = () => {
   const [actionFeedback, setActionFeedback] = useState<ActionFeedback | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  // Discovery Flow State Integration
+  // Discovery Flow State Integration - TEMPORARILY SIMPLIFIED to prevent infinite loops
   const {
     flowState,
     isLoading: isFlowStateLoading,
-    error: flowStateError,
-    initializeFlow,
-    executeDataCleansingCrew,
-    getCrewStatus
+    error: flowStateError
+    // TEMPORARILY DISABLED: initializeFlow, executeDataCleansingCrew, getCrewStatus
   } = useDiscoveryFlowState();
 
   // Real-time monitoring via HTTP polling (no WebSocket needed)
@@ -150,73 +148,20 @@ const DataCleansing: React.FC = () => {
     }));
   }, [flowState]);
 
-  // Initialize Discovery Flow on component mount if needed
+  // Initialize Discovery Flow on component mount if needed - TEMPORARILY DISABLED to prevent infinite loops
   useEffect(() => {
-    const initializeDiscoveryFlow = async () => {
-      if (!client || !engagement) return;
-      
-      try {
-        // Check if we have flow state from navigation (from AttributeMapping)
-        const state = location.state as any;
-        
-        if (state?.flow_session_id && state?.flow_state) {
-          // Flow is already initialized, ensure we're in data_cleansing phase
-          console.log('✅ Using existing Discovery Flow session:', state.flow_session_id);
-          return;
-        }
-        
-        // Load data from latest import if no flow state
-        let rawData = [];
-        try {
-          const latestImportResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.LATEST_IMPORT);
-          rawData = latestImportResponse?.data || [];
-        } catch (error) {
-          console.warn('Could not load latest import data:', error);
-        }
-        
-        if (rawData.length === 0) {
-          console.warn('No data available for Discovery Flow initialization');
-          return;
-        }
-        
-        // Initialize Discovery Flow with data
-        await initializeFlow({
-          client_account_id: client.id,
-          engagement_id: engagement.id,
-          user_id: user?.id || 'anonymous',
-          raw_data: rawData,
-          metadata: {
-            source: 'data_cleansing_page',
-            from_phase: state?.from_phase || 'field_mapping',
-            auto_advance_to: 'data_cleansing'
-          },
-          configuration: {
-            enable_field_mapping: true,
-            enable_data_cleansing: true,
-            enable_inventory_building: true,
-            enable_dependency_analysis: true,
-            enable_technical_debt_analysis: true,
-            parallel_execution: false,
-            memory_sharing: true,
-            knowledge_integration: true,
-            confidence_threshold: 0.7
-          }
-        });
-        
-        console.log('✅ Discovery Flow initialized for DataCleansing');
-        
-      } catch (error) {
-        console.error('❌ Failed to initialize Discovery Flow:', error);
-        toast({
-          title: "Flow Initialization Failed",
-          description: "Unable to initialize Discovery Flow. Please try navigating from Attribute Mapping.",
-          variant: "destructive"
-        });
-      }
-    };
+    // TEMPORARILY DISABLED - this was causing infinite API calls
+    // Only initialize flow if explicitly passed from navigation
+    const state = location.state as any;
     
-    initializeDiscoveryFlow();
-  }, [client, engagement, user, location.state, initializeFlow, toast]);
+    if (state?.flow_session_id && state?.flow_state) {
+      console.log('✅ Using existing Discovery Flow session from navigation:', state.flow_session_id);
+      // Could set flow state here if needed
+    } else {
+      console.log('⚠️ Data Cleansing accessed directly - no flow state available');
+      // Show message to user to start from attribute mapping
+    }
+  }, [location.state]);
 
   // Execute Data Cleansing Crew Analysis
   const handleTriggerDataCleansingCrew = useCallback(async () => {
