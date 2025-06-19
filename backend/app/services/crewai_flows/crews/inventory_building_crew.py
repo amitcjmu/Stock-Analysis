@@ -141,7 +141,7 @@ class InventoryBuildingCrew:
             max_delegation=3,  # Set to 3 as requested
             max_execution_time=300,  # 5 minute timeout
             max_retry=1,  # Prevent retry loops
-            collaboration=False  # Simplified for now
+            collaboration=True  # Re-enabled for proper agent coordination
         )
         
         # Server Classification Expert - infrastructure domain specialist
@@ -201,7 +201,7 @@ class InventoryBuildingCrew:
             verbose=True,
             max_execution_time=180,  # 3 minute timeout
             max_retry=1,  # Prevent retry loops
-            collaboration=False,  # Simplified for now
+            collaboration=True,  # Re-enabled for proper agent coordination
             tools=[]  # Tools will be added later
         )
         
@@ -218,7 +218,7 @@ class InventoryBuildingCrew:
             verbose=True,
             max_execution_time=180,  # ADD: 3 minute timeout
             max_retry=1,  # ADD: Prevent retry loops
-            collaboration=False,  # DISABLED: Causing complexity
+            collaboration=True,  # Re-enabled for proper agent coordination
             tools=self._create_app_classification_tools()
         )
         
@@ -235,7 +235,7 @@ class InventoryBuildingCrew:
             verbose=True,
             max_execution_time=180,  # ADD: 3 minute timeout
             max_retry=1,  # ADD: Prevent retry loops
-            collaboration=False,  # DISABLED: Causing complexity
+            collaboration=True,  # Re-enabled for proper agent coordination
             tools=self._create_device_classification_tools()
         )
         
@@ -369,7 +369,7 @@ class InventoryBuildingCrew:
                 "memory": False,  # DISABLED: Causing APIStatusError loops
                 "knowledge": None,  # DISABLED: Causing API errors
                 "share_crew": False,  # DISABLED: Causing complexity
-                "collaboration": False  # DISABLED: Causing complexity
+                "collaboration": True  # Re-enabled for proper agent coordination
             })
             
             # Additional environment override to prevent any gpt-4o-mini fallback

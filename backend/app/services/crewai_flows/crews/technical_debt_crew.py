@@ -141,7 +141,7 @@ class TechnicalDebtCrew:
             max_delegation=3,  # Set to 3 as requested
             max_execution_time=300,  # 5 minute timeout
             max_retry=1,  # Prevent retry loops
-            collaboration=False  # Simplified for now
+            collaboration=True  # Re-enabled for proper agent coordination
         )
         
         # Legacy Systems Analyst - specialist agent
@@ -328,7 +328,7 @@ class TechnicalDebtCrew:
                 "memory": False,
                 "knowledge": None,
                 "share_crew": False,  # DISABLED: Causing complexity
-                "collaboration": False  # DISABLED: Causing complexity
+                "collaboration": True  # Re-enabled for proper agent coordination
             })
             
             # Additional environment override to prevent any gpt-4o-mini fallback

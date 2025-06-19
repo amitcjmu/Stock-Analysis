@@ -129,7 +129,7 @@ class FieldMappingCrew:
             "max_execution_time": 300,  # 5 minute timeout
             "max_retry": 1,  # Prevent retry loops
             "memory": None,  # Agent-level memory will be added later
-            "collaboration": False,  # Simplified for now
+            "collaboration": True,  # Re-enabled for proper agent coordination
         }
         if self.knowledge_base:
             manager_config["knowledge"] = self.knowledge_base
@@ -182,7 +182,7 @@ class FieldMappingCrew:
             "verbose": True,
             "max_execution_time": 180,  # 3 minute timeout per agent
             "max_retry": 1,  # Prevent retry loops
-            "collaboration": False,  # Simplified for now
+            "collaboration": True,  # Re-enabled for proper agent coordination
             "memory": None,  # Agent-level memory will be added later
             "tools": self._create_schema_analysis_tools()
         }
@@ -247,7 +247,7 @@ class FieldMappingCrew:
             "verbose": True,
             "max_execution_time": 180,  # 3 minute timeout
             "max_retry": 1,  # Prevent retry loops
-            "collaboration": False,  # Simplified for now
+            "collaboration": True,  # Re-enabled for proper agent coordination
             "memory": None,  # Agent-level memory will be added later
             "tools": self._create_mapping_confidence_tools()
         }
@@ -308,7 +308,7 @@ class FieldMappingCrew:
             "verbose": True,
             "max_execution_time": 120,  # 2 minute timeout
             "max_retry": 1,  # Prevent retry loops
-            "collaboration": False,  # Simplified for now
+            "collaboration": True,  # Re-enabled for proper agent coordination
             "memory": None,  # Agent-level memory will be added later
             "tools": []  # Knowledge management tools will be added later
         }
@@ -446,7 +446,7 @@ class FieldMappingCrew:
                 "planning_llm": self.llm,  # Force planning to use our LLM too
                 "memory": False,  # Start with agent-level memory instead
                 "share_crew": False,  # Disabled to prevent complexity
-                "collaboration": False  # Simplified for better control
+                "collaboration": True  # Re-enabled for proper agent coordination
             }
             # Enable knowledge base if available
             if self.knowledge_base:
