@@ -58,11 +58,28 @@ export class DataImportValidationService {
     formData.append('file', file);
     formData.append('category', category);
 
+    // Add context data to formData for multipart request
+    if (authContext) {
+      formData.append('client_account_id', authContext.client_account_id);
+      formData.append('engagement_id', authContext.engagement_id);
+      formData.append('user_id', authContext.user_id);
+      formData.append('session_id', authContext.session_id);
+    }
+
     try {
+      // For FormData uploads, we need to let the browser set Content-Type automatically
+      // Remove Content-Type from custom headers and let fetch/FormData handle it
+      const customHeaders = { ...authContext?.headers };
+      if (customHeaders['Content-Type']) {
+        delete customHeaders['Content-Type'];
+      }
+
+      console.log('🔍 Making file upload request with headers:', customHeaders);
+
       const response = await apiCall('/data-import/validate-upload', {
         method: 'POST',
         body: formData,
-        headers: authContext?.headers || {}
+        headers: customHeaders
       }, true);
 
       return response;

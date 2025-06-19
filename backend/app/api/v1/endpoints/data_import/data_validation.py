@@ -12,7 +12,7 @@ from datetime import datetime
 import mimetypes
 import hashlib
 
-from app.core.auth import get_current_user_id as get_current_user
+from app.api.v1.auth.auth_utils import get_current_user
 from app.core.database import get_db as get_async_db
 from app.models.client_account import User
 from app.schemas.data_import_schemas import (

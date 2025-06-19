@@ -211,10 +211,15 @@ export const apiCall = async (
     try {
       // Add headers
       const headers: HeadersInit = {
-        'Content-Type': 'application/json',
         'X-Request-ID': requestId,
         ...options.headers,
       };
+      
+      // Only set Content-Type for non-FormData requests
+      // FormData uploads need the browser to set Content-Type with boundary
+      if (!(options.body instanceof FormData)) {
+        headers['Content-Type'] = 'application/json';
+      }
       
       // Add auth token if available
       const token = localStorage.getItem('auth_token');
