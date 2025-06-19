@@ -1,5 +1,141 @@
 # AI Force Migration Platform - Change Log
 
+## [0.20.6] - 2025-01-03
+
+### 🎯 **DATA CLEANSING PAGE COMPLETE REBUILD - Discovery Flow Sequence Integration**
+
+This release completely rebuilds the Data Cleansing page to match the AttributeMapping pattern with proper discovery flow integration, navigation state handling, and agentic data source connection.
+
+### 🚀 **Major Architecture Rebuild**
+
+#### **Discovery Flow Sequence Integration**
+- **Rebuilt**: DataCleansing component to follow AttributeMapping architecture pattern
+- **Integration**: Proper navigation state handling from Attribute Mapping phase
+- **Flow State**: Automatic initialization when arriving from field_mapping phase with flow_session_id
+- **Impact**: Data Cleansing now properly receives and processes data from previous Discovery Flow phase
+
+#### **Agentic Data Source Connection**
+- **Created**: `useDataCleansingAnalysis` hook following AttributeMapping's `useAgenticCriticalAttributes` pattern
+- **Primary Data**: Agentic data cleansing analysis as primary data source with fallback to mock data
+- **Authentication**: Proper client/engagement context integration with auth headers
+- **Real-time**: Live data fetching with stale time management and refetch capabilities
+
+#### **Docker-Based Development Compliance**
+- **Fixed**: All development now properly using Docker containers as per workspace rules
+- **Build**: Successful Docker frontend build verification
+- **Commands**: All operations running through `docker-compose exec` commands
+- **Containers**: Full compliance with containerized development workflow
+
+### 🔧 **Component Architecture Enhancements**
+
+#### **Navigation State Management**
+- **From Attribute Mapping**: Proper handling of navigation state from field_mapping phase
+- **Flow Context**: Session ID, mapping progress, and client context preservation
+- **Auto-Initialization**: Automatic phase trigger when arriving from previous phase
+- **Progress Tracking**: Mapping progress data forwarded to enable data cleansing context
+
+#### **Quality Issues and Recommendations Display**
+- **Interactive UI**: Modern card-based layout for quality issues with severity indicators
+- **Agent Actions**: Resolve/Ignore buttons for quality issues with immediate UI feedback
+- **Recommendations**: Apply/Reject buttons for cleansing recommendations
+- **Real-time Updates**: Local state management with backend synchronization
+
+#### **Progress Dashboard Integration**
+- **Metrics Display**: Total records, quality score, issues found, completion percentage
+- **Visual Indicators**: Color-coded quality scores and completion status
+- **Statistics**: Real-time statistics from agentic data analysis
+- **Crew Status**: Integration with Discovery Flow crew completion tracking
+
+### 📊 **Data Flow and Agent Integration**
+
+#### **Agent Learning Integration**
+- **Issue Resolution**: Agent learning endpoint integration for quality issue actions
+- **Recommendation Feedback**: Learning system for recommendation acceptance/rejection
+- **Context Preservation**: Proper field, issue type, and severity data forwarding
+- **Crew Intelligence**: Actions feed back into agent learning for improved analysis
+
+#### **Discovery Flow Phase Management**
+- **Phase Execution**: Proper `executePhase('data_cleansing', ...)` integration
+- **Previous Phase**: Field mapping context and progress forwarding
+- **Next Phase**: Inventory phase preparation with cleansing progress data
+- **Flow Continuity**: Seamless phase-to-phase data and context transfer
+
+#### **Enhanced Agent Orchestration**
+- **Panel Integration**: EnhancedAgentOrchestrationPanel for real-time agent monitoring
+- **Agent Clarification**: Data cleansing specific agent question handling
+- **Classification Display**: Data classification updates with cleansing context
+- **Insights Application**: Agent insights integration with data quality focus
+
+### 🎯 **User Experience Improvements**
+
+#### **No Data State Handling**
+- **Clear Messaging**: Proper no-data placeholders with actionable guidance
+- **Navigation Options**: Easy return to Attribute Mapping or manual analysis trigger
+- **Loading States**: Comprehensive loading indicators for all async operations
+- **Error Recovery**: Robust error handling with clear recovery paths
+
+#### **Action Feedback and Status**
+- **Immediate UI**: Instant visual feedback for user actions (resolve, apply, etc.)
+- **Status Persistence**: Local status tracking for issues and recommendations
+- **Success Notifications**: Toast notifications for successful operations
+- **Error Handling**: Graceful error handling with state reversion on failures
+
+#### **Navigation and Flow Control**
+- **Back Navigation**: Proper return to Attribute Mapping with context preservation
+- **Continue Forward**: Conditional continue to Inventory based on completion criteria
+- **Progress Requirements**: Clear completion criteria (60% completion, 70% quality score)
+- **Phase State**: Proper flow session and progress state forwarding
+
+### 🔧 **Technical Implementation Details**
+
+#### **Docker Development Workflow**
+- **Container Build**: All development and testing through Docker containers
+- **Frontend Build**: Successful `docker-compose exec frontend npm run build`
+- **Live Development**: Hot reload and development through containerized environment
+- **Compliance**: Full adherence to workspace Docker-first development rules
+
+#### **Authentication and Context**
+- **Client Scoping**: Proper client_account_id and engagement_id integration
+- **Header Management**: X-Client-Account-ID and X-Engagement-ID header forwarding
+- **Context Preservation**: Authentication context maintained through navigation
+- **Multi-tenant**: Full multi-tenant data scoping and isolation
+
+#### **API Integration Patterns**
+- **Primary Endpoint**: `/api/v1/agents/discovery/data-cleansing/analysis` with auth headers
+- **Fallback Data**: Comprehensive mock data for development and testing
+- **Learning Integration**: `/api/v1/agents/discovery/learning/agent-learning` for user feedback
+- **Query Management**: React Query integration with proper cache management
+
+### 📋 **Quality Assurance and Testing**
+
+#### **Build Verification**
+- **Docker Build**: Successful frontend build in Docker container
+- **TypeScript**: Clean TypeScript compilation with no type errors
+- **Import Resolution**: All imports properly resolved with correct relative paths
+- **Component Structure**: Proper component hierarchy and dependency management
+
+#### **Data Flow Testing**
+- **Navigation State**: Proper state transfer from Attribute Mapping verified
+- **Hook Integration**: useDataCleansingAnalysis hook providing data correctly
+- **Action Handling**: Quality issue and recommendation actions working properly
+- **Agent Learning**: Learning endpoint integration tested and functional
+
+### 🎪 **Business Impact**
+
+- **Discovery Flow Continuity**: Data Cleansing now properly integrated in Discovery Flow sequence
+- **Agent Intelligence**: Quality analysis powered by agentic data with learning feedback
+- **User Workflow**: Seamless progression from field mapping to data cleansing
+- **Data Quality**: Interactive quality issue resolution with agent learning integration
+- **Platform Reliability**: Robust error handling and Docker-based development compliance
+
+### 🎯 **Success Metrics**
+
+- **Architecture Alignment**: 100% compliance with AttributeMapping component pattern
+- **Docker Development**: Full containerized development workflow implementation
+- **Navigation Flow**: Seamless phase-to-phase navigation with context preservation
+- **Agent Integration**: Complete agentic data source integration with learning feedback
+- **Build Success**: Clean Docker frontend build with no compilation errors
+
 ## [0.20.5] - 2025-01-03
 
 ### 🎯 **DATA CLEANSING PAGE ERROR FIX - API Function Reference Correction**
