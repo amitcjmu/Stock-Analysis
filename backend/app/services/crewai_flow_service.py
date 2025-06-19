@@ -975,27 +975,27 @@ class CrewAIFlowService:
         options: Dict[str, Any] = None
     ) -> Dict[str, Any]:
         """
-        Execute the redesigned Discovery Flow using the corrected architecture.
+        Execute the Modular Discovery Flow using clean architecture.
         
-        This method creates and executes the DiscoveryFlowRedesigned with:
+        This method creates and executes the DiscoveryFlowModular with:
+        - Modular handler-based architecture  
         - Proper flow sequence (field mapping first)
         - Specialized crews with manager agents
-        - Shared memory and knowledge bases
-        - Agent collaboration and planning
-        - CrewAI fingerprinting as primary identifier
+        - Enhanced learning and collaboration tracking
+        - Reduced code complexity and maintainability
         """
         try:
-            logger.info(f"🚀 Starting redesigned Discovery Flow for session {context.session_id}")
+            logger.info(f"🚀 Starting modular Discovery Flow for session {context.session_id}")
             
-            # Import the redesigned flow with error handling
+            # Import the modular flow with error handling
             try:
-                from app.services.crewai_flows.discovery_flow_redesigned import DiscoveryFlowRedesigned
-                REDESIGNED_FLOW_AVAILABLE = True
+                from app.services.crewai_flows.discovery_flow_modular import DiscoveryFlowModular
+                MODULAR_FLOW_AVAILABLE = True
             except Exception as import_error:
-                logger.error(f"Failed to import DiscoveryFlowRedesigned: {import_error}")
+                logger.error(f"Failed to import DiscoveryFlowModular: {import_error}")
                 return {
                     "status": "error",
-                    "message": f"Redesigned flow not available: {import_error}",
+                    "message": f"Modular flow not available: {import_error}",
                     "session_id": context.session_id,
                     "workflow_status": "failed",
                     "current_phase": "error"
@@ -1044,17 +1044,8 @@ class CrewAIFlowService:
                 })()
                 logger.warning("Using mock CrewAI service - LLM operations may fail")
             
-            # Initialize the redesigned flow
-            flow = DiscoveryFlowRedesigned(
-                crewai_service=crewai_service,
-                context=context,
-                session_id=session_id,
-                client_account_id=context.client_account_id,
-                engagement_id=context.engagement_id,
-                user_id=context.user_id,
-                raw_data=sample_data,
-                metadata=flow_data["metadata"]
-            )
+            # Initialize the modular flow
+            flow = DiscoveryFlowModular(crewai_service=crewai_service)
             
             # UPDATED: Use flow ID as PRIMARY identifier (not fingerprint)
             flow_id = str(uuid.uuid4())  # Generate unique flow ID
@@ -1065,68 +1056,75 @@ class CrewAIFlowService:
             self._active_flows[session_id] = flow     # Secondary for legacy compatibility
             
             # Start the flow execution in background
-            asyncio.create_task(self._run_redesigned_flow_background(flow, context))
+            asyncio.create_task(self._run_redesigned_flow_background(flow, context, sample_data))
             
             # Return immediate response with FLOW ID as primary identifier
             return {
                 "status": "flow_started",
                 "flow_id": flow_id,               # PRIMARY: Generated flow ID
                 "session_id": session_id,         # SECONDARY: User session ID  
-                "architecture": "redesigned_with_crews",
+                "architecture": "modular_discovery_flow",
                 "next_phase": "field_mapping",
-                "discovery_plan": getattr(flow.state, 'overall_plan', {}),
-                "crew_coordination": getattr(flow.state, 'crew_coordination', {}),
-                "message": "Redesigned Discovery Flow started with event tracking"
+                "message": "Modular Discovery Flow started with enhanced architecture"
             }
             
         except Exception as e:
-            logger.error(f"❌ Failed to start redesigned Discovery Flow: {e}")
+            logger.error(f"❌ Failed to start modular Discovery Flow: {e}")
             raise e
 
     async def _run_redesigned_flow_background(
         self,
-        flow: 'DiscoveryFlowRedesigned',
-        context: RequestContext
+        flow: 'DiscoveryFlowModular',
+        context: RequestContext,
+        sample_data: List[Dict[str, Any]]
     ):
-        """Run the redesigned flow in background and update state."""
+        """Run the modular flow in background and update state."""
         try:
-            logger.info(f"🔄 Running redesigned flow in background for session {flow.state.session_id}")
+            logger.info(f"🔄 Running modular flow in background for session {context.session_id}")
             
-            # Execute the flow (this will trigger the @start method and flow through @listen decorators)
-            result = await asyncio.to_thread(flow.kickoff)
+            # Create context object for the flow
+            flow_context = type('FlowContext', (), {
+                'session_id': context.session_id,
+                'client_account_id': context.client_account_id,
+                'engagement_id': context.engagement_id,
+                'user_id': context.user_id
+            })()
             
-            logger.info(f"✅ Redesigned flow completed for session {flow.state.session_id}")
+            # Execute the modular flow
+            result = await flow.execute_discovery_flow(sample_data, flow_context)
+            
+            logger.info(f"✅ Modular flow completed for session {context.session_id}")
             
             # Update workflow state in database
             await self._update_workflow_state_with_new_session(
-                session_id=flow.state.session_id,
+                session_id=context.session_id,
                 client_account_id=context.client_account_id,
                 engagement_id=context.engagement_id,
                 status="completed",
                 current_phase="completed",
                 state_data={
-                    "session_id": flow.state.session_id,
+                    "session_id": context.session_id,
                     "status": "completed",
                     "current_phase": "completed",
                     "flow_result": result,
-                    "discovery_summary": getattr(flow.state, 'discovery_summary', {}),
-                    "assessment_flow_package": getattr(flow.state, 'assessment_flow_package', {}),
+                    "integration_result": result.get("integration_result", {}),
+                    "flow_report": result.get("flow_report", {}),
                     "completed_at": datetime.utcnow().isoformat()
                 }
             )
             
         except Exception as e:
-            logger.error(f"❌ Redesigned flow background execution failed: {e}")
+            logger.error(f"❌ Modular flow background execution failed: {e}")
             
             # Update workflow state to error
             await self._update_workflow_state_with_new_session(
-                session_id=flow.state.session_id,
+                session_id=context.session_id,
                 client_account_id=context.client_account_id,
                 engagement_id=context.engagement_id,
                 status="failed", 
                 current_phase="error",
                 state_data={
-                    "session_id": flow.state.session_id,
+                    "session_id": context.session_id,
                     "status": "failed",
                     "current_phase": "error",
                     "error": str(e),
@@ -1135,8 +1133,8 @@ class CrewAIFlowService:
             )
         finally:
             # Remove from active flows when complete
-            if flow.state.session_id in self._active_flows:
-                del self._active_flows[flow.state.session_id]
+            if context.session_id in self._active_flows:
+                del self._active_flows[context.session_id]
 
     def generate_flow_id(self, flow_type: str, session_id: str, 
                         client_account_id: str, engagement_id: str) -> str:
