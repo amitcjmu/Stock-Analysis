@@ -6,6 +6,7 @@ import { Routes, Route } from "react-router-dom";
 import { ChatFeedbackProvider } from "./contexts/ChatFeedbackContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import { SessionProvider } from "./contexts/SessionContext";
+import { ClientProvider } from "./contexts/ClientContext";
 // import { AppContextProvider } from "./hooks/useContext";
 import GlobalChatFeedback from "./components/GlobalChatFeedback";
 import Index from "./pages/Index";
@@ -83,82 +84,84 @@ const App = () => (
       <Sonner />
       <AuthProvider>
         <SessionProvider>
-          <ChatFeedbackProvider>
-            <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/discovery" element={<Discovery />} />
-            <Route path="/discovery/overview" element={<DiscoveryDashboard />} />
-            <Route path="/discovery/dashboard" element={<DiscoveryDashboard />} />
-            <Route path="/discovery/import" element={<DataImport />} />
-            <Route path="/discovery/inventory" element={<Inventory />} />
-            <Route path="/discovery/dependencies" element={<Dependencies />} />
-            <Route path="/discovery/data-cleansing" element={<DataCleansing />} />
-            <Route path="/discovery/attribute-mapping" element={<AttributeMapping />} />
-            <Route path="/discovery/tech-debt" element={<TechDebtAnalysis />} />
-            <Route path="/assess" element={<Assess />} />
-            <Route path="/assess/overview" element={<AssessIndex />} />
-            <Route path="/assess/treatment" element={<Treatment />} />
-            <Route path="/assess/waveplanning" element={<WavePlanning />} />
-            <Route path="/assess/roadmap" element={<Roadmap />} />
-            <Route path="/assess/editor" element={<Editor />} />
-            <Route path="/plan" element={<Plan />} />
-            <Route path="/plan/overview" element={<PlanIndex />} />
-            <Route path="/plan/timeline" element={<Timeline />} />
-            <Route path="/plan/resource" element={<Resource />} />
-            <Route path="/plan/target" element={<Target />} />
-            <Route path="/execute" element={<Execute />} />
-            <Route path="/execute/overview" element={<ExecuteIndex />} />
-            <Route path="/execute/rehost" element={<Rehost />} />
-            <Route path="/execute/replatform" element={<Replatform />} />
-            <Route path="/execute/cutovers" element={<Cutovers />} />
-            <Route path="/execute/reports" element={<Reports />} />
-            <Route path="/modernize" element={<Modernize />} />
-            <Route path="/modernize/overview" element={<ModernizeIndex />} />
-            <Route path="/modernize/refactor" element={<Refactor />} />
-            <Route path="/modernize/rearchitect" element={<Rearchitect />} />
-            <Route path="/modernize/rewrite" element={<Rewrite />} />
-            <Route path="/modernize/progress" element={<Progress />} />
-            <Route path="/decommission" element={<Decommission />} />
-            <Route path="/decommission/overview" element={<DecommissionIndex />} />
-            <Route path="/decommission/planning" element={<DecommissionPlanning />} />
-            <Route path="/decommission/dataretention" element={<DataRetention />} />
-            <Route path="/decommission/execution" element={<DecommissionExecution />} />
-            <Route path="/decommission/validation" element={<DecommissionValidation />} />
-            <Route path="/finops" element={<FinOps />} />
-            <Route path="/finops/cloud-comparison" element={<CloudComparison />} />
-            <Route path="/finops/savings-analysis" element={<SavingsAnalysis />} />
-            <Route path="/finops/cost-analysis" element={<CostAnalysis />} />
-            <Route path="/finops/llm-costs" element={<LLMCosts />} />
-            <Route path="/finops/wave-breakdown" element={<WaveBreakdown />} />
-            <Route path="/finops/cost-trends" element={<CostTrends />} />
-            <Route path="/finops/budget-alerts" element={<BudgetAlerts />} />
-            <Route path="/observability" element={<Observability />} />
-            <Route path="/observability/agent-monitoring" element={<AgentMonitoring />} />
-            <Route path="/feedback-view" element={<FeedbackView />} />
-            <Route path="/profile" element={<UserProfile />} />
-            {/* Admin Routes - Protected */}
-            <Route path="/admin" element={<AdminRoute><AdminLayout><AdminDashboard /></AdminLayout></AdminRoute>} />
-            <Route path="/admin/dashboard" element={<AdminRoute><AdminLayout><AdminDashboard /></AdminLayout></AdminRoute>} />
-            <Route path="/admin/clients" element={<AdminRoute><AdminLayout><ClientManagement /></AdminLayout></AdminRoute>} />
-            <Route path="/admin/clients/new" element={<AdminRoute><AdminLayout><ClientManagement /></AdminLayout></AdminRoute>} />
-            <Route path="/admin/clients/:clientId" element={<AdminRoute><AdminLayout><ClientDetails /></AdminLayout></AdminRoute>} />
-            <Route path="/admin/engagements" element={<AdminRoute><AdminLayout><EngagementManagement /></AdminLayout></AdminRoute>} />
-            <Route path="/admin/engagements/:engagementId" element={<AdminRoute><AdminLayout><EngagementDetails /></AdminLayout></AdminRoute>} />
-            <Route path="/admin/users/approvals" element={<AdminRoute><AdminLayout><UserApprovals /></AdminLayout></AdminRoute>} />
-            <Route path="/admin/users/create" element={<AdminRoute><AdminLayout><CreateUser /></AdminLayout></AdminRoute>} />
-            <Route path="/admin/users" element={<AdminRoute><AdminLayout><UserApprovals /></AdminLayout></AdminRoute>} />
-            <Route path="/admin/users/access" element={<AdminRoute><AdminLayout><UserApprovals /></AdminLayout></AdminRoute>} />
-            <Route path="/admin/reports" element={<AdminRoute><AdminLayout><Reports /></AdminLayout></AdminRoute>} />
-            <Route path="/admin/clients/create" element={<AdminRoute><AdminLayout><CreateClient /></AdminLayout></AdminRoute>} />
-            <Route path="/admin/engagements/create" element={<AdminRoute><AdminLayout><CreateEngagement /></AdminLayout></AdminRoute>} />
-            <Route path="/admin/platform" element={<AdminRoute><AdminLayout><PlatformAdmin /></AdminLayout></AdminRoute>} />
-            <Route path="/admin/profile" element={<AdminRoute><AdminLayout><UserProfile /></AdminLayout></AdminRoute>} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-            </Routes>
-            <GlobalChatFeedback />
-          </ChatFeedbackProvider>
+          <ClientProvider>
+            <ChatFeedbackProvider>
+              <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/discovery" element={<Discovery />} />
+              <Route path="/discovery/overview" element={<DiscoveryDashboard />} />
+              <Route path="/discovery/dashboard" element={<DiscoveryDashboard />} />
+              <Route path="/discovery/import" element={<DataImport />} />
+              <Route path="/discovery/inventory" element={<Inventory />} />
+              <Route path="/discovery/dependencies" element={<Dependencies />} />
+              <Route path="/discovery/data-cleansing" element={<DataCleansing />} />
+              <Route path="/discovery/attribute-mapping" element={<AttributeMapping />} />
+              <Route path="/discovery/tech-debt" element={<TechDebtAnalysis />} />
+              <Route path="/assess" element={<Assess />} />
+              <Route path="/assess/overview" element={<AssessIndex />} />
+              <Route path="/assess/treatment" element={<Treatment />} />
+              <Route path="/assess/waveplanning" element={<WavePlanning />} />
+              <Route path="/assess/roadmap" element={<Roadmap />} />
+              <Route path="/assess/editor" element={<Editor />} />
+              <Route path="/plan" element={<Plan />} />
+              <Route path="/plan/overview" element={<PlanIndex />} />
+              <Route path="/plan/timeline" element={<Timeline />} />
+              <Route path="/plan/resource" element={<Resource />} />
+              <Route path="/plan/target" element={<Target />} />
+              <Route path="/execute" element={<Execute />} />
+              <Route path="/execute/overview" element={<ExecuteIndex />} />
+              <Route path="/execute/rehost" element={<Rehost />} />
+              <Route path="/execute/replatform" element={<Replatform />} />
+              <Route path="/execute/cutovers" element={<Cutovers />} />
+              <Route path="/execute/reports" element={<Reports />} />
+              <Route path="/modernize" element={<Modernize />} />
+              <Route path="/modernize/overview" element={<ModernizeIndex />} />
+              <Route path="/modernize/refactor" element={<Refactor />} />
+              <Route path="/modernize/rearchitect" element={<Rearchitect />} />
+              <Route path="/modernize/rewrite" element={<Rewrite />} />
+              <Route path="/modernize/progress" element={<Progress />} />
+              <Route path="/decommission" element={<Decommission />} />
+              <Route path="/decommission/overview" element={<DecommissionIndex />} />
+              <Route path="/decommission/planning" element={<DecommissionPlanning />} />
+              <Route path="/decommission/dataretention" element={<DataRetention />} />
+              <Route path="/decommission/execution" element={<DecommissionExecution />} />
+              <Route path="/decommission/validation" element={<DecommissionValidation />} />
+              <Route path="/finops" element={<FinOps />} />
+              <Route path="/finops/cloud-comparison" element={<CloudComparison />} />
+              <Route path="/finops/savings-analysis" element={<SavingsAnalysis />} />
+              <Route path="/finops/cost-analysis" element={<CostAnalysis />} />
+              <Route path="/finops/llm-costs" element={<LLMCosts />} />
+              <Route path="/finops/wave-breakdown" element={<WaveBreakdown />} />
+              <Route path="/finops/cost-trends" element={<CostTrends />} />
+              <Route path="/finops/budget-alerts" element={<BudgetAlerts />} />
+              <Route path="/observability" element={<Observability />} />
+              <Route path="/observability/agent-monitoring" element={<AgentMonitoring />} />
+              <Route path="/feedback-view" element={<FeedbackView />} />
+              <Route path="/profile" element={<UserProfile />} />
+              {/* Admin Routes - Protected */}
+              <Route path="/admin" element={<AdminRoute><AdminLayout><AdminDashboard /></AdminLayout></AdminRoute>} />
+              <Route path="/admin/dashboard" element={<AdminRoute><AdminLayout><AdminDashboard /></AdminLayout></AdminRoute>} />
+              <Route path="/admin/clients" element={<AdminRoute><AdminLayout><ClientManagement /></AdminLayout></AdminRoute>} />
+              <Route path="/admin/clients/new" element={<AdminRoute><AdminLayout><ClientManagement /></AdminLayout></AdminRoute>} />
+              <Route path="/admin/clients/:clientId" element={<AdminRoute><AdminLayout><ClientDetails /></AdminLayout></AdminRoute>} />
+              <Route path="/admin/engagements" element={<AdminRoute><AdminLayout><EngagementManagement /></AdminLayout></AdminRoute>} />
+              <Route path="/admin/engagements/:engagementId" element={<AdminRoute><AdminLayout><EngagementDetails /></AdminLayout></AdminRoute>} />
+              <Route path="/admin/users/approvals" element={<AdminRoute><AdminLayout><UserApprovals /></AdminLayout></AdminRoute>} />
+              <Route path="/admin/users/create" element={<AdminRoute><AdminLayout><CreateUser /></AdminLayout></AdminRoute>} />
+              <Route path="/admin/users" element={<AdminRoute><AdminLayout><UserApprovals /></AdminLayout></AdminRoute>} />
+              <Route path="/admin/users/access" element={<AdminRoute><AdminLayout><UserApprovals /></AdminLayout></AdminRoute>} />
+              <Route path="/admin/reports" element={<AdminRoute><AdminLayout><Reports /></AdminLayout></AdminRoute>} />
+              <Route path="/admin/clients/create" element={<AdminRoute><AdminLayout><CreateClient /></AdminLayout></AdminRoute>} />
+              <Route path="/admin/engagements/create" element={<AdminRoute><AdminLayout><CreateEngagement /></AdminLayout></AdminRoute>} />
+              <Route path="/admin/platform" element={<AdminRoute><AdminLayout><PlatformAdmin /></AdminLayout></AdminRoute>} />
+              <Route path="/admin/profile" element={<AdminRoute><AdminLayout><UserProfile /></AdminLayout></AdminRoute>} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+              </Routes>
+              <GlobalChatFeedback />
+            </ChatFeedbackProvider>
+          </ClientProvider>
         </SessionProvider>
       </AuthProvider>
     </TooltipProvider>

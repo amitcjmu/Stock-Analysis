@@ -30,7 +30,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import Sidebar from '../../components/Sidebar';
 import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
 import { useAuth } from '@/contexts/AuthContext';
-import { useClient } from '@/contexts/ClientContext';
 import { useToast } from '@/hooks/use-toast';
 import { DataImportValidationService, ValidationAgentResult } from '@/services/dataImportValidationService';
 import { apiCall } from '@/config/api';
@@ -186,7 +185,6 @@ const DataImport: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, client, engagement, session, getAuthHeaders } = useAuth();
-  const { currentClient } = useClient();
   const [uploadedFiles, setUploadedFiles] = useState<UploadFile[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [validationAgents, setValidationAgents] = useState<DataImportAgent[]>([]);
