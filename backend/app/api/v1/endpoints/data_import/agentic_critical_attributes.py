@@ -291,44 +291,36 @@ async def _execute_field_mapping_crew(
     Execute the Field Mapping Crew to analyze critical attributes.
     
     This creates and runs the Field Mapping Crew with:
-    - Field Mapping Manager (coordinator)
-    - Schema Analysis Expert 
-    - Attribute Mapping Specialist
+    - Proper LLM configuration from llm_config service
+    - Schema Analysis Expert for field understanding
+    - Attribute Mapping Specialist for criticality assessment
+    - Field Mapping Manager for coordination
     """
     try:
-        # Import CrewAI components
-        from crewai import Agent, Task, Crew, Process, LLM
-        from app.core.config import settings
-        
-        # Configure LLM for DeepInfra (FIX: Use custom LLM instead of LiteLLM wrapper)
-        llm = None
-        if settings.DEEPINFRA_API_KEY:
-            try:
-                # Use our custom DeepInfra LLM that properly handles reasoning_effort=none
-                from app.services.deepinfra_llm import create_deepinfra_llm
-                
-                llm = create_deepinfra_llm(
-                    api_token=settings.DEEPINFRA_API_KEY,
-                    model_id="meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
-                    temperature=0.1,
-                    max_tokens=1000,
-                    reasoning_effort="none"  # CRITICAL: This actually works with our custom LLM
-                )
-                logger.info("✅ Custom DeepInfra LLM configured (bypassing LiteLLM wrapper)")
-            except Exception as e:
-                logger.error(f"Failed to configure custom LLM: {e}")
-                llm = None
-        
-        if not llm:
-            logger.info("Using enhanced fallback field analysis (CrewAI not available)")
+        # Import CrewAI components with fallback
+        try:
+            from crewai import Agent, Task, Crew, Process
+            CREWAI_AVAILABLE = True
+        except ImportError:
+            logger.info("CrewAI not available - using fallback analysis")
             return await _fallback_field_analysis(data_import, db)
         
+        # Get proper LLM configuration from our service
+        try:
+            from app.services.llm_config import get_crewai_llm
+            llm = get_crewai_llm()
+            logger.info("✅ Using configured DeepInfra LLM for Field Mapping Crew")
+        except Exception as e:
+            logger.warning(f"Failed to get configured LLM: {e}")
+            logger.info("Using enhanced fallback field analysis (LLM config not available)")
+            return await _fallback_field_analysis(data_import, db)
+
         # Get sample data from import
         sample_data = await _get_sample_data_from_import(data_import, db)
         
         if not sample_data:
             raise Exception("No sample data available for analysis")
-        
+
         # CREATE FIELD MAPPING CREW WITH PROPER LLM CONFIGURATION
         
         # 1. Field Mapping Manager (Coordinator)
@@ -338,7 +330,7 @@ async def _execute_field_mapping_crew(
             backstory="Expert coordinator with deep knowledge of migration patterns and critical attribute identification. Manages team of specialists to analyze data structure and determine migration-critical fields.",
             verbose=False,
             allow_delegation=True,
-            llm=llm  # FIX: Pass LLM to agent
+            llm=llm  # Use properly configured LLM
         )
         
         # 2. Schema Analysis Expert
@@ -347,7 +339,7 @@ async def _execute_field_mapping_crew(
             goal="Analyze data structure and understand field semantics for migration planning",
             backstory="Expert in data schema analysis with 15+ years experience in CMDB and migration data structures. Understands field meanings from context and naming patterns.",
             verbose=False,
-            llm=llm  # FIX: Pass LLM to agent
+            llm=llm  # Use properly configured LLM
         )
         
         # 3. Attribute Mapping Specialist
@@ -356,9 +348,9 @@ async def _execute_field_mapping_crew(
             goal="Determine which attributes are critical for migration success",
             backstory="Specialist in migration attribute analysis with expertise in identifying business-critical, technical-critical, and dependency-critical fields for successful migrations.",
             verbose=False,
-            llm=llm  # FIX: Pass LLM to agent
+            llm=llm  # Use properly configured LLM
         )
-        
+
         # CREATE SIMPLIFIED TASKS
         
         # Task 1: Schema Analysis
@@ -426,12 +418,13 @@ async def _execute_field_mapping_crew(
             context=[schema_analysis_task, critical_attrs_task]
         )
         
-        # CREATE AND EXECUTE CREW
+        # CREATE AND EXECUTE CREW WITH PROPER CONFIGURATION
         field_mapping_crew = Crew(
             agents=[field_mapping_manager, schema_expert, mapping_specialist],
             tasks=[schema_analysis_task, critical_attrs_task, coordination_task],
             process=Process.sequential,
-            verbose=False
+            verbose=False,
+            manager_llm=llm  # CRITICAL: Use our configured LLM for manager operations
         )
         
         logger.info("🚀 Executing Field Mapping Crew for critical attributes analysis")

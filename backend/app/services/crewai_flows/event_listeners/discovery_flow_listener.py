@@ -300,8 +300,20 @@ class DiscoveryFlowEventListener(BaseEventListener):
             if not flow_id:
                 logger.warning("⚠️ AgentExecutionStartedEvent received but could not extract flow_id, skipping tracking")
                 return
-                
-            agent_name = getattr(event, 'agent', {}).get('role', 'unknown_agent')
+            
+            # Safely extract agent name from agent object
+            agent = getattr(event, 'agent', None)
+            if agent:
+                agent_name = getattr(agent, 'role', 'unknown_agent')
+            else:
+                agent_name = 'unknown_agent'
+            
+            # Safely extract task description
+            task = getattr(event, 'task', None)
+            if task:
+                task_description = getattr(task, 'description', '')
+            else:
+                task_description = ''
             
             self._add_flow_event(
                 flow_id=flow_id,
@@ -310,7 +322,7 @@ class DiscoveryFlowEventListener(BaseEventListener):
                 agent_name=agent_name,
                 data={
                     "agent_role": agent_name,
-                    "task_description": getattr(event, 'task', {}).get('description', '')
+                    "task_description": task_description
                 },
                 status="running"
             )
@@ -323,8 +335,13 @@ class DiscoveryFlowEventListener(BaseEventListener):
             if not flow_id:
                 logger.warning("⚠️ AgentExecutionCompletedEvent received but could not extract flow_id, skipping tracking")
                 return
-                
-            agent_name = getattr(event, 'agent', {}).get('role', 'unknown_agent')
+            
+            # Safely extract agent name from agent object
+            agent = getattr(event, 'agent', None)
+            if agent:
+                agent_name = getattr(agent, 'role', 'unknown_agent')
+            else:
+                agent_name = 'unknown_agent'
             
             self._add_flow_event(
                 flow_id=flow_id,
@@ -348,8 +365,20 @@ class DiscoveryFlowEventListener(BaseEventListener):
             if not flow_id:
                 logger.warning("⚠️ TaskCompletedEvent received but could not extract flow_id, skipping tracking")
                 return
-                
-            task_description = getattr(event, 'task', {}).get('description', 'unknown_task')
+            
+            # Safely extract task description
+            task = getattr(event, 'task', None)
+            if task:
+                task_description = getattr(task, 'description', 'unknown_task')
+            else:
+                task_description = 'unknown_task'
+            
+            # Safely extract agent name
+            agent = getattr(event, 'agent', None)
+            if agent:
+                agent_name = getattr(agent, 'role', 'unknown')
+            else:
+                agent_name = 'unknown'
             
             self._add_flow_event(
                 flow_id=flow_id,
@@ -359,7 +388,7 @@ class DiscoveryFlowEventListener(BaseEventListener):
                 data={
                     "task_description": task_description,
                     "output": getattr(event, 'output', ''),
-                    "agent": getattr(event, 'agent', {}).get('role', 'unknown')
+                    "agent": agent_name
                 },
                 status="completed"
             )

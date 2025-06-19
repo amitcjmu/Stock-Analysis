@@ -339,105 +339,130 @@ const AttributeMapping: React.FC = () => {
 
   // Handle mapping actions with agent learning
   const handleMappingAction = useCallback(async (mappingId: string, action: 'approve' | 'reject') => {
-    if (!flowState?.session_id) return;
-    
     const mapping = fieldMappings.find(m => m.id === mappingId);
-    if (!mapping) return;
+    if (!mapping) {
+      console.warn(`Mapping not found: ${mappingId}`);
+      return;
+    }
 
     try {
-      // Send learning feedback to Discovery Flow
-      await apiCall(`/api/v1/discovery/flow/${flowState.session_id}/agent-learning`, {
+      console.log(`🔧 ${action}ing mapping:`, mapping);
+      
+      // Use the agent learning endpoint directly
+      const response = await apiCall('/api/v1/agents/discovery/learning/agent-learning', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          learning_type: 'field_mapping_feedback',
-          crew: 'field_mapping',
-          agent: 'Attribute Mapping Specialist',
-          original_prediction: {
+          learning_type: 'field_mapping_action',
+          mapping_id: mappingId,
+          action: action,
+          mapping_details: {
             source_field: mapping.sourceField,
             target_attribute: mapping.targetAttribute,
-            confidence: mapping.confidence
-          },
-          user_correction: {
-            action: action,
-            feedback_type: action === 'approve' ? 'positive' : 'negative'
+            confidence: mapping.confidence,
+            mapping_type: mapping.mapping_type
           },
           context: {
-            sample_values: mapping.sample_values,
-            reasoning: mapping.ai_reasoning,
-            shared_memory_id: flowState.shared_memory_id
+            page: 'attribute-mapping',
+            user_id: user?.id,
+            client_id: client?.id,
+            engagement_id: engagement?.id
           }
         })
       });
 
-      toast({
-        title: action === 'approve' ? 'Mapping Approved' : 'Mapping Rejected',
-        description: 'Shared memory updated for crew learning'
-      });
-      
-      // Refresh flow state
-      queryClient.invalidateQueries({ queryKey: ['discovery-flow-state'] });
+      console.log(`✅ Mapping ${action} response:`, response);
+
+      if (response.status === 'success') {
+        toast({
+          title: action === 'approve' ? 'Mapping Approved' : 'Mapping Rejected',
+          description: `Field mapping "${mapping.sourceField} → ${mapping.targetAttribute}" has been ${action}d.`
+        });
+        
+        // Refresh the agentic data to reflect changes
+        await refetchAgentic();
+        
+        // Also invalidate related queries
+        queryClient.invalidateQueries({ queryKey: ['critical-attributes'] });
+        queryClient.invalidateQueries({ queryKey: ['field-mappings'] });
+      } else {
+        throw new Error(response.message || 'Failed to update mapping');
+      }
       
     } catch (error) {
-      console.error('Error handling mapping action:', error);
+      console.error(`❌ Error ${action}ing mapping:`, error);
       toast({
         title: 'Error',
-        description: 'Failed to process mapping action',
+        description: `Failed to ${action} mapping. Please try again.`,
         variant: 'destructive'
       });
     }
-  }, [flowState, fieldMappings, toast, queryClient]);
+  }, [fieldMappings, user, client, engagement, toast, refetchAgentic, queryClient]);
 
   // Handle mapping changes
   const handleMappingChange = useCallback(async (mappingId: string, newTarget: string) => {
-    if (!flowState?.session_id) return;
-    
     const mapping = fieldMappings.find(m => m.id === mappingId);
-    if (!mapping) return;
+    if (!mapping) {
+      console.warn(`Mapping not found: ${mappingId}`);
+      return;
+    }
 
     try {
-      // Send correction to Discovery Flow for shared memory update
-      await apiCall(`/api/v1/discovery/flow/${flowState.session_id}/agent-learning`, {
+      console.log(`🔧 Changing mapping ${mappingId} to target: ${newTarget}`);
+      
+      // Use the agent learning endpoint for mapping changes
+      const response = await apiCall('/api/v1/agents/discovery/learning/agent-learning', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          learning_type: 'field_mapping_correction',
-          crew: 'field_mapping',
-          agent: 'Attribute Mapping Specialist',
-          original_prediction: {
+          learning_type: 'field_mapping_change',
+          mapping_id: mappingId,
+          new_mapping: {
+            source_field: mapping.sourceField,
+            target_field: newTarget,
+            mapping_type: 'manual'
+          },
+          original_mapping: {
             source_field: mapping.sourceField,
             target_attribute: mapping.targetAttribute,
             confidence: mapping.confidence
           },
-          user_correction: {
-            new_target_attribute: newTarget,
-            feedback_type: 'manual_change',
-            reason: 'User selected different target field'
-          },
           context: {
-            sample_values: mapping.sample_values,
-            shared_memory_id: flowState.shared_memory_id
+            page: 'attribute-mapping',
+            user_id: user?.id,
+            client_id: client?.id,
+            engagement_id: engagement?.id
           }
         })
       });
 
-      toast({
-        title: 'Mapping Updated',
-        description: 'Field mapping updated in shared crew memory'
-      });
-      
-      // Refresh flow state
-      queryClient.invalidateQueries({ queryKey: ['discovery-flow-state'] });
+      console.log(`✅ Mapping change response:`, response);
+
+      if (response.status === 'success') {
+        toast({
+          title: 'Mapping Updated',
+          description: `Field mapping changed from "${mapping.targetAttribute}" to "${newTarget}".`
+        });
+        
+        // Refresh the agentic data to reflect changes
+        await refetchAgentic();
+        
+        // Also invalidate related queries
+        queryClient.invalidateQueries({ queryKey: ['critical-attributes'] });
+        queryClient.invalidateQueries({ queryKey: ['field-mappings'] });
+      } else {
+        throw new Error(response.message || 'Failed to update mapping');
+      }
       
     } catch (error) {
-      console.error('Error handling mapping change:', error);
+      console.error('❌ Error handling mapping change:', error);
       toast({
         title: 'Error',
-        description: 'Failed to update mapping',
+        description: 'Failed to update mapping. Please try again.',
         variant: 'destructive'
       });
     }
-  }, [flowState, fieldMappings, toast, queryClient]);
+  }, [fieldMappings, user, client, engagement, toast, refetchAgentic, queryClient]);
 
   // Navigate to next phase
   const handleContinueToDataCleansing = useCallback(() => {

@@ -1,6 +1,9 @@
 """
 LLM Configuration Service for AI Force Migration Platform
-Configures multiple DeepInfra models according to user specifications.
+Configures multiple DeepInfra models according to CrewAI best practices.
+
+Following CrewAI LLM Connection Documentation:
+https://docs.crewai.com/learn/llm-connections
 
 Models (USER SPECIFIED - DO NOT CHANGE):
 - meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8: CrewAI activities
@@ -31,10 +34,11 @@ except ImportError as e:
 from app.core.config import settings
 
 class LLMConfigurationService:
-    """Service to configure and manage multiple LLM instances for different use cases."""
+    """Service to configure and manage multiple LLM instances following CrewAI best practices."""
     
     def __init__(self):
         self.deepinfra_api_key = getattr(settings, 'DEEPINFRA_API_KEY', os.getenv('DEEPINFRA_API_KEY'))
+        # CRITICAL: Use OpenAI-compatible endpoint format per CrewAI docs
         self.deepinfra_base_url = "https://api.deepinfra.com/v1/openai"
         
         if not self.deepinfra_api_key:
@@ -42,20 +46,43 @@ class LLMConfigurationService:
             raise ValueError("DEEPINFRA_API_KEY is required for LLM configuration")
         
         logger.info("✅ LLM Configuration Service initialized with DeepInfra API key")
+        
+        # Configure environment variables immediately for CrewAI
+        self._configure_environment_variables()
+    
+    def _configure_environment_variables(self):
+        """
+        Configure environment variables for OpenAI-compatible LLM usage.
+        Following CrewAI documentation: https://docs.crewai.com/learn/llm-connections#connecting-to-openai-compatible-llms
+        """
+        # Primary OpenAI environment variables for CrewAI
+        os.environ["OPENAI_API_KEY"] = self.deepinfra_api_key
+        os.environ["OPENAI_API_BASE"] = self.deepinfra_base_url
+        os.environ["OPENAI_BASE_URL"] = self.deepinfra_base_url
+        
+        # Set the default model to prevent gpt-4o-mini fallback
+        crewai_model = "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
+        os.environ["OPENAI_MODEL_NAME"] = crewai_model
+        
+        logger.info(f"✅ Environment configured for OpenAI-compatible DeepInfra: {crewai_model}")
+        logger.info(f"✅ Base URL: {self.deepinfra_base_url}")
     
     def get_crewai_llm(self) -> LLM:
         """
         Get LLM instance for CrewAI activities.
         Model: meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8 (USER SPECIFIED)
+        
+        Following CrewAI docs: Using LLM Class with base_url and api_key
         """
         model_name = "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
+        
         return LLM(
             model=model_name,
             temperature=0.7,
             max_tokens=2048,
             top_p=0.9,
-            base_url=self.deepinfra_base_url,
-            api_key=self.deepinfra_api_key
+            api_key=self.deepinfra_api_key,
+            base_url=self.deepinfra_base_url
         )
     
     def get_embedding_llm(self) -> LLM:
@@ -64,10 +91,11 @@ class LLMConfigurationService:
         Model: thenlper/gte-large (USER SPECIFIED)
         """
         model_name = "thenlper/gte-large"
+        
         return LLM(
             model=model_name,
-            base_url=self.deepinfra_base_url,
-            api_key=self.deepinfra_api_key
+            api_key=self.deepinfra_api_key,
+            base_url=self.deepinfra_base_url
         )
     
     def get_chat_llm(self) -> LLM:
@@ -76,13 +104,14 @@ class LLMConfigurationService:
         Model: google/gemma-3-4b-it (USER SPECIFIED)
         """
         model_name = "google/gemma-3-4b-it"
+        
         return LLM(
             model=model_name,
             temperature=0.8,
             max_tokens=1024,
             top_p=0.95,
-            base_url=self.deepinfra_base_url,
-            api_key=self.deepinfra_api_key
+            api_key=self.deepinfra_api_key,
+            base_url=self.deepinfra_base_url
         )
     
     def get_all_llms(self) -> Dict[str, LLM]:
@@ -148,46 +177,10 @@ def test_all_llm_connections() -> Dict[str, bool]:
     return llm_config.test_llm_connections()
 
 
-# Environment variable configuration for OpenAI-compatible endpoints
-def configure_openai_environment_variables():
+# Create a CrewAI-compatible LLM using string identifier (alternative approach)
+def create_crewai_string_llm() -> str:
     """
-    Configure environment variables for OpenAI-compatible LLM usage.
-    This follows the CrewAI documentation for connecting to OpenAI-compatible LLMs.
-    CRITICAL: Uses user-specified models to prevent any fallback to gpt-4o-mini.
+    Alternative approach: Return model string for CrewAI agents.
+    CrewAI can use string identifiers when environment is properly configured.
     """
-    # Set DeepInfra as the OpenAI-compatible provider
-    os.environ["OPENAI_API_KEY"] = llm_config.deepinfra_api_key
-    os.environ["OPENAI_API_BASE"] = llm_config.deepinfra_base_url
-    
-    # Use the USER SPECIFIED CrewAI model as the default OpenAI model
-    crewai_model = "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
-    os.environ["OPENAI_MODEL_NAME"] = crewai_model
-    
-    # CRITICAL: Override CrewAI's default model settings to prevent gpt-4o-mini usage
-    # Set explicit environment variables that CrewAI uses for model selection
-    os.environ["DEFAULT_LLM_MODEL"] = crewai_model
-    os.environ["CREWAI_LLM_MODEL"] = crewai_model
-    
-    # Force all OpenAI calls to use DeepInfra endpoint
-    os.environ["OPENAI_BASE_URL"] = llm_config.deepinfra_base_url
-    
-    # Override LiteLLM configurations to use DeepInfra
-    os.environ["LITELLM_API_KEY"] = llm_config.deepinfra_api_key
-    os.environ["LITELLM_BASE_URL"] = llm_config.deepinfra_base_url
-    os.environ["LITELLM_MODEL"] = crewai_model
-    
-    # Set model name without provider prefix for direct OpenAI compatibility
-    os.environ["OPENAI_MODEL"] = crewai_model
-    
-    logger.info(f"✅ OpenAI environment variables configured for DeepInfra with USER SPECIFIED model: {crewai_model}")
-    logger.info(f"✅ API Base: {llm_config.deepinfra_base_url}")
-    logger.info(f"✅ Model override: {crewai_model} (preventing gpt-4o-mini fallback)")
-
-
-# Initialize environment variables on import
-if CREWAI_AVAILABLE:
-    try:
-        configure_openai_environment_variables()
-        logger.info("✅ LLM configuration completed successfully with user-specified models")
-    except Exception as e:
-        logger.error(f"❌ Failed to configure LLM environment: {e}") 
+    return "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8" 
