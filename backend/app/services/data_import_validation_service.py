@@ -15,7 +15,24 @@ class DataImportValidationService:
     
     def __init__(self, db: AsyncSession):
         self.db = db
-        self.validation_sessions_path = "backend/data/validation_sessions"
+        # Fix path - check both locations for compatibility
+        possible_paths = [
+            "backend/data/validation_sessions",  # Original path
+            "backend/backend/data/validation_sessions",  # Actual location
+            "data/validation_sessions"  # Relative path
+        ]
+        
+        self.validation_sessions_path = None
+        for path in possible_paths:
+            if os.path.exists(path):
+                self.validation_sessions_path = path
+                break
+        
+        if not self.validation_sessions_path:
+            # Default to first path and create it
+            self.validation_sessions_path = possible_paths[0]
+        
+        print(f"📁 Using validation sessions path: {self.validation_sessions_path}")
         self._ensure_storage_directory()
     
     def _ensure_storage_directory(self):
@@ -45,20 +62,45 @@ class DataImportValidationService:
             return ""
     
     async def get_validation_session(self, session_id: str) -> Optional[Dict[str, Any]]:
-        """Retrieve validation session by ID"""
+        """Retrieve validation session by ID with robust error handling"""
         try:
             file_path = os.path.join(self.validation_sessions_path, f"{session_id}.json")
             
             if not os.path.exists(file_path):
+                print(f"❌ Validation session file not found: {file_path}")
+                return None
+            
+            # Check file size
+            file_size = os.path.getsize(file_path)
+            if file_size == 0:
+                print(f"❌ Validation session file is empty: {file_path}")
                 return None
             
             with open(file_path, 'r') as f:
-                session_data = json.load(f)
-            
-            return session_data
+                content = f.read().strip()
+                
+                # Check for truncated files
+                if not content:
+                    print(f"❌ Validation session file has no content: {file_path}")
+                    return None
+                
+                # Check if JSON is complete
+                if not content.endswith('}') and not content.endswith(']'):
+                    print(f"❌ Validation session file appears truncated (doesn't end with }} or ]): {file_path}")
+                    print(f"📄 File content preview: ...{content[-100:]}")
+                    return None
+                
+                try:
+                    session_data = json.loads(content)
+                    print(f"✅ Successfully loaded validation session: {session_id}")
+                    return session_data
+                except json.JSONDecodeError as json_error:
+                    print(f"❌ JSON parsing error in validation session {session_id}: {json_error}")
+                    print(f"📄 File content preview: {content[:200]}...")
+                    return None
             
         except Exception as e:
-            print(f"Error retrieving validation session {session_id}: {e}")
+            print(f"❌ Error retrieving validation session {session_id}: {e}")
             return None
     
     async def get_user_validation_sessions(self, user_id: int, limit: int = 50) -> List[Dict[str, Any]]:

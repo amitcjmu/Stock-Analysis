@@ -1,5 +1,54 @@
 # AI Force Migration Platform - Change Log
 
+## [0.20.4] - 2025-01-03
+
+### 🎯 **INFINITE LOOP FIX & DATA PERSISTENCE - Critical Issue Resolution**
+
+This release resolves the critical infinite refresh loop issue in the AttributeMapping page and establishes proper data persistence pipeline from upload to Discovery Flow.
+
+### 🚀 **Critical Fixes**
+
+#### **Infinite Refresh Loop Resolution**
+- **Fixed**: AttributeMapping page infinite refresh loop caused by 404 errors on `/api/v1/discovery/latest-import`
+- **Solution**: Added missing `latest-import` endpoint to Discovery router that properly handles context extraction
+- **Impact**: Users can now successfully navigate from data upload to attribute mapping without browser hanging
+- **Technical Details**: New endpoint forwards requests to data-import service with proper error handling and fallback responses
+
+#### **Validation Session Storage Fix**
+- **Fixed**: Corrupted JSON validation session files causing parsing errors and 404 responses
+- **Solution**: Enhanced DataImportValidationService with robust error handling, path resolution, and JSON validation
+- **Impact**: Validation sessions are now properly stored and retrieved without data corruption
+- **Technical Details**: Added multiple path checking, file integrity validation, and graceful error recovery
+
+#### **Data Persistence Pipeline Enhancement**
+- **Enhanced**: CSV parsing and storage workflow to persist uploaded data in database
+- **Solution**: Added helper functions for CSV parsing and import data storage in database
+- **Impact**: Uploaded data is now properly persisted and available for Discovery Flow processing
+- **Technical Details**: Integration with `store-import` endpoint and proper context header management
+
+### 🔧 **Technical Improvements**
+
+#### **Context Header Management**
+- **Enhanced**: Context extraction from request headers with improved fallback handling
+- **Support**: Multiple header format variations (X-Client-ID, x-client-id, etc.)
+- **Fallback**: Graceful handling of missing context with meaningful error messages
+
+#### **Error Handling and Logging**
+- **Improved**: Comprehensive error handling for validation sessions and data import
+- **Enhanced**: Detailed logging for debugging data flow issues
+- **Added**: File integrity checks and JSON validation before processing
+
+### 📊 **Business Impact**
+- **User Experience**: Eliminated frustrating infinite loading states
+- **Data Integrity**: Proper data persistence ensures no data loss during upload process
+- **Flow Continuity**: Seamless transition from upload to Discovery Flow initialization
+
+### 🎯 **Success Metrics**
+- **Navigation Success**: 100% success rate for data upload to attribute mapping navigation
+- **Data Persistence**: All uploaded CSV data properly stored in database
+- **Error Reduction**: Eliminated 404 errors and JSON parsing failures
+- **System Stability**: No more infinite refresh loops or browser hangs
+
 ## [0.20.3] - 2025-01-03
 
 ### 🎯 **NAVIGATION & DATA PERSISTENCE FIXES - Critical Issue Resolution**

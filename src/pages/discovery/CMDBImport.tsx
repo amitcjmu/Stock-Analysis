@@ -28,10 +28,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 
 // Components
 import Sidebar from '../../components/Sidebar';
-import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
+import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
 import { useAuth } from '@/contexts/AuthContext';
+import { useClient } from '@/contexts/ClientContext';
 import { useToast } from '@/hooks/use-toast';
 import { DataImportValidationService, ValidationAgentResult } from '@/services/dataImportValidationService';
+import { apiCall } from '@/config/api';
 
 // Data Import Validation Agents
 interface DataImportAgent {
@@ -45,20 +47,14 @@ interface DataImportAgent {
 
 interface UploadFile {
   id: string;
-  filename: string;
+  name: string;
   size: number;
   type: string;
-  status: 'uploading' | 'validating' | 'approved' | 'rejected' | 'approved_with_warnings' | 'error';
-  upload_progress: number;
-  validation_progress: number;
-  agents_completed: number;
-  total_agents: number;
-  security_clearance: boolean;
-  privacy_clearance: boolean;
-  format_validation: boolean;
-  error_message?: string;
-  validation_session_id?: string;
-  agent_results?: ValidationAgentResult[];
+  uploadedAt: Date;
+  status: 'validating' | 'approved' | 'approved_with_warnings' | 'rejected' | 'error';
+  agentResults: ValidationAgentResult[];
+  validationSessionId?: string;
+  importSessionId?: string;
 }
 
 // Upload categories for proper data handling
@@ -190,6 +186,7 @@ const DataImport: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, client, engagement, session, getAuthHeaders } = useAuth();
+  const { currentClient } = useClient();
   const [uploadedFiles, setUploadedFiles] = useState<UploadFile[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [validationAgents, setValidationAgents] = useState<DataImportAgent[]>([]);
@@ -251,17 +248,14 @@ const DataImport: React.FC = () => {
     // Create upload file entry
     const uploadFile: UploadFile = {
       id: `upload-${Date.now()}`,
-      filename: file.name,
+      name: file.name,
       size: file.size,
       type: file.type,
+      uploadedAt: new Date(),
       status: 'uploading',
-      upload_progress: 0,
-      validation_progress: 0,
-      agents_completed: 0,
-      total_agents: category.agents.length,
-      security_clearance: false,
-      privacy_clearance: false,
-      format_validation: false
+      agentResults: [],
+      validationSessionId: undefined,
+      importSessionId: undefined
     };
 
     setUploadedFiles(prev => [...prev, uploadFile]);
@@ -274,7 +268,7 @@ const DataImport: React.FC = () => {
       // Update upload progress to show uploading
       setUploadedFiles(prev => prev.map(f => 
         f.id === uploadFile.id 
-          ? { ...f, upload_progress: 50 }
+          ? { ...f, status: 'validating', upload_progress: 100 }
           : f
       ));
 
@@ -405,38 +399,83 @@ const DataImport: React.FC = () => {
       const effectiveEngagement = engagement || (isAdmin ? { id: 'demo-engagement', name: 'Demo Engagement' } : null);
       
       // Navigate to Attribute Mapping - the entry point for Discovery Flow
-      // Only pass serializable data to avoid React Router cloning errors
+      // Only pass serializable data to avoid React Router cloning issues
       navigate('/discovery/attribute-mapping', {
-        state: {
-          // Basic file info (serializable)
-          file_id: file.id,
-          filename: file.filename,
-          validation_session_id: file.validation_session_id,
-          data_category: selectedCategory,
-          
-          // Authentication context (serializable)
-          client_account_id: effectiveClient?.id,
-          engagement_id: effectiveEngagement?.id,
-          user_id: user?.id,
-          session_id: session?.id || `session-${Date.now()}`,
-          
-          // Upload metadata (serializable)
-          upload_timestamp: new Date().toISOString(),
-          from_data_import: true,
-          
-          // Agent validation summary (basic info only)
-          validation_status: file.status,
-          security_clearance: file.security_clearance,
-          privacy_clearance: file.privacy_clearance,
-          format_validation: file.format_validation,
-          
-          // Discovery Flow trigger flag
-          trigger_discovery_flow: true,
-          requires_field_mapping: true
-        }
+                  state: {
+            file_id: fileId,
+            filename: file.name,
+            validation_session_id: file.validationSessionId,
+            import_session_id: file.importSessionId, // Include import session ID
+            trigger_discovery_flow: true, // Flag to trigger flow initialization
+            upload_context: {
+              category: selectedCategory,
+              timestamp: file.uploadedAt.toISOString(),
+              user_id: user?.id,
+              client_id: effectiveClient?.id,
+              engagement_id: effectiveEngagement?.id,
+              session_id: session?.id
+            }
+          }
       });
     }
-  }, [uploadedFiles, navigate, client, engagement, user, session, selectedCategory]);
+  }, [uploadedFiles, selectedCategory, navigate, user, client, engagement, session]);
+
+  // Helper function to parse CSV data
+  const parseCsvData = async (file: File): Promise<any[]> => {
+    const text = await file.text();
+    const lines = text.split('\\n').filter(line => line.trim());
+    if (lines.length <= 1) return [];
+    
+    const headers = lines[0].split(',').map(h => h.trim().replace(/\"/g, ''));
+    return lines.slice(1).map((line, index) => {
+      const values = line.split(',').map(v => v.trim().replace(/\"/g, ''));
+      const record: any = { row_index: index + 1 };
+      headers.forEach((header, headerIndex) => {
+        record[header] = values[headerIndex] || '';
+      });
+      return record;
+    });
+  };
+
+  // Helper function to store import data in database
+  const storeImportData = async (csvData: any[], file: File, sessionId: string): Promise<string | null> => {
+    try {
+      console.log('🗄️ Storing import data in database...', {
+        records: csvData.length,
+        filename: file.name,
+        sessionId
+      });
+      
+      const storeResult = await apiCall('/data-import/store-import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          file_data: csvData,
+          metadata: {
+            filename: file.name,
+            size: file.size,
+            type: file.type
+          },
+          upload_context: {
+            intended_type: selectedCategory,
+            validation_session_id: sessionId,
+            upload_timestamp: new Date().toISOString()
+          }
+        })
+      });
+      
+      if (storeResult.success) {
+        console.log('✅ Import data stored successfully:', storeResult);
+        return storeResult.import_session_id;
+      } else {
+        console.warn('⚠️ Failed to store import data:', storeResult);
+        return null;
+      }
+    } catch (storeError) {
+      console.error('❌ Error storing import data:', storeError);
+      return null;
+    }
+  };
 
   // Drag and drop handlers
   const handleDragOver = (e: React.DragEvent) => {
@@ -659,7 +698,7 @@ const DataImport: React.FC = () => {
                       <div className="flex items-center space-x-3">
                         {getStatusIcon(file.status)}
                         <div>
-                          <h3 className="font-medium text-gray-900">{file.filename}</h3>
+                          <h3 className="font-medium text-gray-900">{file.name}</h3>
                           <p className="text-sm text-gray-600">
                             {(file.size / 1024 / 1024).toFixed(2)} MB • {file.type}
                           </p>

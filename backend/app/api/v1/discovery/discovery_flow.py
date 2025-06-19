@@ -214,105 +214,99 @@ async def get_agent_crew_analysis_status(
     service: CrewAIFlowService = Depends(get_crewai_flow_service),
     context: RequestContext = Depends(get_context_from_user)
 ):
-    """
-    Get the status of an agentic analysis workflow by session ID.
-    
-    This endpoint provides real-time status updates for discovery workflows,
-    including progress, current phase, and any results or errors.
-    
-    Args:
-        session_id: The unique identifier for the workflow session
-        service: The CrewAIFlowService instance (injected)
-        context: Request context with tenant/user info (injected)
-        
-    Returns:
-        JSON with workflow status and details
-    """
+    """Get status of agent crew analysis for a specific session"""
     try:
-        # Ensure we have a valid session ID
-        if not session_id:
-            raise HTTPException(
-                status_code=400,
-                detail="session_id parameter is required"
-            )
-            
-        # Ensure we have a valid context
-        if not context or not hasattr(context, 'client_account_id') or not hasattr(context, 'engagement_id'):
-            logger.error(f"Invalid or incomplete context: {context}")
-            raise HTTPException(
-                status_code=400,
-                detail="Invalid request context. Please ensure you're authenticated and have selected a client/engagement."
-            )
+        logger.info(f"Getting agent crew analysis status for session: {session_id}")
         
-        # Get the workflow state with proper tenant isolation using the injected service
-        flow_state = await service.get_flow_state_by_session(
-            session_id=session_id,
-            context=context
-        )
+        # Get flow status from service
+        status = await service.get_flow_analysis_status(session_id)
         
-        if not flow_state:
-            logger.warning(
-                f"No active analysis found for session_id {session_id} "
-                f"(client: {context.client_account_id}, engagement: {context.engagement_id})"
-            )
-            # Return idle status instead of 404 when no workflow exists
+        if not status:
             return {
-                "status": "success",
                 "session_id": session_id,
-                "client_account_id": context.client_account_id,
-                "engagement_id": context.engagement_id,
-                "flow_status": {
-                    "status": "idle",
-                    "current_phase": "not_started",
-                    "progress_percentage": 0,
-                    "message": "No workflow has been started for this session"
-                },
-                "current_phase": "not_started",
-                "status": "idle",
-                "timestamp": datetime.utcnow().isoformat(),
-                "metadata": {
-                    "service_version": "1.0.0",
-                    "context_valid": bool(context and hasattr(context, 'client_account_id'))
-                }
+                "status": "not_found",
+                "message": "No analysis session found",
+                "flows": [],
+                "agent_statuses": {}
             }
-            
-        # Format the response with detailed status information
-        response = {
-            "status": "success",
+        
+        return {
             "session_id": session_id,
-            "client_account_id": context.client_account_id,
-            "engagement_id": context.engagement_id,
-            "flow_status": flow_state.dict() if hasattr(flow_state, 'dict') else flow_state,
-            "current_phase": getattr(flow_state, 'current_phase', 'unknown'),
-            "status": getattr(flow_state, 'status', 'unknown'),
-            "timestamp": datetime.utcnow().isoformat(),
-            "metadata": {
-                "service_version": "1.0.0",
-                "context_valid": bool(context and hasattr(context, 'client_account_id'))
-            }
+            "status": status.get("status", "unknown"),
+            "flows": status.get("flows", []),
+            "agent_statuses": status.get("agent_statuses", {}),
+            "current_phase": status.get("current_phase"),
+            "progress": status.get("progress", 0),
+            "started_at": status.get("started_at"),
+            "last_updated": status.get("last_updated"),
+            "results": status.get("results", {})
         }
         
-        logger.debug(f"Returning status for session {session_id}: {response['flow_status'].get('status')}")
-        return response
+    except Exception as e:
+        logger.error(f"Error getting agent crew analysis status for session {session_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get analysis status: {str(e)}")
+
+@router.get("/latest-import")
+async def get_latest_import_discovery(
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get latest import data for Discovery Flow context.
+    This endpoint handles the /api/v1/discovery/latest-import requests from AttributeMapping.
+    """
+    try:
+        # Extract context from request headers
+        from app.core.context import extract_context_from_request
+        context = extract_context_from_request(request)
         
-    except HTTPException:
-        logger.warning(
-            f"HTTP error in get_agent_crew_analysis_status for session {session_id}",
-            exc_info=True
-        )
-        raise  # Re-raise HTTP exceptions as-is
+        logger.info(f"🔍 Discovery: Getting latest import for context: client={context.client_account_id}, engagement={context.engagement_id}")
+        
+        # If no context, return empty result but don't error
+        if not context.client_account_id or not context.engagement_id:
+            logger.warning(f"⚡ Discovery: No context provided, returning empty response")
+            return {
+                "success": True,
+                "message": "No client or engagement context provided - ready for new upload",
+                "data": [],
+                "import_metadata": None,
+                "ready_for_upload": True
+            }
+        
+        # Try to get from the data-import service
+        try:
+            from app.api.v1.endpoints.data_import.handlers.import_storage_handler import get_latest_import
+            
+            # Forward the request to the data-import handler
+            result = await get_latest_import(request, db)
+            
+            # If data found, return it
+            if result.get("success") and result.get("data"):
+                logger.info(f"✅ Discovery: Found {len(result['data'])} import records")
+                return result
+            
+        except Exception as import_error:
+            logger.warning(f"⚠️ Discovery: Could not get from data-import service: {import_error}")
+        
+        # No data found - this is normal for new sessions
+        logger.info(f"📝 Discovery: No import data found, returning empty state")
+        return {
+            "success": True,
+            "message": "No import data found - ready for new upload",
+            "data": [],
+            "import_metadata": None,
+            "ready_for_upload": True
+        }
         
     except Exception as e:
-        error_detail = f"Status check failed: {str(e)}"
-        logger.error(
-            f"Failed to get agent crew analysis status for session {session_id}: {error_detail}",
-            exc_info=True
-        )
-        raise HTTPException(
-            status_code=500,
-            detail=error_detail,
-            headers={"X-Error-Detail": "An unexpected error occurred while checking analysis status"}
-        )
+        logger.error(f"❌ Discovery: Error getting latest import: {e}")
+        return {
+            "success": False,
+            "message": "Error retrieving import data",
+            "data": [],
+            "import_metadata": None,
+            "error": str(e)
+        }
 
 @router.post("/run")
 async def run_discovery_flow(
