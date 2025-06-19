@@ -73,13 +73,19 @@ async def get_agentic_critical_attributes(
                 "last_updated": datetime.utcnow().isoformat()
             }
         
+        # ✅ FIX: Use same import selection logic as latest-import endpoint
+        # Prioritize imports with more records (real data vs test data)
         import_query = select(DataImport).where(
             and_(
                 DataImport.client_account_id == uuid.UUID(context.client_account_id),
-                DataImport.engagement_id == uuid.UUID(context.engagement_id),
-                DataImport.status == "processed"
+                DataImport.engagement_id == uuid.UUID(context.engagement_id)
             )
-        ).order_by(DataImport.created_at.desc())
+        ).order_by(
+            # First priority: imports with more records (likely real data)
+            DataImport.total_records.desc(),
+            # Second priority: most recent among those with same record count  
+            DataImport.created_at.desc()
+        ).limit(1)
         
         result = await db.execute(import_query)
         data_import = result.scalars().first()
@@ -615,19 +621,22 @@ async def _fallback_field_analysis(data_import: DataImport, db: AsyncSession) ->
     """Fallback field analysis when CrewAI is not available."""
     logger.info("Using enhanced fallback field analysis (CrewAI not available)")
     
-    # Get actual field mappings from the database
-    mappings_query = select(ImportFieldMapping).where(
-        ImportFieldMapping.data_import_id == data_import.id
-    )
+    # ✅ FIX: Get ALL fields from the actual imported data, not just existing mappings
+    # Get the actual imported data to analyze all fields
+    from app.models.data_import.core import RawImportRecord
     
-    result = await db.execute(mappings_query)
-    mappings = result.scalars().all()
+    sample_query = select(RawImportRecord).where(
+        RawImportRecord.data_import_id == data_import.id
+    ).limit(1)
     
-    if not mappings:
-        logger.warning("No field mappings found for fallback analysis")
+    result = await db.execute(sample_query)
+    sample_record = result.scalars().first()
+    
+    if not sample_record or not sample_record.raw_data:
+        logger.warning("No import data found for fallback analysis")
         return {
             "crew_execution": "fallback_no_data",
-            "analysis_result": "No field mappings available for analysis",
+            "analysis_result": "No import data available for analysis",
             "total_fields_analyzed": 0,
             "migration_critical_identified": 0,
             "recommendation": "Import CMDB data first, then try agent analysis",
@@ -644,6 +653,19 @@ async def _fallback_field_analysis(data_import: DataImport, db: AsyncSession) ->
                 "assessment_ready": False
             }
         }
+    
+    # Get ALL field names from the actual imported data
+    all_field_names = list(sample_record.raw_data.keys())
+    logger.info(f"🔍 Analyzing ALL fields from import data: {all_field_names}")
+    
+    # Get existing field mappings (if any) to use their target mappings
+    mappings_query = select(ImportFieldMapping).where(
+        ImportFieldMapping.data_import_id == data_import.id
+    )
+    
+    result = await db.execute(mappings_query)
+    existing_mappings = result.scalars().all()
+    mapping_dict = {m.source_field: m.target_field for m in existing_mappings}
     
     # Enhanced intelligent field analysis using migration patterns
     critical_patterns = {
@@ -682,13 +704,14 @@ async def _fallback_field_analysis(data_import: DataImport, db: AsyncSession) ->
         "department": {"critical": False, "category": "business", "business_impact": "low", "confidence": 0.70}
     }
     
-    # Analyze actual field mappings with enhanced intelligence
+    # ✅ FIX: Analyze ALL fields from imported data with enhanced intelligence
     analyzed_attributes = []
     migration_critical_count = 0
     
-    for mapping in mappings:
-        source_field = mapping.source_field.lower()
-        target_field = mapping.target_field
+    for field_name in all_field_names:
+        source_field = field_name.lower()
+        # Use existing mapping target if available, otherwise suggest standard mapping
+        target_field = mapping_dict.get(field_name, field_name.lower().replace(' ', '_').replace('(', '').replace(')', ''))
         
         # Check for pattern matches (enhanced pattern matching)
         pattern_match = None
@@ -699,12 +722,16 @@ async def _fallback_field_analysis(data_import: DataImport, db: AsyncSession) ->
         
         # If no direct match, use intelligent heuristics
         if not pattern_match:
-            if any(keyword in source_field for keyword in ['name', 'host', 'server', 'asset']):
+            if any(keyword in source_field for keyword in ['name', 'host', 'server', 'asset', 'ci_name']):
                 pattern_match = {"critical": True, "category": "identity", "business_impact": "high", "confidence": 0.80}
             elif any(keyword in source_field for keyword in ['ip', 'address', 'network']):
                 pattern_match = {"critical": True, "category": "network", "business_impact": "high", "confidence": 0.75}
-            elif any(keyword in source_field for keyword in ['cpu', 'memory', 'ram', 'disk', 'storage']):
+            elif any(keyword in source_field for keyword in ['cpu', 'memory', 'ram', 'disk', 'storage', 'cores', 'gb']):
                 pattern_match = {"critical": True, "category": "technical", "business_impact": "medium", "confidence": 0.70}
+            elif any(keyword in source_field for keyword in ['type', 'server_type', 'ci_type']):
+                pattern_match = {"critical": True, "category": "classification", "business_impact": "high", "confidence": 0.75}
+            elif any(keyword in source_field for keyword in ['location', 'status']):
+                pattern_match = {"critical": False, "category": "operational", "business_impact": "medium", "confidence": 0.65}
             else:
                 pattern_match = {"critical": False, "category": "supporting", "business_impact": "low", "confidence": 0.60}
         
@@ -713,29 +740,33 @@ async def _fallback_field_analysis(data_import: DataImport, db: AsyncSession) ->
         if is_migration_critical:
             migration_critical_count += 1
         
+        # Check if this field is already mapped
+        mapping_status = "mapped" if field_name in mapping_dict else "pending"
+        
         analyzed_attributes.append({
             "name": target_field,
-            "description": f"Enhanced analysis: {source_field} -> {target_field}",
+            "description": f"Enhanced analysis: {field_name} -> {target_field}",
             "category": pattern_match["category"],
             "required": is_migration_critical,
-            "status": "mapped",
-            "mapped_to": source_field,
-            "source_field": source_field,
+            "status": mapping_status,
+            "mapped_to": field_name,
+            "source_field": field_name,
             "confidence": pattern_match["confidence"],
             "quality_score": int(pattern_match["confidence"] * 100),
-            "completeness_percentage": 100,
+            "completeness_percentage": 100 if mapping_status == "mapped" else 0,
             "mapping_type": "enhanced_fallback",
             "ai_suggestion": f"Enhanced pattern analysis identified this as {pattern_match['category']} field with {pattern_match['business_impact']} business impact",
             "business_impact": pattern_match["business_impact"],
             "migration_critical": is_migration_critical
         })
     
-    # Calculate statistics
+    # Calculate statistics based on actual mapping status
     total_attributes = len(analyzed_attributes)
-    mapped_count = total_attributes  # All are mapped in this analysis
+    mapped_count = len([attr for attr in analyzed_attributes if attr["status"] == "mapped"])
+    pending_count = len([attr for attr in analyzed_attributes if attr["status"] == "pending"])
     avg_quality_score = int(sum(attr["quality_score"] for attr in analyzed_attributes) / total_attributes) if total_attributes > 0 else 0
-    overall_completeness = 100  # All attributes analyzed
-    assessment_ready = migration_critical_count >= 3
+    overall_completeness = int((mapped_count / total_attributes) * 100) if total_attributes > 0 else 0
+    assessment_ready = migration_critical_count >= 3 and mapped_count >= migration_critical_count
     
     return {
         "crew_execution": "enhanced_fallback",
@@ -748,10 +779,10 @@ async def _fallback_field_analysis(data_import: DataImport, db: AsyncSession) ->
         "statistics": {
             "total_attributes": total_attributes,
             "mapped_count": mapped_count,
-            "pending_count": 0,  # All attributes are processed in fallback
-            "unmapped_count": 0,  # All attributes are mapped in this analysis
+            "pending_count": pending_count,
+            "unmapped_count": 0,  # All attributes are at least analyzed
             "migration_critical_count": migration_critical_count,
-            "migration_critical_mapped": migration_critical_count,  # All critical attrs are mapped
+            "migration_critical_mapped": len([attr for attr in analyzed_attributes if attr["migration_critical"] and attr["status"] == "mapped"]),
             "avg_quality_score": avg_quality_score,
             "overall_completeness": overall_completeness,
             "assessment_ready": assessment_ready
