@@ -11,7 +11,8 @@ from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, or_
+from sqlalchemy.sql import func
 
 # Core imports
 from app.core.config import settings
@@ -1772,4 +1773,259 @@ async def get_flow_control_status(
         raise
     except Exception as e:
         logger.error(f"❌ Error getting control status for flow {flow_id}: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to get control status: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Failed to get control status: {str(e)}")
+
+@router.get("/assets")
+async def get_discovery_assets(
+    page: int = 1,
+    page_size: int = 50,
+    asset_type: Optional[str] = None,
+    environment: Optional[str] = None,
+    department: Optional[str] = None,
+    criticality: Optional[str] = None,
+    search: Optional[str] = None,
+    context: RequestContext = Depends(get_context_from_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get paginated discovery assets with multi-tenant scoping.
+    All assets are properly scoped to the client account and engagement.
+    """
+    try:
+        logger.info(f"Getting assets for client {context.client_account_id}, engagement {context.engagement_id}")
+        
+        # Import asset model
+        from app.models.asset import Asset
+        
+        # Build base query with multi-tenant scoping
+        base_query = select(Asset).where(
+            and_(
+                Asset.client_account_id == context.client_account_id,
+                Asset.engagement_id == context.engagement_id
+            )
+        )
+        
+        # Apply filters
+        conditions = []
+        if asset_type and asset_type != 'all':
+            conditions.append(Asset.asset_type.ilike(f"%{asset_type}%"))
+        if environment and environment != 'all':
+            conditions.append(Asset.environment.ilike(f"%{environment}%"))
+        if department and department != 'all':
+            conditions.append(Asset.department.ilike(f"%{department}%"))
+        if criticality and criticality != 'all':
+            conditions.append(Asset.criticality.ilike(f"%{criticality}%"))
+        if search:
+            conditions.append(
+                or_(
+                    Asset.asset_name.ilike(f"%{search}%"),
+                    Asset.hostname.ilike(f"%{search}%"),
+                    Asset.ip_address.ilike(f"%{search}%")
+                )
+            )
+        
+        if conditions:
+            base_query = base_query.where(and_(*conditions))
+        
+        # Get total count for pagination
+        count_query = select(func.count()).select_from(base_query.subquery())
+        count_result = await db.execute(count_query)
+        total_count = count_result.scalar()
+        
+        # Apply pagination
+        paginated_query = base_query.offset((page - 1) * page_size).limit(page_size)
+        result = await db.execute(paginated_query)
+        assets = result.scalars().all()
+        
+        # Generate summary statistics
+        summary_query = select(
+            func.count().label('total'),
+            func.count().filter(Asset.asset_type == 'application').label('applications'),
+            func.count().filter(Asset.asset_type == 'server').label('servers'),
+            func.count().filter(Asset.asset_type == 'database').label('databases'),
+            func.count().filter(Asset.asset_type.in_(['network', 'storage', 'other'])).label('devices'),
+            func.count().filter(Asset.asset_type == 'other').label('unknown')
+        ).where(
+            and_(
+                Asset.client_account_id == context.client_account_id,
+                Asset.engagement_id == context.engagement_id
+            )
+        )
+        
+        summary_result = await db.execute(summary_query)
+        summary_row = summary_result.first()
+        
+        # Transform assets for frontend
+        transformed_assets = []
+        for asset in assets:
+            transformed_assets.append({
+                "id": str(asset.id),
+                "asset_name": asset.asset_name or asset.name,
+                "asset_type": asset.asset_type.value if hasattr(asset.asset_type, 'value') else str(asset.asset_type),
+                "environment": asset.environment,
+                "department": asset.department,
+                "criticality": asset.criticality,
+                "discovery_status": getattr(asset, 'discovery_status', 'discovered'),
+                "ip_address": asset.ip_address,
+                "hostname": asset.hostname,
+                "operating_system": asset.operating_system,
+                "cpu_cores": asset.cpu_cores,
+                "memory_gb": asset.memory_gb,
+                "storage_gb": asset.storage_gb,
+                "confidence_score": getattr(asset, 'confidence_score', 0.8),
+                "created_at": asset.created_at.isoformat() if asset.created_at else None,
+                "updated_at": asset.updated_at.isoformat() if asset.updated_at else None
+            })
+        
+        # Calculate pagination
+        total_pages = (total_count + page_size - 1) // page_size
+        
+        response_data = {
+            "assets": transformed_assets,
+            "pagination": {
+                "current_page": page,
+                "page_size": page_size,
+                "total_items": total_count,
+                "total_pages": total_pages,
+                "has_next": page < total_pages,
+                "has_previous": page > 1
+            },
+            "summary": {
+                "total": summary_row.total if summary_row else 0,
+                "by_type": {
+                    "Application": summary_row.applications if summary_row else 0,
+                    "Server": summary_row.servers if summary_row else 0,
+                    "Database": summary_row.databases if summary_row else 0,
+                    "Infrastructure Device": summary_row.devices if summary_row else 0,
+                    "Unknown": summary_row.unknown if summary_row else 0
+                }
+            }
+        }
+        
+        logger.info(f"Returning {len(transformed_assets)} assets for client {context.client_account_id}")
+        return response_data
+        
+    except Exception as e:
+        logger.error(f"Error getting discovery assets: {e}")
+        # Return empty response to prevent frontend errors
+        return {
+            "assets": [],
+            "pagination": {
+                "current_page": page,
+                "page_size": page_size,
+                "total_items": 0,
+                "total_pages": 0,
+                "has_next": False,
+                "has_previous": False
+            },
+            "summary": {
+                "total": 0,
+                "by_type": {
+                    "Application": 0,
+                    "Server": 0,
+                    "Database": 0,
+                    "Infrastructure Device": 0,
+                    "Unknown": 0
+                }
+            }
+        }
+
+@router.post("/assets/trigger-inventory-building")
+async def trigger_inventory_building_crew(
+    context: RequestContext = Depends(get_context_from_user),
+    service: CrewAIFlowService = Depends(get_crewai_flow_service)
+):
+    """
+    Trigger the inventory building crew for the current client/engagement context.
+    This will progress the Discovery Flow from 'field_mapping' to 'inventory_building' phase.
+    """
+    try:
+        logger.info(f"Triggering inventory building crew for client {context.client_account_id}, engagement {context.engagement_id}")
+        
+        # Check for existing flow state
+        flow_state = None
+        try:
+            from app.services.workflow_state_service import WorkflowStateService
+            state_service = WorkflowStateService()
+            
+            # Find active discovery flow for this context
+            active_flows = await state_service.get_active_workflows(
+                client_account_id=context.client_account_id,
+                engagement_id=context.engagement_id,
+                workflow_type="discovery"
+            )
+            
+            if active_flows:
+                flow_state = active_flows[0]
+                logger.info(f"Found existing flow state: {flow_state.session_id}")
+        except Exception as e:
+            logger.warning(f"Could not get existing flow state: {e}")
+        
+        # If no existing flow, create a new one for inventory building
+        if not flow_state:
+            logger.info("Creating new discovery flow for inventory building")
+            
+            # Get latest import data
+            from app.core.database import get_db as db_dep
+            async with db_dep() as db_session:
+                latest_import = await get_latest_import_discovery(None, db=db_session)
+                raw_data = latest_import.get("data", [])
+            
+            if not raw_data:
+                return {
+                    "status": "error",
+                    "message": "No data available for inventory building. Please complete data import and cleansing first."
+                }
+            
+            # Initialize new flow focused on inventory building
+            flow_request = DiscoveryFlowRequest(
+                headers=list(raw_data[0].keys()) if raw_data else [],
+                sample_data=raw_data[:100],  # Limit for performance
+                filename="inventory_building_trigger.json",
+                options={
+                    "enable_field_mapping": False,
+                    "enable_data_cleansing": False,
+                    "enable_inventory_building": True,
+                    "enable_dependency_analysis": False,
+                    "confidence_threshold": 0.7,
+                    "force_phase": "inventory_building"
+                }
+            )
+            
+            flow_result = await run_discovery_flow_redesigned(flow_request, service, context)
+            return {
+                "status": "success",
+                "message": "Inventory building crew triggered successfully",
+                "flow_id": flow_result.get("flow_id"),
+                "session_id": flow_result.get("session_id"),
+                "current_phase": "inventory_building"
+            }
+        else:
+            # Update existing flow to inventory building phase
+            logger.info(f"Updating existing flow {flow_state.session_id} to inventory building phase")
+            
+            # Force phase progression
+            await service.update_flow_phase(
+                flow_id=flow_state.session_id,
+                new_phase="inventory_building",
+                metadata={
+                    "trigger_source": "manual_inventory_building",
+                    "client_account_id": context.client_account_id,
+                    "engagement_id": context.engagement_id
+                }
+            )
+            
+            return {
+                "status": "success", 
+                "message": "Inventory building phase activated",
+                "flow_id": flow_state.session_id,
+                "session_id": flow_state.session_id,
+                "current_phase": "inventory_building"
+            }
+            
+    except Exception as e:
+        logger.error(f"Error triggering inventory building crew: {e}")
+        return {
+            "status": "error",
+            "message": f"Failed to trigger inventory building: {str(e)}"
+        } 

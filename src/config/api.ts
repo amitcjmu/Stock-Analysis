@@ -78,7 +78,7 @@ export const API_CONFIG = {
       PROCESS_CMDB: '/discovery/flow/run', // Updated to use CrewAI Flow endpoint
       CMDB_TEMPLATES: '/discovery/cmdb-templates',
       CMDB_FEEDBACK: '/discovery/cmdb-feedback',
-      ASSETS: '/assets/list/paginated',
+      ASSETS: '/discovery/assets',
       ASSETS_BULK: '/discovery/assets/bulk',
       ASSETS_CLEANUP: '/discovery/assets/cleanup-duplicates',
       APPLICATIONS: '/discovery/applications',

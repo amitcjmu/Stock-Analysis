@@ -125,7 +125,8 @@ export const useInventoryLogic = () => {
     isLoading: isFlowStateLoading,
     error: flowStateError,
     initializeFlow,
-    executePhase
+    executePhase,
+    setFlowState
   } = useDiscoveryFlowState();
 
   // Initialize from navigation state (from Data Cleansing)
@@ -211,57 +212,45 @@ export const useInventoryLogic = () => {
         params.append('search', filterParams.search);
       }
       
-      console.log('🔍 Fetching assets from API:', `${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}?${params}`);
+      console.log('🔍 Fetching assets from new endpoint:', `/api/v1/discovery/assets?${params}`);
       
-      const response = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}?${params}`, {
+      const response = await apiCall(`/api/v1/discovery/assets?${params}`, {
         headers: contextHeaders
       });
       
-      console.log('📊 Asset API response:', response);
+      console.log('📊 Multi-tenant asset API response:', response);
       
       // Process response
-      let assetsData: AssetInventory[] = [];
-      let paginationData = pagination;
-      let summaryData = summary;
+      const assetsData: AssetInventory[] = response.assets || [];
+      const paginationData = response.pagination || pagination;
+      const summaryData = response.summary || {};
       
-      if (Array.isArray(response)) {
-        assetsData = response;
-      } else if (response.assets && Array.isArray(response.assets)) {
-        assetsData = response.assets;
-        paginationData = response.pagination || pagination;
-      } else if (response.data && Array.isArray(response.data)) {
-        assetsData = response.data;
-      }
-      
-      // Process summary
-      if (response.summary && typeof response.summary === 'object') {
-        const backendSummary = response.summary;
-        summaryData = {
-          total: backendSummary.total || 0,
-          filtered: backendSummary.total || 0,
-          applications: backendSummary.by_type?.Application || 0,
-          servers: backendSummary.by_type?.Server || 0,
-          databases: backendSummary.by_type?.Database || 0,
-          devices: (backendSummary.by_type?.['Infrastructure Device'] || 0) + 
-                  (backendSummary.by_type?.['Security Device'] || 0) + 
-                  (backendSummary.by_type?.['Storage Device'] || 0),
-          unknown: backendSummary.by_type?.Unknown || 0,
-          discovered: backendSummary.total || 0,
-          pending: 0,
-          device_breakdown: {
-            network: 0,
-            storage: backendSummary.by_type?.['Storage Device'] || 0,
-            security: backendSummary.by_type?.['Security Device'] || 0,
-            infrastructure: backendSummary.by_type?.['Infrastructure Device'] || 0,
-            virtualization: 0
-          }
-        };
-      }
+      // Transform summary for frontend
+      const transformedSummary = {
+        total: summaryData.total || 0,
+        filtered: summaryData.total || 0,
+        applications: summaryData.by_type?.Application || 0,
+        servers: summaryData.by_type?.Server || 0,
+        databases: summaryData.by_type?.Database || 0,
+        devices: summaryData.by_type?.['Infrastructure Device'] || 0,
+        unknown: summaryData.by_type?.Unknown || 0,
+        discovered: summaryData.total || 0,
+        pending: 0,
+        device_breakdown: {
+          network: 0,
+          storage: 0,
+          security: 0,
+          infrastructure: summaryData.by_type?.['Infrastructure Device'] || 0,
+          virtualization: 0
+        }
+      };
       
       setAssets(assetsData);
       setPagination(paginationData);
-      setSummary(summaryData);
+      setSummary(transformedSummary);
       setLastUpdated(new Date());
+      
+      console.log(`✅ Loaded ${assetsData.length} assets from multi-tenant endpoint`);
       
     } catch (error) {
       console.error('❌ Error fetching assets:', error);
@@ -285,55 +274,54 @@ export const useInventoryLogic = () => {
         description: "Starting comprehensive asset inventory building and classification...",
       });
 
-      if (!flowState?.session_id && !assets?.length) {
-        const latestImportResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.LATEST_IMPORT);
-        const rawData = latestImportResponse?.data || [];
-        
-        if (rawData.length === 0) {
-          toast({
-            title: "❌ No Data Available",
-            description: "Please complete data cleansing first before running inventory building.",
-            variant: "destructive"
-          });
-          return;
+      const contextHeaders = getAuthHeaders();
+      
+      // Call the new inventory building trigger endpoint
+      const response = await apiCall('/api/v1/discovery/assets/trigger-inventory-building', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...contextHeaders
+        }
+      });
+
+      if (response.status === 'success') {
+        // Update flow state if we got a new session
+        if (response.session_id) {
+          setFlowState(prev => ({
+            ...prev,
+            session_id: response.session_id,
+            current_phase: 'inventory_building',
+            phase_completion: {
+              ...prev?.phase_completion,
+              inventory_building: false,
+              field_mapping: true,
+              data_cleansing: true
+            }
+          }));
         }
 
-        await initializeFlow.mutateAsync({
-          client_account_id: client!.id,
-          engagement_id: engagement!.id,
-          user_id: user?.id || 'anonymous',
-          raw_data: rawData,
-          metadata: {
-            source: 'inventory_building_manual_trigger',
-            previous_phase: 'data_cleansing'
-          },
-          configuration: {
-            enable_field_mapping: false,
-            enable_data_cleansing: false,
-            enable_inventory_building: true,
-            enable_dependency_analysis: false,
-            enable_technical_debt_analysis: false,
-            confidence_threshold: 0.7
-          }
-        });
-      }
+        // Refresh assets data
+        await fetchAssets();
 
-      await fetchAssets();
-      toast({
-        title: "✅ Analysis Complete", 
-        description: "Inventory building analysis has been completed.",
-      });
+        toast({
+          title: "✅ Analysis Complete", 
+          description: response.message || "Inventory building analysis has been completed.",
+        });
+      } else {
+        throw new Error(response.message || 'Failed to trigger inventory building');
+      }
     } catch (error) {
       console.error('Failed to trigger inventory building analysis:', error);
       toast({
         title: "❌ Analysis Failed",
-        description: "Inventory building analysis encountered an error. Please try again.",
+        description: error.message || "Inventory building analysis encountered an error. Please try again.",
         variant: "destructive"
       });
     } finally {
       setIsAnalyzing(false);
     }
-  }, [fetchAssets, toast, flowState, assets, initializeFlow, client, engagement, user]);
+  }, [fetchAssets, toast, getAuthHeaders]);
 
   // Asset management functions
   const handleBulkUpdate = useCallback(async (updateData: any) => {

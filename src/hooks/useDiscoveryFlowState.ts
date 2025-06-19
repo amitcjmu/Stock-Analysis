@@ -349,6 +349,7 @@ export const useDiscoveryFlowState = () => {
     setFlowId,
     setSessionId,
     setFlowIdentifiers,
+    setFlowState,
     executePhase,
     resetFlow,
     invalidateState: () => queryClient.invalidateQueries({ queryKey: ['discovery-flow-status'] }),

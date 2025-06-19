@@ -75,75 +75,98 @@ const Inventory = () => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar />
-      
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="bg-white shadow-sm border-b p-4">
-          <ContextBreadcrumbs />
-          <div className="mt-2">
-            <h1 className="text-2xl font-bold text-gray-800">Asset Inventory</h1>
-            <p className="text-gray-600">
-              Comprehensive inventory of discovered IT assets with AI-powered classification
-            </p>
-          </div>
+    <InventoryStateProvider
+      isLoading={isLoading}
+      isAnalyzing={isAnalyzing}
+      error={error}
+      flowStateError={flowStateError}
+      totalAssets={summary.total}
+      onTriggerAnalysis={handleTriggerInventoryBuildingCrew}
+      onRetry={fetchAssets}
+    >
+      <div className="flex min-h-screen bg-gray-50">
+        <div className="hidden lg:block w-64 border-r bg-white">
+          <Sidebar />
         </div>
-        
-        <div className="flex-1 overflow-auto">
-          <div className="p-6">
-            
-            {/* Agent Communication Panel */}
+
+        <div className="flex-1 overflow-y-auto">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-7xl">
             <div className="mb-6">
-              <AgentClarificationPanel refreshTrigger={0} />
+              <ContextBreadcrumbs />
             </div>
 
-            {/* State Provider handles loading, error, and no-data states */}
-            <InventoryStateProvider
-              isLoading={isLoading}
-              isAnalyzing={isAnalyzing}
-              error={error}
-              flowStateError={flowStateError}
-              totalAssets={summary.total}
-              onTriggerAnalysis={handleTriggerInventoryBuildingCrew}
-              onRetry={fetchAssets}
-            >
-              {/* Main Content */}
-              <InventoryContent
-                assets={assets}
-                summary={summary}
-                inventoryProgress={inventoryProgress}
-                currentPage={currentPage}
-                filters={filters}
-                searchTerm={searchTerm}
-                selectedAssets={selectedAssets}
-                lastUpdated={lastUpdated}
-                onTriggerAnalysis={handleTriggerInventoryBuildingCrew}
-                onFilterChange={handleFilterChange}
-                onSearchChange={handleSearchChange}
-                onPageChange={handlePageChange}
-                onAssetSelect={toggleAssetSelection}
-                onSelectAll={selectAllAssets}
-                onClearSelection={clearSelection}
-                onBulkUpdate={handleBulkUpdate}
-                onClassificationUpdate={handleAssetClassificationUpdate}
-                onContinueToAppServerDependencies={handleContinueToNextPhase}
-                canContinueToAppServerDependencies={canContinueToAppServerDependencies()}
-              />
-            </InventoryStateProvider>
-
-            {/* Agent Insights */}
-            <div className="mt-6">
-              <AgentInsightsSection />
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center space-x-3">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">Asset Inventory</h1>
+                  <p className="text-gray-600">
+                    {inventoryProgress.total_assets > 0 
+                      ? `${inventoryProgress.total_assets} assets discovered with ${inventoryProgress.classified_assets} classified (${Math.round(inventoryProgress.classification_accuracy)}% accuracy)` 
+                      : 'Comprehensive inventory of discovered IT assets with AI-powered classification'
+                    }
+                  </p>
+                </div>
+              </div>
             </div>
 
-            {/* Agent Planning Dashboard */}
-            <div className="mt-6">
-              <AgentPlanningDashboard />
+            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+              <div className="xl:col-span-3 space-y-6">
+                {/* Main Inventory Content */}
+                <InventoryContent
+                  assets={assets}
+                  summary={summary}
+                  inventoryProgress={inventoryProgress}
+                  currentPage={currentPage}
+                  filters={filters}
+                  searchTerm={searchTerm}
+                  selectedAssets={selectedAssets}
+                  lastUpdated={lastUpdated}
+                  onTriggerAnalysis={handleTriggerInventoryBuildingCrew}
+                  onFilterChange={handleFilterChange}
+                  onSearchChange={handleSearchChange}
+                  onPageChange={handlePageChange}
+                  onAssetSelect={toggleAssetSelection}
+                  onSelectAll={selectAllAssets}
+                  onClearSelection={clearSelection}
+                  onBulkUpdate={handleBulkUpdate}
+                  onClassificationUpdate={handleAssetClassificationUpdate}
+                  onContinueToAppServerDependencies={handleContinueToNextPhase}
+                  canContinueToAppServerDependencies={canContinueToAppServerDependencies()}
+                />
+              </div>
+
+              <div className="xl:col-span-1 space-y-6">
+                {/* Agent Communication Panel */}
+                <AgentClarificationPanel 
+                  pageContext="asset-inventory"
+                  refreshTrigger={0}
+                  onQuestionAnswered={(questionId, response) => {
+                    console.log('Inventory question answered:', questionId, response);
+                    fetchAssets();
+                  }}
+                />
+
+                {/* Agent Insights */}
+                <AgentInsightsSection 
+                  pageContext="asset-inventory"
+                  refreshTrigger={0}
+                  onInsightAction={(insightId, action) => {
+                    console.log('Inventory insight action:', insightId, action);
+                    if (action === 'apply_insight') {
+                      fetchAssets();
+                    }
+                  }}
+                />
+
+                {/* Agent Planning Dashboard */}
+                <AgentPlanningDashboard />
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </InventoryStateProvider>
   );
 };
 

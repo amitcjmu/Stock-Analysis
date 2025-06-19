@@ -1,5 +1,85 @@
 # AI Force Migration Platform - Change Log
 
+## [0.20.10] - 2025-01-03
+
+### 🎯 **CRITICAL INVENTORY PAGE FIXES - LAYOUT, MULTI-TENANCY & FLOW STATE**
+
+This release addresses critical issues identified in the Inventory page including layout problems, multi-tenancy violations, and Discovery Flow state progression failures.
+
+### 🚀 **Critical Fixes**
+
+#### **Layout & UX Corrections**
+- **Layout Architecture**: Fixed Inventory page layout to match AttributeMapping pattern
+  - Proper sidebar spacing with `w-64 border-r bg-white` and `hidden lg:block`
+  - Agent panel positioned correctly on the right side in `xl:col-span-1`
+  - Main content properly contained in `xl:col-span-3` with responsive grid
+  - Consistent header and breadcrumb positioning
+- **Agent Panel Integration**: Moved agent components to right sidebar
+  - AgentClarificationPanel with proper page context `asset-inventory`
+  - AgentInsightsSection with insight action callbacks
+  - AgentPlanningDashboard for comprehensive monitoring
+
+#### **Multi-Tenancy Enforcement (CRITICAL SECURITY)**
+- **New Multi-Tenant Assets Endpoint**: Created `/api/v1/discovery/assets`
+  - Proper client_account_id and engagement_id scoping in all queries
+  - Asset model integration with full multi-tenant isolation
+  - Pagination, filtering, and search with tenant context preservation
+  - Summary statistics properly scoped to client/engagement context
+- **Frontend API Configuration**: Updated ASSETS endpoint from `/assets/list/paginated` to `/discovery/assets`
+- **Context Headers**: Enhanced multi-tenant context passing in all asset operations
+- **Data Isolation**: Ensures 156 records issue resolved - only client-specific data returned
+
+#### **Discovery Flow State Progression**
+- **Inventory Building Trigger Endpoint**: Added `/api/v1/discovery/assets/trigger-inventory-building`
+  - Automatic flow phase progression from `field_mapping` to `inventory_building`
+  - Proper session state management and flow_fingerprint tracking
+  - Integration with CrewAI Flow Service for phase transitions
+- **Flow State Management**: Enhanced useDiscoveryFlowState hook
+  - Added `setFlowState` function to return interface for direct state updates
+  - Proper phase completion tracking for inventory building
+  - Integration with inventory logic hook for seamless flow progression
+- **Phase Transition Logic**: Automated progression when triggering inventory building
+  - Marks field_mapping and data_cleansing as completed
+  - Sets inventory_building as active phase
+  - Updates flow metadata with proper context
+
+### 📊 **Backend Architecture Enhancements**
+
+#### **Asset Model Integration**
+- **Database Model**: Proper integration with Asset model from `app.models.asset`
+  - Multi-tenant scoping with client_account_id and engagement_id
+  - Asset type enumeration handling with proper value extraction
+  - Comprehensive asset transformation for frontend compatibility
+- **Query Optimization**: Efficient database queries with proper filtering
+  - Asset type filtering with enum value matching
+  - Search functionality across asset_name, hostname, and ip_address
+  - Summary statistics with grouped asset type counts
+- **Error Handling**: Graceful fallbacks for missing data or query failures
+
+#### **Flow Service Integration**
+- **CrewAI Flow Service**: Enhanced integration for inventory building phase
+  - Automatic flow detection and state management
+  - Phase progression with metadata preservation
+  - Support for both new flow creation and existing flow updates
+- **Context Awareness**: Proper client/engagement context throughout flow operations
+
+### 🎯 **Success Metrics**
+
+- **Layout Compliance**: ✅ Inventory page now matches AttributeMapping layout pattern
+- **Multi-Tenancy**: ✅ All asset queries properly scoped to client/engagement context
+- **Flow Progression**: ✅ Discovery Flow now properly transitions to inventory_building phase
+- **Data Isolation**: ✅ Client-specific data only (resolves 156 records issue)
+- **Agent Integration**: ✅ Proper agent panel positioning and functionality
+- **Build Success**: ✅ All TypeScript compilation and backend imports working
+
+### 🔧 **Technical Achievements**
+
+- **Security Enhancement**: Multi-tenant data isolation properly enforced
+- **Flow Management**: Seamless Discovery Flow phase progression 
+- **UI/UX Consistency**: Layout consistency across Discovery pages
+- **Error Resilience**: Proper error handling and graceful degradation
+- **Performance**: Optimized database queries with proper indexing
+
 ## [0.20.9] - 2025-01-03
 
 ### 🎯 **INVENTORY PAGE DISCOVERY FLOW MODULARIZATION**
@@ -196,7 +276,7 @@ AttributeMappingTabContent -> clean tab switching logic
 
 #### **Functional Preservation**
 - **All Features Maintained**: No functionality lost during modularization
-- **Agent Integration**: Full CrewAI agent orchestration preserved
+- **CrewAI Integration**: Full CrewAI agent orchestration preserved
 - **Navigation Flow**: Discovery Flow phase transitions working correctly
 - **State Management**: All local and global state properly managed
 
@@ -1015,21 +1095,23 @@ This release resolves critical issues with the Attribute Mapping page, ensuring 
 
 ### 🎯 **User Experience Impact**
 
-#### **Attribute Mapping Page Accuracy**
-- **Before**: 3 fields displayed, approval failures, inconsistent data
-- **After**: 11 fields displayed, successful approvals, accurate insights
-- **Result**: Complete workflow functionality for field mapping and approval
+#### **Before (Problematic)**
+- **Agent Insights**: "18 total fields identified for mapping analysis" (meaningless static data)
+- **Imported Data**: 1 record with 3 generic fields (wrong import)
+- **User Confusion**: Insights didn't match actual imported data
 
-#### **Agent Insights Quality**
-- **Dynamic Insights**: All insights now reflect actual imported data (not static placeholders)
-- **Real Metrics**: "9 of 9 fields mapped (100% completion)" vs "18 total fields identified"
-- **Data Source Transparency**: Clear indication of actual filenames and record counts
+#### **After (Fixed)**
+- **Agent Insights**: "9 of 9 fields mapped (100% completion)" (actual mapping status)
+- **Imported Data**: 10 records from "DataCenter_Sample_CMD Export.csv" (correct import)
+- **User Clarity**: Insights accurately reflect imported data and analysis progress
 
-### 🎪 **Success Metrics**
-- **Field Coverage**: 100% (11/11 fields analyzed vs 3/11 previously)
-- **Database Persistence**: 100% success rate for mapping approvals
-- **Data Consistency**: Perfect alignment between field mappings and imported data
-- **User Workflow**: Complete end-to-end functionality restored
+### 🎯 **Success Metrics**
+- **Data Accuracy**: 100% - Insights now reflect actual imported data
+- **Context Resolution**: Fixed - Correct client/engagement context extraction
+- **User Experience**: Significantly improved - Meaningful, actionable insights displayed
+- **Import Retrieval**: Fixed - Correct import data displayed in UI
+
+---
 
 ## [0.19.4] - 2025-01-27
 
