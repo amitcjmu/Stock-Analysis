@@ -1,5 +1,108 @@
 # AI Force Migration Platform - Change Log
 
+## [0.20.8] - 2025-01-27
+
+### 🎯 **DISCOVERY PAGES COMPLETE MODULARIZATION**
+
+This release achieves comprehensive modularization of both DataCleansing and AttributeMapping pages, reducing them to optimal sizes while maintaining full functionality and improving maintainability.
+
+### 🚀 **Architecture Optimization**
+
+#### **DataCleansing Page Modularization (158 LOC)**
+- **Business Logic Extraction**: Created `useDataCleansingLogic` hook with 300+ LOC of state management, event handling, and data transformation logic
+- **Navigation Logic**: Extracted `useDataCleansingNavigation` hook for clean navigation state management
+- **State Provider Component**: Created `DataCleansingStateProvider` for loading, error, and no-data state handling
+- **Hook Integration**: Seamless integration of custom hooks with existing components
+- **Size Reduction**: Reduced from 547 LOC to 158 LOC (71% reduction)
+
+#### **AttributeMapping Page Modularization (211 LOC)**
+- **Business Logic Extraction**: Created `useAttributeMappingLogic` hook with comprehensive agentic data processing
+- **Navigation Logic**: Extracted `useAttributeMappingNavigation` hook for Discovery Flow transitions
+- **State Provider Component**: Created `AttributeMappingStateProvider` for consistent state management
+- **Tab Content Component**: Created `AttributeMappingTabContent` for clean tab rendering logic
+- **Size Reduction**: Reduced from 875 LOC to 211 LOC (76% reduction)
+
+### 📊 **Technical Achievements**
+
+#### **Modular Hook Architecture**
+- **`useDataCleansingLogic`**: Handles all data fetching, state management, and business logic for data cleansing operations
+- **`useAttributeMappingLogic`**: Manages agentic data processing, field mappings, and critical attribute analysis
+- **Navigation Hooks**: Centralized navigation logic with proper state passing between Discovery phases
+- **Reusable Components**: State providers ensure consistent error handling and loading states
+
+#### **Code Quality Improvements**
+- **Single Responsibility**: Each hook and component has a focused, single responsibility
+- **Testability**: Separated business logic enables easier unit testing of hooks
+- **Maintainability**: Clear separation of concerns makes future changes more predictable
+- **Type Safety**: Full TypeScript interfaces for all extracted logic
+
+#### **Performance Optimization**
+- **Bundle Size**: Removed duplicate logic and improved code splitting potential
+- **Memory Usage**: Better state management with optimized re-rendering patterns
+- **Load Performance**: Modular structure enables better lazy loading opportunities
+
+### 🎯 **Business Impact**
+
+#### **Development Velocity**
+- **Faster Feature Development**: Modular hooks can be reused across components
+- **Easier Debugging**: Isolated business logic makes troubleshooting more efficient
+- **Improved Code Reviews**: Smaller components enable more focused review sessions
+
+#### **Code Maintainability**
+- **LOC Compliance**: Both pages now meet the 300-400 LOC guideline (158 and 211 LOC respectively)
+- **Pattern Consistency**: Established reusable patterns for future Discovery page modularization
+- **Technical Debt Reduction**: Eliminated monolithic component anti-patterns
+
+### 🔧 **Implementation Details**
+
+#### **Hook Structure**
+```typescript
+// Business logic hooks
+useDataCleansingLogic() -> { data, actions, state }
+useAttributeMappingLogic() -> { agenticData, mappings, handlers }
+
+// Navigation hooks  
+useDataCleansingNavigation() -> { handleNavigation }
+useAttributeMappingNavigation() -> { handleContinue }
+```
+
+#### **Component Architecture**
+```typescript
+// State providers for consistent UX
+DataCleansingStateProvider -> handles loading/error/empty states
+AttributeMappingStateProvider -> manages state rendering logic
+
+// Content components for focused rendering
+AttributeMappingTabContent -> clean tab switching logic
+```
+
+#### **Integration Points**
+- **Discovery Flow**: Seamless integration with CrewAI Discovery Flow state
+- **Agent Learning**: Maintained full agent learning and feedback capabilities  
+- **Authentication**: Proper client account and engagement scoping preserved
+
+### 🎯 **Success Metrics**
+
+#### **Code Organization**
+- **DataCleansing**: 547 LOC → 158 LOC (71% reduction) ✅
+- **AttributeMapping**: 875 LOC → 211 LOC (76% reduction) ✅
+- **Both Pages**: Under 400 LOC guideline compliance ✅
+- **Build Success**: Clean compilation with no TypeScript errors ✅
+
+#### **Functional Preservation**
+- **All Features Maintained**: No functionality lost during modularization
+- **Agent Integration**: Full CrewAI agent orchestration preserved
+- **Navigation Flow**: Discovery Flow phase transitions working correctly
+- **State Management**: All local and global state properly managed
+
+#### **Architecture Quality**
+- **Hook Reusability**: Business logic hooks can be reused in other components
+- **Component Isolation**: Each component has clear, minimal responsibilities
+- **Type Safety**: Full TypeScript coverage with proper interface definitions
+- **Performance**: No degradation in component rendering or data fetching
+
+---
+
 ## [0.20.7] - 2025-01-03
 
 ### 🎯 **DATA CLEANSING PAGE MODULARIZATION - Component Architecture Optimization**
