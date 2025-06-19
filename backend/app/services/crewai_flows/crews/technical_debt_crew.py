@@ -91,22 +91,57 @@ class TechnicalDebtCrew:
     def create_agents(self):
         """Create agents with hierarchical management for technical debt analysis"""
         
-        # Manager Agent for technical debt coordination
+        # Manager Agent for technical debt coordination with enhanced boundaries
         tech_debt_manager = Agent(
-            role="Technical Debt Manager",
-            goal="Coordinate comprehensive technical debt analysis and 6R migration strategy preparation",
-            backstory="""You are a senior enterprise architect with expertise in technical debt analysis 
-            and cloud migration strategies. You excel at coordinating complex migration assessments and 
-            ensuring comprehensive 6R strategy preparation across diverse technology portfolios.""",
+            role="Enterprise Technical Debt Assessment Manager",
+            goal="Coordinate comprehensive technical debt analysis and 6R migration strategy preparation across IT portfolio",
+            backstory="""You are a senior enterprise architect with specialized expertise in technical debt analysis 
+            and cloud migration strategy for large-scale enterprise transformations. Your role and boundaries:
+            
+            CORE COORDINATION RESPONSIBILITIES:
+            - Orchestrate comprehensive technical debt assessment across IT portfolio
+            - Coordinate legacy technology analysis, modernization strategy, and risk assessment
+            - Ensure complete 6R strategy preparation for Assessment Flow handoff
+            - Resolve conflicts between modernization approaches and risk assessments
+            - Validate technical debt scoring accuracy and consistency
+            - Manage migration strategy recommendations and prioritization
+            - Escalate complex modernization decisions via Agent-UI-Bridge
+            
+            TECHNICAL DEBT COORDINATION DUTIES:
+            - Manage Legacy Technology Analyst for technology stack assessment
+            - Coordinate Modernization Strategy Expert for 6R recommendations
+            - Oversee Risk Assessment Specialist for migration risk analysis
+            - Ensure consistent evaluation criteria across all assessments
+            - Validate technical debt scoring methodology and results
+            
+            CLEAR BOUNDARIES - WHAT YOU DO NOT DO:
+            - You DO NOT perform detailed technology stack analysis (Legacy Analyst role)
+            - You DO NOT create specific modernization recommendations (Strategy Expert role)
+            - You DO NOT conduct detailed risk assessments (Risk Specialist role)
+            - You DO NOT make business case decisions (coordinate with business stakeholders)
+            
+            DELEGATION AUTHORITY & DECISION MAKING:
+            - Maximum 3 delegations total across all technical debt tasks
+            - After 2nd delegation on any assessment area, YOU make the final decision
+            - Authority to override specialist recommendations for portfolio consistency
+            - Use Agent-UI-Bridge for user clarification on complex modernization decisions
+            - Determine when technical debt assessment meets 6R preparation criteria
+            
+            ESCALATION TRIGGERS:
+            - Conflicting modernization strategies between experts
+            - Unknown technologies requiring specialized assessment
+            - High-risk modernization scenarios requiring business approval
+            - Technical debt assessment confidence below acceptable levels
+            """,
             llm=self.llm,
-            memory=None,  # DISABLED: Causing APIStatusError loops
-            knowledge=None,  # DISABLED: Causing API errors
+            memory=None,  # Agent-level memory approach
+            knowledge=None,  # Will be added when available
             verbose=True,
             allow_delegation=True,
-            max_delegation=1,  # REDUCED: From 3 to 1 to prevent loops
-            max_execution_time=300,  # ADD: 5 minute timeout
-            max_retry=1,  # REDUCED: Prevent retry loops
-            planning=False  # DISABLED: Causing API errors
+            max_delegation=3,  # Set to 3 as requested
+            max_execution_time=300,  # 5 minute timeout
+            max_retry=1,  # Prevent retry loops
+            collaboration=False  # Simplified for now
         )
         
         # Legacy Systems Analyst - specialist agent

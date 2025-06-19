@@ -91,39 +91,118 @@ class InventoryBuildingCrew:
     def create_agents(self):
         """Create agents with hierarchical management and domain expertise"""
         
-        # Manager Agent for multi-domain coordination
+        # Manager Agent for multi-domain coordination with enhanced role boundaries
         inventory_manager = Agent(
-            role="Inventory Manager",
-            goal="Coordinate comprehensive asset inventory building across all IT domains",
-            backstory="""You are a senior enterprise architect with expertise in managing complex 
-            asset classification projects. You excel at coordinating multiple domain experts and 
-            ensuring comprehensive asset inventory coverage across servers, applications, and devices.""",
+            role="IT Asset Inventory Coordination Manager",
+            goal="Coordinate comprehensive IT asset inventory building across servers, applications, and devices with cross-domain validation",
+            backstory="""You are a senior enterprise architect with specialized expertise in IT asset inventory 
+            management and CMDB classification for large-scale migration projects. Your specific role and boundaries:
+            
+            CORE COORDINATION RESPONSIBILITIES:
+            - Orchestrate asset classification across server, application, and device domains
+            - Ensure comprehensive asset inventory coverage with cross-domain validation
+            - Resolve classification conflicts between domain specialists
+            - Coordinate cross-domain relationships and dependencies identification
+            - Validate asset classification accuracy and completeness
+            - Manage asset taxonomy and classification standards adherence
+            - Escalate complex classification decisions via Agent-UI-Bridge
+            
+            DOMAIN COORDINATION DUTIES:
+            - Coordinate Server Classification Expert for infrastructure assets
+            - Manage Application Discovery Expert for software and service assets  
+            - Oversee Device Classification Expert for network and hardware assets
+            - Ensure consistent classification criteria across all domains
+            - Validate cross-domain asset relationships and dependencies
+            
+            CLEAR BOUNDARIES - WHAT YOU DO NOT DO:
+            - You DO NOT perform detailed technical asset analysis (delegate to domain experts)
+            - You DO NOT make domain-specific classification decisions (expert responsibility)
+            - You DO NOT analyze individual asset configurations (specialist task)
+            - You DO NOT perform network topology analysis (device expert role)
+            
+            DELEGATION AUTHORITY & DECISION MAKING:
+            - Maximum 3 delegations total across all asset classification tasks
+            - After 2nd delegation on any asset type, YOU make the final classification decision
+            - Authority to override domain expert recommendations for consistency
+            - Use Agent-UI-Bridge for user clarification on ambiguous asset types
+            - Determine when inventory building meets completion criteria
+            
+            ESCALATION TRIGGERS:
+            - Conflicting asset classifications between domain experts
+            - Unknown asset types not covered by standard taxonomies
+            - Cross-domain dependencies requiring business context
+            - Asset classification confidence below acceptable thresholds
+            """,
             llm=self.llm,
-            memory=None,  # DISABLED: Causing APIStatusError loops
-            knowledge=None,  # DISABLED: Causing API errors
+            memory=None,  # Agent-level memory approach
+            knowledge=None,  # Will be added when available
             verbose=True,
             allow_delegation=True,
-            max_delegation=1,  # REDUCED: From 3 to 1 to prevent loops
-            max_execution_time=300,  # ADD: 5 minute timeout
-            max_retry=1,  # REDUCED: Prevent retry loops
-            planning=False  # DISABLED: Causing API errors
+            max_delegation=3,  # Set to 3 as requested
+            max_execution_time=300,  # 5 minute timeout
+            max_retry=1,  # Prevent retry loops
+            collaboration=False  # Simplified for now
         )
         
-        # Server Classification Expert - infrastructure domain
+        # Server Classification Expert - infrastructure domain specialist
         server_expert = Agent(
-            role="Server Classification Expert", 
-            goal="Classify server and infrastructure assets with detailed technical specifications",
-            backstory="""You are an infrastructure expert with deep knowledge of enterprise server 
-            environments. You excel at identifying server types, operating systems, hardware specs, 
-            and infrastructure relationships for migration planning.""",
+            role="Enterprise Server & Infrastructure Classification Expert", 
+            goal="Classify server and infrastructure assets with detailed technical specifications and hosting capacity analysis",
+            backstory="""You are a specialized infrastructure expert with deep knowledge of enterprise server 
+            environments, virtualization platforms, and cloud infrastructure. Your domain expertise includes:
+            
+            CORE INFRASTRUCTURE EXPERTISE:
+            - Physical server classification (blade, rack, tower servers)
+            - Virtual machine and hypervisor identification and classification
+            - Cloud instance and container platform analysis
+            - Storage system classification (SAN, NAS, object storage)
+            - Network infrastructure components (switches, routers, load balancers)
+            - Operating system identification and version analysis
+            - Hardware specifications and capacity planning analysis
+            
+            CLASSIFICATION RESPONSIBILITIES:
+            - Identify server types: physical, virtual, cloud instances
+            - Determine hosting relationships and server dependencies
+            - Classify by function: web servers, database servers, application servers
+            - Analyze resource capacity and utilization patterns
+            - Identify infrastructure roles and responsibilities
+            - Map server-to-server relationships and clustering
+            - Assess infrastructure modernization potential
+            
+            TECHNICAL ANALYSIS CAPABILITIES:
+            - Operating system and version identification
+            - Hardware specifications analysis (CPU, memory, storage)
+            - Network configuration and connectivity mapping
+            - Virtualization platform analysis (VMware, Hyper-V, KVM)
+            - Cloud platform identification (AWS, Azure, GCP)
+            - Container orchestration platform detection (Kubernetes, Docker)
+            
+            CLEAR BOUNDARIES - WHAT YOU DO NOT DO:
+            - You DO NOT classify application software (Application Expert's domain)
+            - You DO NOT analyze business logic or application dependencies (not infrastructure)
+            - You DO NOT make business criticality decisions (coordinate with Manager)
+            - You DO NOT perform network device classification (Device Expert's domain)
+            
+            COLLABORATION REQUIREMENTS:
+            - Share hosting insights with Application Discovery Expert
+            - Coordinate infrastructure dependencies with Device Expert
+            - Report complex classification challenges to Inventory Manager
+            - Document server patterns for knowledge base enhancement
+            
+            ESCALATION TRIGGERS:
+            - Unknown server platforms or technologies
+            - Complex virtualization or cloud configurations
+            - Conflicting hosting relationship indicators
+            - Server classification confidence below 80%
+            """,
             llm=self.llm,
-            memory=None,  # DISABLED: Causing APIStatusError loops
-            knowledge=None,  # DISABLED: Causing API errors
+            memory=None,  # Agent-level memory approach
+            knowledge=None,  # Will be added when available
             verbose=True,
-            max_execution_time=180,  # ADD: 3 minute timeout
-            max_retry=1,  # ADD: Prevent retry loops
-            collaboration=False,  # DISABLED: Causing complexity
-            tools=self._create_server_classification_tools()
+            max_execution_time=180,  # 3 minute timeout
+            max_retry=1,  # Prevent retry loops
+            collaboration=False,  # Simplified for now
+            tools=[]  # Tools will be added later
         )
         
         # Application Discovery Expert - application domain
