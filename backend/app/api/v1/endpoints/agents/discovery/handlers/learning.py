@@ -100,6 +100,11 @@ async def handle_field_mapping_action(
                     existing_mapping.target_field = target_field
                     existing_mapping.confidence_score = mapping_data.get('confidence', 0.9)
                     existing_mapping.mapping_type = 'user_approved'
+                    existing_mapping.status = 'approved'
+                    existing_mapping.is_validated = True
+                    existing_mapping.validation_method = 'user_approved'
+                    if context.user_id:
+                        existing_mapping.validated_by = context.user_id
                     logger.info(f"✅ Updated existing mapping: {source_field} -> {target_field}")
                 else:
                     # Create new mapping (handle None user_id with fallback)
@@ -110,7 +115,11 @@ async def handle_field_mapping_action(
                         target_field=target_field,
                         confidence_score=mapping_data.get('confidence', 0.9),
                         mapping_type='user_approved',
-                        created_by_user_id=user_id
+                        status='approved',
+                        validated_by=user_id,
+                        is_user_defined=True,
+                        is_validated=True,
+                        validation_method='user_approved'
                     )
                     db.add(new_mapping)
                     logger.info(f"✅ Created new mapping: {source_field} -> {target_field}")

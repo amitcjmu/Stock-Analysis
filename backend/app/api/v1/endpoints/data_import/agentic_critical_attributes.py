@@ -658,7 +658,7 @@ async def _fallback_field_analysis(data_import: DataImport, db: AsyncSession) ->
     all_field_names = list(sample_record.raw_data.keys())
     logger.info(f"🔍 Analyzing ALL fields from import data: {all_field_names}")
     
-    # Get existing field mappings (if any) to use their target mappings
+    # Get existing field mappings (if any) to use their target mappings and approval status
     mappings_query = select(ImportFieldMapping).where(
         ImportFieldMapping.data_import_id == data_import.id
     )
@@ -666,6 +666,7 @@ async def _fallback_field_analysis(data_import: DataImport, db: AsyncSession) ->
     result = await db.execute(mappings_query)
     existing_mappings = result.scalars().all()
     mapping_dict = {m.source_field: m.target_field for m in existing_mappings}
+    mapping_status_dict = {m.source_field: m.status for m in existing_mappings}
     
     # Enhanced intelligent field analysis using migration patterns
     critical_patterns = {
@@ -740,8 +741,16 @@ async def _fallback_field_analysis(data_import: DataImport, db: AsyncSession) ->
         if is_migration_critical:
             migration_critical_count += 1
         
-        # Check if this field is already mapped
-        mapping_status = "mapped" if field_name in mapping_dict else "pending"
+        # Check if this field is already mapped and approved by user
+        field_approval_status = mapping_status_dict.get(field_name, None)
+        if field_approval_status == "approved":
+            mapping_status = "mapped"
+        elif field_approval_status == "rejected":
+            mapping_status = "unmapped" 
+        elif field_name in mapping_dict:
+            mapping_status = "pending"  # Has mapping but not yet approved
+        else:
+            mapping_status = "unmapped"  # No mapping at all
         
         analyzed_attributes.append({
             "name": target_field,
@@ -760,10 +769,11 @@ async def _fallback_field_analysis(data_import: DataImport, db: AsyncSession) ->
             "migration_critical": is_migration_critical
         })
     
-    # Calculate statistics based on actual mapping status
+    # Calculate statistics based on actual mapping approval status
     total_attributes = len(analyzed_attributes)
     mapped_count = len([attr for attr in analyzed_attributes if attr["status"] == "mapped"])
     pending_count = len([attr for attr in analyzed_attributes if attr["status"] == "pending"])
+    unmapped_count = len([attr for attr in analyzed_attributes if attr["status"] == "unmapped"])
     avg_quality_score = int(sum(attr["quality_score"] for attr in analyzed_attributes) / total_attributes) if total_attributes > 0 else 0
     overall_completeness = int((mapped_count / total_attributes) * 100) if total_attributes > 0 else 0
     assessment_ready = migration_critical_count >= 3 and mapped_count >= migration_critical_count
@@ -780,7 +790,7 @@ async def _fallback_field_analysis(data_import: DataImport, db: AsyncSession) ->
             "total_attributes": total_attributes,
             "mapped_count": mapped_count,
             "pending_count": pending_count,
-            "unmapped_count": 0,  # All attributes are at least analyzed
+            "unmapped_count": unmapped_count,
             "migration_critical_count": migration_critical_count,
             "migration_critical_mapped": len([attr for attr in analyzed_attributes if attr["migration_critical"] and attr["status"] == "mapped"]),
             "avg_quality_score": avg_quality_score,

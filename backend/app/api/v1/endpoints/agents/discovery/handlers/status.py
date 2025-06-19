@@ -290,6 +290,7 @@ async def get_agent_status(
             
             # Get dynamic insights based on context
             agent_insights = await _get_dynamic_agent_insights(db, context)
+            data_classifications = await _get_data_classifications(db, context)
             
             return {
                 "status": "success",
@@ -303,7 +304,7 @@ async def get_agent_status(
                 "page_data": {
                     "agent_insights": agent_insights,
                     "pending_questions": [],
-                    "data_classifications": []
+                    "data_classifications": data_classifications
                 },
                 "available_clients": [],
                 "available_engagements": [],
@@ -328,6 +329,7 @@ async def get_agent_status(
             
             # Get dynamic insights even for invalid session
             agent_insights = await _get_dynamic_agent_insights(db, context)
+            data_classifications = await _get_data_classifications(db, context)
             
             return {
                 "status": "success",
@@ -341,7 +343,7 @@ async def get_agent_status(
                 "page_data": {
                     "agent_insights": agent_insights,
                     "pending_questions": [],
-                    "data_classifications": []
+                    "data_classifications": data_classifications
                 },
                 "available_clients": [],
                 "available_engagements": [],
@@ -357,6 +359,9 @@ async def get_agent_status(
         # ⚡ DYNAMIC: Get agent insights based on actual data
         agent_insights = await _get_dynamic_agent_insights(db, context)
         
+        # ⚡ DYNAMIC: Get data classifications based on actual data
+        data_classifications = await _get_data_classifications(db, context)
+        
         response = {
             "status": "success",
             "session_id": session_id,
@@ -364,7 +369,7 @@ async def get_agent_status(
             "page_data": {
                 "agent_insights": agent_insights,
                 "pending_questions": [],
-                "data_classifications": []
+                "data_classifications": data_classifications
             },
             "available_clients": [],
             "available_engagements": [],
@@ -563,3 +568,98 @@ async def get_agent_monitor(
             },
             "message": f"Failed to retrieve agent monitoring data: {str(e)}"
         }
+
+async def _get_data_classifications(db: AsyncSession, context: RequestContext):
+    """
+    Get data classifications based on actual imported data quality.
+    """
+    try:
+        if not context or not context.client_account_id or not context.engagement_id:
+            return []
+        
+        # Get the latest data import for analysis
+        from app.models.data_import.core import DataImport
+        import uuid
+        
+        query = select(DataImport).where(
+            DataImport.client_account_id == uuid.UUID(context.client_account_id),
+            DataImport.engagement_id == uuid.UUID(context.engagement_id)
+        ).order_by(DataImport.created_at.desc()).limit(1)
+        
+        result = await db.execute(query)
+        latest_import = result.scalar_one_or_none()
+        
+        if not latest_import:
+            return []
+        
+        # Analyze data quality and create classifications
+        classifications = []
+        
+        # Good Data Classification
+        if latest_import.processed_records > 0:
+            success_rate = (latest_import.processed_records / latest_import.total_records * 100) if latest_import.total_records > 0 else 0
+            
+            if success_rate >= 90:
+                classifications.append({
+                    "id": f"good-data-{datetime.utcnow().timestamp()}",
+                    "type": "good_data",
+                    "title": "High Quality Records",
+                    "count": latest_import.processed_records,
+                    "percentage": success_rate,
+                    "description": f"{latest_import.processed_records} records processed successfully with {success_rate:.0f}% quality",
+                    "confidence": "high",
+                    "actionable": False,
+                    "agent_name": "Data Quality Analyst"
+                })
+            elif success_rate >= 70:
+                classifications.append({
+                    "id": f"good-data-{datetime.utcnow().timestamp()}",
+                    "type": "good_data", 
+                    "title": "Acceptable Quality Records",
+                    "count": latest_import.processed_records,
+                    "percentage": success_rate,
+                    "description": f"{latest_import.processed_records} records with {success_rate:.0f}% quality - good for migration",
+                    "confidence": "medium",
+                    "actionable": False,
+                    "agent_name": "Data Quality Analyst"
+                })
+        
+        # Needs Clarification Classification
+        failed_records = latest_import.total_records - latest_import.processed_records if latest_import.total_records > latest_import.processed_records else 0
+        if failed_records > 0:
+            classifications.append({
+                "id": f"needs-clarification-{datetime.utcnow().timestamp()}",
+                "type": "needs_clarification",
+                "title": "Records Requiring Review",
+                "count": failed_records,
+                "percentage": (failed_records / latest_import.total_records * 100) if latest_import.total_records > 0 else 0,
+                "description": f"{failed_records} records need data quality review before migration",
+                "confidence": "high",
+                "actionable": True,
+                "agent_name": "Data Quality Analyst",
+                "recommendations": ["Review data format", "Check for missing fields", "Validate data completeness"]
+            })
+        
+        # Check for unusable data based on very low quality
+        if latest_import.total_records > 0:
+            quality_score = latest_import.processed_records / latest_import.total_records * 100
+            if quality_score < 50:
+                unusable_count = int(latest_import.total_records * 0.1)  # Estimate 10% unusable
+                classifications.append({
+                    "id": f"unusable-{datetime.utcnow().timestamp()}",
+                    "type": "unusable",
+                    "title": "Low Quality Data",
+                    "count": unusable_count,
+                    "percentage": 10,
+                    "description": f"Approximately {unusable_count} records may be unusable due to low data quality",
+                    "confidence": "medium",
+                    "actionable": True,
+                    "agent_name": "Data Quality Analyst",
+                    "recommendations": ["Consider data cleansing", "Re-export source data", "Manual data review"]
+                })
+        
+        return classifications
+        
+    except Exception as e:
+        logger.error(f"Error getting data classifications: {e}")
+        return []
