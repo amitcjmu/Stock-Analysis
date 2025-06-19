@@ -209,17 +209,19 @@ export const apiCall = async (
   // Create the request promise and store it
   const requestPromise = (async () => {
     try {
-      // Add headers
+      // Add headers - start with defaults, then merge user headers
       const headers: HeadersInit = {
         'X-Request-ID': requestId,
-        ...options.headers,
       };
       
-      // Only set Content-Type for non-FormData requests
+      // Only set default Content-Type for non-FormData requests
       // FormData uploads need the browser to set Content-Type with boundary
       if (!(options.body instanceof FormData)) {
         headers['Content-Type'] = 'application/json';
       }
+      
+      // Merge user headers last to allow overrides
+      Object.assign(headers, options.headers);
       
       // Add auth token if available
       const token = localStorage.getItem('auth_token');
