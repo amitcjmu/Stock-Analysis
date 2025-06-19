@@ -19,7 +19,7 @@ import Dependencies from "./pages/discovery/Dependencies";
 import DataCleansing from "./pages/discovery/DataCleansing";
 import AttributeMapping from "./pages/discovery/AttributeMapping";
 import TechDebtAnalysis from "./pages/discovery/TechDebtAnalysis";
-import DiscoveryDashboard from "./pages/discovery/DiscoveryDashboard";
+import DiscoveryDashboard from "./pages/discovery/EnhancedDiscoveryDashboard";
 import AssessIndex from "./pages/assess/Index";
 import Treatment from "./pages/assess/Treatment";
 import WavePlanning from "./pages/assess/WavePlanning";

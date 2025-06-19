@@ -12,6 +12,7 @@ from .quality_analysis import router as quality_router
 from .critical_attributes import router as critical_router
 from .learning_integration import router as learning_router
 from .asset_processing import router as processing_router
+from .data_validation import router as validation_router
 
 # Create main router that combines all modules
 router = APIRouter()
@@ -23,6 +24,7 @@ router.include_router(quality_router, tags=["Quality Analysis"])
 router.include_router(critical_router, tags=["Critical Attributes"])
 router.include_router(learning_router, tags=["AI Learning"])
 router.include_router(processing_router, tags=["Asset Processing"])
+router.include_router(validation_router, tags=["Data Validation"])
 
 __all__ = [
     "router",
@@ -31,5 +33,6 @@ __all__ = [
     "quality_router",
     "critical_router",
     "learning_router",
-    "processing_router"
+    "processing_router",
+    "validation_router"
 ] 

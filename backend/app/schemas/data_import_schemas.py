@@ -1,0 +1,71 @@
+"""
+Data Import Validation Schemas
+"""
+
+from pydantic import BaseModel, Field
+from typing import Dict, List, Any, Optional, Literal
+from datetime import datetime
+
+class ValidationAgentResult(BaseModel):
+    """Result from a single validation agent"""
+    agent_id: str
+    agent_name: str
+    validation: Literal['passed', 'failed', 'warning']
+    confidence: float = Field(ge=0.0, le=1.0)
+    message: str
+    details: List[str] = []
+    processing_time_seconds: Optional[float] = None
+
+class SecurityAnalysisResult(BaseModel):
+    """Security analysis specific results"""
+    threat_level: Literal['low', 'medium', 'high', 'critical']
+    detected_threats: List[str] = []
+    security_score: float = Field(ge=0.0, le=1.0)
+    recommendations: List[str] = []
+
+class DataImportValidationRequest(BaseModel):
+    """Request for data import validation"""
+    category: Literal['cmdb', 'app-discovery', 'infrastructure', 'sensitive']
+    filename: str
+    file_size_mb: float
+    content_type: str
+    client_account_id: Optional[int] = None
+    engagement_id: Optional[int] = None
+
+class DataImportValidationResponse(BaseModel):
+    """Response from data import validation"""
+    success: bool
+    file_status: Literal['approved', 'rejected', 'approved_with_warnings']
+    validation_session_id: str
+    agent_results: List[ValidationAgentResult]
+    security_clearances: Dict[str, bool]
+    next_step: str
+    message: str
+    processing_time_seconds: Optional[float] = None
+
+class ValidationSession(BaseModel):
+    """Complete validation session data"""
+    file_id: str
+    filename: str
+    size_mb: float
+    content_type: str
+    category: str
+    uploaded_by: int
+    uploaded_at: datetime
+    status: Literal['validating', 'approved', 'rejected', 'approved_with_warnings', 'error']
+    agent_results: List[ValidationAgentResult] = []
+    security_analysis: Optional[SecurityAnalysisResult] = None
+    completion_time: Optional[datetime] = None
+
+class AgentConfiguration(BaseModel):
+    """Configuration for a validation agent"""
+    name: str
+    role: str
+    analysis_time_seconds: int
+    categories: Optional[List[str]] = None
+    max_file_size_mb: Optional[int] = None
+    supported_types: Optional[List[str]] = None
+    threat_patterns: Optional[List[str]] = None
+    pii_patterns: Optional[List[str]] = None
+    quality_thresholds: Optional[Dict[str, float]] = None
+    regulations: Optional[List[str]] = None 
