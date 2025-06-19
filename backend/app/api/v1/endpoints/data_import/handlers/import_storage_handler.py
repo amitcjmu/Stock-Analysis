@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import desc, select, and_
 import uuid
+import asyncio
 
 from app.core.database import get_db
 from app.core.context import get_current_context, RequestContext
@@ -174,7 +175,9 @@ async def get_latest_import(
     request: Request,
     db: AsyncSession = Depends(get_db)
 ):
-    """Get the latest import data for the current context."""
+    """⚡ OPTIMIZED: Get the latest import data for the current context with performance improvements."""
+    start_time = datetime.utcnow()
+    
     try:
         # Extract context from request headers
         from app.core.context import extract_context_from_request
@@ -182,56 +185,142 @@ async def get_latest_import(
         
         logger.info(f"🔍 Getting latest import for context: client={context.client_account_id}, engagement={context.engagement_id}")
         
-        # CRITICAL FIX: Filter by client and engagement context
+        # ⚡ FAST PATH: Missing context - return empty response quickly
         if not context.client_account_id or not context.engagement_id:
-            logger.warning(f"Missing context information: client={context.client_account_id}, engagement={context.engagement_id}")
+            logger.warning(f"⚡ Fast path: Missing context, returning empty response")
             return {
                 "success": False,
                 "message": "Missing client or engagement context",
                 "data": [],
-                "import_metadata": None
+                "import_metadata": None,
+                "performance": {
+                    "response_time_ms": (datetime.utcnow() - start_time).total_seconds() * 1000,
+                    "fast_path": True
+                }
             }
         
-        # Get latest import WITH PROPER CONTEXT FILTERING
-        latest_import_query = select(DataImport).where(
-            and_(
-                DataImport.client_account_id == uuid.UUID(context.client_account_id),
-                DataImport.engagement_id == uuid.UUID(context.engagement_id)
-            )
-        ).order_by(DataImport.created_at.desc()).limit(1)
+        # ⚡ OPTIMIZED: Execute database query with timeout
+        timeout_seconds = 5
+        latest_import = None
         
-        result = await db.execute(latest_import_query)
-        latest_import = result.scalar_one_or_none()
+        try:
+            async def _get_latest_import_with_timeout():
+                # ⚡ SIMPLIFIED: Single optimized query for latest import
+                latest_import_query = select(DataImport).where(
+                    and_(
+                        DataImport.client_account_id == uuid.UUID(context.client_account_id),
+                        DataImport.engagement_id == uuid.UUID(context.engagement_id)
+                    )
+                ).order_by(DataImport.created_at.desc()).limit(1)
+                
+                result = await db.execute(latest_import_query)
+                return result.scalar_one_or_none()
+            
+            # Execute with timeout to prevent hanging
+            latest_import = await asyncio.wait_for(_get_latest_import_with_timeout(), timeout=timeout_seconds)
+            
+        except asyncio.TimeoutError:
+            logger.warning(f"⚡ Database timeout after {timeout_seconds}s, returning timeout response")
+            return {
+                "success": False,
+                "message": "Database query timeout - please try again",
+                "data": [],
+                "import_metadata": None,
+                "performance": {
+                    "response_time_ms": (datetime.utcnow() - start_time).total_seconds() * 1000,
+                    "timeout": True
+                }
+            }
+        except Exception as db_error:
+            logger.error(f"⚡ Database error: {db_error}")
+            return {
+                "success": False,
+                "message": f"Database error: {str(db_error)}",
+                "data": [],
+                "import_metadata": None,
+                "performance": {
+                    "response_time_ms": (datetime.utcnow() - start_time).total_seconds() * 1000,
+                    "database_error": True
+                }
+            }
         
+        # ⚡ FAST PATH: No import found - return quickly
         if not latest_import:
-            logger.info(f"No import data found for context: client={context.client_account_id}, engagement={context.engagement_id}")
+            logger.info(f"⚡ Fast path: No import data found for context")
             return {
                 "success": False,
                 "message": "No import data found for this client and engagement",
                 "data": [],
-                "import_metadata": None
+                "import_metadata": None,
+                "performance": {
+                    "response_time_ms": (datetime.utcnow() - start_time).total_seconds() * 1000,
+                    "no_data": True
+                }
             }
         
-        logger.info(f"✅ Found context-filtered import: {latest_import.id} (filename: {latest_import.source_filename})")
+        logger.info(f"✅ Found context-filtered import: {latest_import.id}")
         
-        # Get raw records with proper async query - ALSO ADD CONTEXT FILTERING
-        raw_records_query = (
-            select(RawImportRecord)
-            .where(
-                and_(
-                    RawImportRecord.data_import_id == latest_import.id,
-                    # Additional safety: ensure raw records match context too
-                    RawImportRecord.client_account_id == uuid.UUID(context.client_account_id) if hasattr(RawImportRecord, 'client_account_id') else True,
-                    RawImportRecord.engagement_id == uuid.UUID(context.engagement_id) if hasattr(RawImportRecord, 'engagement_id') else True
+        # ⚡ OPTIMIZED: Limit raw records retrieval for performance
+        max_records = 1000  # Limit to first 1000 records for UI performance
+        
+        try:
+            async def _get_raw_records_with_timeout():
+                # ⚡ SIMPLIFIED: Optimized query with limit
+                raw_records_query = (
+                    select(RawImportRecord)
+                    .where(RawImportRecord.data_import_id == latest_import.id)
+                    .order_by(RawImportRecord.row_number)
+                    .limit(max_records)
                 )
-            )
-            .order_by(RawImportRecord.row_number)
-        )
+                
+                result = await db.execute(raw_records_query)
+                return result.scalars().all()
+            
+            # Execute with timeout
+            raw_records = await asyncio.wait_for(_get_raw_records_with_timeout(), timeout=timeout_seconds)
+            
+        except asyncio.TimeoutError:
+            logger.warning(f"⚡ Raw records query timeout, returning metadata only")
+            return {
+                "success": True,
+                "data": [],
+                "import_metadata": {
+                    "filename": latest_import.source_filename or "Unknown",
+                    "import_type": latest_import.import_type,
+                    "imported_at": latest_import.created_at.isoformat() if latest_import.created_at else None,
+                    "total_records": latest_import.total_records or 0,
+                    "import_id": str(latest_import.id),
+                    "client_account_id": str(latest_import.client_account_id),
+                    "engagement_id": str(latest_import.engagement_id),
+                    "timeout_notice": "Record data timed out, showing metadata only"
+                },
+                "performance": {
+                    "response_time_ms": (datetime.utcnow() - start_time).total_seconds() * 1000,
+                    "records_timeout": True
+                }
+            }
+        except Exception as records_error:
+            logger.error(f"⚡ Raw records error: {records_error}")
+            return {
+                "success": True,
+                "data": [],
+                "import_metadata": {
+                    "filename": latest_import.source_filename or "Unknown",
+                    "import_type": latest_import.import_type,
+                    "imported_at": latest_import.created_at.isoformat() if latest_import.created_at else None,
+                    "total_records": latest_import.total_records or 0,
+                    "import_id": str(latest_import.id),
+                    "client_account_id": str(latest_import.client_account_id),
+                    "engagement_id": str(latest_import.engagement_id),
+                    "error_notice": f"Record retrieval error: {str(records_error)}"
+                },
+                "performance": {
+                    "response_time_ms": (datetime.utcnow() - start_time).total_seconds() * 1000,
+                    "records_error": True
+                }
+            }
         
-        result = await db.execute(raw_records_query)
-        raw_records = result.scalars().all()
-        
-        # Transform to response format
+        # ⚡ OPTIMIZED: Transform response data efficiently
         response_data = []
         for record in raw_records:
             response_data.append(record.raw_data)
@@ -241,28 +330,39 @@ async def get_latest_import(
             "import_type": latest_import.import_type,
             "imported_at": latest_import.created_at.isoformat() if latest_import.created_at else None,
             "total_records": len(response_data),
+            "actual_total_records": latest_import.total_records or 0,
             "import_id": str(latest_import.id),
             "client_account_id": str(latest_import.client_account_id),
-            "engagement_id": str(latest_import.engagement_id)
+            "engagement_id": str(latest_import.engagement_id),
+            "limited_records": len(response_data) >= max_records
         }
         
-        logger.info(f"✅ Retrieved {len(response_data)} records from context-filtered import")
+        response_time = (datetime.utcnow() - start_time).total_seconds() * 1000
+        logger.info(f"✅ Retrieved {len(response_data)} records in {response_time:.2f}ms")
         
         return {
             "success": True,
             "data": response_data,
-            "import_metadata": import_metadata
+            "import_metadata": import_metadata,
+            "performance": {
+                "response_time_ms": response_time,
+                "records_retrieved": len(response_data),
+                "optimized": True
+            }
         }
         
     except Exception as e:
-        logger.error(f"❌ Error getting latest import: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        response_time = (datetime.utcnow() - start_time).total_seconds() * 1000
+        logger.error(f"❌ Error getting latest import in {response_time:.2f}ms: {str(e)}")
         return {
             "success": False,
             "message": f"Failed to retrieve latest import: {str(e)}",
             "data": [],
-            "import_metadata": None
+            "import_metadata": None,
+            "performance": {
+                "response_time_ms": response_time,
+                "error": True
+            }
         }
 
 @router.get("/import/{import_session_id}")

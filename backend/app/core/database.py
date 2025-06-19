@@ -1,12 +1,14 @@
 """
 Database configuration and session management for PostgreSQL.
 Supports both local development and Railway.app deployment.
+⚡ OPTIMIZED: Enhanced with connection pooling and timeout management.
 """
 
 try:
     from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
     from sqlalchemy.ext.declarative import declarative_base
-    from sqlalchemy.pool import NullPool
+    from sqlalchemy.pool import NullPool, QueuePool
+    from sqlalchemy import event, text
     SQLALCHEMY_AVAILABLE = True
 except ImportError:
     SQLALCHEMY_AVAILABLE = False
@@ -15,14 +17,21 @@ except ImportError:
         pass
     class NullPool:
         pass
+    class QueuePool:
+        pass
     def declarative_base():
         return object
     def create_async_engine(*args, **kwargs):
         return None
     def async_sessionmaker(*args, **kwargs):
         return None
+    def text(*args, **kwargs):
+        return None
 
 import logging
+import asyncio
+from datetime import datetime, timedelta
+from typing import Optional
 
 from app.core.config import settings, get_database_url
 
@@ -30,17 +39,66 @@ from app.core.config import settings, get_database_url
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Create async engine
+# ⚡ PERFORMANCE OPTIMIZATIONS: Connection pool configuration
+OPTIMIZED_POOL_CONFIG = {
+    # Connection pool settings for production performance
+    "pool_size": 10,              # Base number of connections to maintain
+    "max_overflow": 20,           # Additional connections when needed
+    "pool_timeout": 10,           # Max seconds to wait for connection from pool
+    "pool_recycle": 300,          # Recycle connections every 5 minutes
+    "pool_pre_ping": True,        # Validate connections before use
+    
+    # Query timeout settings
+    "connect_args": {
+        "command_timeout": 10,    # Command timeout in seconds
+        "server_settings": {
+            "application_name": "migrate_ui_orchestrator",
+            "statement_timeout": "10s",  # SQL statement timeout
+            "idle_in_transaction_session_timeout": "30s"
+        }
+    }
+}
+
+# Create async engine with optimizations
 if SQLALCHEMY_AVAILABLE:
+    # Choose pool class based on environment
+    if settings.ENVIRONMENT == "development":
+        # Use NullPool for development to avoid connection issues
+        pool_class = NullPool
+        pool_config = {"poolclass": NullPool, "pool_pre_ping": True}
+    else:
+        # Use optimized connection pooling for production
+        pool_class = QueuePool
+        pool_config = {
+            "poolclass": QueuePool,
+            **OPTIMIZED_POOL_CONFIG
+        }
+    
+    logger.info(f"⚡ Creating database engine with {pool_class.__name__} pool")
+    
     engine = create_async_engine(
         get_database_url(),
         echo=settings.DB_ECHO_LOG,  # Use dedicated setting for SQL logging
-        poolclass=NullPool if settings.ENVIRONMENT == "development" else None,
-        pool_pre_ping=True,
-        pool_recycle=300,
+        **pool_config
     )
 
-    # Create async session factory
+    # ⚡ CONNECTION MONITORING: Add connection event listeners
+    @event.listens_for(engine.sync_engine, "connect")
+    def set_sqlite_pragma(dbapi_connection, connection_record):
+        """Configure connection-level settings for performance."""
+        logger.debug("Database connection established")
+    
+    @event.listens_for(engine.sync_engine, "checkout")
+    def receive_checkout(dbapi_connection, connection_record, connection_proxy):
+        """Log connection checkout for monitoring."""
+        logger.debug("Connection checked out from pool")
+    
+    @event.listens_for(engine.sync_engine, "checkin")
+    def receive_checkin(dbapi_connection, connection_record):
+        """Log connection checkin for monitoring."""
+        logger.debug("Connection returned to pool")
+
+    # Create async session factory with optimizations
     AsyncSessionLocal = async_sessionmaker(
         engine,
         class_=AsyncSession,
@@ -56,19 +114,109 @@ else:
 # Create declarative base
 Base = declarative_base()
 
+# ⚡ CONNECTION HEALTH TRACKING
+class ConnectionHealthTracker:
+    """Track database connection health and performance metrics."""
+    
+    def __init__(self):
+        self.connection_count = 0
+        self.failed_connections = 0
+        self.last_health_check = None
+        self.avg_response_time = 0.0
+        self.response_times = []
+    
+    def record_connection_attempt(self, success: bool, response_time: float):
+        """Record connection attempt and performance."""
+        self.connection_count += 1
+        if not success:
+            self.failed_connections += 1
+        
+        self.response_times.append(response_time)
+        # Keep only last 100 measurements
+        if len(self.response_times) > 100:
+            self.response_times = self.response_times[-100:]
+        
+        self.avg_response_time = sum(self.response_times) / len(self.response_times)
+    
+    def get_health_status(self) -> dict:
+        """Get current connection health status."""
+        success_rate = 1.0
+        if self.connection_count > 0:
+            success_rate = (self.connection_count - self.failed_connections) / self.connection_count
+        
+        return {
+            "total_connections": self.connection_count,
+            "failed_connections": self.failed_connections,
+            "success_rate": success_rate,
+            "avg_response_time_ms": self.avg_response_time * 1000,
+            "last_health_check": self.last_health_check.isoformat() if self.last_health_check else None,
+            "performance_status": "good" if success_rate > 0.95 and self.avg_response_time < 1.0 else "degraded"
+        }
+
+# Global connection health tracker
+connection_health = ConnectionHealthTracker()
 
 async def get_db() -> AsyncSession:
     """
-    Dependency to get database session.
+    ⚡ OPTIMIZED: Dependency to get database session with timeout and health monitoring.
     Use this in FastAPI route dependencies.
     """
-    async with AsyncSessionLocal() as session:
-        try:
+    start_time = datetime.utcnow()
+    session = None
+    
+    try:
+        # ⚡ TIMEOUT: Limit session creation time to prevent hanging
+        async with asyncio.timeout(10):  # 10 second timeout for session creation
+            session = AsyncSessionLocal()
+            
+            # ⚡ HEALTH CHECK: Quick ping to verify connection
+            await session.execute(text("SELECT 1"))
+            
+            response_time = (datetime.utcnow() - start_time).total_seconds()
+            connection_health.record_connection_attempt(True, response_time)
+            
             yield session
             await session.commit()
-        except Exception:
+    
+    except asyncio.TimeoutError:
+        logger.error("Database session creation timeout")
+        connection_health.record_connection_attempt(False, 10.0)
+        if session:
             await session.rollback()
-            raise
+            await session.close()
+        raise
+    except Exception as e:
+        logger.error(f"Database session error: {e}")
+        response_time = (datetime.utcnow() - start_time).total_seconds()
+        connection_health.record_connection_attempt(False, response_time)
+        if session:
+            await session.rollback()
+        raise
+    finally:
+        if session:
+            await session.close()
+
+
+async def get_db_with_timeout(timeout_seconds: int = 5) -> AsyncSession:
+    """
+    ⚡ FAST DB: Get database session with custom timeout for performance-critical operations.
+    """
+    start_time = datetime.utcnow()
+    
+    try:
+        async with asyncio.timeout(timeout_seconds):
+            session = AsyncSessionLocal()
+            await session.execute(text("SELECT 1"))  # Quick health check
+            
+            response_time = (datetime.utcnow() - start_time).total_seconds()
+            connection_health.record_connection_attempt(True, response_time)
+            
+            return session
+    except Exception as e:
+        response_time = (datetime.utcnow() - start_time).total_seconds()
+        connection_health.record_connection_attempt(False, response_time)
+        logger.error(f"Fast DB session failed in {response_time:.2f}s: {e}")
+        raise
 
 
 async def init_db():
@@ -87,30 +235,61 @@ async def init_db():
 
 async def close_db():
     """Close database connections."""
-    await engine.dispose()
-    logger.info("Database connections closed")
+    if engine:
+        await engine.dispose()
+        logger.info("Database connections closed")
 
 
 class DatabaseManager:
-    """Database manager for handling connections and transactions."""
+    """⚡ OPTIMIZED: Database manager with enhanced health monitoring and performance tracking."""
     
     def __init__(self):
         self.engine = engine
         self.session_factory = AsyncSessionLocal
+        self.health_tracker = connection_health
     
     async def health_check(self) -> bool:
-        """Check database connectivity."""
+        """⚡ OPTIMIZED: Check database connectivity with timeout."""
+        start_time = datetime.utcnow()
+        
         try:
-            async with self.session_factory() as session:
-                await session.execute("SELECT 1")
+            async with asyncio.timeout(5):  # 5 second timeout
+                async with self.session_factory() as session:
+                    await session.execute(text("SELECT 1"))
+                    
+                response_time = (datetime.utcnow() - start_time).total_seconds()
+                self.health_tracker.record_connection_attempt(True, response_time)
+                self.health_tracker.last_health_check = datetime.utcnow()
+                
+                logger.info(f"✅ Database health check passed in {response_time:.2f}s")
                 return True
+                
         except Exception as e:
-            logger.error(f"Database health check failed: {e}")
+            response_time = (datetime.utcnow() - start_time).total_seconds()
+            self.health_tracker.record_connection_attempt(False, response_time)
+            logger.error(f"❌ Database health check failed in {response_time:.2f}s: {e}")
             return False
     
     async def get_session(self) -> AsyncSession:
-        """Get a new database session."""
-        return self.session_factory()
+        """⚡ OPTIMIZED: Get a new database session with monitoring."""
+        return await get_db_with_timeout(timeout_seconds=5)
+    
+    def get_performance_metrics(self) -> dict:
+        """Get database performance metrics."""
+        pool_status = {}
+        if hasattr(self.engine.pool, 'size'):
+            pool_status = {
+                "pool_size": self.engine.pool.size(),
+                "checked_in_connections": self.engine.pool.checkedin(),
+                "checked_out_connections": self.engine.pool.checkedout(),
+                "invalid_connections": self.engine.pool.invalidated(),
+            }
+        
+        return {
+            "connection_health": self.health_tracker.get_health_status(),
+            "pool_status": pool_status,
+            "engine_type": type(self.engine).__name__ if self.engine else "None"
+        }
 
 
 # Global database manager instance
