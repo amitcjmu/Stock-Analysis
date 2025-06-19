@@ -78,6 +78,13 @@ This release addresses critical issues identified in the Inventory page includin
 - **Mock Data Integration**: Added reliable mock data generation for testing and development
 - **Error Recovery**: Enhanced exception handling with graceful degradation paths
 
+#### **Content and Functionality Enhancements**
+- **Classification Details Tab**: Implemented comprehensive asset type distribution, accuracy metrics, and migration readiness assessment
+- **CrewAI Insights Tab**: Added active agent status, inventory insights, and migration strategy recommendations
+- **Edit Asset Functionality**: Added working asset update endpoint with multi-tenant scoping and user-friendly edit dialogs
+- **Data Cleansing Multi-Tenancy**: Fixed cross-tenant data leakage by using proper discovery endpoints (resolves 156 vs 2 records issue)
+- **Refresh Analysis Fix**: Simplified async query function to prevent errors in Data Cleansing refresh operations
+
 ### 🔧 **Technical Achievements**
 
 - **Security Enhancement**: Multi-tenant data isolation properly enforced

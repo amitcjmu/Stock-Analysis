@@ -1930,6 +1930,64 @@ async def get_discovery_assets(
             }
         }
 
+@router.put("/assets/{asset_id}")
+async def update_asset(
+    asset_id: int,
+    asset_update: dict,
+    context: RequestContext = Depends(get_context_from_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Update an asset's information with proper multi-tenant scoping.
+    """
+    try:
+        from app.models.asset import Asset
+        
+        # Find the asset with proper multi-tenant scoping
+        result = await db.execute(
+            select(Asset).where(
+                Asset.id == asset_id,
+                Asset.client_account_id == context.client_account_id,
+                Asset.engagement_id == context.engagement_id
+            )
+        )
+        asset = result.scalar_one_or_none()
+        
+        if not asset:
+            return {"error": "Asset not found or access denied", "status": 404}
+        
+        # Update allowed fields
+        allowed_fields = [
+            'asset_name', 'asset_type', 'environment', 'department', 
+            'criticality', 'ip_address', 'operating_system', 'cpu_cores', 
+            'memory_gb', 'storage_gb', 'migration_readiness', 'confidence_score'
+        ]
+        
+        for field, value in asset_update.items():
+            if field in allowed_fields and hasattr(asset, field):
+                setattr(asset, field, value)
+        
+        await db.commit()
+        await db.refresh(asset)
+        
+        return {
+            "status": "success",
+            "message": "Asset updated successfully",
+            "asset": {
+                "id": asset.id,
+                "asset_name": asset.asset_name,
+                "asset_type": asset.asset_type,
+                "environment": asset.environment,
+                "criticality": asset.criticality,
+                "migration_readiness": asset.migration_readiness,
+                "confidence_score": asset.confidence_score
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error updating asset {asset_id}: {e}")
+        return {"error": f"Failed to update asset: {str(e)}", "status": 500}
+
 @router.post("/assets/trigger-inventory-building")
 async def trigger_inventory_building_crew(
     context: RequestContext = Depends(get_context_from_user),

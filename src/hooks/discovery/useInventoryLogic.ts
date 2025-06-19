@@ -360,43 +360,61 @@ export const useInventoryLogic = () => {
     }
   }, [selectedAssets, getAuthHeaders, toast, currentPage, filters, fetchAssets]);
 
-  const handleAssetClassificationUpdate = useCallback(async (assetId: string, newClassification: string) => {
+  const handleAssetClassificationUpdate = useCallback(async (assetId: string, currentClassification: string) => {
     try {
+      // Show a simple dialog to get the new asset type
+      const availableTypes = ['server', 'database', 'application', 'device', 'storage', 'network'];
+      const newAssetType = prompt(
+        `Update asset type for asset ${assetId}:\n\nAvailable types: ${availableTypes.join(', ')}\n\nCurrent: ${currentClassification}`,
+        currentClassification
+      );
+      
+      if (!newAssetType || newAssetType === currentClassification) {
+        return; // User cancelled or no change
+      }
+
       const contextHeaders = getAuthHeaders();
       
-      await apiCall(`/api/v1/discovery/assets/${assetId}/classify`, {
+      const response = await apiCall(`/api/v1/discovery/assets/${assetId}`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
           ...contextHeaders
         },
         body: JSON.stringify({
-          asset_type: newClassification,
-          source: 'user_correction'
+          asset_type: newAssetType,
+          confidence_score: 0.95 // High confidence for manual updates
         })
       });
 
-      // Update local state
-      setAssets(prev => prev.map(asset => 
-        asset.id === assetId 
-          ? { ...asset, asset_type: newClassification }
-          : asset
-      ));
+      if (response.status === 'success') {
+        // Update local state
+        setAssets(prev => prev.map(asset => 
+          asset.id === assetId 
+            ? { ...asset, asset_type: newAssetType, confidence_score: 0.95 }
+            : asset
+        ));
 
-      toast({
-        title: "✅ Classification Updated",
-        description: `Asset reclassified as ${newClassification}.`
-      });
+        toast({
+          title: "✅ Classification Updated",
+          description: `Asset reclassified as ${newAssetType}.`
+        });
+
+        // Refresh data to get updated summary
+        await fetchAssets(currentPage, filters);
+      } else {
+        throw new Error(response.error || 'Update failed');
+      }
 
     } catch (error) {
       console.error('❌ Error updating classification:', error);
       toast({
         title: "❌ Update Failed",
-        description: "Failed to update asset classification.",
+        description: `Failed to update asset classification: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive"
       });
     }
-  }, [getAuthHeaders, toast]);
+  }, [getAuthHeaders, toast, currentPage, filters, fetchAssets]);
 
   // Derived data
   const inventoryProgress = useMemo((): InventoryProgress => {

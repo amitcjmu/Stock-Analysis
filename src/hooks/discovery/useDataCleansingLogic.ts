@@ -174,56 +174,25 @@ export const useDataCleansingLogic = () => {
         description: "Starting data quality analysis and standardization review...",
       });
 
-      if (!flowState?.session_id && !cleansingData?.quality_issues?.length) {
-        // Initialize flow if needed
-        const latestImportResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.LATEST_IMPORT);
-        const rawData = latestImportResponse?.data || [];
-        
-        if (rawData.length === 0) {
-          toast({
-            title: "❌ No Data Available",
-            description: "Please complete field mapping first before running data cleansing analysis.",
-            variant: "destructive"
-          });
-          return;
-        }
-
-        await initializeFlow.mutateAsync({
-          client_account_id: client!.id,
-          engagement_id: engagement!.id,
-          user_id: user?.id || 'anonymous',
-          raw_data: rawData,
-          metadata: {
-            source: 'data_cleansing_manual_trigger',
-            previous_phase: 'field_mapping'
-          },
-          configuration: {
-            enable_field_mapping: false,
-            enable_data_cleansing: true,
-            enable_inventory_building: false,
-            enable_dependency_analysis: false,
-            enable_technical_debt_analysis: false,
-            confidence_threshold: 0.7
-          }
-        });
-      }
-
+      // Force refresh the data cleansing analysis
       await refetchCleansing();
+      
       toast({
-        title: "✅ Analysis Complete", 
-        description: "Data cleansing analysis has been completed.",
+        title: "✅ Data Cleansing Analysis Refreshed",
+        description: "Data quality analysis has been updated with latest information.",
       });
+
     } catch (error) {
-      console.error('Failed to trigger data cleansing analysis:', error);
+      console.error('❌ Failed to refresh data cleansing analysis:', error);
       toast({
-        title: "❌ Analysis Failed",
-        description: "Data cleansing analysis encountered an error. Please try again.",
+        title: "❌ Analysis Refresh Failed",
+        description: "Could not refresh data cleansing analysis. Please try again.",
         variant: "destructive"
       });
     } finally {
       setIsAnalyzing(false);
     }
-  }, [refetchCleansing, toast, flowState, cleansingData, initializeFlow, client, engagement, user]);
+  }, [refetchCleansing, toast]);
 
   const handleResolveIssue = useCallback(async (issueId: string, action: 'resolve' | 'ignore') => {
     const issue = qualityIssues.find(i => i.id === issueId);
