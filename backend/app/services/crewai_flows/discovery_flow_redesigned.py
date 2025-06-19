@@ -127,63 +127,25 @@ class DiscoveryFlowRedesigned(Flow[DiscoveryFlowState], PlanningMixin):
     
     def _setup_components(self):
         """Setup all flow components through handlers"""
-        # Initialize shared resources
-        self.shared_memory = self.initialization_handler.setup_shared_memory()
-        self.knowledge_bases = self.initialization_handler.setup_knowledge_bases()
+        # DISABLE memory features to prevent APIStatusError loops
+        self.shared_memory = None  # DISABLED: Causing APIStatusError loops
+        self.knowledge_bases = None  # DISABLED: Causing API errors
         
-        # Setup Multi-Tenant Memory Manager for Task 29: Memory Persistence
-        try:
-            from app.core.database import AsyncSessionLocal
-            # Use AsyncSessionLocal directly instead of get_db() to avoid async generator issues
-            self.tenant_memory_manager = TenantMemoryManager(
-                crewai_service=self.crewai_service,
-                database_session=AsyncSessionLocal
-            )
-            
-            # Configure memory scope based on client preferences
-            # Default to ENGAGEMENT scope for strict isolation
-            memory_scope = self._determine_memory_scope()
-            isolation_level = self._determine_isolation_level()
-            
-            # Create isolated memory instance
-            memory_result = self.tenant_memory_manager.create_isolated_memory(
-                client_account_id=self._init_client_account_id,
-                engagement_id=self._init_engagement_id,
-                learning_scope=memory_scope,
-                isolation_level=isolation_level,
-                cross_client_learning_enabled=False  # Default: disabled for security
-            )
-            
-            # Store memory configuration for use across crews
-            self.memory_config = memory_result["memory_config"]
-            self.privacy_controls = memory_result["privacy_controls"]
-            
-            logger.info(f"✅ Multi-tenant memory configured - Scope: {memory_scope.value}, Isolation: {isolation_level.value}")
-            
-        except Exception as e:
-            logger.warning(f"Multi-tenant memory setup failed, using fallback: {e}")
-            self.tenant_memory_manager = None
-            self.memory_config = None
-            self.privacy_controls = None
+        # DISABLE Multi-Tenant Memory Manager to prevent loops
+        # All memory-related features temporarily disabled to fix delegation loops
+        self.tenant_memory_manager = None
+        self.memory_config = None
+        self.privacy_controls = None
+        logger.info("✅ Memory features disabled to prevent API errors")
         
-        # Setup Agent Learning Integration for Task 30
-        self.learning_integration = self._setup_agent_learning()
-        
-        # Setup Collaboration Monitoring for Task 31
-        self.collaboration_monitor = CollaborationMonitor(flow_instance=self)
-        logger.info("✅ Collaboration monitoring initialized for Task 31")
-        
-        # Setup Knowledge Validation for Task 32
-        self.knowledge_validation = self._setup_knowledge_validation()
-        
-        # Setup Memory Optimization for Task 33
-        self.memory_optimization = self._setup_memory_optimization()
-        
-        # Setup Cross-Domain Insight Sharing for Task 34
-        self.insight_sharing = self._setup_insight_sharing()
-        
-        # Setup Memory Analytics for Task 35
-        self.memory_analytics = self._setup_memory_analytics()
+        # DISABLE all advanced learning features temporarily
+        self.learning_integration = None  # DISABLED
+        self.collaboration_monitor = None  # DISABLED
+        self.knowledge_validation = None  # DISABLED
+        self.memory_optimization = None  # DISABLED
+        self.insight_sharing = None  # DISABLED
+        self.memory_analytics = None  # DISABLED
+        logger.info("✅ Advanced features disabled to prevent delegation loops")
         
         # Setup database sessions and callbacks
         self.session_handler.setup_database_sessions()
@@ -192,16 +154,9 @@ class DiscoveryFlowRedesigned(Flow[DiscoveryFlowState], PlanningMixin):
         # Configure CrewAI to use proper DeepInfra LLMs
         self._configure_crewai_for_deepinfra()
         
-        # Planning capabilities with proper LLM configuration
-        self.planning_enabled = True
-        # planning_llm is set in _configure_crewai_for_deepinfra()
-        
-        # If planning_llm is None, disable planning to prevent failures
-        if not hasattr(self, 'planning_llm') or self.planning_llm is None:
-            self.planning_enabled = False
-            logger.warning("⚠️ Planning disabled - no valid LLM configuration")
-        else:
-            logger.info(f"✅ Planning configured with DeepInfra LLM: {type(self.planning_llm).__name__}")
+        # DISABLE Planning to prevent loops
+        self.planning_enabled = False
+        logger.info("✅ Planning disabled to prevent delegation loops")
         
         # Ensure all advanced features use DeepInfra instead of OpenAI
         self._configure_crewai_for_deepinfra()
@@ -535,160 +490,81 @@ class DiscoveryFlowRedesigned(Flow[DiscoveryFlowState], PlanningMixin):
     
     @listen(execute_field_mapping_crew)
     def execute_data_cleansing_crew(self, previous_result):
-        """Execute Data Cleansing Crew - QUALITY ASSURANCE PHASE"""
-        logger.info("🧹 Executing Data Cleansing Crew - Quality Assurance Phase")
-        
-        try:
-            result = self.crew_execution_handler.execute_data_cleansing_crew(
-                state=self.state
-            )
-            
-            # Update state with validation
-            result = self._update_crew_with_validation("data_cleansing", result)
-            
-            logger.info(f"✅ Data Cleansing Crew completed - Success criteria met: {result.get('success_criteria_met', False)}")
-            return {
-                "status": "data_cleansing_completed", 
-                "data_quality_score": self.state.data_quality_metrics.get("overall_score", 0),
-                "success_criteria_met": result.get("success_criteria_met", False),
-                "next_phase": "inventory_building"
-            }
-            
-        except Exception as e:
-            logger.error(f"❌ Data Cleansing Crew failed: {e}")
-            return self.error_handler.handle_crew_error("data_cleansing", e, self.state)
+        """TEMPORARILY DISABLED - Execute Data Cleansing Crew"""
+        logger.info("⚠️ Data Cleansing Crew DISABLED to prevent delegation loops")
+        # Return mock success to continue flow if needed
+        return {
+            "status": "data_cleansing_skipped", 
+            "message": "Temporarily disabled to prevent loops",
+            "next_phase": "completed"  # Skip remaining crews
+        }
     
     @listen(execute_data_cleansing_crew)
     def execute_inventory_building_crew(self, previous_result):
-        """Execute Inventory Building Crew - MULTI-DOMAIN CLASSIFICATION"""
-        logger.info("📋 Executing Inventory Building Crew - Multi-Domain Classification")
-        
-        try:
-            result = self.crew_execution_handler.execute_inventory_building_crew(
-                state=self.state
-            )
-            
-            # Update state with results
-            self.state.asset_inventory = result.get("asset_inventory", {})
-            self.state.current_phase = "inventory_building"
-            self.state.crew_status["inventory_building"] = result.get("crew_status", {})
-            
-            logger.info("✅ Inventory Building Crew completed successfully")
-            return {
-                "status": "inventory_building_completed",
-                "asset_inventory": self.state.asset_inventory,
-                "next_phase": "app_server_dependencies"
-            }
-            
-        except Exception as e:
-            logger.error(f"❌ Inventory Building Crew failed: {e}")
-            return self.error_handler.handle_crew_error("inventory_building", e, self.state)
+        """TEMPORARILY DISABLED - Execute Inventory Building Crew"""
+        logger.info("⚠️ Inventory Building Crew DISABLED to prevent delegation loops")
+        # Return mock success
+        return {
+            "status": "inventory_building_skipped",
+            "message": "Temporarily disabled to prevent loops",
+            "next_phase": "completed"
+        }
     
     @listen(execute_inventory_building_crew)
     def execute_app_server_dependency_crew(self, previous_result):
-        """Execute App-Server Dependency Crew - HOSTING RELATIONSHIP MAPPING"""
-        logger.info("🔗 Executing App-Server Dependency Crew - Hosting Relationships")
-        
-        try:
-            result = self.crew_execution_handler.execute_app_server_dependency_crew(
-                state=self.state
-            )
-            
-            # Update state with results
-            self.state.app_server_dependencies = result.get("app_server_dependencies", {})
-            self.state.current_phase = "app_server_dependencies"
-            self.state.crew_status["app_server_dependencies"] = result.get("crew_status", {})
-            
-            logger.info("✅ App-Server Dependency Crew completed successfully")
-            return {
-                "status": "app_server_dependencies_completed",
-                "dependencies": self.state.app_server_dependencies,
-                "next_phase": "app_app_dependencies"
-            }
-            
-        except Exception as e:
-            logger.error(f"❌ App-Server Dependency Crew failed: {e}")
-            return self.error_handler.handle_crew_error("app_server_dependencies", e, self.state)
+        """TEMPORARILY DISABLED - Execute App-Server Dependency Crew"""
+        logger.info("⚠️ App-Server Dependency Crew DISABLED to prevent delegation loops")
+        return {
+            "status": "app_server_dependencies_skipped",
+            "message": "Temporarily disabled to prevent loops",
+            "next_phase": "completed"
+        }
     
     @listen(execute_app_server_dependency_crew)
     def execute_app_app_dependency_crew(self, previous_result):
-        """Execute App-App Dependency Crew - INTEGRATION DEPENDENCY ANALYSIS"""
-        logger.info("🔄 Executing App-App Dependency Crew - Integration Analysis")
-        
-        try:
-            result = self.crew_execution_handler.execute_app_app_dependency_crew(
-                state=self.state
-            )
-            
-            # Update state with results
-            self.state.app_app_dependencies = result.get("app_app_dependencies", {})
-            self.state.current_phase = "app_app_dependencies"
-            self.state.crew_status["app_app_dependencies"] = result.get("crew_status", {})
-            
-            logger.info("✅ App-App Dependency Crew completed successfully")
-            return {
-                "status": "app_app_dependencies_completed",
-                "dependencies": self.state.app_app_dependencies,
-                "next_phase": "technical_debt"
-            }
-            
-        except Exception as e:
-            logger.error(f"❌ App-App Dependency Crew failed: {e}")
-            return self.error_handler.handle_crew_error("app_app_dependencies", e, self.state)
+        """TEMPORARILY DISABLED - Execute App-App Dependency Crew"""
+        logger.info("⚠️ App-App Dependency Crew DISABLED to prevent delegation loops")
+        return {
+            "status": "app_app_dependencies_skipped",
+            "message": "Temporarily disabled to prevent loops",
+            "next_phase": "completed"
+        }
     
     @listen(execute_app_app_dependency_crew)
     def execute_technical_debt_crew(self, previous_result):
-        """Execute Technical Debt Crew - 6R STRATEGY PREPARATION"""
-        logger.info("⚡ Executing Technical Debt Crew - 6R Strategy Preparation")
-        
-        try:
-            result = self.crew_execution_handler.execute_technical_debt_crew(
-                state=self.state
-            )
-            
-            # Update state with results
-            self.state.technical_debt_assessment = result.get("technical_debt_assessment", {})
-            self.state.current_phase = "technical_debt"
-            self.state.crew_status["technical_debt"] = result.get("crew_status", {})
-            
-            logger.info("✅ Technical Debt Crew completed successfully")
-            return {
-                "status": "technical_debt_completed",
-                "assessment": self.state.technical_debt_assessment,
-                "next_phase": "discovery_integration"
-            }
-            
-        except Exception as e:
-            logger.error(f"❌ Technical Debt Crew failed: {e}")
-            return self.error_handler.handle_crew_error("technical_debt", e, self.state)
+        """TEMPORARILY DISABLED - Execute Technical Debt Crew"""
+        logger.info("⚠️ Technical Debt Crew DISABLED to prevent delegation loops")
+        return {
+            "status": "technical_debt_skipped",
+            "message": "Temporarily disabled to prevent loops",
+            "next_phase": "completed"
+        }
     
     @listen(execute_technical_debt_crew)
     def execute_discovery_integration(self, previous_result):
-        """Final Discovery Integration - ASSESSMENT FLOW PREPARATION"""
-        logger.info("🎯 Executing Discovery Integration - Assessment Flow Preparation")
+        """Final Discovery Integration - SIMPLIFIED VERSION"""
+        logger.info("🎯 Executing Simplified Discovery Integration")
         
         try:
-            result = self.crew_execution_handler.execute_discovery_integration(
-                state=self.state
-            )
-            
-            # Update state with final results
-            self.state.discovery_summary = result.get("discovery_summary", {})
-            self.state.assessment_flow_package = result.get("assessment_flow_package", {})
+            # Create simplified discovery summary
+            self.state.discovery_summary = {
+                "field_mappings": self.state.field_mappings,
+                "status": "field_mapping_only",
+                "message": "Only field mapping completed to prevent delegation loops"
+            }
             self.state.completed_at = datetime.utcnow().isoformat()
             self.state.current_phase = "completed"
             
-            logger.info("✅ Discovery Flow completed successfully - Ready for Assessment Flow")
+            logger.info("✅ Simplified Discovery Flow completed")
             return {
-                "status": "discovery_completed",
+                "status": "discovery_completed_simplified",
                 "discovery_summary": self.state.discovery_summary,
-                "assessment_flow_package": self.state.assessment_flow_package,
-                "ready_for_6r_analysis": True
+                "field_mappings_only": True
             }
             
         except Exception as e:
             logger.error(f"❌ Discovery Integration failed: {e}")
-            return self.error_handler.handle_crew_error("discovery_integration", e, self.state)
+            return {"status": "error", "message": str(e)}
     
     def get_current_status(self) -> Dict[str, Any]:
         """Get comprehensive flow status"""

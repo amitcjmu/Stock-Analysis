@@ -99,12 +99,14 @@ class InventoryBuildingCrew:
             asset classification projects. You excel at coordinating multiple domain experts and 
             ensuring comprehensive asset inventory coverage across servers, applications, and devices.""",
             llm=self.llm,
-            memory=self.shared_memory,
-            knowledge=self.knowledge_base,
+            memory=None,  # DISABLED: Causing APIStatusError loops
+            knowledge=None,  # DISABLED: Causing API errors
             verbose=True,
             allow_delegation=True,
-            max_delegation=3,
-            planning=True if CREWAI_ADVANCED_AVAILABLE else False
+            max_delegation=1,  # REDUCED: From 3 to 1 to prevent loops
+            max_execution_time=300,  # ADD: 5 minute timeout
+            max_retry=1,  # REDUCED: Prevent retry loops
+            planning=False  # DISABLED: Causing API errors
         )
         
         # Server Classification Expert - infrastructure domain
@@ -115,10 +117,12 @@ class InventoryBuildingCrew:
             environments. You excel at identifying server types, operating systems, hardware specs, 
             and infrastructure relationships for migration planning.""",
             llm=self.llm,
-            memory=self.shared_memory,
-            knowledge=self.knowledge_base,
+            memory=None,  # DISABLED: Causing APIStatusError loops
+            knowledge=None,  # DISABLED: Causing API errors
             verbose=True,
-            collaboration=True if CREWAI_ADVANCED_AVAILABLE else False,
+            max_execution_time=180,  # ADD: 3 minute timeout
+            max_retry=1,  # ADD: Prevent retry loops
+            collaboration=False,  # DISABLED: Causing complexity
             tools=self._create_server_classification_tools()
         )
         
@@ -130,10 +134,12 @@ class InventoryBuildingCrew:
             applications. You excel at identifying application types, versions, business criticality, 
             and hosting relationships for migration strategy.""",
             llm=self.llm,
-            memory=self.shared_memory, 
-            knowledge=self.knowledge_base,
+            memory=None,  # DISABLED: Causing APIStatusError loops
+            knowledge=None,  # DISABLED: Causing API errors
             verbose=True,
-            collaboration=True if CREWAI_ADVANCED_AVAILABLE else False,
+            max_execution_time=180,  # ADD: 3 minute timeout
+            max_retry=1,  # ADD: Prevent retry loops
+            collaboration=False,  # DISABLED: Causing complexity
             tools=self._create_app_classification_tools()
         )
         
@@ -145,10 +151,12 @@ class InventoryBuildingCrew:
             topologies. You excel at identifying network devices, security appliances, and 
             infrastructure components that support migration planning.""",
             llm=self.llm,
-            memory=self.shared_memory,
-            knowledge=self.knowledge_base,
+            memory=None,  # DISABLED: Causing APIStatusError loops
+            knowledge=None,  # DISABLED: Causing API errors
             verbose=True,
-            collaboration=True if CREWAI_ADVANCED_AVAILABLE else False,
+            max_execution_time=180,  # ADD: 3 minute timeout
+            max_retry=1,  # ADD: Prevent retry loops
+            collaboration=False,  # DISABLED: Causing complexity
             tools=self._create_device_classification_tools()
         )
         
@@ -277,12 +285,12 @@ class InventoryBuildingCrew:
             # Ensure manager_llm uses our configured LLM and not gpt-4o-mini
             crew_config.update({
                 "manager_llm": self.llm,  # Critical: Use our DeepInfra LLM
-                "planning": True,
+                "planning": False,  # DISABLED: Causing loops
                 "planning_llm": self.llm,  # Force planning to use our LLM too
-                "memory": True,
-                "knowledge": self.knowledge_base,
-                "share_crew": True,
-                "collaboration": True
+                "memory": False,  # DISABLED: Causing APIStatusError loops
+                "knowledge": None,  # DISABLED: Causing API errors
+                "share_crew": False,  # DISABLED: Causing complexity
+                "collaboration": False  # DISABLED: Causing complexity
             })
             
             # Additional environment override to prevent any gpt-4o-mini fallback

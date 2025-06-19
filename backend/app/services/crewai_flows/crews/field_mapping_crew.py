@@ -97,11 +97,11 @@ class FieldMappingCrew:
             "llm": self.llm,
             "verbose": True,
             "allow_delegation": True,
-            "max_delegation": 2,
-            "planning": True if CREWAI_ADVANCED_AVAILABLE else False
+            "max_delegation": 1,
+            "max_execution_time": 300,
+            "max_retry": 2,
+            "planning": False
         }
-        if self.shared_memory:
-            manager_config["memory"] = self.shared_memory
         if self.knowledge_base:
             manager_config["knowledge"] = self.knowledge_base
         
@@ -116,11 +116,14 @@ class FieldMappingCrew:
             context, naming patterns, and data samples.""",
             "llm": self.llm,
             "verbose": True,
-            "collaboration": True if CREWAI_ADVANCED_AVAILABLE else False,
+            "max_execution_time": 180,  # ADD: 3 minute timeout per agent
+            "max_retry": 1,  # ADD: Prevent retry loops
+            "collaboration": False,  # DISABLED: Causing complexity
             "tools": self._create_schema_analysis_tools()
         }
-        if self.shared_memory:
-            analyst_config["memory"] = self.shared_memory
+        # DISABLE MEMORY: Causing APIStatusError loops
+        # if self.shared_memory:
+        #     analyst_config["memory"] = self.shared_memory
         if self.knowledge_base:
             analyst_config["knowledge"] = self.knowledge_base
         
@@ -135,11 +138,14 @@ class FieldMappingCrew:
             confidence scores for field relationships.""",
             "llm": self.llm,
             "verbose": True,
-            "collaboration": True if CREWAI_ADVANCED_AVAILABLE else False,
+            "max_execution_time": 180,  # ADD: 3 minute timeout per agent
+            "max_retry": 1,  # ADD: Prevent retry loops
+            "collaboration": False,  # DISABLED: Causing complexity
             "tools": self._create_mapping_confidence_tools()
         }
-        if self.shared_memory:
-            specialist_config["memory"] = self.shared_memory
+        # DISABLE MEMORY: Causing APIStatusError loops
+        # if self.shared_memory:
+        #     specialist_config["memory"] = self.shared_memory
         if self.knowledge_base:
             specialist_config["knowledge"] = self.knowledge_base
         
@@ -244,13 +250,14 @@ class FieldMappingCrew:
             # CRITICAL: Ensure manager_llm uses our configured LLM and not gpt-4o-mini
             advanced_config = {
                 "manager_llm": self.llm,  # Use our DeepInfra LLM for manager
-                "planning": True,
+                "planning": False,  # DISABLED: Causing loops
                 "planning_llm": self.llm,  # Force planning to use our LLM too
-                "memory": True,
-                "share_crew": True
+                "memory": False,  # DISABLED: Causing APIStatusError loops
+                "share_crew": False  # DISABLED: Causing complexity
             }
-            if self.knowledge_base:
-                advanced_config["knowledge"] = self.knowledge_base
+            # DISABLE KNOWLEDGE: Can cause API errors
+            # if self.knowledge_base:
+            #     advanced_config["knowledge"] = self.knowledge_base
             crew_config.update(advanced_config)
             
             # CRITICAL: Set environment override to prevent gpt-4o-mini fallback

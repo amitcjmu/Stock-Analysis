@@ -99,12 +99,14 @@ class TechnicalDebtCrew:
             and cloud migration strategies. You excel at coordinating complex migration assessments and 
             ensuring comprehensive 6R strategy preparation across diverse technology portfolios.""",
             llm=self.llm,
-            memory=self.shared_memory,
-            knowledge=self.knowledge_base,
+            memory=None,  # DISABLED: Causing APIStatusError loops
+            knowledge=None,  # DISABLED: Causing API errors
             verbose=True,
             allow_delegation=True,
-            max_delegation=3,
-            planning=True if CREWAI_ADVANCED_AVAILABLE else False
+            max_delegation=1,  # REDUCED: From 3 to 1 to prevent loops
+            max_execution_time=300,  # ADD: 5 minute timeout
+            max_retry=1,  # REDUCED: Prevent retry loops
+            planning=False  # DISABLED: Causing API errors
         )
         
         # Legacy Systems Analyst - specialist agent
@@ -286,12 +288,12 @@ class TechnicalDebtCrew:
             # Ensure manager_llm uses our configured LLM and not gpt-4o-mini
             crew_config.update({
                 "manager_llm": self.llm,  # Critical: Use our DeepInfra LLM
-                "planning": True,
+                "planning": False,
                 "planning_llm": self.llm,  # Force planning to use our LLM too
-                "memory": True,
-                "knowledge": self.knowledge_base,
-                "share_crew": True,
-                "collaboration": True
+                "memory": False,
+                "knowledge": None,
+                "share_crew": False,  # DISABLED: Causing complexity
+                "collaboration": False  # DISABLED: Causing complexity
             })
             
             # Additional environment override to prevent any gpt-4o-mini fallback
