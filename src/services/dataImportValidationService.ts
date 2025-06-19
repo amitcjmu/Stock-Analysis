@@ -47,7 +47,13 @@ export class DataImportValidationService {
   /**
    * Validate uploaded file using backend validation agents
    */
-  static async validateFile(file: File, category: string): Promise<ValidationResponse> {
+  static async validateFile(file: File, category: string, authContext?: {
+    client_account_id: string;
+    engagement_id: string;
+    user_id: string;
+    session_id: string;
+    headers: Record<string, string>;
+  }): Promise<ValidationResponse> {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('category', category);
@@ -56,6 +62,7 @@ export class DataImportValidationService {
       const response = await apiCall('/data-import/validate-upload', {
         method: 'POST',
         body: formData,
+        headers: authContext?.headers || {}
       }, true);
 
       return response;

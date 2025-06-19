@@ -189,14 +189,25 @@ const createValidationAgents = (category: string): DataImportAgent[] => {
 const DataImport: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, client, engagement, session, getAuthHeaders } = useAuth();
   const [uploadedFiles, setUploadedFiles] = useState<UploadFile[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [validationAgents, setValidationAgents] = useState<DataImportAgent[]>([]);
   const [isDragging, setIsDragging] = useState(false);
 
-  // File upload handling
+  // File upload handling with authentication context
   const handleFileUpload = useCallback(async (files: File[], categoryId: string) => {
     if (files.length === 0) return;
+
+    // Validate authentication context for agentic flow integration
+    if (!client || !engagement || !user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please ensure you have selected a client and engagement before uploading data.",
+        variant: "destructive"
+      });
+      return;
+    }
 
     const file = files[0];
     const category = uploadCategories.find(c => c.id === categoryId);
@@ -242,8 +253,15 @@ const DataImport: React.FC = () => {
       // Set all agents to analyzing state
       setValidationAgents(prev => prev.map(a => ({ ...a, status: 'analyzing' as const })));
 
-      // Call backend validation service
-      const validationResponse = await DataImportValidationService.validateFile(file, categoryId);
+      // Call backend validation service with authentication context
+      const validationResponse = await DataImportValidationService.validateFile(file, categoryId, {
+        // Include authentication context for agentic flow integration
+        client_account_id: client.id,
+        engagement_id: engagement.id,
+        user_id: user.id,
+        session_id: session?.id || `session-${Date.now()}`,
+        headers: getAuthHeaders()
+      });
 
       if (validationResponse.success) {
         // Update agents with real results from backend
@@ -330,19 +348,30 @@ const DataImport: React.FC = () => {
     }
   }, [toast]);
 
-  // Navigate to next step
+  // Navigate to Discovery Flow (Attribute Mapping) with authentication context
   const handleProceedToAttributeMapping = useCallback((fileId: string) => {
     const file = uploadedFiles.find(f => f.id === fileId);
     if (file?.status === 'approved' || file?.status === 'approved_with_warnings') {
+      // Navigate to Attribute Mapping - the entry point for Discovery Flow
       navigate('/discovery/attribute-mapping', {
         state: {
           imported_file: file,
           validation_agents: validationAgents,
-          from_data_import: true
+          from_data_import: true,
+          // Include authentication context for agentic flow
+          client_account_id: client?.id,
+          engagement_id: engagement?.id,
+          user_id: user?.id,
+          session_id: session?.id || `session-${Date.now()}`,
+          // Pass validation data for the Discovery Flow
+          validation_session_id: file.validation_session_id,
+          agent_results: file.agent_results,
+          data_category: selectedCategory,
+          filename: file.filename
         }
       });
     }
-  }, [uploadedFiles, validationAgents, navigate]);
+  }, [uploadedFiles, validationAgents, navigate, client, engagement, user, session, selectedCategory]);
 
   // Drag and drop handlers
   const handleDragOver = (e: React.DragEvent) => {
@@ -403,15 +432,48 @@ const DataImport: React.FC = () => {
           
           {/* Header */}
           <div className="mb-8">
-            <div className="flex items-center space-x-3 mb-4">
-              <Upload className="h-8 w-8 text-blue-600" />
-              <h1 className="text-3xl font-bold text-gray-900">Secure Data Import</h1>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <Upload className="h-8 w-8 text-blue-600" />
+                <h1 className="text-3xl font-bold text-gray-900">Secure Data Import</h1>
+              </div>
+              
+              {/* Authentication Context Status */}
+              <div className="flex items-center space-x-3">
+                <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${
+                  client && engagement ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                }`}>
+                  <Activity className="h-4 w-4" />
+                  <span>
+                    {client && engagement 
+                      ? `${client.name} • ${engagement.name}` 
+                      : 'Select Client & Engagement'
+                    }
+                  </span>
+                </div>
+                {user && (
+                  <div className="flex items-center space-x-2 px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800">
+                    <span>{user.full_name}</span>
+                  </div>
+                )}
+              </div>
             </div>
             <p className="mt-2 text-gray-600 max-w-3xl">
               Upload migration data files for AI-powered validation and security analysis. 
               Our specialized agents ensure data quality, security, and privacy compliance before processing.
             </p>
             
+            {/* Authentication Context Warning */}
+            {(!client || !engagement) && (
+              <Alert className="mt-4 border-yellow-200 bg-yellow-50">
+                <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                <AlertDescription className="text-yellow-800">
+                  <strong>Context Required:</strong> Please select a client and engagement using the context selector above 
+                  before uploading data. This ensures proper data isolation and agentic flow integration.
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* Security Notice */}
             <Alert className="mt-4 border-blue-200 bg-blue-50">
               <Shield className="h-5 w-5 text-blue-600" />
@@ -630,14 +692,23 @@ const DataImport: React.FC = () => {
 
                         {/* Action Buttons */}
                         {(file.status === 'approved' || file.status === 'approved_with_warnings') && (
-                          <div className="flex justify-end space-x-3 pt-4 border-t">
-                            <Button
-                              onClick={() => handleProceedToAttributeMapping(file.id)}
-                              className="bg-blue-600 hover:bg-blue-700"
-                            >
-                              Proceed to Field Mapping
-                              <ArrowRight className="h-4 w-4 ml-2" />
-                            </Button>
+                          <div className="pt-4 border-t">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-3 sm:space-y-0">
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">Ready for Discovery Flow</p>
+                                <p className="text-sm text-gray-600">
+                                  Data validation complete. Proceed to field mapping and AI-powered analysis.
+                                </p>
+                              </div>
+                              <Button
+                                onClick={() => handleProceedToAttributeMapping(file.id)}
+                                className="bg-green-600 hover:bg-green-700 flex items-center space-x-2"
+                              >
+                                <Brain className="h-4 w-4" />
+                                <span>Start Discovery Flow</span>
+                                <ArrowRight className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         )}
 
