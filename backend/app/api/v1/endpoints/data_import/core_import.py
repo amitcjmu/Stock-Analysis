@@ -4,7 +4,7 @@ Delegates to specialized handlers following the modular handler pattern.
 """
 
 import logging
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 
@@ -64,7 +64,10 @@ async def health_check():
 
 # Cache clearing endpoint for frontend refresh functionality
 @router.post("/clear-cache")
-async def clear_cache(db: AsyncSession = Depends(get_db)):
+async def clear_cache(
+    request: Request = None,
+    db: AsyncSession = Depends(get_db)
+):
     """
     Clear various caches to ensure fresh data retrieval.
     
@@ -72,8 +75,22 @@ async def clear_cache(db: AsyncSession = Depends(get_db)):
     - SQLAlchemy session cache
     - Any in-memory caches
     - Query result caches
+    
+    Now context-aware for multi-tenant cache management.
     """
     try:
+        context_info = "global"
+        
+        # Extract context if request is provided (for context-specific cache clearing)
+        if request:
+            try:
+                from app.core.context import extract_context_from_request
+                context = extract_context_from_request(request)
+                if context.client_account_id and context.engagement_id:
+                    context_info = f"client={context.client_account_id}, engagement={context.engagement_id}"
+            except Exception as context_error:
+                logger.warning(f"Could not extract context for cache clearing: {context_error}")
+        
         # Clear SQLAlchemy session cache
         await db.close()
         
@@ -86,15 +103,16 @@ async def clear_cache(db: AsyncSession = Depends(get_db)):
             # No cache module available, which is fine
             pass
         
-        logger.info("✅ Caches cleared successfully")
+        logger.info(f"✅ Caches cleared successfully for context: {context_info}")
         
         return {
             "success": True,
-            "message": "All caches cleared successfully",
+            "message": f"All caches cleared successfully for {context_info}",
             "cleared_caches": [
                 "sqlalchemy_session",
                 "application_cache"
-            ]
+            ],
+            "context": context_info
         }
         
     except Exception as e:

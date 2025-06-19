@@ -9,7 +9,8 @@ from datetime import datetime
 from typing import List, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import desc, select
+from sqlalchemy import desc, select, and_
+import uuid
 
 from app.core.database import get_db
 from app.core.context import get_current_context, RequestContext
@@ -181,23 +182,49 @@ async def get_latest_import(
         
         logger.info(f"🔍 Getting latest import for context: client={context.client_account_id}, engagement={context.engagement_id}")
         
-        # Get latest import with caching
-        latest_import_query = select(DataImport).order_by(DataImport.created_at.desc()).limit(1)
-        result = await db.execute(latest_import_query)
-        latest_import = result.scalar_one_or_none()
-        
-        if not latest_import:
+        # CRITICAL FIX: Filter by client and engagement context
+        if not context.client_account_id or not context.engagement_id:
+            logger.warning(f"Missing context information: client={context.client_account_id}, engagement={context.engagement_id}")
             return {
                 "success": False,
-                "message": "No import data found",
+                "message": "Missing client or engagement context",
                 "data": [],
                 "import_metadata": None
             }
         
-        # Get raw records with proper async query
+        # Get latest import WITH PROPER CONTEXT FILTERING
+        latest_import_query = select(DataImport).where(
+            and_(
+                DataImport.client_account_id == uuid.UUID(context.client_account_id),
+                DataImport.engagement_id == uuid.UUID(context.engagement_id)
+            )
+        ).order_by(DataImport.created_at.desc()).limit(1)
+        
+        result = await db.execute(latest_import_query)
+        latest_import = result.scalar_one_or_none()
+        
+        if not latest_import:
+            logger.info(f"No import data found for context: client={context.client_account_id}, engagement={context.engagement_id}")
+            return {
+                "success": False,
+                "message": "No import data found for this client and engagement",
+                "data": [],
+                "import_metadata": None
+            }
+        
+        logger.info(f"✅ Found context-filtered import: {latest_import.id} (filename: {latest_import.source_filename})")
+        
+        # Get raw records with proper async query - ALSO ADD CONTEXT FILTERING
         raw_records_query = (
             select(RawImportRecord)
-            .where(RawImportRecord.data_import_id == latest_import.id)
+            .where(
+                and_(
+                    RawImportRecord.data_import_id == latest_import.id,
+                    # Additional safety: ensure raw records match context too
+                    RawImportRecord.client_account_id == uuid.UUID(context.client_account_id) if hasattr(RawImportRecord, 'client_account_id') else True,
+                    RawImportRecord.engagement_id == uuid.UUID(context.engagement_id) if hasattr(RawImportRecord, 'engagement_id') else True
+                )
+            )
             .order_by(RawImportRecord.row_number)
         )
         
@@ -214,10 +241,12 @@ async def get_latest_import(
             "import_type": latest_import.import_type,
             "imported_at": latest_import.created_at.isoformat() if latest_import.created_at else None,
             "total_records": len(response_data),
-            "import_id": str(latest_import.id)
+            "import_id": str(latest_import.id),
+            "client_account_id": str(latest_import.client_account_id),
+            "engagement_id": str(latest_import.engagement_id)
         }
         
-        logger.info(f"✅ Retrieved {len(response_data)} records from latest import")
+        logger.info(f"✅ Retrieved {len(response_data)} records from context-filtered import")
         
         return {
             "success": True,
@@ -227,6 +256,8 @@ async def get_latest_import(
         
     except Exception as e:
         logger.error(f"❌ Error getting latest import: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return {
             "success": False,
             "message": f"Failed to retrieve latest import: {str(e)}",
