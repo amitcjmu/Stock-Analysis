@@ -33,7 +33,9 @@ interface DataCleansingMetrics {
   quality_issues_found: number;
   quality_issues_resolved: number;
   data_quality_score: number;
+  quality_score: number; // Add for compatibility
   completeness_percentage: number;
+  completion_percentage: number; // Add for compatibility
   consistency_score: number;
   standardization_score: number;
   assessment_ready: boolean;
@@ -165,7 +167,9 @@ export const useDataCleansingAnalysis = () => {
             quality_issues_found: 8,
             quality_issues_resolved: 3,
             data_quality_score: 78,
+            quality_score: 78, // Add for compatibility
             completeness_percentage: 85,
+            completion_percentage: 65, // Add for compatibility
             consistency_score: 72,
             standardization_score: 68,
             assessment_ready: false
