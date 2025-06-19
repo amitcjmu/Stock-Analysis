@@ -11,8 +11,6 @@ import {
 } from 'lucide-react';
 import { apiCall, API_CONFIG } from '../../../config/api';
 import { useToast } from '../../../hooks/use-toast';
-import { useClient } from '../../../contexts/ClientContext';
-import { useEngagement } from '../../../contexts/EngagementContext';
 import { useAuth } from '../../../contexts/AuthContext';
 
 interface ImportedDataTabProps {
@@ -46,9 +44,7 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { currentClient } = useClient();
-  const { currentEngagement } = useEngagement();
-  const { getAuthHeaders } = useAuth();
+  const { client, engagement, getAuthHeaders } = useAuth();
 
   // 🚀 React Query with context-aware caching
   const { 
@@ -58,28 +54,26 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
     isStale,
     refetch
   } = useQuery({
-    queryKey: ['imported-data', currentClient?.id, currentEngagement?.id],
+    queryKey: ['imported-data', client?.id, engagement?.id],
     queryFn: async () => {
       const headers = getAuthHeaders();
-      if (currentClient?.id) {
-        headers['X-Client-ID'] = currentClient.id;
+      if (client?.id) {
+        headers['X-Client-ID'] = client.id;
       }
-      if (currentEngagement?.id) {
-        headers['X-Engagement-ID'] = currentEngagement.id;
+      if (engagement?.id) {
+        headers['X-Engagement-ID'] = engagement.id;
       }
       
-      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.LATEST_IMPORT, {
+      return await apiCall('/api/v1/data-import/latest-import', {
         method: 'GET',
         headers
       });
-      return response;
     },
-    enabled: !!currentClient && !!currentEngagement, // Only run query when context is available
-    staleTime: 10 * 60 * 1000, // 10 minutes
-    gcTime: 30 * 60 * 1000, // 30 minutes
-    retry: 2,
+    enabled: !!client && !!engagement,
+    staleTime: 30000,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: true,
+    refetchOnReconnect: false
   });
 
   // 🔄 Refresh function that clears both React Query and SQLAlchemy caches
@@ -88,17 +82,17 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
     try {
       // 1. Clear React Query cache for imported data with context
       queryClient.removeQueries({ 
-        queryKey: ['imported-data', currentClient?.id, currentEngagement?.id] 
+        queryKey: ['imported-data', client?.id, engagement?.id] 
       });
       
       // 2. Call backend to clear SQLAlchemy cache with context headers
       try {
         const headers = getAuthHeaders();
-        if (currentClient?.id) {
-          headers['X-Client-ID'] = currentClient.id;
+        if (client?.id) {
+          headers['X-Client-ID'] = client.id;
         }
-        if (currentEngagement?.id) {
-          headers['X-Engagement-ID'] = currentEngagement.id;
+        if (engagement?.id) {
+          headers['X-Engagement-ID'] = engagement.id;
         }
         
         await apiCall('/api/v1/data-import/clear-cache', {
@@ -106,11 +100,10 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
           headers
         });
       } catch (cacheError) {
-        console.warn('Failed to clear backend cache:', cacheError);
-        // Continue with refresh even if cache clear fails
+        console.warn('Cache clear failed (non-critical):', cacheError);
       }
       
-      // 3. Force fresh data fetch
+      // 3. Trigger fresh data fetch
       await refetch();
       
       toast({
@@ -118,7 +111,7 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
         description: "Imported data has been refreshed successfully.",
       });
     } catch (error) {
-      console.error('Error refreshing data:', error);
+      console.error('Refresh failed:', error);
       toast({
         title: "Refresh Failed",
         description: "Failed to refresh imported data. Please try again.",
@@ -220,7 +213,7 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
     URL.revokeObjectURL(url);
   };
 
-  if (!currentClient || !currentEngagement) {
+  if (!client || !engagement) {
     return (
       <div className={`bg-white rounded-lg border shadow-sm p-6 ${className}`}>
         <div className="flex items-center justify-center py-8">
@@ -236,7 +229,7 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
       <div className={`bg-white rounded-lg border shadow-sm p-6 ${className}`}>
         <div className="flex items-center justify-center py-8">
           <Database className="w-6 h-6 animate-pulse text-blue-500 mr-2" />
-          <span className="text-gray-600">Loading imported data for {currentEngagement.name}...</span>
+          <span className="text-gray-600">Loading imported data for {engagement?.name}...</span>
         </div>
       </div>
     );

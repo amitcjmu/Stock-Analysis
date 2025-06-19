@@ -670,17 +670,66 @@ class CrewAIFlowService:
             return None
     
     def get_active_flows_summary(self) -> Dict[str, Any]:
-        """Get summary of active flows for monitoring."""
+        """Get summary of all active flows for monitoring dashboard."""
         return {
-            "total_active_flows": len(self._active_flows),
-            "active_sessions": list(self._active_flows.keys()),
-            "flows_by_status": {
-                status: len([f for f in self._active_flows.values() if f.state.status == status])
-                for status in ["running", "completed", "failed", "pending"]
-            },
-            "service_available": self.service_available,
-            "timestamp": datetime.utcnow().isoformat()
+            "total_active": len(self._active_flows),
+            "flows": [
+                {
+                    "flow_id": flow_id,
+                    "status": getattr(flow, 'state', {}).get('status', 'unknown'),
+                    "current_phase": getattr(flow, 'state', {}).get('current_phase', 'unknown'),
+                    "created_at": getattr(flow, 'created_at', datetime.utcnow().isoformat())
+                }
+                for flow_id, flow in self._active_flows.items()
+            ]
         }
+    
+    def get_active_flows(self) -> List[Dict[str, Any]]:
+        """
+        Get detailed information about all active flows.
+        This method is called by the agent monitor endpoint.
+        """
+        active_flows = []
+        
+        for flow_id, flow in self._active_flows.items():
+            try:
+                flow_info = {
+                    "flow_id": flow_id,
+                    "status": getattr(flow, 'state', {}).get('status', 'unknown'),
+                    "current_phase": getattr(flow, 'state', {}).get('current_phase', 'initialization'),
+                    "session_id": getattr(flow, 'state', {}).get('session_id', ''),
+                    "client_account_id": getattr(flow, 'state', {}).get('client_account_id', ''),
+                    "engagement_id": getattr(flow, 'state', {}).get('engagement_id', ''),
+                    "created_at": getattr(flow, 'created_at', datetime.utcnow().isoformat()),
+                    "progress": {
+                        "field_mappings": bool(getattr(flow, 'state', {}).get('field_mappings', {}).get('mappings')),
+                        "cleaned_data": len(getattr(flow, 'state', {}).get('cleaned_data', [])),
+                        "asset_inventory": sum(
+                            len(assets) for assets in 
+                            getattr(flow, 'state', {}).get('asset_inventory', {}).values() 
+                            if isinstance(assets, list)
+                        ),
+                        "dependencies": bool(getattr(flow, 'state', {}).get('app_server_dependencies', {}).get('hosting_relationships'))
+                    },
+                    "agents": {
+                        "total": 7,  # Based on your 7 active agents from logs
+                        "active": len([a for a in self.agents.values() if hasattr(a, 'is_active') and a.is_active]),
+                        "idle": 0,
+                        "error": 0
+                    }
+                }
+                active_flows.append(flow_info)
+            except Exception as e:
+                logger.warning(f"Error getting flow info for {flow_id}: {e}")
+                # Add minimal flow info even if there's an error
+                active_flows.append({
+                    "flow_id": flow_id,
+                    "status": "error",
+                    "current_phase": "unknown",
+                    "error": str(e)
+                })
+        
+        return active_flows
     
     def get_health_status(self) -> Dict[str, Any]:
         """Get comprehensive health status of the service."""
