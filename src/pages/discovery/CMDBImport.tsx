@@ -395,8 +395,8 @@ const DataImport: React.FC = () => {
     }
   }, [toast, client, engagement, user, session, getAuthHeaders]);
 
-  // Navigate to Discovery Flow (Attribute Mapping) with authentication context
-  const handleProceedToAttributeMapping = useCallback((fileId: string) => {
+  // Navigate to attribute mapping with file ID and basic info only
+  const handleProceedToMapping = useCallback((fileId: string) => {
     const file = uploadedFiles.find(f => f.id === fileId);
     if (file?.status === 'approved' || file?.status === 'approved_with_warnings') {
       // For admin users, use demo context if needed
@@ -405,25 +405,38 @@ const DataImport: React.FC = () => {
       const effectiveEngagement = engagement || (isAdmin ? { id: 'demo-engagement', name: 'Demo Engagement' } : null);
       
       // Navigate to Attribute Mapping - the entry point for Discovery Flow
+      // Only pass serializable data to avoid React Router cloning errors
       navigate('/discovery/attribute-mapping', {
         state: {
-          imported_file: file,
-          validation_agents: validationAgents,
-          from_data_import: true,
-          // Include authentication context for agentic flow
+          // Basic file info (serializable)
+          file_id: file.id,
+          filename: file.filename,
+          validation_session_id: file.validation_session_id,
+          data_category: selectedCategory,
+          
+          // Authentication context (serializable)
           client_account_id: effectiveClient?.id,
           engagement_id: effectiveEngagement?.id,
           user_id: user?.id,
           session_id: session?.id || `session-${Date.now()}`,
-          // Pass validation data for the Discovery Flow
-          validation_session_id: file.validation_session_id,
-          agent_results: file.agent_results,
-          data_category: selectedCategory,
-          filename: file.filename
+          
+          // Upload metadata (serializable)
+          upload_timestamp: new Date().toISOString(),
+          from_data_import: true,
+          
+          // Agent validation summary (basic info only)
+          validation_status: file.status,
+          security_clearance: file.security_clearance,
+          privacy_clearance: file.privacy_clearance,
+          format_validation: file.format_validation,
+          
+          // Discovery Flow trigger flag
+          trigger_discovery_flow: true,
+          requires_field_mapping: true
         }
       });
     }
-  }, [uploadedFiles, validationAgents, navigate, client, engagement, user, session, selectedCategory]);
+  }, [uploadedFiles, navigate, client, engagement, user, session, selectedCategory]);
 
   // Drag and drop handlers
   const handleDragOver = (e: React.DragEvent) => {
@@ -770,7 +783,7 @@ const DataImport: React.FC = () => {
                                 </p>
                               </div>
                               <Button
-                                onClick={() => handleProceedToAttributeMapping(file.id)}
+                                onClick={() => handleProceedToMapping(file.id)}
                                 className="bg-green-600 hover:bg-green-700 flex items-center space-x-2"
                               >
                                 <Brain className="h-4 w-4" />

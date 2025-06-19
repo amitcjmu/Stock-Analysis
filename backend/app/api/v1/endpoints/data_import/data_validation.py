@@ -106,6 +106,37 @@ async def validate_file_upload(
         file_content = await file.read()
         file_size_mb = len(file_content) / (1024 * 1024)
         
+        # Parse CSV data if it's a CSV file
+        raw_data = []
+        try:
+            if file.content_type in ['text/csv', 'application/vnd.ms-excel'] or file.filename.endswith('.csv'):
+                import csv
+                import io
+                
+                # Decode content and parse CSV
+                content_str = file_content.decode('utf-8', errors='ignore')
+                csv_reader = csv.DictReader(io.StringIO(content_str))
+                raw_data = [row for row in csv_reader]
+                
+                print(f"✅ Parsed {len(raw_data)} records from CSV file")
+            elif file.content_type == 'application/json' or file.filename.endswith('.json'):
+                import json
+                content_str = file_content.decode('utf-8', errors='ignore')
+                parsed_json = json.loads(content_str)
+                
+                # Handle different JSON structures
+                if isinstance(parsed_json, list):
+                    raw_data = parsed_json
+                elif isinstance(parsed_json, dict) and 'data' in parsed_json:
+                    raw_data = parsed_json['data']
+                else:
+                    raw_data = [parsed_json]
+                    
+                print(f"✅ Parsed {len(raw_data)} records from JSON file")
+        except Exception as parse_error:
+            print(f"⚠️ Could not parse file content: {parse_error}")
+            # Continue with validation even if parsing fails
+        
         # Create validation session
         validation_session = {
             'file_id': hashlib.md5(f"{file.filename}-{datetime.now().isoformat()}".encode()).hexdigest(),
@@ -115,7 +146,9 @@ async def validate_file_upload(
             'category': category,
             'uploaded_by': current_user.id,
             'uploaded_at': datetime.now().isoformat(),
-            'status': 'validating'
+            'status': 'validating',
+            'raw_data': raw_data,  # Store parsed data
+            'data_record_count': len(raw_data)
         }
         
         # Get agents for category

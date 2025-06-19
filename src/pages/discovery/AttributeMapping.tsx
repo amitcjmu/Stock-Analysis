@@ -197,52 +197,121 @@ const AttributeMapping: React.FC = () => {
     }));
   }, [agenticData]);
 
-  // Initialize Discovery Flow on component mount (if needed) - DISABLED to prevent constant requests
+  // Initialize Discovery Flow when data is uploaded from CMDBImport
   useEffect(() => {
-    const checkDataAvailability = async () => {
+    const handleUploadedData = async () => {
       if (!client || !engagement) return;
       
-      // Only log status, don't automatically initialize flow
+      const state = location.state as any;
+      
+      // Check if we're coming from data import with trigger flag
+      if (state?.trigger_discovery_flow && state?.file_id) {
+        console.log('🚀 Triggered from data import, initializing Discovery Flow with uploaded data');
+        
+        try {
+          setIsAnalyzing(true);
+          
+          toast({
+            title: "🚀 Initializing Discovery Flow",
+            description: "Setting up field mapping analysis with uploaded data...",
+          });
+
+          // Get uploaded file data from validation session
+          let rawData = [];
+          try {
+            // First try to get data from the validation session
+            const validationResponse = await apiCall(`/api/v1/data-import/validation-session/${state.validation_session_id}`);
+            if (validationResponse?.raw_data) {
+              rawData = validationResponse.raw_data;
+              console.log(`✅ Loaded ${rawData.length} records from validation session`);
+            }
+          } catch (error) {
+            console.warn('Could not load from validation session, trying latest import:', error);
+            
+            // Fallback to latest import
+            try {
+              const latestImportResponse = await apiCall('/api/v1/discovery/latest-import');
+              rawData = latestImportResponse?.data || [];
+              console.log(`✅ Loaded ${rawData.length} records from latest import`);
+            } catch (error2) {
+              console.error('Could not load data from any source:', error2);
+            }
+          }
+
+          if (rawData.length === 0) {
+            toast({
+              title: "❌ No Data Available",
+              description: "Could not load uploaded data. Please try re-uploading your file.",
+              variant: "destructive"
+            });
+            return;
+          }
+
+          // Initialize Discovery Flow with uploaded data
+          const initResponse = await initializeFlow.mutateAsync({
+            client_account_id: client!.id,
+            engagement_id: engagement!.id,
+            user_id: user?.id || 'anonymous',
+            raw_data: rawData,
+            metadata: {
+              source: 'cmdb_import_upload',
+              filename: state.filename || 'uploaded_data.csv',
+              validation_session_id: state.validation_session_id,
+              data_category: state.data_category,
+              upload_timestamp: state.upload_timestamp
+            },
+            configuration: {
+              enable_field_mapping: true,
+              enable_data_cleansing: true,
+              enable_inventory_building: true,
+              enable_dependency_analysis: true,
+              enable_technical_debt_analysis: true,
+              confidence_threshold: 0.8
+            }
+          });
+          
+          console.log('✅ Discovery Flow initialized:', initResponse);
+          
+          // Clear the navigation state to prevent re-triggering
+          if (window.history.replaceState) {
+            window.history.replaceState({}, '', location.pathname);
+          }
+
+          toast({
+            title: "✅ Discovery Flow Started",
+            description: `Field Mapping Crew is analyzing ${rawData.length} data records. Flow ID: ${initResponse.flow_fingerprint || initResponse.session_id}`,
+          });
+
+          // Trigger agentic data fetch after flow initialization
+          setTimeout(() => {
+            refetchAgentic();
+          }, 2000);
+
+        } catch (error) {
+          console.error('❌ Failed to initialize Discovery Flow:', error);
+          toast({
+            title: "❌ Flow Initialization Failed",
+            description: "Could not start Discovery Flow. Please try manually triggering analysis.",
+            variant: "destructive"
+          });
+        } finally {
+          setIsAnalyzing(false);
+        }
+        
+        return; // Exit early after handling upload trigger
+      }
+      
+      // Check if agentic data is already available (normal case)
       if (agenticData?.attributes?.length > 0) {
-        console.log('✅ Using agentic data, Discovery Flow initialization not needed');
+        console.log('✅ Agentic attribute data already available:', agenticData.attributes.length, 'attributes');
         return;
       }
       
       console.log('ℹ️ No agentic data available. User can manually trigger analysis if needed.');
-      
-      // Check if data is available but don't automatically trigger flow
-      try {
-        const state = location.state as any;
-        let rawData = [];
-        
-        if (state?.importedData && state.importedData.length > 0) {
-          rawData = state.importedData;
-          console.log(`ℹ️ Data available from navigation state: ${rawData.length} records`);
-        } else {
-          // Just check latest import without triggering flow
-          try {
-            const latestImportResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.LATEST_IMPORT);
-            rawData = latestImportResponse?.data || [];
-            if (rawData.length > 0) {
-              console.log(`ℹ️ Data available from latest import: ${rawData.length} records`);
-            }
-          } catch (error) {
-            console.warn('Could not check latest import:', error);
-          }
-        }
-        
-        if (rawData.length === 0) {
-          console.log('ℹ️ No data available for Discovery Flow. Import data first.');
-        }
-        
-      } catch (error) {
-        console.error('❌ Failed to check data availability:', error);
-      }
     };
     
-    // Only check data availability, don't auto-initialize
-    checkDataAvailability();
-  }, [client, engagement, agenticData]); // Removed dependencies that triggered re-runs
+    handleUploadedData();
+  }, [client, engagement, location.state, initializeFlow, toast, refetchAgentic, agenticData]);
 
   // Manual trigger for field mapping analysis
   const handleTriggerFieldMappingCrew = useCallback(async () => {
@@ -464,19 +533,6 @@ const AttributeMapping: React.FC = () => {
       });
     }
   }, [fieldMappings, user, client, engagement, toast, refetchAgentic, queryClient]);
-
-  // Navigate to next phase
-  const handleContinueToDataCleansing = useCallback(() => {
-    if (!flowState?.session_id) return;
-    
-    navigate('/discovery/data-cleansing', {
-      state: {
-        flow_session_id: flowState.session_id,
-        flow_state: flowState,
-        from_phase: 'field_mapping'
-      }
-    });
-  }, [flowState, navigate]);
 
   // Check if can continue to next phase
   const canContinueToDataCleansing = () => {
@@ -725,7 +781,22 @@ const AttributeMapping: React.FC = () => {
               {canContinueToDataCleansing() && (
                 <div className="mt-6 flex justify-end">
                   <Button
-                    onClick={handleContinueToDataCleansing}
+                    onClick={() => navigate('/discovery/data-cleansing', {
+                      replace: true,
+                      state: {
+                        flow_session_id: flowState?.session_id || `session-${Date.now()}`,
+                        from_phase: 'field_mapping',
+                        mapping_progress: {
+                          total: mappingProgress.total,
+                          mapped: mappingProgress.mapped,
+                          critical_mapped: mappingProgress.critical_mapped,
+                          accuracy: mappingProgress.accuracy
+                        },
+                        client_account_id: client?.id,
+                        engagement_id: engagement?.id,
+                        user_id: user?.id
+                      }
+                    })}
                     className="flex items-center space-x-2 bg-green-600 hover:bg-green-700"
                   >
                     <span>Continue to Data Cleansing</span>
