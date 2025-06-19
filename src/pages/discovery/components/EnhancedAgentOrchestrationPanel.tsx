@@ -433,7 +433,8 @@ const EnhancedAgentOrchestrationPanel: React.FC<EnhancedAgentOrchestrationPanelP
     };
 
     fetchEnhancedData();
-    const interval = setInterval(fetchEnhancedData, 5000);
+    // PERFORMANCE FIX: Reduce polling frequency from 5s to 30s to prevent page slowdowns
+    const interval = setInterval(fetchEnhancedData, 30000);
     return () => clearInterval(interval);
   }, [flowState?.flow_id]);
 

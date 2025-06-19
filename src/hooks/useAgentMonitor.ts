@@ -42,8 +42,9 @@ export interface AgentMonitorData {
   }>;
 }
 
-export const useAgentMonitor = () => {
+export const useAgentMonitor = (options: { enabled?: boolean; polling?: boolean } = {}) => {
   const { getAuthHeaders } = useAuth();
+  const { enabled = true, polling = false } = options;
 
   return useQuery<AgentMonitorData>({
     queryKey: ['agent-monitor'],
@@ -54,8 +55,13 @@ export const useAgentMonitor = () => {
       });
       return response;
     },
-    staleTime: 10 * 1000, // 10 seconds
-    refetchInterval: 10 * 1000, // Poll every 10 seconds
-    refetchOnWindowFocus: true
+    enabled,
+    staleTime: 60 * 1000, // 1 minute - much longer stale time
+    refetchInterval: polling ? 30 * 1000 : false, // Poll every 30 seconds only if explicitly enabled
+    refetchOnWindowFocus: false, // Disable focus refetching
+    refetchOnMount: false, // Only fetch on first mount
+    refetchOnReconnect: false, // Don't refetch on network reconnect
+    retry: 1, // Minimal retries
+    retryDelay: 3000 // 3 second delay between retries
   });
 }; 

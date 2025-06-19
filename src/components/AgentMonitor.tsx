@@ -59,7 +59,10 @@ interface AgentMonitorResponse {
 }
 
 const AgentMonitor = () => {
-  const { data, isLoading, isError, error } = useAgentMonitor();
+  const { data, isLoading, isError, error } = useAgentMonitor({ 
+    enabled: true, 
+    polling: false // Disable aggressive polling
+  });
 
   if (isLoading) {
     return (

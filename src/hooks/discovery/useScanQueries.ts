@@ -25,9 +25,9 @@ export const useScanProgress = () => {
     queryKey: SCAN_QUERY_KEYS.SCAN_PROGRESS,
     queryFn: fetchScanProgress,
     enabled: isAuthenticated,
-    refetchInterval: 5000, // Poll every 5 seconds
-    staleTime: 3000, // Data is considered fresh for 3 seconds
-    refetchOnWindowFocus: true,
+    refetchInterval: false, // Disable aggressive polling - use manual refresh
+    staleTime: 30000, // Data is considered fresh for 30 seconds
+    refetchOnWindowFocus: false, // Disable focus refetching
     onError: (error) => {
       logger.error('Error fetching scan progress:', error);
     },
@@ -42,9 +42,9 @@ export const useScanLogs = (options = {}) => {
     queryKey: SCAN_QUERY_KEYS.SCAN_LOGS,
     queryFn: fetchScanLogs,
     enabled: isAuthenticated && enabled,
-    refetchInterval: 10000, // Poll every 10 seconds
-    staleTime: 5000, // Data is considered fresh for 5 seconds
-    refetchOnWindowFocus: true,
+    refetchInterval: false, // Disable aggressive polling - use manual refresh  
+    staleTime: 30000, // Data is considered fresh for 30 seconds
+    refetchOnWindowFocus: false, // Disable focus refetching
     ...queryOptions,
     onError: (error) => {
       logger.error('Error fetching scan logs:', error);

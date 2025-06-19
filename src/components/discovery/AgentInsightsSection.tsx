@@ -70,7 +70,7 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
     let interval: NodeJS.Timeout | null = null;
     
     if (isProcessing) {
-      interval = setInterval(fetchInsights, 10000); // Poll every 10 seconds only when processing
+      interval = setInterval(fetchInsights, 30000); // Poll every 30 seconds only when processing
     }
     
     return () => {

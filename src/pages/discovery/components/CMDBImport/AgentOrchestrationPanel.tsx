@@ -421,7 +421,8 @@ const AgentOrchestrationPanel: React.FC<AgentOrchestrationPanelProps> = ({
     };
 
     fetchEnhancedData();
-    const interval = setInterval(fetchEnhancedData, 5000); // Update every 5 seconds
+    // PERFORMANCE FIX: Reduce polling frequency from 5s to 30s to prevent page slowdowns
+    const interval = setInterval(fetchEnhancedData, 30000); // Update every 30 seconds
     return () => clearInterval(interval);
   }, [flowState?.flow_id]);
 

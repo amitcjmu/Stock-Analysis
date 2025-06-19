@@ -107,7 +107,7 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
     let interval: NodeJS.Timeout | null = null;
     
     if (isProcessing) {
-      interval = setInterval(fetchQuestions, 5000); // Poll every 5 seconds only when processing
+      interval = setInterval(fetchQuestions, 20000); // Poll every 20 seconds only when processing
     }
     
     return () => {
