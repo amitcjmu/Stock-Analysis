@@ -562,7 +562,7 @@ async def get_agent_monitor(
         if crewai_service and context:
             try:
                 # Try to get real flow state information
-                flow_states = await crewai_service.get_active_flows(context)
+                flow_states = crewai_service.get_active_flows(context)
                 if flow_states:
                     # Update monitoring data with real information
                     monitoring_data["active_flows"] = len(flow_states)

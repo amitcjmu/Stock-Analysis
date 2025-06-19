@@ -50,7 +50,7 @@ class LLMConfigurationService:
         """
         model_name = "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
         return LLM(
-            model=f"deepinfra/{model_name}",
+            model=model_name,
             temperature=0.7,
             max_tokens=2048,
             top_p=0.9,
@@ -65,7 +65,7 @@ class LLMConfigurationService:
         """
         model_name = "thenlper/gte-large"
         return LLM(
-            model=f"deepinfra/{model_name}",
+            model=model_name,
             base_url=self.deepinfra_base_url,
             api_key=self.deepinfra_api_key
         )
@@ -77,7 +77,7 @@ class LLMConfigurationService:
         """
         model_name = "google/gemma-3-4b-it"
         return LLM(
-            model=f"deepinfra/{model_name}",
+            model=model_name,
             temperature=0.8,
             max_tokens=1024,
             top_p=0.95,
@@ -161,12 +161,12 @@ def configure_openai_environment_variables():
     
     # Use the USER SPECIFIED CrewAI model as the default OpenAI model
     crewai_model = "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
-    os.environ["OPENAI_MODEL_NAME"] = f"deepinfra/{crewai_model}"
+    os.environ["OPENAI_MODEL_NAME"] = crewai_model
     
     # CRITICAL: Override CrewAI's default model settings to prevent gpt-4o-mini usage
     # Set explicit environment variables that CrewAI uses for model selection
-    os.environ["DEFAULT_LLM_MODEL"] = f"deepinfra/{crewai_model}"
-    os.environ["CREWAI_LLM_MODEL"] = f"deepinfra/{crewai_model}"
+    os.environ["DEFAULT_LLM_MODEL"] = crewai_model
+    os.environ["CREWAI_LLM_MODEL"] = crewai_model
     
     # Force all OpenAI calls to use DeepInfra endpoint
     os.environ["OPENAI_BASE_URL"] = llm_config.deepinfra_base_url
@@ -174,7 +174,7 @@ def configure_openai_environment_variables():
     # Override LiteLLM configurations to use DeepInfra
     os.environ["LITELLM_API_KEY"] = llm_config.deepinfra_api_key
     os.environ["LITELLM_BASE_URL"] = llm_config.deepinfra_base_url
-    os.environ["LITELLM_MODEL"] = f"deepinfra/{crewai_model}"
+    os.environ["LITELLM_MODEL"] = crewai_model
     
     # Set model name without provider prefix for direct OpenAI compatibility
     os.environ["OPENAI_MODEL"] = crewai_model

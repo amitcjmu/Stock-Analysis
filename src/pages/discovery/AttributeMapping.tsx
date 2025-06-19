@@ -26,7 +26,6 @@ import DataClassificationDisplay from '../../components/discovery/DataClassifica
 import AgentInsightsSection from '../../components/discovery/AgentInsightsSection';
 import EnhancedAgentOrchestrationPanel from '../../components/discovery/EnhancedAgentOrchestrationPanel';
 import Sidebar from '../../components/Sidebar';
-import AgentMonitor from '../../components/AgentMonitor';
 
 // Types from Discovery Flow State
 interface DiscoveryFlowState {
@@ -710,9 +709,43 @@ const AttributeMapping: React.FC = () => {
               )}
             </div>
 
-            {/* Right Sidebar - Agent UI Monitor */}
+            {/* Right Sidebar - Agent UI Bridge */}
             <div className="xl:col-span-1 space-y-6">
-              <AgentMonitor />
+              {/* Agent Clarification Panel */}
+              <AgentClarificationPanel 
+                pageContext="attribute-mapping"
+                refreshTrigger={0}
+                onQuestionAnswered={(questionId, response) => {
+                  console.log('Attribute mapping question answered:', questionId, response);
+                  // Trigger field mapping re-analysis based on agent learning
+                  refetchAgentic();
+                }}
+              />
+
+              {/* Data Classification Display */}
+              <DataClassificationDisplay 
+                pageContext="attribute-mapping"
+                refreshTrigger={0}
+                onClassificationUpdate={(itemId, newClassification) => {
+                  console.log('Field mapping classification updated:', itemId, newClassification);
+                  // Update local field mapping data quality classification
+                  refetchAgentic();
+                }}
+              />
+
+              {/* Agent Insights Section */}
+              <AgentInsightsSection 
+                pageContext="attribute-mapping"
+                refreshTrigger={0}
+                onInsightAction={(insightId, action) => {
+                  console.log('Field mapping insight action:', insightId, action);
+                  // Apply agent insights for field mapping optimization
+                  if (action === 'apply_insight') {
+                    console.log('Applying agent field mapping insights');
+                    refetchAgentic();
+                  }
+                }}
+              />
             </div>
           </div>
         </div>

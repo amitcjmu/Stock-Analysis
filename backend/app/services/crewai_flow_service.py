@@ -684,10 +684,13 @@ class CrewAIFlowService:
             ]
         }
     
-    def get_active_flows(self) -> List[Dict[str, Any]]:
+    def get_active_flows(self, context: Optional[RequestContext] = None) -> List[Dict[str, Any]]:
         """
         Get detailed information about all active flows.
         This method is called by the agent monitor endpoint.
+        
+        Args:
+            context: Optional request context for filtering flows
         """
         active_flows = []
         
@@ -718,6 +721,17 @@ class CrewAIFlowService:
                         "error": 0
                     }
                 }
+                
+                # Filter by context if provided
+                if context:
+                    flow_client_id = flow_info.get('client_account_id', '')
+                    flow_engagement_id = flow_info.get('engagement_id', '')
+                    
+                    # Only include flows that match the current context
+                    if (context.client_account_id and flow_client_id != context.client_account_id) or \
+                       (context.engagement_id and flow_engagement_id != context.engagement_id):
+                        continue
+                
                 active_flows.append(flow_info)
             except Exception as e:
                 logger.warning(f"Error getting flow info for {flow_id}: {e}")
