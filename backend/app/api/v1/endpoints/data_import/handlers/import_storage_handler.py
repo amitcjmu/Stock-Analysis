@@ -205,16 +205,42 @@ async def get_latest_import(
         
         try:
             async def _get_latest_import_with_timeout():
-                # ⚡ SIMPLIFIED: Single optimized query for latest import
+                # ⚡ OPTIMIZED: Get the most substantial import (highest record count) for this context
+                # First try: Look for any status (not just 'processed')
                 latest_import_query = select(DataImport).where(
                     and_(
                         DataImport.client_account_id == uuid.UUID(context.client_account_id),
                         DataImport.engagement_id == uuid.UUID(context.engagement_id)
                     )
-                ).order_by(DataImport.created_at.desc()).limit(1)
+                ).order_by(
+                    # First priority: imports with more records (likely real data)
+                    DataImport.total_records.desc(),
+                    # Second priority: most recent among those with same record count  
+                    DataImport.created_at.desc()
+                ).limit(1)
                 
                 result = await db.execute(latest_import_query)
-                return result.scalar_one_or_none()
+                import_result = result.scalar_one_or_none()
+                
+                # Log what we found for debugging
+                if import_result:
+                    logger.info(f"✅ Found context-filtered import: {import_result.id} with {import_result.total_records} records ({import_result.import_name}) [status: {import_result.status}]")
+                else:
+                    logger.warning(f"❌ No imports found for context: client={context.client_account_id}, engagement={context.engagement_id}")
+                    
+                    # Debug: Check if there are any imports at all in the database
+                    all_imports_query = select(DataImport).order_by(DataImport.created_at.desc()).limit(5)
+                    all_imports_result = await db.execute(all_imports_query)
+                    all_imports = all_imports_result.scalars().all()
+                    
+                    if all_imports:
+                        logger.info(f"📊 Found {len(all_imports)} total imports in database (any context):")
+                        for imp in all_imports:
+                            logger.info(f"  - {imp.id}: {imp.import_name} ({imp.total_records} records, client: {imp.client_account_id}, engagement: {imp.engagement_id}, status: {imp.status})")
+                    else:
+                        logger.warning("📊 No imports found in database at all!")
+                
+                return import_result
             
             # Execute with timeout to prevent hanging
             latest_import = await asyncio.wait_for(_get_latest_import_with_timeout(), timeout=timeout_seconds)

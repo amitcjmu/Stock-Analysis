@@ -9,9 +9,9 @@ from datetime import datetime
 import asyncio
 from functools import lru_cache
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, and_
 
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
@@ -45,41 +45,134 @@ async def get_crewai_flow_service(db: AsyncSession = Depends(get_db)) -> CrewAIF
                 return None
         return MockCrewAIService()
 
-@lru_cache(maxsize=100)
-def _get_cached_agent_insights():
-    """Cached agent insights to avoid repeated computation."""
+async def _get_dynamic_agent_insights(db: AsyncSession, context: RequestContext):
+    """Get dynamic agent insights based on actual imported data."""
+    try:
+        if not context or not context.client_account_id or not context.engagement_id:
+            return _get_fallback_agent_insights()
+        
+        # Get latest import for this context
+        from app.models.data_import import DataImport
+        import uuid
+        
+        latest_import_query = select(DataImport).where(
+            and_(
+                DataImport.client_account_id == uuid.UUID(context.client_account_id),
+                DataImport.engagement_id == uuid.UUID(context.engagement_id)
+            )
+        ).order_by(
+            # Get import with most records (likely real data)
+            DataImport.total_records.desc(),
+            DataImport.created_at.desc()
+        ).limit(1)
+        
+        result = await db.execute(latest_import_query)
+        latest_import = result.scalar_one_or_none()
+        
+        if not latest_import:
+            return _get_fallback_agent_insights()
+        
+        # Get field mappings for this import
+        from app.models.data_import import ImportFieldMapping
+        
+        mappings_query = select(ImportFieldMapping).where(
+            ImportFieldMapping.data_import_id == latest_import.id
+        )
+        mappings_result = await db.execute(mappings_query)
+        mappings = mappings_result.scalars().all()
+        
+        # Generate dynamic insights based on actual data
+        insights = []
+        
+        # Field Mapping Analysis
+        if mappings:
+            mapped_fields = len([m for m in mappings if m.target_field])
+            total_fields = len(mappings)
+            mapping_percentage = (mapped_fields / total_fields * 100) if total_fields > 0 else 0
+            
+            insights.append({
+                "agent": "Field Mapping Expert",
+                "insight": f"{mapped_fields} of {total_fields} fields mapped ({mapping_percentage:.0f}% completion)",
+                "confidence": 0.9 if mapping_percentage > 80 else 0.7,
+                "priority": "high" if mapping_percentage < 50 else "medium",
+                "timestamp": datetime.utcnow().isoformat(),
+                "data_source": "actual_import_analysis"
+            })
+        
+        # Data Quality Analysis
+        quality_score = (latest_import.processed_records / latest_import.total_records * 100) if latest_import.total_records > 0 else 0
+        insights.append({
+            "agent": "Data Quality Analyst",
+            "insight": f"{latest_import.processed_records} of {latest_import.total_records} records processed successfully ({quality_score:.0f}% quality)",
+            "confidence": 0.95,
+            "priority": "high" if quality_score < 90 else "medium",
+            "timestamp": datetime.utcnow().isoformat(),
+            "data_source": "actual_import_quality"
+        })
+        
+        # Asset Classification Readiness
+        if latest_import.total_records > 0:
+            insights.append({
+                "agent": "Asset Classification Specialist", 
+                "insight": f"Ready to classify {latest_import.total_records} assets from '{latest_import.import_name}'",
+                "confidence": 0.85,
+                "priority": "medium",
+                "timestamp": datetime.utcnow().isoformat(),
+                "data_source": "import_readiness_analysis"
+            })
+        
+        # File Analysis Insight
+        if latest_import.source_filename:
+            insights.append({
+                "agent": "Data Source Intelligence",
+                "insight": f"Analyzed '{latest_import.source_filename}' - {latest_import.file_size_bytes/1024:.1f}KB data source",
+                "confidence": 0.88,
+                "priority": "low",
+                "timestamp": datetime.utcnow().isoformat(),
+                "data_source": "file_analysis"
+            })
+        
+        return insights if insights else _get_fallback_agent_insights()
+        
+    except Exception as e:
+        logger.error(f"Error generating dynamic agent insights: {e}")
+        return _get_fallback_agent_insights()
+
+def _get_fallback_agent_insights():
+    """Fallback agent insights when no data is available."""
     return [
         {
-            "agent": "Field Mapping Expert",
-            "insight": "18 total fields identified for mapping analysis",
-            "confidence": 0.94,
-            "priority": "high",
-            "timestamp": datetime.utcnow().isoformat()
+            "agent": "Discovery Coordinator",
+            "insight": "Waiting for data import to begin analysis",
+            "confidence": 0.6,
+            "priority": "low",
+            "timestamp": datetime.utcnow().isoformat(),
+            "data_source": "fallback_message"
         },
         {
-            "agent": "Data Quality Analyst", 
-            "insight": "Overall data quality score: 94%",
-            "confidence": 0.92,
-            "priority": "medium",
-            "timestamp": datetime.utcnow().isoformat()
-        },
-        {
-            "agent": "Asset Classification Specialist",
-            "insight": "Ready for inventory building phase",
-            "confidence": 0.88,
-            "priority": "medium",
-            "timestamp": datetime.utcnow().isoformat()
+            "agent": "System Status",
+            "insight": "All discovery agents ready and standing by",
+            "confidence": 0.9,
+            "priority": "medium", 
+            "timestamp": datetime.utcnow().isoformat(),
+            "data_source": "system_status"
         }
     ]
 
+@lru_cache(maxsize=100)
+def _get_cached_agent_insights():
+    """Cached agent insights to avoid repeated computation."""
+    # This is now deprecated - use _get_dynamic_agent_insights instead
+    return _get_fallback_agent_insights()
+
 @router.get("/agent-status")
 async def get_agent_status(
+    request: Request,
     page_context: Optional[str] = None,
     engagement_id: Optional[str] = None,
     client_id: Optional[str] = None,
     session_id: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
-    context: RequestContext = Depends(get_current_context),
     crewai_service: CrewAIFlowService = Depends(get_crewai_flow_service)
 ) -> Dict[str, Any]:
     """
@@ -94,13 +187,21 @@ async def get_agent_status(
     """
     start_time = datetime.utcnow()
     
+    # Extract context from request headers (same as data-import endpoint)
+    from app.core.context import extract_context_from_request
+    context = extract_context_from_request(request)
+    
     # Ensure we have a valid page context
     page_context = page_context or "data-import"
     
     try:
-        # ⚡ FAST PATH: Return cached response for non-session-specific requests
+        # ⚡ FAST PATH: Return response with dynamic insights even without session
         if not session_id:
-            logger.info("⚡ Fast path: No session ID, returning cached status")
+            logger.info("⚡ Fast path: No session ID, returning status with dynamic insights")
+            
+            # Get dynamic insights based on context
+            agent_insights = await _get_dynamic_agent_insights(db, context)
+            
             return {
                 "status": "success",
                 "session_id": None,
@@ -111,7 +212,7 @@ async def get_agent_status(
                     "message": "Ready for discovery workflow"
                 },
                 "page_data": {
-                    "agent_insights": _get_cached_agent_insights(),
+                    "agent_insights": agent_insights,
                     "pending_questions": [],
                     "data_classifications": []
                 },
@@ -135,6 +236,10 @@ async def get_agent_status(
         # ⚡ FAST PATH: Invalid session ID - return default status quickly
         if not is_valid_uuid:
             logger.info("⚡ Fast path: Invalid session ID, returning default status")
+            
+            # Get dynamic insights even for invalid session
+            agent_insights = await _get_dynamic_agent_insights(db, context)
+            
             return {
                 "status": "success",
                 "session_id": session_id,
@@ -145,7 +250,7 @@ async def get_agent_status(
                     "message": "Invalid session format"
                 },
                 "page_data": {
-                    "agent_insights": _get_cached_agent_insights(),
+                    "agent_insights": agent_insights,
                     "pending_questions": [],
                     "data_classifications": []
                 },
@@ -160,8 +265,8 @@ async def get_agent_status(
         # ⚡ OPTIMIZED: Simplified database query with timeout
         flow_status = await _get_simplified_flow_status(db, session_id, context)
         
-        # ⚡ CACHED: Get agent insights without database queries
-        agent_insights = _get_cached_agent_insights()
+        # ⚡ DYNAMIC: Get agent insights based on actual data
+        agent_insights = await _get_dynamic_agent_insights(db, context)
         
         response = {
             "status": "success",

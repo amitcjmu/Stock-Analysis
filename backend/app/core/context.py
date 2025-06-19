@@ -81,7 +81,9 @@ def extract_context_from_request(request: Request) -> RequestContext:
         headers.get("x-client-account-id") or 
         headers.get("X-Client-Account-Id") or
         headers.get("x-context-client-id") or
-        headers.get("client-account-id")
+        headers.get("client-account-id") or
+        headers.get("X-Client-ID") or          # ✅ ADD: Frontend uses X-Client-ID
+        headers.get("x-client-id")              # ✅ ADD: Frontend uses x-client-id
     )
     
     engagement_id = (
