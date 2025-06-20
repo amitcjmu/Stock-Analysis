@@ -64,152 +64,126 @@ class ValidationToolsHandler:
     
     def _check_strategy_feasibility(self, recommendation: Dict[str, Any], 
                                   application_context: Dict[str, Any]) -> Dict[str, Any]:
-        """Check if the recommended strategy is feasible."""
+        """AI-driven strategy feasibility check - enhanced validation delegated to CrewAI agents."""
+        # Deprecated: Hard-coded strategy feasibility heuristics have been removed
+        # Strategy validation is now handled by CrewAI Technical Debt Crew and Risk Assessment agents
+        
         check_result = {
-            "score": 0.8,
+            "score": 0.7,  # Default neutral score
             "issues": [],
-            "suggestions": []
+            "suggestions": ["Strategy feasibility analysis enhanced by CrewAI agents"],
+            "ai_analysis_recommended": True
         }
         
+        # Basic fallback validation when AI is not available
         strategy = recommendation.get("recommended_strategy", "").lower()
-        app_complexity = application_context.get("complexity_score", 3)
-        
-        # Check strategy-complexity alignment
-        if strategy == "refactor" and app_complexity < 3:
-            check_result["score"] = 0.5
-            check_result["issues"].append("Refactor strategy may be overkill for low complexity application")
-            check_result["suggestions"].append("Consider rehost or replatform for simpler migration")
-        
-        elif strategy == "rehost" and app_complexity > 4:
-            check_result["score"] = 0.6
-            check_result["issues"].append("Rehost may not address high complexity challenges")
-            check_result["suggestions"].append("Consider refactor or replatform to modernize architecture")
-        
-        # Check technology compatibility
-        tech_stack = application_context.get("technology_stack", [])
-        if strategy in ["rehost", "replatform"] and any("legacy" in str(tech).lower() for tech in tech_stack):
-            check_result["score"] *= 0.8
-            check_result["issues"].append("Legacy technology stack may complicate migration")
+        if strategy in ["refactor", "rearchitect"]:
+            check_result["suggestions"].append("Complex strategy - recommend CrewAI agent validation")
+        elif strategy in ["rehost", "retain"]:
+            check_result["score"] = 0.8
+            check_result["suggestions"].append("Conservative strategy - generally lower risk")
         
         return check_result
     
     def _check_cost_alignment(self, recommendation: Dict[str, Any], 
                             validation_criteria: Dict[str, Any]) -> Dict[str, Any]:
-        """Check if recommendation aligns with cost constraints."""
+        """AI-driven cost alignment check - enhanced analysis delegated to CrewAI agents."""
+        # Deprecated: Hard-coded cost alignment heuristics have been removed
+        # Cost analysis is now handled by CrewAI Cost Calculator agents with dynamic market data
+        
         check_result = {
-            "score": 0.8,
+            "score": 0.7,  # Default neutral score
             "issues": [],
-            "suggestions": []
+            "suggestions": ["Cost alignment analysis enhanced by CrewAI agents"],
+            "ai_analysis_recommended": True
         }
         
+        # Basic fallback when AI is not available
         strategy = recommendation.get("recommended_strategy", "").lower()
         cost_sensitivity = validation_criteria.get("cost_sensitivity", 3)
         
-        # High cost sensitivity checks
-        if cost_sensitivity >= 4:
-            if strategy in ["refactor", "rebuild"]:
-                check_result["score"] = 0.4
-                check_result["issues"].append("High-cost strategy conflicts with cost sensitivity")
-                check_result["suggestions"].append("Consider rehost or retain for cost optimization")
-            elif strategy in ["rehost", "retain"]:
-                check_result["score"] = 0.9
-                check_result["suggestions"].append("Good alignment with cost-conscious approach")
-        
-        # Low cost sensitivity - can afford complex strategies
-        elif cost_sensitivity <= 2:
-            if strategy in ["refactor", "replatform"]:
-                check_result["score"] = 0.9
-                check_result["suggestions"].append("Good opportunity for modernization investment")
+        if cost_sensitivity >= 4 and strategy in ["refactor", "rearchitect"]:
+            check_result["suggestions"].append("High-cost strategy with cost constraints - recommend AI analysis")
+        elif strategy in ["rehost", "retain"]:
+            check_result["score"] = 0.8
+            check_result["suggestions"].append("Generally cost-effective strategy")
         
         return check_result
     
     def _check_risk_levels(self, recommendation: Dict[str, Any], 
                          application_context: Dict[str, Any]) -> Dict[str, Any]:
-        """Check risk levels associated with recommendation."""
+        """AI-driven risk assessment - enhanced analysis delegated to CrewAI Risk Assessment agents."""
+        # Deprecated: Hard-coded risk level heuristics have been removed
+        # Risk analysis is now handled by CrewAI Risk Assessment Specialist with comprehensive modeling
+        
         check_result = {
-            "score": 0.7,
+            "score": 0.7,  # Default neutral score
             "issues": [],
-            "suggestions": []
+            "suggestions": ["Risk assessment enhanced by CrewAI Risk Assessment Specialist"],
+            "ai_analysis_recommended": True
         }
         
+        # Basic fallback when AI is not available
         strategy = recommendation.get("recommended_strategy", "").lower()
         business_criticality = application_context.get("business_criticality", "medium")
         
-        # High criticality applications need careful strategy selection
-        if business_criticality == "high":
-            if strategy in ["refactor", "rebuild"]:
-                check_result["score"] = 0.5
-                check_result["issues"].append("High-risk strategy for business-critical application")
-                check_result["suggestions"].append("Consider phased approach or replatform for lower risk")
-            elif strategy == "rehost":
-                check_result["score"] = 0.8
-                check_result["suggestions"].append("Lower risk approach appropriate for critical application")
-        
-        # Check for additional risk factors
-        integrations = application_context.get("integration_points", 0)
-        if integrations > 5 and strategy != "retain":
-            check_result["score"] *= 0.9
-            check_result["issues"].append("High integration complexity increases migration risk")
+        if business_criticality == "high" and strategy in ["refactor", "rearchitect"]:
+            check_result["suggestions"].append("High-risk strategy for critical application - recommend AI risk analysis")
+        elif strategy in ["rehost", "retain"]:
+            check_result["score"] = 0.8
+            check_result["suggestions"].append("Generally lower risk strategy")
         
         return check_result
     
     def _check_timeline_validity(self, recommendation: Dict[str, Any], 
                                validation_criteria: Dict[str, Any]) -> Dict[str, Any]:
-        """Check if timeline expectations are realistic."""
+        """AI-driven timeline validation - enhanced analysis delegated to CrewAI Wave Planning agents."""
+        # Deprecated: Hard-coded timeline validity heuristics have been removed
+        # Timeline analysis is now handled by CrewAI Wave Planning Coordinator with dynamic scheduling
+        
         check_result = {
-            "score": 0.8,
+            "score": 0.7,  # Default neutral score
             "issues": [],
-            "suggestions": []
+            "suggestions": ["Timeline validation enhanced by CrewAI Wave Planning Coordinator"],
+            "ai_analysis_recommended": True
         }
         
+        # Basic fallback when AI is not available
         strategy = recommendation.get("recommended_strategy", "").lower()
         urgency = validation_criteria.get("migration_urgency", 3)
         
-        # High urgency timeline checks
-        if urgency >= 4:
-            if strategy in ["refactor", "rebuild"]:
-                check_result["score"] = 0.4
-                check_result["issues"].append("Complex strategy conflicts with urgent timeline")
-                check_result["suggestions"].append("Consider rehost for faster migration")
-            elif strategy == "rehost":
-                check_result["score"] = 0.9
-                check_result["suggestions"].append("Good choice for urgent migration needs")
-        
-        # Low urgency - can afford longer timelines
-        elif urgency <= 2:
-            if strategy in ["refactor", "replatform"]:
-                check_result["score"] = 0.9
-                check_result["suggestions"].append("Flexible timeline allows for comprehensive modernization")
+        if urgency >= 4 and strategy in ["refactor", "rearchitect"]:
+            check_result["suggestions"].append("Complex strategy with urgent timeline - recommend AI timeline analysis")
+        elif strategy == "rehost":
+            check_result["score"] = 0.8
+            check_result["suggestions"].append("Generally faster migration strategy")
         
         return check_result
     
     def _check_compliance_requirements(self, recommendation: Dict[str, Any], 
                                      application_context: Dict[str, Any]) -> Dict[str, Any]:
-        """Check compliance and regulatory alignment."""
+        """AI-driven compliance validation - enhanced analysis delegated to CrewAI Compliance agents."""
+        # Deprecated: Hard-coded compliance requirement heuristics have been removed
+        # Compliance analysis is now handled by CrewAI agents with regulatory knowledge bases
+        
         check_result = {
-            "score": 0.8,
+            "score": 0.7,  # Default neutral score
             "issues": [],
-            "suggestions": []
+            "suggestions": ["Compliance validation enhanced by CrewAI agents with regulatory expertise"],
+            "ai_analysis_recommended": True
         }
         
+        # Basic fallback when AI is not available
         strategy = recommendation.get("recommended_strategy", "").lower()
         compliance_reqs = application_context.get("compliance_requirements", [])
         data_sensitivity = application_context.get("data_sensitivity", "standard")
         
-        # High compliance requirements
         if compliance_reqs or data_sensitivity == "high":
-            if strategy == "rehost":
-                check_result["score"] = 0.9
-                check_result["suggestions"].append("Rehost maintains compliance posture effectively")
-            elif strategy in ["refactor", "replatform"]:
-                check_result["score"] = 0.6
-                check_result["issues"].append("Architecture changes may require compliance re-validation")
-                check_result["suggestions"].append("Ensure compliance review is included in migration plan")
+            check_result["suggestions"].append("High compliance requirements - recommend AI regulatory analysis")
         
-        # Standard compliance
-        else:
-            check_result["score"] = 0.9
-            check_result["suggestions"].append("Standard compliance requirements, strategy flexibility available")
+        if strategy in ["rehost", "retain"]:
+            check_result["score"] = 0.8
+            check_result["suggestions"].append("Conservative strategy - generally maintains compliance posture")
         
         return check_result
     

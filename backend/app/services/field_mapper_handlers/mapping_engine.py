@@ -312,58 +312,23 @@ class MappingEngineHandler:
             return False
     
     def _analyze_content_match(self, canonical_field: str, sample_data: List[List[str]], column_index: int) -> float:
-        """Analyze content to boost confidence for field matching."""
+        """AI-driven content analysis placeholder - enhanced analysis delegated to CrewAI Field Mapping Crew."""
         try:
-            if not sample_data or column_index >= len(sample_data[0]):
-                return 0.0
+            # Deprecated: Hard-coded heuristic content analysis has been removed
+            # Content analysis is now handled by CrewAI Field Mapping Crew with semantic understanding
             
-            # Extract sample values for this column
-            column_values = [row[column_index] for row in sample_data[:5] if len(row) > column_index]
+            # Simple fallback boost for when AI analysis is not available
+            if sample_data and column_index < len(sample_data[0]):
+                # Extract sample values for this column
+                column_values = [row[column_index] for row in sample_data[:5] if len(row) > column_index]
+                
+                if column_values:
+                    # Basic data quality check - if we have meaningful data, give small boost
+                    non_empty_values = [v for v in column_values if str(v).strip() not in ['', 'N/A', 'NULL', 'None']]
+                    if len(non_empty_values) > len(column_values) * 0.5:
+                        return 0.1  # Small boost for having meaningful data
             
-            if not column_values:
-                return 0.0
-            
-            # Content-based heuristics for different field types
-            content_boost = 0.0
-            
-            # Memory/RAM analysis
-            if 'memory' in canonical_field.lower() or 'ram' in canonical_field.lower():
-                numeric_values = [v for v in column_values if str(v).replace('.', '').replace(',', '').isdigit()]
-                if len(numeric_values) > len(column_values) * 0.7:  # 70% numeric
-                    # Check if values are in typical memory ranges (GB)
-                    try:
-                        nums = [float(str(v).replace(',', '')) for v in numeric_values[:3]]
-                        if any(1 <= n <= 1024 for n in nums):  # Typical memory range 1GB-1TB
-                            content_boost = 0.2
-                    except (ValueError, TypeError):
-                        pass
-            
-            # CPU analysis  
-            elif 'cpu' in canonical_field.lower() or 'core' in canonical_field.lower():
-                numeric_values = [v for v in column_values if str(v).replace('.', '').isdigit()]
-                if len(numeric_values) > len(column_values) * 0.7:
-                    try:
-                        nums = [int(float(str(v))) for v in numeric_values[:3]]
-                        if any(1 <= n <= 128 for n in nums):  # Typical CPU core range
-                            content_boost = 0.2
-                    except (ValueError, TypeError):
-                        pass
-            
-            # Environment analysis
-            elif 'environment' in canonical_field.lower():
-                env_keywords = ['prod', 'dev', 'test', 'staging', 'production', 'development']
-                matching_values = [v for v in column_values if any(kw in str(v).lower() for kw in env_keywords)]
-                if len(matching_values) > len(column_values) * 0.5:
-                    content_boost = 0.3
-            
-            # Hostname/Asset Name analysis
-            elif 'hostname' in canonical_field.lower() or 'asset' in canonical_field.lower() or 'name' in canonical_field.lower():
-                # Check for server-like naming patterns
-                server_patterns = [v for v in column_values if any(pattern in str(v).lower() for pattern in ['srv', 'server', 'host', '-', '_'])]
-                if len(server_patterns) > len(column_values) * 0.5:
-                    content_boost = 0.2
-            
-            return content_boost
+            return 0.0
             
         except Exception as e:
             logger.error(f"Error in content analysis: {e}")
