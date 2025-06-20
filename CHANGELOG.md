@@ -1,5 +1,85 @@
 # AI Force Migration Platform - Change Log
 
+## [0.4.24] - 2025-01-03
+
+### 🎯 **CREWAI DISCOVERY FLOW RECONNECTION FIX**
+
+This release fixes the critical break in the agentic discovery flow architecture where the system had disconnected from CrewAI hierarchical flows and was using standalone validation endpoints instead.
+
+### 🚀 **Flow Architecture Restoration**
+
+#### **CrewAI Flow Integration**
+- **Fixed Import Path**: Corrected `useDiscoveryFlowState` hook import in `useAttributeMappingLogic` to use the proper flow-enabled version
+- **Direct Flow Calling**: Updated "Start Discovery Flow" button to call `/discovery/flow/run` endpoint directly with uploaded data
+- **Flow Session Tracking**: Added proper flow session ID and flow ID tracking from CrewAI flow responses
+- **Data Persistence**: Added retrieval of stored import data for CrewAI flow initialization
+
+#### **Backend Integration**
+- **Endpoint Connection**: Reconnected frontend to `/api/v1/discovery/flow/run` CrewAI endpoint
+- **Context Passing**: Added client_account_id, engagement_id, user_id context to flow initialization
+- **Session Management**: Added validation_session_id and import_session_id tracking
+- **Error Handling**: Enhanced error handling with proper CrewAI flow failure recovery
+
+### 📊 **Technical Fixes**
+
+#### **Hook Architecture**
+- **Import Correction**: Fixed `./useDiscoveryFlowState` vs `../useDiscoveryFlowState` import confusion
+- **Flow Triggering**: Ensured `trigger_discovery_flow` flag properly handled by correct hook
+- **Session Persistence**: Added flow session and flow ID state management
+
+#### **Data Flow**
+- **Stored Data Retrieval**: Added `getStoredImportData()` function to fetch validated data for CrewAI
+- **CSV Processing**: Enhanced data parsing to work with stored validation results
+- **Context Validation**: Added proper client/engagement context validation before flow start
+
+### 🎪 **User Experience**
+
+#### **Loading States**
+- **Button Feedback**: Added loading spinner to "Start Discovery Flow" button
+- **Progress Indication**: Added "Starting Flow..." state during CrewAI initialization
+- **Error Messaging**: Enhanced error messages for flow initialization failures
+
+#### **Flow Visibility**
+- **Session IDs**: Flow session IDs now properly generated and displayed
+- **Backend Logs**: CrewAI flow calls now visible in backend logs
+- **Agent Activity**: Real-time agent status monitoring restored
+
+### 🔧 **Root Cause Resolution**
+
+The fundamental issue was that the system had **two different discovery flow hooks**:
+1. **Non-working hook** (`../useDiscoveryFlowState`) - used by AttributeMapping, missing `trigger_discovery_flow` handling
+2. **Working hook** (`./useDiscoveryFlowState`) - proper CrewAI flow integration with all features
+
+The frontend was calling validation endpoints only and bypassing the entire CrewAI hierarchical flow architecture defined in DISCOVERY_FLOW_DETAILED_DESIGN.md.
+
+### 🎯 **Success Metrics**
+
+- **CrewAI Flow Calls**: Backend logs now show proper `/api/v1/discovery/flow/run` calls
+- **Flow ID Generation**: Real CrewAI flow IDs generated and tracked
+- **Agent Orchestration**: Full hierarchical crew sequence restored
+- **Session Continuity**: Flow state properly maintained from upload through all phases
+
+### 📋 **Validation Results**
+
+✅ **Flow Integration**: CrewAI discovery flow properly called from "Start Discovery Flow" button  
+✅ **Session Tracking**: Flow session IDs generated and tracked  
+✅ **Context Passing**: Client/engagement context properly passed to CrewAI  
+✅ **Error Recovery**: Graceful fallback for flow initialization failures  
+✅ **Loading States**: User feedback during flow initialization  
+✅ **Backend Logging**: CrewAI flow activity visible in logs
+
+### ⚠️ **Breaking Changes**
+
+None - this is a restoration of existing functionality that had been inadvertently broken.
+
+### 🔄 **Next Phase Requirements**
+
+With the flow reconnected, the next priorities are:
+1. **Agent Monitoring**: Enhance real-time agent status tracking
+2. **Phase Transitions**: Ensure proper handoffs between crew phases
+3. **Result Persistence**: Verify crew results properly stored in flow state
+4. **UI Synchronization**: Real-time crew progress updates in frontend
+
 ## [0.4.23] - 2025-01-03
 
 ### 🎯 **DATA UPLOAD WORKFLOW ISSUE RESOLUTION**

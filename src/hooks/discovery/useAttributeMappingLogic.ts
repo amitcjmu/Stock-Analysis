@@ -4,7 +4,7 @@ import { useToast } from '../use-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { apiCall, API_CONFIG } from '../../config/api';
-import { useDiscoveryFlowState } from '../useDiscoveryFlowState';
+import { useDiscoveryFlowState } from './useDiscoveryFlowState';
 import { useAgenticCriticalAttributes } from '../useAttributeMapping';
 
 // Types

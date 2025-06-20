@@ -201,6 +201,7 @@ const DataImport: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [validationAgents, setValidationAgents] = useState<DataImportAgent[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [isStartingFlow, setIsStartingFlow] = useState(false); // ✅ Added missing state
 
   // File upload handling with authentication context
   const handleFileUpload = useCallback(async (files: File[], categoryId: string) => {
@@ -463,36 +464,140 @@ const DataImport: React.FC = () => {
     }
   }, [toast, client, engagement, user, session, getAuthHeaders]);
 
-  // Navigate to attribute mapping with file ID and basic info only
-  const handleProceedToMapping = useCallback((fileId: string) => {
+  // ✅ FIXED: Trigger CrewAI Discovery Flow directly with uploaded data
+  const handleProceedToMapping = useCallback(async (fileId: string) => {
     const file = uploadedFiles.find(f => f.id === fileId);
-    if (file?.status === 'approved' || file?.status === 'approved_with_warnings') {
-      // For admin users, use demo context if needed
-      const isAdmin = user?.role === 'admin';
-      const effectiveClient = client || (isAdmin ? { id: 'demo-client', name: 'Demo Client' } : null);
-      const effectiveEngagement = engagement || (isAdmin ? { id: 'demo-engagement', name: 'Demo Engagement' } : null);
+    if (!file || (file.status !== 'approved' && file.status !== 'approved_with_warnings')) {
+      return;
+    }
+
+    const isAdmin = user?.role === 'admin';
+    const effectiveClient = client || (isAdmin ? { id: 'demo-client', name: 'Demo Client' } : null);
+    const effectiveEngagement = engagement || (isAdmin ? { id: 'demo-engagement', name: 'Demo Engagement' } : null);
+    
+    if (!effectiveClient || !effectiveEngagement || !user) {
+      toast({
+        title: "Context Required",
+        description: "Please ensure client, engagement, and user context is available.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setIsStartingFlow(true);
       
-      // Navigate to Attribute Mapping - the entry point for Discovery Flow
-      // Only pass serializable data to avoid React Router cloning issues
-      navigate('/discovery/attribute-mapping', {
-                  state: {
+             // Get the stored data for CrewAI flow (already validated and stored)
+       const csvData = await getStoredImportData(file.importSessionId);
+      
+      if (csvData.length === 0) {
+        toast({
+          title: "No Data Found",
+          description: "The uploaded file appears to be empty or invalid.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log('🚀 Starting CrewAI Discovery Flow with:', {
+        filename: file.name,
+        records: csvData.length,
+        client: effectiveClient.id,
+        engagement: effectiveEngagement.id,
+        user: user.id
+      });
+
+      // Call the CrewAI Discovery Flow endpoint directly
+      const discoveryFlowResponse = await apiCall('/discovery/flow/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          headers: Object.keys(csvData[0] || {}),
+          sample_data: csvData,
+          filename: file.name,
+          options: {
+            enable_parallel_execution: true,
+            enable_retry_logic: true,
+            max_retries: 3,
+            timeout_seconds: 300,
+            client_account_id: effectiveClient.id,
+            engagement_id: effectiveEngagement.id,
+            user_id: user.id,
+            validation_session_id: file.validationSessionId,
+            import_session_id: file.importSessionId
+          }
+        })
+      });
+
+      if (discoveryFlowResponse.status === 'success') {
+        console.log('✅ CrewAI Discovery Flow started:', discoveryFlowResponse);
+        
+        toast({
+          title: "🚀 Discovery Flow Started",
+          description: `Flow ${discoveryFlowResponse.session_id} initialized with ${csvData.length} records. Proceeding to field mapping...`,
+        });
+
+        // Navigate to Attribute Mapping with flow session data
+        navigate('/discovery/attribute-mapping', {
+          state: {
             file_id: fileId,
             filename: file.name,
             validation_session_id: file.validationSessionId,
-            import_session_id: file.importSessionId, // Include import session ID
-            trigger_discovery_flow: true, // Flag to trigger flow initialization
+            import_session_id: file.importSessionId,
+            flow_session_id: discoveryFlowResponse.session_id, // ✅ CrewAI flow session ID
+            flow_id: discoveryFlowResponse.flow_id,
+            trigger_discovery_flow: true,
+            raw_data: csvData, // ✅ Include actual uploaded data
             upload_context: {
               category: selectedCategory,
               timestamp: file.uploadedAt.toISOString(),
-              user_id: user?.id,
-              client_id: effectiveClient?.id,
-              engagement_id: effectiveEngagement?.id,
+              user_id: user.id,
+              client_id: effectiveClient.id,
+              engagement_id: effectiveEngagement.id,
               session_id: session?.id
             }
           }
+        });
+      } else {
+        throw new Error(discoveryFlowResponse.message || 'Failed to start discovery flow');
+      }
+      
+    } catch (error) {
+      console.error('❌ Failed to start Discovery Flow:', error);
+      toast({
+        title: "Discovery Flow Failed",
+        description: error instanceof Error ? error.message : 'Failed to start discovery flow',
+        variant: "destructive"
       });
+    } finally {
+      setIsStartingFlow(false);
     }
-  }, [uploadedFiles, selectedCategory, navigate, user, client, engagement, session]);
+  }, [uploadedFiles, selectedCategory, navigate, user, client, engagement, session, toast]);
+
+  // Helper function to get stored import data
+  const getStoredImportData = async (importSessionId: string | undefined): Promise<any[]> => {
+    if (!importSessionId) {
+      console.warn('No import session ID provided');
+      return [];
+    }
+    
+    try {
+      const response = await apiCall(`/data-import/get-import/${importSessionId}`, {
+        method: 'GET',
+        headers: getAuthHeaders()
+      });
+      
+      if (response.success && response.data) {
+        return response.data;
+      } else {
+        console.warn('No stored data found for import session:', importSessionId);
+        return [];
+      }
+    } catch (error) {
+      console.error('Error retrieving stored import data:', error);
+      return [];
+    }
+  };
 
   // Helper function to parse CSV data
   const parseCsvData = async (file: File): Promise<any[]> => {
@@ -897,11 +1002,21 @@ const DataImport: React.FC = () => {
                               </div>
                               <Button
                                 onClick={() => handleProceedToMapping(file.id)}
+                                disabled={isStartingFlow}
                                 className="bg-green-600 hover:bg-green-700 flex items-center space-x-2"
                               >
-                                <Brain className="h-4 w-4" />
-                                <span>Start Discovery Flow</span>
-                                <ArrowRight className="h-4 w-4" />
+                                {isStartingFlow ? (
+                                  <>
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <span>Starting Flow...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Brain className="h-4 w-4" />
+                                    <span>Start Discovery Flow</span>
+                                    <ArrowRight className="h-4 w-4" />
+                                  </>
+                                )}
                               </Button>
                             </div>
                           </div>
