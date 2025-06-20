@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiCall, API_CONFIG } from '@/config/api';
+import { apiCall, API_CONFIG } from '../config/api';
+import { useAuth } from '../contexts/AuthContext';
 
 // Types
 export interface FieldMapping {
@@ -99,9 +100,25 @@ export const useCriticalAttributes = () => {
 
 // 🤖 NEW: Hook to fetch AGENTIC critical attributes (agent-driven intelligence)
 export const useAgenticCriticalAttributes = () => {
+  const { user, client, engagement } = useAuth();
+  
   return useQuery<CriticalAttributesData>({
-    queryKey: ['agentic-critical-attributes'],
+    queryKey: ['agentic-critical-attributes', client?.id, engagement?.id],
     queryFn: async () => {
+      // 🚨 MULTI-TENANCY FIX: Ensure context is available before API call
+      if (!client?.id || !engagement?.id) {
+        console.warn('⚠️ Skipping agentic API call - missing context:', { 
+          client: client?.id, 
+          engagement: engagement?.id 
+        });
+        throw new Error('Context not available - client or engagement missing');
+      }
+      
+      console.log('🤖 Making agentic API call with context:', { 
+        client: client.id, 
+        engagement: engagement.id 
+      });
+      
       try {
         // Create a timeout promise
         const timeoutPromise = new Promise((_, reject) => {
@@ -147,6 +164,8 @@ export const useAgenticCriticalAttributes = () => {
         }
       }
     },
+    // 🚨 CRITICAL: Only enable query when context is available
+    enabled: !!(client?.id && engagement?.id),
     staleTime: Infinity, // Never automatically consider data stale
     gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
     refetchInterval: false, // DISABLED: No automatic polling
