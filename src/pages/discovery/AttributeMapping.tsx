@@ -30,6 +30,10 @@ const AttributeMapping: React.FC = () => {
     mappingProgress,
     criticalAttributes,
     flowState,
+    sessionId,
+    flowId,
+    availableDataImports,
+    selectedDataImportId,
     isAgenticLoading,
     isFlowStateLoading,
     isAnalyzing,
@@ -38,6 +42,8 @@ const AttributeMapping: React.FC = () => {
     handleTriggerFieldMappingCrew,
     handleApproveMapping,
     handleRejectMapping,
+    handleAttributeUpdate,
+    handleDataImportSelection,
     refetchAgentic,
     canContinueToDataCleansing,
   } = useAttributeMappingLogic();
@@ -53,6 +59,15 @@ const AttributeMapping: React.FC = () => {
   const hasError = !!(flowStateError || agenticError);
   const errorMessage = flowStateError?.message || agenticError?.message;
   const hasData = !!(agenticData?.attributes?.length);
+
+  // 🔧 SESSION AND FLOW DISPLAY
+  const sessionInfo = {
+    sessionId,
+    flowId,
+    availableDataImports,
+    selectedDataImportId,
+    hasMultipleSessions: availableDataImports.length > 1
+  };
 
   return (
     <AttributeMappingStateProvider
@@ -147,7 +162,9 @@ const AttributeMapping: React.FC = () => {
                     agenticData={agenticData}
                     onApproveMapping={handleApproveMapping}
                     onRejectMapping={handleRejectMapping}
-                    refetchAgentic={refetchAgentic}
+                    refetchAgentic={() => refetchAgentic()}
+                    onAttributeUpdate={handleAttributeUpdate}
+                    sessionInfo={sessionInfo}
                   />
                 </div>
 

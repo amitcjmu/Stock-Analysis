@@ -3,6 +3,7 @@ import { CheckCircle, AlertTriangle, Clock, ArrowRight, Target, TrendingUp, Refr
 import { apiCall, API_CONFIG } from '../../../config/api';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useToast } from '../../../hooks/use-toast';
+import { Button } from '../../../components/ui/button';
 
 interface CriticalAttribute {
   name: string;
@@ -23,18 +24,30 @@ interface CriticalAttribute {
 
 interface CriticalAttributesTabProps {
   criticalAttributes: CriticalAttribute[];
-  isAnalyzing: boolean;
-  fieldMappings?: any[]; // For watching mapping changes
-  onAttributeUpdate?: (attribute: CriticalAttribute) => void;
+  onRefreshCriticalData?: () => void;
+  isLoading?: boolean;
+  isAnalyzing?: boolean;
+  fieldMappings?: any[];
+  onAttributeUpdate?: (attributeName: string, updates: Partial<CriticalAttribute>) => void;
+  sessionInfo?: {
+    sessionId: string | null;
+    flowId: string | null;
+    availableDataImports: any[];
+    selectedDataImportId: string | null;
+    hasMultipleSessions: boolean;
+  };
 }
 
 const CriticalAttributesTab: React.FC<CriticalAttributesTabProps> = ({
-  criticalAttributes: initialCriticalAttributes,
-  isAnalyzing,
+  criticalAttributes: externalCriticalAttributes,
+  onRefreshCriticalData,
+  isLoading: externalLoading = false,
+  isAnalyzing = false,
   fieldMappings = [],
-  onAttributeUpdate
+  onAttributeUpdate,
+  sessionInfo
 }) => {
-  const [criticalAttributes, setCriticalAttributes] = useState<CriticalAttribute[]>(initialCriticalAttributes);
+  // Use external data instead of internal state
   const [loading, setLoading] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -43,68 +56,70 @@ const CriticalAttributesTab: React.FC<CriticalAttributesTabProps> = ({
   const { user } = useAuth();
   const { toast } = useToast();
 
+  // 🔧 FIX: Use external critical attributes data instead of internal state
+  const criticalAttributes = externalCriticalAttributes;
+
   // Watch for field mapping changes and update critical attributes
   useEffect(() => {
-    updateCriticalAttributesFromMappings();
-  }, [fieldMappings]);
+    if (onAttributeUpdate) {
+      updateCriticalAttributesFromMappings();
+    }
+  }, [fieldMappings, onAttributeUpdate]);
 
   // Update critical attributes based on approved/rejected mappings
   const updateCriticalAttributesFromMappings = () => {
-    if (!fieldMappings || fieldMappings.length === 0) return;
-
-    const updatedAttributes = criticalAttributes.map(attr => {
-      // Find if this critical attribute has been mapped in field mappings
-      const relatedMapping = fieldMappings.find(mapping => 
-        mapping.targetAttribute === attr.name && 
-        (mapping.status === 'approved' || mapping.status === 'rejected')
+    if (!fieldMappings.length || !criticalAttributes.length || !onAttributeUpdate) return;
+    
+    fieldMappings.forEach(mapping => {
+      const matchingAttribute = criticalAttributes.find(attr => 
+        attr.name.toLowerCase() === mapping.targetAttribute.toLowerCase() ||
+        attr.mapped_to?.toLowerCase() === mapping.sourceField.toLowerCase()
       );
-
-      if (relatedMapping) {
-        const updatedAttr = {
-          ...attr,
-          status: relatedMapping.status === 'approved' ? 'mapped' as const : 'unmapped' as const,
-          mapped_to: relatedMapping.status === 'approved' ? relatedMapping.sourceField : undefined,
-          source_field: relatedMapping.status === 'approved' ? relatedMapping.sourceField : undefined,
-          confidence: relatedMapping.status === 'approved' ? relatedMapping.confidence : undefined,
-          mapping_type: relatedMapping.status === 'approved' ? relatedMapping.mapping_type : undefined,
-        };
-
-        // Calculate quality score based on mapping
-        if (relatedMapping.status === 'approved') {
-          updatedAttr.quality_score = Math.min(95, (relatedMapping.confidence * 100) + 10);
-          updatedAttr.completeness_percentage = 100;
-        } else {
-          updatedAttr.quality_score = 0;
-          updatedAttr.completeness_percentage = 0;
-        }
-
-        return updatedAttr;
+      
+      if (matchingAttribute && mapping.status === 'approved') {
+        onAttributeUpdate(matchingAttribute.name, {
+          status: 'mapped',
+          mapped_to: mapping.sourceField,
+          source_field: mapping.sourceField,
+          confidence: mapping.confidence,
+          quality_score: Math.round(mapping.confidence * 100),
+          completeness_percentage: 100,
+          mapping_type: 'manual'
+        });
+      } else if (matchingAttribute && mapping.status === 'rejected') {
+        onAttributeUpdate(matchingAttribute.name, {
+          status: 'unmapped',
+          mapped_to: undefined,
+          source_field: undefined,
+          confidence: 0,
+          quality_score: 0,
+          completeness_percentage: 0
+        });
       }
-
-      return attr;
     });
-
-    setCriticalAttributes(updatedAttributes);
-    setLastRefresh(new Date());
   };
 
-  // Refresh critical attributes from API
+  // 🔧 FIX: Use external refresh function instead of making separate API calls
   const refreshCriticalAttributes = async () => {
-    try {
+    if (onRefreshCriticalData) {
       setLoading(true);
-      
-      // Get latest critical attributes mapping status
-      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.CRITICAL_ATTRIBUTES_STATUS);
-      
-      if (response && response.attributes) {
-        setCriticalAttributes(response.attributes);
+      try {
+        await onRefreshCriticalData();
         setLastRefresh(new Date());
-        console.log(`🎯 Refreshed ${response.attributes.length} critical attributes`);
+        toast({
+          title: "✅ Data Refreshed",
+          description: "Critical attributes updated from latest data analysis",
+        });
+      } catch (error) {
+        console.error('Failed to refresh critical attributes:', error);
+        toast({
+          title: "❌ Refresh Failed",
+          description: "Failed to refresh critical attributes. Please try again.",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Failed to refresh critical attributes:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -243,18 +258,11 @@ const CriticalAttributesTab: React.FC<CriticalAttributesTabProps> = ({
         });
         
         // Update local state
-        setCriticalAttributes(prev => 
-          prev.map(attr => 
-            attr.name === attributeName 
-              ? { 
-                  ...attr, 
-                  status: action === 'approve' ? 'mapped' as const : 'unmapped' as const,
-                  quality_score: action === 'approve' ? Math.min(95, (attr.confidence || 0.8) * 100) : 0,
-                  completeness_percentage: action === 'approve' ? 100 : 0
-                }
-              : attr
-          )
-        );
+        onAttributeUpdate(attributeName, {
+          status: action === 'approve' ? 'mapped' as const : 'unmapped' as const,
+          quality_score: action === 'approve' ? Math.min(95, (relatedMapping.confidence || 0.8) * 100) : 0,
+          completeness_percentage: action === 'approve' ? 100 : 0
+        });
       }
     } catch (error) {
       console.error('Error handling mapping action:', error);
@@ -305,21 +313,14 @@ const CriticalAttributesTab: React.FC<CriticalAttributesTabProps> = ({
         });
         
         // Update local state
-        setCriticalAttributes(prev => 
-          prev.map(attr => 
-            attr.name === attributeName 
-              ? { 
-                  ...attr, 
-                  status: 'mapped' as const,
-                  mapped_to: newSourceField,
-                  source_field: newSourceField,
-                  mapping_type: 'manual' as const,
-                  quality_score: 90,
-                  completeness_percentage: 100
-                }
-              : attr
-          )
-        );
+        onAttributeUpdate(attributeName, {
+          status: 'mapped' as const,
+          mapped_to: newSourceField,
+          source_field: newSourceField,
+          mapping_type: 'manual' as const,
+          quality_score: 90,
+          completeness_percentage: 100
+        });
       }
     } catch (error) {
       console.error('Error updating mapping:', error);
@@ -338,29 +339,51 @@ const CriticalAttributesTab: React.FC<CriticalAttributesTabProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Critical Attributes Mapping</h2>
-          <p className="text-sm text-gray-600 mt-1">
-            Essential attributes for migration planning and assessment
-          </p>
-        </div>
-        <div className="flex items-center space-x-3">
-          {isAnalyzing && (
-            <div className="flex items-center space-x-2 text-blue-600">
-              <RefreshCw className="h-4 w-4 animate-spin" />
-              <span className="text-sm">Analyzing...</span>
+    <div className="p-6 space-y-6">
+      {/* 🔧 SESSION INFO DISPLAY */}
+      {sessionInfo && (sessionInfo.sessionId || sessionInfo.flowId) && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="flex flex-col text-sm">
+                {sessionInfo.flowId && (
+                  <span className="text-blue-700">
+                    <strong>Flow ID:</strong> {sessionInfo.flowId}
+                  </span>
+                )}
+                {sessionInfo.sessionId && (
+                  <span className="text-blue-600">
+                    <strong>Session ID:</strong> {sessionInfo.sessionId}
+                  </span>
+                )}
+              </div>
+              {sessionInfo.hasMultipleSessions && (
+                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                  {sessionInfo.availableDataImports.length} data imports available
+                </span>
+              )}
             </div>
-          )}
-          <button
+            <div className="text-xs text-blue-600">
+              Last updated: {lastRefresh.toLocaleTimeString()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-gray-900">Critical Attributes Mapping</h2>
+        <div className="flex items-center space-x-3">
+          <Button
             onClick={refreshCriticalAttributes}
-            disabled={loading}
-            className="flex items-center space-x-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            disabled={loading || externalLoading}
+            variant="outline"
+            size="sm"
+            className="flex items-center space-x-2"
           >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            <span className="text-sm">Refresh</span>
-          </button>
+            <RefreshCw className={`h-4 w-4 ${(loading || externalLoading) ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
+          </Button>
         </div>
       </div>
 

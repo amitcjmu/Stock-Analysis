@@ -11,6 +11,14 @@ interface AttributeMappingTabContentProps {
   onApproveMapping: (mappingId: string) => void;
   onRejectMapping: (mappingId: string) => void;
   refetchAgentic: () => void;
+  onAttributeUpdate?: (attributeName: string, updates: Partial<any>) => void;
+  sessionInfo?: {
+    sessionId: string | null;
+    flowId: string | null;
+    availableDataImports: any[];
+    selectedDataImportId: string | null;
+    hasMultipleSessions: boolean;
+  };
 }
 
 const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
@@ -20,7 +28,9 @@ const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
   agenticData,
   onApproveMapping,
   onRejectMapping,
-  refetchAgentic
+  refetchAgentic,
+  onAttributeUpdate,
+  sessionInfo
 }) => {
   const renderTabContent = () => {
     switch (activeTab) {
@@ -31,6 +41,7 @@ const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
             onApproveMapping={onApproveMapping}
             onRejectMapping={onRejectMapping}
             isLoading={false}
+            sessionInfo={sessionInfo}
           />
         );
       case 'critical':
@@ -38,7 +49,10 @@ const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
           <CriticalAttributesTab
             criticalAttributes={criticalAttributes}
             onRefreshCriticalData={refetchAgentic}
+            onAttributeUpdate={onAttributeUpdate}
             isLoading={false}
+            fieldMappings={fieldMappings}
+            sessionInfo={sessionInfo}
           />
         );
       case 'data':
@@ -46,6 +60,7 @@ const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
           <ImportedDataTab
             rawData={agenticData?.raw_data || []}
             isLoading={false}
+            sessionInfo={sessionInfo}
           />
         );
       default:
@@ -53,7 +68,10 @@ const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
           <CriticalAttributesTab
             criticalAttributes={criticalAttributes}
             onRefreshCriticalData={refetchAgentic}
+            onAttributeUpdate={onAttributeUpdate}
             isLoading={false}
+            fieldMappings={fieldMappings}
+            sessionInfo={sessionInfo}
           />
         );
     }
