@@ -76,24 +76,28 @@ class CrewAIFlowService:
             logger.warning("CrewAI Flow not available - using fallback mode")
     
     def _initialize_agents(self) -> Dict[str, Any]:
-        """Initialize Discovery Agents for CrewAI integration."""
+        """Initialize CrewAI crews for enhanced discovery workflows."""
         agents = {}
         
         try:
-            # Import and initialize existing discovery agents
-            from app.services.discovery_agents.data_source_intelligence_agent import DataSourceIntelligenceAgent
-            from app.services.discovery_agents.dependency_intelligence_agent import DependencyIntelligenceAgent
+            # Import and initialize CrewAI crews instead of individual agents
+            from app.services.crewai_flows.crews.inventory_building_crew import create_inventory_building_crew
+            from app.services.crewai_flows.crews.field_mapping_crew import create_field_mapping_crew
+            from app.services.crewai_flows.crews.app_server_dependency_crew import create_app_server_dependency_crew
+            from app.services.crewai_flows.crews.data_cleansing_crew import create_data_cleansing_crew
             
-            # Initialize agents
-            agents['data_source_intelligence'] = DataSourceIntelligenceAgent()
-            agents['dependency_intelligence'] = DependencyIntelligenceAgent()
+            # Initialize CrewAI crews
+            agents['inventory_building'] = create_inventory_building_crew()
+            agents['field_mapping'] = create_field_mapping_crew()
+            agents['dependency_analysis'] = create_app_server_dependency_crew()
+            agents['data_cleansing'] = create_data_cleansing_crew()
             
-            logger.info(f"✅ Initialized {len(agents)} Discovery Agents for CrewAI integration")
+            logger.info(f"✅ Initialized {len(agents)} CrewAI Crews for discovery workflows")
             
         except ImportError as e:
-            logger.error(f"Failed to import discovery agents: {e}")
+            logger.error(f"Failed to import CrewAI crews: {e}")
         except Exception as e:
-            logger.error(f"Failed to initialize discovery agents: {e}")
+            logger.error(f"Failed to initialize CrewAI crews: {e}")
         
         return agents
     

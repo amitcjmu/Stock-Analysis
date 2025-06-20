@@ -111,51 +111,19 @@ class AgentUIBridge:
         # Apply presentation review to filter and improve insights
         if page_insights:
             try:
-                # Import here to avoid circular dependency
-                from app.services.discovery_agents.presentation_reviewer_agent import presentation_reviewer_agent
+                # Use simplified presentation review without individual agent
+                # This can be enhanced with CrewAI crews in the future
+                logger.info(f"Applying simplified presentation review for {len(page_insights)} insights")
                 
-                # Get supporting data context from classifications
-                supporting_data_context = self.get_classified_data_for_page(page)
+                # Basic filtering - remove low confidence insights
+                reviewed_insights = []
+                for insight in page_insights:
+                    confidence_value = insight.get('confidence', 'medium')
+                    if confidence_value in ['high', 'very_high'] or len(page_insights) <= 3:
+                        reviewed_insights.append(insight)
                 
-                # Use create_task to handle async in sync context
-                import asyncio
-                try:
-                    # Try to get existing loop
-                    loop = asyncio.get_running_loop()
-                    # Create a task that can be awaited later
-                    # For now, skip async review to avoid loop conflicts
-                    logger.info(f"Skipping async presentation review to avoid event loop conflict for {len(page_insights)} insights")
-                    return page_insights
-                except RuntimeError:
-                    # No running loop, safe to create new one
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                    try:
-                        review_result = loop.run_until_complete(
-                            presentation_reviewer_agent.review_insights_for_presentation(
-                                page_insights, page, supporting_data_context
-                            )
-                        )
-                        
-                        # Process agent feedback if any
-                        agent_feedback = review_result.get("agent_feedback", [])
-                        if agent_feedback:
-                            logger.info(f"Presentation reviewer provided feedback for {len(agent_feedback)} insights")
-                            # Store feedback for agent learning
-                            for feedback in agent_feedback:
-                                self.set_cross_page_context(
-                                    f"agent_feedback_{feedback['target_agent_id']}", 
-                                    feedback, 
-                                    "presentation_reviewer"
-                                )
-                        
-                        # Return reviewed insights
-                        reviewed_insights = review_result.get("reviewed_insights", page_insights)
-                        
-                        logger.info(f"Presentation review: {len(reviewed_insights)}/{len(page_insights)} insights approved for {page}")
-                        return reviewed_insights
-                    finally:
-                        loop.close()
+                logger.info(f"Presentation review: {len(reviewed_insights)}/{len(page_insights)} insights approved for {page}")
+                return reviewed_insights
                 
             except Exception as e:
                 logger.error(f"Error in presentation review: {e}")
