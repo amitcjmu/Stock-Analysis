@@ -1,5 +1,30 @@
 # AI Force Migration Platform - Change Log
 
+## [0.4.23] - 2025-01-03
+
+### 🎯 **DATA UPLOAD WORKFLOW ISSUE RESOLUTION**
+
+This release addresses the critical data upload workflow confusion where users were accessing attribute mapping directly instead of starting with data upload.
+
+### 🚀 **Upload Flow Guidance**
+
+#### **Navigation Clarity Enhancement**
+- **User Experience Fix**: Added clear guidance when users access attribute mapping without current session data
+- **Upload Path Redirect**: Prominent button to redirect users to `/discovery/cmdb-import` for new data uploads
+- **Data Source Indicator**: Alert shows when viewing old data vs current session data
+- **Session Information Panel**: Displays current session ID and flow status when active session exists
+
+### 📊 **Root Cause Analysis**
+- **Upload Process**: Confirmed backend endpoints `/api/v1/data-import/validate-upload` are functional
+- **Data Persistence**: Upload → validation → storage → discovery flow pipeline working correctly
+- **Navigation Issue**: Users bypassing upload step by going directly to attribute mapping
+- **Data Display**: System correctly showing last available data when no current session active
+
+### 🎯 **Success Metrics**
+- **Clear Workflow**: Users guided to proper upload starting point
+- **Session Tracking**: Visible session information for current uploads
+- **Data Context**: Clear indication of data source and timing
+
 ## [0.4.12] - 2025-01-19
 
 ### 🎯 **DISCOVERY FLOW DATA PERSISTENCE RESTORATION**

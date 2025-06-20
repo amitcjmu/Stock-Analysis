@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Button } from '../../components/ui/button';
-import { RefreshCw, Zap, ArrowRight } from 'lucide-react';
+import { RefreshCw, Zap, ArrowRight, AlertTriangle, ArrowLeft, Upload } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useNavigate } from 'react-router-dom';
 
 // Components
 import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
@@ -21,6 +23,7 @@ import { useAttributeMappingNavigation } from '../../hooks/discovery/useAttribut
 
 const AttributeMapping: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'mappings' | 'data' | 'critical'>('critical');
+  const navigate = useNavigate();
 
   // Custom hooks for business logic
   const {
@@ -69,6 +72,10 @@ const AttributeMapping: React.FC = () => {
     hasMultipleSessions: availableDataImports.length > 1
   };
 
+  // Check if we have session data - if not, show redirect message
+  const hasSessionData = sessionId || flowState;
+  const hasUploadedData = agenticData?.attributes && agenticData.attributes.length > 0;
+
   return (
     <AttributeMappingStateProvider
       isLoading={isLoading}
@@ -85,6 +92,55 @@ const AttributeMapping: React.FC = () => {
 
         <div className="flex-1 overflow-y-auto">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-7xl">
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Attribute Mapping</h1>
+              <p className="text-gray-600">Map your data fields to standard migration attributes and verify data quality.</p>
+            </div>
+
+            {/* Show redirect message if showing old data */}
+            {!sessionId && (
+              <Alert className="mb-6 border-blue-200 bg-blue-50">
+                <Upload className="h-5 w-5 text-blue-600" />
+                <AlertDescription className="text-blue-800">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="font-medium mb-2">No Current Data Upload Session</p>
+                      <p className="text-sm">
+                        To start the discovery flow with new data, please begin by uploading your CMDB file on the Data Import page. 
+                        The data shown below is from a previous upload session.
+                      </p>
+                    </div>
+                    <Button 
+                      onClick={() => navigate('/discovery/cmdb-import')}
+                      className="ml-4 bg-blue-600 hover:bg-blue-700 flex items-center space-x-2"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      <span>Start Data Upload</span>
+                    </Button>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Session Information Panel */}
+            {sessionId && (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-900">Current Session</h3>
+                    <p className="text-xs text-gray-600 font-mono">{sessionId}</p>
+                    {flowState && (
+                      <p className="text-xs text-green-600 mt-1">✅ Discovery flow data available</p>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-gray-500">Last updated</p>
+                    <p className="text-xs text-gray-900">Session active</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="mb-6">
               <ContextBreadcrumbs />
             </div>
