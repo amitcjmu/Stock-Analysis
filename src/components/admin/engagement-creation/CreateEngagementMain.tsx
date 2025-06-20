@@ -56,7 +56,10 @@ export const CreateEngagementMain: React.FC = () => {
     mutationFn: async (submissionData: any) => {
       return await apiCall('/admin/engagements/', {
         method: 'POST',
-        body: submissionData
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(submissionData)
       });
     },
     // Pass engagement name via context for toast
@@ -118,6 +121,7 @@ export const CreateEngagementMain: React.FC = () => {
     if (!formData.project_manager) newErrors.project_manager = 'Project manager is required';
     if (!formData.estimated_start_date) newErrors.estimated_start_date = 'Start date is required';
     if (!formData.estimated_end_date) newErrors.estimated_end_date = 'End date is required';
+    if (!formData.target_cloud_provider) newErrors.target_cloud_provider = 'Target cloud provider is required';
     if (formData.estimated_start_date && formData.estimated_end_date) {
       if (new Date(formData.estimated_start_date) >= new Date(formData.estimated_end_date)) {
         newErrors.estimated_end_date = 'End date must be after start date';
@@ -137,13 +141,24 @@ export const CreateEngagementMain: React.FC = () => {
       });
       return;
     }
+
+    // Determine migration scope based on checkboxes
+    let migrationScope = 'application_portfolio'; // Default
+    if (formData.scope_applications && formData.scope_databases && formData.scope_infrastructure) {
+      migrationScope = 'full_datacenter';
+    } else if (formData.scope_applications && !formData.scope_databases && !formData.scope_infrastructure) {
+      migrationScope = 'selected_applications';
+    } else if (!formData.scope_applications && !formData.scope_databases && formData.scope_infrastructure) {
+      migrationScope = 'infrastructure_only';
+    }
+
     // Format data for submission - map frontend fields to backend fields
     const submissionData = {
       engagement_name: formData.engagement_name,
       client_account_id: formData.client_account_id,
-      engagement_description: formData.description,
-      migration_scope: 'full_datacenter', // Enum value that matches MigrationScopeEnum.FULL_DATACENTER
-      target_cloud_provider: formData.target_cloud_provider || 'aws', // Enum value that matches CloudProviderEnum.AWS
+      engagement_description: formData.description || `${formData.engagement_name} migration engagement`,
+      migration_scope: migrationScope,
+      target_cloud_provider: formData.target_cloud_provider || 'aws',
       engagement_manager: formData.project_manager,
       technical_lead: formData.project_manager, // Use same person as default
       planned_start_date: formData.estimated_start_date ? new Date(formData.estimated_start_date).toISOString() : null,
@@ -154,6 +169,8 @@ export const CreateEngagementMain: React.FC = () => {
       discovery_preferences: {},
       assessment_criteria: {}
     };
+
+    console.log('Submitting engagement data:', JSON.stringify(submissionData, null, 2));
     createEngagementMutation.mutate(submissionData);
   };
 
