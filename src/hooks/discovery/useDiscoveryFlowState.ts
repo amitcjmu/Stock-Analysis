@@ -116,7 +116,17 @@ export const useDiscoveryFlowState = () => {
   // Effect to handle initialization from navigation state (e.g., from Data Import)
   useEffect(() => {
     const state = location.state as any;
+    
+    // Handle case where flow is already started and we just need to track it
+    if (state?.flow_session_id && !currentSessionId) {
+      console.log('🔍 Setting current session ID from navigation state:', state.flow_session_id);
+      setCurrentSessionId(state.flow_session_id);
+      return;
+    }
+    
+    // Only trigger new flow if explicitly requested
     if (state?.trigger_discovery_flow && client?.id && engagement?.id && user?.id) {
+        console.log('🚀 Triggering new discovery flow from navigation state');
         initializeFlow.mutate({
             client_account_id: client.id,
             engagement_id: engagement.id,
@@ -128,7 +138,7 @@ export const useDiscoveryFlowState = () => {
         // Clear state to prevent re-triggering
         window.history.replaceState({}, document.title)
     }
-  }, [location.state, client, engagement, user, initializeFlow]);
+  }, [location.state, client, engagement, user, initializeFlow, currentSessionId]);
 
 
   return {

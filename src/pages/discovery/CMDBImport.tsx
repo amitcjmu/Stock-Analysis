@@ -550,7 +550,6 @@ const DataImport: React.FC = () => {
             import_session_id: file.importSessionId,
             flow_session_id: discoveryFlowResponse.session_id, // ✅ CrewAI flow session ID
             flow_id: discoveryFlowResponse.flow_id,
-            trigger_discovery_flow: true,
             raw_data: csvData, // ✅ Include actual uploaded data
             upload_context: {
               category: selectedCategory,

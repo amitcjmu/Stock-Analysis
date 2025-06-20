@@ -179,6 +179,9 @@ class DataImportValidationService:
             return [self._make_json_serializable(item) for item in data]
         elif isinstance(data, datetime):
             return data.isoformat()
+        elif hasattr(data, '__class__') and data.__class__.__name__ == 'UUID':
+            # Handle UUID objects
+            return str(data)
         else:
             return data
     

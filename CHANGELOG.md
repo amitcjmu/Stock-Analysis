@@ -1,6 +1,44 @@
 # AI Force Migration Platform - Change Log
 
-## [0.4.25] - 2025-01-03
+## [0.4.26] - 2024-12-20
+
+### 🎯 **DISCOVERY FLOW DATA PERSISTENCE - Root Cause Resolution**
+
+Critical fix for discovery flow data persistence and infinite retry loops. Resolved fundamental issues that were preventing successful flow initiation and creating duplicate flow executions.
+
+### 🚀 **Data Flow Architecture Fixes**
+
+#### **Discovery Flow Duplicate Initiation Resolution**
+- **Root Cause**: Found two separate flow initiation mechanisms causing conflicts
+- **Issue**: `handleProceedToMapping` started flow correctly, then `useDiscoveryFlowState` triggered duplicate flow with wrong parameters
+- **Fix**: Removed `trigger_discovery_flow` from navigation state to prevent duplicate flow starts
+- **Result**: Single, clean flow initiation with correct parameter format
+
+#### **API Parameter Format Mismatch Resolution**  
+- **Root Cause**: Frontend-backend API contract mismatch for discovery flow endpoints
+- **Frontend Sent**: `{client_account_id, engagement_id, user_id, raw_data, metadata, configuration}`
+- **Backend Expected**: `{headers, sample_data, filename, options}`
+- **Fix**: Corrected flow tracking in `useDiscoveryFlowState` to handle existing flows vs new flows
+- **Integration**: Enhanced session ID management from navigation state
+
+#### **UUID Serialization Error Fix**
+- **Root Cause**: Validation session storage failing with "Object of type UUID is not JSON serializable"
+- **Fix**: Enhanced `_make_json_serializable` method to handle UUID objects
+- **Impact**: Prevents validation session storage failures during data import
+
+### 📊 **Technical Achievements**
+- **Flow Architecture**: Eliminated duplicate flow initiation patterns
+- **Data Persistence**: Fixed validation session UUID serialization errors  
+- **Parameter Mapping**: Corrected frontend-backend API contract alignment
+- **Session Management**: Enhanced flow session tracking and state management
+
+### 🎯 **Success Metrics**
+- **Flow Initiation**: Single, clean discovery flow start (eliminated duplicates)
+- **Data Validation**: UUID serialization errors resolved
+- **Parameter Handling**: Correct API format maintained throughout flow
+- **Session Tracking**: Proper flow session ID management from navigation state
+
+## [0.4.25] - 2024-12-20
 
 ### 🎯 **DISCOVERY FLOW DEBUGGING & ROOT CAUSE ANALYSIS**
 
@@ -1021,8 +1059,6 @@ This release resolves critical issues with data import to Discovery Flow navigat
 - **Data Persistence**: Complete end-to-end data availability from upload to analysis
 - **Flow Initialization**: Automatic Discovery Flow triggering with proper Field Mapping Crew startup
 - **User Experience**: Seamless upload-to-analysis workflow with clear feedback and error recovery
-
----
 
 ## [0.20.2] - 2025-01-03
 
