@@ -488,14 +488,18 @@ const DataImport: React.FC = () => {
       setIsStartingFlow(true);
       
              // Get the stored data for CrewAI flow (already validated and stored)
+       console.log('🔍 DEBUG: file.importSessionId =', file.importSessionId);
        const csvData = await getStoredImportData(file.importSessionId);
+       console.log('🔍 DEBUG: csvData.length =', csvData.length);
       
       if (csvData.length === 0) {
+        console.warn('❌ No data retrieved from getStoredImportData');
         toast({
           title: "No Data Found",
-          description: "The uploaded file appears to be empty or invalid.",
+          description: `Import session ID: ${file.importSessionId}. The uploaded file appears to be empty or the data wasn't stored properly. Please try uploading again.`,
           variant: "destructive"
         });
+        setIsStartingFlow(false);
         return;
       }
 
@@ -576,25 +580,32 @@ const DataImport: React.FC = () => {
 
   // Helper function to get stored import data
   const getStoredImportData = async (importSessionId: string | undefined): Promise<any[]> => {
+    console.log('🔍 getStoredImportData called with:', importSessionId);
+    
     if (!importSessionId) {
-      console.warn('No import session ID provided');
+      console.warn('❌ No import session ID provided');
       return [];
     }
     
     try {
-      const response = await apiCall(`/data-import/get-import/${importSessionId}`, {
+      console.log('🔍 Making API call to:', `/data-import/import/${importSessionId}`);
+      
+      const response = await apiCall(`/data-import/import/${importSessionId}`, {
         method: 'GET',
         headers: getAuthHeaders()
       });
       
+      console.log('🔍 API response:', response);
+      
       if (response.success && response.data) {
+        console.log('✅ Retrieved data:', response.data.length, 'records');
         return response.data;
       } else {
-        console.warn('No stored data found for import session:', importSessionId);
+        console.warn('❌ No stored data found for import session:', importSessionId, 'Response:', response);
         return [];
       }
     } catch (error) {
-      console.error('Error retrieving stored import data:', error);
+      console.error('❌ Error retrieving stored import data:', error);
       return [];
     }
   };
