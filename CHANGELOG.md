@@ -1364,4 +1364,67 @@ access_result = await rbac_service.validate_user_access(
 
 ---
 
-## [0.4.17] - 2025-01-18
+## [0.4.19] - 2025-01-18
+
+### 🔑 **PLATFORM ADMIN RBAC FIX - Restored Admin Functionality**
+
+This release fixes the overly restrictive RBAC implementation that was preventing legitimate platform administrators from accessing client data.
+
+### ✅ **Platform Admin Access Restoration**
+
+#### **Admin Client Access Fix**
+- **Platform Admin Recognition**: Added proper detection of `platform_admin` role in client endpoints
+- **All Client Access**: Platform admins now get access to ALL active clients without explicit client_access entries
+- **Role-Based Routing**: Regular users still require explicit client access permissions via client_access table
+- **Proper Authorization**: Eliminated blank client/engagement lists for legitimate admin users
+
+#### **Admin Engagement Access Fix**
+- **Cross-Client Access**: Platform admins can access engagements for ANY client they can view
+- **Engagement Authorization**: Maintains access control for regular users while enabling admin oversight
+- **Context Switching**: Admin users can now switch between all available clients and engagements
+- **Navigation Restoration**: Fixed breadcrumb navigation and context switching functionality
+
+### 🔧 **Database Schema Integration**
+
+#### **Role Validation Enhancement**
+- **UserRole Integration**: Proper querying of `user_roles` table for platform admin detection
+- **Active Role Checking**: Validates both role existence and active status
+- **Multi-Role Support**: Framework supports multiple role types with different access levels
+- **Permission Inheritance**: Platform admins inherit all client access without explicit grants
+
+### 📊 **API Endpoint Updates**
+
+#### **Client Access API (`/api/v1/clients`)**
+- **Before**: Required explicit client_access entries for ALL users
+- **After**: Platform admins get all clients, regular users require explicit access
+- **Testing**: Verified admin user can access 4 clients (Acme, Marathon, Complete Test, Democorp)
+
+#### **Engagement Access API (`/api/v1/clients/{client_id}/engagements`)**
+- **Before**: Client access validation blocked admin users
+- **After**: Platform admins can access any client's engagements
+- **Testing**: Verified admin can access Marathon Petroleum engagements including Azure Transformation 2
+
+### 🎯 **Business Impact**
+
+- **Admin Functionality Restored**: Platform administrators can now properly manage all clients and engagements
+- **Context Switching Fixed**: Breadcrumb navigation and client switching working for admin users
+- **Data Access Enabled**: Legitimate admin users can access appropriate data based on their role
+- **Security Maintained**: Regular users still require explicit permissions while admins have oversight access
+
+### 🔒 **Security Compliance**
+
+- **Role-Based Access**: Proper RBAC implementation with role hierarchy
+- **Least Privilege**: Regular users still limited to explicitly granted client access
+- **Admin Oversight**: Platform admins have necessary access for system administration
+- **Audit Trail**: All access decisions based on database role assignments
+
+### 💡 **Next Steps**
+
+This fix resolves the immediate RBAC issue for platform administrators. Additional investigation needed for:
+- **Data Persistence**: Uploaded CMDB data not persisting to assets table
+- **Import Sessions**: Data import sessions not being created during file uploads
+- **Context Persistence**: Ensuring uploaded data flows through discovery pipeline
+
+---
+
+## [0.4.18] - 2025-01-18
