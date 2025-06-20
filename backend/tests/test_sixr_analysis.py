@@ -14,7 +14,7 @@ from app.schemas.sixr_analysis import (
     QualifyingQuestion, QuestionResponse, SixRStrategy, ApplicationType
 )
 from app.services.sixr_engine_modular import SixRDecisionEngine
-from app.services.sixr_agents_modular import SixRAgentOrchestrator
+from app.services.crewai_flows.crews.technical_debt_crew import create_technical_debt_crew
 from app.services.tools.sixr_tools import (
     CMDBAnalysisTool, ParameterScoringTool, QuestionGenerationTool,
     CodeAnalysisTool, RecommendationValidationTool

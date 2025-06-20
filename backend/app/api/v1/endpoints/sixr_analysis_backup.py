@@ -24,7 +24,7 @@ from app.schemas.sixr_analysis import (
     SixRParameterBase, ApplicationType, SixRParameters, SixRRecommendation
 )
 from app.services.sixr_engine_modular import SixRDecisionEngine
-from app.services.sixr_agents_modular import SixRAnalysisAgents
+from app.services.crewai_flows.crews.technical_debt_crew import create_technical_debt_crew
 from app.services.tools.sixr_tools import get_sixr_tools
 
 logger = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ router = APIRouter()
 
 # Initialize services
 decision_engine = SixRDecisionEngine()
-analysis_agents = SixRAnalysisAgents()
+# Technical Debt Crew will be created per-request as needed
 logger.info("6R services initialized successfully")
 
 
