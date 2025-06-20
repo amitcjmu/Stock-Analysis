@@ -1,22 +1,51 @@
 """
 Agent Processing Handler
-Handles agent-driven data processing and cleanup operations.
+Handles CrewAI-driven data processing and cleanup operations.
 """
 
 import logging
 from typing import Dict, List, Optional, Any
+import os
 
 logger = logging.getLogger(__name__)
 
+# Check CrewAI availability
+CREWAI_AVAILABLE = bool(os.getenv('DEEPINFRA_API_KEY') and os.getenv('CREWAI_ENABLED', 'true').lower() == 'true')
+
+try:
+    from app.services.crewai_flows.data_cleansing_crew import create_data_cleansing_crew
+    from app.services.crewai_flows.inventory_building_crew import create_inventory_building_crew
+    CREWS_AVAILABLE = True
+except ImportError:
+    CREWS_AVAILABLE = False
+
 class AgentProcessingHandler:
-    """Handler for agent-driven data processing operations."""
+    """Handler for CrewAI-driven data processing operations."""
     
-    def __init__(self):
-        self.agent_intelligence_available = True
+    def __init__(self, llm=None):
+        self.llm = llm
+        self.crews = {}
+        self.service_available = CREWAI_AVAILABLE and CREWS_AVAILABLE
+        
+        if self.service_available and self.llm:
+            self._initialize_crews()
+        
+        logger.info(f"Agent processing handler initialized (CrewAI: {self.service_available})")
+    
+    def _initialize_crews(self):
+        """Initialize CrewAI crews for data processing."""
+        try:
+            if CREWS_AVAILABLE and self.llm:
+                self.crews['data_cleansing'] = create_data_cleansing_crew(llm=self.llm)
+                self.crews['inventory_building'] = create_inventory_building_crew(llm=self.llm)
+                logger.info("CrewAI crews initialized for data processing")
+        except Exception as e:
+            logger.error(f"Failed to initialize crews: {e}")
+            self.service_available = False
     
     def is_available(self) -> bool:
         """Check if the handler is available."""
-        return True
+        return self.service_available
     
     async def process_data_cleanup(self, asset_data: List[Dict[str, Any]], 
                                  agent_operations: List[Dict[str, Any]],
@@ -24,106 +53,99 @@ class AgentProcessingHandler:
                                  client_account_id: Optional[str] = None,
                                  engagement_id: Optional[str] = None) -> Dict[str, Any]:
         """
-        Agent-driven data processing with intelligent cleanup operations.
+        CrewAI-driven data processing with intelligent cleanup operations.
         """
         try:
-            # Try agent-driven processing first
-            if self.agent_intelligence_available:
+            if not self.service_available:
+                return await self._fallback_data_processing(asset_data, agent_operations, user_preferences)
+            
+            # Use Data Cleansing Crew for processing
+            if 'data_cleansing' in self.crews:
                 try:
-                    # Import agent communication service
-                    from app.services.agent_ui_bridge import AgentUIBridge
-                    
-                    agent_bridge = AgentUIBridge()
-                    
-                    # Prepare cleanup request for agents
-                    cleanup_request = {
-                        "data_source": {
-                            "assets": asset_data,
-                            "total_count": len(asset_data),
-                            "context": "data_cleanup_processing"
-                        },
-                        "operations": agent_operations,
-                        "user_preferences": user_preferences,
-                        "analysis_type": "data_cleanup_processing",
-                        "page_context": "data-cleansing",
-                        "client_context": {
-                            "client_account_id": client_account_id,
-                            "engagement_id": engagement_id
+                    crew_result = self.crews['data_cleansing'].kickoff({
+                        'asset_data': asset_data,
+                        'operations': agent_operations,
+                        'user_preferences': user_preferences,
+                        'task': 'data_cleanup_processing',
+                        'client_context': {
+                            'client_account_id': client_account_id,
+                            'engagement_id': engagement_id
                         }
-                    }
+                    })
                     
-                    # Get agent-driven cleanup
-                    agent_response = await agent_bridge.process_with_agents(cleanup_request)
-                    
-                    if agent_response.get("status") == "success":
+                    if crew_result and isinstance(crew_result, dict):
                         return {
                             "status": "success",
-                            "processing_type": "agent_driven",
-                            "cleaned_assets": agent_response.get("processed_assets", asset_data),
-                            "quality_improvement": agent_response.get("quality_improvement", {}),
-                            "operations_applied": agent_response.get("operations_applied", []),
-                            "quality_metrics": agent_response.get("quality_metrics", {}),
-                            "agent_confidence": agent_response.get("confidence", 0.85),
-                            "processing_summary": agent_response.get("processing_summary", "Agent processing completed")
+                            "processing_type": "crewai_driven",
+                            "cleaned_assets": crew_result.get("cleaned_assets", asset_data),
+                            "quality_improvement": crew_result.get("quality_improvement", {}),
+                            "operations_applied": crew_result.get("operations_applied", []),
+                            "quality_metrics": crew_result.get("quality_metrics", {}),
+                            "agent_confidence": crew_result.get("confidence", 0.9),
+                            "processing_summary": crew_result.get("summary", "CrewAI processing completed"),
+                            "ai_analysis_recommended": False
                         }
-                    
                 except Exception as e:
-                    logger.warning(f"Agent processing failed, using fallback: {e}")
-                    self.agent_intelligence_available = False
+                    logger.error(f"Data Cleansing Crew processing failed: {e}")
+            
+            # Use Inventory Building Crew as fallback
+            if 'inventory_building' in self.crews:
+                try:
+                    crew_result = self.crews['inventory_building'].kickoff({
+                        'asset_data': asset_data,
+                        'operations': agent_operations,
+                        'task': 'data_processing',
+                        'client_context': {
+                            'client_account_id': client_account_id,
+                            'engagement_id': engagement_id
+                        }
+                    })
+                    
+                    if crew_result and isinstance(crew_result, dict):
+                        return {
+                            "status": "success",
+                            "processing_type": "crewai_inventory_driven",
+                            "cleaned_assets": crew_result.get("processed_assets", asset_data),
+                            "quality_improvement": crew_result.get("quality_improvement", {}),
+                            "operations_applied": crew_result.get("operations_applied", []),
+                            "quality_metrics": crew_result.get("quality_metrics", {}),
+                            "agent_confidence": crew_result.get("confidence", 0.85),
+                            "processing_summary": crew_result.get("summary", "CrewAI inventory processing completed"),
+                            "ai_analysis_recommended": False
+                        }
+                except Exception as e:
+                    logger.error(f"Inventory Building Crew processing failed: {e}")
             
             # Fallback to rule-based processing
             return await self._fallback_data_processing(asset_data, agent_operations, user_preferences)
             
         except Exception as e:
-            logger.error(f"Error in process_data_cleanup: {e}")
+            logger.error(f"Error in CrewAI process_data_cleanup: {e}")
             return {
                 "status": "error",
                 "error": str(e),
-                "processing_type": "error"
+                "processing_type": "error",
+                "ai_analysis_recommended": True
             }
 
     async def _fallback_data_processing(self, asset_data: List[Dict[str, Any]], 
                                       agent_operations: List[Dict[str, Any]],
                                       user_preferences: Dict[str, Any]) -> Dict[str, Any]:
-        """Fallback processing using rule-based operations."""
-        logger.info("Using fallback rule-based data processing")
-        
-        processed_assets = []
-        operations_applied = []
-        
-        for asset in asset_data:
-            processed_asset = asset.copy()
-            asset_operations = []
-            
-            # Apply basic cleanup operations
-            for operation in agent_operations:
-                op_type = operation.get("operation", "")
-                
-                if op_type == "standardize_asset_types":
-                    processed_asset = self._standardize_asset_type(processed_asset)
-                    asset_operations.append("standardize_asset_types")
-                
-                elif op_type == "normalize_environments":
-                    processed_asset = self._normalize_environment(processed_asset)
-                    asset_operations.append("normalize_environments")
-                
-                elif op_type == "fix_hostname_format":
-                    processed_asset = self._fix_hostname_format(processed_asset)
-                    asset_operations.append("fix_hostname_format")
-            
-            processed_assets.append(processed_asset)
-            if asset_operations:
-                operations_applied.extend(asset_operations)
+        """Fallback processing when CrewAI is not available."""
+        logger.info("Using fallback processing - CrewAI crews not available")
         
         return {
             "status": "success",
-            "processing_type": "fallback_rules",
-            "cleaned_assets": processed_assets,
-            "quality_improvement": {"processed_count": len(processed_assets)},
-            "operations_applied": list(set(operations_applied)),
-            "quality_metrics": {"improvement_score": 15},
-            "agent_confidence": 0.6,
-            "processing_summary": f"Applied fallback processing to {len(processed_assets)} assets"
+            "processing_type": "fallback",
+            "cleaned_assets": asset_data,  # Return original data
+            "quality_improvement": {"processed_count": len(asset_data)},
+            "operations_applied": ["fallback_processing"],
+            "quality_metrics": {"improvement_score": 0},
+            "agent_confidence": 0.5,
+            "processing_summary": f"Fallback processing for {len(asset_data)} assets",
+            "ai_analysis_recommended": True,
+            "recommended_crew": "Data Cleansing Crew",
+            "message": "Enable CrewAI for intelligent data processing"
         }
 
     async def process_agent_driven_cleanup(self, asset_data: List[Dict[str, Any]], 
@@ -131,67 +153,11 @@ class AgentProcessingHandler:
                                          user_preferences: Dict[str, Any] = None,
                                          client_account_id: Optional[str] = None,
                                          engagement_id: Optional[str] = None) -> Dict[str, Any]:
-        """Process agent-driven cleanup operations on asset data."""
+        """Process CrewAI-driven cleanup operations on asset data."""
         if user_preferences is None:
             user_preferences = {}
             
         # Use the main processing method
         return await self.process_data_cleanup(
             asset_data, agent_operations, user_preferences, client_account_id, engagement_id
-        )
-
-    def _standardize_asset_type(self, asset: Dict[str, Any]) -> Dict[str, Any]:
-        """Standardize asset type values."""
-        asset_type = str(asset.get("asset_type", "")).lower().strip()
-        
-        # Standard mappings
-        type_mappings = {
-            "server": "SERVER",
-            "srv": "SERVER", 
-            "host": "SERVER",
-            "db": "DATABASE",
-            "database": "DATABASE",
-            "app": "APPLICATION",
-            "application": "APPLICATION",
-            "net": "NETWORK",
-            "network": "NETWORK",
-            "storage": "STORAGE",
-            "stor": "STORAGE"
-        }
-        
-        standardized_type = type_mappings.get(asset_type, asset.get("asset_type", "UNKNOWN"))
-        asset["asset_type"] = standardized_type
-        return asset
-
-    def _normalize_environment(self, asset: Dict[str, Any]) -> Dict[str, Any]:
-        """Normalize environment values."""
-        environment = str(asset.get("environment", "")).lower().strip()
-        
-        # Standard mappings
-        env_mappings = {
-            "prod": "production",
-            "production": "production",
-            "prd": "production",
-            "dev": "development", 
-            "development": "development",
-            "test": "testing",
-            "testing": "testing",
-            "tst": "testing",
-            "stage": "staging",
-            "staging": "staging",
-            "stg": "staging"
-        }
-        
-        normalized_env = env_mappings.get(environment, asset.get("environment", "unknown"))
-        asset["environment"] = normalized_env
-        return asset
-
-    def _fix_hostname_format(self, asset: Dict[str, Any]) -> Dict[str, Any]:
-        """Fix hostname formatting issues."""
-        hostname = asset.get("hostname", "")
-        if hostname:
-            # Convert to lowercase and remove invalid characters
-            hostname = str(hostname).lower().strip()
-            hostname = ''.join(c for c in hostname if c.isalnum() or c in '-_.')
-            asset["hostname"] = hostname
-        return asset 
+        ) 
