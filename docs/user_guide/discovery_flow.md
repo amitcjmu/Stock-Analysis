@@ -2,21 +2,29 @@
 
 ## 📋 **Overview**
 
-This guide provides step-by-step instructions for using the enhanced Discovery Flow with CrewAI agents, hierarchical crew management, shared memory, and intelligent collaboration. The Discovery Flow has been completely redesigned to leverage AI agents that learn and adapt, providing superior accuracy and insights for cloud migration planning.
+This guide provides step-by-step instructions for using the enhanced Discovery Flow with CrewAI agents, automatic state persistence, and intelligent database integration. The Discovery Flow has been completely redesigned to leverage AI agents that learn and adapt, with **automatic data persistence** throughout the entire process.
 
 ## 🎯 **What's New in the Enhanced Discovery Flow**
 
-### **AI-Powered Agent Teams**
-- **6 Specialized Crews**: Field Mapping, Data Cleansing, Inventory Building, App-Server Dependencies, App-App Dependencies, and Technical Debt
+### **AI-Powered Agent Teams with Automatic Persistence**
+- **6 Sequential Phases**: Field Mapping → Data Cleansing → Inventory Building → App-Server Dependencies → App-App Dependencies → Technical Debt
 - **21 Intelligent Agents**: Manager agents coordinate specialist agents for optimal results
-- **Shared Memory**: Agents learn from each phase and share insights across crews
-- **Real-Time Collaboration**: Agents collaborate in real-time to improve accuracy
+- **Automatic State Management**: Flow state automatically persisted at each phase completion
+- **Database Integration**: Assets automatically created in database after inventory building phase
+- **Real-Time Progress Tracking**: Live updates via WebSocket and REST API endpoints
+
+### **Automatic Persistence Architecture**
+- **Phase-Level Persistence**: Each crew completion automatically updates flow state in `DataImportSession.agent_insights`
+- **Asset Auto-Creation**: After inventory building, assets are automatically persisted to database with full multi-tenant context
+- **User Modification Support**: Users can review and modify data through UI; changes are tracked and persisted
+- **No Manual Confirmation Required**: System automatically saves progress - no user buttons needed for persistence
 
 ### **Key Benefits**
 - **90%+ Accuracy**: AI agents achieve superior field mapping and asset classification accuracy
-- **Learning Capability**: System improves with each discovery session
-- **Comprehensive Analysis**: Complete dependency mapping and technical debt assessment
-- **6R Strategy Preparation**: Automatic preparation for Assessment phase with strategic recommendations
+- **Seamless Data Flow**: Automatic persistence ensures no data loss between phases
+- **Real-Time Monitoring**: Live progress updates and phase completion tracking
+- **Multi-Tenant Security**: All data properly scoped by client account and engagement
+- **User-Friendly Experience**: Review and modify data without worrying about manual saves
 
 ---
 
@@ -34,8 +42,6 @@ This guide provides step-by-step instructions for using the enhanced Discovery F
    - ✅ User has Discovery permissions
    - ✅ Data source prepared (CMDB export, CSV file, or API integration)
 
-![Discovery Flow Entry Point](../screenshots/discovery-entry-point.png)
-
 ### **Step 2: Initialize Discovery Session**
 
 1. **Data Source Selection**
@@ -51,413 +57,283 @@ This guide provides step-by-step instructions for using the enhanced Discovery F
    - **For CMDB Import**: Enter connection details and select export options
    - **For API Integration**: Configure endpoint and authentication
 
-3. **Data Preview**
+3. **Data Preview and Automatic Initialization**
    - Review the first 10 rows of your data
    - Verify column headers and data quality
-   - Note any obvious data issues
-
-![Data Upload Interface](../screenshots/data-upload.png)
-
-### **Step 3: Configure Discovery Options**
-
-1. **Crew Configuration**
-   ```
-   ✅ Enable Field Mapping (Required)
-   ✅ Enable Data Cleansing (Recommended) 
-   ✅ Enable Inventory Building (Required)
-   ✅ Enable Dependency Analysis (Recommended)
-   ✅ Enable Technical Debt Analysis (For 6R preparation)
-   ```
-
-2. **Advanced Options**
-   - **Parallel Execution**: Enable for faster processing
-   - **Memory Sharing**: Enable for improved accuracy (Recommended)
-   - **Knowledge Integration**: Apply industry patterns (Recommended)
-   - **Confidence Threshold**: Set to 0.8 for high accuracy
-
-3. **Click "Initialize Discovery Flow"**
-
-![Configuration Options](../screenshots/discovery-configuration.png)
+   - System automatically initializes flow state with your data
+   - **Flow state is immediately persisted** - no action required
 
 ---
 
-## 🧠 **Understanding the Discovery Flow Interface**
+## 🔄 **Discovery Flow Phases (Automatic Execution)**
 
-### **Main Dashboard Overview**
+### **Phase 1: Field Mapping** 🗂️ (Auto-Persisted)
 
-The Discovery Flow interface provides real-time visibility into all crew activities:
+**What Happens Automatically:**
+- AI agents analyze your data structure and create precise field mappings
+- Results automatically stored in flow state upon completion
+- Confidence scores calculated and persisted
+- System automatically prepares for data cleansing phase
 
-![Discovery Flow Dashboard](../screenshots/discovery-dashboard.png)
+**User Interface:**
+- **Real-time progress**: Watch field mapping confidence scores build
+- **Review and Modify**: Click "Review Field Mappings" to see and adjust results
+- **Automatic Save**: All changes automatically saved to flow state
+- **No Manual Action Required**: Phase completes and persists automatically
 
-#### **1. Progress Overview**
-- **Overall Progress**: Shows completion percentage across all crews
-- **Current Phase**: Indicates which crew is currently active
-- **Estimated Time**: Real-time estimate of remaining processing time
-- **Session Info**: Session ID, flow fingerprint, and timing details
-
-#### **2. Crew Status Cards**
-Each crew has a dedicated status card showing:
-- **Crew Name and Manager**: e.g., "Field Mapping Crew" managed by "Field Mapping Manager"
-- **Progress Bar**: Visual progress indicator with percentage
-- **Agent Status**: Individual agent status (completed, in-progress, pending)
-- **Key Metrics**: Crew-specific metrics (confidence scores, assets processed, etc.)
-- **Execution Time**: Time spent in current crew
-
-#### **3. Real-Time Agent Activity**
-- **Active Agents**: Shows which agents are currently working
-- **Current Tasks**: Displays what each agent is currently doing
-- **Collaboration Events**: Shows when agents share insights or coordinate
-- **Performance Metrics**: Real-time efficiency and quality indicators
-
-#### **4. Memory and Knowledge Visualization**
-- **Shared Memory Usage**: Shows insights stored and cross-crew connections
-- **Knowledge Base Hits**: Displays successful pattern matches
-- **Learning Indicators**: Shows when agents learn new patterns
-- **Memory Efficiency**: Real-time memory usage and optimization
-
----
-
-## 📊 **Phase-by-Phase Walkthrough**
-
-### **Phase 1: Field Mapping Crew** 🎯
-
-**Purpose**: Analyzes your data structure and creates precise field mappings to migration standards.
-
-#### **What Happens**
-1. **Schema Analysis Expert** analyzes field meanings and relationships
-2. **Attribute Mapping Specialist** creates precise mappings with confidence scores
-3. **Field Mapping Manager** coordinates and validates the overall strategy
-
-#### **User Interface**
-
-![Field Mapping Phase](../screenshots/field-mapping-phase.png)
-
-#### **What to Watch For**
-- **High Confidence Scores**: Look for mappings with 0.8+ confidence
-- **Unmapped Fields**: Review any fields that couldn't be automatically mapped
-- **Semantic Insights**: Check the semantic patterns identified by agents
-
-#### **User Actions Available**
-- **Review Mappings**: Click "Review Field Mappings" to see detailed mapping results
-- **Adjust Confidence**: Lower confidence threshold if too many fields unmapped
-- **Manual Override**: Manually map any unmapped or incorrectly mapped fields
-- **Knowledge Feedback**: Provide feedback to improve future mapping accuracy
-
-#### **Success Indicators**
+**Success Indicators:**
 - ✅ Field mapping confidence > 0.8
 - ✅ Unmapped fields < 10%
-- ✅ Semantic patterns identified
-- ✅ Validation rules created
+- ✅ **Flow state automatically updated**
+- ✅ **Ready for next phase indicator appears**
 
-### **Phase 2: Data Cleansing Crew** 🧹
+### **Phase 2: Data Cleansing** 🧹 (Auto-Persisted)
 
-**Purpose**: Cleanses and standardizes data using the field mapping insights.
+**What Happens Automatically:**
+- AI agents cleanse and standardize data using field mapping insights
+- Data quality metrics calculated and stored
+- Cleansed data automatically prepared for inventory building
+- **All results automatically persisted to flow state**
 
-#### **What Happens**
-1. **Data Quality Manager** plans comprehensive cleansing strategy
-2. **Data Validation Expert** validates data against field mapping rules
-3. **Data Standardization Specialist** standardizes formats and values
+**User Interface:**
+- **Quality Dashboard**: Real-time data quality score updates
+- **Before/After Comparison**: See data transformation results
+- **Automatic Progression**: Phase automatically completes when quality thresholds met
+- **No Save Button Needed**: All progress automatically saved
 
-#### **User Interface**
-
-![Data Cleansing Phase](../screenshots/data-cleansing-phase.png)
-
-#### **Key Metrics to Monitor**
-- **Data Quality Score**: Overall quality improvement percentage
-- **Records Processed**: Number of records cleaned
-- **Issues Resolved**: Types and counts of data issues fixed
-- **Standardization Applied**: List of standardization rules applied
-
-#### **User Actions Available**
-- **Quality Report**: Download detailed data quality report
-- **Preview Cleaned Data**: See before/after comparison
-- **Custom Rules**: Add custom validation or standardization rules
-- **Exception Review**: Review records that couldn't be automatically cleaned
-
-#### **Success Indicators**
+**Success Indicators:**
 - ✅ Data quality score > 0.85
-- ✅ Standardization complete
-- ✅ Critical data issues resolved
-- ✅ Quality patterns learned
+- ✅ **Cleansed data automatically stored**
+- ✅ **Flow state updated with quality metrics**
+- ✅ **System ready for asset classification**
 
-### **Phase 3: Inventory Building Crew** 🏭
+### **Phase 3: Inventory Building** 🏭 (Auto-Persisted + Database Creation)
 
-**Purpose**: Classifies assets across servers, applications, and devices with cross-domain insights.
+**What Happens Automatically:**
+- AI agents classify assets across servers, applications, and devices
+- **Assets automatically created in database upon completion**
+- Multi-tenant context (client_account_id, engagement_id, session_id) automatically applied
+- Asset relationships and dependencies automatically identified
 
-#### **What Happens**
-1. **Inventory Manager** coordinates multi-domain classification strategy
-2. **Server Classification Expert** identifies and categorizes servers
-3. **Application Discovery Expert** catalogs applications and services
-4. **Device Classification Expert** classifies network devices
-5. **Cross-domain collaboration** generates relationship insights
+**User Interface:**
+- **Asset Classification Dashboard**: Real-time asset categorization
+- **Database Integration Status**: Shows when assets are created in database
+- **Review and Modify**: Adjust asset classifications; changes automatically saved
+- **Automatic Database Persistence**: No manual action required for database creation
 
-#### **User Interface**
+**Critical Automatic Actions:**
+- ✅ **Assets automatically created in `assets` table**
+- ✅ **Multi-tenant isolation automatically applied**
+- ✅ **Discovery metadata automatically populated**
+- ✅ **Flow state updated with asset inventory**
 
-![Inventory Building Phase](../screenshots/inventory-building-phase.png)
-
-#### **Asset Classification Results**
-- **Servers Tab**: View classified servers with hosting capabilities
-- **Applications Tab**: See discovered applications with business context
-- **Devices Tab**: Review network devices and infrastructure
-- **Relationships Tab**: Explore cross-domain insights and connections
-
-#### **Key Metrics**
-- **Assets Classified**: Total number of assets processed
-- **Classification Accuracy**: Confidence in asset categorization
-- **Cross-Domain Insights**: Relationships discovered between asset types
-- **Business Criticality**: Business impact assessment for each asset
-
-#### **User Actions Available**
-- **Asset Details**: Click any asset for detailed classification information
-- **Bulk Corrections**: Correct multiple asset classifications at once
-- **Export Inventory**: Download complete asset inventory
-- **Business Context**: Add business criticality and ownership information
-
-#### **Success Indicators**
+**Success Indicators:**
 - ✅ Asset classification complete
-- ✅ Cross-domain validation passed
-- ✅ Business criticality assigned
-- ✅ Hosting relationships identified
+- ✅ **Database assets created (visible in asset count)**
+- ✅ **Flow state contains asset inventory**
+- ✅ **Ready for dependency analysis**
 
-### **Phase 4: App-Server Dependencies** 🔗
+### **Phase 4: App-Server Dependencies** 🔗 (Auto-Persisted)
 
-**Purpose**: Maps application-to-server hosting relationships and infrastructure dependencies.
+**What Happens Automatically:**
+- AI agents map application-to-server hosting relationships
+- Infrastructure dependencies automatically identified
+- **Dependency data automatically stored in flow state**
+- System prepares for application-to-application dependency analysis
 
-#### **What Happens**
-1. **Dependency Manager** orchestrates hosting relationship analysis
-2. **Application Topology Expert** maps applications to hosting infrastructure
-3. **Infrastructure Relationship Analyst** analyzes server-application coupling
+**User Interface:**
+- **Dependency Visualization**: Interactive topology maps
+- **Automatic Updates**: Dependency relationships appear in real-time
+- **Review and Validate**: Confirm or adjust dependencies; changes auto-saved
+- **No Manual Persistence**: All dependency data automatically stored
 
-#### **User Interface**
+### **Phase 5: App-App Dependencies** 🔄 (Auto-Persisted)
 
-![App-Server Dependencies](../screenshots/app-server-dependencies.png)
+**What Happens Automatically:**
+- AI agents map application-to-application integration dependencies
+- Communication patterns and API relationships identified
+- **Integration data automatically stored in flow state**
+- System prepares for technical debt assessment
 
-#### **Dependency Visualization**
-- **Topology Map**: Interactive visualization of hosting relationships
-- **Resource Utilization**: Server capacity and application resource usage
-- **Dependency Strength**: Coupling strength between applications and servers
-- **Migration Impact**: Potential impact of server changes on applications
+**User Interface:**
+- **Integration Flow Diagram**: Visual representation of app communications
+- **API Discovery Results**: Automatically discovered service relationships
+- **Automatic Completion**: Phase completes when integration analysis done
+- **No Save Actions Required**: All integration data automatically persisted
 
-#### **Key Insights**
-- **Hosting Patterns**: Common hosting configurations identified
-- **Resource Bottlenecks**: Servers with high utilization or constraints
-- **Single Points of Failure**: Critical hosting dependencies
-- **Migration Complexity**: Assessment of hosting migration difficulty
+### **Phase 6: Technical Debt Assessment** 🏗️ (Auto-Persisted)
 
-#### **User Actions Available**
-- **Explore Topology**: Interactive exploration of hosting relationships
-- **Resource Planning**: View resource utilization and capacity planning
-- **Dependency Validation**: Confirm or correct hosting relationships
-- **Migration Notes**: Add notes about hosting migration considerations
+**What Happens Automatically:**
+- AI agents evaluate technical debt and prepare 6R migration strategies
+- Risk assessments and modernization recommendations generated
+- **Complete discovery analysis automatically stored**
+- Final flow state automatically updated with comprehensive results
 
-### **Phase 5: App-App Dependencies** 🔄
+**User Interface:**
+- **6R Strategy Dashboard**: Automatic strategy recommendations
+- **Risk Assessment Matrix**: Auto-generated migration risk analysis
+- **Final Review**: Complete discovery results available for review
+- **Automatic Completion**: Flow automatically marked as completed
 
-**Purpose**: Maps application-to-application integration dependencies and communication patterns.
+---
 
-#### **What Happens**
-1. **Integration Manager** coordinates application dependency analysis
-2. **Application Integration Expert** maps communication patterns
-3. **API and Service Dependency Analyst** analyzes service-to-service dependencies
+## 🔍 **Real-Time Monitoring and Status**
 
-#### **User Interface**
+### **Flow Status API**
+The system provides real-time flow status via:
+- **REST Endpoint**: `GET /api/v1/discovery/flow/status?session_id={session_id}`
+- **WebSocket Updates**: Live progress updates
+- **Frontend Integration**: Automatic status polling every 5 seconds
 
-![App-App Dependencies](../screenshots/app-app-dependencies.png)
-
-#### **Integration Analysis**
-- **Communication Flow**: Visual representation of application communication
-- **API Dependencies**: Service-to-service API relationships
-- **Integration Complexity**: Assessment of integration architecture complexity
-- **Data Flows**: How data moves between applications
-
-#### **Critical Insights**
-- **Integration Patterns**: Common integration architectures identified
-- **Critical Paths**: Essential application communication paths
-- **API Contracts**: Service contracts and compatibility requirements
-- **Migration Risks**: Integration-related migration risks
-
-#### **User Actions Available**
-- **Dependency Graph**: Explore interactive application dependency graph
-- **API Documentation**: View discovered API contracts and documentation
-- **Integration Validation**: Confirm application communication patterns
-- **Risk Assessment**: Review integration-related migration risks
-
-### **Phase 6: Technical Debt Assessment** 🏗️
-
-**Purpose**: Evaluates technical debt and prepares 6R migration strategy recommendations.
-
-#### **What Happens**
-1. **Technical Debt Manager** coordinates comprehensive debt assessment
-2. **Legacy Technology Analyst** evaluates technology stack age and debt
-3. **Modernization Strategy Expert** recommends 6R strategies and modernization approaches
-4. **Risk Assessment Specialist** evaluates migration risks and complexity
-
-#### **User Interface**
-
-![Technical Debt Assessment](../screenshots/technical-debt-assessment.png)
-
-#### **Strategic Analysis Results**
-- **Debt Scores**: Technical debt scores by asset and category
-- **6R Recommendations**: Rehost, Replatform, Refactor, Rearchitect, Retire, Retain strategies
-- **Modernization Roadmap**: Prioritized modernization recommendations
-- **Risk Assessment**: Migration risks and mitigation strategies
-
-#### **6R Strategy Dashboard**
-```
-📊 6R Strategy Distribution:
-• Rehost: 25% (Lift and shift candidates)
-• Replatform: 35% (Minor optimizations needed)
-• Refactor: 20% (Code changes required)
-• Rearchitect: 15% (Significant redesign needed)
-• Retire: 3% (End-of-life applications)
-• Retain: 2% (Keep on-premises)
+### **Status Response Example:**
+```json
+{
+  "status": "success",
+  "flow_state": {
+    "current_phase": "inventory_building",
+    "progress_percentage": 60,
+    "phase_completion": {
+      "field_mapping": true,
+      "data_cleansing": true,
+      "inventory_building": false,
+      "app_server_dependency": false,
+      "app_app_dependency": false,
+      "technical_debt": false
+    },
+    "database_integration_status": "pending",
+    "created_assets_count": 0
+  },
+  "phase_data": {
+    "field_mappings": {...},
+    "data_quality_metrics": {...}
+  }
+}
 ```
 
-#### **User Actions Available**
-- **Strategy Review**: Review and adjust 6R strategy recommendations
-- **Priority Setting**: Set migration priorities and wave planning
-- **Risk Mitigation**: Review and plan risk mitigation strategies
-- **Business Case**: Generate business case for modernization initiatives
+---
+
+## 💾 **Data Persistence Architecture**
+
+### **Automatic Persistence Layers**
+
+#### **1. Flow State Persistence**
+- **Storage**: `DataImportSession.agent_insights` JSON field
+- **Frequency**: After each phase completion
+- **Content**: Complete flow state including all phase results
+- **Trigger**: Automatic upon crew completion
+
+#### **2. Database Asset Creation**
+- **Storage**: `assets` table with full schema
+- **Trigger**: Automatic after inventory building phase completion
+- **Context**: Full multi-tenant context automatically applied
+- **Metadata**: Discovery method, source, timestamps automatically populated
+
+#### **3. User Modification Tracking**
+- **Storage**: Flow state with `user_modified` flags
+- **Trigger**: Automatic when user makes changes via UI
+- **Persistence**: Immediate automatic save
+- **Integration**: Changes flow into subsequent phases
+
+### **Multi-Tenant Data Isolation**
+All persistence automatically includes:
+- `client_account_id`: Tenant isolation
+- `engagement_id`: Project scoping
+- `session_id`: Discovery session tracking
+- `user_id`: User attribution
+- **Automatic enforcement**: No manual configuration required
 
 ---
 
-## 🔍 **Advanced Features**
+## 🛠️ **User Interaction Patterns**
 
-### **Real-Time Agent Monitoring**
+### **Review and Modify Workflow**
+1. **Automatic Processing**: Agents complete phase automatically
+2. **Review Notification**: User notified when phase ready for review
+3. **Optional Modification**: User can review and modify results
+4. **Automatic Save**: All changes automatically persisted
+5. **Continue Flow**: System automatically proceeds to next phase
 
-#### **Agent Communication Panel**
-- **Collaboration Events**: See when agents share insights
-- **Decision Points**: View critical decisions made by manager agents
-- **Learning Moments**: Watch agents learn new patterns from your data
-- **Performance Metrics**: Real-time agent efficiency and quality scores
+### **No Manual Save Required**
+- ❌ **No "Save" buttons needed**
+- ❌ **No manual persistence confirmation**
+- ❌ **No risk of data loss**
+- ✅ **Everything automatically saved**
+- ✅ **Real-time state updates**
+- ✅ **Seamless user experience**
 
-#### **Memory Analytics**
-- **Insight Storage**: Track insights stored by each crew
-- **Cross-Crew Sharing**: See how insights flow between crews
-- **Knowledge Application**: View successful knowledge base pattern matches
-- **Learning Progress**: Monitor improvements in agent accuracy
-
-### **Feedback and Learning System**
-
-#### **Providing Feedback**
-1. **Field Mapping Corrections**
-   - Click "Provide Feedback" on any mapping
-   - Correct field mappings or confidence scores
-   - Add context about field meanings
-   - Submit to improve future accuracy
-
-2. **Asset Classification Feedback**
-   - Correct asset types or categories
-   - Add business context and criticality
-   - Confirm or adjust relationships
-   - Provide migration preferences
-
-3. **Dependency Validation**
-   - Confirm or correct dependency relationships
-   - Add missing dependencies
-   - Adjust dependency strength assessments
-   - Provide integration complexity feedback
-
-#### **Learning Impact**
-- **Immediate**: Corrections applied to current session
-- **Future Sessions**: Patterns learned for future discoveries
-- **Knowledge Base Updates**: Industry patterns updated based on feedback
-- **Accuracy Improvement**: Measurable improvement in agent accuracy over time
-
-### **Export and Integration**
-
-#### **Export Options**
-- **Complete Discovery Report**: Comprehensive PDF report with all findings
-- **Asset Inventory**: Excel export of classified assets
-- **Dependency Mappings**: Visio-compatible dependency diagrams
-- **6R Strategy Report**: Strategic recommendations and business case
-- **Raw Data Export**: JSON/CSV export for integration with other tools
-
-#### **Assessment Flow Integration**
-- **Automatic Handoff**: Discovery results automatically feed Assessment Flow
-- **6R Strategy Input**: Technical debt assessment becomes 6R strategy foundation
-- **Business Prioritization**: Asset criticality drives assessment prioritization
-- **Risk Integration**: Migration risks inform assessment planning
+### **Data Modification Impact**
+- **Immediate**: Changes applied to current session
+- **Future Phases**: Modified data flows into subsequent analysis
+- **Learning**: Agent patterns updated based on user corrections
+- **Persistence**: All modifications automatically saved
 
 ---
 
-## 🛠️ **Troubleshooting and Support**
+## 🔧 **Technical Implementation Details**
 
-### **Common Issues and Solutions**
+### **State Manager Integration**
+The `DiscoveryFlowStateManager` handles:
+- Flow state initialization and persistence
+- Phase completion tracking
+- Asset database creation
+- Multi-tenant context management
+- Real-time status updates
 
-#### **Field Mapping Issues**
-**Issue**: Low confidence scores or many unmapped fields
-**Solutions**:
-- Lower confidence threshold to 0.6 for initial mapping
-- Review data quality - clean field names and values
-- Provide manual mappings for key fields
-- Add field descriptions or context in source data
+### **Database Schema Integration**
+Assets created with complete schema:
+```sql
+-- Automatic population
+client_account_id, engagement_id, session_id  -- Multi-tenant context
+discovery_method, discovery_source, discovery_timestamp  -- Discovery metadata
+imported_by, imported_at, source_filename  -- Import tracking
+field_mappings_used, raw_data  -- Original data preservation
+created_at, created_by, updated_at, updated_by  -- Audit trail
+```
 
-**Issue**: Incorrect field mappings
-**Solutions**:
-- Use manual override for specific mappings
-- Provide feedback to improve agent learning
-- Check field data patterns and examples
-- Verify source data quality and consistency
-
-#### **Performance Issues**
-**Issue**: Slow processing or timeouts
-**Solutions**:
-- Reduce dataset size for initial testing
-- Enable parallel execution if not already enabled
-- Check system resources and network connectivity
-- Contact support for large enterprise datasets (>10,000 assets)
-
-#### **Agent Collaboration Issues**
-**Issue**: Agents not sharing insights effectively
-**Solutions**:
-- Ensure memory sharing is enabled
-- Check knowledge base loading status
-- Verify agent collaboration configuration
-- Review crew coordination metrics
-
-### **Getting Help**
-
-#### **Built-in Help**
-- **Context Help**: Click "?" icons throughout the interface
-- **Agent Insights**: Click on any agent to see what it's currently doing
-- **Progress Details**: Click crew cards for detailed execution information
-- **Performance Metrics**: Monitor efficiency and quality indicators
-
-#### **Support Resources**
-- **User Community**: Join user forums for tips and best practices
-- **Documentation**: Access complete API and technical documentation
-- **Training Videos**: Watch step-by-step video tutorials
-- **Support Tickets**: Submit support requests for technical issues
-
-#### **Best Practices**
-- **Data Quality**: Ensure clean, consistent data for best results
-- **Incremental Approach**: Start with smaller datasets to test and learn
-- **Feedback Loop**: Provide feedback to improve agent accuracy
-- **Regular Updates**: Keep knowledge bases updated with latest patterns
+### **API Endpoint Integration**
+- `/api/v1/discovery/flow/run` - Initialize and execute flow
+- `/api/v1/discovery/flow/status` - Real-time status monitoring
+- `/api/v1/discovery/flow/execute-phase` - Manual phase execution (if needed)
 
 ---
 
-## 📊 **Success Metrics and KPIs**
+## 📊 **Success Metrics and Validation**
 
-### **Discovery Flow Success Indicators**
-- **Completion Rate**: >95% successful completion of all phases
-- **Field Mapping Accuracy**: >90% confidence in field mappings
-- **Asset Classification Accuracy**: >92% correct asset categorization
-- **Dependency Detection**: >88% accurate relationship mapping
-- **6R Strategy Relevance**: >85% appropriate strategy recommendations
+### **Automatic Success Validation**
+- **Flow Completion**: All 6 phases completed successfully
+- **Database Integration**: Assets created with proper context
+- **State Persistence**: Complete flow state saved
+- **Multi-Tenant Isolation**: Proper data scoping verified
+- **Real-Time Updates**: Status API functioning correctly
 
-### **Business Value Metrics**
-- **Time Savings**: 70% reduction in discovery preparation time
-- **Accuracy Improvement**: 40% improvement in migration planning accuracy
-- **Risk Reduction**: 60% reduction in migration-related surprises
-- **Cost Optimization**: 25% improvement in migration cost estimates
-
-### **Continuous Improvement**
-- **Agent Learning**: Measurable improvement in accuracy over time
-- **Pattern Recognition**: Improved industry pattern matching
-- **Knowledge Growth**: Expansion of knowledge base patterns
-- **User Satisfaction**: High user satisfaction with discovery insights
+### **User Experience Metrics**
+- **Zero Data Loss**: Automatic persistence prevents data loss
+- **Seamless Flow**: No manual save actions required
+- **Real-Time Feedback**: Live progress updates
+- **Easy Modification**: Simple review and modify workflow
+- **Complete Automation**: End-to-end automated processing
 
 ---
 
-This comprehensive user guide ensures users can effectively leverage the enhanced Discovery Flow with CrewAI agents to achieve superior cloud migration discovery results. The AI-powered approach provides unprecedented accuracy and insights while learning and improving with each use. 
+## 🚨 **Important Notes**
+
+### **Automatic vs Manual Operations**
+- **✅ AUTOMATIC**: Phase execution, state persistence, asset creation, progress tracking
+- **👤 MANUAL**: Data review, result modification, flow initiation
+- **🔄 HYBRID**: User modifications automatically integrated into flow
+
+### **Data Safety**
+- **No Data Loss Risk**: Everything automatically persisted
+- **Session Recovery**: Flow state preserved across browser sessions
+- **Error Recovery**: Graceful handling of failures with state preservation
+- **Audit Trail**: Complete history of all changes and operations
+
+### **Multi-Tenant Security**
+- **Automatic Isolation**: All data automatically scoped by tenant
+- **No Configuration Required**: Multi-tenancy handled automatically
+- **Secure by Default**: No risk of cross-tenant data leakage
+- **Audit Compliance**: Complete audit trail automatically maintained
+
+---
+
+This comprehensive user guide ensures users understand that the Discovery Flow operates with **full automatic persistence** - no manual save actions are required, and all data flows seamlessly through the system with complete database integration and real-time monitoring. 

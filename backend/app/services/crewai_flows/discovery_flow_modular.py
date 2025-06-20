@@ -83,28 +83,48 @@ class DiscoveryFlowModular:
             client_account_id = getattr(context, 'client_account_id', '')
             engagement_id = getattr(context, 'engagement_id', '')
             session_id = getattr(context, 'session_id', '')
+            user_id = getattr(context, 'user_id', '')
             
-            # Initialize state tracking
-            context.current_phase = "field_mapping"
-            context.phase_completion = {}
-            context.crew_status = {}
+            # Initialize proper flow state management
+            from app.services.crewai_flows.discovery_flow_state_manager import flow_state_manager
+            
+            flow_state = await flow_state_manager.initialize_flow_state(
+                session_id=session_id,
+                client_account_id=client_account_id,
+                engagement_id=engagement_id,
+                user_id=user_id,
+                raw_data=data
+            )
+            
+            # Update context with flow state data
+            context.flow_state = flow_state
+            context.current_phase = flow_state["current_phase"]
+            context.phase_completion = flow_state["phase_completion"]
+            context.crew_status = flow_state["crew_status"]
             
             # Step 1: Field Mapping Crew (Enhanced)
             field_mapping_result = await self._execute_field_mapping_crew(data, context)
             if field_mapping_result.get("status") == "clarification_needed":
                 return field_mapping_result
             
-            context.field_mappings = field_mapping_result.get("field_mappings", {})
-            context.phase_completion["field_mapping"] = field_mapping_result.get("success_criteria_met", False)
+            # Update flow state after field mapping
+            flow_state = await flow_state_manager.update_phase_completion(
+                session_id, "field_mapping", field_mapping_result
+            )
+            context.field_mappings = flow_state["field_mappings"]
             
             # Step 2: Data Cleansing Crew
             data_cleansing_result = self.execution_handler.execute_data_cleansing_crew(
                 field_mappings=context.field_mappings,
-                raw_data=data,
+                raw_data=flow_state["raw_data"],
                 context=context
             )
             
-            self.execution_handler.update_crew_with_validation("data_cleansing", data_cleansing_result, context)
+            # Update flow state after data cleansing
+            flow_state = await flow_state_manager.update_phase_completion(
+                session_id, "data_cleansing", data_cleansing_result
+            )
+            context.cleaned_data = flow_state["cleaned_data"]
             
             # Step 3: Inventory Building Crew
             inventory_result = self.execution_handler.execute_inventory_building_crew(
@@ -113,7 +133,15 @@ class DiscoveryFlowModular:
                 context=context
             )
             
-            self.execution_handler.update_crew_with_validation("inventory_building", inventory_result, context)
+            # Update flow state after inventory building
+            flow_state = await flow_state_manager.update_phase_completion(
+                session_id, "inventory_building", inventory_result
+            )
+            context.asset_inventory = flow_state["asset_inventory"]
+            
+            # Persist assets to database after inventory building
+            database_result = await flow_state_manager.persist_assets_to_database(session_id)
+            logger.info(f"✅ Database persistence: {database_result}")
             
             # Step 4: App-Server Dependencies Crew
             app_server_result = self.execution_handler.execute_app_server_dependency_crew(
@@ -121,7 +149,11 @@ class DiscoveryFlowModular:
                 context=context
             )
             
-            self.execution_handler.update_crew_with_validation("app_server_dependencies", app_server_result, context)
+            # Update flow state after app-server dependencies
+            flow_state = await flow_state_manager.update_phase_completion(
+                session_id, "app_server_dependencies", app_server_result
+            )
+            context.app_server_dependencies = flow_state["app_server_dependencies"]
             
             # Step 5: App-App Dependencies Crew
             app_app_result = self.execution_handler.execute_app_app_dependency_crew(
@@ -130,7 +162,11 @@ class DiscoveryFlowModular:
                 context=context
             )
             
-            self.execution_handler.update_crew_with_validation("app_app_dependencies", app_app_result, context)
+            # Update flow state after app-app dependencies
+            flow_state = await flow_state_manager.update_phase_completion(
+                session_id, "app_app_dependencies", app_app_result
+            )
+            context.app_app_dependencies = flow_state["app_app_dependencies"]
             
             # Step 6: Technical Debt Crew
             technical_debt_result = self.execution_handler.execute_technical_debt_crew(
@@ -142,7 +178,10 @@ class DiscoveryFlowModular:
                 context=context
             )
             
-            self.execution_handler.update_crew_with_validation("technical_debt", technical_debt_result, context)
+            # Update flow state after technical debt
+            flow_state = await flow_state_manager.update_phase_completion(
+                session_id, "technical_debt", technical_debt_result
+            )
             
             # Step 7: Discovery Integration
             integration_result = self.execution_handler.execute_discovery_integration(context)

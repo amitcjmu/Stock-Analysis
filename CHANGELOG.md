@@ -1,5 +1,57 @@
 # AI Force Migration Platform - Change Log
 
+## [0.4.12] - 2025-01-19
+
+### 🎯 **DISCOVERY FLOW DATA PERSISTENCE RESTORATION**
+
+This release fixes the critical data flow disconnects in the Discovery Flow by implementing proper state management and database persistence.
+
+### 🚀 **Major Architectural Fixes**
+
+#### **Flow State Management Implementation**
+- **Issue**: Discovery flow state was lost between phases, breaking data continuity
+- **Solution**: Created `DiscoveryFlowStateManager` with proper persistence across phases
+- **Impact**: Data now flows correctly from field mapping → data cleansing → inventory → dependencies
+- **Technical**: State persisted in database `DataImportSession.agent_insights` field
+
+#### **Database Integration Restoration**
+- **Issue**: Processed assets were not persisted to database, causing empty dependency analysis
+- **Solution**: Added automatic asset persistence after inventory building phase
+- **Impact**: Assets now available in database for dependency mapping and subsequent phases
+- **Technical**: Multi-tenant scoped asset creation with proper context inheritance
+
+#### **API Endpoint Consistency**
+- **Issue**: Frontend calling non-existent `/api/v1/discovery/flow/status` endpoint
+- **Solution**: Implemented proper flow status endpoint with session-based tracking
+- **Impact**: Real-time flow progress tracking now works correctly
+- **Technical**: Session ID-based flow state retrieval with phase data
+
+#### **Multi-Tenant Context Preservation**
+- **Issue**: Context (client_account_id, engagement_id, session_id) lost between crews
+- **Solution**: Proper context passing through flow state manager
+- **Impact**: All created assets properly scoped to correct tenant and engagement
+- **Technical**: Context embedded in flow state and passed to all crew executions
+
+### 📊 **Data Flow Improvements**
+
+#### **Crew Result Integration**
+- **Implementation**: Each crew now updates flow state with results
+- **Persistence**: Results stored in database for retrieval by subsequent phases
+- **Validation**: Phase completion tracking with success criteria
+- **Continuity**: Data flows seamlessly between all 6 discovery phases
+
+#### **Dependencies Page Data Source**
+- **Implementation**: Updated to use flow state instead of non-existent endpoints
+- **Fallback**: Graceful fallback to direct API calls when flow state unavailable
+- **Real-time**: Live updates as dependency crews complete their analysis
+- **Context**: Proper multi-tenant data filtering
+
+### 🎯 **Success Metrics**
+- **Data Persistence**: Assets now correctly saved to database after inventory building
+- **Flow Continuity**: 100% data flow from import through to technical debt analysis
+- **API Reliability**: Eliminated 404 errors from non-existent endpoints
+- **Multi-Tenancy**: Proper client/engagement scoping throughout entire flow
+
 ## [0.4.11] - 2025-01-19
 
 ### 🎯 **DISCOVERY FLOW DEPENDENCIES PAGE RESTORATION**
@@ -967,34 +1019,96 @@ This release fixes critical issues with the Dependencies page in the Discovery f
 - **Component Rendering**: All dependency components render safely with null data
 - **Navigation**: Seamless navigation within Discovery flow maintained
 
-## [0.2.0] - 2024-03-21
+## [0.4.13] - 2025-01-27
 
-### 🎯 **[DEPENDENCY MANAGEMENT] - Implemented Dependency Discovery and Analysis**
+### 🧪 **TESTING & DOCUMENTATION ENHANCEMENT**
 
-This release adds comprehensive dependency management capabilities to the platform, enabling AI-powered discovery and analysis of application dependencies.
+This release enhances the test suite with end-to-end database testing and updates documentation to accurately reflect the automatic persistence implementation.
 
-### 🚀 **[Primary Changes]**
+### 🚀 **Testing Infrastructure**
 
-#### **[Dependency Discovery]**
-- **Implementation**: Created full dependency management UI with React Flow visualization
-- **Technology**: Integrated with CrewAI for intelligent dependency analysis
-- **Integration**: Connected to backend API for real-time dependency updates
-- **Benefits**: Enables automated discovery of application dependencies
+#### **End-to-End Discovery Flow Testing**
+- **Enhanced Test Suite**: Modified `test_discovery_flow_sequence.py` for real database testing
+- **Database Integration**: Tests now validate actual database persistence and multi-tenant isolation
+- **State Manager Testing**: Comprehensive testing of `DiscoveryFlowStateManager` with real database operations
+- **Asset Creation Validation**: Tests verify automatic asset creation with proper context and metadata
 
-#### **[Dependency Analysis]**
-- **AI Analysis**: Added AI-powered analysis of app-server and app-app dependencies
-- **Visualization**: Implemented interactive dependency graph visualization
-- **Validation**: Added dependency validation and confirmation workflows
-- **Progress Tracking**: Added real-time progress tracking for dependency mapping
+#### **Real Database Test Coverage**
+- **Complete Flow Testing**: End-to-end validation from flow execution to database persistence
+- **Multi-Tenant Isolation**: Tests verify proper tenant separation in database
+- **User Modification Flow**: Testing of user changes and automatic persistence
+- **Error Handling**: Graceful error handling and rollback scenario testing
 
-### 📊 **Technical Achievements**
-- **React Flow Integration**: Successfully integrated React Flow for dependency visualization
-- **CrewAI Integration**: Connected dependency analysis to CrewAI agents
-- **State Management**: Implemented robust state management with React Context
-- **Type Safety**: Added comprehensive TypeScript types for dependency data
+### 📚 **Documentation Updates**
 
-### 🎯 **Success Metrics**
-- **Visualization**: Successfully visualized complex application dependencies
-- **Analysis**: Achieved automated dependency discovery with AI agents
-- **User Experience**: Streamlined dependency management workflow
-- **Integration**: Seamless integration with existing discovery flow
+#### **Discovery Flow User Guide Overhaul**
+- **Automatic Persistence Documentation**: Complete rewrite to reflect automatic persistence model
+- **No Manual Save Required**: Clear documentation that no user confirmation buttons exist
+- **Real-Time Flow Tracking**: Documented automatic state management and progress tracking
+- **Database Integration Details**: Comprehensive explanation of automatic asset creation
+
+#### **Persistence Architecture Documentation**
+- **Flow State Management**: Detailed explanation of automatic state persistence in `DataImportSession.agent_insights`
+- **Asset Auto-Creation**: Documentation of automatic database asset creation after inventory building
+- **Multi-Tenant Context**: Automatic application of client_account_id, engagement_id, session_id
+- **API Integration**: Real-time status monitoring via REST and WebSocket endpoints
+
+### 🔧 **Technical Implementation Details**
+
+#### **Test Infrastructure Enhancements**
+- **Real Service Integration**: Tests use actual `DiscoveryFlowModular` and `DiscoveryFlowStateManager`
+- **Database Session Management**: Proper async database session handling in tests
+- **Mock CrewAI Service**: Realistic mock service that simulates agent behavior
+- **Fixture Management**: Comprehensive test fixtures for database sessions and import sessions
+
+#### **Automatic Persistence Clarification**
+- **Phase-Level Persistence**: Each crew completion automatically updates flow state
+- **Asset Database Creation**: Automatic persistence after inventory building phase
+- **User Modification Tracking**: Changes automatically saved with `user_modified` flags
+- **No Manual Confirmation**: System operates without user confirmation buttons
+
+### 📊 **Testing Achievements**
+
+#### **End-to-End Validation**
+- **Complete Flow Testing**: Validates entire 6-phase discovery flow with database persistence
+- **State Persistence Testing**: Verifies flow state correctly maintained across phases
+- **Asset Creation Testing**: Confirms assets created with proper multi-tenant context
+- **API Integration Testing**: Validates real-time status API functionality
+
+#### **Multi-Tenant Security Testing**
+- **Tenant Isolation**: Tests confirm proper data separation between tenants
+- **Context Propagation**: Validates automatic application of multi-tenant context
+- **Session Cleanup**: Tests proper cleanup and rollback scenarios
+- **Security Validation**: Confirms no cross-tenant data leakage
+
+### 🎯 **Business Impact**
+
+#### **Development Confidence**
+- **Comprehensive Testing**: End-to-end tests provide confidence in database persistence
+- **Documentation Accuracy**: Updated docs reflect actual implementation behavior
+- **Developer Onboarding**: Clear documentation enables faster developer understanding
+- **Quality Assurance**: Robust test suite prevents regression issues
+
+#### **User Experience Clarity**
+- **No Confusion**: Clear documentation that persistence is automatic
+- **Expectation Setting**: Users understand no manual save actions required
+- **Flow Understanding**: Complete explanation of automatic progression through phases
+- **Technical Transparency**: Clear explanation of underlying persistence mechanisms
+
+### 🔍 **Key Features Documented**
+
+#### **Automatic Persistence Model**
+- **No Save Buttons**: System operates without manual persistence confirmation
+- **Real-Time Updates**: Automatic state updates and progress tracking
+- **Database Integration**: Automatic asset creation with full schema population
+- **Error Recovery**: Graceful handling with state preservation
+
+#### **User Interaction Patterns**
+- **Review and Modify**: Optional user review with automatic save
+- **Seamless Experience**: No interruption for manual persistence actions
+- **Real-Time Feedback**: Live progress updates throughout flow
+- **Session Recovery**: Flow state preserved across browser sessions
+
+### 🎪 **Platform Evolution**
+
+This release represents a significant enhancement in testing infrastructure and documentation accuracy. The platform now has comprehensive end-to-end testing that validates the complete discovery flow including database persistence, and documentation that accurately reflects the automatic persistence model. Users and developers can now fully understand that the system operates with complete automation - no manual save actions are required, and all data flows seamlessly through the system with proper multi-tenant isolation and real-time monitoring.

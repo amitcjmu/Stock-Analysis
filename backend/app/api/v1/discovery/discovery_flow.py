@@ -1482,40 +1482,82 @@ async def get_dashboard_data(
 # Export router
 __all__ = ["router"]
 
+@router.get("/flow/status")
+async def get_flow_status_by_session(
+    session_id: str,
+    context: RequestContext = Depends(get_context_from_user)
+):
+    """
+    Get real-time flow status using session ID.
+    
+    This endpoint provides reliable flow tracking using the new flow state manager.
+    """
+    logger.info(f"🔍 Getting flow status for session_id: {session_id}")
+    
+    try:
+        # Get status from Flow State Manager
+        from app.services.crewai_flows.discovery_flow_state_manager import flow_state_manager
+        
+        flow_state = await flow_state_manager.get_flow_state(session_id)
+        
+        if not flow_state:
+            logger.warning(f"Flow state not found for session: {session_id}")
+            return {
+                "status": "not_found",
+                "session_id": session_id,
+                "message": f"Flow state not found for session {session_id}",
+                "flow_state": None
+            }
+        
+        logger.info(f"✅ Flow status retrieved: {flow_state['status']} - {flow_state['progress_percentage']}%")
+        
+        return {
+            "status": "success",
+            "session_id": session_id,
+            "flow_state": {
+                "status": flow_state["status"],
+                "current_phase": flow_state["current_phase"],
+                "progress_percentage": flow_state["progress_percentage"],
+                "phase_completion": flow_state["phase_completion"],
+                "started_at": flow_state["started_at"],
+                "updated_at": flow_state.get("updated_at"),
+                "completed_at": flow_state.get("completed_at"),
+                "database_integration_status": flow_state.get("database_integration_status", "pending"),
+                "database_assets_created": flow_state.get("database_assets_created", [])
+            },
+            "phase_data": {
+                "field_mappings": flow_state.get("field_mappings", {}),
+                "cleaned_data_count": len(flow_state.get("cleaned_data", [])),
+                "asset_inventory": flow_state.get("asset_inventory", {}),
+                "app_server_dependencies": flow_state.get("app_server_dependencies", {}),
+                "app_app_dependencies": flow_state.get("app_app_dependencies", {}),
+                "technical_debt_assessment": flow_state.get("technical_debt_assessment", {})
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error getting flow status: {e}")
+        return {
+            "status": "error",
+            "session_id": session_id,
+            "message": f"Error retrieving flow status: {str(e)}",
+            "flow_state": None
+        }
+
 @router.get("/flow/status/{flow_id}")
 async def get_flow_status_by_id(
     flow_id: str,
     context: RequestContext = Depends(get_context_from_user)
 ):
     """
-    Get real-time flow status using CrewAI Event Listener.
+    Get real-time flow status using flow ID (legacy endpoint).
     
-    This endpoint uses the proper CrewAI Event Listener pattern instead of
-    hardcoded session IDs, providing reliable flow tracking using flow IDs.
+    This endpoint redirects to the session-based endpoint for compatibility.
     """
-    logger.info(f"🔍 Getting flow status for flow_id: {flow_id}")
+    logger.info(f"🔍 Getting flow status for flow_id: {flow_id} (redirecting to session-based)")
     
-    try:
-        # Get status from CrewAI Event Listener
-        flow_status = discovery_flow_listener.get_flow_status(flow_id)
-        
-        if flow_status.get("status") == "not_found":
-            logger.warning(f"Flow {flow_id} not found in event listener")
-            return {
-                "status": "not_found",
-                "message": f"Flow {flow_id} not found or not yet started",
-                "available_flows": discovery_flow_listener.get_active_flows()
-            }
-        
-        logger.info(f"✅ Flow status retrieved: {flow_status['status']} - {flow_status['progress']}%")
-        return flow_status
-        
-    except Exception as e:
-        logger.error(f"❌ Error getting flow status: {e}")
-        return {
-            "status": "error",
-            "message": f"Error retrieving flow status: {str(e)}"
-        }
+    # For now, treat flow_id as session_id
+    return await get_flow_status_by_session(flow_id, context)
 
 @router.get("/flow/events/{flow_id}")
 async def get_flow_events(

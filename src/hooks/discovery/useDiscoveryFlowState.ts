@@ -14,12 +14,21 @@ export const useDiscoveryFlowState = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const location = useLocation();
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
 
   const flowStateQuery = useQuery<FlowState>({
-    queryKey: ['discovery-flow-state', client?.id, engagement?.id],
+    queryKey: ['discovery-flow-state', client?.id, engagement?.id, currentSessionId],
     queryFn: async () => {
+      if (!currentSessionId) {
+        console.log('No session ID available for flow state query');
+        return null;
+      }
+      
       const headers = getAuthHeaders();
-      const response = await apiCallWithFallback(`/api/v1/discovery/flow/status`, { headers });
+      const response = await apiCallWithFallback(
+        `/api/v1/discovery/flow/status?session_id=${currentSessionId}`, 
+        { headers }
+      );
       
       if (!response.ok) {
         console.error('Failed to fetch flow state:', response);
@@ -27,9 +36,18 @@ export const useDiscoveryFlowState = () => {
       }
       
       const data = await response.json();
-      return data?.flow_state || null;
+      console.log('Flow state response:', data);
+      
+      if (data.status === 'success' && data.flow_state) {
+        return {
+          ...data.flow_state,
+          phase_data: data.phase_data || {}
+        };
+      }
+      
+      return null;
     },
-    enabled: !!client && !!engagement,
+    enabled: !!client && !!engagement && !!currentSessionId,
     refetchInterval: POLLING_INTERVAL,
     staleTime: STALE_TIME,
   });

@@ -4,6 +4,7 @@ import { useToast } from '../use-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiCall } from '../../config/api';
+import { useDiscoveryFlowState } from './useDiscoveryFlowState';
 
 // Types
 interface DependencyData {
@@ -51,43 +52,71 @@ export const useDependencyLogic = () => {
   const [activeView, setActiveView] = useState<'app-server' | 'app-app'>('app-server');
   const uploadProcessedRef = useRef(false);
 
-  // Fetch dependency data from the main dependencies endpoint
-  const { data: dependencyAnalysisData, isLoading: isFlowStateLoading, error: flowStateError } = useQuery({
-    queryKey: ['dependency-analysis', client?.id, engagement?.id],
+  // Get discovery flow state to access dependency data
+  const { flowState, isLoading: isFlowStateLoading, error: flowStateError } = useDiscoveryFlowState();
+
+  // Fallback dependency data from the main dependencies endpoint (if flow state not available)
+  const { data: fallbackDependencyData } = useQuery({
+    queryKey: ['dependency-analysis-fallback', client?.id, engagement?.id],
     queryFn: async () => {
       const response = await apiCall('/discovery/dependencies', {
         method: 'GET'
       });
       return response;
     },
-    enabled: !!client?.id && !!engagement?.id,
+    enabled: !!client?.id && !!engagement?.id && !flowState,
     staleTime: 30000, // 30 seconds
     retry: 1
   });
 
-  // Extract dependency data from API response
+  // Extract dependency data from flow state or fallback
   const dependencyData = useMemo(() => {
-    if (!dependencyAnalysisData?.data) return DEFAULT_DEPENDENCY_DATA;
+    // Try flow state first (preferred)
+    if (flowState?.phase_data) {
+      const phaseData = flowState.phase_data;
+      
+      return {
+        cross_application_mapping: {
+          cross_app_dependencies: phaseData.app_app_dependencies?.communication_patterns || [],
+          application_clusters: phaseData.app_app_dependencies?.application_clusters || [],
+          dependency_graph: phaseData.app_app_dependencies?.dependency_graph || { nodes: [], edges: [] },
+          suggested_patterns: phaseData.app_app_dependencies?.suggested_patterns || [],
+          confidence_scores: phaseData.app_app_dependencies?.confidence_scores || {}
+        },
+        app_server_mapping: {
+          hosting_relationships: phaseData.app_server_dependencies?.hosting_relationships || [],
+          suggested_mappings: phaseData.app_server_dependencies?.suggested_mappings || [],
+          confidence_scores: phaseData.app_server_dependencies?.confidence_scores || {}
+        },
+        session_id: flowState.session_id || '',
+        crew_completion_status: flowState.phase_completion || {}
+      };
+    }
     
-    const data = dependencyAnalysisData.data;
+    // Fallback to direct API data
+    if (fallbackDependencyData?.data) {
+      const data = fallbackDependencyData.data;
+      
+      return {
+        cross_application_mapping: {
+          cross_app_dependencies: data.cross_application_mapping?.cross_app_dependencies || [],
+          application_clusters: data.cross_application_mapping?.application_clusters || [],
+          dependency_graph: data.cross_application_mapping?.dependency_graph || { nodes: [], edges: [] },
+          suggested_patterns: data.cross_application_mapping?.suggested_patterns || [],
+          confidence_scores: data.cross_application_mapping?.confidence_scores || {}
+        },
+        app_server_mapping: {
+          hosting_relationships: [],
+          suggested_mappings: [],
+          confidence_scores: {}
+        },
+        session_id: '',
+        crew_completion_status: {}
+      };
+    }
     
-    return {
-      cross_application_mapping: {
-        cross_app_dependencies: data.cross_application_mapping?.cross_app_dependencies || [],
-        application_clusters: data.cross_application_mapping?.application_clusters || [],
-        dependency_graph: data.cross_application_mapping?.dependency_graph || { nodes: [], edges: [] },
-        suggested_patterns: data.cross_application_mapping?.suggested_patterns || [],
-        confidence_scores: data.cross_application_mapping?.confidence_scores || {}
-      },
-      app_server_mapping: {
-        hosting_relationships: [],
-        suggested_mappings: [],
-        confidence_scores: {}
-      },
-      session_id: '',
-      crew_completion_status: {}
-    };
-  }, [dependencyAnalysisData]);
+    return DEFAULT_DEPENDENCY_DATA;
+  }, [flowState, fallbackDependencyData]);
 
   // Initialize from navigation state (from previous Discovery pages)
   useEffect(() => {
