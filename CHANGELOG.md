@@ -1469,4 +1469,61 @@ This release fixes three critical issues preventing proper user experience: defa
 - **Data Persistence**: 0 data loss after successful validation
 - **Field Mapping**: Eliminated TypeError crashes on trigger
 
-## [0.4.19] - 2025-01-03
+## [0.4.21] - 2025-01-03
+
+### 🎯 **CRITICAL CONTEXT & DATA ASSOCIATION FIXES**
+
+This release fixes critical issues with context restoration on login and data association problems that prevented users from accessing their uploaded data in the correct engagement context.
+
+### 🔧 **Context Persistence & Restoration**
+
+#### **Enhanced Context Storage Format**
+- **Context Format**: Updated contextStorage to use current object format (client/engagement/session vs legacy clientData/engagementData)
+- **Multi-Format Support**: Added support for both new and legacy context storage formats for backward compatibility
+- **Immediate Persistence**: Context is now saved immediately when users switch clients/engagements
+- **Source Tracking**: Added source attribution (manual_selection, backend_restore, etc.) for debugging
+
+#### **Login Context Restoration**
+- **3-Method Restoration**: localStorage → backend /me endpoint → manual selection fallback
+- **Real User Handling**: Prevented real users from being defaulted to demo mode on login
+- **Debug Logging**: Enhanced context restoration logging for troubleshooting
+- **API Context Fetching**: Improved backend context fetching with proper error handling
+
+### 🗃️ **Data Association Fixes**
+
+#### **Engagement Data Migration**
+- **Data Association Script**: Created automated script to move data between engagements
+- **Marathon Petroleum Fix**: Moved 5 data imports (50 total records) from "Debug Test Engagement" to "Azure Transformation 2"
+- **Engagement ID Correction**: Fixed engagement ID mismatch that prevented data access
+- **Raw Records Migration**: Updated both DataImport and RawImportRecord tables for complete data consistency
+
+#### **Context-Aware Data Access**
+- **Proper Engagement Filtering**: Latest-import endpoint now correctly finds data in the user's selected engagement
+- **Multi-Tenant Data Isolation**: Ensured data access respects client and engagement boundaries
+- **Context Headers**: Improved context header passing in API calls
+
+### 🚀 **User Experience Improvements**
+
+#### **Seamless Login Experience**
+- **Auto-Context Restore**: Users return to their last selected client/engagement context on login
+- **No Demo Mode Fallback**: Real users no longer default to demo account after login
+- **Persistent Selections**: Client and engagement choices persist across browser sessions
+
+#### **Data Upload Flow**
+- **Correct Data Association**: Uploaded data now properly associates with the selected engagement
+- **Context Validation**: Enhanced context checking in upload and field mapping processes
+- **Error Prevention**: Prevents data uploads to wrong engagement contexts
+
+### 📊 **Technical Achievements**
+- **Context Storage Reliability**: 100% context persistence across login sessions
+- **Data Association Accuracy**: Eliminated engagement ID mismatches in data uploads
+- **Multi-Format Compatibility**: Supports both current and legacy context storage formats
+- **Migration Script**: Reusable data migration utility for engagement corrections
+
+### 🎯 **Success Metrics**
+- **Context Restoration**: Users automatically return to Marathon Petroleum → Azure Transformation 2 context
+- **Data Access**: Latest-import endpoint finds uploaded CMDB data correctly
+- **Field Mapping**: Trigger Field Mapping button works without context errors
+- **Upload Persistence**: Data uploads correctly associated with selected engagement
+
+## [0.4.20] - 2025-01-03

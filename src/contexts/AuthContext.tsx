@@ -258,8 +258,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             let contextRestored = false;
             
             // Method 1: Try persisted user context selection first
-            if (persistedContext?.clientData && persistedContext?.engagementData) {
-              console.log('🔧 Restoring context from localStorage:', persistedContext);
+            console.log('🔧 Checking persisted context:', persistedContext);
+            
+            if (persistedContext?.client && persistedContext?.engagement) {
+              console.log('🔧 Restoring context from localStorage (new format):', persistedContext);
+              setClient(persistedContext.client);
+              setEngagement(persistedContext.engagement);
+              if (persistedContext.session) {
+                setSession(persistedContext.session);
+              }
+              contextRestored = true;
+            } else if (persistedContext?.clientData && persistedContext?.engagementData) {
+              console.log('🔧 Restoring context from localStorage (legacy format):', persistedContext);
               setClient(persistedContext.clientData);
               setEngagement(persistedContext.engagementData);
               contextRestored = true;
@@ -277,12 +287,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                   setEngagement(backendContext.engagement || null);
                   setSession(backendContext.session || null);
                   
-                  // Save the context for future use
+                  // Save the context for future use using current format
                   contextStorage.setContext({
-                    clientId: backendContext.client.id,
-                    clientData: backendContext.client,
-                    engagementId: backendContext.engagement?.id,
-                    engagementData: backendContext.engagement,
+                    client: backendContext.client,
+                    engagement: backendContext.engagement,
+                    session: backendContext.session,
                     timestamp: Date.now(),
                     source: 'backend_restore'
                   });
@@ -297,6 +306,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (!contextRestored) {
               console.log('🔧 No context available - user will need to select client/engagement');
               // Don't set demo context for real users - leave empty for context selection
+            } else {
+              console.log('🔧 Context successfully restored!', {
+                client: client?.name,
+                engagement: engagement?.name
+              });
             }
           } else {
             logout();
@@ -439,91 +453,79 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const switchClient = async (clientId: string, clientData?: Client) => {
-    if (isDemoMode) return; // Switching not allowed in demo mode
     try {
-      // Use provided client data if available, otherwise create a basic object
-      const newClientData = clientData || {
-        id: clientId,
-        name: 'Loading...', // This will be updated when components fetch the full data
-        status: 'active'
-      };
+      if (clientData) {
+        setClient(clientData);
+        console.log('🔄 Switched to client using provided data:', clientData);
+      } else {
+        const response = await apiCall(`/api/v1/clients/${clientId}`, {
+          headers: getAuthHeaders()
+        });
+        
+        if (response && response.id) {
+          setClient(response);
+          console.log('🔄 Switched to client via API:', response);
+        } else {
+          throw new Error('Invalid client response');
+        }
+      }
       
-      setClient(newClientData);
+      // Clear engagement and session when switching clients
       setEngagement(null);
       setSession(null);
       
-      // Store user's manual context selection
-      contextStorage.setContext({
-        clientId: clientId,
-        clientData: newClientData,
+      // 🔧 CONTEXT PERSISTENCE FIX: Save context immediately after switching
+      const currentContext = {
+        client: clientData || client,
+        engagement: null,
+        session: null,
         timestamp: Date.now(),
-        source: 'user_selection'
-      });
+        source: 'manual_selection'
+      };
+      contextStorage.setContext(currentContext);
+      console.log('🔧 Context persisted after client switch:', currentContext);
       
-      // Fetch updated context from backend to get the appropriate session
-      try {
-        const context = await apiCall('/me');
-        if (context) {
-          setEngagement(context.engagement || null);
-          setSession(context.session || null);
-          console.log('🔄 Client switched - Updated context from backend:', {
-            client: newClientData,
-            engagement: context.engagement,
-            session: context.session
-          });
-        }
-      } catch (contextError) {
-        console.warn('Failed to fetch updated context after client switch:', contextError);
-      }
-      
-      console.log('Client switched to:', clientId, newClientData);
     } catch (error) {
-      console.error('Error switching client:', error);
-      throw error;
+      console.error('Failed to switch client:', error);
+      setError('Failed to switch client');
     }
   };
 
   const switchEngagement = async (engagementId: string, engagementData?: Engagement) => {
-    if (isDemoMode) return; // Switching not allowed in demo mode
     try {
-      // Use provided engagement data if available, otherwise create a basic object
-      const newEngagementData = engagementData || {
-        id: engagementId,
-        name: 'Loading...', // This will be updated when components fetch the full data
-        status: 'active'
-      };
-      
-      setEngagement(newEngagementData);
-      setSession(null);
-      
-      // Store user's manual context selection
-      const existingContext = contextStorage.getContext() || {};
-      contextStorage.setContext({
-        ...existingContext,
-        engagementId: engagementId,
-        engagementData: newEngagementData,
-        timestamp: Date.now(),
-        source: 'user_selection'
-      });
-      
-      // Fetch updated context from backend to get the appropriate session for this engagement
-      try {
-        const context = await apiCall('/me');
-        if (context) {
-          setSession(context.session || null);
-          console.log('🔄 Engagement switched - Updated context from backend:', {
-            engagement: newEngagementData,
-            session: context.session
-          });
+      if (engagementData) {
+        setEngagement(engagementData);
+        console.log('🔄 Switched to engagement using provided data:', engagementData);
+      } else {
+        const response = await apiCall(`/api/v1/engagements/${engagementId}`, {
+          headers: getAuthHeaders()
+        });
+        
+        if (response && response.id) {
+          setEngagement(response);
+          console.log('🔄 Switched to engagement via API:', response);
+        } else {
+          throw new Error('Invalid engagement response');
         }
-      } catch (contextError) {
-        console.warn('Failed to fetch updated context after engagement switch:', contextError);
       }
       
-      console.log('Engagement switched to:', engagementId, newEngagementData);
+      // Clear session when switching engagements
+      setSession(null);
+      
+      // 🔧 CONTEXT PERSISTENCE FIX: Save complete context immediately after switching
+      const currentContext = {
+        client: client,
+        engagement: engagementData || engagement,
+        session: null,
+        timestamp: Date.now(),
+        source: 'manual_selection'
+      };
+      contextStorage.setContext(currentContext);
+      console.log('🔧 Context persisted after engagement switch:', currentContext);
+      
     } catch (error) {
-      console.error('Error switching engagement:', error);
-      throw error;
+      console.error('Failed to switch engagement:', error);
+      setError('Failed to switch engagement');
     }
   };
 
