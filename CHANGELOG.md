@@ -1112,3 +1112,35 @@ This release enhances the test suite with end-to-end database testing and update
 ### 🎪 **Platform Evolution**
 
 This release represents a significant enhancement in testing infrastructure and documentation accuracy. The platform now has comprehensive end-to-end testing that validates the complete discovery flow including database persistence, and documentation that accurately reflects the automatic persistence model. Users and developers can now fully understand that the system operates with complete automation - no manual save actions are required, and all data flows seamlessly through the system with proper multi-tenant isolation and real-time monitoring.
+
+## [0.4.14] - 2025-01-27
+
+### 🐛 **ENGAGEMENT CREATION API FIX**
+
+This release fixes critical issues preventing engagement creation through the admin interface.
+
+### 🚀 **API Fixes**
+
+#### **Engagement Management API**
+- **Schema Import Fix**: Corrected import of `EngagementCreate` schema from `admin_schemas` instead of `engagement` schemas
+- **Date Parsing**: Added proper ISO date string to datetime object conversion using `dateutil.parser`
+- **Field Mapping**: Fixed mapping between admin schema fields and database model fields
+- **Slug Generation**: Added automatic slug generation from engagement name
+- **Error Handling**: Improved error messages for date parsing and foreign key constraint violations
+
+#### **Database Integration**
+- **Foreign Key Validation**: Verified user existence before engagement creation
+- **Multi-Tenant Context**: Proper client account scoping in engagement creation
+- **Date Storage**: Fixed datetime field storage with timezone awareness
+- **JSON Field Handling**: Proper serialization of complex configuration objects
+
+### 📊 **Technical Achievements**
+- **Database Persistence**: Engagement creation now works end-to-end with proper database storage
+- **Date Handling**: ISO 8601 date strings properly converted to PostgreSQL timestamp fields
+- **Schema Alignment**: Frontend and backend schemas now properly aligned
+- **Field Validation**: Comprehensive validation of all engagement creation fields
+
+### 🎯 **Success Metrics**
+- **API Success**: Engagement creation API now returns 200 instead of 400/500 errors
+- **Data Integrity**: All engagement fields properly stored with correct data types
+- **User Experience**: Frontend engagement creation form can now successfully submit

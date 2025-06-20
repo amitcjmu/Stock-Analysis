@@ -9,12 +9,103 @@ from sqlalchemy import select, func
 from app.models.client_account import Engagement
 from app.schemas.admin_schemas import EngagementResponse
 from datetime import datetime, timedelta
+from dateutil import parser as date_parser
 from fastapi import HTTPException
 
 logger = logging.getLogger(__name__)
 
 class EngagementCRUDHandler:
     """Handler for engagement CRUD operations"""
+    
+    @staticmethod
+    async def create_engagement(
+        db: AsyncSession,
+        engagement_data: Dict[str, Any],
+        created_by: str
+    ) -> EngagementResponse:
+        """Create a new engagement.
+        
+        Args:
+            db: Database session
+            engagement_data: Engagement data to create
+            created_by: ID of the user creating the engagement
+            
+        Returns:
+            EngagementResponse: The created engagement
+        """
+        try:
+            # Map admin schema fields to database model fields
+            engagement_name = engagement_data.get('engagement_name', '')
+            slug = engagement_name.lower().replace(' ', '-').replace('_', '-')[:100] if engagement_name else 'engagement'
+            
+            # Convert date strings to datetime objects
+            start_date = None
+            if engagement_data.get('planned_start_date'):
+                try:
+                    start_date = date_parser.parse(engagement_data['planned_start_date'])
+                except (ValueError, TypeError):
+                    start_date = None
+            
+            target_completion_date = None
+            if engagement_data.get('planned_end_date'):
+                try:
+                    target_completion_date = date_parser.parse(engagement_data['planned_end_date'])
+                except (ValueError, TypeError):
+                    target_completion_date = None
+            
+            mapped_data = {
+                'name': engagement_name,
+                'slug': slug,
+                'description': engagement_data.get('engagement_description'),
+                'client_account_id': engagement_data.get('client_account_id'),
+                'engagement_type': engagement_data.get('target_cloud_provider', 'migration'),
+                'status': 'planning',  # Default status
+                'start_date': start_date,
+                'target_completion_date': target_completion_date,
+                'client_contact_name': engagement_data.get('engagement_manager'),
+                'client_contact_email': None,  # Not provided in admin schema
+                'migration_scope': {
+                    'scope_type': engagement_data.get('migration_scope', 'full_datacenter'),
+                    'target_clouds': [engagement_data.get('target_cloud_provider', 'aws')],
+                    'migration_strategies': [],
+                    'excluded_systems': [],
+                    'included_environments': [],
+                    'business_units': [],
+                    'geographic_scope': [],
+                    'timeline_constraints': {}
+                },
+                'team_preferences': engagement_data.get('team_preferences', {}),
+                'settings': {
+                    'estimated_budget': engagement_data.get('estimated_budget'),
+                    'estimated_asset_count': engagement_data.get('estimated_asset_count'),
+                    'technical_lead': engagement_data.get('technical_lead'),
+                    'agent_configuration': engagement_data.get('agent_configuration', {}),
+                    'discovery_preferences': engagement_data.get('discovery_preferences', {}),
+                    'assessment_criteria': engagement_data.get('assessment_criteria', {})
+                }
+            }
+            
+            # Create new engagement
+            engagement = Engagement(
+                **mapped_data,
+                created_by=created_by,
+                is_active=True
+            )
+            
+            db.add(engagement)
+            await db.commit()
+            await db.refresh(engagement)
+            
+            # Convert to response model
+            return await EngagementCRUDHandler._convert_engagement_to_response(engagement)
+            
+        except Exception as e:
+            await db.rollback()
+            logger.error(f"Error creating engagement: {e}", exc_info=True)
+            raise HTTPException(
+                status_code=400,
+                detail=f"Failed to create engagement: {str(e)}"
+            )
 
     @staticmethod
     async def list_engagements(

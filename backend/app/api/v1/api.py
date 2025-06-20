@@ -24,7 +24,7 @@ from app.api.v1.discovery import discovery_flow_router
 from app.api.v1.routes.llm_health import router as llm_health_router
 
 from app.api.v1.admin.client_management import router as client_management_router
-from app.api.v1.admin.engagement_management import router as engagement_management_router
+from app.api.v1.admin.engagement_management import export_router as engagement_management_router
 from app.api.v1.auth.handlers.user_management_handlers import user_management_router as user_approvals_router
 from app.api.v1.auth.rbac import router as auth_router
 
@@ -65,5 +65,18 @@ api_router.include_router(agents_router, prefix="/agents", tags=["Agents"])
 
 # Include test discovery router for debugging
 api_router.include_router(test_discovery_router, prefix="/test-discovery", tags=["Test Discovery"])
+
+# Debug endpoint to list all routes
+@api_router.get("/debug/routes", include_in_schema=False)
+async def debug_routes():
+    """Debug endpoint to list all registered routes."""
+    routes = []
+    for route in api_router.routes:
+        routes.append({
+            "path": route.path,
+            "name": getattr(route, "name", ""),
+            "methods": getattr(route, "methods", [])
+        })
+    return {"routes": routes}
 
 logger.info("--- Finished API Router Inclusion Process ---")
