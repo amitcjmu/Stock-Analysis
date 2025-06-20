@@ -159,9 +159,13 @@ class AuthenticationService:
         try:
             # Simple token validation for demo purposes
             if token.startswith("db-token-"):
-                parts = token.split("-")
-                if len(parts) >= 3:
-                    user_id_str = parts[2]
+                # Remove the "db-token-" prefix
+                token_content = token[9:]  # Remove "db-token-"
+                
+                # Find the last dash to separate user_id from hash
+                last_dash_index = token_content.rfind("-")
+                if last_dash_index > 0:
+                    user_id_str = token_content[:last_dash_index]
                     try:
                         user_id = uuid.UUID(user_id_str)
                         

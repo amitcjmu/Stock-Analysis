@@ -36,12 +36,12 @@ export const CreateEngagementMain: React.FC = () => {
         }
       } catch (error) {
         console.error('Error fetching client accounts:', error);
-        // Enhanced fallback to demo data including the real backend client
+        // Enhanced fallback to demo data including the real backend clients
         return [
           { id: 'd838573d-f461-44e4-81b5-5af510ef83b7', account_name: 'Acme Corporation', industry: 'Technology' },
-          { id: 'demo-client-2', account_name: 'TechCorp Solutions', industry: 'Information Technology' },
-          { id: 'demo-client-3', account_name: 'Global Systems Inc', industry: 'Financial Services' },
-          { id: 'demo-client-4', account_name: 'HealthSystem Partners', industry: 'Healthcare' }
+          { id: '73dee5f1-6a01-43e3-b1b8-dbe6c66f2990', account_name: 'Marathon Petroleum', industry: 'Energy' },
+          { id: 'bafd5b46-aaaf-4c95-8142-573699d93171', account_name: 'Complete Test Client', industry: 'Technology' },
+          { id: '11111111-1111-1111-1111-111111111111', account_name: 'Democorp', industry: 'Technology' }
         ];
       }
     },
@@ -142,8 +142,8 @@ export const CreateEngagementMain: React.FC = () => {
       engagement_name: formData.engagement_name,
       client_account_id: formData.client_account_id,
       engagement_description: formData.description,
-      migration_scope: 'full_datacenter', // Default scope
-      target_cloud_provider: formData.target_cloud_provider || 'aws',
+      migration_scope: 'full_datacenter', // Enum value that matches MigrationScopeEnum.FULL_DATACENTER
+      target_cloud_provider: formData.target_cloud_provider || 'aws', // Enum value that matches CloudProviderEnum.AWS
       engagement_manager: formData.project_manager,
       technical_lead: formData.project_manager, // Use same person as default
       planned_start_date: formData.estimated_start_date ? new Date(formData.estimated_start_date).toISOString() : null,

@@ -7,8 +7,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies with force flag to resolve React version conflicts
-RUN npm install --force
+# Install dependencies with legacy peer deps to resolve React version conflicts
+RUN npm install --legacy-peer-deps
 
 # Copy the rest of the application
 COPY . .
