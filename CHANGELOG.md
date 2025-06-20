@@ -1,5 +1,39 @@
 # AI Force Migration Platform - Change Log
 
+## [0.4.27] - 2025-01-03
+
+### 🎯 **Architectural Pivot Documentation - Comprehensive Coding Agent Guide**
+
+This release provides comprehensive documentation of the platform's three architectural pivots and creates a definitive guide for future coding agents to avoid legacy patterns.
+
+### 🚀 **Architecture Documentation & Guidelines**
+
+#### **Three-Pivot Architecture Summary**
+- **Documentation**: Complete analysis of heuristic → individual agent → CrewAI Flow pivots
+- **Legacy Pattern Identification**: Clear guidance on deprecated patterns to avoid
+- **Current State Guide**: Comprehensive overview of active CrewAI Flow-based architecture
+- **Implementation Patterns**: Detailed code examples for proper CrewAI Flow development
+
+#### **Coding Agent Guidance System**
+- **File Created**: `docs/development/AI_Force_Migration_Platform_Summary_for_Coding_Agents.md`
+- **Purpose**: Prevent regression to legacy patterns from previous architectural pivots
+- **Coverage**: Complete architectural evolution from heuristics to mature CrewAI Flow system
+- **Critical Reminders**: Essential do's and don'ts for maintaining architectural integrity
+
+### 📊 **Documentation Achievements**
+- **Architectural Clarity**: Clear distinction between deprecated and active patterns
+- **Development Guidelines**: Comprehensive patterns for CrewAI Flow, crews, and agents
+- **Legacy Pattern Avoidance**: Explicit guidance on what NOT to use from repository history
+- **Quick Reference**: Commands and verification steps for current architecture validation
+
+### 🎯 **Success Metrics**
+- **Documentation Completeness**: Full coverage of three architectural pivots
+- **Pattern Clarity**: Clear guidance on current vs. legacy implementation approaches
+- **Development Efficiency**: Coding agents can quickly identify correct patterns to follow
+- **Architecture Preservation**: Strong safeguards against regression to deprecated patterns
+
+---
+
 ## [0.4.26] - 2024-12-20
 
 ### 🎯 **DISCOVERY FLOW DATA PERSISTENCE - Root Cause Resolution**
