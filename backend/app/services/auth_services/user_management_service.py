@@ -87,52 +87,16 @@ class UserManagementService:
         try:
             rbac_service = create_rbac_service(self.db)
             
-            # For demo users with non-UUID format, still query the real database but skip UUID validation
-            if user_id_str in ["admin_user", "demo_user"]:
-                # Skip UUID validation for demo users but query real database
-                try:
-                    result = await rbac_service.get_pending_approvals(user_id_str)
-                    
-                    if result["status"] == "error":
-                        if "Access denied" in result["message"]:
-                            # If access denied for demo user, return empty list instead of error
-                            return PendingApprovalsResponse(
-                                status="success",
-                                pending_approvals=[],
-                                total_pending=0
-                            )
-                        else:
-                            raise HTTPException(status_code=500, detail=result["message"])
-                    
-                    return PendingApprovalsResponse(**result)
-                except Exception as e:
-                    logger.error(f"Error getting pending approvals for demo user: {e}")
-                    # Fallback to empty list for demo users if there's an error
-                    return PendingApprovalsResponse(
-                        status="success",
-                        pending_approvals=[],
-                        total_pending=0
-                    )
-            else:
-                # Validate admin access for real users
-                try:
-                    user_id = uuid.UUID(user_id_str) if user_id_str else None
-                    result = await rbac_service.get_pending_approvals(str(user_id) if user_id else user_id_str)
-                    
-                    if result["status"] == "error":
-                        if "Access denied" in result["message"]:
-                            raise HTTPException(status_code=403, detail=result["message"])
-                        else:
-                            raise HTTPException(status_code=500, detail=result["message"])
-                    
-                    return PendingApprovalsResponse(**result)
-                except ValueError:
-                    # If UUID conversion fails, treat as demo user and return empty list
-                    return PendingApprovalsResponse(
-                        status="success",
-                        pending_approvals=[],
-                        total_pending=0
-                    )
+            # 🚨 SECURITY FIX: All users must go through RBAC validation
+            result = await rbac_service.get_pending_approvals(user_id_str)
+            
+            if result["status"] == "error":
+                if "Access denied" in result["message"]:
+                    raise HTTPException(status_code=403, detail=result["message"])
+                else:
+                    raise HTTPException(status_code=500, detail=result["message"])
+            
+            return PendingApprovalsResponse(**result)
             
         except HTTPException:
             raise

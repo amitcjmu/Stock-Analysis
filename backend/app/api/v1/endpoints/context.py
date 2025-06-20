@@ -214,23 +214,31 @@ async def get_user_clients(
 ):
     """
     Get list of clients accessible to the current user.
-    For regular users, returns clients they have access to.
-    For admin users, returns all clients.
+    🚨 SECURITY: Only returns clients the user has explicit access to via client_access table.
     """
     try:
         # Import models with fallback
         try:
             from app.models.client_account import ClientAccount
-            from sqlalchemy import select
+            from app.models.rbac import ClientAccess, UserProfile
+            from sqlalchemy import select, and_
             
-            # For now, return all active clients
-            # TODO: Implement proper user-client access control
-            query = select(ClientAccount).where(ClientAccount.is_active == True)
-            result = await db.execute(query)
-            clients = result.scalars().all()
+            # 🚨 SECURITY FIX: Get user's accessible clients from client_access table
+            access_query = select(ClientAccess, ClientAccount).join(
+                ClientAccount, ClientAccess.client_account_id == ClientAccount.id
+            ).where(
+                and_(
+                    ClientAccess.user_profile_id == str(current_user.id),
+                    ClientAccess.is_active == True,
+                    ClientAccount.is_active == True
+                )
+            )
+            
+            result = await db.execute(access_query)
+            accessible_clients = result.all()
 
             client_responses = []
-            for client in clients:
+            for client_access, client in accessible_clients:
                 client_responses.append(ClientResponse(
                     id=str(client.id),
                     name=client.name,
@@ -239,14 +247,35 @@ async def get_user_clients(
                     status="active" if client.is_active else "inactive"
                 ))
 
+            # If no clients found, check if user is demo user and return only demo client
+            if not client_responses and str(current_user.id) == "44444444-4444-4444-4444-444444444444":
+                # Demo user should only see demo client
+                demo_client_query = select(ClientAccount).where(
+                    and_(
+                        ClientAccount.id == "11111111-1111-1111-1111-111111111111",
+                        ClientAccount.is_active == True
+                    )
+                )
+                demo_result = await db.execute(demo_client_query)
+                demo_client = demo_result.scalar_one_or_none()
+                
+                if demo_client:
+                    client_responses.append(ClientResponse(
+                        id=str(demo_client.id),
+                        name=demo_client.name,
+                        industry=demo_client.industry,
+                        company_size=demo_client.company_size,
+                        status="active"
+                    ))
+
             return ClientsListResponse(clients=client_responses)
             
         except ImportError:
             # Return demo data if models not available
             demo_clients = [
                 ClientResponse(
-                    id="bafd5b46-aaaf-4c95-8142-573699d93171",
-                    name="Complete Test Client",
+                    id="11111111-1111-1111-1111-111111111111",
+                    name="Democorp",
                     industry="Technology",
                     company_size="Enterprise",
                     status="active"
@@ -256,17 +285,21 @@ async def get_user_clients(
 
     except Exception as e:
         print(f"Error fetching user clients: {e}")
-        # Return demo data as fallback
-        demo_clients = [
-            ClientResponse(
-                id="bafd5b46-aaaf-4c95-8142-573699d93171",
-                name="Complete Test Client",
-                industry="Technology",
-                company_size="Enterprise",
-                status="active"
-            )
-        ]
-        return ClientsListResponse(clients=demo_clients)
+        # Return demo data as fallback for demo user only
+        if str(current_user.id) == "44444444-4444-4444-4444-444444444444":
+            demo_clients = [
+                ClientResponse(
+                    id="11111111-1111-1111-1111-111111111111",
+                    name="Democorp",
+                    industry="Technology",
+                    company_size="Enterprise",
+                    status="active"
+                )
+            ]
+            return ClientsListResponse(clients=demo_clients)
+        else:
+            # Non-demo users get empty list if there's an error
+            return ClientsListResponse(clients=[])
 
 @router.get("/clients/{client_id}/engagements", response_model=EngagementsListResponse)
 async def get_client_engagements(
@@ -276,14 +309,36 @@ async def get_client_engagements(
 ):
     """
     Get list of engagements for a specific client accessible to the current user.
+    🚨 SECURITY: Only returns engagements for clients the user has access to.
     """
     try:
         # Import models with fallback
         try:
             from app.models.client_account import ClientAccount, Engagement
+            from app.models.rbac import ClientAccess
             from sqlalchemy import select, and_
             
-            # Verify client exists and user has access
+            # 🚨 SECURITY FIX: First verify user has access to this client
+            access_check_query = select(ClientAccess).where(
+                and_(
+                    ClientAccess.user_profile_id == str(current_user.id),
+                    ClientAccess.client_account_id == client_id,
+                    ClientAccess.is_active == True
+                )
+            )
+            access_result = await db.execute(access_check_query)
+            client_access = access_result.scalar_one_or_none()
+            
+            # Special case for demo user accessing demo client
+            is_demo_access = (
+                str(current_user.id) == "44444444-4444-4444-4444-444444444444" and
+                client_id == "11111111-1111-1111-1111-111111111111"
+            )
+            
+            if not client_access and not is_demo_access:
+                raise HTTPException(status_code=403, detail="Access denied: No permission for this client")
+
+            # Verify client exists and is active
             client_query = select(ClientAccount).where(
                 and_(
                     ClientAccount.id == client_id,
@@ -294,10 +349,9 @@ async def get_client_engagements(
             client = client_result.scalar_one_or_none()
 
             if not client:
-                raise HTTPException(status_code=404, detail="Client not found or not accessible")
+                raise HTTPException(status_code=404, detail="Client not found")
 
             # Get engagements for this client
-            # TODO: Implement proper user-engagement access control
             query = select(Engagement).where(
                 and_(
                     Engagement.client_account_id == client_id,
@@ -322,30 +376,36 @@ async def get_client_engagements(
             return EngagementsListResponse(engagements=engagement_responses)
             
         except ImportError:
-            # Return demo data if models not available
+            # Return demo data if models not available (only for demo client)
+            if client_id == "11111111-1111-1111-1111-111111111111":
+                demo_engagements = [
+                    EngagementResponse(
+                        id="22222222-2222-2222-2222-222222222222",
+                        name="Cloud Migration 2024",
+                        client_id=client_id,
+                        status="active",
+                        type="migration"
+                    )
+                ]
+                return EngagementsListResponse(engagements=demo_engagements)
+            else:
+                return EngagementsListResponse(engagements=[])
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error fetching client engagements: {e}")
+        # Return demo data as fallback only for demo client
+        if client_id == "11111111-1111-1111-1111-111111111111":
             demo_engagements = [
                 EngagementResponse(
-                    id="6e9c8133-4169-4b79-b052-106dc93d0208",
-                    name="Azure Transformation",
+                    id="22222222-2222-2222-2222-222222222222",
+                    name="Cloud Migration 2024",
                     client_id=client_id,
                     status="active",
                     type="migration"
                 )
             ]
             return EngagementsListResponse(engagements=demo_engagements)
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"Error fetching client engagements: {e}")
-        # Return demo data as fallback
-        demo_engagements = [
-            EngagementResponse(
-                id="6e9c8133-4169-4b79-b052-106dc93d0208",
-                name="Azure Transformation",
-                client_id=client_id,
-                status="active",
-                type="migration"
-            )
-        ]
-        return EngagementsListResponse(engagements=demo_engagements)
+        else:
+            return EngagementsListResponse(engagements=[])

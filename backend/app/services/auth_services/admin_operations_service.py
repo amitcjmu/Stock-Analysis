@@ -30,22 +30,12 @@ class AdminOperationsService:
         try:
             rbac_service = create_rbac_service(self.db)
             
-            # For demo users with non-UUID format, use a default admin validation
-            if user_id_str in ["admin_user", "demo_user"]:
-                # Skip UUID validation for demo users
-                access_check = {"has_access": True}
-            else:
-                # Validate admin access for real users
-                try:
-                    user_id = uuid.UUID(user_id_str) if user_id_str else None
-                    access_check = await rbac_service.validate_user_access(
-                        user_id=str(user_id) if user_id else user_id_str,
-                        resource_type="admin_console",
-                        action="read"
-                    )
-                except ValueError:
-                    # If UUID conversion fails, treat as demo user
-                    access_check = {"has_access": True}
+            # 🚨 SECURITY FIX: All users must go through RBAC validation
+            access_check = await rbac_service.validate_user_access(
+                user_id=user_id_str,
+                resource_type="admin_console",
+                action="read"
+            )
             
             if not access_check["has_access"]:
                 raise HTTPException(status_code=403, detail="Access denied: Admin privileges required")
@@ -77,22 +67,12 @@ class AdminOperationsService:
         try:
             rbac_service = create_rbac_service(self.db)
             
-            # For demo users with non-UUID format, use a default admin validation
-            if user_id_str in ["admin_user", "demo_user"]:
-                # Skip UUID validation for demo users
-                access_check = {"has_access": True}
-            else:
-                # Validate admin access for real users
-                try:
-                    user_id = uuid.UUID(user_id_str) if user_id_str else None
-                    access_check = await rbac_service.validate_user_access(
-                        user_id=str(user_id) if user_id else user_id_str,
-                        resource_type="admin_console",
-                        action="read"
-                    )
-                except ValueError:
-                    # If UUID conversion fails, treat as demo user
-                    access_check = {"has_access": True}
+            # 🚨 SECURITY FIX: All users must go through RBAC validation
+            access_check = await rbac_service.validate_user_access(
+                user_id=user_id_str,
+                resource_type="admin_console",
+                action="read"
+            )
             
             if not access_check["has_access"]:
                 raise HTTPException(status_code=403, detail="Access denied: Admin privileges required")

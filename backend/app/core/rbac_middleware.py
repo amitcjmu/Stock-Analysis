@@ -302,46 +302,31 @@ async def require_admin_access(request: Request) -> str:
     if not RBAC_SERVICE_AVAILABLE:
         return user_id  # Fallback for development
     
-    # For demo mode, bypass RBAC validation
-    if request.headers.get("X-Demo-Mode") == "true":
-        logger.info("Admin access granted in demo mode")
-        return user_id
-    
-    # For demo users with non-UUID format, bypass validation
-    if user_id in ["admin_user", "demo_user"]:
-        logger.info(f"Admin access granted for demo user: {user_id}")
-        return user_id
-    
-    # For real admin user UUID (from database), also allow access
-    if user_id == "2a0de3df-7484-4fab-98b9-2ca126e2ab21":
-        logger.info("Admin access granted for database admin user")
-        return user_id
+    # 🚨 SECURITY FIX: Remove demo user bypass - all users must go through RBAC validation
+    # No more blanket admin access for demo users
     
     try:
-        # Try to validate as UUID and check admin access
-        user_uuid = uuid.UUID(user_id)
-        
-        # Validate admin access
+        # Validate admin access for ALL users (including demo users)
         async with AsyncSessionLocal() as db:
             rbac_service = create_rbac_service(db)
             access_result = await rbac_service.validate_user_access(
-                user_id=str(user_uuid),
+                user_id=user_id,
                 resource_type="admin_console",
                 action="read"
             )
             
             if not access_result["has_access"]:
+                logger.warning(f"Admin access denied for user {user_id}: {access_result.get('reason', 'Unknown reason')}")
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail=f"Admin access required: {access_result['reason']}"
+                    detail=f"Admin access required: {access_result.get('reason', 'Insufficient privileges')}"
                 )
         
+        logger.info(f"Admin access granted for user {user_id}")
         return user_id
         
-    except ValueError:
-        # If UUID conversion fails, treat as demo user for compatibility
-        logger.warning(f"Invalid UUID format for user_id {user_id}, treating as demo user")
-        return user_id
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error validating admin access for user {user_id}: {e}")
         raise HTTPException(

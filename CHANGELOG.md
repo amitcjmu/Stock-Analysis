@@ -1288,4 +1288,80 @@ This release resolves a critical multi-tenancy violation where attribute mapping
 
 ---
 
-## [0.4.16] - 2025-01-18
+## [0.4.18] - 2025-01-18
+
+### 🚨 **CRITICAL SECURITY FIX - RBAC Multi-Tenancy Enforcement**
+
+This release addresses severe multi-tenancy violations where demo users could access real client data, completely breaking role-based access control.
+
+### 🔒 **Security Vulnerabilities Fixed**
+
+#### **RBAC Bypass Elimination**
+- **Demo User Admin Bypass**: Removed hardcoded admin access for demo users in `require_admin_access`
+- **Authentication Bypass**: Eliminated automatic access grants for demo users in admin operations
+- **Service Bypass**: Fixed user management service bypassing RBAC validation for demo users
+- **Middleware Bypass**: Removed demo mode exceptions in RBAC middleware
+
+#### **Client Access Restrictions**
+- **Client Filtering**: Implemented proper client access validation via `client_access` table
+- **Engagement Filtering**: Added client access verification for engagement endpoints
+- **Demo User Isolation**: Demo users now restricted to demo client data only
+- **Access Validation**: All users must have explicit client access permissions
+
+#### **Database Access Control**
+- **Client Access Entry**: Added proper client access for demo user to demo client only
+- **Admin Role Assignment**: Added legitimate platform admin role for demo user
+- **Permission Validation**: All admin operations now require proper role validation
+- **Context Verification**: Enhanced client/engagement access verification
+
+### 🔧 **Technical Implementation**
+
+#### **Backend Security Fixes**
+```python
+# Before: Blanket admin access for demo users
+if user_id in ["admin_user", "demo_user"]:
+    return user_id  # ⚠️ SECURITY RISK
+
+# After: All users go through RBAC validation
+access_result = await rbac_service.validate_user_access(
+    user_id=user_id,
+    resource_type="admin_console", 
+    action="read"
+)
+```
+
+#### **Client Access Enforcement**
+- **GET /api/v1/clients**: Now returns only clients user has access to
+- **GET /api/v1/clients/{id}/engagements**: Validates client access before returning engagements
+- **Context Switching**: Restricted to accessible clients only
+- **Admin Operations**: All admin endpoints require proper role validation
+
+### 📊 **Security Impact**
+
+#### **Before Fix**
+- **Demo users**: Could access ANY client data
+- **Context switching**: No restrictions on client/engagement access
+- **Admin operations**: Bypassed RBAC for demo users
+- **Data isolation**: Completely broken
+
+#### **After Fix**
+- **Demo users**: Restricted to demo client data only
+- **Context switching**: Limited to accessible clients
+- **Admin operations**: Full RBAC validation required
+- **Data isolation**: Properly enforced
+
+### 🎯 **Data Isolation Results**
+- **Demo User**: Can only access Democorp (demo client)
+- **Real Users**: Must have explicit client access grants
+- **Engagement Access**: Tied to client access permissions  
+- **Admin Access**: Requires proper role assignment
+
+### 🔒 **Compliance & Security**
+- **Multi-tenant isolation**: Fully restored
+- **Role-based access**: Properly enforced
+- **Data segregation**: Client data properly isolated
+- **Access auditing**: All access attempts validated
+
+---
+
+## [0.4.17] - 2025-01-18
