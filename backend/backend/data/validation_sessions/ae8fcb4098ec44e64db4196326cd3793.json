@@ -1,0 +1,75 @@
+{
+  "file_id": "ae8fcb4098ec44e64db4196326cd3793",
+  "filename": "test_upload.csv",
+  "size_mb": 7.343292236328125e-05,
+  "content_type": "application/octet-stream",
+  "category": "cmdb",
+  "uploaded_by": "44444444-4444-4444-4444-444444444444",
+  "uploaded_at": "2025-06-20T22:32:12.458871",
+  "status": "approved_with_warnings",
+  "raw_data": [
+    {
+      "hostname": "server1",
+      "ip_address": "192.168.1.1",
+      "os": "linux"
+    },
+    {
+      "hostname": "server2",
+      "ip_address": "192.168.1.2",
+      "os": "windows"
+    }
+  ],
+  "data_record_count": 2,
+  "agent_results": [
+    {
+      "agent_id": "format_validator",
+      "agent_name": "Format Validation Agent",
+      "validation": "warning",
+      "confidence": 0.8,
+      "message": "Unsupported file type: application/octet-stream",
+      "details": [
+        "File type may not be optimal for processing"
+      ],
+      "processing_time_seconds": 2
+    },
+    {
+      "agent_id": "security_scanner",
+      "agent_name": "Security Analysis Agent",
+      "validation": "passed",
+      "confidence": 0.95,
+      "message": "Security Analysis Agent validation completed successfully",
+      "details": [
+        "No malicious patterns detected",
+        "File structure appears safe",
+        "Content validation passed"
+      ],
+      "processing_time_seconds": 3
+    },
+    {
+      "agent_id": "privacy_analyzer",
+      "agent_name": "Privacy Protection Agent",
+      "validation": "passed",
+      "confidence": 0.95,
+      "message": "Privacy Protection Agent validation completed successfully",
+      "details": [
+        "No obvious PII patterns detected",
+        "Privacy risk appears minimal",
+        "GDPR compliance check passed"
+      ],
+      "processing_time_seconds": 4
+    },
+    {
+      "agent_id": "data_quality_assessor",
+      "agent_name": "Data Quality Agent",
+      "validation": "passed",
+      "confidence": 0.95,
+      "message": "Data Quality Agent validation completed successfully",
+      "details": [
+        "Data completeness: 75.0%",
+        "Data structure appears consistent",
+        "Quality metrics within acceptable range"
+      ],
+      "processing_time_seconds": 3
+    }
+  ]
+}

@@ -128,7 +128,7 @@ interface AuthContextType {
   switchClient: (clientId: string, clientData?: Client) => Promise<void>;
   switchEngagement: (engagementId: string, engagementData?: Engagement) => Promise<void>;
   switchSession: (sessionId: string) => Promise<void>;
-  loginWithDemoUser: () => void;
+  loginWithDemoUser: () => Promise<void>;
   setCurrentSession: (session: Session | null) => void;
   currentEngagementId: string | null;
   currentSessionId: string | null;
@@ -224,28 +224,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const token = tokenStorage.getToken();
         const storedUser = tokenStorage.getUser();
-        const persistedContext = contextStorage.getContext();
 
         console.log('🔐 InitializeAuth - Starting with:', {
           hasToken: !!token,
           hasStoredUser: !!storedUser,
           storedUserRole: storedUser?.role,
           isDemoUser: storedUser?.id === DEMO_USER_ID,
-          hasPersistedContext: !!persistedContext,
-          persistedContext: persistedContext
         });
 
         if (storedUser?.id === DEMO_USER_ID) {
+          // For demo user, always fetch fresh context from backend to ensure consistency
+          console.log('🔐 Demo user detected, fetching fresh context from backend');
           setUser(DEMO_USER);
-          setClient(DEMO_CLIENT);
-          setEngagement(DEMO_ENGAGEMENT);
-          setSession(DEMO_SESSION);
-          // Save demo context
-          contextStorage.setContext({
-            client: DEMO_CLIENT,
-            engagement: DEMO_ENGAGEMENT,
-            session: DEMO_SESSION
-          });
+          
+          try {
+            const backendContext = await apiCall('/me');
+            console.log('🔐 Backend context for demo user:', backendContext);
+            
+            if (backendContext?.client) {
+              setClient(backendContext.client);
+              setEngagement(backendContext.engagement || null);
+              setSession(backendContext.session || null);
+              
+              // Save the actual backend context (not hardcoded constants)
+              contextStorage.setContext({
+                client: backendContext.client,
+                engagement: backendContext.engagement,
+                session: backendContext.session,
+                timestamp: Date.now(),
+                source: 'backend_demo'
+              });
+              
+              console.log('🔐 Demo context set from backend:', {
+                client: backendContext.client,
+                engagement: backendContext.engagement,
+                session: backendContext.session
+              });
+            } else {
+              console.warn('🔐 Backend context missing, falling back to hardcoded demo');
+              setClient(DEMO_CLIENT);
+              setEngagement(DEMO_ENGAGEMENT);
+              setSession(DEMO_SESSION);
+            }
+          } catch (error) {
+            console.error('🔐 Failed to fetch demo context from backend, using hardcoded:', error);
+            setClient(DEMO_CLIENT);
+            setEngagement(DEMO_ENGAGEMENT);
+            setSession(DEMO_SESSION);
+          }
         } else if (token) {
           const validatedUser = await authApi.validateToken(token);
           console.log('🔐 InitializeAuth - Token validation result:', validatedUser);
@@ -254,67 +280,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             tokenStorage.setUser(validatedUser);
             setUser(validatedUser);
             
-            // 🔧 CONTEXT RESTORATION FIX: Try multiple methods to restore context
-            let contextRestored = false;
-            
-            // Method 1: Try persisted user context selection first
-            console.log('🔧 Checking persisted context:', persistedContext);
-            
-            if (persistedContext?.client && persistedContext?.engagement) {
-              console.log('🔧 Restoring context from localStorage (new format):', persistedContext);
-              setClient(persistedContext.client);
-              setEngagement(persistedContext.engagement);
-              if (persistedContext.session) {
-                setSession(persistedContext.session);
-              }
-              contextRestored = true;
-            } else if (persistedContext?.clientData && persistedContext?.engagementData) {
-              console.log('🔧 Restoring context from localStorage (legacy format):', persistedContext);
-              setClient(persistedContext.clientData);
-              setEngagement(persistedContext.engagementData);
-              contextRestored = true;
-            }
-            
-            // Method 2: If no persisted context, fetch from backend
-            if (!contextRestored) {
-              try {
-                console.log('🔧 No persisted context, fetching from backend /me endpoint');
-                const backendContext = await apiCall('/me');
+            // Always fetch fresh context from backend for authenticated users
+            try {
+              console.log('🔐 Fetching fresh context from backend for authenticated user');
+              const backendContext = await apiCall('/me');
+              
+              if (backendContext?.client) {
+                console.log('🔐 Setting context from backend:', backendContext);
+                setClient(backendContext.client);
+                setEngagement(backendContext.engagement || null);
+                setSession(backendContext.session || null);
                 
-                if (backendContext?.client) {
-                  console.log('🔧 Setting context from backend:', backendContext);
-                  setClient(backendContext.client);
-                  setEngagement(backendContext.engagement || null);
-                  setSession(backendContext.session || null);
-                  
-                  // Save the context for future use using current format
-                  contextStorage.setContext({
-                    client: backendContext.client,
-                    engagement: backendContext.engagement,
-                    session: backendContext.session,
-                    timestamp: Date.now(),
-                    source: 'backend_restore'
-                  });
-                  contextRestored = true;
-                }
-              } catch (contextError) {
-                console.warn('🔧 Failed to fetch context from backend:', contextError);
+                // Save the context for future use
+                contextStorage.setContext({
+                  client: backendContext.client,
+                  engagement: backendContext.engagement,
+                  session: backendContext.session,
+                  timestamp: Date.now(),
+                  source: 'backend_restore'
+                });
+              } else {
+                console.log('🔐 No context available - user will need to select client/engagement');
+                // Clear any stale context
+                setClient(null);
+                setEngagement(null);
+                setSession(null);
+                contextStorage.clearContext();
               }
-            }
-            
-            // Method 3: If still no context, this indicates the user needs to select one
-            if (!contextRestored) {
-              console.log('🔧 No context available - user will need to select client/engagement');
-              // Don't set demo context for real users - leave empty for context selection
-            } else {
-              console.log('🔧 Context successfully restored!', {
-                client: client?.name,
-                engagement: engagement?.name
-              });
+            } catch (contextError) {
+              console.warn('🔐 Failed to fetch context from backend:', contextError);
+              // Clear any stale context on error
+              setClient(null);
+              setEngagement(null);
+              setSession(null);
+              contextStorage.clearContext();
             }
           } else {
             logout();
           }
+        } else {
+          // No token, clear everything
+          setUser(null);
+          setClient(null);
+          setEngagement(null);
+          setSession(null);
+          contextStorage.clearContext();
         }
       } catch (error) {
         console.error('🔐 InitializeAuth - Error:', error);
@@ -355,16 +365,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Small delay to ensure localStorage is updated
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Get user context with the new token to get the actual user role
+      // Always fetch fresh context from backend to ensure consistency
       let actualUserRole = response.user.role; // fallback to login response role
       try {
         const context = await apiCall('/me');
         console.log('🔐 Login Step 2 - Context from /me:', context);
         
         if (context) {
+          // Set context from backend response
           setClient(context.client || null);
           setEngagement(context.engagement || null);
           setSession(context.session || null);
+          
+          // Save the actual backend context
+          contextStorage.setContext({
+            client: context.client,
+            engagement: context.engagement,
+            session: context.session,
+            timestamp: Date.now(),
+            source: 'login_backend'
+          });
+          
           // Use the role from /me endpoint as it's more accurate
           if (context.user && context.user.role) {
             actualUserRole = context.user.role;
@@ -379,10 +400,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               isAdminCheck: updatedUser.role === 'admin'
             });
           }
+          
+          console.log('🔐 Login Step 3 - Context set from backend:', {
+            client: context.client,
+            engagement: context.engagement,
+            session: context.session
+          });
         }
       } catch (contextError) {
         console.warn('Failed to load user context, using defaults:', contextError);
-        // Continue with login even if context fails
+        // Clear context on error
+        setClient(null);
+        setEngagement(null);
+        setSession(null);
+        contextStorage.clearContext();
       }
 
       // Determine redirect path based on actual user role
@@ -412,20 +443,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoginInProgress(false);
     }
   };
-  const loginWithDemoUser = () => {
+  const loginWithDemoUser = async () => {
     setIsLoading(true);
-    localStorage.setItem('demoMode', 'true');
-    tokenStorage.setToken('db-token-' + DEMO_USER_ID + '-demo123');
-    tokenStorage.setUser(DEMO_USER);
-    
-    setUser(DEMO_USER);
-    setClient(DEMO_CLIENT);
-    setEngagement(DEMO_ENGAGEMENT);
-    setSession(DEMO_SESSION);
-    setError(null);
-    setIsLoading(false);
-    
-    navigate('/admin/dashboard');
+    try {
+      localStorage.setItem('demoMode', 'true');
+      tokenStorage.setToken('db-token-' + DEMO_USER_ID + '-demo123');
+      tokenStorage.setUser(DEMO_USER);
+      
+      setUser(DEMO_USER);
+      
+      // Fetch context from backend to ensure consistency
+      try {
+        const backendContext = await apiCall('/me');
+        console.log('🔐 Demo login - Backend context:', backendContext);
+        
+        if (backendContext?.client) {
+          setClient(backendContext.client);
+          setEngagement(backendContext.engagement || null);
+          setSession(backendContext.session || null);
+          
+          // Save the actual backend context
+          contextStorage.setContext({
+            client: backendContext.client,
+            engagement: backendContext.engagement,
+            session: backendContext.session,
+            timestamp: Date.now(),
+            source: 'demo_login_backend'
+          });
+        } else {
+          console.warn('🔐 Backend context missing for demo, using hardcoded');
+          setClient(DEMO_CLIENT);
+          setEngagement(DEMO_ENGAGEMENT);
+          setSession(DEMO_SESSION);
+        }
+      } catch (error) {
+        console.error('🔐 Failed to fetch demo context from backend, using hardcoded:', error);
+        setClient(DEMO_CLIENT);
+        setEngagement(DEMO_ENGAGEMENT);
+        setSession(DEMO_SESSION);
+      }
+      
+      setError(null);
+      navigate('/admin/dashboard');
+    } catch (error) {
+      console.error('Demo login failed:', error);
+      setError('Demo login failed');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const setCurrentSession = useCallback((session: Session | null) => {
