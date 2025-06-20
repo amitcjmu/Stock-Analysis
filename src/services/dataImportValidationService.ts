@@ -58,13 +58,8 @@ export class DataImportValidationService {
     formData.append('file', file);
     formData.append('category', category);
 
-    // Add context data to formData for multipart request
-    if (authContext) {
-      formData.append('client_account_id', authContext.client_account_id);
-      formData.append('engagement_id', authContext.engagement_id);
-      formData.append('user_id', authContext.user_id);
-      formData.append('session_id', authContext.session_id);
-    }
+    // Context data is sent via headers, not form data
+    // The backend gets client_account_id, engagement_id, user_id from middleware context
 
     try {
       // For FormData uploads, we need to let the browser set Content-Type automatically

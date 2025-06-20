@@ -127,7 +127,7 @@ async def store_import_data(
                 field_mapping = ImportFieldMapping(
                     data_import_id=data_import.id,
                     source_field=field_name,
-                    target_attribute=field_name.lower().replace(' ', '_'),
+                    target_field=field_name.lower().replace(' ', '_'),
                     confidence_score=0.8,  # Default confidence
                     mapping_type="automatic",
                     sample_values=json.dumps([str(record.get(field_name, "")) for record in file_data[:5]]),

@@ -262,9 +262,9 @@ export const useAttributeMappingLogic = () => {
       if (!flowState?.session_id && !agenticData?.attributes?.length) {
         const latestImportResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.LATEST_IMPORT, {
           headers: {
-            'X-Client-Account-ID': client.id,
-            'X-Engagement-ID': engagement.id,
-            'X-User-ID': user?.id
+            'X-Client-Account-Id': client.id,
+            'X-Engagement-Id': engagement.id,
+            'X-User-Id': user.id
           }
         });
         const rawData = latestImportResponse?.data || [];

@@ -78,6 +78,10 @@ class ContextMiddleware(BaseHTTPMiddleware):
         # Check if path is exempt from context requirements
         path = request.url.path
         
+        # CORS preflight requests (OPTIONS) should always be exempt
+        if request.method == "OPTIONS":
+            return await call_next(request)
+        
         # Special handling for root path - only match exactly '/'
         is_exempt = False
         for exempt_path in self.exempt_paths:

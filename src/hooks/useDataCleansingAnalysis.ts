@@ -67,7 +67,7 @@ interface DataCleansingResponse {
 }
 
 export const useDataCleansingAnalysis = () => {
-  const { client, engagement } = useAuth();
+  const { client, engagement, user } = useAuth();
 
   return useQuery({
     queryKey: ['data-cleansing-analysis', client?.id, engagement?.id],
@@ -78,12 +78,14 @@ export const useDataCleansingAnalysis = () => {
 
       try {
         // Use the proper multi-tenant discovery endpoint
+        const headers = {
+          'X-Client-Account-Id': client.id.toString(),
+          'X-Engagement-Id': engagement.id.toString(),
+          'X-User-Id': user.id.toString()
+        };
         const response = await apiCall('/api/v1/discovery/agents/analysis/analyze', {
           method: 'GET',
-          headers: {
-            'X-Client-Account-ID': client.id.toString(),
-            'X-Engagement-ID': engagement.id.toString(),
-          },
+          headers: headers,
         });
 
         // Transform the response to match expected format

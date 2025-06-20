@@ -89,11 +89,11 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
       if (userContextData) {
         try {
           const context = JSON.parse(userContextData);
-          if (context.clientId && !authHeaders['X-Client-Account-ID']) {
-            authHeaders['X-Client-Account-ID'] = context.clientId;
+          if (context.clientId && !authHeaders['X-Client-Account-Id']) {
+            authHeaders['X-Client-Account-Id'] = context.clientId;
           }
-          if (context.engagementId && !authHeaders['X-Engagement-ID']) {
-            authHeaders['X-Engagement-ID'] = context.engagementId;
+          if (context.engagementId && !authHeaders['X-Engagement-Id']) {
+            authHeaders['X-Engagement-Id'] = context.engagementId;
           }
         } catch (err) {
           console.warn('Failed to parse stored context:', err);

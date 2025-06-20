@@ -283,9 +283,9 @@ export const useAuthenticatedDiscoveryStatus = (sessionId: string | null) => {
         
         // Prepare headers for the status request
         const headers: Record<string, string> = {
-          'X-Client-Account-ID': clientId,
-          'X-Engagement-ID': engagementId,
-          'X-Session-ID': sessionId,
+          'X-Client-Account-Id': clientId,
+          'X-Engagement-Id': engagementId,
+          'X-Session-Id': sessionId,
           'X-Requested-With': 'XMLHttpRequest' // Helps identify AJAX requests
         };
         
