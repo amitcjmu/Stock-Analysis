@@ -1,385 +1,386 @@
 """
 Core Analysis Handler
-Handles main analysis logic, quality scoring, and data completeness calculations.
+Handles CrewAI-based core analysis operations with AI-driven intelligence.
 """
 
 import logging
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 from datetime import datetime
-import re
+import os
 
 logger = logging.getLogger(__name__)
 
+# Check CrewAI availability
+CREWAI_AVAILABLE = bool(os.getenv('DEEPINFRA_API_KEY') and os.getenv('CREWAI_ENABLED', 'true').lower() == 'true')
+
+try:
+    from app.services.crewai_flows.inventory_building_crew import create_inventory_building_crew
+    from app.services.crewai_flows.data_cleansing_crew import create_data_cleansing_crew
+    from app.services.crewai_flows.field_mapping_crew import create_field_mapping_crew
+    CREWS_AVAILABLE = True
+except ImportError:
+    CREWS_AVAILABLE = False
+
 class CoreAnalysisHandler:
-    """Handles core analysis operations with graceful fallbacks."""
+    """Handles CrewAI-based core analysis operations."""
     
-    def __init__(self):
-        self.service_available = True
-        logger.info("Core analysis handler initialized successfully")
+    def __init__(self, llm=None):
+        self.llm = llm
+        self.crews = {}
+        self.service_available = CREWAI_AVAILABLE and CREWS_AVAILABLE
+        
+        if self.service_available and self.llm:
+            self._initialize_crews()
+        
+        logger.info(f"Core analysis handler initialized (CrewAI: {self.service_available})")
+    
+    def _initialize_crews(self):
+        """Initialize CrewAI crews for core analysis."""
+        try:
+            if CREWS_AVAILABLE and self.llm:
+                self.crews['inventory_building'] = create_inventory_building_crew(llm=self.llm)
+                self.crews['data_cleansing'] = create_data_cleansing_crew(llm=self.llm)
+                self.crews['field_mapping'] = create_field_mapping_crew(llm=self.llm)
+                logger.info("CrewAI crews initialized for core analysis")
+        except Exception as e:
+            logger.error(f"Failed to initialize crews: {e}")
+            self.service_available = False
     
     def is_available(self) -> bool:
         """Check if the handler is properly initialized."""
-        return True
+        return self.service_available
     
     def calculate_quality_score(self, cmdb_data: Dict, asset_type: str) -> int:
-        """Calculate data quality score."""
+        """Calculate data quality score using CrewAI crews."""
         try:
-            score = 50  # Base score
+            if not self.service_available:
+                return self._fallback_quality_score(cmdb_data)
             
-            structure = cmdb_data.get('structure', {})
-            columns = structure.get('columns', [])
-            sample_data = cmdb_data.get('sample_data', [])
+            # Use Data Cleansing Crew for quality assessment
+            if 'data_cleansing' in self.crews:
+                try:
+                    crew_result = self.crews['data_cleansing'].kickoff({
+                        'cmdb_data': cmdb_data,
+                        'asset_type': asset_type,
+                        'task': 'quality_scoring'
+                    })
+                    
+                    if crew_result and isinstance(crew_result, dict):
+                        return int(crew_result.get('quality_score', 70))
+                except Exception as e:
+                    logger.error(f"Data Cleansing Crew quality scoring failed: {e}")
             
-            # Score based on column count
-            if len(columns) >= 5:
-                score += 15
-            elif len(columns) >= 3:
-                score += 10
-            
-            # Score based on data completeness
-            if sample_data:
-                completeness = self.calculate_data_completeness(sample_data)
-                score += int(completeness * 20)
-            
-            # Score based on asset type clarity
-            if self.has_clear_type_indicators(columns):
-                score += 15
-            
-            return min(100, score)
+            return self._fallback_quality_score(cmdb_data)
             
         except Exception as e:
             logger.error(f"Error calculating quality score: {e}")
             return 50  # Default score
     
+    def _fallback_quality_score(self, cmdb_data: Dict) -> int:
+        """Fallback quality scoring when CrewAI is not available."""
+        structure = cmdb_data.get('structure', {})
+        columns = structure.get('columns', [])
+        sample_data = cmdb_data.get('sample_data', [])
+        
+        # Basic scoring - recommend AI analysis
+        base_score = 60 if len(columns) >= 3 else 40
+        if sample_data and len(sample_data) > 0:
+            base_score += 10
+        
+        return min(100, base_score)
+    
     def calculate_data_completeness(self, sample_data: List[Dict]) -> float:
-        """Calculate data completeness ratio."""
+        """Calculate data completeness using AI analysis."""
         try:
-            if not sample_data:
-                return 0.0
+            if not self.service_available:
+                return self._fallback_data_completeness(sample_data)
             
-            total_fields = 0
-            filled_fields = 0
+            # Use Data Cleansing Crew for completeness analysis
+            if 'data_cleansing' in self.crews:
+                try:
+                    crew_result = self.crews['data_cleansing'].kickoff({
+                        'sample_data': sample_data,
+                        'task': 'completeness_analysis'
+                    })
+                    
+                    if crew_result and isinstance(crew_result, dict):
+                        return float(crew_result.get('completeness_ratio', 0.7))
+                except Exception as e:
+                    logger.error(f"Data Cleansing Crew completeness analysis failed: {e}")
             
-            for row in sample_data:
-                for value in row.values():
-                    total_fields += 1
-                    if value and str(value).strip():
-                        filled_fields += 1
-            
-            return filled_fields / total_fields if total_fields > 0 else 0.0
+            return self._fallback_data_completeness(sample_data)
             
         except Exception as e:
             logger.error(f"Error calculating data completeness: {e}")
             return 0.0
     
+    def _fallback_data_completeness(self, sample_data: List[Dict]) -> float:
+        """Fallback completeness calculation when CrewAI is not available."""
+        if not sample_data:
+            return 0.0
+        
+        # Basic completeness check
+        total_fields = sum(len(row) for row in sample_data)
+        filled_fields = sum(1 for row in sample_data for value in row.values() if value and str(value).strip())
+        
+        return filled_fields / total_fields if total_fields > 0 else 0.0
+    
     def has_clear_type_indicators(self, columns: List[str]) -> bool:
-        """Check if data has clear type indicators."""
+        """Check if data has clear type indicators using AI analysis."""
         try:
-            col_lower = [col.lower() for col in columns]
-            type_indicators = ['ci_type', 'type', 'asset_type', 'category']
+            if not self.service_available:
+                return self._fallback_type_indicators(columns)
             
-            return any(indicator in ' '.join(col_lower) for indicator in type_indicators)
+            # Use Field Mapping Crew for type indicator analysis
+            if 'field_mapping' in self.crews:
+                try:
+                    crew_result = self.crews['field_mapping'].kickoff({
+                        'columns': columns,
+                        'task': 'type_indicator_analysis'
+                    })
+                    
+                    if crew_result and isinstance(crew_result, dict):
+                        return crew_result.get('has_type_indicators', False)
+                except Exception as e:
+                    logger.error(f"Field Mapping Crew type indicator analysis failed: {e}")
+            
+            return self._fallback_type_indicators(columns)
             
         except Exception as e:
             logger.error(f"Error checking type indicators: {e}")
             return False
     
+    def _fallback_type_indicators(self, columns: List[str]) -> bool:
+        """Fallback type indicator check when CrewAI is not available."""
+        col_lower = [col.lower() for col in columns]
+        type_indicators = ['ci_type', 'type', 'asset_type', 'category']
+        return any(indicator in ' '.join(col_lower) for indicator in type_indicators)
+    
     def detect_asset_type(self, cmdb_data: Dict[str, Any]) -> str:
-        """Detect asset type from CMDB data."""
+        """Detect asset type using CrewAI crews."""
         try:
-            structure = cmdb_data.get('structure', {})
-            columns = structure.get('columns', [])
-            sample_data = cmdb_data.get('sample_data', [])
+            if not self.service_available:
+                return self._fallback_asset_type(cmdb_data)
             
-            # Check columns for type indicators
-            col_text = ' '.join(columns).lower()
+            # Use Inventory Building Crew for asset type detection
+            if 'inventory_building' in self.crews:
+                try:
+                    crew_result = self.crews['inventory_building'].kickoff({
+                        'cmdb_data': cmdb_data,
+                        'task': 'asset_type_detection'
+                    })
+                    
+                    if crew_result and isinstance(crew_result, dict):
+                        return crew_result.get('asset_type', 'generic')
+                except Exception as e:
+                    logger.error(f"Inventory Building Crew asset type detection failed: {e}")
             
-            # Server indicators
-            server_indicators = ['server', 'host', 'compute', 'vm', 'virtual', 'physical', 'cpu', 'memory', 'ram']
-            if any(indicator in col_text for indicator in server_indicators):
-                return 'server'
-            
-            # Application indicators
-            app_indicators = ['application', 'app', 'service', 'software', 'system']
-            if any(indicator in col_text for indicator in app_indicators):
-                return 'application'
-            
-            # Database indicators
-            db_indicators = ['database', 'db', 'sql', 'oracle', 'mysql', 'postgres']
-            if any(indicator in col_text for indicator in db_indicators):
-                return 'database'
-            
-            # Network indicators
-            network_indicators = ['network', 'switch', 'router', 'firewall', 'load_balancer']
-            if any(indicator in col_text for indicator in network_indicators):
-                return 'network'
-            
-            # Storage indicators
-            storage_indicators = ['storage', 'disk', 'san', 'nas', 'volume']
-            if any(indicator in col_text for indicator in storage_indicators):
-                return 'storage'
-            
-            # Check sample data for type clues
-            if sample_data:
-                sample_text = ' '.join(str(value).lower() for row in sample_data[:5] for value in row.values() if value)
-                
-                if any(indicator in sample_text for indicator in server_indicators):
-                    return 'server'
-                elif any(indicator in sample_text for indicator in app_indicators):
-                    return 'application'
-                elif any(indicator in sample_text for indicator in db_indicators):
-                    return 'database'
-            
-            # Default to generic if no clear indicators
-            return 'generic'
+            return self._fallback_asset_type(cmdb_data)
             
         except Exception as e:
             logger.error(f"Error detecting asset type: {e}")
             return 'generic'
     
+    def _fallback_asset_type(self, cmdb_data: Dict[str, Any]) -> str:
+        """Fallback asset type detection when CrewAI is not available."""
+        structure = cmdb_data.get('structure', {})
+        columns = structure.get('columns', [])
+        col_text = ' '.join(columns).lower()
+        
+        # Basic type detection - recommend AI analysis
+        if any(indicator in col_text for indicator in ['server', 'host', 'compute']):
+            return 'server'
+        elif any(indicator in col_text for indicator in ['application', 'app', 'service']):
+            return 'application'
+        elif any(indicator in col_text for indicator in ['database', 'db', 'sql']):
+            return 'database'
+        else:
+            return 'generic'
+    
     def identify_missing_fields(self, cmdb_data: Dict, asset_type: str) -> List[str]:
-        """Identify missing required fields based on asset type."""
+        """Identify missing fields using CrewAI crews."""
         try:
-            structure = cmdb_data.get('structure', {})
-            columns = structure.get('columns', [])
-            col_lower = [col.lower() for col in columns]
+            if not self.service_available:
+                return self._fallback_missing_fields(cmdb_data, asset_type)
             
-            # Define required fields by asset type
-            required_fields = {
-                'server': ['name', 'ip_address', 'operating_system', 'environment', 'cpu', 'memory'],
-                'application': ['name', 'business_owner', 'environment', 'version', 'criticality'],
-                'database': ['name', 'db_type', 'version', 'size', 'environment'],
-                'network': ['name', 'ip_address', 'device_type', 'location'],
-                'storage': ['name', 'capacity', 'type', 'location'],
-                'generic': ['name', 'type', 'environment', 'owner']
-            }
+            # Use Field Mapping Crew for missing field analysis
+            if 'field_mapping' in self.crews:
+                try:
+                    crew_result = self.crews['field_mapping'].kickoff({
+                        'cmdb_data': cmdb_data,
+                        'asset_type': asset_type,
+                        'task': 'missing_field_analysis'
+                    })
+                    
+                    if crew_result and isinstance(crew_result, dict):
+                        return crew_result.get('missing_fields', [])
+                except Exception as e:
+                    logger.error(f"Field Mapping Crew missing field analysis failed: {e}")
             
-            asset_required = required_fields.get(asset_type, required_fields['generic'])
-            missing_fields = []
-            
-            for required_field in asset_required:
-                # Check if any column matches this required field
-                found = False
-                for col in col_lower:
-                    if (required_field in col or 
-                        any(synonym in col for synonym in self._get_field_synonyms(required_field))):
-                        found = True
-                        break
-                
-                if not found:
-                    missing_fields.append(required_field.replace('_', ' ').title())
-            
-            return missing_fields
+            return self._fallback_missing_fields(cmdb_data, asset_type)
             
         except Exception as e:
             logger.error(f"Error identifying missing fields: {e}")
             return []
     
-    def _get_field_synonyms(self, field: str) -> List[str]:
-        """Get synonyms for common field names."""
-        synonyms = {
-            'name': ['hostname', 'ci_name', 'asset_name', 'device_name'],
-            'ip_address': ['ip', 'network_address', 'primary_ip'],
-            'operating_system': ['os', 'platform', 'os_version'],
-            'environment': ['env', 'stage', 'tier'],
-            'cpu': ['cores', 'processors', 'vcpu'],
-            'memory': ['ram', 'memory_gb', 'ram_gb'],
-            'business_owner': ['owner', 'responsible_party', 'app_owner'],
-            'criticality': ['priority', 'importance', 'business_criticality'],
-            'version': ['release', 'build', 'software_version'],
-            'db_type': ['database_type', 'dbms', 'database_engine'],
-            'size': ['capacity', 'storage_size', 'disk_size'],
-            'device_type': ['type', 'category', 'classification'],
-            'location': ['site', 'datacenter', 'facility']
-        }
-        
-        return synonyms.get(field, [])
+    def _fallback_missing_fields(self, cmdb_data: Dict, asset_type: str) -> List[str]:
+        """Fallback missing field identification when CrewAI is not available."""
+        # Return basic recommendations for AI analysis
+        return [
+            "Use Field Mapping Crew for comprehensive field analysis",
+            "Enable CrewAI for intelligent field mapping",
+            "AI analysis recommended for missing field detection"
+        ]
     
     def identify_issues(self, cmdb_data: Dict) -> List[str]:
-        """Identify potential issues in the data."""
+        """Identify issues using CrewAI crews."""
         try:
-            issues = []
+            if not self.service_available:
+                return self._fallback_issues(cmdb_data)
             
-            structure = cmdb_data.get('structure', {})
-            columns = structure.get('columns', [])
-            sample_data = cmdb_data.get('sample_data', [])
+            # Use Data Cleansing Crew for issue identification
+            if 'data_cleansing' in self.crews:
+                try:
+                    crew_result = self.crews['data_cleansing'].kickoff({
+                        'cmdb_data': cmdb_data,
+                        'task': 'issue_identification'
+                    })
+                    
+                    if crew_result and isinstance(crew_result, dict):
+                        return crew_result.get('issues', [])
+                except Exception as e:
+                    logger.error(f"Data Cleansing Crew issue identification failed: {e}")
             
-            # Check for insufficient columns
-            if len(columns) < 3:
-                issues.append("Insufficient number of data fields")
-            
-            # Check for missing type indicators
-            if not self.has_clear_type_indicators(columns):
-                issues.append("No clear asset type indicators found")
-            
-            # Check data completeness
-            if sample_data:
-                completeness = self.calculate_data_completeness(sample_data)
-                if completeness < 0.5:
-                    issues.append("Low data completeness - many empty fields")
-                elif completeness < 0.7:
-                    issues.append("Moderate data completeness - some empty fields")
-            
-            # Check for duplicate column names
-            if len(columns) != len(set(columns)):
-                issues.append("Duplicate column names detected")
-            
-            # Check for very short column names (likely abbreviated)
-            short_columns = [col for col in columns if len(col) <= 2]
-            if short_columns:
-                issues.append(f"Very short column names detected: {', '.join(short_columns)}")
-            
-            return issues if issues else ["No significant issues detected"]
+            return self._fallback_issues(cmdb_data)
             
         except Exception as e:
             logger.error(f"Error identifying issues: {e}")
-            return ["Error analyzing data quality"]
+            return []
+    
+    def _fallback_issues(self, cmdb_data: Dict) -> List[str]:
+        """Fallback issue identification when CrewAI is not available."""
+        return [
+            "Use Data Cleansing Crew for comprehensive issue analysis",
+            "Enable CrewAI for intelligent data quality assessment",
+            "AI analysis recommended for issue identification"
+        ]
     
     def generate_basic_recommendations(self, cmdb_data: Dict, asset_type: str) -> List[str]:
-        """Generate basic recommendations for data improvement."""
+        """Generate recommendations using CrewAI crews."""
         try:
-            recommendations = []
+            if not self.service_available:
+                return self._fallback_recommendations(cmdb_data, asset_type)
             
-            # Asset type specific recommendations
-            if asset_type == "server":
-                recommendations.extend([
-                    "Collect IP addresses for all servers",
-                    "Standardize operating system naming conventions",
-                    "Ensure CPU and memory specifications are complete"
-                ])
-            elif asset_type == "application":
-                recommendations.extend([
-                    "Identify business owners for all applications",
-                    "Establish application criticality ratings",
-                    "Document application dependencies"
-                ])
-            elif asset_type == "database":
-                recommendations.extend([
-                    "Document database sizes and growth patterns",
-                    "Identify database dependencies and consumers",
-                    "Ensure backup and recovery procedures are documented"
-                ])
-            else:
-                recommendations.extend([
-                    "Standardize asset naming conventions",
-                    "Complete missing asset type classifications",
-                    "Establish ownership and responsibility"
-                ])
+            # Use Data Cleansing Crew for recommendations
+            if 'data_cleansing' in self.crews:
+                try:
+                    crew_result = self.crews['data_cleansing'].kickoff({
+                        'cmdb_data': cmdb_data,
+                        'asset_type': asset_type,
+                        'task': 'recommendation_generation'
+                    })
+                    
+                    if crew_result and isinstance(crew_result, dict):
+                        return crew_result.get('recommendations', [])
+                except Exception as e:
+                    logger.error(f"Data Cleansing Crew recommendation generation failed: {e}")
             
-            # General recommendations
-            structure = cmdb_data.get('structure', {})
-            columns = structure.get('columns', [])
-            
-            if len(columns) < 5:
-                recommendations.append("Consider adding more descriptive fields")
-            
-            sample_data = cmdb_data.get('sample_data', [])
-            if sample_data:
-                completeness = self.calculate_data_completeness(sample_data)
-                if completeness < 0.8:
-                    recommendations.append("Improve data completeness across all fields")
-            
-            return recommendations
+            return self._fallback_recommendations(cmdb_data, asset_type)
             
         except Exception as e:
             logger.error(f"Error generating recommendations: {e}")
-            return ["Complete data analysis and standardization"]
+            return []
+    
+    def _fallback_recommendations(self, cmdb_data: Dict, asset_type: str) -> List[str]:
+        """Fallback recommendations when CrewAI is not available."""
+        return [
+            "Use Data Cleansing Crew for intelligent recommendations",
+            "Enable Field Mapping Crew for field analysis",
+            "Use Inventory Building Crew for asset classification",
+            "AI analysis recommended for comprehensive insights"
+        ]
     
     def assess_migration_readiness(self, cmdb_data: Dict, asset_type: str, quality_score: int) -> Dict[str, Any]:
-        """Assess migration readiness based on data quality and completeness."""
+        """Assess migration readiness using CrewAI crews."""
         try:
-            readiness_score = quality_score / 100.0
+            if not self.service_available:
+                return self._fallback_migration_readiness(quality_score)
             
-            # Adjust based on asset type complexity
-            complexity_adjustments = {
-                'server': 0.0,
-                'application': 0.1,
-                'database': 0.2,
-                'network': -0.1,
-                'storage': -0.05,
-                'generic': -0.2
-            }
+            # Use Data Cleansing Crew for readiness assessment
+            if 'data_cleansing' in self.crews:
+                try:
+                    crew_result = self.crews['data_cleansing'].kickoff({
+                        'cmdb_data': cmdb_data,
+                        'asset_type': asset_type,
+                        'quality_score': quality_score,
+                        'task': 'migration_readiness_assessment'
+                    })
+                    
+                    if crew_result and isinstance(crew_result, dict):
+                        return crew_result
+                except Exception as e:
+                    logger.error(f"Data Cleansing Crew readiness assessment failed: {e}")
             
-            readiness_score += complexity_adjustments.get(asset_type, 0)
-            readiness_score = max(0.0, min(1.0, readiness_score))
-            
-            # Determine readiness level
-            if readiness_score >= 0.8:
-                readiness_level = "High"
-                readiness_message = "Data is well-structured and ready for migration planning"
-            elif readiness_score >= 0.6:
-                readiness_level = "Medium"
-                readiness_message = "Data is adequate but could benefit from improvement"
-            elif readiness_score >= 0.4:
-                readiness_level = "Low"
-                readiness_message = "Data needs significant improvement before migration"
-            else:
-                readiness_level = "Very Low"
-                readiness_message = "Data requires major cleanup and standardization"
-            
-            return {
-                "readiness_score": readiness_score,
-                "readiness_level": readiness_level,
-                "readiness_message": readiness_message,
-                "asset_type": asset_type,
-                "quality_score": quality_score
-            }
+            return self._fallback_migration_readiness(quality_score)
             
         except Exception as e:
             logger.error(f"Error assessing migration readiness: {e}")
-            return {
-                "readiness_score": 0.5,
-                "readiness_level": "Unknown",
-                "readiness_message": "Unable to assess migration readiness",
-                "error": str(e)
-            }
+            return self._fallback_migration_readiness(quality_score)
+    
+    def _fallback_migration_readiness(self, quality_score: int) -> Dict[str, Any]:
+        """Fallback migration readiness when CrewAI is not available."""
+        readiness_score = quality_score / 100.0
+        
+        if readiness_score >= 0.8:
+            status = "ready"
+            message = "Data appears ready for migration"
+        elif readiness_score >= 0.6:
+            status = "needs_review"
+            message = "Data needs review before migration"
+        else:
+            status = "not_ready"
+            message = "Data requires significant improvement"
+        
+        return {
+            "status": status,
+            "score": readiness_score,
+            "message": message,
+            "ai_analysis_recommended": True,
+            "recommended_crew": "Data Cleansing Crew"
+        }
     
     def analyze_data_patterns(self, sample_data: List[Dict]) -> Dict[str, Any]:
-        """Analyze patterns in the sample data."""
+        """Analyze data patterns using CrewAI crews."""
         try:
-            if not sample_data:
-                return {"patterns": [], "insights": []}
+            if not self.service_available:
+                return self._fallback_data_patterns(sample_data)
             
-            patterns = []
-            insights = []
-            
-            # Analyze field value patterns
-            field_analysis = {}
-            for row in sample_data:
-                for field, value in row.items():
-                    if field not in field_analysis:
-                        field_analysis[field] = {"values": [], "empty_count": 0}
+            # Use Data Cleansing Crew for pattern analysis
+            if 'data_cleansing' in self.crews:
+                try:
+                    crew_result = self.crews['data_cleansing'].kickoff({
+                        'sample_data': sample_data,
+                        'task': 'pattern_analysis'
+                    })
                     
-                    if value and str(value).strip():
-                        field_analysis[field]["values"].append(str(value))
-                    else:
-                        field_analysis[field]["empty_count"] += 1
+                    if crew_result and isinstance(crew_result, dict):
+                        return crew_result
+                except Exception as e:
+                    logger.error(f"Data Cleansing Crew pattern analysis failed: {e}")
             
-            # Generate patterns and insights
-            for field, analysis in field_analysis.items():
-                values = analysis["values"]
-                empty_count = analysis["empty_count"]
-                total_count = len(values) + empty_count
-                
-                if empty_count > total_count * 0.5:
-                    patterns.append(f"High percentage of empty values in {field}")
-                
-                if values:
-                    unique_values = set(values)
-                    if len(unique_values) == 1:
-                        patterns.append(f"All {field} values are identical")
-                    elif len(unique_values) / len(values) > 0.9:
-                        insights.append(f"{field} has high uniqueness - likely identifier field")
-                    elif len(unique_values) < 10:
-                        insights.append(f"{field} has limited values - likely categorical field")
-            
-            return {
-                "patterns": patterns,
-                "insights": insights,
-                "field_count": len(field_analysis),
-                "sample_size": len(sample_data)
-            }
+            return self._fallback_data_patterns(sample_data)
             
         except Exception as e:
             logger.error(f"Error analyzing data patterns: {e}")
-            return {"patterns": [], "insights": [], "error": str(e)} 
+            return self._fallback_data_patterns(sample_data)
+    
+    def _fallback_data_patterns(self, sample_data: List[Dict]) -> Dict[str, Any]:
+        """Fallback data pattern analysis when CrewAI is not available."""
+        return {
+            "patterns_found": 0,
+            "data_types": {},
+            "value_distributions": {},
+            "ai_analysis_recommended": True,
+            "recommended_crew": "Data Cleansing Crew",
+            "message": "Enable CrewAI for comprehensive pattern analysis"
+        } 
