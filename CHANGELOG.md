@@ -1,5 +1,43 @@
 # AI Force Migration Platform - Change Log
 
+## [0.4.25] - 2025-01-03
+
+### 🎯 **DISCOVERY FLOW DEBUGGING & ROOT CAUSE ANALYSIS**
+
+This release provides comprehensive debugging capabilities and identifies the root cause of the discovery flow 422 retry loop issue.
+
+### 🚀 **Discovery Flow Architecture Analysis**
+
+#### **Root Cause Identification**
+- **Infinite Retry Loop**: Frontend stuck in retry loop calling `/discovery/flow/run` with 422 errors every 25-50ms
+- **Empty Data Issue**: `getStoredImportData()` returning empty array causing "file_data is required for analysis" error
+- **Data Retrieval Disconnect**: Frontend not properly retrieving stored CMDB data from database
+- **Backend Data Confirmed**: Database contains 10 records from June 18th import session with all CMDB fields
+
+#### **Debug Infrastructure Added**
+- **Import Session ID Tracking**: Added console logging to track `file.importSessionId` values
+- **API Call Monitoring**: Enhanced `getStoredImportData()` with detailed request/response logging
+- **Data Flow Verification**: Added logging to track csvData length and content
+- **Error State Management**: Improved loading states to prevent infinite retry loops
+
+### 📊 **Discovery Flow Analysis Results**
+- **Backend Endpoint Working**: `/api/v1/data-import/import/{session_id}` returns 10 records correctly
+- **Schema Validation Passing**: Manual curl tests show 200 response with proper data structure
+- **CrewAI Agents Loading**: All discovery agents initialize successfully (2 agents confirmed)
+- **Context Resolution Working**: User/client/engagement context resolves correctly
+
+### 🔧 **Technical Fixes Applied**
+- **Endpoint Path Correction**: Fixed `/data-import/get-import/` to `/data-import/import/` path
+- **Hook Import Fix**: Corrected `useDiscoveryFlowState` import path in AttributeMappingLogic
+- **Loading State Management**: Added `setIsStartingFlow(false)` to prevent UI lock on errors
+- **Enhanced Error Messages**: Added import session ID context to error messages
+
+### 🎯 **Next Steps Identified**
+- **Frontend Data Retrieval**: Debug why `file.importSessionId` may be undefined or incorrect
+- **API Response Handling**: Verify frontend properly processes successful API responses
+- **Flow State Integration**: Ensure proper connection between stored data and CrewAI flow initialization
+- **Session Management**: Verify import session ID persistence across upload and discovery flow phases
+
 ## [0.4.24] - 2025-01-03
 
 ### 🎯 **CREWAI DISCOVERY FLOW RECONNECTION FIX**
