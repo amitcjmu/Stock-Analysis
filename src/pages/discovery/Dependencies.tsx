@@ -24,8 +24,8 @@ const Dependencies: React.FC = () => {
   // Use dependency logic hook - following the established pattern
   const {
     dependencyData,
-    isLoading: isDependencyDataLoading,
-    error: dependencyDataError,
+    isLoading,
+    error,
     isAnalyzing,
     analyzeDependencies,
     activeView,
@@ -33,11 +33,8 @@ const Dependencies: React.FC = () => {
     canContinueToNextPhase
   } = useDependencyLogic();
 
-  // Use navigation hook - following the established pattern
+  // Use navigation hook - following the established pattern  
   const { handleContinueToNextPhase } = useDependencyNavigation(null, dependencyData);
-  
-  const isLoading = isDependencyDataLoading;
-  const error = dependencyDataError;
 
   if (isLoading) {
     return (
