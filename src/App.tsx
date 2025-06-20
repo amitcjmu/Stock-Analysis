@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Routes, Route } from "react-router-dom";
 import { ChatFeedbackProvider } from "./contexts/ChatFeedbackContext";
-import { AuthProvider } from "./contexts/AuthContext";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { SessionProvider } from "./contexts/SessionContext";
 import { ClientProvider } from "./contexts/ClientContext";
 // import { AppContextProvider } from "./hooks/useContext";
@@ -77,16 +77,24 @@ import AdminRoute from "./components/admin/AdminRoute";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <AuthProvider>
-        <SessionProvider>
-          <ClientProvider>
-            <ChatFeedbackProvider>
-              <Routes>
+// Component to handle authenticated routes
+const AuthenticatedApp = () => {
+  const { isLoading, isAuthenticated } = useAuth();
+
+  // Show loading screen while authentication is being determined
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
               <Route path="/discovery" element={<Discovery />} />
@@ -159,6 +167,19 @@ const App = () => (
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
               </Routes>
+  );
+};
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <AuthProvider>
+        <SessionProvider>
+          <ClientProvider>
+            <ChatFeedbackProvider>
+              <AuthenticatedApp />
               <GlobalChatFeedback />
             </ChatFeedbackProvider>
           </ClientProvider>

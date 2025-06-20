@@ -238,7 +238,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(DEMO_USER);
           
           try {
-            const backendContext = await apiCall('/me');
+            const backendContext = await apiCall('/me', {}, false); // Don't include context headers for /me endpoint
             console.log('🔐 Backend context for demo user:', backendContext);
             
             if (backendContext?.client) {
@@ -283,7 +283,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Always fetch fresh context from backend for authenticated users
             try {
               console.log('🔐 Fetching fresh context from backend for authenticated user');
-              const backendContext = await apiCall('/me');
+              const backendContext = await apiCall('/me', {}, false); // Don't include context headers for /me endpoint
               
               if (backendContext?.client) {
                 console.log('🔐 Setting context from backend:', backendContext);
@@ -368,7 +368,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Always fetch fresh context from backend to ensure consistency
       let actualUserRole = response.user.role; // fallback to login response role
       try {
-        const context = await apiCall('/me');
+        const context = await apiCall('/me', {}, false); // Don't include context headers for /me endpoint
         console.log('🔐 Login Step 2 - Context from /me:', context);
         
         if (context) {
@@ -445,6 +445,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
   const loginWithDemoUser = async () => {
     setIsLoading(true);
+    setIsLoginInProgress(true);
     try {
       localStorage.setItem('demoMode', 'true');
       tokenStorage.setToken('db-token-' + DEMO_USER_ID + '-demo123');
@@ -452,9 +453,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       setUser(DEMO_USER);
       
+      // Small delay to ensure localStorage is updated
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       // Fetch context from backend to ensure consistency
       try {
-        const backendContext = await apiCall('/me');
+        const backendContext = await apiCall('/me', {}, false); // Don't include context headers for /me endpoint
         console.log('🔐 Demo login - Backend context:', backendContext);
         
         if (backendContext?.client) {
@@ -470,6 +474,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             timestamp: Date.now(),
             source: 'demo_login_backend'
           });
+          
+          console.log('🔐 Demo login complete - Context set:', {
+            client: backendContext.client,
+            engagement: backendContext.engagement,
+            session: backendContext.session
+          });
         } else {
           console.warn('🔐 Backend context missing for demo, using hardcoded');
           setClient(DEMO_CLIENT);
@@ -484,12 +494,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       setError(null);
-      navigate('/admin/dashboard');
+      
+      // Use setTimeout to ensure state updates are complete before navigation
+      setTimeout(() => {
+        console.log('🔐 Demo login - Navigating to admin dashboard');
+        navigate('/admin/dashboard');
+      }, 300);
     } catch (error) {
       console.error('Demo login failed:', error);
       setError('Demo login failed');
     } finally {
       setIsLoading(false);
+      setIsLoginInProgress(false);
     }
   };
 
