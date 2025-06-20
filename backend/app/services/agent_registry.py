@@ -65,10 +65,10 @@ class AgentRegistry:
         logger.info(f"Agent Registry initialized with {len(self.agents)} agents")
     
     def _initialize_all_agents(self):
-        """Initialize comprehensive registry of all platform agents."""
+        """Initialize all agents across all phases."""
         
         # === DISCOVERY PHASE AGENTS ===
-        self._register_discovery_agents()
+        self._register_discovery_crew_agents()
         
         # === ASSESSMENT PHASE AGENTS ===
         self._register_assessment_agents()
@@ -94,8 +94,8 @@ class AgentRegistry:
         # === OBSERVABILITY PHASE AGENTS ===
         self._register_observability_agents()
     
-    def _register_discovery_agents(self):
-        """Register all Discovery phase agents."""
+    def _register_discovery_crew_agents(self):
+        """Register all Discovery phase crew-based agents."""
         
         # Data Source Intelligence Agent (NEW - Modular)
         self.register_agent(AgentRegistration(

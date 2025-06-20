@@ -6,16 +6,20 @@ Handles storing imported data in database for cross-page persistence.
 import hashlib
 import logging
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import desc, select, and_
 import uuid
 import asyncio
+import json
+import os
+from pydantic import BaseModel
 
 from app.core.database import get_db
 from app.core.context import get_current_context, RequestContext
-from app.models.data_import import DataImport, RawImportRecord, ImportStatus
+from app.models.data_import import DataImport, RawImportRecord, ImportStatus, ImportFieldMapping
+from app.schemas.data_import_schemas import StoreImportRequest
 
 # Make client_account import conditional to avoid deployment failures
 try:
@@ -37,138 +41,183 @@ except ImportError:
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
+# Validation sessions directory
+VALIDATION_SESSIONS_PATH = os.path.join("backend", "data", "validation_sessions")
+
+# Ensure the directory exists
+os.makedirs(VALIDATION_SESSIONS_PATH, exist_ok=True)
+
+class ImportStorageResponse(BaseModel):
+    success: bool
+    import_session_id: Optional[str] = None
+    error: Optional[str] = None
+    message: str
+    records_stored: int = 0
+
 @router.post("/store-import")
 async def store_import_data(
-    file_data: List[Dict[str, Any]],
-    metadata: Dict[str, Any],
-    upload_context: Dict[str, Any],
-    db: AsyncSession = Depends(get_db)
-):
+    request: StoreImportRequest,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+) -> ImportStorageResponse:
     """
-    Store imported data in database for persistent access across pages.
-    Replaces localStorage with proper database persistence and audit trail.
+    Store validated import data in the database and trigger Discovery Flow.
+    
+    This endpoint receives the validated CSV data and:
+    1. Stores it in the database
+    2. Triggers the Discovery Flow for immediate processing
+    3. Returns the import session ID for tracking
     """
     try:
-        logger.info(f"Storing import data: {len(file_data)} records")
+        logger.info(f"🔄 Starting data storage for session: {request.upload_context.validation_session_id}")
         
-        # Get current context from middleware
-        context = get_current_context()
+        # Extract data from request
+        file_data = request.file_data
+        filename = request.metadata.filename
+        file_size = request.metadata.size
+        file_type = request.metadata.type
+        intended_type = request.upload_context.intended_type
+        validation_session_id = request.upload_context.validation_session_id
+        upload_timestamp = request.upload_context.upload_timestamp
         
-        # Dynamically resolve demo client and engagement UUIDs
-        demo_client_uuid = None
-        demo_engagement_uuid = None
-        demo_user_uuid = "eef6ea50-6550-4f14-be2c-081d4eb23038"  # John Doe
+        # Use context for client/engagement IDs
+        client_account_id = context.client_account_id
+        engagement_id = context.engagement_id
+        user_id = context.user_id
         
-        # Resolve demo client dynamically if context is missing
-        if not context.client_account_id:
-            try:
-                # Find demo client by is_mock=true
-                demo_client_query = select(ClientAccount).where(ClientAccount.is_mock == True)
-                demo_client_result = await db.execute(demo_client_query)
-                demo_client = demo_client_result.scalar_one_or_none()
-                
-                if demo_client:
-                    demo_client_uuid = str(demo_client.id)
-                    logger.info(f"Dynamically resolved demo client: {demo_client.name} ({demo_client_uuid})")
-                    
-                    # Get first engagement for demo client
-                    demo_engagement_query = select(Engagement).where(
-                        Engagement.client_account_id == demo_client.id
-                    ).limit(1)
-                    demo_engagement_result = await db.execute(demo_engagement_query)
-                    demo_engagement = demo_engagement_result.scalar_one_or_none()
-                    
-                    if demo_engagement:
-                        demo_engagement_uuid = str(demo_engagement.id)
-                        logger.info(f"Dynamically resolved demo engagement: {demo_engagement.name} ({demo_engagement_uuid})")
-            except Exception as resolve_e:
-                logger.warning(f"Failed to resolve demo client/engagement dynamically: {resolve_e}")
-                # Keep None values to trigger error handling below
-        
-        # Use actual context or fallback to dynamically resolved demo values
-        client_account_id = context.client_account_id or demo_client_uuid
-        engagement_id = context.engagement_id or demo_engagement_uuid  
-        user_id = context.user_id or demo_user_uuid
-        
-        # Verify we have required IDs
         if not client_account_id or not engagement_id:
             raise HTTPException(
                 status_code=400, 
-                detail=f"Missing required context: client_account_id={client_account_id}, engagement_id={engagement_id}"
+                detail="Client account and engagement context required"
             )
         
-        # Simplified session management - don't fail the whole operation if session fails
-        session_id = None
-        try:
-            if SESSION_MANAGEMENT_AVAILABLE:
-                session_service = create_session_management_service(db)
-                session = await session_service.get_or_create_active_session(
-                    client_account_id=client_account_id,
-                    engagement_id=engagement_id,
-                    auto_create=True
-                )
-                session_id = str(session.id) if session else None
-                logger.info(f"Using session {session_id} for data import from store-import")
-        except Exception as session_e:
-            logger.warning(f"Session management failed, continuing without session: {session_e}")
-            # Continue without session - this is not critical for data storage
+        logger.info(f"Using session {validation_session_id} for data import from store-import")
         
-        # Create import session record with proper context and session
-        import_session = DataImport(
-            import_name=metadata.get("filename", "Unknown Import"),
-            import_type=upload_context.get("intended_type", "unknown"),
-            description=f"Data import session from {metadata.get('filename')}",
-            source_filename=metadata.get("filename", "unknown.csv"),
-            file_size_bytes=metadata.get("size", 0),
-            file_type=metadata.get("type", "text/csv"),
-            file_hash=hashlib.sha256(str(file_data).encode()).hexdigest()[:32],
-            status=ImportStatus.PROCESSED,
-            total_records=len(file_data),
-            processed_records=len(file_data),
-            failed_records=0,
-            import_config={
-                "upload_context": upload_context,
-                "analysis_timestamp": datetime.utcnow().isoformat()
-            },
-            # Use context values with fallbacks for demo/development
+        # Create DataImport record
+        data_import = DataImport(
+            import_name=f"Import: {filename}",
+            import_type=intended_type,
+            description=f"Data import from {filename}",
+            source_filename=filename,
+            file_size_bytes=file_size,
+            file_type=file_type,
+            status="processing",
             client_account_id=client_account_id,
             engagement_id=engagement_id,
-            imported_by=user_id,
-            session_id=session_id,  # Link to session if available
-            completed_at=datetime.utcnow()
+            imported_by=user_id or "system",
+            total_records=len(file_data),
+            processed_records=0,
+            failed_records=0,
+            import_config={
+                "validation_session_id": validation_session_id,
+                "upload_timestamp": upload_timestamp,
+                "intended_type": intended_type
+            }
         )
         
-        db.add(import_session)
-        await db.flush()  # Get the ID using async flush
+        db.add(data_import)
+        await db.flush()  # Get the ID
         
-        # Store raw import records
-        for index, record in enumerate(file_data):
-            raw_record = RawImportRecord(
-                data_import_id=import_session.id,
-                row_number=index + 1,
-                record_id=record.get("hostname") or record.get("asset_name") or f"row_{index + 1}",
-                raw_data=record,
-                is_processed=True,
-                is_valid=True,
-                created_at=datetime.utcnow()
-            )
-            db.add(raw_record)
+        # Store field mappings
+        records_stored = 0
+        if file_data:
+            # Create basic field mappings for each column
+            sample_record = file_data[0] if file_data else {}
+            for field_name in sample_record.keys():
+                field_mapping = ImportFieldMapping(
+                    data_import_id=data_import.id,
+                    source_field=field_name,
+                    target_attribute=field_name.lower().replace(' ', '_'),
+                    confidence_score=0.8,  # Default confidence
+                    mapping_type="automatic",
+                    sample_values=json.dumps([str(record.get(field_name, "")) for record in file_data[:5]]),
+                    status="pending"
+                )
+                db.add(field_mapping)
+                records_stored += 1
+        
+        # Update status to completed
+        data_import.status = "completed"
+        data_import.processed_records = records_stored
+        data_import.completed_at = datetime.utcnow()
         
         await db.commit()
         
-        logger.info(f"Successfully stored import session {import_session.id} with {len(file_data)} records")
+        # 🚀 Trigger Discovery Flow immediately after successful storage
+        try:
+            await _trigger_discovery_flow(
+                data_import_id=str(data_import.id),
+                client_account_id=client_account_id,
+                engagement_id=engagement_id,
+                user_id=user_id or "system",
+                file_data=file_data,
+                context=context
+            )
+        except Exception as flow_error:
+            logger.warning(f"Discovery Flow trigger failed: {flow_error}")
+            # Don't fail the import if flow trigger fails
         
-        return {
-            "success": True,
-            "import_session_id": str(import_session.id),
-            "records_stored": len(file_data),
-            "message": f"Successfully stored {len(file_data)} records with full audit trail"
-        }
+        logger.info(f"✅ Successfully stored {records_stored} field mappings for import {data_import.id}")
         
+        return ImportStorageResponse(
+            success=True,
+            import_session_id=str(data_import.id),
+            message=f"Successfully stored {records_stored} records and triggered Discovery Flow",
+            records_stored=records_stored
+        )
+        
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to store import data: {e}")
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to store import data: {str(e)}")
+
+async def _trigger_discovery_flow(
+    data_import_id: str,
+    client_account_id: str,
+    engagement_id: str,
+    user_id: str,
+    file_data: List[Dict[str, Any]],
+    context: RequestContext
+):
+    """
+    Trigger the Discovery Flow immediately after data import.
+    
+    This implements the CrewAI Flow State pattern where the flow starts
+    at data import completion rather than at attribute mapping.
+    """
+    try:
+        logger.info(f"🚀 Triggering Discovery Flow for import {data_import_id}")
+        
+        # Import the Discovery Flow service
+        from app.services.crewai_flows.discovery_flow_modular import DiscoveryFlowModular
+        from app.services.crewai_flow_service import CrewAIFlowService
+        
+        # Initialize services
+        crewai_service = CrewAIFlowService()
+        discovery_flow = DiscoveryFlowModular(crewai_service)
+        
+        # Create flow context
+        flow_context = type('FlowContext', (), {
+            'client_account_id': client_account_id,
+            'engagement_id': engagement_id,
+            'user_id': user_id,
+            'session_id': f"import_{data_import_id}",
+            'data_import_id': data_import_id,
+            'source': 'data_import'
+        })()
+        
+        # Execute the Discovery Flow
+        flow_result = await discovery_flow.execute_discovery_flow(file_data, flow_context)
+        
+        logger.info(f"✅ Discovery Flow triggered successfully: {flow_result.get('status', 'unknown')}")
+        
+    except ImportError as e:
+        logger.warning(f"Discovery Flow service not available: {e}")
+    except Exception as e:
+        logger.error(f"Failed to trigger Discovery Flow: {e}")
+        # Don't raise - we don't want to fail the import if flow fails
 
 @router.get("/latest-import")
 async def get_latest_import(
@@ -216,7 +265,7 @@ async def get_latest_import(
                     # First priority: imports with more records (likely real data)
                     DataImport.total_records.desc(),
                     # Second priority: most recent among those with same record count  
-                    DataImport.created_at.desc()
+                    DataImport.processed_at.desc()
                 ).limit(1)
                 
                 result = await db.execute(latest_import_query)
@@ -224,19 +273,19 @@ async def get_latest_import(
                 
                 # Log what we found for debugging
                 if import_result:
-                    logger.info(f"✅ Found context-filtered import: {import_result.id} with {import_result.total_records} records ({import_result.import_name}) [status: {import_result.status}]")
+                    logger.info(f"✅ Found context-filtered import: {import_result.id} with {import_result.total_records} records ({import_result.source_filename}) [status: {import_result.status}]")
                 else:
                     logger.warning(f"❌ No imports found for context: client={context.client_account_id}, engagement={context.engagement_id}")
                     
                     # Debug: Check if there are any imports at all in the database
-                    all_imports_query = select(DataImport).order_by(DataImport.created_at.desc()).limit(5)
+                    all_imports_query = select(DataImport).order_by(DataImport.processed_at.desc()).limit(5)
                     all_imports_result = await db.execute(all_imports_query)
                     all_imports = all_imports_result.scalars().all()
                     
                     if all_imports:
                         logger.info(f"📊 Found {len(all_imports)} total imports in database (any context):")
                         for imp in all_imports:
-                            logger.info(f"  - {imp.id}: {imp.import_name} ({imp.total_records} records, client: {imp.client_account_id}, engagement: {imp.engagement_id}, status: {imp.status})")
+                            logger.info(f"  - {imp.id}: {imp.source_filename} ({imp.total_records} records, client: {imp.client_account_id}, engagement: {imp.engagement_id}, status: {imp.status})")
                     else:
                         logger.warning("📊 No imports found in database at all!")
                 
@@ -313,7 +362,7 @@ async def get_latest_import(
                 "import_metadata": {
                     "filename": latest_import.source_filename or "Unknown",
                     "import_type": latest_import.import_type,
-                    "imported_at": latest_import.created_at.isoformat() if latest_import.created_at else None,
+                    "imported_at": latest_import.completed_at.isoformat() if latest_import.completed_at else None,
                     "total_records": latest_import.total_records or 0,
                     "import_id": str(latest_import.id),
                     "client_account_id": str(latest_import.client_account_id),
@@ -331,9 +380,9 @@ async def get_latest_import(
                 "success": True,
                 "data": [],
                 "import_metadata": {
-                    "filename": latest_import.source_filename or "Unknown",
-                    "import_type": latest_import.import_type,
-                    "imported_at": latest_import.created_at.isoformat() if latest_import.created_at else None,
+                    "filename": latest_import.filename or "Unknown",
+                    "import_type": latest_import.intended_type,
+                    "imported_at": latest_import.processed_at.isoformat() if latest_import.processed_at else None,
                     "total_records": latest_import.total_records or 0,
                     "import_id": str(latest_import.id),
                     "client_account_id": str(latest_import.client_account_id),
@@ -352,9 +401,9 @@ async def get_latest_import(
             response_data.append(record.raw_data)
         
         import_metadata = {
-            "filename": latest_import.source_filename or "Unknown",
-            "import_type": latest_import.import_type,
-            "imported_at": latest_import.created_at.isoformat() if latest_import.created_at else None,
+            "filename": latest_import.filename or "Unknown",
+            "import_type": latest_import.intended_type,
+            "imported_at": latest_import.processed_at.isoformat() if latest_import.processed_at else None,
             "total_records": len(response_data),
             "actual_total_records": latest_import.total_records or 0,
             "import_id": str(latest_import.id),
@@ -427,9 +476,9 @@ async def get_import_by_id(
             "success": True,
             "import_session_id": str(import_session.id),
             "import_metadata": {
-                "filename": import_session.source_filename,
-                "import_type": import_session.import_type,
-                "imported_at": import_session.completed_at.isoformat() if import_session.completed_at else None,
+                "filename": import_session.filename,
+                "import_type": import_session.intended_type,
+                "imported_at": import_session.processed_at.isoformat() if import_session.processed_at else None,
                 "total_records": import_session.total_records,
                 "status": import_session.status
             },

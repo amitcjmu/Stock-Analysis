@@ -14,7 +14,7 @@ os.environ.setdefault("OTEL_PYTHON_DISABLED_INSTRUMENTATIONS", "all")
 import sys
 import traceback
 import logging
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn
@@ -23,6 +23,7 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from contextlib import asynccontextmanager
 from pathlib import Path
+from app.core.context import get_current_context, RequestContext
 
 # Load environment variables
 load_dotenv()
@@ -276,7 +277,7 @@ try:
     app.add_middleware(
         ContextMiddleware,
         require_client=True,
-        require_engagement=False,
+        require_engagement=True,  # SECURITY: Require engagement context for multi-tenancy
         exempt_paths=[
             "/health",
             "/",
@@ -322,6 +323,82 @@ async def debug_routes():
         "discovery_routes": [r for r in routes_info if 'discovery' in r['path']]
     }
 
+@app.get("/debug/test-dependency")
+async def debug_test_dependency(
+    request: Request,
+    context: RequestContext = Depends(get_current_context)
+):
+    """Test endpoint to debug the context dependency injection."""
+    try:
+        return {
+            "path": request.url.path,
+            "headers": dict(request.headers),
+            "dependency_context": {
+                "client_account_id": context.client_account_id,
+                "engagement_id": context.engagement_id,
+                "user_id": context.user_id,
+                "session_id": context.session_id
+            },
+            "validation_status": "dependency_success"
+        }
+    except Exception as e:
+        return {
+            "path": request.url.path,
+            "headers": dict(request.headers),
+            "error": str(e),
+            "validation_status": "dependency_failed"
+        }
+
+@app.get("/debug/context-middleware")
+async def debug_context_middleware(request: Request):
+    """Debug endpoint to test context middleware behavior for data-import paths."""
+    try:
+        from app.core.context import get_current_context
+        context = get_current_context()
+        
+        return {
+            "path": request.url.path,
+            "headers": dict(request.headers),
+            "middleware_context": {
+                "client_account_id": context.client_account_id,
+                "engagement_id": context.engagement_id,
+                "user_id": context.user_id,
+                "session_id": context.session_id
+            },
+            "validation_status": "middleware_success"
+        }
+    except Exception as e:
+        return {
+            "path": request.url.path,
+            "headers": dict(request.headers),
+            "error": str(e),
+            "validation_status": "middleware_failed"
+        }
+
+@app.get("/debug/context")
+async def debug_context(request: Request):
+    """Debug endpoint to test context extraction."""
+    try:
+        from app.core.context import extract_context_from_request
+        context = extract_context_from_request(request)
+        
+        return {
+            "headers": dict(request.headers),
+            "extracted_context": {
+                "client_account_id": context.client_account_id,
+                "engagement_id": context.engagement_id,
+                "user_id": context.user_id,
+                "session_id": context.session_id
+            },
+            "validation_status": "success"
+        }
+    except Exception as e:
+        return {
+            "headers": dict(request.headers),
+            "error": str(e),
+            "validation_status": "failed"
+        }
+
 # Update health check with component status
 @app.get("/health")
 async def health_check():
@@ -338,8 +415,6 @@ async def health_check():
         "environment": getattr(settings, 'ENVIRONMENT', 'production'),
         "error": API_ROUTES_ERROR
     }
-
-
 
 # WebSocket endpoint removed - using HTTP polling for Vercel+Railway compatibility
 

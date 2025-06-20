@@ -253,363 +253,175 @@ const DataImport: React.FC = () => {
     }
 
     const file = files[0];
-    const category = uploadCategories.find(c => c.id === categoryId);
-    if (!category) return;
-
-    // Create upload file entry
-    const uploadFile: UploadFile = {
-      id: `upload-${Date.now()}`,
+    const newFile: UploadFile = {
+      id: `${file.name}-${new Date().toISOString()}`,
       name: file.name,
       size: file.size,
       type: file.type,
       uploadedAt: new Date(),
       status: 'uploading',
       agentResults: [],
-      validationSessionId: undefined,
-      importSessionId: undefined,
-      // Additional progress tracking properties
-      upload_progress: undefined,
-      validation_progress: undefined,
-      agents_completed: undefined,
-      total_agents: undefined,
-      // Security clearance properties
-      security_clearance: undefined,
-      privacy_clearance: undefined,
-      format_validation: undefined,
-      agent_results: undefined,
-      // Error handling
-      error_message: undefined
+      upload_progress: 0,
+      validation_progress: 0,
+      agents_completed: 0,
+      total_agents: uploadCategories.find(c => c.id === categoryId)?.agents.length || 0,
     };
 
-    setUploadedFiles(prev => [...prev, uploadFile]);
-
-    // Initialize validation agents
-    const agents = createValidationAgents(categoryId);
-    setValidationAgents(agents);
+    setUploadedFiles([newFile]);
+    setSelectedCategory(categoryId);
+    setValidationAgents(createValidationAgents(categoryId));
 
     try {
-      // Update upload progress to show uploading
-      setUploadedFiles(prev => prev.map(f => 
-        f.id === uploadFile.id 
-          ? { ...f, status: 'validating', upload_progress: 100 }
-          : f
-      ));
-
-      // Start validation process - call real backend
-      setUploadedFiles(prev => prev.map(f => 
-        f.id === uploadFile.id 
-          ? { ...f, status: 'validating', upload_progress: 100 }
-          : f
-      ));
-
-      // Set all agents to analyzing state
-      setValidationAgents(prev => prev.map(a => ({ ...a, status: 'analyzing' as const })));
-
-      // Call backend validation service with authentication context
-      console.log('🔍 About to call validation service with:', {
+      // Simulate upload progress
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setUploadedFiles(prev => prev.map(f => f.id === newFile.id ? { ...f, status: 'validating', upload_progress: 100 } : f));
+      
+      console.log('About to call validation service with:', {
         filename: file.name,
         size: file.size,
         type: file.type,
-        categoryId,
+        categoryId: categoryId,
         effectiveClient: effectiveClient.id,
         effectiveEngagement: effectiveEngagement.id,
-        userId: user.id
       });
-      
-      const validationResponse = await DataImportValidationService.validateFile(file, categoryId, {
-        // Include authentication context for agentic flow integration
-        client_account_id: effectiveClient.id,
-        engagement_id: effectiveEngagement.id,
-        user_id: user.id,
-        session_id: session?.id || `session-${Date.now()}`,
-        headers: getAuthHeaders()
-      });
-      
-      console.log('🔍 Validation service response:', validationResponse);
+
+      const validationResponse = await DataImportValidationService.validateFile(
+        file,
+        categoryId,
+        {
+          client_account_id: effectiveClient.id,
+          engagement_id: effectiveEngagement.id,
+          user_id: user.id,
+          session_id: session?.id || `session-${Date.now()}`,
+          headers: getAuthHeaders(),
+        }
+      );
+
+      console.log('Validation service response:', validationResponse);
 
       if (validationResponse.success) {
-        // Update agents with real results from backend
-        const backendAgentResults = validationResponse.agent_results;
+        // Persist validated data to the backend
+        const csvData = await parseCsvData(file);
         
-                 // Map backend results to frontend agent format
-         const updatedAgents: DataImportAgent[] = agents.map(agent => {
-           const backendResult = backendAgentResults.find(r => r.agent_id === agent.id);
-           if (backendResult) {
-             return {
-               ...agent,
-               status: 'completed' as const,
-               result: backendResult
-             };
-           }
-           return { ...agent, status: 'completed' as const };
-         });
+        console.log('Persisting validated data to database...');
+        const importSessionId = await storeImportData(csvData, file, validationResponse.validation_session.file_id);
+        console.log('Received importSessionId:', importSessionId);
 
-        setValidationAgents(updatedAgents);
 
-        // Update file with final results
-        const finalStatus = validationResponse.file_status;
-        setUploadedFiles(prev => prev.map(f => 
-          f.id === uploadFile.id 
-            ? { 
-                ...f, 
-                status: finalStatus,
-                validation_progress: 100,
-                agents_completed: backendAgentResults.length,
-                security_clearance: validationResponse.security_clearances.security_clearance,
-                privacy_clearance: validationResponse.security_clearances.privacy_clearance,
-                format_validation: validationResponse.security_clearances.format_validation,
-                validation_session_id: validationResponse.validation_session.file_id,
-                agent_results: backendAgentResults
-              }
-            : f
-        ));
+        setUploadedFiles(prev => prev.map(f => f.id === newFile.id ? { 
+          ...f, 
+          status: validationResponse.file_status,
+          agentResults: validationResponse.agent_results,
+          security_clearance: validationResponse.security_clearances.security_clearance,
+          privacy_clearance: validationResponse.security_clearances.privacy_clearance,
+          format_validation: validationResponse.security_clearances.format_validation,
+          importSessionId: importSessionId || undefined,
+          validationSessionId: validationResponse.validation_session.file_id,
+          agents_completed: validationResponse.agent_results.length,
+        } : f));
 
-        // 🔧 DATA PERSISTENCE FIX: Store validated data to database
-        if (finalStatus === 'approved' || finalStatus === 'approved_with_warnings') {
-          try {
-            console.log('🗄️ Persisting validated data to database...');
-            
-            // Parse CSV data for storage
-            const csvData = await parseCsvData(file);
-            
-            if (csvData.length > 0) {
-              const importSessionId = await storeImportData(
-                csvData, 
-                file, 
-                validationResponse.validation_session.file_id
-              );
-              
-              if (importSessionId) {
-                // Update file with import session ID
-                setUploadedFiles(prev => prev.map(f => 
-                  f.id === uploadFile.id 
-                    ? { ...f, importSessionId: importSessionId }
-                    : f
-                ));
-                
-                console.log('✅ Data persistence completed:', {
-                  importSessionId,
-                  recordCount: csvData.length,
-                  validationSessionId: validationResponse.validation_session.file_id
-                });
-                
-                toast({
-                  title: "✅ Data Stored Successfully", 
-                  description: `${csvData.length} records stored in database and ready for field mapping.`,
-                });
-              } else {
-                console.warn('⚠️ Data validation passed but storage failed');
-                toast({
-                  title: "⚠️ Storage Warning",
-                  description: "Data validated but storage encountered issues. You can still proceed to field mapping.",
-                  variant: "destructive"
-                });
-              }
-            }
-          } catch (storageError) {
-            console.error('❌ Data storage error:', storageError);
-            toast({
-              title: "⚠️ Storage Error",
-              description: "Data validated but storage failed. Please try uploading again or contact support.",
-              variant: "destructive"
-            });
-          }
-        }
-
-        // Show appropriate toast message
-        if (finalStatus === 'approved') {
-          toast({
-            title: "✅ Data Import Approved",
-            description: `${file.name} passed all validation checks and is ready for field mapping.`
-          });
-        } else if (finalStatus === 'approved_with_warnings') {
-          toast({
-            title: "⚠️ Data Import Approved with Warnings",
-            description: "File validation completed with warnings. Review agent feedback before proceeding.",
-            variant: "default"
-          });
-        } else {
-          toast({
-            title: "❌ Data Import Rejected",
-            description: "File validation failed. Review agent feedback to understand the issues.",
-            variant: "destructive"
-          });
-        }
+        // Update agent statuses
+        setValidationAgents(prevAgents => prevAgents.map(agent => {
+          const result = validationResponse.agent_results.find(r => r.agent_id === agent.id);
+          return result ? { ...agent, status: 'completed', result } : agent;
+        }));
+        
+        toast({
+          title: "Validation Complete",
+          description: `File processed with status: ${validationResponse.file_status}`,
+        });
       } else {
-        throw new Error('Validation service returned unsuccessful response');
+        throw new Error("Validation failed");
       }
-
     } catch (error) {
-      console.error('File validation failed:', error);
-      
-      // Set all agents to failed state
-      setValidationAgents(prev => prev.map(a => ({ ...a, status: 'failed' as const })));
-      
-      // Update file with error
-      setUploadedFiles(prev => prev.map(f => 
-        f.id === uploadFile.id 
-          ? { 
-              ...f, 
-              status: 'error', 
-              error_message: error instanceof Error ? error.message : 'Validation failed'
-            }
-          : f
-      ));
-
+      console.error("File upload and validation error:", error);
+      const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred.";
+      setUploadedFiles(prev => prev.map(f => f.id === newFile.id ? { ...f, status: 'error', error_message: errorMessage } : f));
       toast({
-        title: "🚨 Validation Failed",
-        description: error instanceof Error ? error.message : "An unknown error occurred during validation.",
-        variant: "destructive"
+        title: "Upload Failed",
+        description: errorMessage,
+        variant: "destructive",
       });
     }
-  }, [toast, client, engagement, user, session, getAuthHeaders]);
+  }, [user, client, engagement, session, toast, getAuthHeaders, navigate]);
 
-  // ✅ FIXED: Trigger CrewAI Discovery Flow directly with uploaded data
-  const handleProceedToMapping = useCallback(async (fileId: string) => {
-    const file = uploadedFiles.find(f => f.id === fileId);
-    if (!file || (file.status !== 'approved' && file.status !== 'approved_with_warnings')) {
-      return;
+
+  // Start Discovery Flow
+  const startDiscoveryFlow = useCallback(async () => {
+    const uploadedFile = uploadedFiles[0];
+    if (!uploadedFile || !uploadedFile.importSessionId) {
+        toast({
+            title: "Error",
+            description: "No import session found. Please upload a file first.",
+            variant: "destructive",
+        });
+        return;
     }
 
-    const isAdmin = user?.role === 'admin';
-    const effectiveClient = client || (isAdmin ? { id: 'demo-client', name: 'Demo Client' } : null);
-    const effectiveEngagement = engagement || (isAdmin ? { id: 'demo-engagement', name: 'Demo Engagement' } : null);
-    
-    if (!effectiveClient || !effectiveEngagement || !user) {
-      toast({
-        title: "Context Required",
-        description: "Please ensure client, engagement, and user context is available.",
-        variant: "destructive"
-      });
-      return;
-    }
+    setIsStartingFlow(true); // ✅ Set loading state
 
     try {
-      setIsStartingFlow(true);
-      
-             // Get the stored data for CrewAI flow (already validated and stored)
-       console.log('🔍 DEBUG: file.importSessionId =', file.importSessionId);
-       const csvData = await getStoredImportData(file.importSessionId);
-       console.log('🔍 DEBUG: csvData.length =', csvData.length);
-      
-      if (csvData.length === 0) {
-        console.warn('❌ No data retrieved from getStoredImportData');
-        toast({
-          title: "No Data Found",
-          description: `Import session ID: ${file.importSessionId}. The uploaded file appears to be empty or the data wasn't stored properly. Please try uploading again.`,
-          variant: "destructive"
-        });
-        setIsStartingFlow(false);
-        return;
-      }
-
-      console.log('🚀 Starting CrewAI Discovery Flow with:', {
-        filename: file.name,
-        records: csvData.length,
-        client: effectiveClient.id,
-        engagement: effectiveEngagement.id,
-        user: user.id
-      });
-
-      // Call the CrewAI Discovery Flow endpoint directly
-      const discoveryFlowResponse = await apiCall('/discovery/flow/run', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          headers: Object.keys(csvData[0] || {}),
-          sample_data: csvData,
-          filename: file.name,
-          options: {
-            enable_parallel_execution: true,
-            enable_retry_logic: true,
-            max_retries: 3,
-            timeout_seconds: 300,
-            client_account_id: effectiveClient.id,
-            engagement_id: effectiveEngagement.id,
-            user_id: user.id,
-            validation_session_id: file.validationSessionId,
-            import_session_id: file.importSessionId
-          }
-        })
-      });
-
-      if (discoveryFlowResponse.status === 'success') {
-        console.log('✅ CrewAI Discovery Flow started:', discoveryFlowResponse);
+        console.log(`Starting Discovery Flow with session ID: ${uploadedFile.importSessionId}`);
         
-        toast({
-          title: "🚀 Discovery Flow Started",
-          description: `Flow ${discoveryFlowResponse.session_id} initialized with ${csvData.length} records. Proceeding to field mapping...`,
+        // Retrieve stored data to ensure it's available for the flow
+        const storedData = await getStoredImportData(uploadedFile.importSessionId);
+        console.log('Retrieved stored data for flow:', { 
+          count: storedData.length,
+          hasData: storedData.length > 0
         });
 
-        // Navigate to Attribute Mapping with flow session data
-        navigate('/discovery/attribute-mapping', {
-          state: {
-            file_id: fileId,
-            filename: file.name,
-            validation_session_id: file.validationSessionId,
-            import_session_id: file.importSessionId,
-            flow_session_id: discoveryFlowResponse.session_id, // ✅ CrewAI flow session ID
-            flow_id: discoveryFlowResponse.flow_id,
-            raw_data: csvData, // ✅ Include actual uploaded data
-            upload_context: {
-              category: selectedCategory,
-              timestamp: file.uploadedAt.toISOString(),
-              user_id: user.id,
-              client_id: effectiveClient.id,
-              engagement_id: effectiveEngagement.id,
-              session_id: session?.id
-            }
-          }
-        });
-      } else {
-        throw new Error(discoveryFlowResponse.message || 'Failed to start discovery flow');
-      }
-      
+        if (storedData.length === 0) {
+          throw new Error("No data found for the import session. The discovery flow cannot start.");
+        }
+
+        // Navigate to attribute mapping with the session ID
+        navigate(`/discovery/attribute-mapping/${uploadedFile.importSessionId}`);
+
     } catch (error) {
-      console.error('❌ Failed to start Discovery Flow:', error);
-      toast({
-        title: "Discovery Flow Failed",
-        description: error instanceof Error ? error.message : 'Failed to start discovery flow',
-        variant: "destructive"
-      });
+        const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred.";
+        console.error("Failed to start Discovery Flow:", error);
+        toast({
+            title: "Failed to Start Discovery Flow",
+            description: errorMessage,
+            variant: "destructive",
+        });
     } finally {
-      setIsStartingFlow(false);
+      setIsStartingFlow(false); // ✅ Reset loading state
     }
-  }, [uploadedFiles, selectedCategory, navigate, user, client, engagement, session, toast]);
+}, [uploadedFiles, navigate, toast]);
 
-  // Helper function to get stored import data
+  // Retrieve stored data for discovery flow
   const getStoredImportData = async (importSessionId: string | undefined): Promise<any[]> => {
-    console.log('🔍 getStoredImportData called with:', importSessionId);
-    
+    console.log('getStoredImportData called with:', importSessionId);
     if (!importSessionId) {
-      console.warn('❌ No import session ID provided');
+      console.error("No import session ID provided");
       return [];
     }
-    
+  
     try {
-      console.log('🔍 Making API call to:', `/data-import/import/${importSessionId}`);
-      
-      const response = await apiCall(`/data-import/import/${importSessionId}`, {
+      const response = await apiCall(`/data-import/get-stored-data/${importSessionId}`, {
         method: 'GET',
         headers: getAuthHeaders()
       });
-      
-      console.log('🔍 API response:', response);
-      
-      if (response.success && response.data) {
-        console.log('✅ Retrieved data:', response.data.length, 'records');
-        return response.data;
+  
+      if (response.data && Array.isArray(response.data.data)) {
+        console.log(`Retrieved ${response.data.data.length} records.`);
+        return response.data.data;
       } else {
-        console.warn('❌ No stored data found for import session:', importSessionId, 'Response:', response);
+        console.warn("No data array found in the response:", response.data);
         return [];
       }
     } catch (error) {
-      console.error('❌ Error retrieving stored import data:', error);
+      console.error("Error retrieving stored import data:", error);
+      toast({
+        title: "Data Retrieval Error",
+        description: "Could not retrieve processed data for the discovery flow.",
+        variant: "destructive",
+      });
       return [];
     }
   };
 
-  // Helper function to parse CSV data
   const parseCsvData = async (file: File): Promise<any[]> => {
     const text = await file.text();
     const lines = text.split('\\n').filter(line => line.trim());
@@ -626,47 +438,55 @@ const DataImport: React.FC = () => {
     });
   };
 
-  // Helper function to store import data in database
   const storeImportData = async (csvData: any[], file: File, sessionId: string): Promise<string | null> => {
+    if (!sessionId) {
+      console.error('No session ID available for storing data.');
+      return null;
+    }
+
     try {
-      console.log('🗄️ Storing import data in database...', {
-        records: csvData.length,
-        filename: file.name,
-        sessionId
-      });
-      
-      const storeResult = await apiCall('/data-import/store-import', {
+      console.log(`Storing data for session: ${sessionId}`);
+      const response = await apiCall(`/data-import/store-import`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
           file_data: csvData,
           metadata: {
             filename: file.name,
             size: file.size,
-            type: file.type
+            type: file.type,
           },
           upload_context: {
             intended_type: selectedCategory,
             validation_session_id: sessionId,
-            upload_timestamp: new Date().toISOString()
-          }
+            upload_timestamp: new Date().toISOString(),
+          },
+          client_id: client?.id,
+          engagement_id: engagement?.id,
         })
       });
-      
-      if (storeResult.success) {
-        console.log('✅ Import data stored successfully:', storeResult);
-        return storeResult.import_session_id;
+
+      if (response.success) {
+        console.log('Successfully stored data, import session ID:', response.import_session_id);
+        return response.import_session_id;
       } else {
-        console.warn('⚠️ Failed to store import data:', storeResult);
-        return null;
+        throw new Error(response.error || "Failed to store data");
       }
-    } catch (storeError) {
-      console.error('❌ Error storing import data:', storeError);
+    } catch (error) {
+      console.error("Error storing import data:", error);
+      toast({
+        title: "Data Storage Error",
+        description: "Could not save processed data to the backend.",
+        variant: "destructive",
+      });
       return null;
     }
   };
 
-  // Drag and drop handlers
+
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(true);
@@ -1011,7 +831,7 @@ const DataImport: React.FC = () => {
                                 </p>
                               </div>
                               <Button
-                                onClick={() => handleProceedToMapping(file.id)}
+                                onClick={() => startDiscoveryFlow()}
                                 disabled={isStartingFlow}
                                 className="bg-green-600 hover:bg-green-700 flex items-center space-x-2"
                               >

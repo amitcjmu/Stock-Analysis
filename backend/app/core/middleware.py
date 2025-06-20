@@ -77,7 +77,16 @@ class ContextMiddleware(BaseHTTPMiddleware):
         
         # Check if path is exempt from context requirements
         path = request.url.path
-        is_exempt = any(path.startswith(exempt_path) for exempt_path in self.exempt_paths)
+        
+        # Special handling for root path - only match exactly '/'
+        is_exempt = False
+        for exempt_path in self.exempt_paths:
+            if exempt_path == '/' and path == '/':
+                is_exempt = True
+                break
+            elif exempt_path != '/' and path.startswith(exempt_path):
+                is_exempt = True
+                break
 
         if is_exempt:
             return await call_next(request)
@@ -87,15 +96,16 @@ class ContextMiddleware(BaseHTTPMiddleware):
         
         # Extract context from request
         try:
+            from app.core.context import extract_context_from_request, validate_context, set_context, is_demo_client
+            
             context = extract_context_from_request(request)
             
             # Validate context for non-exempt paths
-            if not is_exempt:
-                validate_context(
-                    context, 
-                    require_client=self.require_client,
-                    require_engagement=self.require_engagement
-                )
+            validate_context(
+                context, 
+                require_client=self.require_client,
+                require_engagement=self.require_engagement
+            )
             
             # Set context for the request
             set_context(context)
@@ -107,22 +117,15 @@ class ContextMiddleware(BaseHTTPMiddleware):
         except Exception as e:
             logger.error(f"Context extraction failed for {path}: {e}")
             
-            # For exempt paths, continue without context
-            if is_exempt:
-                logger.warning(f"Continuing without context for exempt path: {path}")
-                # Set empty context
-                context = RequestContext()
-                set_context(context)
-            else:
-                # Return error for non-exempt paths
-                return JSONResponse(
-                    status_code=400,
-                    content={
-                        "error": "Context extraction failed",
-                        "detail": str(e),
-                        "path": path
-                    }
-                )
+            # Return error for non-exempt paths
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "error": "Context extraction failed",
+                    "detail": str(e),
+                    "path": path
+                }
+            )
         
         # Process request
         try:

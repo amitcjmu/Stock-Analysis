@@ -43,6 +43,26 @@ class DataImportValidationResponse(BaseModel):
     message: str
     processing_time_seconds: Optional[float] = None
 
+class FileMetadata(BaseModel):
+    """File metadata for import requests"""
+    filename: str
+    size: int
+    type: str
+
+class UploadContext(BaseModel):
+    """Context information for data upload"""
+    intended_type: str
+    validation_session_id: str
+    upload_timestamp: str
+
+class StoreImportRequest(BaseModel):
+    """Request schema for storing import data"""
+    file_data: List[Dict[str, Any]]
+    metadata: FileMetadata
+    upload_context: UploadContext
+    client_id: Optional[str] = None
+    engagement_id: Optional[str] = None
+
 class ValidationSession(BaseModel):
     """Complete validation session data"""
     file_id: str

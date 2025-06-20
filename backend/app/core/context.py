@@ -118,14 +118,8 @@ def extract_context_from_request(request: Request) -> RequestContext:
         session_id = str(uuid.uuid4())
         logger.debug(f"No session ID in headers, generated new one: {session_id}")
     
-    # Apply demo client defaults if no context provided
-    if not client_account_id:
-        client_account_id = DEMO_CLIENT_CONFIG["client_account_id"]
-        logger.debug("No client context provided, using demo client: Pujyam Corp")
-    
-    if not engagement_id and (client_account_id == DEMO_CLIENT_CONFIG["client_account_id"] or client_account_id == "pujyam-corp"):
-        engagement_id = DEMO_CLIENT_CONFIG["engagement_id"] 
-        logger.debug("No engagement context provided, using demo engagement: Digital Transformation 2025")
+    # NO DEMO CLIENT FALLBACKS IN BACKEND - Security requirement for multi-tenancy
+    # All context must be explicitly provided via headers
     
     context = RequestContext(
         client_account_id=client_account_id,
