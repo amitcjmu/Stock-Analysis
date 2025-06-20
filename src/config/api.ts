@@ -105,8 +105,8 @@ export const API_CONFIG = {
       TECH_DEBT_ANALYSIS: '/discovery/agents/tech-debt-analysis',
       TECH_DEBT_FEEDBACK: '/discovery/agents/tech-debt-feedback',
       // Dependency Analysis endpoints
-      DEPENDENCY_ANALYSIS: '/discovery/agents/dependency-analysis',
-      DEPENDENCY_FEEDBACK: '/discovery/agents/dependency-feedback',
+      DEPENDENCY_ANALYSIS: '/discovery/dependency-analysis/execute',
+      DEPENDENCY_FEEDBACK: '/discovery/agents/dependencies/dependency-feedback',
       DEPENDENCIES: '/discovery/dependencies',
       EXPORT_VISUALIZATION: '/discovery/dependencies/export-visualization',
       // Data cleanup endpoints  

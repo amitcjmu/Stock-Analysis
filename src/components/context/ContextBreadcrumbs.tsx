@@ -17,7 +17,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiCall } from '@/lib/api';
+import { apiCall } from '@/config/api';
 
 // Types
 interface Client {

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { apiCall } from '@/lib/api';
+import { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
 
 export interface AgentStatus {

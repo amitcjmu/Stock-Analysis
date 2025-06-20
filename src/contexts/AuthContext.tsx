@@ -240,6 +240,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setClient(DEMO_CLIENT);
           setEngagement(DEMO_ENGAGEMENT);
           setSession(DEMO_SESSION);
+          // Save demo context
+          contextStorage.setContext({
+            client: DEMO_CLIENT,
+            engagement: DEMO_ENGAGEMENT,
+            session: DEMO_SESSION
+          });
         } else if (token) {
           const validatedUser = await authApi.validateToken(token);
           console.log('🔐 InitializeAuth - Token validation result:', validatedUser);
@@ -248,53 +254,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             tokenStorage.setUser(validatedUser);
             setUser(validatedUser);
             
-            // Check for persisted user context selection first
-            if (persistedContext && persistedContext.source === 'user_selection') {
-              console.log('🔄 Restoring user context selection:', persistedContext);
-              
-              // Restore user's manual selection
-              if (persistedContext.clientData) {
-                setClient(persistedContext.clientData);
-              }
-              if (persistedContext.engagementData) {
-                setEngagement(persistedContext.engagementData);
-              }
-              
-              // Then fetch current session for this context
-              try {
-                const context = await apiCall('/me');
-                if (context) {
-                  setSession(context.session || null);
-                }
-              } catch (contextError) {
-                console.warn('Failed to fetch session for persisted context:', contextError);
-              }
-            } else {
-              // No persisted selection, use backend defaults
-              const context = await apiCall('/me');
-              if (context) {
-                setClient(context.client || null);
-                setEngagement(context.engagement || null);
-                setSession(context.session || null);
-              }
+            // Restore persisted context if available
+            if (persistedContext) {
+              setClient(persistedContext.client);
+              setEngagement(persistedContext.engagement);
+              setSession(persistedContext.session);
             }
           } else {
-            // Token is invalid, log out
             logout();
           }
         }
-      } catch (err) {
-        console.error("Authentication initialization failed:", err);
-        // Also log out on error
+      } catch (error) {
+        console.error('🔐 InitializeAuth - Error:', error);
+        setError(error instanceof Error ? error.message : 'Failed to initialize auth');
         logout();
       } finally {
-        // This is the crucial change: ensure loading is false only after all checks are done
         setIsLoading(false);
       }
     };
 
     initializeAuth();
-  }, [logout, isLoginInProgress]);
+  }, [isLoginInProgress, logout]);
 
 
   const login = async (email: string, password: string) => {

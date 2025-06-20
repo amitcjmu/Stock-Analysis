@@ -25,7 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { apiCallWithFallback } from '@/lib/api';
+import { apiCallWithFallback } from '@/config/api';
 
 interface Client {
   id: string;

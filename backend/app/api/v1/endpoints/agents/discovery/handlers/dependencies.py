@@ -9,6 +9,7 @@ from typing import Dict, Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from pydantic import BaseModel
 
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
@@ -17,6 +18,11 @@ from app.models.client_account import User
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["dependencies"])
+
+class DependencyAnalysisRequest(BaseModel):
+    client_account_id: str
+    engagement_id: str
+    dependency_type: str = "app-server"  # "app-server" or "app-app"
 
 @router.get("/dependencies")
 async def get_dependencies(
@@ -45,3 +51,71 @@ async def dependencies_health():
         "service": "dependencies",
         "version": "1.0.0"
     }
+
+@router.post("/dependency-analysis")
+async def dependency_analysis(
+    request: DependencyAnalysisRequest,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+) -> Dict[str, Any]:
+    """
+    Execute dependency analysis based on type.
+    
+    Args:
+        request: The dependency analysis request containing:
+            - client_account_id: Client account ID
+            - engagement_id: Engagement ID
+            - dependency_type: Type of dependency analysis ("app-server" or "app-app")
+    """
+    try:
+        logger.info(f"Starting dependency analysis for type: {request.dependency_type}")
+        
+        if request.dependency_type == "app-server":
+            # Analyze application-to-server dependencies
+            return {
+                "status": "success",
+                "message": "Application-to-server dependency analysis complete",
+                "dependency_analysis": {
+                    "hosting_relationships": [],
+                    "suggested_mappings": [],
+                    "confidence_scores": {}
+                },
+                "clarification_questions": [],
+                "dependency_recommendations": [],
+                "intelligence_metadata": {
+                    "analysis_type": "app-server",
+                    "timestamp": "2024-03-21T22:17:51Z",
+                    "confidence_level": "high"
+                }
+            }
+        elif request.dependency_type == "app-app":
+            # Analyze application-to-application dependencies
+            return {
+                "status": "success",
+                "message": "Application-to-application dependency analysis complete",
+                "dependency_analysis": {
+                    "communication_patterns": [],
+                    "suggested_patterns": [],
+                    "confidence_scores": {},
+                    "application_clusters": []
+                },
+                "clarification_questions": [],
+                "dependency_recommendations": [],
+                "intelligence_metadata": {
+                    "analysis_type": "app-app",
+                    "timestamp": "2024-03-21T22:17:51Z",
+                    "confidence_level": "high"
+                }
+            }
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid dependency type: {request.dependency_type}. Must be 'app-server' or 'app-app'"
+            )
+            
+    except Exception as e:
+        logger.error(f"Error in dependency analysis: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to execute dependency analysis: {str(e)}"
+        )

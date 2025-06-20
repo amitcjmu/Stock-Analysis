@@ -1,4 +1,4 @@
-import { apiCall } from "@/lib/api";
+import { apiCall } from "@/config/api";
 
 export type SessionType = 'data_import' | 'validation_run' | 'incremental_update' | 'comparison_analysis' | 'cleanup_operation';
 

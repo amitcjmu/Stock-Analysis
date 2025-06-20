@@ -22,6 +22,7 @@ interface DiscoveryFlowState {
   raw_data: any[];
   cleaned_data: any[];
   asset_inventory: Record<string, any>;
+  dependency_analysis: Record<string, any>;
   agent_collaboration_map: Record<string, string[]>;
   shared_memory_id: string;
   shared_memory_reference?: any;
@@ -76,6 +77,14 @@ interface InitializeFlowParams {
   };
 }
 
+export interface ExecutePhaseParams {
+  client_account_id: string;
+  engagement_id: string;
+  session_id?: string;
+  analysis_type?: string;
+  dependency?: any;
+}
+
 export interface FlowEvent {
   event_type: string;
   timestamp: string;
@@ -101,6 +110,7 @@ const initialState: DiscoveryFlowState = {
   raw_data: [],
   cleaned_data: [],
   asset_inventory: {},
+  dependency_analysis: {},
   agent_collaboration_map: {},
   shared_memory_id: '',
   shared_memory_reference: null,
@@ -302,13 +312,9 @@ export const useDiscoveryFlowState = () => {
     },
   });
 
-  const executePhase = useCallback(async (phase: string, data: any) => {
+  const executePhase = useCallback(async (phase: string, data: ExecutePhaseParams) => {
     try {
-      if (!flowState.flow_fingerprint) {
-        throw new Error('No active flow to execute phase');
-      }
-
-      const response = await apiCall(`/api/v1/discovery/flow/${flowState.flow_fingerprint}/execute/${phase}`, {
+      const response = await apiCall(`/api/v1/discovery/${phase}`, {
         method: 'POST',
         body: JSON.stringify(data),
       });
@@ -330,7 +336,7 @@ export const useDiscoveryFlowState = () => {
       }));
       throw error;
     }
-  }, [flowState.flow_fingerprint]);
+  }, []);
 
   const resetFlow = useCallback(() => {
     setFlowState(initialState);

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useCallback } from 'react';
-import { apiCall } from '@/lib/api';
+import { apiCall } from '@/config/api';
 
 interface User {
   name: string;

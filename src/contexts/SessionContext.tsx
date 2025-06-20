@@ -5,7 +5,7 @@ import { Session as SessionServiceSession, sessionService, CreateSessionRequest 
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from './AuthContext'; // Import useAuth to get engagementId
 import type { Session as AuthSession } from './AuthContext';
-import { apiCall } from '@/lib/api';
+import { apiCall } from '@/config/api';
 
 // Define our UI-specific session type that matches the service type but with name instead of session_display_name
 interface UISession extends Omit<SessionServiceSession, 'session_display_name'> {

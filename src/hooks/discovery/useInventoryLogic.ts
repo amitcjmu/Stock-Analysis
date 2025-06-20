@@ -129,83 +129,6 @@ export const useInventoryLogic = () => {
     setFlowState
   } = useDiscoveryFlowState();
 
-  // Initialize from navigation state (from Data Cleansing)
-  useEffect(() => {
-    const handleNavigationFromDataCleansing = async () => {
-      if (!client || !engagement) return;
-      
-      const state = location.state as any;
-      console.log('🔍 Navigation state from Data Cleansing:', state);
-      
-      if (state?.from_phase === 'data_cleansing' && !uploadProcessedRef.current) {
-        uploadProcessedRef.current = true;
-        
-        try {
-          setIsAnalyzing(true);
-          
-          toast({
-            title: "🚀 Asset Inventory Phase Started",
-            description: "Transitioning from Data Cleansing to Inventory Building...",
-          });
-
-          // First, fetch existing assets to see if we already have data
-          console.log('🔍 Checking for existing assets before triggering crew...');
-          await fetchAssets();
-
-          // If we have flow session ID, try to execute phase
-          if (state.flow_session_id) {
-            console.log('🔄 Executing inventory building phase with session:', state.flow_session_id);
-            try {
-              await executePhase('inventory_building', { 
-                session_id: state.flow_session_id,
-                previous_phase: 'data_cleansing',
-                cleansing_progress: state.cleansing_progress,
-                client_account_id: client.id,
-                engagement_id: engagement.id
-              });
-              
-              // Update flow state to reflect progression
-              setFlowState(prev => ({
-                ...prev,
-                session_id: state.flow_session_id,
-                current_phase: 'inventory_building',
-                phase_completion: {
-                  ...prev?.phase_completion,
-                  field_mapping: true,
-                  data_cleansing: true,
-                  inventory_building: false // Set to false initially, will be updated after analysis
-                }
-              }));
-            } catch (phaseError) {
-              console.warn('Phase execution failed, proceeding with manual trigger:', phaseError);
-            }
-          }
-
-          // Always trigger inventory building analysis to ensure we have the latest data
-          console.log('🤖 Triggering inventory building analysis...');
-          await handleTriggerInventoryBuildingCrew();
-
-          toast({
-            title: "✅ Inventory Building Initialized",
-            description: "Assets are being analyzed and classified. Analysis will continue in background.",
-          });
-
-        } catch (error) {
-          console.error('❌ Failed to initialize Inventory Building phase:', error);
-          toast({
-            title: "❌ Phase Initialization Failed",
-            description: "Could not start Inventory Building phase automatically. Please trigger analysis manually.",
-            variant: "destructive"
-          });
-        } finally {
-          setIsAnalyzing(false);
-        }
-      }
-    };
-    
-    handleNavigationFromDataCleansing();
-  }, [client, engagement, executePhase, toast, location.state, fetchAssets, handleTriggerInventoryBuildingCrew, setFlowState]);
-
   // Fetch assets from API
   const fetchAssets = useCallback(async (page = 1, filterParams: FilterParams = {}) => {
     try {
@@ -346,6 +269,83 @@ export const useInventoryLogic = () => {
       setIsAnalyzing(false);
     }
   }, [fetchAssets, toast, getAuthHeaders]);
+
+  // Initialize from navigation state (from Data Cleansing)
+  useEffect(() => {
+    const handleNavigationFromDataCleansing = async () => {
+      if (!client || !engagement) return;
+      
+      const state = location.state as any;
+      console.log('🔍 Navigation state from Data Cleansing:', state);
+      
+      if (state?.from_phase === 'data_cleansing' && !uploadProcessedRef.current) {
+        uploadProcessedRef.current = true;
+        
+        try {
+          setIsAnalyzing(true);
+          
+          toast({
+            title: "🚀 Asset Inventory Phase Started",
+            description: "Transitioning from Data Cleansing to Inventory Building...",
+          });
+
+          // First, fetch existing assets to see if we already have data
+          console.log('🔍 Checking for existing assets before triggering crew...');
+          await fetchAssets();
+
+          // If we have flow session ID, try to execute phase
+          if (state.flow_session_id) {
+            console.log('🔄 Executing inventory building phase with session:', state.flow_session_id);
+            try {
+              await executePhase('inventory_building', { 
+                session_id: state.flow_session_id,
+                previous_phase: 'data_cleansing',
+                cleansing_progress: state.cleansing_progress,
+                client_account_id: client.id,
+                engagement_id: engagement.id
+              });
+              
+              // Update flow state to reflect progression
+              setFlowState(prev => ({
+                ...prev,
+                session_id: state.flow_session_id,
+                current_phase: 'inventory_building',
+                phase_completion: {
+                  ...prev?.phase_completion,
+                  field_mapping: true,
+                  data_cleansing: true,
+                  inventory_building: false // Set to false initially, will be updated after analysis
+                }
+              }));
+            } catch (phaseError) {
+              console.warn('Phase execution failed, proceeding with manual trigger:', phaseError);
+            }
+          }
+
+          // Always trigger inventory building analysis to ensure we have the latest data
+          console.log('🤖 Triggering inventory building analysis...');
+          await handleTriggerInventoryBuildingCrew();
+
+          toast({
+            title: "✅ Inventory Building Initialized",
+            description: "Assets are being analyzed and classified. Analysis will continue in background.",
+          });
+
+        } catch (error) {
+          console.error('❌ Failed to initialize Inventory Building phase:', error);
+          toast({
+            title: "❌ Phase Initialization Failed",
+            description: "Could not start Inventory Building phase automatically. Please trigger analysis manually.",
+            variant: "destructive"
+          });
+        } finally {
+          setIsAnalyzing(false);
+        }
+      }
+    };
+    
+    handleNavigationFromDataCleansing();
+  }, [client, engagement, executePhase, toast, location.state, fetchAssets, handleTriggerInventoryBuildingCrew, setFlowState]);
 
   // Asset management functions
   const handleBulkUpdate = useCallback(async (updateData: any) => {

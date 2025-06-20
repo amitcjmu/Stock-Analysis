@@ -43,8 +43,13 @@ import {
   Brain,
   Settings2,
   Wand2,
-  ShieldAlert
+  ShieldAlert,
+  GitBranch,
+  Share2,
+  Table
 } from 'lucide-react';
+import { cn } from '../lib/utils';
+import { NavLink } from 'react-router-dom';
 
 const Sidebar = () => {
   const location = useLocation();

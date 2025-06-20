@@ -55,7 +55,7 @@ export const useInventoryNavigation = () => {
       });
 
       // Navigate to App-Server Dependencies phase with state
-      navigate('/discovery/app-server-dependencies', {
+      navigate('/discovery/dependencies', {
         state: {
           from_phase: 'inventory_building',
           flow_session_id: flow_session_id,

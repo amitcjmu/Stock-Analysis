@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiCall } from '@/lib/api';
+import { apiCall } from '@/config/api';
 import { InventoryResponse, InventoryFilters, BulkUpdateVariables } from '../types';
 
 export const useInventoryData = (filters: InventoryFilters) => {
