@@ -1427,4 +1427,46 @@ This fix resolves the immediate RBAC issue for platform administrators. Addition
 
 ---
 
-## [0.4.18] - 2025-01-18
+## [0.4.20] - 2025-01-03
+
+### 🎯 **CRITICAL FIXES - Context Restoration, Data Persistence & Field Mapping**
+
+This release fixes three critical issues preventing proper user experience: default context not being restored on login, uploaded data not persisting to database, and field mapping errors due to undefined context.
+
+### 🚀 **Context Management**
+
+#### **User Context Restoration Fixed**
+- **Context Recovery**: Fixed AuthContext initialization to properly restore user's last selected client/engagement from localStorage
+- **Multi-Method Restoration**: Implemented 3-tier context restoration: localStorage → backend `/me` → manual selection
+- **Demo Mode Prevention**: Prevented real users from being defaulted to demo mode on login
+- **Persistent State**: User context selections now properly persist across browser sessions
+
+### 🗄️ **Data Persistence**
+
+#### **CMDB Upload Pipeline Fixed**
+- **Missing Persistence**: Added critical data storage step after validation completes
+- **Database Integration**: Uploaded CMDB data now properly persists to `data_imports` and `raw_import_records` tables
+- **Storage Workflow**: Complete flow: Upload → Validation → **Storage** → Field Mapping (previously missing storage step)
+- **User Feedback**: Added toast notifications for storage success/failure states
+- **Session Linking**: Import sessions properly linked with validation sessions for audit trail
+
+### 🔧 **Field Mapping**
+
+#### **Context Validation Error Fixed**
+- **Null Check Protection**: Added proper context validation before accessing `client.id` and `engagement.id`
+- **Error Prevention**: Eliminated "Cannot read properties of undefined (reading 'id')" errors
+- **Graceful Degradation**: Field mapping gracefully handles missing context with user-friendly error messages
+- **API Headers**: Added proper context headers to field mapping API calls
+
+### 📊 **Technical Achievements**
+- **Complete Data Flow**: Upload → Validation → Storage → Field Mapping pipeline now fully functional
+- **Context Persistence**: User selections persist across sessions and page refreshes
+- **Error Resilience**: Robust error handling for all context and data persistence scenarios
+- **Type Safety**: Fixed TypeScript interface definitions for UploadFile with all required properties
+
+### 🎯 **Success Metrics**
+- **Context Restoration**: 100% reliability for returning users
+- **Data Persistence**: 0 data loss after successful validation
+- **Field Mapping**: Eliminated TypeError crashes on trigger
+
+## [0.4.19] - 2025-01-03

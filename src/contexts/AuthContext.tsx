@@ -254,11 +254,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             tokenStorage.setUser(validatedUser);
             setUser(validatedUser);
             
-            // Restore persisted context if available
-            if (persistedContext) {
-              setClient(persistedContext.client);
-              setEngagement(persistedContext.engagement);
-              setSession(persistedContext.session);
+            // 🔧 CONTEXT RESTORATION FIX: Try multiple methods to restore context
+            let contextRestored = false;
+            
+            // Method 1: Try persisted user context selection first
+            if (persistedContext?.clientData && persistedContext?.engagementData) {
+              console.log('🔧 Restoring context from localStorage:', persistedContext);
+              setClient(persistedContext.clientData);
+              setEngagement(persistedContext.engagementData);
+              contextRestored = true;
+            }
+            
+            // Method 2: If no persisted context, fetch from backend
+            if (!contextRestored) {
+              try {
+                console.log('🔧 No persisted context, fetching from backend /me endpoint');
+                const backendContext = await apiCall('/me');
+                
+                if (backendContext?.client) {
+                  console.log('🔧 Setting context from backend:', backendContext);
+                  setClient(backendContext.client);
+                  setEngagement(backendContext.engagement || null);
+                  setSession(backendContext.session || null);
+                  
+                  // Save the context for future use
+                  contextStorage.setContext({
+                    clientId: backendContext.client.id,
+                    clientData: backendContext.client,
+                    engagementId: backendContext.engagement?.id,
+                    engagementData: backendContext.engagement,
+                    timestamp: Date.now(),
+                    source: 'backend_restore'
+                  });
+                  contextRestored = true;
+                }
+              } catch (contextError) {
+                console.warn('🔧 Failed to fetch context from backend:', contextError);
+              }
+            }
+            
+            // Method 3: If still no context, this indicates the user needs to select one
+            if (!contextRestored) {
+              console.log('🔧 No context available - user will need to select client/engagement');
+              // Don't set demo context for real users - leave empty for context selection
             }
           } else {
             logout();

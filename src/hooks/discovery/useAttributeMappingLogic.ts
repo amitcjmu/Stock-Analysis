@@ -224,8 +224,23 @@ export const useAttributeMappingLogic = () => {
         description: "Starting comprehensive field mapping and critical attribute analysis...",
       });
 
+      if (!client?.id || !engagement?.id) {
+        toast({
+          title: "❌ Context Required",
+          description: "Please select a client and engagement before triggering field mapping analysis.",
+          variant: "destructive"
+        });
+        return;
+      }
+
       if (!flowState?.session_id && !agenticData?.attributes?.length) {
-        const latestImportResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.LATEST_IMPORT);
+        const latestImportResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.LATEST_IMPORT, {
+          headers: {
+            'X-Client-Account-ID': client.id,
+            'X-Engagement-ID': engagement.id,
+            'X-User-ID': user?.id
+          }
+        });
         const rawData = latestImportResponse?.data || [];
         
         if (rawData.length === 0) {
@@ -238,8 +253,8 @@ export const useAttributeMappingLogic = () => {
         }
 
         await initializeFlow.mutateAsync({
-          client_account_id: client!.id,
-          engagement_id: engagement!.id,
+          client_account_id: client.id,
+          engagement_id: engagement.id,
           user_id: user?.id || 'anonymous',
           raw_data: rawData,
           metadata: {

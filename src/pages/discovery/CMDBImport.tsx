@@ -50,10 +50,22 @@ interface UploadFile {
   size: number;
   type: string;
   uploadedAt: Date;
-  status: 'validating' | 'approved' | 'approved_with_warnings' | 'rejected' | 'error';
+  status: 'uploading' | 'validating' | 'approved' | 'approved_with_warnings' | 'rejected' | 'error';
   agentResults: ValidationAgentResult[];
   validationSessionId?: string;
   importSessionId?: string;
+  // Additional progress tracking properties
+  upload_progress?: number;
+  validation_progress?: number;
+  agents_completed?: number;
+  total_agents?: number;
+  // Security clearance properties
+  security_clearance?: boolean;
+  privacy_clearance?: boolean;
+  format_validation?: boolean;
+  agent_results?: ValidationAgentResult[];
+  // Error handling
+  error_message?: string;
 }
 
 // Upload categories for proper data handling
@@ -253,7 +265,19 @@ const DataImport: React.FC = () => {
       status: 'uploading',
       agentResults: [],
       validationSessionId: undefined,
-      importSessionId: undefined
+      importSessionId: undefined,
+      // Additional progress tracking properties
+      upload_progress: undefined,
+      validation_progress: undefined,
+      agents_completed: undefined,
+      total_agents: undefined,
+      // Security clearance properties
+      security_clearance: undefined,
+      privacy_clearance: undefined,
+      format_validation: undefined,
+      agent_results: undefined,
+      // Error handling
+      error_message: undefined
     };
 
     setUploadedFiles(prev => [...prev, uploadFile]);
@@ -338,6 +362,58 @@ const DataImport: React.FC = () => {
               }
             : f
         ));
+
+        // 🔧 DATA PERSISTENCE FIX: Store validated data to database
+        if (finalStatus === 'approved' || finalStatus === 'approved_with_warnings') {
+          try {
+            console.log('🗄️ Persisting validated data to database...');
+            
+            // Parse CSV data for storage
+            const csvData = await parseCsvData(file);
+            
+            if (csvData.length > 0) {
+              const importSessionId = await storeImportData(
+                csvData, 
+                file, 
+                validationResponse.validation_session.file_id
+              );
+              
+              if (importSessionId) {
+                // Update file with import session ID
+                setUploadedFiles(prev => prev.map(f => 
+                  f.id === uploadFile.id 
+                    ? { ...f, importSessionId: importSessionId }
+                    : f
+                ));
+                
+                console.log('✅ Data persistence completed:', {
+                  importSessionId,
+                  recordCount: csvData.length,
+                  validationSessionId: validationResponse.validation_session.file_id
+                });
+                
+                toast({
+                  title: "✅ Data Stored Successfully", 
+                  description: `${csvData.length} records stored in database and ready for field mapping.`,
+                });
+              } else {
+                console.warn('⚠️ Data validation passed but storage failed');
+                toast({
+                  title: "⚠️ Storage Warning",
+                  description: "Data validated but storage encountered issues. You can still proceed to field mapping.",
+                  variant: "destructive"
+                });
+              }
+            }
+          } catch (storageError) {
+            console.error('❌ Data storage error:', storageError);
+            toast({
+              title: "⚠️ Storage Error",
+              description: "Data validated but storage failed. Please try uploading again or contact support.",
+              variant: "destructive"
+            });
+          }
+        }
 
         // Show appropriate toast message
         if (finalStatus === 'approved') {
