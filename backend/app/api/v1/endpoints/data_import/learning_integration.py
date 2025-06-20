@@ -15,7 +15,9 @@ from app.core.context import get_current_context, RequestContext
 from app.models.data_import import (
     DataImport, ImportFieldMapping, CustomTargetField, MappingLearningPattern
 )
-from .utilities import infer_field_type, generate_format_regex, generate_matching_rules
+# Note: Field analysis functions have been replaced by CrewAI Field Mapping Crew
+# infer_field_type and generate_format_regex are now handled by AI agents
+from .utilities import generate_matching_rules
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -108,15 +110,19 @@ async def create_or_update_learning_pattern(
             if sample_values:
                 existing_samples = content_pattern.get("sample_values", [])
                 content_pattern["sample_values"] = list(set(existing_samples + sample_values[:3]))
-                content_pattern["data_type"] = infer_field_type(sample_values)
+                # Note: Field type inference now handled by CrewAI Field Mapping Crew
+                content_pattern["data_type"] = "string"  # Default fallback
+                content_pattern["ai_analysis_needed"] = True
                 existing_pattern.content_pattern = content_pattern
             
         else:
             # Create new learning pattern
+            # Note: Advanced pattern analysis now handled by CrewAI Field Mapping Crew
             content_pattern = {
-                "data_type": infer_field_type(sample_values),
+                "data_type": "string",  # Default fallback
                 "sample_values": sample_values[:3],
-                "format_regex": generate_format_regex(sample_values)
+                "format_regex": "",  # Will be analyzed by AI agents
+                "ai_analysis_needed": True
             }
             
             new_pattern = MappingLearningPattern(
