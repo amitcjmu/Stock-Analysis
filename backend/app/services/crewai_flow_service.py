@@ -1,7 +1,7 @@
 """
-CrewAI Flow Service
-Integrates the simplified CrewAI Flow implementation with our existing system
-Following CrewAI best practices while maintaining backward compatibility
+CrewAI Flow Service - Modular Implementation
+Uses existing handlers to support the CrewAI Flow while maintaining proper separation of concerns
+Following CrewAI best practices and platform modular handler patterns
 """
 
 import logging
@@ -11,7 +11,6 @@ import json
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
 
 from app.core.context import RequestContext
 from app.services.crewai_flows.discovery_flow import (
@@ -21,13 +20,22 @@ from app.services.crewai_flows.discovery_flow import (
     CREWAI_FLOW_AVAILABLE
 )
 
+# Import existing handlers
+from app.services.crewai_flows.handlers.initialization_handler import InitializationHandler
+from app.services.crewai_flows.handlers.session_handler import SessionHandler
+from app.services.crewai_flows.handlers.status_handler import StatusHandler
+from app.services.crewai_flows.handlers.error_handler import ErrorHandler
+from app.services.crewai_flows.handlers.callback_handler import CallbackHandler
+from app.services.crewai_flows.handlers.planning_coordination_handler import PlanningCoordinationHandler
+from app.services.crewai_flows.handlers.learning_management_handler import LearningManagementHandler
+from app.services.crewai_flows.handlers.collaboration_tracking_handler import CollaborationTrackingHandler
+
 # OpenLIT observability for CrewAI agents
 try:
     import openlit
-    # Initialize OpenLIT for CrewAI observability
     openlit.init(
         otlp_endpoint="http://127.0.0.1:4318",
-        disable_metrics=True  # Focus on traces for agent monitoring
+        disable_metrics=True
     )
     OPENLIT_AVAILABLE = True
     logging.info("✅ OpenLIT observability initialized for CrewAI agents")
@@ -39,20 +47,17 @@ logger = logging.getLogger(__name__)
 
 class CrewAIFlowService:
     """
-    CrewAI Flow Service using native CrewAI Flow implementation.
+    Modular CrewAI Flow Service using existing handlers.
     
-    Key features:
-    - Uses native CrewAI Flow patterns with @start/@listen decorators
-    - Automatic state persistence with @persist decorator
-    - Simplified control transfer between workflow steps
-    - Comprehensive error handling and recovery
-    - Native DiscoveryFlowState format throughout
+    This service orchestrates the CrewAI Flow while delegating specific
+    responsibilities to specialized handlers following the platform's
+    modular handler pattern.
     """
     
     def __init__(self, db: Optional[AsyncSession] = None):
         self.db = db
         
-        # Only initialize state service if database is available
+        # Initialize state service if database is available
         if db:
             from app.services.workflow_state_service import WorkflowStateService
             self.state_service = WorkflowStateService(self.db)
@@ -61,26 +66,47 @@ class CrewAIFlowService:
         
         self.service_available = CREWAI_FLOW_AVAILABLE
         
-        # Active flows tracking (for monitoring and management)
+        # Active flows tracking
         self._active_flows: Dict[str, DiscoveryFlow] = {}
         self._flow_creation_lock = asyncio.Lock()
-        
-        # Flow registry for ID management (replaces fingerprinting)
         self._flow_registry: Dict[str, Dict[str, Any]] = {}
         
-        # Initialize agents (reuse existing logic)
+        # Initialize modular handlers
+        self._initialize_handlers()
+        
+        # Initialize agents using existing logic
         self.agents = self._initialize_agents()
         
-        logger.info("CrewAI Flow Service initialized")
+        logger.info("✅ Modular CrewAI Flow Service initialized with existing handlers")
         if not self.service_available:
-            logger.warning("CrewAI Flow not available - using fallback mode")
+            logger.warning("⚠️ CrewAI Flow not available - using fallback mode")
+    
+    def _initialize_handlers(self):
+        """Initialize all modular handlers"""
+        # Core handlers
+        self.session_handler = SessionHandler()
+        self.status_handler = StatusHandler()
+        self.error_handler = ErrorHandler()
+        self.callback_handler = CallbackHandler()
+        
+        # Advanced handlers
+        self.planning_handler = PlanningCoordinationHandler(self)
+        self.learning_handler = LearningManagementHandler(self)
+        self.collaboration_handler = CollaborationTrackingHandler(self)
+        
+        # Setup handler components
+        self.session_handler.setup_database_sessions()
+        self.callback_handler.setup_callbacks()
+        self.planning_handler.setup_planning_components()
+        
+        logger.info("✅ All modular handlers initialized")
     
     def _initialize_agents(self) -> Dict[str, Any]:
-        """Initialize CrewAI crews for enhanced discovery workflows."""
+        """Initialize CrewAI crews for enhanced discovery workflows"""
         agents = {}
         
         try:
-            # Import and initialize CrewAI crews instead of individual agents
+            # Import and initialize CrewAI crews
             from app.services.crewai_flows.crews.inventory_building_crew import create_inventory_building_crew
             from app.services.crewai_flows.crews.field_mapping_crew import create_field_mapping_crew
             from app.services.crewai_flows.crews.app_server_dependency_crew import create_app_server_dependency_crew
@@ -95,7 +121,7 @@ class CrewAIFlowService:
             logger.info(f"✅ Initialized {len(agents)} CrewAI Crews for discovery workflows")
             
         except ImportError as e:
-            logger.error(f"Failed to import CrewAI crews: {e}")
+            logger.warning(f"CrewAI crews not available: {e}")
         except Exception as e:
             logger.error(f"Failed to initialize CrewAI crews: {e}")
         
@@ -107,930 +133,293 @@ class CrewAIFlowService:
         context: RequestContext
     ) -> Dict[str, Any]:
         """
-        Initiate a discovery workflow using the CrewAI Flow with smart session management.
-        
-        This method handles:
-        - Existing active workflows (returns existing if running)
-        - Failed/completed workflows (creates new workflow) 
-        - Database duplication issues through smart session resolution
+        Initiate a discovery workflow using modular handlers and CrewAI Flow
         """
-        print(f"🔧 PRINT DEBUG: initiate_discovery_workflow called with context.session_id: {context.session_id}")
-        logger.info(f"🔧 DEBUG: initiate_discovery_workflow called with context.session_id: {context.session_id}")
+        logger.info(f"🚀 Initiating discovery workflow with session: {context.session_id}")
         
-        # Check if database is available for workflow state management
+        # Validate database availability
         if not self.db or not self.state_service:
-            logger.error("Database not available - cannot initiate workflow with state management")
-            return {
-                "status": "error",
-                "message": "Database not available for workflow state management",
-                "session_id": context.session_id,
-                "workflow_status": "failed",
-                "current_phase": "error"
-            }
+            return self.error_handler.handle_crew_error(
+                "initialization", 
+                Exception("Database not available for workflow state management"),
+                None
+            )
         
         try:
-            # Parse and validate input data (reuse existing logic)
-            file_data = data_source.get("file_data")
-            if not file_data:
-                raise ValueError("file_data is required for analysis")
-            
-            # Handle different input formats
-            if isinstance(file_data, str):
-                # Handle base64 or JSON string
-                try:
-                    if file_data.strip().startswith('['):
-                        parsed_data = json.loads(file_data)
-                    else:
-                        # Assume base64 encoded CSV
-                        import base64
-                        import csv
-                        import io
-                        decoded = base64.b64decode(file_data).decode('utf-8')
-                        string_io = io.StringIO(decoded)
-                        parsed_data = list(csv.DictReader(string_io))
-                except Exception as e:
-                    raise ValueError(f"Invalid file_data format: {str(e)}")
-            elif isinstance(file_data, list):
-                parsed_data = file_data
-            else:
-                raise ValueError("file_data must be a list or string")
-            
+            # Parse and validate input data
+            parsed_data = self._parse_input_data(data_source)
             metadata = data_source.get("metadata", {})
             cmdb_data = {"file_data": parsed_data, "metadata": metadata}
             
-            # Generate session ID
-            session_id = context.session_id or str(uuid.uuid4())
+            # Validate context
+            session_id, validated_context = self._validate_context(context)
             
-            # Validate and convert context IDs to UUIDs - NO AUTOMATIC FALLBACKS
-            if not context.client_account_id or not context.engagement_id:
-                raise ValueError(f"Missing required context: client_account_id={context.client_account_id}, engagement_id={context.engagement_id}")
-            
-            try:
-                client_account_uuid = uuid.UUID(context.client_account_id)
-                logger.info(f"✅ Using client_account_id: {client_account_uuid}")
-            except (ValueError, TypeError) as e:
-                logger.error(f"❌ Invalid client_account_id format: {context.client_account_id}")
-                raise ValueError(f"Invalid client_account_id format: {context.client_account_id}")
-            
-            try:
-                engagement_uuid = uuid.UUID(context.engagement_id)
-                logger.info(f"✅ Using engagement_id: {engagement_uuid}")
-            except (ValueError, TypeError) as e:
-                logger.error(f"❌ Invalid engagement_id format: {context.engagement_id}")
-                raise ValueError(f"Invalid engagement_id format: {context.engagement_id}")
-            
-            # Update context with validated UUIDs (convert back to strings)
-            context.client_account_id = str(client_account_uuid)
-            context.engagement_id = str(engagement_uuid)
-            
-            # CRITICAL FIX: Create data import session first to satisfy foreign key constraint
-            # This prevents the workflow_states foreign key violation
-            logger.info(f"🔧 DEBUG: About to call _ensure_data_import_session_exists for session: {session_id}")
+            # Ensure data import session exists
             await self._ensure_data_import_session_exists(
-                session_id=session_id,
-                client_account_uuid=client_account_uuid,
-                engagement_uuid=engagement_uuid,
-                context=context,
-                metadata=metadata
-            )
-            logger.info(f"🔧 DEBUG: _ensure_data_import_session_exists completed for session: {session_id}")
-            
-            # Smart session management - create initial state data with validated IDs
-            initial_state_data = {
-                "session_id": session_id,
-                "client_account_id": context.client_account_id,  # Now has validated UUID string
-                "engagement_id": context.engagement_id,  # Now has validated UUID string
-                "user_id": context.user_id or "anonymous",
-                "status": "running",
-                "current_phase": "initialization",
-                "cmdb_data": cmdb_data,
-                "metadata": metadata,
-                "started_at": datetime.utcnow().isoformat(),
-                "created_at": datetime.utcnow().isoformat(),
-                "updated_at": datetime.utcnow().isoformat()
-            }
-            
-            # Use smart session management to handle duplicates
-            workflow_state, is_new, message = await self.state_service.get_or_create_workflow_state(
-                session_id=session_id,
-                client_account_id=client_account_uuid,
-                engagement_id=engagement_uuid,
-                workflow_type="discovery",
-                current_phase="initialization",
-                initial_state_data=initial_state_data,
-                allow_concurrent=False  # Don't allow concurrent workflows by default
+                session_id, validated_context, metadata
             )
             
-            if not is_new:
-                # Return existing workflow state
-                logger.info(f"Returning existing workflow for session {session_id}: {message}")
-                existing_state = workflow_state.state_data
-                
-                # Check if existing workflow is still active
-                if workflow_state.status in ['running', 'in_progress', 'processing']:
-                    existing_state.update({
-                        "status": "success",
-                        "message": f"Workflow already running: {message}",
-                        "session_id": session_id,
-                        "flow_id": session_id,
-                        "workflow_status": workflow_state.status,
-                        "current_phase": workflow_state.current_phase
-                    })
-                    return existing_state
-                else:
-                    # Existing workflow is completed/failed, but service decided to return it
-                    # This might happen if user tries to restart too quickly
-                    existing_state.update({
-                        "status": "success", 
-                        "message": f"Previous workflow status: {workflow_state.status}. {message}",
-                        "session_id": session_id,
-                        "flow_id": session_id,
-                        "workflow_status": workflow_state.status,
-                        "current_phase": workflow_state.current_phase
-                    })
-                    return existing_state
+            # Use initialization handler to setup flow
+            initialization_handler = InitializationHandler(self, validated_context)
+            flow_id = initialization_handler.setup_flow_id(
+                session_id, 
+                validated_context.client_account_id,
+                validated_context.engagement_id,
+                parsed_data
+            )
             
-            # Create new workflow
-            logger.info(f"Creating new workflow for session {session_id}: {message}")
+            # Create and execute the CrewAI Flow
+            flow = await self._create_and_execute_flow(
+                session_id, validated_context, cmdb_data, metadata, flow_id
+            )
             
-            # Create the flow
-            async with self._flow_creation_lock:
-                flow = create_discovery_flow(
-                    session_id=session_id,
-                    client_account_id=context.client_account_id,
-                    engagement_id=context.engagement_id,
-                    user_id=context.user_id or "anonymous",
-                    cmdb_data=cmdb_data,
-                    metadata=metadata,
-                    crewai_service=self,
-                    context=context
-                )
-                
-                # Store the active flow for monitoring
-                self._active_flows[session_id] = flow
+            # Track active flow
+            self._active_flows[flow_id] = flow
             
-            # Start the workflow in the background
-            asyncio.create_task(self._run_workflow_background(flow, context))
-            
-            # Return initial state in native format
-            initial_state = flow.state.model_dump() if hasattr(flow.state, 'model_dump') else flow.state.__dict__
-            
-            # Ensure required fields for API response
-            response_state = {
-                "status": "success",
-                "message": f"Discovery flow initiated successfully. {message}",
-                "session_id": session_id,
-                "flow_id": session_id,
-                "workflow_status": "running",
-                "current_phase": "initialization",
-                **initial_state
-            }
-            
-            logger.info(f"Discovery workflow initiated for session: {session_id}")
-            return response_state
-            
-        except Exception as e:
-            logger.error(f"Failed to initiate discovery workflow: {e}", exc_info=True)
+            # Return status using status handler
             return {
-                "status": "error",
-                "message": f"Failed to start workflow: {str(e)}",
-                "session_id": context.session_id,
-                "workflow_status": "failed",
-                "current_phase": "error"
+                "status": "success",
+                "message": "Discovery workflow initiated successfully",
+                "session_id": session_id,
+                "flow_id": flow_id,
+                "workflow_status": "running",
+                "current_phase": "initialization"
             }
-    
-    async def _run_workflow_background(
-        self,
-        flow: DiscoveryFlow,
-        context: RequestContext
-    ):
-        """Run the workflow in the background with its own database session."""
-        # CRITICAL FIX: Extract session ID more safely from flow
-        session_id = None
-        try:
-            # Try multiple ways to get the session ID
-            if hasattr(flow.state, 'session_id') and flow.state.session_id:
-                session_id = flow.state.session_id
-            elif hasattr(flow, '_init_session_id') and flow._init_session_id:
-                session_id = flow._init_session_id
-            elif hasattr(flow.state, '__dict__') and 'session_id' in flow.state.__dict__:
-                session_id = flow.state.__dict__['session_id']
             
-            # Fallback: search active flows for this flow instance
-            if not session_id:
-                for sid, active_flow in self._active_flows.items():
-                    if active_flow is flow:
-                        session_id = sid
-                        break
-                        
-            if not session_id:
-                session_id = "unknown_session"
-                logger.error("Could not determine session ID for workflow - using fallback")
-            else:
-                logger.info(f"Successfully extracted session ID: {session_id}")
-                
         except Exception as e:
-            logger.error(f"Error extracting session ID from flow: {e}")
-            session_id = "unknown_session"
+            logger.error(f"❌ Failed to initiate discovery workflow: {e}")
+            return self.error_handler.handle_crew_error("initialization", e, None)
+    
+    def _parse_input_data(self, data_source: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Parse and validate input data"""
+        file_data = data_source.get("file_data")
+        if not file_data:
+            raise ValueError("file_data is required for analysis")
         
-        try:
-            logger.info(f"Starting workflow execution for session: {session_id}")
-            
-            # Execute the flow using CrewAI's kickoff method
-            if CREWAI_FLOW_AVAILABLE:
-                # Use native CrewAI Flow execution
-                result = await asyncio.to_thread(flow.kickoff)
-                logger.info(f"Workflow completed for session: {session_id}")
-            else:
-                # Fallback: manually execute the flow steps
-                logger.info("Using fallback workflow execution")
-                result = await self._execute_fallback_workflow(flow)
-            
-            # Safely get status and current_phase from flow state
-            # Handle both DiscoveryFlowState and StateWithId objects
-            state_status = "completed"
-            state_phase = "completed"
-            state_data = {}
-            
+        if isinstance(file_data, str):
             try:
-                # Try to access attributes directly (DiscoveryFlowState)
-                if hasattr(flow.state, 'status'):
-                    state_status = flow.state.status
-                if hasattr(flow.state, 'current_phase'):
-                    state_phase = flow.state.current_phase
-                if hasattr(flow.state, 'model_dump'):
-                    state_data = flow.state.model_dump()
-                elif hasattr(flow.state, '__dict__'):
-                    state_data = flow.state.__dict__
+                if file_data.strip().startswith('['):
+                    return json.loads(file_data)
+                else:
+                    # Handle base64 encoded CSV
+                    import base64
+                    import csv
+                    import io
+                    decoded = base64.b64decode(file_data).decode('utf-8')
+                    string_io = io.StringIO(decoded)
+                    return list(csv.DictReader(string_io))
             except Exception as e:
-                logger.warning(f"Could not access flow state attributes: {e}")
-                # Use default values if state access fails
-                state_status = "completed"
-                state_phase = "completed"
-                state_data = {"status": "completed", "current_phase": "completed"}
-            
-            # Update persistent state with a new database session
-            if session_id and session_id != "unknown_session":
-                await self._update_workflow_state_with_new_session(
-                    session_id=session_id,
-                    client_account_id=context.client_account_id,
-                    engagement_id=context.engagement_id,
-                    status=state_status,
-                    current_phase=state_phase,
-                    state_data=state_data
-                )
-                logger.info(f"Updated database state for session {session_id} to {state_status}")
-            else:
-                logger.error(f"Cannot update database state - invalid session_id: {session_id}")
-            
-        except Exception as e:
-            logger.error(f"Workflow failed for session {session_id}: {e}", exc_info=True)
-            
-            # Update state with error using safe defaults
-            error_state_data = {
-                "status": "failed",
-                "current_phase": "error",
-                "error": str(e)
-            }
-            
-            # Update persistent state with error using new session
-            if session_id and session_id != "unknown_session":
-                await self._update_workflow_state_with_new_session(
-                    session_id=session_id,
-                    client_account_id=context.client_account_id,
-                    engagement_id=context.engagement_id,
-                    status="failed",
-                    current_phase="error",
-                    state_data=error_state_data
-                )
-                logger.info(f"Updated database state for session {session_id} to failed")
-            else:
-                logger.error(f"Cannot update error state - invalid session_id: {session_id}")
-        finally:
-            # Clean up active flow tracking
-            if session_id and session_id != "unknown_session" and session_id in self._active_flows:
-                del self._active_flows[session_id]
-                logger.info(f"Cleaned up active flow for session: {session_id}")
-            else:
-                logger.warning(f"Could not clean up active flow - session_id: {session_id}, active_flows: {list(self._active_flows.keys())}")
-                # Emergency cleanup: remove this flow instance from active flows
-                flows_to_remove = []
-                for sid, active_flow in self._active_flows.items():
-                    if active_flow is flow:
-                        flows_to_remove.append(sid)
-                for sid in flows_to_remove:
-                    del self._active_flows[sid]
-                    logger.info(f"Emergency cleanup: removed flow for session {sid}")
+                raise ValueError(f"Invalid file_data format: {str(e)}")
+        elif isinstance(file_data, list):
+            return file_data
+        else:
+            raise ValueError("file_data must be a list or string")
     
-    async def _ensure_data_import_session_exists(
+    def _validate_context(self, context: RequestContext) -> tuple[str, RequestContext]:
+        """Validate and normalize context"""
+        session_id = context.session_id or str(uuid.uuid4())
+        
+        if not context.client_account_id or not context.engagement_id:
+            raise ValueError(f"Missing required context: client_account_id={context.client_account_id}, engagement_id={context.engagement_id}")
+        
+        # Validate UUID formats
+        try:
+            client_account_uuid = uuid.UUID(context.client_account_id)
+            engagement_uuid = uuid.UUID(context.engagement_id)
+        except (ValueError, TypeError) as e:
+            raise ValueError(f"Invalid UUID format in context: {e}")
+        
+        # Update context with validated UUIDs
+        context.client_account_id = str(client_account_uuid)
+        context.engagement_id = str(engagement_uuid)
+        
+        return session_id, context
+    
+    async def _create_and_execute_flow(
         self,
         session_id: str,
-        client_account_uuid: uuid.UUID,
-        engagement_uuid: uuid.UUID,
-        context: any,
-        metadata: Dict[str, Any]
-    ):
-        """
-        Ensure data import session exists using proper repository pattern.
-        This prevents workflow_states foreign key violations and enforces multi-tenant scoping.
-        """
-        logger.info(f"🔧 CREWAI: Ensuring data import session exists: {session_id}")
-        logger.info(f"🔧 CREWAI: Using provided context - Client: {context.client_account_id}, Engagement: {context.engagement_id}")
-        
-        try:
-            # Use ContextAwareRepository for proper multi-tenant enforcement
-            from app.repositories.context_aware_repository import ContextAwareRepository
-            from app.models.data_import_session import DataImportSession
-            
-            # Create repository with proper context scoping using the PASSED context (not get_current_context)
-            session_repo = ContextAwareRepository(
-                db=self.db,
-                model_class=DataImportSession,
+        context: RequestContext,
+        cmdb_data: Dict[str, Any],
+        metadata: Dict[str, Any],
+        flow_id: str
+    ) -> DiscoveryFlow:
+        """Create and execute the CrewAI Flow"""
+        async with self._flow_creation_lock:
+            # Create the CrewAI Flow using proper factory function
+            flow = create_discovery_flow(
+                session_id=session_id,
                 client_account_id=context.client_account_id,
-                engagement_id=context.engagement_id
+                engagement_id=context.engagement_id,
+                user_id=context.user_id or "anonymous",
+                cmdb_data=cmdb_data,
+                metadata=metadata,
+                crewai_service=self,
+                context=context
             )
             
-            # Check if session already exists using repository
-            session_uuid = uuid.UUID(session_id)
-            existing_session = await session_repo.get_by_id(session_uuid)
+            # Execute flow in background using session handler
+            await self.session_handler.execute_with_session(
+                "discovery_flow",
+                lambda session: self._run_workflow_background(flow, context)
+            )
             
-            if existing_session:
-                logger.info(f"✅ CREWAI: Data import session already exists: {session_id}")
-                return
-            
-            # Create session using repository pattern (automatically applies context)
-            demo_user_uuid = uuid.UUID("44444444-4444-4444-4444-444444444444")
-            
-            session_data = {
-                "id": session_uuid,
-                "session_name": f"crewai-discovery-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}",
-                "description": "Auto-created session for CrewAI discovery workflow",
-                "is_default": False,
-                "session_type": "data_import",
-                "auto_created": True,
-                "source_filename": metadata.get("filename", "discovery_flow.csv"),
-                "status": "active",
-                "created_by": demo_user_uuid,
-                "business_context": {
-                    "import_purpose": "discovery_flow",
-                    "data_source_description": "CrewAI automated discovery workflow",
-                    "expected_changes": ["asset_classification", "field_mapping", "data_validation"]
-                },
-                "agent_insights": {
-                    "classification_confidence": 0.0,
-                    "data_quality_issues": [],
-                    "recommendations": [],
-                    "learning_outcomes": []
-                }
-            }
-            
-            # Create session using repository (enforces multi-tenant scoping)
-            new_session = await session_repo.create(**session_data)
-            await self.db.commit()
-            
-            logger.info(f"✅ CREWAI: Successfully created data import session with repository pattern: {session_id}")
-            
-        except Exception as e:
-            logger.error(f"❌ CREWAI: Failed to create session with repository pattern: {e}")
-            await self.db.rollback()
-            raise
+            return flow
     
-    async def _update_workflow_state_with_new_session(
-        self,
-        session_id: str,
-        client_account_id: str,
-        engagement_id: str,
-        status: str,
-        current_phase: str,
-        state_data: Dict[str, Any]
-    ):
-        """Update workflow state using a new database session to avoid conflicts."""
+    async def _run_workflow_background(self, flow: DiscoveryFlow, context: RequestContext):
+        """Run workflow in background with proper error handling"""
         try:
-            from app.core.database import AsyncSessionLocal
-            from app.services.workflow_state_service import WorkflowStateService
+            logger.info(f"🚀 Starting CrewAI Flow execution for session: {flow.state.session_id}")
             
-            # Create a new database session for the background task
-            async with AsyncSessionLocal() as session:
-                state_service = WorkflowStateService(session)
-                await state_service.update_workflow_state(
-                    session_id=session_id,
-                    client_account_id=client_account_id,
-                    engagement_id=engagement_id,
-                    status=status,
-                    current_phase=current_phase,
-                    state_data=state_data
-                )
-                await session.commit()
-                
-        except Exception as e:
-            logger.error(f"Failed to update workflow state for session {session_id}: {e}")
-            # Don't re-raise to avoid breaking the background task
-    
-    async def _execute_fallback_workflow(self, flow: DiscoveryFlow) -> str:
-        """Execute workflow manually when CrewAI Flow is not available."""
-        try:
-            # Execute each step manually
-            result = flow.initialize_discovery()
-            result = flow.validate_data_quality(result)
-            result = flow.map_source_fields(result)
-            result = flow.classify_assets(result)
-            result = flow.analyze_dependencies(result)
-            result = flow.finalize_discovery(result)
+            # Execute the CrewAI Flow (this triggers @start and @listen methods)
+            result = flow.kickoff()
             
+            logger.info(f"✅ CrewAI Flow completed successfully")
             return result
+            
         except Exception as e:
-            logger.error(f"Fallback workflow execution failed: {e}")
-            raise
+            logger.error(f"❌ CrewAI Flow execution failed: {e}")
+            error_result = self.error_handler.handle_crew_error("flow_execution", e, flow.state)
+            
+            # Update workflow state with error
+            if self.state_service:
+                await self._update_workflow_state_with_error(flow.state.session_id, str(e))
+            
+            return error_result
     
-    async def get_flow_state_by_session(
-        self,
-        session_id: str,
-        context: RequestContext
-    ) -> Optional[Dict[str, Any]]:
-        """
-        Get flow state by session ID or flow ID.
-        
-        Now supports both:
-        - Generated flow IDs (primary identifier from event system)
-        - Session IDs (secondary compatibility)
-        """
-        try:
-            # Check if the ID is a flow ID or session ID
-            flow = None
-            identifier_type = "unknown"
-            
-            # Try direct lookup (works for both flow IDs and session IDs)
-            if session_id in self._active_flows:
-                flow = self._active_flows[session_id]
-                identifier_type = "direct_lookup"
-                logger.info(f"Found flow by direct lookup: {session_id}")
-            
-            # If found in active flows, return its state
-            if flow:
-                # Get flow state safely
-                flow_status = getattr(flow.state, 'status', 'unknown')
-                flow_phase = getattr(flow.state, 'current_phase', 'initialization')
-                flow_progress = getattr(flow.state, 'progress_percentage', 0.0)
-                flow_started_at = getattr(flow.state, 'started_at', None)
-                
-                # Parse started_at safely
-                if isinstance(flow_started_at, str):
-                    try:
-                        flow_started_at = datetime.fromisoformat(flow_started_at.replace('Z', '+00:00'))
-                    except ValueError:
-                        flow_started_at = None
-                
-                # Get file info safely
-                file_info = {'filename': 'Discovery Flow Data', 'record_count': 0}
-                
-                try:
-                    if hasattr(flow.state, 'metadata') and flow.state.metadata:
-                        file_info['filename'] = flow.state.metadata.get('filename', 'Unknown file')
-                    if hasattr(flow.state, 'raw_data') and flow.state.raw_data:
-                        file_info['record_count'] = len(flow.state.raw_data)
-                except Exception as e:
-                    logger.warning(f"Could not access flow state metadata: {e}")
-                    file_info = {'filename': 'Unknown file', 'record_count': 0}
-                
-                # Return comprehensive flow state with event tracking
-                return {
-                    "session_id": session_id,
-                    "flow_id": session_id,  # Use session_id as flow_id for compatibility
-                    "status": flow_status,
-                    "current_phase": flow_phase,
-                    "progress_percentage": flow_progress,
-                    "file_info": file_info,
-                    "started_at": flow_started_at.isoformat() if flow_started_at else None,
-                    "created_at": flow_started_at.isoformat() if flow_started_at else None,
-                    "updated_at": datetime.utcnow().isoformat(),
-                    "identifier_type": identifier_type,
-                    "crew_status": getattr(flow.state, 'crew_status', {}),
-                    "phase_completion": getattr(flow.state, 'phase_completion', {}),
-                    "discovery_summary": getattr(flow.state, 'discovery_summary', {}),
-                    "field_mappings": getattr(flow.state, 'field_mappings', {})
-                }
-            
-            # Use the smart session management to get the primary workflow from database
-            # Handle UUID parsing more safely with fallbacks
-            try:
-                session_uuid = uuid.UUID(session_id)
-            except (ValueError, TypeError):
-                logger.error(f"Invalid session UUID format: {session_id}")
-                return None
-            
-            try:
-                client_uuid = uuid.UUID(context.client_account_id) if context.client_account_id else None
-            except (ValueError, TypeError):
-                logger.error(f"Invalid client_account_id format: {context.client_account_id}")
-                raise ValueError(f"Invalid client_account_id format: {context.client_account_id}")
-            
-            # Try to load from database using enhanced session management
-            try:
-                from app.services.session_management_service import SessionManagementService
-                from app.models.workflow import Workflow, WorkflowStatus
-                
-                session_service = SessionManagementService(self.db)
-                
-                # Get the primary workflow for this session using the enhanced method
-                workflow = await session_service.get_primary_workflow_enhanced(
-                    session_uuid=session_uuid,
-                    client_account_uuid=client_uuid,
-                    engagement_uuid=uuid.UUID(context.engagement_id) if context.engagement_id else None
-                )
-                
-                if workflow:
-                    logger.info(f"Found workflow in database: {workflow.id}")
-                    
-                    # Transform database workflow to flow state format
-                    return {
-                        "session_id": session_id,
-                        "workflow_id": str(workflow.id),
-                        "flow_id": session_id,  # Use session_id as flow_id for compatibility
-                        "status": workflow.status.value.lower() if workflow.status else "unknown",
-                        "current_phase": workflow.current_phase or "unknown",
-                        "progress_percentage": workflow.progress_percentage or 0,
-                        "file_info": {
-                            "filename": "Database Workflow",
-                            "record_count": 0
-                        },
-                        "started_at": workflow.created_at.isoformat() if workflow.created_at else None,
-                        "created_at": workflow.created_at.isoformat() if workflow.created_at else None,
-                        "updated_at": workflow.updated_at.isoformat() if workflow.updated_at else None,
-                        "identifier_type": "database_lookup"
-                    }
-                else:
-                    logger.warning(f"No workflow found in database for session {session_id}")
-                    return None
-                    
-            except ImportError:
-                logger.warning("Session management service not available for database lookup")
-                return None
-            except Exception as e:
-                logger.error(f"Database lookup failed for session {session_id}: {e}")
-                return None
-        
-        except Exception as e:
-            logger.error(f"Error in get_flow_state_by_session for {session_id}: {e}")
-            return None
+    # Delegation methods to handlers
     
-    def get_active_flows_summary(self) -> Dict[str, Any]:
-        """Get summary of all active flows for monitoring dashboard."""
-        return {
-            "total_active": len(self._active_flows),
-            "flows": [
-                {
-                    "flow_id": flow_id,
-                    "status": getattr(flow, 'state', {}).get('status', 'unknown'),
-                    "current_phase": getattr(flow, 'state', {}).get('current_phase', 'unknown'),
-                    "created_at": getattr(flow, 'created_at', datetime.utcnow().isoformat())
-                }
-                for flow_id, flow in self._active_flows.items()
-            ]
-        }
+    async def get_flow_state_by_session(self, session_id: str, context: RequestContext) -> Optional[Dict[str, Any]]:
+        """Get flow state using status handler"""
+        if session_id in self._active_flows:
+            flow = self._active_flows[session_id]
+            return self.status_handler.get_current_status(flow.state, {})
+        
+        # Fallback to database lookup
+        if self.state_service:
+            return await self.state_service.get_workflow_state(session_id)
+        
+        return None
     
     def get_active_flows(self, context: Optional[RequestContext] = None) -> List[Dict[str, Any]]:
-        """
-        Get detailed information about all active flows.
-        This method is called by the agent monitor endpoint.
-        
-        Args:
-            context: Optional request context for filtering flows
-        """
+        """Get active flows using status handler"""
         active_flows = []
-        
         for flow_id, flow in self._active_flows.items():
-            try:
-                flow_info = {
-                    "flow_id": flow_id,
-                    "status": getattr(flow, 'state', {}).get('status', 'unknown'),
-                    "current_phase": getattr(flow, 'state', {}).get('current_phase', 'initialization'),
-                    "session_id": getattr(flow, 'state', {}).get('session_id', ''),
-                    "client_account_id": getattr(flow, 'state', {}).get('client_account_id', ''),
-                    "engagement_id": getattr(flow, 'state', {}).get('engagement_id', ''),
-                    "created_at": getattr(flow, 'created_at', datetime.utcnow().isoformat()),
-                    "progress": {
-                        "field_mappings": bool(getattr(flow, 'state', {}).get('field_mappings', {}).get('mappings')),
-                        "cleaned_data": len(getattr(flow, 'state', {}).get('cleaned_data', [])),
-                        "asset_inventory": sum(
-                            len(assets) for assets in 
-                            getattr(flow, 'state', {}).get('asset_inventory', {}).values() 
-                            if isinstance(assets, list)
-                        ),
-                        "dependencies": bool(getattr(flow, 'state', {}).get('app_server_dependencies', {}).get('hosting_relationships'))
-                    },
-                    "agents": {
-                        "total": 7,  # Based on your 7 active agents from logs
-                        "active": len([a for a in self.agents.values() if hasattr(a, 'is_active') and a.is_active]),
-                        "idle": 0,
-                        "error": 0
-                    }
-                }
-                
-                # Filter by context if provided
-                if context:
-                    flow_client_id = flow_info.get('client_account_id', '')
-                    flow_engagement_id = flow_info.get('engagement_id', '')
-                    
-                    # Only include flows that match the current context
-                    if (context.client_account_id and flow_client_id != context.client_account_id) or \
-                       (context.engagement_id and flow_engagement_id != context.engagement_id):
-                        continue
-                
-                active_flows.append(flow_info)
-            except Exception as e:
-                logger.warning(f"Error getting flow info for {flow_id}: {e}")
-                # Add minimal flow info even if there's an error
-                active_flows.append({
-                    "flow_id": flow_id,
-                    "status": "error",
-                    "current_phase": "unknown",
-                    "error": str(e)
-                })
-        
+            flow_status = self.status_handler.get_current_status(flow.state, {})
+            active_flows.append({
+                "flow_id": flow_id,
+                "session_id": flow.state.session_id,
+                "status": flow_status,
+                "created_at": flow.state.created_at
+            })
         return active_flows
     
     def get_health_status(self) -> Dict[str, Any]:
-        """Get comprehensive health status of the service."""
+        """Get service health status"""
         return {
-            "service_name": "CrewAI Flow Service",
-            "status": "degraded" if not self.service_available else "healthy",
-            "crewai_flow_available": self.service_available,
+            "service_available": self.service_available,
             "active_flows": len(self._active_flows),
-            "features": {
-                "native_flow_execution": self.service_available,
-                "fallback_execution": True,
-                "state_persistence": True,
-                "background_processing": True
-            },
+            "database_available": self.db is not None,
+            "handlers_initialized": True,
+            "session_handler_status": self.session_handler.get_session_status(),
+            "error_summary": self.error_handler.get_error_summary()
+        }
+    
+    def get_performance_metrics(self) -> Dict[str, Any]:
+        """Get performance metrics using callback handler"""
+        return self.callback_handler.get_callback_metrics()
+    
+    def cleanup_resources(self) -> Dict[str, Any]:
+        """Cleanup resources using session handler"""
+        cleanup_count = len(self._active_flows)
+        self._active_flows.clear()
+        
+        # Cleanup sessions
+        asyncio.create_task(self.session_handler.cleanup_all_sessions())
+        
+        return {
+            "cleaned_flows": cleanup_count,
             "timestamp": datetime.utcnow().isoformat()
         }
-
-    def get_all_active_flows(self, context: RequestContext) -> List[Dict[str, Any]]:
-        """Get all active flows for the current context."""
-        active_flows = []
-        for session_id, flow in self._active_flows.items():
-            if (flow.state.client_account_id == context.client_account_id and 
-                flow.state.engagement_id == context.engagement_id):
-                active_flows.append({
-                    "session_id": session_id,
-                    "status": flow.state.status,
-                    "current_phase": flow.state.current_phase,
-                    "progress_percentage": flow.state.progress_percentage,
-                    "started_at": flow.state.started_at.isoformat() if flow.state.started_at else None,
-                    "client_account_id": flow.state.client_account_id,
-                    "engagement_id": flow.state.engagement_id
-                })
-        return active_flows
-
-    def get_performance_metrics(self) -> Dict[str, Any]:
-        """Get performance metrics for the service."""
-        return {
-            "total_flows_processed": len(self._active_flows),
-            "active_flows_count": len(self._active_flows),
-            "service_uptime": "N/A",
-            "average_processing_time": "N/A",
-            "success_rate": "95%",
-            "fallback_mode_active": not self.service_available,
-            "last_updated": datetime.utcnow().isoformat()
-        }
-
-    def cleanup_resources(self) -> Dict[str, Any]:
-        """Clean up expired flows and resources."""
-        cleaned_count = 0
-        flows_to_remove = []
-        
-        # Find completed or failed flows older than 1 hour
-        cutoff_time = datetime.utcnow().timestamp() - 3600  # 1 hour ago
-        
-        for session_id, flow in self._active_flows.items():
-            if (flow.state.status in ["completed", "failed"] and 
-                flow.state.started_at and 
-                flow.state.started_at.timestamp() < cutoff_time):
-                flows_to_remove.append(session_id)
-        
-        # Remove expired flows
-        for session_id in flows_to_remove:
-            del self._active_flows[session_id]
-            cleaned_count += 1
-        
-        return {
-            "cleaned_flows": cleaned_count,
-            "remaining_active_flows": len(self._active_flows),
-            "cleanup_timestamp": datetime.utcnow().isoformat()
-        }
     
-    async def get_task_execution_history(self, flow_id: str) -> Dict[str, Any]:
-        """Get task execution history using CrewAI's replay functionality."""
-        try:
-            if flow_id not in self._active_flows:
-                logger.warning(f"Flow {flow_id} not found for task history")
-                return {"error": "Flow not found", "tasks": []}
-            
-            flow = self._active_flows[flow_id]
-            
-            # Check if CrewAI replay is available
-            if not hasattr(flow, 'replay_tasks_from_latest_crew_kickoff'):
-                logger.warning("CrewAI replay functionality not available on this flow")
-                return {"error": "Replay not available", "tasks": []}
-            
-            # Use CrewAI's native replay functionality
-            try:
-                # Get task execution data from the latest crew kickoff
-                replay_data = flow.replay_tasks_from_latest_crew_kickoff()
-                
-                # Transform CrewAI task data into our monitoring format
-                tasks = []
-                for task_data in replay_data.get('tasks', []):
-                    tasks.append({
-                        "task_id": task_data.get('id', 'unknown'),
-                        "task_name": task_data.get('description', 'Unknown Task'),
-                        "agent_name": task_data.get('agent', {}).get('role', 'Unknown Agent'),
-                        "crew_name": task_data.get('crew_name', 'Unknown Crew'),
-                        "status": task_data.get('status', 'unknown'),
-                        "duration": task_data.get('execution_time', 0),
-                        "success": task_data.get('status') == 'completed',
-                        "output_size": len(str(task_data.get('output', ''))),
-                        "started_at": task_data.get('started_at', ''),
-                        "completed_at": task_data.get('completed_at', ''),
-                        "quality_score": task_data.get('quality_score', 0.0)
-                    })
-                
-                return {
-                    "flow_id": flow_id,
-                    "tasks": tasks,
-                    "total_tasks": len(tasks),
-                    "completed_tasks": len([t for t in tasks if t['success']]),
-                    "replay_timestamp": datetime.utcnow().isoformat()
-                }
-                
-            except Exception as replay_error:
-                logger.error(f"CrewAI replay failed for flow {flow_id}: {replay_error}")
-                return {"error": f"Replay failed: {str(replay_error)}", "tasks": []}
-                
-        except Exception as e:
-            logger.error(f"Error getting task execution history for flow {flow_id}: {e}")
-            return {"error": str(e), "tasks": []}
+    # Flow ID management
     
-    async def update_agent_performance_from_tasks(self, flow_id: str) -> Dict[str, Any]:
-        """Update agent performance metrics from actual task completion data."""
-        try:
-            # Import agent registry
-            from app.services.agent_registry import agent_registry
-            
-            # Get task execution history
-            task_history = await self.get_task_execution_history(flow_id)
-            
-            if "error" in task_history:
-                return {"error": task_history["error"]}
-            
-            # Group tasks by agent and update performance
-            updated_agents = []
-            for task in task_history.get("tasks", []):
-                agent_name = task["agent_name"]
-                
-                # Record task completion in agent registry
-                agent_registry.record_task_completion(
-                    agent_name=agent_name,
-                    crew_name=task["crew_name"],
-                    task_info={
-                        "duration": task["duration"],
-                        "success": task["success"],
-                        "quality_score": task["quality_score"]
-                    }
-                )
-                
-                if agent_name not in updated_agents:
-                    updated_agents.append(agent_name)
-            
-            return {
-                "flow_id": flow_id,
-                "updated_agents": updated_agents,
-                "total_tasks_processed": len(task_history.get("tasks", [])),
-                "update_timestamp": datetime.utcnow().isoformat()
-            }
-            
-        except Exception as e:
-            logger.error(f"Error updating agent performance from tasks for flow {flow_id}: {e}")
-            return {"error": str(e)}
-
-    def get_configuration(self) -> Dict[str, Any]:
-        """Get current service configuration."""
-        return {
-            "service_version": "2.0.0",
-            "crewai_flow_enabled": self.service_available,
-            "fallback_mode": not self.service_available,
-            "max_concurrent_flows": 10,
-            "flow_timeout_seconds": 600,
-            "cleanup_interval_hours": 1,
-            "features": {
-                "background_processing": True,
-                "state_persistence": True,
-                "automatic_cleanup": True,
-                "health_monitoring": True
-            }
-        }
-
-    def get_service_status(self) -> Dict[str, Any]:
-        """Get detailed service status and capabilities."""
-        return {
-            "service_available": True,
-            "crewai_flow_available": self.service_available,
-            "fallback_mode": not self.service_available,
-            "active_flows": len(self._active_flows),
-            "capabilities": {
-                "workflow_execution": True,
-                "state_management": True,
-                "background_processing": True,
-                "error_recovery": True,
-                "performance_monitoring": True
-            },
-            "health_status": "healthy" if self.service_available else "degraded"
-        }
-
-    def get_flow_status(self, flow_id: str) -> Dict[str, Any]:
-        """Get status of a specific flow by ID."""
-        if flow_id in self._active_flows:
-            flow = self._active_flows[flow_id]
-            return {
-                "flow_id": flow_id,
-                "status": flow.state.status,
-                "current_phase": flow.state.current_phase,
-                "progress_percentage": flow.state.progress_percentage,
-                "started_at": flow.state.started_at.isoformat() if flow.state.started_at else None,
-                "completed_at": flow.state.completed_at.isoformat() if flow.state.completed_at else None,
-                "phases_completed": flow.state.phases_completed,
-                "errors": flow.state.errors,
-                "results": flow.state.results,
-                "client_account_id": flow.state.client_account_id,
-                "engagement_id": flow.state.engagement_id
-            }
-        else:
-            return {
-                "status": "not_found",
-                "message": f"Flow {flow_id} not found in active flows"
-            }
-
-    # REMOVED: execute_discovery_flow_redesigned method - legacy modular approach removed
-    # The proper CrewAI Flow is used via initiate_discovery_workflow method
-
     def generate_flow_id(self, flow_type: str, session_id: str, 
                         client_account_id: str, engagement_id: str) -> str:
-        """Generate unique flow ID replacing fingerprinting system"""
-        try:
-            # Create a unique flow ID combining type and context
-            timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
-            short_uuid = str(uuid.uuid4())[:8]
-            
-            flow_id = f"{flow_type}_{session_id}_{timestamp}_{short_uuid}"
-            
-            logger.info(f"✅ Generated flow ID: {flow_id}")
-            return flow_id
-            
-        except Exception as e:
-            logger.error(f"Failed to generate flow ID: {e}")
-            # Fallback flow ID
-            fallback_id = f"{flow_type}_{session_id}_{uuid.uuid4().hex[:8]}"
-            logger.warning(f"Using fallback flow ID: {fallback_id}")
-            return fallback_id
+        """Generate unique flow ID"""
+        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        short_uuid = str(uuid.uuid4())[:8]
+        return f"{flow_type}_{timestamp}_{short_uuid}"
     
     def register_flow(self, flow_id: str, flow_type: str, metadata: Dict[str, Any]):
-        """Register flow in the service registry"""
-        try:
-            self._flow_registry[flow_id] = {
-                "flow_id": flow_id,
-                "flow_type": flow_type,
-                "metadata": metadata,
-                "registered_at": datetime.utcnow().isoformat(),
-                "status": "registered"
-            }
-            
-            logger.info(f"✅ Registered flow: {flow_id}")
-            
-        except Exception as e:
-            logger.error(f"Failed to register flow {flow_id}: {e}")
+        """Register flow in registry"""
+        self._flow_registry[flow_id] = {
+            "flow_type": flow_type,
+            "metadata": metadata,
+            "registered_at": datetime.utcnow().isoformat()
+        }
     
     def get_flow_info(self, flow_id: str) -> Dict[str, Any]:
-        """Get flow information from registry"""
+        """Get flow information"""
+        return self._flow_registry.get(flow_id, {})
+    
+    # Helper methods
+    
+    async def _ensure_data_import_session_exists(
+        self, 
+        session_id: str, 
+        context: RequestContext, 
+        metadata: Dict[str, Any]
+    ):
+        """Ensure data import session exists to satisfy foreign key constraints"""
         try:
-            if flow_id in self._flow_registry:
-                return self._flow_registry[flow_id]
-            else:
-                logger.warning(f"Flow {flow_id} not found in registry")
-                return {
-                    "flow_id": flow_id,
-                    "metadata": {},
-                    "status": "not_found"
-                }
+            from app.models.data_import_session import DataImportSession
+            from app.core.database import AsyncSessionLocal
+            
+            async with AsyncSessionLocal() as db_session:
+                # Check if session already exists
+                existing_session = await db_session.get(DataImportSession, session_id)
                 
+                if not existing_session:
+                    # Create new session
+                    new_session = DataImportSession(
+                        id=session_id,
+                        client_account_id=uuid.UUID(context.client_account_id),
+                        engagement_id=uuid.UUID(context.engagement_id),
+                        user_id=uuid.UUID(context.user_id) if context.user_id != "anonymous" else None,
+                        session_metadata=metadata,
+                        created_at=datetime.utcnow()
+                    )
+                    
+                    db_session.add(new_session)
+                    await db_session.commit()
+                    logger.info(f"✅ Created data import session: {session_id}")
+                else:
+                    logger.info(f"✅ Data import session already exists: {session_id}")
+                    
         except Exception as e:
-            logger.error(f"Failed to get flow info for {flow_id}: {e}")
-            return {
-                "flow_id": flow_id,
-                "metadata": {},
-                "status": "error"
-            }
+            logger.error(f"❌ Failed to ensure data import session exists: {e}")
+            raise
+    
+    async def _update_workflow_state_with_error(self, session_id: str, error: str):
+        """Update workflow state with error information"""
+        if self.state_service:
+            try:
+                await self.state_service.update_workflow_state(
+                    session_id=session_id,
+                    status="failed",
+                    current_phase="error",
+                    state_data={"error": error, "timestamp": datetime.utcnow().isoformat()}
+                )
+            except Exception as e:
+                logger.error(f"Failed to update workflow state with error: {e}")
 
 
 def create_crewai_flow_service(db: AsyncSession) -> CrewAIFlowService:
-    """Factory function to create CrewAI Flow Service."""
-    return CrewAIFlowService(db) 
+    """Factory function to create CrewAI Flow Service"""
+    return CrewAIFlowService(db)
+
+
+def get_crewai_flow_service() -> CrewAIFlowService:
+    """Dependency injection for FastAPI"""
+    from app.core.database import AsyncSessionLocal
+    return CrewAIFlowService(AsyncSessionLocal) 
