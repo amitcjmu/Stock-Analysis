@@ -466,6 +466,7 @@ const ClientManagementMain: React.FC = () => {
   // State management
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterIndustry, setFilterIndustry] = useState('');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -537,44 +538,123 @@ const ClientManagementMain: React.FC = () => {
 
   // Handle client operations
   const handleCreateClient = async () => {
-    const newClient: Client = {
-      id: Date.now().toString(),
-      ...formData,
-      created_at: new Date().toISOString(),
-      is_active: true,
-      total_engagements: 0,
-      active_engagements: 0
-    };
+    try {
+      setActionLoading('create');
+      
+      // Make API call to create client
+      const response = await apiCall('/admin/clients/', {
+        method: 'POST',
+        body: formData
+      });
 
-    setClients(prev => [newClient, ...prev]);
-    toast({ title: "Success", description: "Client created successfully" });
-    setShowCreateDialog(false);
-    resetForm();
+      if (response.status === 'success') {
+        // Add the new client to local state with server response
+        const newClient: Client = {
+          id: response.data.id,
+          ...formData,
+          created_at: response.data.created_at,
+          updated_at: response.data.updated_at,
+          is_active: true,
+          total_engagements: 0,
+          active_engagements: 0
+        };
+
+        setClients(prev => [newClient, ...prev]);
+        toast({ 
+          title: "Success", 
+          description: `Client "${formData.account_name}" created successfully` 
+        });
+        setShowCreateDialog(false);
+        resetForm();
+      } else {
+        throw new Error(response.message || 'Failed to create client');
+      }
+    } catch (error: any) {
+      console.error('Error creating client:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create client. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   const handleUpdateClient = async () => {
     if (!editingClient) return;
 
-    const updatedClient: Client = {
-      ...editingClient,
-      ...formData,
-      updated_at: new Date().toISOString()
-    };
+    try {
+      setActionLoading(editingClient.id);
+      
+      // Make API call to update client
+      const response = await apiCall(`/admin/clients/${editingClient.id}`, {
+        method: 'PUT',
+        body: formData
+      });
 
-    setClients(prev => prev.map(client => 
-      client.id === editingClient.id ? updatedClient : client
-    ));
+      if (response.status === 'success') {
+        const updatedClient: Client = {
+          ...editingClient,
+          ...formData,
+          updated_at: response.data.updated_at || new Date().toISOString()
+        };
 
-    toast({ title: "Success", description: "Client updated successfully" });
-    setEditingClient(null);
-    resetForm();
+        setClients(prev => prev.map(client => 
+          client.id === editingClient.id ? updatedClient : client
+        ));
+
+        toast({ 
+          title: "Success", 
+          description: `Client "${formData.account_name}" updated successfully` 
+        });
+        setEditingClient(null);
+        resetForm();
+      } else {
+        throw new Error(response.message || 'Failed to update client');
+      }
+    } catch (error: any) {
+      console.error('Error updating client:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update client. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   const handleDeleteClient = async (clientId: string, clientName: string) => {
-    if (!confirm(`Delete client "${clientName}"?`)) return;
+    if (!confirm(`Delete client "${clientName}"? This action cannot be undone.`)) return;
 
-    setClients(prev => prev.filter(client => client.id !== clientId));
-    toast({ title: "Success", description: "Client deleted successfully" });
+    try {
+      setActionLoading(clientId);
+      
+      // Make API call to delete client
+      const response = await apiCall(`/admin/clients/${clientId}`, {
+        method: 'DELETE'
+      });
+
+      if (response.status === 'success') {
+        setClients(prev => prev.filter(client => client.id !== clientId));
+        toast({ 
+          title: "Success", 
+          description: `Client "${clientName}" deleted successfully` 
+        });
+      } else {
+        throw new Error(response.message || 'Failed to delete client');
+      }
+    } catch (error: any) {
+      console.error('Error deleting client:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete client. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   const resetForm = useCallback(() => {
@@ -755,8 +835,17 @@ const ClientManagementMain: React.FC = () => {
           </DialogHeader>
           <ClientForm formData={formData} onFormChange={handleFormChange} />
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => {setShowCreateDialog(false); resetForm();}}>Cancel</Button>
-            <Button onClick={handleCreateClient}>Create Client</Button>
+            <Button variant="outline" onClick={() => {setShowCreateDialog(false); resetForm();}} disabled={actionLoading === 'create'}>Cancel</Button>
+            <Button onClick={handleCreateClient} disabled={actionLoading === 'create'}>
+              {actionLoading === 'create' ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Creating...
+                </>
+              ) : (
+                'Create Client'
+              )}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -770,8 +859,17 @@ const ClientManagementMain: React.FC = () => {
           </DialogHeader>
           <ClientForm formData={formData} onFormChange={handleFormChange} />
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => {setEditingClient(null); resetForm();}}>Cancel</Button>
-            <Button onClick={handleUpdateClient}>Update Client</Button>
+            <Button variant="outline" onClick={() => {setEditingClient(null); resetForm();}} disabled={actionLoading === editingClient?.id}>Cancel</Button>
+            <Button onClick={handleUpdateClient} disabled={actionLoading === editingClient?.id}>
+              {actionLoading === editingClient?.id ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Updating...
+                </>
+              ) : (
+                'Update Client'
+              )}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

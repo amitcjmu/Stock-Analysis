@@ -1,5 +1,51 @@
 # AI Force Migration Platform - Change Log
 
+## [0.4.38] - 2025-01-27
+
+### 🎯 **Admin Dashboard Data Persistence Fix - Database Integration**
+
+This release fixes critical issues with admin dashboard data persistence and provides comprehensive guidance on RBAC user access management.
+
+### 🚀 **Admin Dashboard Data Persistence**
+
+#### **Root Cause Resolution**
+- **Issue**: Admin client management not saving data to database
+- **Problem**: Frontend components only updating local React state, no API calls
+- **Solution**: Implemented proper API integration for CRUD operations
+- **Impact**: All admin changes now persist across page refreshes
+
+#### **Client Management API Integration**
+- **Create Client**: Added POST `/admin/clients/` API call with proper error handling
+- **Update Client**: Added PUT `/admin/clients/{id}` API call with server response integration
+- **Delete Client**: Added DELETE `/admin/clients/{id}` API call with confirmation
+- **Loading States**: Added action-specific loading indicators and disabled states
+- **Error Handling**: Comprehensive error messages and toast notifications
+
+### 🔐 **RBAC Dashboard Documentation**
+
+#### **User Access Management Locations**
+- **User Approvals**: `/admin/users/access` - Pending user approvals and active user management
+- **Client Management**: `/admin/clients` - Create/edit clients with business context
+- **Engagement Management**: `/admin/engagements` - Project-level access control
+- **Admin Dashboard**: `/admin/dashboard` - System overview and statistics
+
+#### **New User Access Flow Process**
+1. **Registration**: User registers via `/auth/register` → UserProfile created with 'pending_approval'
+2. **Admin Review**: Admin reviews in User Approvals dashboard
+3. **Approval**: Admin approves with access level → ClientAccess record created
+4. **Context Resolution**: User login triggers `/me` endpoint → Returns accessible clients/engagements
+
+### 📊 **Current Access State**
+- **Real User Access**: User `3ee1c326-a014-4a3c-a483-5cfcf1b419d7` has access to Acme Corporation
+- **Demo User Access**: Demo user `44444444-4444-4444-4444-444444444444` has access to Democorp
+- **Multi-Tenant Security**: All API calls include proper context headers for data isolation
+
+### 🎯 **Business Impact**
+- **Admin Productivity**: Changes now persist, eliminating data loss frustration
+- **User Onboarding**: Clear process for granting new users client access
+- **Data Integrity**: Proper database integration ensures consistent state
+- **Security**: RBAC system properly controls multi-tenant access
+
 ## [0.4.37] - 2025-01-27
 
 ### 🎯 **Context Fallback Fix - Real User Context Resolution**
