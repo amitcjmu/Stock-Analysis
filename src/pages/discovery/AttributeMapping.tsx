@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '../../components/ui/button';
 import { RefreshCw, Zap, ArrowRight, AlertTriangle, ArrowLeft, Upload } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 // Components
 import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
@@ -24,6 +24,7 @@ import { useAttributeMappingNavigation } from '../../hooks/discovery/useAttribut
 const AttributeMapping: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'mappings' | 'data' | 'critical'>('critical');
   const navigate = useNavigate();
+  const { sessionId: urlSessionId } = useParams<{ sessionId?: string }>();
 
   // Custom hooks for business logic
   const {
@@ -49,7 +50,7 @@ const AttributeMapping: React.FC = () => {
     handleDataImportSelection,
     refetchAgentic,
     canContinueToDataCleansing,
-  } = useAttributeMappingLogic();
+  } = useAttributeMappingLogic(urlSessionId);
 
   // Navigation logic
   const { handleContinueToDataCleansing } = useAttributeMappingNavigation(

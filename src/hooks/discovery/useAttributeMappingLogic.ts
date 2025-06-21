@@ -40,7 +40,7 @@ interface MappingProgress {
   crew_completion_status: Record<string, boolean>;
 }
 
-export const useAttributeMappingLogic = () => {
+export const useAttributeMappingLogic = (urlSessionId?: string) => {
   const location = useLocation();
   const { user, client, engagement } = useAuth();
   const { toast } = useToast();
@@ -71,7 +71,11 @@ export const useAttributeMappingLogic = () => {
 
   // 🔧 SESSION AND FLOW TRACKING FIX
   useEffect(() => {
-    if (agenticData && !sessionId) {
+    // Prioritize URL session ID if provided
+    if (urlSessionId && urlSessionId !== sessionId) {
+      setSessionId(urlSessionId);
+      console.log('🔗 Using session ID from URL:', urlSessionId);
+    } else if (agenticData && !sessionId) {
       // Extract session info from agentic data if available
       const dataSessionId = agenticData.session_id || agenticData.last_session_id;
       if (dataSessionId) {
@@ -85,7 +89,7 @@ export const useAttributeMappingLogic = () => {
         setFlowId(dataFlowId);
       }
     }
-  }, [agenticData, flowState, sessionId, flowId]);
+  }, [urlSessionId, agenticData, flowState, sessionId, flowId]);
 
   // Convert agentic critical attributes to field mappings format
   const fieldMappings = useMemo(() => {

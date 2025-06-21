@@ -131,14 +131,16 @@ async def _get_agentic_critical_attributes(
     """
     try:
         # Try to import and use the discovery flow service
-        from app.services.crewai_flows.discovery_flow_service import DiscoveryFlowService
+        from app.services.crewai_flows.discovery_flow_modular import DiscoveryFlowModular
+        from app.services.crewai_flow_service import CrewAIFlowService
         
         # Check if there are existing discovery flow results for this import
-        flow_service = DiscoveryFlowService()
+        crewai_service = CrewAIFlowService()
+        flow_service = DiscoveryFlowModular(crewai_service)
         
         # Look for existing flow results in the session data
         session_id = f"import_{data_import.id}"
-        flow_state = await flow_service.get_flow_state(session_id)
+        flow_state = await flow_service.get_discovery_flow_state(session_id)
         
         if flow_state and flow_state.get("agent_results", {}).get("field_mapping"):
             logger.info("🤖 Found existing agentic discovery flow results")
@@ -295,10 +297,12 @@ async def _trigger_discovery_flow_analysis(
     and determine critical attributes dynamically.
     """
     try:
-        from app.services.crewai_flows.discovery_flow_service import DiscoveryFlowService
+        from app.services.crewai_flows.discovery_flow_modular import DiscoveryFlowModular
         
         # Initialize discovery flow service
-        flow_service = DiscoveryFlowService()
+        from app.services.crewai_flow_service import CrewAIFlowService
+        crewai_service = CrewAIFlowService()
+        flow_service = DiscoveryFlowModular(crewai_service)
         
         # Prepare data for discovery flow
         session_id = f"import_{data_import.id}"
@@ -321,13 +325,17 @@ async def _trigger_discovery_flow_analysis(
                 })
             
             # Trigger discovery flow with agentic analysis
-            flow_result = await flow_service.start_discovery_flow(
-                session_id=session_id,
-                client_account_id=context.client_account_id,
-                engagement_id=context.engagement_id,
-                user_id=context.user_id or "system",
-                cmdb_data={"file_data": sample_data},
-                metadata={"source": "critical_attributes_analysis", "import_id": str(data_import.id)}
+            flow_context = type('FlowContext', (), {
+                'client_account_id': context.client_account_id,
+                'engagement_id': context.engagement_id,
+                'user_id': context.user_id or "system",
+                'session_id': session_id,
+                'data_import_id': str(data_import.id),
+                'source': 'critical_attributes_analysis'
+            })()
+            
+            flow_result = await flow_service.execute_discovery_flow(
+                sample_data, flow_context
             )
             
             logger.info(f"🚀 Discovery flow triggered for critical attributes analysis: {session_id}")

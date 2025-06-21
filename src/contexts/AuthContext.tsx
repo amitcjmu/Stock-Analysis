@@ -297,29 +297,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const storedEngagement = localStorage.getItem('auth_engagement');
           const storedSession = localStorage.getItem('auth_session');
           
-          // Only restore context if all parts are present and valid
-          if (storedClient && storedEngagement && storedSession) {
+          // Try to restore client context even if engagement/session are missing
+          if (storedClient) {
             try {
               const clientData = JSON.parse(storedClient);
-              const engagementData = JSON.parse(storedEngagement);
-              const sessionData = JSON.parse(storedSession);
               
-              // Validate that the stored data has required fields
-              if (clientData.id && engagementData.id && sessionData.id) {
-                console.log('🔄 Restoring context from localStorage:', {
+              // Validate that the stored client data has required fields
+              if (clientData.id && clientData.name) {
+                console.log('🔄 Restoring client from localStorage:', {
                   client: clientData.name,
-                  engagement: engagementData.name,
-                  session: sessionData.id
+                  id: clientData.id
                 });
                 
                 setClient(clientData);
-                setEngagement(engagementData);
-                setSession(sessionData);
+                
+                // Try to restore engagement and session if available
+                if (storedEngagement && storedSession) {
+                  try {
+                    const engagementData = JSON.parse(storedEngagement);
+                    const sessionData = JSON.parse(storedSession);
+                    
+                    if (engagementData.id && sessionData.id) {
+                      console.log('🔄 Restoring full context from localStorage:', {
+                        engagement: engagementData.name,
+                        session: sessionData.id
+                      });
+                      
+                      setEngagement(engagementData);
+                      setSession(sessionData);
+                      setIsLoading(false);
+                      return; // Exit early - context fully restored
+                    }
+                  } catch (parseError) {
+                    console.warn('Failed to parse stored engagement/session, keeping client:', parseError);
+                    // Clear invalid stored engagement/session data but keep client
+                    localStorage.removeItem('auth_engagement');
+                    localStorage.removeItem('auth_session');
+                  }
+                }
+                
+                // Client restored but need to fetch engagement/session
+                console.log('🔄 Client restored, fetching engagement for client:', clientData.name);
+                await switchClient(clientData.id, clientData);
                 setIsLoading(false);
-                return; // Exit early - don't fetch defaults
+                return; // Exit early - client context restored
               }
             } catch (parseError) {
-              console.warn('Failed to parse stored context, will fetch defaults:', parseError);
+              console.warn('Failed to parse stored client, will fetch defaults:', parseError);
               // Clear invalid stored data
               localStorage.removeItem('auth_client');
               localStorage.removeItem('auth_engagement');
