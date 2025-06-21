@@ -7,7 +7,7 @@ from typing import Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from app.models.client_account import Engagement
-from app.schemas.admin_schemas import EngagementResponse
+from app.schemas.admin_schemas import EngagementResponse, AdminSuccessResponse
 from datetime import datetime, timedelta
 from dateutil import parser as date_parser
 from fastapi import HTTPException
@@ -208,6 +208,101 @@ class EngagementCRUDHandler:
         except Exception as e:
             logger.error(f"Error getting engagement dashboard stats: {e}", exc_info=True)
             raise HTTPException(status_code=500, detail=f"Failed to retrieve dashboard stats: {str(e)}")
+
+    @staticmethod
+    async def get_engagement(engagement_id: str, db: AsyncSession) -> EngagementResponse:
+        """Get engagement by ID."""
+        try:
+            query = select(Engagement).where(Engagement.id == engagement_id)
+            result = await db.execute(query)
+            engagement = result.scalar_one_or_none()
+            
+            if not engagement:
+                raise HTTPException(status_code=404, detail="Engagement not found")
+            
+            return await EngagementCRUDHandler._convert_engagement_to_response(engagement)
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error retrieving engagement {engagement_id}: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to retrieve engagement: {str(e)}")
+
+    @staticmethod
+    async def update_engagement(
+        engagement_id: str,
+        update_data: Any,  # EngagementUpdate schema
+        db: AsyncSession,
+        admin_user: str
+    ) -> Dict[str, Any]:
+        """Update engagement."""
+        try:
+            
+            query = select(Engagement).where(Engagement.id == engagement_id)
+            result = await db.execute(query)
+            engagement = result.scalar_one_or_none()
+            
+            if not engagement:
+                raise HTTPException(status_code=404, detail="Engagement not found")
+            
+            # Update fields from the update_data
+            update_dict = update_data.dict(exclude_unset=True) if hasattr(update_data, 'dict') else update_data
+            
+            for field, value in update_dict.items():
+                if hasattr(engagement, field):
+                    setattr(engagement, field, value)
+            
+            await db.commit()
+            await db.refresh(engagement)
+            
+            response_data = await EngagementCRUDHandler._convert_engagement_to_response(engagement)
+            
+            logger.info(f"Engagement updated: {engagement_id} by admin {admin_user}")
+            
+            return AdminSuccessResponse(
+                message="Engagement updated successfully",
+                data=response_data
+            )
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            await db.rollback()
+            logger.error(f"Error updating engagement {engagement_id}: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to update engagement: {str(e)}")
+
+    @staticmethod
+    async def delete_engagement(
+        engagement_id: str,
+        db: AsyncSession,
+        admin_user: str
+    ) -> Dict[str, Any]:
+        """Delete engagement."""
+        try:
+            
+            query = select(Engagement).where(Engagement.id == engagement_id)
+            result = await db.execute(query)
+            engagement = result.scalar_one_or_none()
+            
+            if not engagement:
+                raise HTTPException(status_code=404, detail="Engagement not found")
+            
+            engagement_name = engagement.name
+            await db.delete(engagement)
+            await db.commit()
+            
+            logger.info(f"Engagement deleted: {engagement_name} by admin {admin_user}")
+            
+            return AdminSuccessResponse(
+                message=f"Engagement '{engagement_name}' deleted successfully"
+            )
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            await db.rollback()
+            logger.error(f"Error deleting engagement {engagement_id}: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to delete engagement: {str(e)}")
 
     @staticmethod
     async def _convert_engagement_to_response(engagement: Engagement) -> EngagementResponse:

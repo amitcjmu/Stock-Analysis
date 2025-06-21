@@ -9,7 +9,10 @@ from app.schemas.engagement import Engagement, EngagementSession
 import uuid
 import logging
 from app.api.v1.admin.engagement_management_handlers.engagement_crud_handler import EngagementCRUDHandler
-from app.schemas.admin_schemas import PaginatedResponse, AdminPaginationParams, EngagementDashboardStats, EngagementCreate, EngagementResponse
+from app.schemas.admin_schemas import (
+    PaginatedResponse, AdminPaginationParams, EngagementDashboardStats, 
+    EngagementCreate, EngagementResponse, EngagementUpdate, AdminSuccessResponse
+)
 from app.core.database import get_db
 from app.core.rbac_middleware import require_admin_access
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -80,6 +83,50 @@ async def list_engagements(
         pagination=pagination.dict()
     )
     return PaginatedResponse(**paginated_result)
+
+@router.get("/{engagement_id}", response_model=EngagementResponse)
+async def get_engagement(
+    engagement_id: str,
+    db: AsyncSession = Depends(get_db),
+    admin_user: str = Depends(require_admin_access)
+):
+    """Get detailed engagement information."""
+    try:
+        return await EngagementCRUDHandler.get_engagement(engagement_id, db)
+    except Exception as e:
+        logger.error(f"Error getting engagement {engagement_id}: {e}")
+        raise HTTPException(status_code=404, detail=f"Engagement not found: {str(e)}")
+
+@router.put("/{engagement_id}", response_model=AdminSuccessResponse)
+async def update_engagement(
+    engagement_id: str,
+    update_data: EngagementUpdate,
+    db: AsyncSession = Depends(get_db),
+    admin_user: str = Depends(require_admin_access)
+):
+    """Update engagement information."""
+    try:
+        return await EngagementCRUDHandler.update_engagement(engagement_id, update_data, db, admin_user)
+    except Exception as e:
+        logger.error(f"Error updating engagement {engagement_id}: {e}")
+        if hasattr(e, 'status_code') and hasattr(e, 'detail'):
+            raise e
+        raise HTTPException(status_code=500, detail=f"Failed to update engagement: {str(e)}")
+
+@router.delete("/{engagement_id}", response_model=AdminSuccessResponse)
+async def delete_engagement(
+    engagement_id: str,
+    db: AsyncSession = Depends(get_db),
+    admin_user: str = Depends(require_admin_access)
+):
+    """Delete engagement."""
+    try:
+        return await EngagementCRUDHandler.delete_engagement(engagement_id, db, admin_user)
+    except Exception as e:
+        logger.error(f"Error deleting engagement {engagement_id}: {e}")
+        if hasattr(e, 'status_code') and hasattr(e, 'detail'):
+            raise e
+        raise HTTPException(status_code=500, detail=f"Failed to delete engagement: {str(e)}")
 
 @router.get("/{engagement_id}/sessions", response_model=List[EngagementSession])
 async def list_engagement_sessions(
