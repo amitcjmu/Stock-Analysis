@@ -11,6 +11,7 @@ interface TokenStorage {
   getRedirectPath: () => string | null;
   setRedirectPath: (path: string) => void;
   clearRedirectPath: () => void;
+  removeToken: () => void;
 }
 
 export interface Client {
@@ -47,6 +48,7 @@ const tokenStorage: TokenStorage = {
   getRedirectPath: () => localStorage.getItem('redirect_path'),
   setRedirectPath: (path) => localStorage.setItem('redirect_path', path),
   clearRedirectPath: () => localStorage.removeItem('redirect_path'),
+  removeToken: () => localStorage.removeItem('auth_token'),
 };
 
 // --- Demo Mode Constants ---
@@ -212,132 +214,112 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     navigate('/login');
   }, [navigate]);
 
+  // Initialize auth state from storage on mount
   useEffect(() => {
     const initializeAuth = async () => {
-      // Skip initialization if login is in progress
-      if (isLoginInProgress) {
-        console.log('🔐 Skipping initializeAuth - login in progress');
-        return;
-      }
-      
-      setIsLoading(true);
       try {
+        setIsLoading(true);
+        
         const token = tokenStorage.getToken();
-        const storedUser = tokenStorage.getUser();
+        if (!token) {
+          setIsLoading(false);
+          return;
+        }
 
-        console.log('🔐 InitializeAuth - Starting with:', {
-          hasToken: !!token,
-          hasStoredUser: !!storedUser,
-          storedUserRole: storedUser?.role,
-          isDemoUser: storedUser?.id === DEMO_USER_ID,
+        // Verify token and get user info
+        const userInfo = await apiCall('/auth/me', {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}` }
         });
 
-        if (storedUser?.id === DEMO_USER_ID) {
-          // For demo user, always fetch fresh context from backend to ensure consistency
-          console.log('🔐 Demo user detected, fetching fresh context from backend');
-          setUser(DEMO_USER);
+        if (userInfo && userInfo.id) {
+          setUser(userInfo);
           
-          try {
-            const backendContext = await apiCall('/me', {}, false); // Don't include context headers for /me endpoint
-            console.log('🔐 Backend context for demo user:', backendContext);
-            
-            if (backendContext?.client) {
-              setClient(backendContext.client);
-              setEngagement(backendContext.engagement || null);
-              setSession(backendContext.session || null);
-              
-              // Save the actual backend context (not hardcoded constants)
-              contextStorage.setContext({
-                client: backendContext.client,
-                engagement: backendContext.engagement,
-                session: backendContext.session,
-                timestamp: Date.now(),
-                source: 'backend_demo'
-              });
-              
-              console.log('🔐 Demo context set from backend:', {
-                client: backendContext.client,
-                engagement: backendContext.engagement,
-                session: backendContext.session
-              });
-            } else {
-              console.warn('🔐 Backend context missing, falling back to hardcoded demo');
-              setClient(DEMO_CLIENT);
-              setEngagement(DEMO_ENGAGEMENT);
-              setSession(DEMO_SESSION);
-            }
-          } catch (error) {
-            console.error('🔐 Failed to fetch demo context from backend, using hardcoded:', error);
-            setClient(DEMO_CLIENT);
-            setEngagement(DEMO_ENGAGEMENT);
-            setSession(DEMO_SESSION);
-          }
-        } else if (token) {
-          const validatedUser = await authApi.validateToken(token);
-          console.log('🔐 InitializeAuth - Token validation result:', validatedUser);
+          // Get stored context from localStorage (persistent across sessions)
+          const storedClient = localStorage.getItem('auth_client');
+          const storedEngagement = localStorage.getItem('auth_engagement');
+          const storedSession = localStorage.getItem('auth_session');
           
-          if (validatedUser) {
-            tokenStorage.setUser(validatedUser);
-            setUser(validatedUser);
-            
-            // Always fetch fresh context from backend for authenticated users
+          // Only restore context if all parts are present and valid
+          if (storedClient && storedEngagement && storedSession) {
             try {
-              console.log('🔐 Fetching fresh context from backend for authenticated user');
-              const backendContext = await apiCall('/me', {}, false); // Don't include context headers for /me endpoint
+              const clientData = JSON.parse(storedClient);
+              const engagementData = JSON.parse(storedEngagement);
+              const sessionData = JSON.parse(storedSession);
               
-              if (backendContext?.client) {
-                console.log('🔐 Setting context from backend:', backendContext);
-                setClient(backendContext.client);
-                setEngagement(backendContext.engagement || null);
-                setSession(backendContext.session || null);
-                
-                // Save the context for future use
-                contextStorage.setContext({
-                  client: backendContext.client,
-                  engagement: backendContext.engagement,
-                  session: backendContext.session,
-                  timestamp: Date.now(),
-                  source: 'backend_restore'
+              // Validate that the stored data has required fields
+              if (clientData.id && engagementData.id && sessionData.id) {
+                console.log('🔄 Restoring context from localStorage:', {
+                  client: clientData.name,
+                  engagement: engagementData.name,
+                  session: sessionData.id
                 });
-              } else {
-                console.log('🔐 No context available - user will need to select client/engagement');
-                // Clear any stale context
-                setClient(null);
-                setEngagement(null);
-                setSession(null);
-                contextStorage.clearContext();
+                
+                setClient(clientData);
+                setEngagement(engagementData);
+                setSession(sessionData);
+                setIsLoading(false);
+                return; // Exit early - don't fetch defaults
               }
-            } catch (contextError) {
-              console.warn('🔐 Failed to fetch context from backend:', contextError);
-              // Clear any stale context on error
-              setClient(null);
-              setEngagement(null);
-              setSession(null);
-              contextStorage.clearContext();
+            } catch (parseError) {
+              console.warn('Failed to parse stored context, will fetch defaults:', parseError);
+              // Clear invalid stored data
+              localStorage.removeItem('auth_client');
+              localStorage.removeItem('auth_engagement');
+              localStorage.removeItem('auth_session');
             }
-          } else {
-            logout();
           }
+          
+          // Only fetch default context if no valid stored context exists
+          console.log('🔄 No valid stored context found, fetching defaults...');
+          await fetchDefaultContext();
         } else {
-          // No token, clear everything
+          tokenStorage.removeToken();
           setUser(null);
-          setClient(null);
-          setEngagement(null);
-          setSession(null);
-          contextStorage.clearContext();
         }
       } catch (error) {
-        console.error('🔐 InitializeAuth - Error:', error);
-        setError(error instanceof Error ? error.message : 'Failed to initialize auth');
-        logout();
+        console.error('Auth initialization error:', error);
+        tokenStorage.removeToken();
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
     };
 
     initializeAuth();
-  }, [isLoginInProgress, logout]);
+  }, []);
 
+  const fetchDefaultContext = async () => {
+    try {
+      // Don't fetch defaults if we already have a complete context
+      if (client && engagement && session) {
+        console.log('🔄 Context already complete, skipping default fetch');
+        return;
+      }
+      
+      console.log('🔄 Fetching default context...');
+      
+      // Get available clients first
+      const clientsResponse = await apiCall('/api/v1/clients', {
+        method: 'GET',
+        headers: getAuthHeaders()
+      });
+      
+      if (!clientsResponse?.clients || clientsResponse.clients.length === 0) {
+        console.warn('No clients available');
+        return;
+      }
+      
+      // Use first available client as default only if no client is set
+      const defaultClient = clientsResponse.clients[0];
+      if (!client && defaultClient) {
+        await switchClient(defaultClient.id, defaultClient);
+      }
+      
+    } catch (error) {
+      console.error('Error fetching default context:', error);
+    }
+  };
 
   const login = async (email: string, password: string) => {
     try {
@@ -533,80 +515,100 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const switchClient = async (clientId: string, clientData?: Client) => {
+  const switchClient = async (clientId: string, clientData?: any) => {
     try {
-      if (clientData) {
-        setClient(clientData);
-        console.log('🔄 Switched to client using provided data:', clientData);
-      } else {
+      console.log('🔄 Switching to client:', clientId);
+      
+      let fullClientData = clientData;
+      
+      // If no client data provided, fetch it
+      if (!fullClientData) {
         const response = await apiCall(`/api/v1/clients/${clientId}`, {
+          method: 'GET',
           headers: getAuthHeaders()
         });
-        
-        if (response && response.id) {
-          setClient(response);
-          console.log('🔄 Switched to client via API:', response);
-        } else {
-          throw new Error('Invalid client response');
-        }
+        fullClientData = response.client;
       }
       
-      // Clear engagement and session when switching clients
-      setEngagement(null);
-      setSession(null);
+      if (!fullClientData) {
+        throw new Error('Client data not found');
+      }
       
-      // 🔧 CONTEXT PERSISTENCE FIX: Save context immediately after switching
-      const currentContext = {
-        client: clientData || client,
-        engagement: null,
-        session: null,
-        timestamp: Date.now(),
-        source: 'manual_selection'
-      };
-      contextStorage.setContext(currentContext);
-      console.log('🔧 Context persisted after client switch:', currentContext);
+      setClient(fullClientData);
+      // Persist to localStorage for cross-session persistence
+      localStorage.setItem('auth_client', JSON.stringify(fullClientData));
+      
+      // Get engagements for this client
+      const engagementsResponse = await apiCall(`/api/v1/clients/${clientId}/engagements`, {
+        method: 'GET',
+        headers: getAuthHeaders()
+      });
+      
+      if (engagementsResponse?.engagements && engagementsResponse.engagements.length > 0) {
+        // Use first engagement as default
+        const defaultEngagement = engagementsResponse.engagements[0];
+        await switchEngagement(defaultEngagement.id, defaultEngagement);
+      } else {
+        // Clear engagement and session if no engagements available
+        setEngagement(null);
+        setSession(null);
+        localStorage.removeItem('auth_engagement');
+        localStorage.removeItem('auth_session');
+      }
       
     } catch (error) {
-      console.error('Failed to switch client:', error);
-      setError('Failed to switch client');
+      console.error('Error switching client:', error);
+      throw error;
     }
   };
 
-  const switchEngagement = async (engagementId: string, engagementData?: Engagement) => {
+  const switchEngagement = async (engagementId: string, engagementData?: any) => {
     try {
-      if (engagementData) {
-        setEngagement(engagementData);
-        console.log('🔄 Switched to engagement using provided data:', engagementData);
-      } else {
-        const response = await apiCall(`/api/v1/engagements/${engagementId}`, {
+      console.log('🔄 Switching to engagement:', engagementId);
+      
+      let fullEngagementData = engagementData;
+      
+      // If no engagement data provided, fetch it
+      if (!fullEngagementData && client) {
+        const response = await apiCall(`/api/v1/clients/${client.id}/engagements/${engagementId}`, {
+          method: 'GET',
           headers: getAuthHeaders()
         });
-        
-        if (response && response.id) {
-          setEngagement(response);
-          console.log('🔄 Switched to engagement via API:', response);
-        } else {
-          throw new Error('Invalid engagement response');
-        }
+        fullEngagementData = response.engagement;
       }
       
-      // Clear session when switching engagements
-      setSession(null);
+      if (!fullEngagementData) {
+        throw new Error('Engagement data not found');
+      }
       
-      // 🔧 CONTEXT PERSISTENCE FIX: Save complete context immediately after switching
-      const currentContext = {
-        client: client,
-        engagement: engagementData || engagement,
-        session: null,
-        timestamp: Date.now(),
-        source: 'manual_selection'
-      };
-      contextStorage.setContext(currentContext);
-      console.log('🔧 Context persisted after engagement switch:', currentContext);
+      setEngagement(fullEngagementData);
+      // Persist to localStorage for cross-session persistence
+      localStorage.setItem('auth_engagement', JSON.stringify(fullEngagementData));
+      
+      // Create or get session for this engagement
+      const sessionResponse = await apiCall('/api/v1/sessions', {
+        method: 'POST',
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          client_account_id: client?.id,
+          engagement_id: engagementId,
+          session_name: `${fullEngagementData.name} Session`,
+          session_type: 'discovery'
+        })
+      });
+      
+      if (sessionResponse?.session) {
+        setSession(sessionResponse.session);
+        // Persist to localStorage for cross-session persistence
+        localStorage.setItem('auth_session', JSON.stringify(sessionResponse.session));
+      }
       
     } catch (error) {
-      console.error('Failed to switch engagement:', error);
-      setError('Failed to switch engagement');
+      console.error('Error switching engagement:', error);
+      throw error;
     }
   };
 

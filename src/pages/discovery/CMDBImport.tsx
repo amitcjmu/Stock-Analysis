@@ -464,8 +464,8 @@ const DataImport: React.FC = () => {
             validation_session_id: sessionId,
             upload_timestamp: new Date().toISOString(),
           },
-          client_id: client?.id,
-          engagement_id: engagement?.id,
+          client_id: client?.id,        // Send as string ID, not object
+          engagement_id: engagement?.id, // Send as string ID, not object
         })
       });
 
