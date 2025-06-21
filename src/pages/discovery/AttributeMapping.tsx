@@ -123,24 +123,7 @@ const AttributeMapping: React.FC = () => {
               </Alert>
             )}
 
-            {/* Session Information Panel */}
-            {sessionId && (
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-900">Current Session</h3>
-                    <p className="text-xs text-gray-600 font-mono">{sessionId}</p>
-                    {flowState && (
-                      <p className="text-xs text-green-600 mt-1">✅ Discovery flow data available</p>
-                    )}
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-gray-500">Last updated</p>
-                    <p className="text-xs text-gray-900">Session active</p>
-                  </div>
-                </div>
-              </div>
-            )}
+
 
             <div className="mb-6">
               <ContextBreadcrumbs />
@@ -191,7 +174,7 @@ const AttributeMapping: React.FC = () => {
             </div>
 
             <ProgressDashboard 
-              progress={mappingProgress}
+              mappingProgress={mappingProgress}
               isLoading={isAgenticLoading}
             />
 

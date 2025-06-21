@@ -3319,4 +3319,46 @@ This release resolves the critical session creation failures that were preventin
 - **Context Switching**: Engagement switching no longer fails on session creation
 - **Backend Stability**: Resolved all `'name' is an invalid keyword argument` errors
 
-## [0.4.10] - 2025-01-26
+## [0.4.12] - 2025-01-26
+
+### 🎯 **ATTRIBUTE MAPPING UI CLEANUP - Session Info and Data Display Fixes**
+
+This release cleans up the attribute mapping page UI by removing redundant session information and fixing the data display issues.
+
+### 🚀 **UI Improvements**
+
+#### **Session Information Cleanup**
+- **Removed Redundant Session Panel**: Eliminated duplicate session ID display above breadcrumbs navigation
+- **Removed Session Info from Critical Attributes Tab**: Cleaned up session information display that was duplicating data
+- **Streamlined Interface**: Session information now only appears in the critical attributes tab statistics where it's most relevant
+
+#### **Data Display Fixes**
+- **Fixed Total Fields Count**: Corrected ProgressDashboard component prop mapping from `progress` to `mappingProgress`
+- **Accurate Statistics**: Top dashboard now properly shows 11 Total Attributes instead of 0
+- **Consistent Data Display**: Both top dashboard and critical attributes tab now show consistent statistics
+
+### 📊 **Technical Fixes**
+- **Component Prop Mapping**: Fixed `ProgressDashboard` component to receive `mappingProgress` prop correctly
+- **Data Flow**: Ensured proper data flow from `useAttributeMappingLogic` to UI components
+- **Statistics Accuracy**: Top dashboard now reflects actual imported data statistics
+
+### 🎯 **User Experience Improvements**
+- **Cleaner Interface**: Removed visual clutter from redundant session information displays
+- **Accurate Metrics**: Users now see correct field counts and mapping statistics
+- **Consistent Information**: All statistics panels show consistent and accurate data
+
+### 🔧 **Files Modified**
+- `src/pages/discovery/AttributeMapping.tsx` - Removed session information panel and fixed ProgressDashboard props
+- `src/components/discovery/attribute-mapping/CriticalAttributesTab.tsx` - Removed redundant session info display
+- `docs/development/lessons-learned.md` - Created comprehensive lessons learned document
+
+### 📋 **Lessons Learned Documentation**
+- **Created Comprehensive Guide**: Added `docs/development/lessons-learned.md` with detailed checklists
+- **Authentication Patterns**: Documented user management, context persistence, and session creation fixes
+- **CORS & Middleware**: Captured header standardization and context requirement patterns
+- **Development Guidelines**: Established critical success factors and best practices for future development
+
+### 🌟 **Platform Status**
+The attribute mapping interface now provides a clean, accurate view of field mapping progress with proper statistics display and streamlined session information management.
+
+## [0.4.11] - 2025-01-26

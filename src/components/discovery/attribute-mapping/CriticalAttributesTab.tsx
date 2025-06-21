@@ -340,35 +340,7 @@ const CriticalAttributesTab: React.FC<CriticalAttributesTabProps> = ({
 
   return (
     <div className="p-6 space-y-6">
-      {/* 🔧 SESSION INFO DISPLAY */}
-      {sessionInfo && (sessionInfo.sessionId || sessionInfo.flowId) && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="flex flex-col text-sm">
-                {sessionInfo.flowId && (
-                  <span className="text-blue-700">
-                    <strong>Flow ID:</strong> {sessionInfo.flowId}
-                  </span>
-                )}
-                {sessionInfo.sessionId && (
-                  <span className="text-blue-600">
-                    <strong>Session ID:</strong> {sessionInfo.sessionId}
-                  </span>
-                )}
-              </div>
-              {sessionInfo.hasMultipleSessions && (
-                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
-                  {sessionInfo.availableDataImports.length} data imports available
-                </span>
-              )}
-            </div>
-            <div className="text-xs text-blue-600">
-              Last updated: {lastRefresh.toLocaleTimeString()}
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* Header */}
       <div className="flex items-center justify-between">
