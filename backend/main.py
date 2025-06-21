@@ -288,7 +288,17 @@ try:
             "/static",
             "/api/v1/assets/list/paginated",  # allow unauthenticated inventory preview
             "/api/v1/me",  # Allow user context endpoint
-            "/api/v1/clients/default"  # Allow default client endpoint
+            "/api/v1/clients/default",  # Allow default client endpoint
+            # Authentication endpoints - should not require context
+            "/api/v1/auth/login",
+            "/api/v1/auth/register",
+            "/api/v1/auth/registration-status",
+            "/api/v1/auth/health",
+            "/api/v1/auth/demo/create-admin-user",
+            "/api/v1/auth/demo/status",
+            "/api/v1/auth/demo/reset",
+            "/api/v1/auth/demo/health",
+            "/api/v1/auth/system/info"
         ]
     )
     

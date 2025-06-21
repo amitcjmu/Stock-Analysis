@@ -11,8 +11,8 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Demo credentials that match the database seed
-const DEMO_EMAIL = "demo@democorp.com";
-const DEMO_PASSWORD = "password123"; // This matches the database seed
+const DEMO_EMAIL = "admin@aiforce.com";
+const DEMO_PASSWORD = "admin123"; // This matches the database seed
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -219,8 +219,8 @@ const Login: React.FC = () => {
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <h4 className="font-medium text-blue-900 text-sm mb-2">Demo Credentials:</h4>
                 <div className="text-xs text-blue-800 space-y-1">
-                  <div><strong>Admin:</strong> admin@democorp.com / admin123</div>
-                  <div><strong>Demo:</strong> demo@democorp.com / demo123</div>
+                  <div><strong>Admin:</strong> admin@aiforce.com / admin123</div>
+                  <div><strong>Demo:</strong> Use "Try Demo Mode" button below</div>
                 </div>
               </div>
               

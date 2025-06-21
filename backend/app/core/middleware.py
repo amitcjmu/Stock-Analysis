@@ -59,7 +59,19 @@ class ContextMiddleware(BaseHTTPMiddleware):
             "/redoc", 
             "/openapi.json",
             "/debug/routes",
-            "/static"
+            "/static",
+            # Authentication endpoints - should not require context
+            "/api/v1/auth/login",
+            "/api/v1/auth/register",
+            "/api/v1/auth/registration-status",
+            "/api/v1/auth/health",
+            "/api/v1/auth/demo/create-admin-user",
+            "/api/v1/auth/demo/status",
+            "/api/v1/auth/demo/reset",
+            "/api/v1/auth/demo/health",
+            "/api/v1/auth/system/info",
+            # /me endpoint for context initialization
+            "/api/v1/me"
         ]
     
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
