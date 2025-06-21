@@ -26,7 +26,7 @@ from app.services.crewai_flows.discovery_flow import (
     CREWAI_FLOW_AVAILABLE
 )
 from app.core.context import RequestContext
-from app.schemas.flow_schemas import DiscoveryFlowState as LegacyDiscoveryFlowState
+from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState as LegacyDiscoveryFlowState
 
 
 class TestCrewAIFlowMigration:
