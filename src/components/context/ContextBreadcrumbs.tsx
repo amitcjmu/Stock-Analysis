@@ -46,7 +46,9 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
     engagement,
     switchClient,
     switchEngagement,
-    getAuthHeaders
+    getAuthHeaders,
+    isAuthenticated,
+    isLoading: authLoading
   } = useAuth();
   
   const { toast } = useToast();
@@ -77,7 +79,8 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
         console.error('Failed to fetch clients:', error);
         return [];
       }
-    }
+    },
+    enabled: isAuthenticated && !authLoading // Only run when user is authenticated and auth is not loading
   });
 
   // Fetch engagements for selected client using context establishment endpoint
@@ -96,7 +99,7 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
         return [];
       }
     },
-    enabled: !!selectedClientId
+    enabled: isAuthenticated && !authLoading && !!selectedClientId // Only run when user is authenticated, auth is not loading, and client is selected
   });
 
   // Handle client selection

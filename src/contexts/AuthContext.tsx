@@ -155,6 +155,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Debug logging for admin access with more details
   useEffect(() => {
+    const token = tokenStorage.getToken();
+    const storedUser = tokenStorage.getUser();
     console.log('🔍 Auth State Debug:', {
       user: user ? { 
         id: user.id, 
@@ -165,8 +167,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAuthenticated,
       isAdmin,
       isDemoMode,
-      token: tokenStorage.getToken() ? 'present' : 'missing',
-      localStorage_user: tokenStorage.getUser() ? 'present' : 'missing'
+      token: token ? `present (${token.substring(0, 20)}...)` : 'missing',
+      tokenLength: token ? token.length : 0,
+      localStorage_user: storedUser ? `present (${storedUser.email})` : 'missing',
+      demoMode: localStorage.getItem('demoMode')
     });
   }, [user, isAuthenticated, isAdmin, isDemoMode]);
 
@@ -204,7 +208,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = useCallback(() => {
     localStorage.removeItem('demoMode');
-    tokenStorage.setToken('');
+    tokenStorage.removeToken(); // Use removeToken instead of setToken('')
     tokenStorage.setUser(null);
     contextStorage.clearContext(); // Clear persisted context on logout
     setUser(null);
@@ -227,15 +231,58 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         // Verify token and get user info
-        const userInfo = await apiCall('/auth/me', {
-          method: 'GET',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        let userInfo = null;
+        let needsContextEstablishment = false;
+        
+        try {
+          userInfo = await apiCall('/me', {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+        } catch (error: any) {
+          // Check if this is a context establishment issue (404) vs authentication issue (401)
+          if (error.message === 'Not Found' || error.status === 404) {
+            console.log('🔄 User exists but needs context establishment');
+            needsContextEstablishment = true;
+            // Don't clear token - user is authenticated but needs context
+          } else if (error.message === 'Unauthorized' || error.status === 401) {
+            console.log('🔄 Token is invalid, clearing authentication');
+            tokenStorage.removeToken();
+            setUser(null);
+            setIsLoading(false);
+            return;
+          } else {
+            console.error('🔄 Unexpected error from /me endpoint:', error);
+            // For other errors, don't clear token but continue with context establishment
+            needsContextEstablishment = true;
+          }
+        }
 
-        if (userInfo && userInfo.id) {
-          setUser(userInfo);
+        if (userInfo && userInfo.user && userInfo.user.id) {
+          setUser(userInfo.user);
           
-          // Get stored context from localStorage (persistent across sessions)
+          // Check if /me endpoint returned context information
+          if (userInfo.client && userInfo.engagement && userInfo.session) {
+            console.log('🔄 Using context from /me endpoint:', {
+              client: userInfo.client.name,
+              engagement: userInfo.engagement.name,
+              session: userInfo.session.id
+            });
+            
+            setClient(userInfo.client);
+            setEngagement(userInfo.engagement);
+            setSession(userInfo.session);
+            
+            // Save context to localStorage for persistence
+            localStorage.setItem('auth_client', JSON.stringify(userInfo.client));
+            localStorage.setItem('auth_engagement', JSON.stringify(userInfo.engagement));
+            localStorage.setItem('auth_session', JSON.stringify(userInfo.session));
+            
+            setIsLoading(false);
+            return; // Exit early - context is complete
+          }
+          
+          // Fallback: Get stored context from localStorage (persistent across sessions)
           const storedClient = localStorage.getItem('auth_client');
           const storedEngagement = localStorage.getItem('auth_engagement');
           const storedSession = localStorage.getItem('auth_session');
@@ -270,17 +317,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
           }
           
-          // Only fetch default context if no valid stored context exists
-          console.log('🔄 No valid stored context found, fetching defaults...');
+          // Last resort: fetch default context if no context is available
+          console.log('🔄 No context available, fetching defaults...');
           await fetchDefaultContext();
+        } else if (needsContextEstablishment) {
+          // User is authenticated but needs context establishment
+          console.log('🔄 User authenticated but needs context establishment');
+          // Try to get user info from token storage as fallback
+          const storedUser = tokenStorage.getUser();
+          if (storedUser) {
+            setUser(storedUser);
+            console.log('🔄 Using stored user info:', storedUser);
+          }
+          
+          // Set user to null initially to trigger context establishment flow
+          setClient(null);
+          setEngagement(null);
+          setSession(null);
+          
+          // The ContextBreadcrumbs component will handle the context establishment
         } else {
+          // Only clear token if we're sure authentication failed
           tokenStorage.removeToken();
           setUser(null);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Auth initialization error:', error);
-        tokenStorage.removeToken();
-        setUser(null);
+        // Only clear token if this is a clear authentication failure
+        // Don't clear token for network errors or other issues
+        if (error.message === 'Unauthorized' || error.status === 401) {
+          tokenStorage.removeToken();
+          setUser(null);
+        } else {
+          // For other errors, keep the token but clear user state
+          // This allows for retry on network issues
+          setUser(null);
+        }
       } finally {
         setIsLoading(false);
       }
@@ -319,8 +391,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await switchClient(defaultClient.id, defaultClient);
       }
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching default context:', error);
+      // Don't clear authentication on context fetch errors
+      // The user is still authenticated, they just need to manually select context
+      if (error.message === 'Unauthorized' || error.status === 401) {
+        console.log('🔄 Authentication expired during context fetch');
+        tokenStorage.removeToken();
+        setUser(null);
+        navigate('/login');
+      }
     }
   };
 
@@ -432,14 +512,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     setIsLoginInProgress(true);
     try {
+      // Set the demo token that the backend expects
+      const demoToken = 'db-token-' + DEMO_USER_ID + '-demo123';
+      
       localStorage.setItem('demoMode', 'true');
-      tokenStorage.setToken('db-token-' + DEMO_USER_ID + '-demo123');
+      tokenStorage.setToken(demoToken);
       tokenStorage.setUser(DEMO_USER);
       
       setUser(DEMO_USER);
       
       // Small delay to ensure localStorage is updated
       await new Promise(resolve => setTimeout(resolve, 100));
+      
+      console.log('🔐 Demo login - Token set:', demoToken);
+      console.log('🔐 Demo login - Token in storage:', tokenStorage.getToken());
       
       // Fetch context from backend to ensure consistency
       try {
