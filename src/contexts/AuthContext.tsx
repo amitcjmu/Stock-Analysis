@@ -299,10 +299,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log('🔄 Fetching default context...');
       
-      // Get available clients first - use public endpoint to avoid circular dependency
-      const clientsResponse = await apiCall('/api/v1/clients/public', {
+      // Get available clients first - use context establishment endpoint
+      const clientsResponse = await apiCall('/api/v1/context/clients', {
         method: 'GET',
         headers: {
+          'Authorization': `Bearer ${tokenStorage.getToken()}`,
           'Content-Type': 'application/json'
         }
       });
@@ -540,8 +541,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Persist to localStorage for cross-session persistence
       localStorage.setItem('auth_client', JSON.stringify(fullClientData));
       
-      // Get engagements for this client
-      const engagementsResponse = await apiCall(`/api/v1/clients/${clientId}/engagements`, {
+      // Get engagements for this client using context establishment endpoint
+      const engagementsResponse = await apiCall(`/api/v1/context/engagements?client_id=${clientId}`, {
         method: 'GET',
         headers: getAuthHeaders()
       });

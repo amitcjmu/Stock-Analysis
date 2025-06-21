@@ -63,17 +63,14 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
     setSelectedEngagementId(engagement?.id || '');
   }, [client?.id, engagement?.id]);
 
-  // Fetch available clients
+  // Fetch available clients using context establishment endpoint
   const { data: clients = [], isLoading: clientsLoading } = useQuery({
-    queryKey: ['clients'],
+    queryKey: ['context-clients'],
     queryFn: async () => {
       try {
-        const response = await apiCall('/api/v1/clients/public', {
+        const response = await apiCall('/api/v1/context/clients', {
           method: 'GET',
-          // Use public endpoint that doesn't require authentication or context headers
-          headers: {
-            'Content-Type': 'application/json'
-          }
+          headers: getAuthHeaders()
         });
         return response.clients || [];
       } catch (error) {
@@ -83,13 +80,13 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
     }
   });
 
-  // Fetch engagements for selected client
+  // Fetch engagements for selected client using context establishment endpoint
   const { data: engagements = [], isLoading: engagementsLoading } = useQuery({
-    queryKey: ['engagements', selectedClientId],
+    queryKey: ['context-engagements', selectedClientId],
     queryFn: async () => {
       if (!selectedClientId) return [];
       try {
-        const response = await apiCall(`/api/v1/clients/${selectedClientId}/engagements`, {
+        const response = await apiCall(`/api/v1/context/engagements?client_id=${selectedClientId}`, {
           method: 'GET',
           headers: getAuthHeaders()
         });

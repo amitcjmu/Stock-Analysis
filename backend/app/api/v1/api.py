@@ -20,6 +20,8 @@ from app.api.v1.endpoints import (
     agents_router,
 )
 
+from app.api.v1.endpoints.context_establishment import router as context_establishment_router
+
 from app.api.v1.discovery import discovery_flow_router
 from app.api.v1.routes.llm_health import router as llm_health_router
 
@@ -59,6 +61,9 @@ api_router.include_router(user_approvals_router, prefix="/admin/approvals", tags
 
 # Include context router
 api_router.include_router(context_router, prefix="", tags=["Context"])
+
+# Include context establishment router (exempt from engagement requirements)
+api_router.include_router(context_establishment_router, prefix="/context", tags=["Context Establishment"])
 
 # Include agents router
 api_router.include_router(agents_router, prefix="/agents", tags=["Agents"])
