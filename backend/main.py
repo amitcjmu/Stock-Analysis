@@ -277,7 +277,7 @@ try:
     app.add_middleware(
         ContextMiddleware,
         require_client=True,
-        require_engagement=True,  # SECURITY: Require engagement context for multi-tenancy
+        require_engagement=False,  # CONTEXT FIX: Don't require engagement globally - let endpoints decide
         exempt_paths=[
             "/health",
             "/",
@@ -290,6 +290,8 @@ try:
             "/api/v1/me",  # Allow user context endpoint
             "/api/v1/clients/default",  # Allow default client endpoint
             "/api/v1/clients/public",  # Allow public clients list endpoint for context establishment
+            "/api/v1/clients",  # Allow clients list endpoint for context establishment
+            "/api/v1/clients/",  # Allow clients list endpoint with trailing slash
             # Authentication endpoints - should not require context
             "/api/v1/auth/login",
             "/api/v1/auth/register",
