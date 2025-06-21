@@ -68,9 +68,12 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
     queryKey: ['clients'],
     queryFn: async () => {
       try {
-        const response = await apiCall('/api/v1/clients', {
+        const response = await apiCall('/api/v1/clients/public', {
           method: 'GET',
-          headers: getAuthHeaders()
+          // Use public endpoint that doesn't require authentication or context headers
+          headers: {
+            'Content-Type': 'application/json'
+          }
         });
         return response.clients || [];
       } catch (error) {

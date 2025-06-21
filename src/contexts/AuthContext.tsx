@@ -299,10 +299,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log('🔄 Fetching default context...');
       
-      // Get available clients first
-      const clientsResponse = await apiCall('/api/v1/clients', {
+      // Get available clients first - use public endpoint to avoid circular dependency
+      const clientsResponse = await apiCall('/api/v1/clients/public', {
         method: 'GET',
-        headers: getAuthHeaders()
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
       
       if (!clientsResponse?.clients || clientsResponse.clients.length === 0) {

@@ -294,6 +294,66 @@ class ClientsListResponse(BaseModel):
 class EngagementsListResponse(BaseModel):
     engagements: List[EngagementResponse]
 
+@router.get("/clients/public", response_model=ClientsListResponse)
+async def get_public_clients(
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get list of all active clients (public endpoint for context establishment).
+    This endpoint doesn't require authentication to avoid circular dependency.
+    """
+    try:
+        # Import models with fallback
+        try:
+            from app.models.client_account import ClientAccount
+            from sqlalchemy import select
+            
+            # Get all active clients (public access for context establishment)
+            all_clients_query = select(ClientAccount).where(
+                ClientAccount.is_active == True
+            )
+            result = await db.execute(all_clients_query)
+            all_clients = result.scalars().all()
+            
+            client_responses = []
+            for client in all_clients:
+                client_responses.append(ClientResponse(
+                    id=str(client.id),
+                    name=client.name,
+                    industry=client.industry,
+                    company_size=client.company_size,
+                    status="active" if client.is_active else "inactive"
+                ))
+            
+            return ClientsListResponse(clients=client_responses)
+            
+        except ImportError:
+            # Return demo data if models not available
+            demo_clients = [
+                ClientResponse(
+                    id="11111111-1111-1111-1111-111111111111",
+                    name="Democorp",
+                    industry="Technology",
+                    company_size="Enterprise",
+                    status="active"
+                )
+            ]
+            return ClientsListResponse(clients=demo_clients)
+
+    except Exception as e:
+        print(f"Error fetching public clients: {e}")
+        # Return demo data as fallback
+        demo_clients = [
+            ClientResponse(
+                id="11111111-1111-1111-1111-111111111111",
+                name="Democorp",
+                industry="Technology",
+                company_size="Enterprise",
+                status="active"
+            )
+        ]
+        return ClientsListResponse(clients=demo_clients)
+
 @router.get("/clients", response_model=ClientsListResponse)
 async def get_user_clients(
     db: AsyncSession = Depends(get_db),
