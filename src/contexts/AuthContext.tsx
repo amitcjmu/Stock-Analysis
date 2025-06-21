@@ -226,7 +226,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         const token = tokenStorage.getToken();
         if (!token) {
+          console.log('🔄 No authentication token found, redirecting to login');
+          setUser(null);
+          setClient(null);
+          setEngagement(null);
+          setSession(null);
           setIsLoading(false);
+          navigate('/login');
           return;
         }
 
@@ -246,10 +252,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             needsContextEstablishment = true;
             // Don't clear token - user is authenticated but needs context
           } else if (error.message === 'Unauthorized' || error.status === 401) {
-            console.log('🔄 Token is invalid, clearing authentication');
+            console.log('🔄 Token is invalid, clearing authentication and redirecting to login');
             tokenStorage.removeToken();
             setUser(null);
+            setClient(null);
+            setEngagement(null);
+            setSession(null);
             setIsLoading(false);
+            navigate('/login');
             return;
           } else {
             console.error('🔄 Unexpected error from /me endpoint:', error);
@@ -337,20 +347,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           
           // The ContextBreadcrumbs component will handle the context establishment
         } else {
-          // Only clear token if we're sure authentication failed
+          // Authentication failed - clear everything and redirect to login
+          console.log('🔄 Authentication failed, redirecting to login');
           tokenStorage.removeToken();
           setUser(null);
+          setClient(null);
+          setEngagement(null);
+          setSession(null);
+          navigate('/login');
         }
       } catch (error: any) {
         console.error('Auth initialization error:', error);
         // Only clear token if this is a clear authentication failure
         // Don't clear token for network errors or other issues
         if (error.message === 'Unauthorized' || error.status === 401) {
+          console.log('🔄 Authentication error, redirecting to login');
           tokenStorage.removeToken();
           setUser(null);
+          setClient(null);
+          setEngagement(null);
+          setSession(null);
+          navigate('/login');
         } else {
           // For other errors, keep the token but clear user state
           // This allows for retry on network issues
+          console.log('🔄 Network or other error during auth initialization:', error);
           setUser(null);
         }
       } finally {
@@ -568,8 +589,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Use setTimeout to ensure state updates are complete before navigation
       setTimeout(() => {
-        console.log('🔐 Demo login - Navigating to admin dashboard');
-        navigate('/admin/dashboard');
+        console.log('🔐 Demo login - Navigating to discovery dashboard');
+        navigate('/discovery');
       }, 300);
     } catch (error) {
       console.error('Demo login failed:', error);

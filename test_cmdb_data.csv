@@ -1,6 +1,0 @@
-hostname,environment,operating_system,cpu_cores,memory_gb,ip_address,application,business_criticality
-server01,production,Linux,8,32,192.168.1.10,web-app,high
-server02,development,Windows,4,16,192.168.1.11,database,medium
-server03,staging,Linux,4,8,192.168.1.12,api-service,low
-server04,production,Linux,16,64,192.168.1.13,database,critical
-server05,development,Windows,2,4,192.168.1.14,test-app,low 

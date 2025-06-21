@@ -304,7 +304,7 @@ const DataImport: React.FC = () => {
         const csvData = await parseCsvData(file);
         
         console.log('Persisting validated data to database...');
-        const importSessionId = await storeImportData(csvData, file, validationResponse.validation_session.file_id);
+        const importSessionId = await storeImportData(csvData, file, validationResponse.validation_session.file_id, categoryId);
         console.log('Received importSessionId:', importSessionId);
 
 
@@ -399,16 +399,16 @@ const DataImport: React.FC = () => {
     }
   
     try {
-      const response = await apiCall(`/data-import/get-stored-data/${importSessionId}`, {
+      const response = await apiCall(`/data-import/import/${importSessionId}`, {
         method: 'GET',
         headers: getAuthHeaders()
       });
   
-      if (response.data && Array.isArray(response.data.data)) {
-        console.log(`Retrieved ${response.data.data.length} records.`);
-        return response.data.data;
+      if (response.data && Array.isArray(response.data)) {
+        console.log(`Retrieved ${response.data.length} records.`);
+        return response.data;
       } else {
-        console.warn("No data array found in the response:", response.data);
+        console.warn("No data array found in the response:", response);
         return [];
       }
     } catch (error) {
@@ -438,14 +438,24 @@ const DataImport: React.FC = () => {
     });
   };
 
-  const storeImportData = async (csvData: any[], file: File, sessionId: string): Promise<string | null> => {
+  const storeImportData = async (csvData: any[], file: File, sessionId: string, categoryId: string): Promise<string | null> => {
     if (!sessionId) {
       console.error('No session ID available for storing data.');
       return null;
     }
 
+    // Use effective client and engagement (same logic as handleFileUpload)
+    const isAdmin = user?.role === 'admin';
+    const effectiveClient = client || (isAdmin ? { id: 'demo-client', name: 'Demo Client' } : null);
+    const effectiveEngagement = engagement || (isAdmin ? { id: 'demo-engagement', name: 'Demo Engagement' } : null);
+
     try {
       console.log(`Storing data for session: ${sessionId}`);
+      console.log('Using effective context:', { 
+        client: effectiveClient?.id, 
+        engagement: effectiveEngagement?.id 
+      });
+      
       const response = await apiCall(`/data-import/store-import`, {
         method: 'POST',
         headers: {
@@ -460,28 +470,24 @@ const DataImport: React.FC = () => {
             type: file.type,
           },
           upload_context: {
-            intended_type: selectedCategory,
+            intended_type: categoryId,
             validation_session_id: sessionId,
             upload_timestamp: new Date().toISOString(),
           },
-          client_id: client?.id,        // Send as string ID, not object
-          engagement_id: engagement?.id, // Send as string ID, not object
-        })
+          client_id: effectiveClient?.id || null,
+          engagement_id: effectiveEngagement?.id || null,
+        }),
       });
 
       if (response.success) {
-        console.log('Successfully stored data, import session ID:', response.import_session_id);
+        console.log('✅ Data stored successfully, import session ID:', response.import_session_id);
         return response.import_session_id;
       } else {
-        throw new Error(response.error || "Failed to store data");
+        console.error('❌ Failed to store data:', response.error);
+        return null;
       }
     } catch (error) {
-      console.error("Error storing import data:", error);
-      toast({
-        title: "Data Storage Error",
-        description: "Could not save processed data to the backend.",
-        variant: "destructive",
-      });
+      console.error('❌ Error storing data:', error);
       return null;
     }
   };

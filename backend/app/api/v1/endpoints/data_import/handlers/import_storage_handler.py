@@ -14,7 +14,7 @@ import uuid
 import asyncio
 import json
 import os
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from app.core.database import get_db
 from app.core.context import get_current_context, RequestContext
@@ -56,7 +56,7 @@ class ImportStorageResponse(BaseModel):
 
 @router.post("/store-import")
 async def store_import_data(
-    request: StoreImportRequest,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context)
 ) -> ImportStorageResponse:
@@ -69,16 +69,34 @@ async def store_import_data(
     3. Returns the import session ID for tracking
     """
     try:
-        logger.info(f"🔄 Starting data storage for session: {request.upload_context.validation_session_id}")
+        # Get raw request body and log it
+        raw_body = await request.body()
+        logger.info(f"🔍 DEBUG: Raw request body: {raw_body.decode()}")
+        
+        # Parse JSON manually
+        try:
+            request_data = json.loads(raw_body)
+            logger.info(f"🔍 DEBUG: Parsed JSON: {json.dumps(request_data, indent=2, default=str)}")
+        except json.JSONDecodeError as e:
+            logger.error(f"🚨 JSON decode error: {e}")
+            raise HTTPException(status_code=400, detail=f"Invalid JSON: {e}")
+        
+        # Try to create StoreImportRequest from parsed data
+        try:
+            store_request = StoreImportRequest(**request_data)
+            logger.info(f"🔄 Starting data storage for session: {store_request.upload_context.validation_session_id}")
+        except ValidationError as e:
+            logger.error(f"🚨 Pydantic validation error: {e}")
+            raise HTTPException(status_code=422, detail=f"Validation error: {e.errors()}")
         
         # Extract data from request
-        file_data = request.file_data
-        filename = request.metadata.filename
-        file_size = request.metadata.size
-        file_type = request.metadata.type
-        intended_type = request.upload_context.intended_type
-        validation_session_id = request.upload_context.validation_session_id
-        upload_timestamp = request.upload_context.upload_timestamp
+        file_data = store_request.file_data
+        filename = store_request.metadata.filename
+        file_size = store_request.metadata.size
+        file_type = store_request.metadata.type
+        intended_type = store_request.upload_context.intended_type
+        validation_session_id = store_request.upload_context.validation_session_id
+        upload_timestamp = store_request.upload_context.upload_timestamp
         
         # Use context for client/engagement IDs
         client_account_id = context.client_account_id
@@ -91,32 +109,27 @@ async def store_import_data(
                 detail="Client account and engagement context required"
             )
         
-        logger.info(f"Using session {validation_session_id} for data import from store-import")
+        logger.info(f"Using existing import record {validation_session_id} for store-import")
         
-        # Create DataImport record
-        data_import = DataImport(
-            import_name=f"Import: {filename}",
-            import_type=intended_type,
-            description=f"Data import from {filename}",
-            source_filename=filename,
-            file_size_bytes=file_size,
-            file_type=file_type,
-            status="processing",
-            client_account_id=client_account_id,
-            engagement_id=engagement_id,
-            imported_by=user_id or "system",
-            total_records=len(file_data),
-            processed_records=0,
-            failed_records=0,
-            import_config={
-                "validation_session_id": validation_session_id,
-                "upload_timestamp": upload_timestamp,
-                "intended_type": intended_type
-            }
-        )
+        # Find the existing DataImport record created by the upload endpoint
+        from sqlalchemy import select
+        existing_import_query = select(DataImport).where(DataImport.id == validation_session_id)
+        result = await db.execute(existing_import_query)
+        data_import = result.scalar_one_or_none()
         
-        db.add(data_import)
-        await db.flush()  # Get the ID
+        if not data_import:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Import record {validation_session_id} not found. Please upload the file first."
+            )
+        
+        # Update the existing import record instead of creating a new one
+        data_import.status = "processing"
+        data_import.import_config = {
+            "validation_session_id": validation_session_id,
+            "upload_timestamp": upload_timestamp,
+            "intended_type": intended_type
+        }
         
         # Store field mappings
         records_stored = 0
@@ -203,7 +216,7 @@ async def _trigger_discovery_flow(
             'client_account_id': client_account_id,
             'engagement_id': engagement_id,
             'user_id': user_id,
-            'session_id': f"import_{data_import_id}",
+            'session_id': data_import_id,  # Use data_import_id directly as session_id (valid UUID)
             'data_import_id': data_import_id,
             'source': 'data_import'
         })()
@@ -476,9 +489,9 @@ async def get_import_by_id(
             "success": True,
             "import_session_id": str(import_session.id),
             "import_metadata": {
-                "filename": import_session.filename,
-                "import_type": import_session.intended_type,
-                "imported_at": import_session.processed_at.isoformat() if import_session.processed_at else None,
+                "filename": import_session.source_filename,
+                "import_type": import_session.import_type,
+                "imported_at": import_session.completed_at.isoformat() if import_session.completed_at else None,
                 "total_records": import_session.total_records,
                 "status": import_session.status
             },
