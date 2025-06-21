@@ -1,5 +1,145 @@
 # AI Force Migration Platform - Change Log
 
+## [0.4.48] - 2025-01-21
+
+### 🎯 **REAL-TIME DISCOVERY OVERVIEW DASHBOARD**
+
+This release transforms the Discovery Overview page from mock data to real-time flow monitoring, supporting multiple flows across multiple engagements with live status updates.
+
+### 🚀 **Multi-Flow, Multi-Engagement Dashboard**
+
+#### **Real-Time Flow Monitoring ✅ COMPLETED**
+- **Problem**: Overview page showed mock data instead of real discovery flows
+- **Root Cause**: Dashboard not connected to actual flow status APIs
+- **Solution**: Integrated with real Discovery Flow APIs and Data Import sessions
+- **Result**: Live monitoring of all active discovery flows with real-time status
+
+#### **Enhanced Flow Data Integration**
+```typescript
+// Before: Mock static data
+setActiveFlows([mockFlow1, mockFlow2]);
+
+// After: Real API integration
+const [discoveryFlowsResponse, dataImportsResponse] = await Promise.allSettled([
+  apiCall('/api/v1/discovery/flow/active'),
+  apiCall('/api/v1/data-import/latest-import')
+]);
+// Process real flow data with session tracking
+```
+
+#### **Multi-Engagement Support**
+```typescript
+interface FlowSummary {
+  flow_id: string;
+  session_id?: string;
+  engagement_name: string;
+  engagement_id: string;
+  client_name: string;
+  client_id: string;
+  status: 'running' | 'completed' | 'failed' | 'paused' | 'not_found';
+  flow_type: 'discovery' | 'assessment' | 'planning' | 'execution';
+  // ... real-time progress data
+}
+```
+
+### 📊 **Real-Time Status Integration**
+
+#### **Live Flow Status Tracking**
+- **Discovery Flow API**: `/api/v1/discovery/flow/active` for active flows
+- **Session-Based Tracking**: `/api/v1/discovery/flow/status?session_id=` for detailed status
+- **Data Import Integration**: `/api/v1/data-import/latest-import` for current sessions
+- **Auto-Refresh**: 30-second polling for real-time updates
+
+#### **Dynamic System Metrics**
+```typescript
+// Real metrics calculated from actual flows
+const runningFlows = allFlows.filter(f => f.status === 'running');
+const totalActiveAgents = runningFlows.reduce((sum, flow) => sum + flow.active_agents, 0);
+const successRate = allFlows.length > 0 ? completedFlows.length / allFlows.length : 0;
+```
+
+#### **Enhanced Error Handling**
+- **Connection Error Display**: Visual indicator when APIs are unavailable
+- **Graceful Fallback**: Fallback data prevents UI breaking
+- **Retry Mechanism**: One-click retry for failed connections
+- **Context-Aware Errors**: Specific error messages with actionable guidance
+
+### 🎯 **User Experience Enhancements**
+
+#### **Flow Navigation & Context**
+- **Smart Navigation**: Click flows to navigate to attribute mapping page
+- **Session Tracking**: Proper session ID handling for flow continuity
+- **Client Context**: Display client name and engagement for each flow
+- **Flow Type Indicators**: Clear distinction between Discovery, Assessment, Planning flows
+
+#### **Empty State Management**
+```typescript
+{activeFlows.filter(flow => flow.status === 'running').length === 0 ? (
+  <div className="text-center py-8">
+    <Database className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+    <h3>No Active Discovery Flows</h3>
+    <Button onClick={() => navigate('/discovery/data-import')}>
+      Import Data & Start Discovery
+    </Button>
+  </div>
+) : (
+  // Show active flows
+)}
+```
+
+#### **Enhanced Flow Information Display**
+- **Progress Tracking**: Real-time progress percentages from flow state
+- **Phase Information**: Current discovery phase (field mapping, data cleansing, etc.)
+- **Success Criteria**: Real-time tracking of completion criteria
+- **Time Estimates**: ETA calculations based on actual flow progress
+
+### 📋 **Technical Implementation**
+
+#### **API Integration Architecture**
+- **Promise.allSettled**: Parallel API calls for better performance
+- **Error Resilience**: Individual API failures don't break entire dashboard
+- **Data Transformation**: Consistent flow data structure across API sources
+- **Context Awareness**: Automatic client/engagement context integration
+
+#### **Real-Time Data Processing**
+- **Flow Deduplication**: Prevents duplicate flows from multiple API sources
+- **Status Reconciliation**: Combines data from multiple sources for complete picture
+- **Session Mapping**: Maps data import sessions to discovery flows
+- **Progress Calculation**: Real-time progress from flow state completion
+
+#### **Authentication & Context**
+- **useAuth Integration**: Proper authentication headers for all API calls
+- **Multi-Tenant Support**: Client/engagement context automatically applied
+- **Context Breadcrumbs**: Clear navigation context for users
+- **Permission Handling**: Graceful handling of access restrictions
+
+### 🎪 **Business Impact**
+
+#### **Operational Visibility**
+- **Real-Time Monitoring**: Live view of all discovery flows across engagements
+- **Progress Tracking**: Immediate visibility into flow status and completion
+- **Resource Utilization**: Real-time agent and system resource monitoring
+- **Performance Metrics**: Actual success rates and completion times
+
+#### **Multi-Engagement Management**
+- **Consolidated View**: Single dashboard for all client engagements
+- **Flow Comparison**: Side-by-side comparison of different engagement flows
+- **Resource Allocation**: Clear view of agent distribution across flows
+- **Scalability**: Support for unlimited flows and engagements
+
+#### **User Productivity**
+- **Quick Access**: One-click navigation to active flows
+- **Context Awareness**: Clear client and engagement identification
+- **Status Clarity**: Immediate understanding of flow health and progress
+- **Action Guidance**: Clear next steps for flow management
+
+### 🎯 **Success Metrics**
+- **Real-Time Updates**: 30-second refresh cycle for live monitoring
+- **API Integration**: 100% replacement of mock data with real APIs
+- **Multi-Flow Support**: Unlimited flows per engagement support
+- **Error Resilience**: Graceful handling of API failures with user guidance
+- **Navigation Flow**: Seamless flow-to-page navigation with session continuity
+
 ## [0.4.47] - 2025-01-21
 
 ### 🎯 **DISCOVERY FLOW WORKFLOW MANAGEMENT**

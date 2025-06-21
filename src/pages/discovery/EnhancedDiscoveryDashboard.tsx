@@ -33,20 +33,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAuth } from '../../hooks/useAuth';
+import { apiCall } from '../../utils/api';
 
 interface FlowSummary {
   flow_id: string;
+  session_id?: string;
   engagement_name: string;
-  status: 'running' | 'completed' | 'failed' | 'paused';
+  engagement_id: string;
+  client_name: string;
+  client_id: string;
+  status: 'running' | 'completed' | 'failed' | 'paused' | 'not_found';
   progress: number;
   current_phase: string;
   started_at: string;
-  estimated_completion: string;
+  estimated_completion?: string;
+  last_updated?: string;
   crew_count: number;
   active_agents: number;
   data_sources: number;
   success_criteria_met: number;
   total_success_criteria: number;
+  flow_type: 'discovery' | 'assessment' | 'planning' | 'execution';
 }
 
 interface SystemMetrics {
@@ -82,6 +90,7 @@ interface PlatformAlert {
 
 const EnhancedDiscoveryDashboard: React.FC = () => {
   const navigate = useNavigate();
+  const { user, client, engagement, getAuthHeaders } = useAuth();
   const [activeFlows, setActiveFlows] = useState<FlowSummary[]>([]);
   const [systemMetrics, setSystemMetrics] = useState<SystemMetrics | null>(null);
   const [crewPerformance, setCrewPerformance] = useState<CrewPerformanceMetrics[]>([]);
@@ -89,70 +98,136 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
   const [selectedTimeRange, setSelectedTimeRange] = useState('24h');
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [error, setError] = useState<string | null>(null);
 
   // Fetch dashboard data
   const fetchDashboardData = async () => {
     setIsLoading(true);
+    setError(null);
+    
     try {
-      // In real implementation, these would be separate API calls
-      // For now, using mock data
+      console.log('🔍 Fetching dashboard data for context:', {
+        user: user?.id,
+        client: client?.id,
+        engagement: engagement?.id
+      });
 
-      // Mock active flows
-      setActiveFlows([
-        {
-          flow_id: 'flow-001',
-          engagement_name: 'Customer A - CMDB Migration',
-          status: 'running',
-          progress: 65,
-          current_phase: 'Inventory Building',
-          started_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          estimated_completion: new Date(Date.now() + 1 * 60 * 60 * 1000).toISOString(),
-          crew_count: 6,
-          active_agents: 18,
-          data_sources: 4,
-          success_criteria_met: 12,
-          total_success_criteria: 18
-        },
-        {
-          flow_id: 'flow-002',
-          engagement_name: 'Customer B - App Discovery',
-          status: 'running',
-          progress: 30,
-          current_phase: 'Data Cleansing',
-          started_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-          estimated_completion: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(),
-          crew_count: 6,
-          active_agents: 18,
-          data_sources: 2,
-          success_criteria_met: 6,
-          total_success_criteria: 18
-        },
-        {
-          flow_id: 'flow-003',
-          engagement_name: 'Customer C - Infrastructure Assessment',
-          status: 'completed',
-          progress: 100,
-          current_phase: 'Completed',
-          started_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-          estimated_completion: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-          crew_count: 6,
-          active_agents: 0,
-          data_sources: 6,
-          success_criteria_met: 18,
-          total_success_criteria: 18
-        }
+      // Fetch real-time active flows from multiple sources
+      const [discoveryFlowsResponse, dataImportsResponse] = await Promise.allSettled([
+        // Get active Discovery flows
+        apiCall('/api/v1/discovery/flow/active', {
+          method: 'GET',
+          headers: getAuthHeaders()
+        }),
+        // Get data import sessions (for discovering flows)
+        apiCall('/api/v1/data-import/latest-import', {
+          method: 'GET',
+          headers: getAuthHeaders()
+        })
       ]);
 
-      // Mock system metrics
+      const allFlows: FlowSummary[] = [];
+
+      // Process Discovery flows
+      if (discoveryFlowsResponse.status === 'fulfilled' && discoveryFlowsResponse.value) {
+        const discoveryData = discoveryFlowsResponse.value;
+        console.log('📊 Discovery flows data:', discoveryData);
+
+        if (discoveryData.flow_details && Array.isArray(discoveryData.flow_details)) {
+          for (const flow of discoveryData.flow_details) {
+            try {
+              allFlows.push({
+                flow_id: flow.flow_id,
+                session_id: flow.session_id || flow.flow_id,
+                engagement_name: flow.engagement_name || `${client?.name || 'Unknown'} - Discovery`,
+                engagement_id: engagement?.id || 'unknown',
+                client_name: client?.name || 'Unknown Client',
+                client_id: client?.id || 'unknown',
+                status: flow.status || 'running',
+                progress: flow.progress || 0,
+                current_phase: flow.current_phase || 'initialization',
+                started_at: flow.start_time || new Date().toISOString(),
+                estimated_completion: flow.estimated_completion,
+                last_updated: flow.last_updated || new Date().toISOString(),
+                crew_count: 6, // Standard Discovery flow has 6 crews
+                active_agents: flow.active_agents || 18,
+                data_sources: flow.data_sources || 1,
+                success_criteria_met: flow.success_criteria_met || 0,
+                total_success_criteria: 18, // Standard Discovery flow criteria
+                flow_type: 'discovery'
+              });
+            } catch (flowError) {
+              console.warn('Failed to process flow:', flow, flowError);
+            }
+          }
+        }
+      }
+
+      // Process Data Import sessions to find additional flows
+      if (dataImportsResponse.status === 'fulfilled' && dataImportsResponse.value) {
+        const importData = dataImportsResponse.value;
+        console.log('📊 Data import data:', importData);
+
+        if (importData.success && importData.data_import) {
+          const dataImport = importData.data_import;
+          
+          // Check if this import has an active discovery flow
+          if (dataImport.id && !allFlows.find(f => f.session_id === dataImport.id)) {
+            try {
+              // Get flow status for this import session
+              const flowStatusResponse = await apiCall(`/api/v1/discovery/flow/status?session_id=${dataImport.id}`, {
+                method: 'GET',
+                headers: getAuthHeaders()
+              });
+
+              if (flowStatusResponse && flowStatusResponse.flow_state) {
+                const flowState = flowStatusResponse.flow_state;
+                
+                allFlows.push({
+                  flow_id: dataImport.id,
+                  session_id: dataImport.id,
+                  engagement_name: `${client?.name || 'Current'} - Discovery`,
+                  engagement_id: engagement?.id || 'current',
+                  client_name: client?.name || 'Current Client',
+                  client_id: client?.id || 'current',
+                  status: flowState.status === 'completed' ? 'completed' : 'running',
+                  progress: flowState.progress_percentage || 0,
+                  current_phase: flowState.current_phase || 'field_mapping',
+                  started_at: flowState.started_at || dataImport.created_at,
+                  last_updated: flowState.updated_at || new Date().toISOString(),
+                  crew_count: 6,
+                  active_agents: 18,
+                  data_sources: 1,
+                  success_criteria_met: Object.values(flowState.phase_completion || {}).filter(Boolean).length,
+                  total_success_criteria: 6, // 6 phases in discovery
+                  flow_type: 'discovery'
+                });
+              }
+            } catch (statusError) {
+              console.warn('Failed to get flow status for import:', dataImport.id, statusError);
+            }
+          }
+        }
+      }
+
+      setActiveFlows(allFlows);
+      console.log('✅ Processed flows:', allFlows);
+
+      // Calculate real system metrics from flows
+      const runningFlows = allFlows.filter(f => f.status === 'running');
+      const completedFlows = allFlows.filter(f => f.status === 'completed');
+      const totalActiveAgents = runningFlows.reduce((sum, flow) => sum + flow.active_agents, 0);
+      const successRate = allFlows.length > 0 ? completedFlows.length / allFlows.length : 0;
+      
       setSystemMetrics({
-        total_active_flows: 2,
-        total_agents: 36,
-        memory_utilization_gb: 4.2,
+        total_active_flows: runningFlows.length,
+        total_agents: totalActiveAgents,
+        memory_utilization_gb: 4.2, // TODO: Get from monitoring API
         total_memory_gb: 8.0,
-        collaboration_events_today: 247,
-        success_rate: 0.94,
-        avg_completion_time_hours: 3.2,
-        knowledge_bases_loaded: 12
+        collaboration_events_today: totalActiveAgents * 12, // Estimate based on active agents
+        success_rate: successRate,
+        avg_completion_time_hours: 3.2, // TODO: Calculate from completed flows
+        knowledge_bases_loaded: 12 // TODO: Get from knowledge base API
       });
 
       // Mock crew performance
@@ -245,6 +320,20 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
       setLastUpdated(new Date());
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
+      setError(error instanceof Error ? error.message : 'Failed to fetch dashboard data');
+      
+      // Set fallback data to prevent UI from breaking
+      setActiveFlows([]);
+      setSystemMetrics({
+        total_active_flows: 0,
+        total_agents: 0,
+        memory_utilization_gb: 0,
+        total_memory_gb: 8.0,
+        collaboration_events_today: 0,
+        success_rate: 0,
+        avg_completion_time_hours: 0,
+        knowledge_bases_loaded: 0
+      });
     } finally {
       setIsLoading(false);
     }
@@ -392,7 +481,7 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
               <Activity className="h-5 w-5" />
               Active Discovery Flows
             </CardTitle>
-            <Button onClick={() => navigate('/discovery/enhanced-import')}>
+            <Button onClick={() => navigate('/discovery/data-import')}>
               <Plus className="h-4 w-4 mr-2" />
               New Flow
             </Button>
@@ -400,15 +489,31 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {activeFlows.filter(flow => flow.status === 'running').map((flow) => (
+            {activeFlows.filter(flow => flow.status === 'running').length === 0 ? (
+              <div className="text-center py-8">
+                <Database className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No Active Discovery Flows</h3>
+                <p className="text-gray-600 mb-4">
+                  Start a new Discovery Flow by importing your CMDB or asset data.
+                </p>
+                <Button onClick={() => navigate('/discovery/data-import')}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Import Data & Start Discovery
+                </Button>
+              </div>
+            ) : (
+              activeFlows.filter(flow => flow.status === 'running').map((flow) => (
               <div key={flow.flow_id} className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer"
-                   onClick={() => navigate(`/discovery/flow/${flow.flow_id}`)}>
+                   onClick={() => navigate(`/discovery/attribute-mapping/${flow.session_id || flow.flow_id}`)}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
                     {getStatusIcon(flow.status)}
                     <div>
                       <h3 className="font-medium">{flow.engagement_name}</h3>
-                      <p className="text-sm text-gray-600">Flow ID: {flow.flow_id}</p>
+                      <p className="text-sm text-gray-600">
+                        {flow.client_name} • {flow.flow_type.charAt(0).toUpperCase() + flow.flow_type.slice(1)} Flow
+                      </p>
+                      <p className="text-xs text-gray-500">Session: {flow.session_id || flow.flow_id}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -439,12 +544,13 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs">
                     <span>Overall Progress</span>
-                    <span>ETA: {formatTimeAgo(flow.estimated_completion)}</span>
+                    <span>ETA: {flow.estimated_completion ? formatTimeAgo(flow.estimated_completion) : 'Calculating...'}</span>
                   </div>
                   <Progress value={flow.progress} className="h-2" />
                 </div>
               </div>
-            ))}
+              ))
+            )}
           </div>
         </CardContent>
       </Card>
@@ -638,7 +744,7 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
                 <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
                 Refresh
               </Button>
-              <Button onClick={() => navigate('/discovery/enhanced-import')}>
+              <Button onClick={() => navigate('/discovery/data-import')}>
                 <Plus className="h-4 w-4 mr-2" />
                 New Discovery Flow
               </Button>
@@ -646,23 +752,43 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
           </div>
 
           {/* Status Indicator */}
-          <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                <div>
-                  <p className="font-medium text-green-800">Platform Status: Operational</p>
-                  <p className="text-sm text-green-600">
-                    All systems running optimally • Last updated: {lastUpdated.toLocaleTimeString()}
-                  </p>
+          {error ? (
+            <div className="mb-6 p-4 bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-500" />
+                  <div>
+                    <p className="font-medium text-red-800">Connection Error</p>
+                    <p className="text-sm text-red-600">
+                      {error} • Showing fallback data
+                    </p>
+                  </div>
                 </div>
+                <Button variant="outline" size="sm" onClick={fetchDashboardData}>
+                  <RefreshCw className="h-4 w-4 mr-1" />
+                  Retry
+                </Button>
               </div>
-              <Badge variant="outline" className="bg-white">
-                <Activity className="h-3 w-3 mr-1" />
-                {systemMetrics?.total_active_flows || 0} active flows
-              </Badge>
             </div>
-          </div>
+          ) : (
+            <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                  <div>
+                    <p className="font-medium text-green-800">Platform Status: Operational</p>
+                    <p className="text-sm text-green-600">
+                      All systems running optimally • Last updated: {lastUpdated.toLocaleTimeString()}
+                    </p>
+                  </div>
+                </div>
+                <Badge variant="outline" className="bg-white">
+                  <Activity className="h-3 w-3 mr-1" />
+                  {systemMetrics?.total_active_flows || 0} active flows
+                </Badge>
+              </div>
+            </div>
+          )}
 
           {/* Dashboard Tabs */}
           <Tabs defaultValue="overview" className="space-y-6">
@@ -701,15 +827,24 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
                   <div className="space-y-4">
                     {activeFlows.map((flow) => (
                       <div key={flow.flow_id} className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer"
-                           onClick={() => navigate(`/discovery/flow/${flow.flow_id}`)}>
+                           onClick={() => navigate(`/discovery/attribute-mapping/${flow.session_id || flow.flow_id}`)}>
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-3">
                             {getStatusIcon(flow.status)}
                             <div>
                               <h3 className="font-medium">{flow.engagement_name}</h3>
                               <p className="text-sm text-gray-600">
-                                Started: {formatTimeAgo(flow.started_at)} • 
-                                {flow.status === 'running' ? ' ETA: ' + formatTimeAgo(flow.estimated_completion) : ' Completed: ' + formatTimeAgo(flow.estimated_completion)}
+                                {flow.client_name} • Started: {formatTimeAgo(flow.started_at)}
+                                {flow.estimated_completion && flow.status === 'running' && (
+                                  <> • ETA: {formatTimeAgo(flow.estimated_completion)}</>
+                                )}
+                                {flow.status === 'completed' && flow.estimated_completion && (
+                                  <> • Completed: {formatTimeAgo(flow.estimated_completion)}</>
+                                )}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {flow.flow_type.charAt(0).toUpperCase() + flow.flow_type.slice(1)} Flow • 
+                                Session: {flow.session_id || flow.flow_id}
                               </p>
                             </div>
                           </div>
