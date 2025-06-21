@@ -762,8 +762,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         body: JSON.stringify({
           client_account_id: client?.id,
           engagement_id: engagementId,
-          session_name: `${fullEngagementData.name} Session`,
-          session_type: 'discovery'
+          session_name: `${fullEngagementData.name.toLowerCase().replace(/\s+/g, '_')}_session`,
+          session_display_name: `${fullEngagementData.name} Session`,
+          session_type: 'data_import',
+          is_default: true,
+          auto_created: true
         })
       });
       

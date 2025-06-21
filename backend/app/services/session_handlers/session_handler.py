@@ -329,15 +329,15 @@ class SessionHandler(BaseHandler):
         
         # Create the session
         session = DataImportSession(
-            name=session_name,
-            display_name=session_display_name or session_name,
+            session_name=session_name,
+            session_display_name=session_display_name or session_name,
             description=description,
             engagement_id=engagement_id,
             client_account_id=client_account_id,
             status=SessionStatus.ACTIVE,
             session_type=session_type,
             auto_created=auto_created,
-            metadata=metadata or {},
+            session_config=metadata or {},
             created_by=created_by,
         )
         

@@ -58,8 +58,15 @@ async def create_session(
         session_data_dict = session_data.model_dump()
         session_data_dict['created_by'] = current_user.id
         
+        # Remove fields that the service doesn't accept
+        service_fields = {
+            'client_account_id', 'engagement_id', 'session_name', 'session_display_name',
+            'description', 'is_default', 'session_type', 'auto_created', 'metadata', 'created_by'
+        }
+        filtered_data = {k: v for k, v in session_data_dict.items() if k in service_fields}
+        
         # Create the session using the service
-        db_session = await service.create_session(**session_data_dict)
+        db_session = await service.create_session(**filtered_data)
         
         # Convert SQLAlchemy model to Pydantic model
         return Session.model_validate(db_session, from_attributes=True)
