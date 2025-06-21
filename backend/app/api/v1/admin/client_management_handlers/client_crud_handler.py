@@ -6,7 +6,7 @@ import logging
 from typing import Dict, Any
 from fastapi import HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, text
 from datetime import datetime, timedelta
 
 from app.schemas.admin_schemas import (
@@ -173,7 +173,7 @@ class ClientCRUDHandler:
         db: AsyncSession,
         admin_user: str
     ) -> AdminSuccessResponse:
-        """Delete client account"""
+        """Delete client account with proper cascade handling for foreign key constraints"""
         try:
             if not CLIENT_MODELS_AVAILABLE:
                 raise HTTPException(status_code=503, detail="Client models not available")
@@ -186,14 +186,91 @@ class ClientCRUDHandler:
                 raise HTTPException(status_code=404, detail="Client account not found")
             
             client_name = client.name
-            await db.delete(client)
-            await db.commit()
             
-            logger.info(f"Client account deleted: {client_name} by admin {admin_user}")
-            
-            return AdminSuccessResponse(
-                message=f"Client account '{client_name}' deleted successfully"
-            )
+            # Handle cascade deletion of related records to avoid foreign key constraints
+            try:
+                # Check if there are active engagements for this client
+                engagement_count_query = select(func.count()).select_from(Engagement).where(
+                    Engagement.client_account_id == client_id,
+                    Engagement.is_active == True
+                )
+                active_engagements = (await db.execute(engagement_count_query)).scalar_one()
+                
+                if active_engagements > 0:
+                    # If there are active engagements, suggest deactivation instead
+                    raise HTTPException(
+                        status_code=409, 
+                        detail=f"Cannot delete client account with {active_engagements} active engagements. Please complete or archive engagements first."
+                    )
+                
+                # Delete related records in proper order to avoid foreign key constraints
+                
+                # 1. Delete workflow_states that reference data_import_sessions for this client's engagements
+                await db.execute(text("""
+                    DELETE FROM workflow_states 
+                    WHERE session_id IN (
+                        SELECT dis.id FROM data_import_sessions dis
+                        JOIN engagements e ON dis.engagement_id = e.id
+                        WHERE e.client_account_id = :client_id
+                    )
+                """), {"client_id": client_id})
+                
+                # 2. Delete data_import_sessions for this client's engagements
+                await db.execute(text("""
+                    DELETE FROM data_import_sessions 
+                    WHERE engagement_id IN (
+                        SELECT id FROM engagements 
+                        WHERE client_account_id = :client_id
+                    )
+                """), {"client_id": client_id})
+                
+                # 3. Delete client_access records for this client
+                await db.execute(text("""
+                    DELETE FROM client_access 
+                    WHERE client_account_id = :client_id
+                """), {"client_id": client_id})
+                
+                # 4. Delete engagements for this client
+                await db.execute(text("""
+                    DELETE FROM engagements 
+                    WHERE client_account_id = :client_id
+                """), {"client_id": client_id})
+                
+                # 5. Finally delete the client itself
+                await db.delete(client)
+                await db.commit()
+                
+                logger.info(f"Client account deleted with cascade cleanup: {client_name} by admin {admin_user}")
+                
+                return AdminSuccessResponse(
+                    message=f"Client account '{client_name}' deleted successfully"
+                )
+                
+            except HTTPException:
+                # Re-raise HTTP exceptions (like the 409 for active engagements)
+                raise
+            except Exception as cascade_error:
+                await db.rollback()
+                logger.error(f"Error during cascade deletion for client {client_id}: {cascade_error}")
+                
+                # If cascade deletion fails, try soft delete instead
+                try:
+                    client.is_active = False
+                    await db.commit()
+                    
+                    logger.info(f"Client account soft-deleted due to constraints: {client_name} by admin {admin_user}")
+                    
+                    return AdminSuccessResponse(
+                        message=f"Client account '{client_name}' deactivated (soft delete due to data dependencies)"
+                    )
+                    
+                except Exception as soft_delete_error:
+                    await db.rollback()
+                    logger.error(f"Error during soft delete for client {client_id}: {soft_delete_error}")
+                    raise HTTPException(
+                        status_code=500, 
+                        detail=f"Failed to delete client account: Unable to delete due to data dependencies. Please contact administrator."
+                    )
             
         except HTTPException:
             raise

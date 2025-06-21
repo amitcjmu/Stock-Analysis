@@ -5,7 +5,7 @@ Engagement CRUD Handler - Core engagement operations
 import logging
 from typing import Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, text
 from app.models.client_account import Engagement
 from app.schemas.admin_schemas import EngagementResponse, AdminSuccessResponse
 from datetime import datetime, timedelta
@@ -277,8 +277,9 @@ class EngagementCRUDHandler:
         db: AsyncSession,
         admin_user: str
     ) -> Dict[str, Any]:
-        """Delete engagement."""
+        """Delete engagement with proper cascade handling for foreign key constraints."""
         try:
+            from app.schemas.admin_schemas import AdminSuccessResponse
             
             query = select(Engagement).where(Engagement.id == engagement_id)
             result = await db.execute(query)
@@ -288,14 +289,60 @@ class EngagementCRUDHandler:
                 raise HTTPException(status_code=404, detail="Engagement not found")
             
             engagement_name = engagement.name
-            await db.delete(engagement)
-            await db.commit()
             
-            logger.info(f"Engagement deleted: {engagement_name} by admin {admin_user}")
-            
-            return AdminSuccessResponse(
-                message=f"Engagement '{engagement_name}' deleted successfully"
-            )
+            # Handle cascade deletion of related records to avoid foreign key constraints
+            try:
+                # Delete workflow_states that reference data_import_sessions for this engagement
+                await db.execute(text("""
+                    DELETE FROM workflow_states 
+                    WHERE session_id IN (
+                        SELECT id FROM data_import_sessions 
+                        WHERE engagement_id = :engagement_id
+                    )
+                """), {"engagement_id": engagement_id})
+                
+                # Delete data_import_sessions for this engagement
+                await db.execute(text("""
+                    DELETE FROM data_import_sessions 
+                    WHERE engagement_id = :engagement_id
+                """), {"engagement_id": engagement_id})
+                
+                # Delete any other related records that might reference this engagement
+                # Add more cascade deletions as needed based on your schema
+                
+                # Finally delete the engagement itself
+                await db.delete(engagement)
+                await db.commit()
+                
+                logger.info(f"Engagement deleted with cascade cleanup: {engagement_name} by admin {admin_user}")
+                
+                return AdminSuccessResponse(
+                    message=f"Engagement '{engagement_name}' deleted successfully"
+                )
+                
+            except Exception as cascade_error:
+                await db.rollback()
+                logger.error(f"Error during cascade deletion for engagement {engagement_id}: {cascade_error}")
+                
+                # If cascade deletion fails, try soft delete instead
+                try:
+                    engagement.is_active = False
+                    engagement.status = "deleted"
+                    await db.commit()
+                    
+                    logger.info(f"Engagement soft-deleted due to constraints: {engagement_name} by admin {admin_user}")
+                    
+                    return AdminSuccessResponse(
+                        message=f"Engagement '{engagement_name}' deactivated (soft delete due to data dependencies)"
+                    )
+                    
+                except Exception as soft_delete_error:
+                    await db.rollback()
+                    logger.error(f"Error during soft delete for engagement {engagement_id}: {soft_delete_error}")
+                    raise HTTPException(
+                        status_code=500, 
+                        detail=f"Failed to delete engagement: Unable to delete due to data dependencies. Please contact administrator."
+                    )
             
         except HTTPException:
             raise
