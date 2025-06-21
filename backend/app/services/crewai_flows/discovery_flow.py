@@ -224,34 +224,121 @@ class DiscoveryFlow(Flow[DiscoveryFlowState]):
         return getattr(self, '_flow_id', None)
     
     def _initialize_discovery_crews(self):
-        """Initialize the CrewAI Crews for enhanced discovery analysis."""
+        """Initialize CrewAI Crew factory functions for on-demand creation."""
         try:
-            # Import CrewAI crews for comprehensive analysis
+            # Import CrewAI crew factory functions (but don't create crews yet)
             from app.services.crewai_flows.crews.inventory_building_crew import create_inventory_building_crew
             from app.services.crewai_flows.crews.field_mapping_crew import create_field_mapping_crew
             from app.services.crewai_flows.crews.app_server_dependency_crew import create_app_server_dependency_crew
             from app.services.crewai_flows.crews.data_cleansing_crew import create_data_cleansing_crew
             
-            # Initialize CrewAI crews for enhanced analysis
-            self.inventory_crew = create_inventory_building_crew()
-            self.field_mapping_crew = create_field_mapping_crew()
-            self.dependency_crew = create_app_server_dependency_crew()
-            self.data_cleansing_crew = create_data_cleansing_crew()
+            # Store crew factory functions for on-demand creation
+            self.inventory_crew_factory = create_inventory_building_crew
+            self.field_mapping_crew_factory = create_field_mapping_crew
+            self.dependency_crew_factory = create_app_server_dependency_crew
+            self.data_cleansing_crew_factory = create_data_cleansing_crew
             
-            logger.info("CrewAI discovery crews initialized successfully")
+            # Initialize crew instances as None - will be created on-demand
+            self.inventory_crew = None
+            self.field_mapping_crew = None
+            self.dependency_crew = None
+            self.data_cleansing_crew = None
+            
+            logger.info("CrewAI discovery crew factories initialized successfully")
             
         except ImportError as e:
-            logger.error(f"Failed to import CrewAI crews: {e}")
+            logger.error(f"Failed to import CrewAI crew factories: {e}")
+            self.inventory_crew_factory = None
+            self.field_mapping_crew_factory = None
+            self.dependency_crew_factory = None
+            self.data_cleansing_crew_factory = None
             self.inventory_crew = None
             self.field_mapping_crew = None
             self.dependency_crew = None
             self.data_cleansing_crew = None
         except Exception as e:
-            logger.error(f"Failed to initialize CrewAI crews: {e}")
+            logger.error(f"Failed to initialize CrewAI crew factories: {e}")
+            self.inventory_crew_factory = None
+            self.field_mapping_crew_factory = None
+            self.dependency_crew_factory = None
+            self.data_cleansing_crew_factory = None
             self.inventory_crew = None
             self.field_mapping_crew = None
             self.dependency_crew = None
             self.data_cleansing_crew = None
+    
+    def _create_crew_on_demand(self, crew_type: str, **kwargs):
+        """
+        Create a crew on-demand with proper error handling.
+        
+        Following CrewAI Flow best practices for lazy crew initialization.
+        """
+        try:
+            if crew_type == "inventory_building":
+                if not self.inventory_crew_factory:
+                    raise Exception("Inventory building crew factory not available")
+                
+                # Require necessary parameters
+                if not all(k in kwargs for k in ['cleaned_data', 'field_mappings']):
+                    raise Exception("Missing required parameters: cleaned_data, field_mappings")
+                
+                self.inventory_crew = self.inventory_crew_factory(
+                    self.crewai_service,
+                    kwargs['cleaned_data'],
+                    kwargs['field_mappings'],
+                    kwargs.get('shared_memory'),
+                    kwargs.get('knowledge_base')
+                )
+                logger.info("✅ Inventory building crew created successfully")
+                return self.inventory_crew
+                
+            elif crew_type == "field_mapping":
+                if not self.field_mapping_crew_factory:
+                    raise Exception("Field mapping crew factory not available")
+                
+                self.field_mapping_crew = self.field_mapping_crew_factory(
+                    self.crewai_service,
+                    kwargs.get('sample_data', []),
+                    kwargs.get('shared_memory'),
+                    kwargs.get('knowledge_base')
+                )
+                logger.info("✅ Field mapping crew created successfully")
+                return self.field_mapping_crew
+                
+            elif crew_type == "dependency_analysis":
+                if not self.dependency_crew_factory:
+                    raise Exception("Dependency analysis crew factory not available")
+                
+                self.dependency_crew = self.dependency_crew_factory(
+                    self.crewai_service,
+                    kwargs.get('asset_inventory', []),
+                    kwargs.get('shared_memory'),
+                    kwargs.get('knowledge_base')
+                )
+                logger.info("✅ Dependency analysis crew created successfully")
+                return self.dependency_crew
+                
+            elif crew_type == "data_cleansing":
+                if not self.data_cleansing_crew_factory:
+                    raise Exception("Data cleansing crew factory not available")
+                
+                self.data_cleansing_crew = self.data_cleansing_crew_factory(
+                    self.crewai_service,
+                    kwargs.get('raw_data', []),
+                    kwargs.get('field_mappings', {}),
+                    kwargs.get('shared_memory'),
+                    kwargs.get('knowledge_base')
+                )
+                logger.info("✅ Data cleansing crew created successfully")
+                return self.data_cleansing_crew
+                
+            else:
+                raise Exception(f"Unknown crew type: {crew_type}")
+                
+        except Exception as e:
+            logger.error(f"❌ Failed to create {crew_type} crew: {e}")
+            self.state.add_error(f"{crew_type}_crew_creation", str(e))
+            return None
     
     @start()
     def initialize_discovery(self):
@@ -319,45 +406,58 @@ class DiscoveryFlow(Flow[DiscoveryFlowState]):
         self.state.progress_percentage = 20.0
         
         try:
-            if not self.inventory_crew:
-                logger.warning("Inventory Building Crew not available - using fallback")
-                return self._fallback_data_analysis()
-            
             # Prepare data for crew analysis
             cmdb_data = self.state.cmdb_data.get('file_data', [])
             
-            # Execute the Inventory Building Crew
-            if CREWAI_FLOW_AVAILABLE:
-                crew_input = {
-                    "cmdb_data": cmdb_data,
-                    "metadata": self.state.metadata,
-                    "analysis_type": "comprehensive_data_source_analysis"
-                }
-                
-                # Execute the crew
-                crew_result = self.inventory_crew.kickoff(inputs=crew_input)
-                logger.info(f"Inventory building crew completed: {type(crew_result)}")
-                
-                # Process crew results
-                analysis_results = {
-                    "crew_output": str(crew_result),
-                    "data_classification": {
-                        "total_records": len(cmdb_data),
-                        "quality_score": 0.85,  # Enhanced by crew analysis
-                        "completeness": "high"
-                    },
-                    "agent_insights": [
-                        {
-                            "type": "data_quality",
-                            "message": f"Analyzed {len(cmdb_data)} records using CrewAI Inventory Building Crew",
-                            "confidence": 0.9,
-                            "source": "inventory_building_crew"
+            # Try to create inventory crew on-demand with proper error handling
+            if self.inventory_crew_factory and CREWAI_FLOW_AVAILABLE:
+                try:
+                    # Create crew with minimal data for initial analysis
+                    inventory_crew = self._create_crew_on_demand(
+                        "inventory_building",
+                        cleaned_data=cmdb_data,  # Use raw data for initial analysis
+                        field_mappings={}  # Empty field mappings for initial analysis
+                    )
+                    
+                    if inventory_crew:
+                        crew_input = {
+                            "cmdb_data": cmdb_data,
+                            "metadata": self.state.metadata,
+                            "analysis_type": "comprehensive_data_source_analysis"
                         }
-                    ],
-                    "clarification_questions": []
-                }
+                        
+                        # Execute the crew
+                        crew_result = inventory_crew.kickoff(inputs=crew_input)
+                        logger.info(f"Inventory building crew completed: {type(crew_result)}")
+                        
+                        # Process crew results
+                        analysis_results = {
+                            "crew_output": str(crew_result),
+                            "data_classification": {
+                                "total_records": len(cmdb_data),
+                                "quality_score": 0.85,  # Enhanced by crew analysis
+                                "completeness": "high"
+                            },
+                            "agent_insights": [
+                                {
+                                    "type": "data_quality",
+                                    "message": f"Analyzed {len(cmdb_data)} records using CrewAI Inventory Building Crew",
+                                    "confidence": 0.9,
+                                    "source": "inventory_building_crew"
+                                }
+                            ],
+                            "clarification_questions": []
+                        }
+                    else:
+                        logger.warning("Failed to create inventory crew - using fallback")
+                        analysis_results = self._fallback_data_analysis()
+                        
+                except Exception as crew_error:
+                    logger.error(f"Crew execution failed: {crew_error}")
+                    self.state.add_error("data_analysis", f"Crew execution failed: {crew_error}")
+                    analysis_results = self._fallback_data_analysis()
             else:
-                # Fallback analysis
+                logger.warning("Inventory Building Crew not available - using fallback")
                 analysis_results = self._fallback_data_analysis()
             
             # Store results in state
@@ -394,68 +494,74 @@ class DiscoveryFlow(Flow[DiscoveryFlowState]):
         self.state.progress_percentage = 40.0
         
         try:
-            if not self.field_mapping_crew:
+            cmdb_data = self.state.cmdb_data.get("file_data", [])
+            if not cmdb_data:
+                logger.error("❌ No CMDB data available for field mapping")
+                self.state.add_error("field_mapping", "No CMDB data available")
+                return "mapping_failed"
+            
+            # Extract column names from the first record
+            sample_record = cmdb_data[0] if cmdb_data else {}
+            available_columns = list(sample_record.keys())
+            
+            # Try to create field mapping crew on-demand
+            if self.field_mapping_crew_factory and CREWAI_FLOW_AVAILABLE:
+                try:
+                    field_mapping_crew = self._create_crew_on_demand(
+                        "field_mapping",
+                        sample_data=cmdb_data[:5]  # First 5 records for analysis
+                    )
+                    
+                    if field_mapping_crew:
+                        crew_input = {
+                            "columns": available_columns,
+                            "sample_data": cmdb_data[:5],
+                            "mapping_type": "comprehensive_field_mapping"
+                        }
+                        
+                        # Execute the crew
+                        crew_result = field_mapping_crew.kickoff(inputs=crew_input)
+                        logger.info(f"Field mapping crew completed: {type(crew_result)}")
+                        
+                        # Process crew results - extract field mappings
+                        field_mappings = {}
+                        for col in available_columns:
+                            # Enhanced mapping logic using crew intelligence
+                            if "name" in col.lower():
+                                field_mappings[col] = "name"
+                            elif "ip" in col.lower():
+                                field_mappings[col] = "ip_address"
+                            elif "os" in col.lower() or "operating" in col.lower():
+                                field_mappings[col] = "operating_system"
+                            elif "cpu" in col.lower():
+                                field_mappings[col] = "cpu_cores"
+                            elif "memory" in col.lower() or "ram" in col.lower():
+                                field_mappings[col] = "memory_gb"
+                            elif "storage" in col.lower() or "disk" in col.lower():
+                                field_mappings[col] = "storage_gb"
+                            # Add more crew-enhanced mappings
+                        
+                        field_analysis = {
+                            "crew_output": str(crew_result),
+                            "mapped_fields": field_mappings,
+                            "confidence": 0.9
+                        }
+                    else:
+                        logger.warning("Failed to create field mapping crew - using fallback")
+                        field_mappings = {}
+                        field_analysis = {"mapped_fields": field_mappings, "confidence": 0.5}
+                        
+                except Exception as crew_error:
+                    logger.error(f"Field mapping crew execution failed: {crew_error}")
+                    self.state.add_error("field_mapping", f"Crew execution failed: {crew_error}")
+                    field_mappings = {}
+                    field_analysis = {"mapped_fields": field_mappings, "confidence": 0.3}
+            else:
                 logger.warning("Field Mapping Crew not available - using fallback")
                 # Use existing field mapping intelligence as fallback
                 from app.services.tools.field_mapping_tool import field_mapping_tool
-                
-                cmdb_data = self.state.cmdb_data.get("file_data", [])
-                if not cmdb_data:
-                    return "mapping_failed"
-                
-                sample_record = cmdb_data[0] if cmdb_data else {}
-                available_columns = list(sample_record.keys())
                 field_analysis = field_mapping_tool.agent_analyze_columns(available_columns, "mixed")
                 field_mappings = field_analysis.get("mapped_fields", {})
-            else:
-                # Use the Field Mapping Crew
-                cmdb_data = self.state.cmdb_data.get("file_data", [])
-                if not cmdb_data:
-                    return "mapping_failed"
-                
-                # Extract column names from the first record
-                sample_record = cmdb_data[0] if cmdb_data else {}
-                available_columns = list(sample_record.keys())
-                
-                # Execute the Field Mapping Crew
-                if CREWAI_FLOW_AVAILABLE:
-                    crew_input = {
-                        "columns": available_columns,
-                        "sample_data": cmdb_data[:5],  # First 5 records for analysis
-                        "mapping_type": "comprehensive_field_mapping"
-                    }
-                    
-                    # Execute the crew
-                    crew_result = self.field_mapping_crew.kickoff(inputs=crew_input)
-                    logger.info(f"Field mapping crew completed: {type(crew_result)}")
-                    
-                    # Process crew results - extract field mappings
-                    field_mappings = {}
-                    for col in available_columns:
-                        # Enhanced mapping logic using crew intelligence
-                        if "name" in col.lower():
-                            field_mappings[col] = "name"
-                        elif "ip" in col.lower():
-                            field_mappings[col] = "ip_address"
-                        elif "os" in col.lower() or "operating" in col.lower():
-                            field_mappings[col] = "operating_system"
-                        elif "cpu" in col.lower():
-                            field_mappings[col] = "cpu_cores"
-                        elif "memory" in col.lower() or "ram" in col.lower():
-                            field_mappings[col] = "memory_gb"
-                        elif "storage" in col.lower() or "disk" in col.lower():
-                            field_mappings[col] = "storage_gb"
-                        # Add more crew-enhanced mappings
-                    
-                    field_analysis = {
-                        "crew_output": str(crew_result),
-                        "mapped_fields": field_mappings,
-                        "confidence": 0.9
-                    }
-                else:
-                    # Fallback to basic mapping
-                    field_mappings = {}
-                    field_analysis = {"mapped_fields": field_mappings, "confidence": 0.5}
             
             # Store field mappings in state
             self.state.field_mappings = field_mappings
@@ -764,26 +870,77 @@ class DiscoveryFlow(Flow[DiscoveryFlowState]):
         """
         Finalize the discovery workflow and provide summary.
         
-        Updates the final status and provides comprehensive results.
+        CRITICAL: Only reports success if all phases completed successfully.
+        This prevents false success reporting when crews fail to initialize.
         """
         logger.info("🎯 Finalizing Discovery Flow")
         self.state.current_phase = "finalization"
-        self.state.progress_percentage = 100.0
         
         try:
-            # Generate comprehensive summary
+            # CRITICAL ERROR CHECKING: Validate that no critical errors occurred
+            critical_errors = [error for error in self.state.errors 
+                             if error.get('phase') in ['data_analysis', 'field_mapping', 'asset_classification', 'database_integration']]
+            
+            if critical_errors:
+                logger.error(f"❌ Discovery Flow FAILED due to {len(critical_errors)} critical errors:")
+                for error in critical_errors:
+                    logger.error(f"  - {error.get('phase', 'unknown')}: {error.get('error', 'unknown error')}")
+                
+                self.state.status = "failed"
+                self.state.current_phase = "failed"
+                self.state.progress_percentage = 0.0  # Reset progress to indicate failure
+                self.state.completed_at = datetime.utcnow().isoformat()
+                
+                # Generate failure summary
+                failure_summary = {
+                    "workflow_status": "failed",
+                    "failure_reason": "Critical errors in discovery phases",
+                    "critical_errors": critical_errors,
+                    "total_errors": len(self.state.errors),
+                    "flow_id": self._flow_id,
+                    "session_id": self.state.session_id,
+                    "failed_at": self.state.completed_at
+                }
+                
+                self.state.agent_results["failure_summary"] = failure_summary
+                
+                logger.error(f"❌ Discovery Flow FAILED for session: {self.state.session_id}")
+                logger.error(f"Critical errors: {len(critical_errors)}")
+                return "discovery_failed"
+            
+            # Check database integration specifically
+            if previous_result == "database_integration_failed":
+                logger.error("❌ Discovery Flow FAILED due to database integration failure")
+                self.state.status = "failed"
+                self.state.current_phase = "failed"
+                self.state.progress_percentage = 0.0
+                self.state.completed_at = datetime.utcnow().isoformat()
+                return "discovery_failed"
+            
+            # Generate comprehensive summary ONLY if no critical errors
             total_assets = len(self.state.classified_assets)
             database_assets = len(self.state.database_assets)
             total_insights = len(self.state.agent_insights)
             total_questions = len(self.state.clarification_questions)
             total_dependencies = len(self.state.dependencies)
             
-            # Update final status
+            # Validate that we actually processed data
+            if total_assets == 0:
+                logger.error("❌ Discovery Flow FAILED: No assets were processed")
+                self.state.status = "failed"
+                self.state.current_phase = "failed"
+                self.state.progress_percentage = 0.0
+                self.state.completed_at = datetime.utcnow().isoformat()
+                self.state.add_error("finalization", "No assets were processed during discovery")
+                return "discovery_failed"
+            
+            # ONLY mark as completed if everything succeeded
             self.state.status = "completed"
             self.state.completed_at = datetime.utcnow().isoformat()
             self.state.current_phase = "completed"
+            self.state.progress_percentage = 100.0
             
-            # Generate summary with database integration status
+            # Generate success summary
             summary = {
                 "workflow_status": "completed",
                 "total_records_processed": total_assets,
@@ -798,13 +955,19 @@ class DiscoveryFlow(Flow[DiscoveryFlowState]):
                 "processing_time": (
                     datetime.fromisoformat(self.state.completed_at) - 
                     datetime.fromisoformat(self.state.started_at)
-                ).total_seconds()
+                ).total_seconds(),
+                "success_metrics": {
+                    "crew_initialization_success": len(critical_errors) == 0,
+                    "database_persistence_success": database_assets > 0,
+                    "data_processing_success": total_assets > 0
+                }
             }
             
             self.state.agent_results["summary"] = summary
             
-            logger.info(f"✅ Discovery Flow completed for session: {self.state.session_id}")
+            logger.info(f"✅ Discovery Flow SUCCESSFULLY completed for session: {self.state.session_id}")
             logger.info(f"Database assets created: {database_assets}")
+            logger.info(f"Total errors: {len(self.state.errors)} (no critical errors)")
             logger.info(f"Flow ID: {self._flow_id}")
             
             return "discovery_completed"
@@ -813,6 +976,9 @@ class DiscoveryFlow(Flow[DiscoveryFlowState]):
             logger.error(f"❌ Discovery finalization failed: {e}")
             self.state.add_error("finalization", str(e))
             self.state.status = "failed"
+            self.state.current_phase = "failed"
+            self.state.progress_percentage = 0.0
+            self.state.completed_at = datetime.utcnow().isoformat()
             return "discovery_failed"
     
     # Helper Methods for Agent Intelligence

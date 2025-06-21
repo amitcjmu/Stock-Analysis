@@ -106,24 +106,25 @@ class CrewAIFlowService:
         agents = {}
         
         try:
-            # Import and initialize CrewAI crews
+            # Import CrewAI crew factory functions (but don't initialize yet)
+            # Crews will be created on-demand during flow execution with proper parameters
             from app.services.crewai_flows.crews.inventory_building_crew import create_inventory_building_crew
             from app.services.crewai_flows.crews.field_mapping_crew import create_field_mapping_crew
             from app.services.crewai_flows.crews.app_server_dependency_crew import create_app_server_dependency_crew
             from app.services.crewai_flows.crews.data_cleansing_crew import create_data_cleansing_crew
             
-            # Initialize CrewAI crews
-            agents['inventory_building'] = create_inventory_building_crew()
-            agents['field_mapping'] = create_field_mapping_crew()
-            agents['dependency_analysis'] = create_app_server_dependency_crew()
-            agents['data_cleansing'] = create_data_cleansing_crew()
+            # Store crew factory functions for on-demand creation
+            agents['inventory_building_factory'] = create_inventory_building_crew
+            agents['field_mapping_factory'] = create_field_mapping_crew
+            agents['dependency_analysis_factory'] = create_app_server_dependency_crew
+            agents['data_cleansing_factory'] = create_data_cleansing_crew
             
-            logger.info(f"✅ Initialized {len(agents)} CrewAI Crews for discovery workflows")
+            logger.info(f"✅ Initialized {len(agents)} CrewAI Crew factories for discovery workflows")
             
         except ImportError as e:
-            logger.warning(f"CrewAI crews not available: {e}")
+            logger.warning(f"CrewAI crew factories not available: {e}")
         except Exception as e:
-            logger.error(f"Failed to initialize CrewAI crews: {e}")
+            logger.error(f"Failed to initialize CrewAI crew factories: {e}")
         
         return agents
     

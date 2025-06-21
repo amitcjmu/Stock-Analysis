@@ -279,7 +279,7 @@ async def _validate_no_incomplete_discovery_flow(
     """
     try:
         from app.services.crewai_flows.discovery_flow_state_manager import DiscoveryFlowStateManager
-        from app.models.data_import.import_session import DataImportSession
+        from app.models.data_import_session import DataImportSession
         
         # Check for incomplete discovery flows in this engagement
         state_manager = DiscoveryFlowStateManager()
