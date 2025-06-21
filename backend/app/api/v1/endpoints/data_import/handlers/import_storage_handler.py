@@ -64,11 +64,30 @@ async def store_import_data(
     Store validated import data in the database and trigger Discovery Flow.
     
     This endpoint receives the validated CSV data and:
-    1. Stores it in the database
-    2. Triggers the Discovery Flow for immediate processing
-    3. Returns the import session ID for tracking
+    1. Validates no existing incomplete discovery flow exists
+    2. Stores it in the database
+    3. Triggers the Discovery Flow for immediate processing
+    4. Returns the import session ID for tracking
     """
     try:
+        # ✅ VALIDATION: Check for existing incomplete discovery flow
+        existing_flow_validation = await _validate_no_incomplete_discovery_flow(
+            context.client_account_id, 
+            context.engagement_id, 
+            db
+        )
+        
+        if not existing_flow_validation["can_proceed"]:
+            raise HTTPException(
+                status_code=409,  # Conflict
+                detail={
+                    "error": "incomplete_discovery_flow_exists",
+                    "message": existing_flow_validation["message"],
+                    "existing_flow": existing_flow_validation["existing_flow"],
+                    "recommendations": existing_flow_validation["recommendations"]
+                }
+            )
+        
         # Get raw request body and log it
         raw_body = await request.body()
         logger.info(f"🔍 DEBUG: Raw request body: {raw_body.decode()}")
@@ -247,6 +266,144 @@ async def _trigger_discovery_flow(
         import traceback
         logger.error(f"🚨 DEBUG: Full traceback: {traceback.format_exc()}")
         # Don't raise - we don't want to fail the import if flow fails
+
+async def _validate_no_incomplete_discovery_flow(
+    client_account_id: str,
+    engagement_id: str,
+    db: AsyncSession
+) -> Dict[str, Any]:
+    """
+    Validate that no incomplete discovery flow exists for this engagement.
+    
+    Returns validation result with recommendations for user action.
+    """
+    try:
+        from app.services.crewai_flows.discovery_flow_state_manager import DiscoveryFlowStateManager
+        from app.models.data_import.import_session import DataImportSession
+        
+        # Check for incomplete discovery flows in this engagement
+        state_manager = DiscoveryFlowStateManager()
+        
+        # Look for existing DataImportSessions with incomplete discovery flows
+        from sqlalchemy import select, and_
+        
+        # Safely parse UUIDs
+        try:
+            client_uuid = uuid.UUID(client_account_id) if client_account_id else None
+            engagement_uuid = uuid.UUID(engagement_id) if engagement_id else None
+        except (ValueError, TypeError):
+            # If UUIDs are invalid, allow the import to proceed
+            return {
+                "can_proceed": True,
+                "message": "Invalid context UUIDs - proceeding with import"
+            }
+        
+        # Query for existing sessions with incomplete flows
+        existing_sessions_query = select(DataImportSession).where(
+            and_(
+                DataImportSession.client_account_id == client_uuid,
+                DataImportSession.engagement_id == engagement_uuid,
+                DataImportSession.progress_percentage < 100
+            )
+        ).order_by(DataImportSession.last_activity_at.desc()).limit(5)
+        
+        result = await db.execute(existing_sessions_query)
+        incomplete_sessions = result.scalars().all()
+        
+        # Check each session for incomplete discovery flow
+        for session in incomplete_sessions:
+            if session.agent_insights:
+                flow_state = session.agent_insights
+                current_phase = flow_state.get("current_phase", "")
+                status = flow_state.get("status", "")
+                progress = flow_state.get("progress_percentage", 0)
+                
+                # Consider flow incomplete if:
+                # 1. Status is not "completed" 
+                # 2. Progress is less than 100%
+                # 3. Current phase is not "completed"
+                if (status != "completed" and 
+                    progress < 100 and 
+                    current_phase != "completed"):
+                    
+                    # Found incomplete flow - prevent new import
+                    return {
+                        "can_proceed": False,
+                        "message": f"An incomplete Discovery Flow exists for this engagement. Please complete the existing flow before importing new data.",
+                        "existing_flow": {
+                            "session_id": str(session.id),
+                            "current_phase": current_phase,
+                            "progress_percentage": progress,
+                            "status": status,
+                            "last_activity": session.last_activity_at.isoformat() if session.last_activity_at else None,
+                            "next_steps": _get_next_steps_for_phase(current_phase)
+                        },
+                        "recommendations": [
+                            f"Complete the existing Discovery Flow in the '{current_phase}' phase",
+                            "Navigate to the Attribute Mapping page to continue the flow",
+                            "Or contact your administrator to reset the incomplete flow"
+                        ]
+                    }
+        
+        # No incomplete flows found - allow import
+        return {
+            "can_proceed": True,
+            "message": "No incomplete discovery flows found - proceeding with import"
+        }
+        
+    except Exception as e:
+        logger.warning(f"Failed to validate discovery flow state: {e}")
+        # If validation fails, allow import to proceed (fail-open)
+        return {
+            "can_proceed": True,
+            "message": f"Discovery flow validation failed - proceeding with import: {e}"
+        }
+
+def _get_next_steps_for_phase(current_phase: str) -> List[str]:
+    """Get user-friendly next steps for the current phase."""
+    phase_steps = {
+        "field_mapping": [
+            "Navigate to Attribute Mapping page",
+            "Review and approve field mappings",
+            "Proceed to Data Cleansing"
+        ],
+        "data_cleansing": [
+            "Navigate to Data Cleansing page", 
+            "Review data quality issues",
+            "Apply cleansing recommendations",
+            "Proceed to Inventory Building"
+        ],
+        "inventory_building": [
+            "Navigate to Asset Inventory page",
+            "Review asset classifications",
+            "Confirm inventory accuracy",
+            "Proceed to Dependencies"
+        ],
+        "app_server_dependencies": [
+            "Navigate to Dependencies page",
+            "Review app-to-server relationships",
+            "Confirm hosting mappings",
+            "Proceed to App-App Dependencies"
+        ],
+        "app_app_dependencies": [
+            "Navigate to Dependencies page",
+            "Review app-to-app integrations", 
+            "Confirm communication patterns",
+            "Proceed to Technical Debt"
+        ],
+        "technical_debt": [
+            "Navigate to Technical Debt page",
+            "Review modernization recommendations",
+            "Confirm 6R strategies",
+            "Complete Discovery Flow"
+        ]
+    }
+    
+    return phase_steps.get(current_phase, [
+        "Navigate to the Discovery Flow",
+        "Complete the current phase",
+        "Proceed to next phase"
+    ])
 
 @router.get("/latest-import")
 async def get_latest_import(

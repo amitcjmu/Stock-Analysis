@@ -486,8 +486,43 @@ const DataImport: React.FC = () => {
         console.error('❌ Failed to store data:', response.error);
         return null;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error storing data:', error);
+      
+      // Handle discovery flow conflict error
+      if (error?.response?.status === 409 && error?.response?.data?.detail?.error === 'incomplete_discovery_flow_exists') {
+        const conflictData = error.response.data.detail;
+        
+        // Show detailed conflict information to user
+        toast({
+          title: "Incomplete Discovery Flow Found",
+          description: conflictData.message,
+          variant: "destructive",
+        });
+        
+        // Show additional information and recommendations
+        setTimeout(() => {
+          toast({
+            title: "Next Steps",
+            description: `Current phase: ${conflictData.existing_flow.current_phase}. Please complete the existing flow before importing new data.`,
+            variant: "default",
+          });
+        }, 2000);
+        
+        // Optionally navigate to the existing flow
+        const existingSessionId = conflictData.existing_flow.session_id;
+        if (existingSessionId) {
+          setTimeout(() => {
+            const shouldNavigate = window.confirm(
+              `Would you like to continue with the existing Discovery Flow (${conflictData.existing_flow.current_phase} phase, ${conflictData.existing_flow.progress_percentage}% complete)?`
+            );
+            if (shouldNavigate) {
+              navigate(`/discovery/attribute-mapping/${existingSessionId}`);
+            }
+          }, 3000);
+        }
+      }
+      
       return null;
     }
   };
