@@ -130,17 +130,15 @@ async def _get_agentic_critical_attributes(
     and determined critical attributes using agent intelligence.
     """
     try:
-        # Try to import and use the discovery flow service
-        from app.services.crewai_flows.discovery_flow_modular import DiscoveryFlowModular
+        # Use the proper CrewAI Flow service instead of modular approach
         from app.services.crewai_flow_service import CrewAIFlowService
         
         # Check if there are existing discovery flow results for this import
         crewai_service = CrewAIFlowService()
-        flow_service = DiscoveryFlowModular(crewai_service)
         
         # Look for existing flow results in the session data
         session_id = f"import_{data_import.id}"
-        flow_state = await flow_service.get_discovery_flow_state(session_id)
+        flow_state = crewai_service.get_flow_status(session_id)
         
         if flow_state and flow_state.get("agent_results", {}).get("field_mapping"):
             logger.info("🤖 Found existing agentic discovery flow results")
@@ -297,12 +295,9 @@ async def _trigger_discovery_flow_analysis(
     and determine critical attributes dynamically.
     """
     try:
-        from app.services.crewai_flows.discovery_flow_modular import DiscoveryFlowModular
-        
-        # Initialize discovery flow service
+        # Use the proper CrewAI Flow service for discovery analysis
         from app.services.crewai_flow_service import CrewAIFlowService
         crewai_service = CrewAIFlowService()
-        flow_service = DiscoveryFlowModular(crewai_service)
         
         # Prepare data for discovery flow
         session_id = f"import_{data_import.id}"
@@ -324,7 +319,7 @@ async def _trigger_discovery_flow_analysis(
                     "confidence": mapping.confidence_score or 0.7
                 })
             
-            # Trigger discovery flow with agentic analysis
+            # Trigger proper CrewAI Flow for agentic analysis
             flow_context = type('FlowContext', (), {
                 'client_account_id': context.client_account_id,
                 'engagement_id': context.engagement_id,

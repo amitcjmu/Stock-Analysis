@@ -1,5 +1,98 @@
 # AI Force Migration Platform - Change Log
 
+## [0.4.45] - 2025-01-21
+
+### 🎯 **LEGACY FLOW CLEANUP & MAPPING REJECTION FIXES**
+
+This release removes legacy DiscoveryFlowModular architecture confusion and fixes critical attributes rejection behavior to ensure proper user workflow.
+
+### 🚀 **Architecture Cleanup**
+
+#### **Removed Legacy DiscoveryFlowModular ✅ COMPLETED**
+- **Problem**: Platform had both proper CrewAI Flow and legacy DiscoveryFlowModular creating confusion
+- **Root Cause**: DiscoveryFlowModular was a remnant from legacy cleanup when moving to fully flow-based setup
+- **Solution**: Completely removed DiscoveryFlowModular and updated all endpoints to use proper CrewAI Flow
+- **Result**: Single, clean CrewAI Flow architecture with proper purple logs and flow IDs
+
+#### **Updated Critical Attributes Endpoints**
+```python
+# Before: Legacy modular approach
+from app.services.crewai_flows.discovery_flow_modular import DiscoveryFlowModular
+flow_service = DiscoveryFlowModular(crewai_service)
+
+# After: Proper CrewAI Flow service
+from app.services.crewai_flow_service import CrewAIFlowService
+crewai_service = CrewAIFlowService()
+flow_state = crewai_service.get_flow_status(session_id)
+```
+
+#### **Removed Unused Endpoints**
+- **Removed**: `/discovery/run-redesigned` endpoint (not used by frontend)
+- **Removed**: `execute_discovery_flow_redesigned` method from CrewAIFlowService
+- **Removed**: `_run_redesigned_flow_background` method
+- **Cleaned**: All references to modular flow architecture
+
+### 🔧 **Critical Attributes Rejection Fix**
+
+#### **Fixed Rejection Behavior ✅ RESOLVED**
+- **Problem**: When user rejected a mapping, the current mapping was cleared but row disappeared (should remain for re-mapping)
+- **Root Cause**: Filtering logic removed both approved AND rejected mappings from the list
+- **Solution**: Updated filtering to only remove approved mappings, keep rejected ones visible with dropdown available
+- **Result**: Rejected mappings clear current selection but remain in list for user to apply correct mapping
+
+#### **Enhanced Rejection Logic**
+```typescript
+// Before: Both approved and rejected mappings were hidden
+filtered = filtered.filter(attr => 
+  attr.status !== 'mapped' || !attr.source_field
+);
+
+// After: Only approved mappings are hidden, rejected ones stay visible
+filtered = filtered.filter(attr => 
+  !(attr.status === 'mapped' && attr.source_field)
+);
+```
+
+#### **Improved Rejection State Management**
+```typescript
+// For rejection: clear the mapping but keep the attribute visible for re-mapping
+if (action === 'reject') {
+  onAttributeUpdate(attributeName, {
+    status: 'unmapped' as const,
+    quality_score: 0,
+    completeness_percentage: 0,
+    mapped_to: undefined,
+    source_field: undefined // Clear source field so dropdown becomes available
+  });
+}
+```
+
+### 📊 **Technical Achievements**
+
+#### **Architecture Simplification**
+- **Single Flow Pattern**: Only proper CrewAI Flow remains with `@start()`, `@listen()`, `@persist()` decorators
+- **Purple Log Consistency**: All flows now produce the expected purple logs with flow IDs
+- **Code Reduction**: Removed 571 lines of legacy modular flow code
+- **Import Cleanup**: Updated all critical attributes endpoints to use proper flow service
+
+#### **User Experience Enhancement**
+- **Clear Workflow**: Rejected mappings remain visible for correction
+- **Dropdown Availability**: Source field dropdown becomes available after rejection
+- **Progress Tracking**: Only approved mappings are removed from active list
+- **Workflow Continuity**: Users can immediately re-map rejected attributes
+
+### 🎯 **Business Impact**
+- **Architecture Clarity**: Single CrewAI Flow approach eliminates confusion and maintenance overhead
+- **User Productivity**: Proper rejection workflow allows immediate correction without losing context
+- **Development Efficiency**: Simplified codebase with clear flow patterns
+- **System Reliability**: Consistent flow behavior across all discovery operations
+
+### 🔍 **Quality Assurance**
+- **Flow Validation**: Confirmed all endpoints use proper CrewAI Flow architecture
+- **Rejection Testing**: Validated that rejected mappings remain visible with dropdown available
+- **Log Verification**: Ensured all flows produce expected purple logs with flow IDs
+- **Code Cleanup**: Removed all references to legacy modular flow architecture
+
 ## [0.4.44] - 2025-01-21
 
 ### 🎯 **UI/UX ENHANCEMENTS & FLOW INITIALIZATION FIXES**

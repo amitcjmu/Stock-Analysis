@@ -138,10 +138,10 @@ const CriticalAttributesTab: React.FC<CriticalAttributesTabProps> = ({
       filtered = filtered.filter(attr => attr.category === selectedCategory);
     }
     
-    // Hide completed mappings (mapped attributes that have been processed)
-    // Only show unmapped and partially_mapped attributes that need action
+    // Hide only approved mappings (mapped attributes with source_field)
+    // Keep rejected mappings (unmapped) and partially_mapped visible for user action
     filtered = filtered.filter(attr => 
-      attr.status !== 'mapped' || !attr.source_field
+      !(attr.status === 'mapped' && attr.source_field)
     );
     
     return filtered;
@@ -268,11 +268,24 @@ const CriticalAttributesTab: React.FC<CriticalAttributesTabProps> = ({
         });
         
         // Update local state
-        onAttributeUpdate(attributeName, {
-          status: action === 'approve' ? 'mapped' as const : 'unmapped' as const,
-          quality_score: action === 'approve' ? Math.min(95, (relatedMapping.confidence || 0.8) * 100) : 0,
-          completeness_percentage: action === 'approve' ? 100 : 0
-        });
+        if (action === 'approve') {
+          onAttributeUpdate(attributeName, {
+            status: 'mapped' as const,
+            quality_score: Math.min(95, (relatedMapping.confidence || 0.8) * 100),
+            completeness_percentage: 100,
+            mapped_to: relatedMapping.sourceField,
+            source_field: relatedMapping.sourceField
+          });
+        } else {
+          // For rejection: clear the mapping but keep the attribute visible for re-mapping
+          onAttributeUpdate(attributeName, {
+            status: 'unmapped' as const,
+            quality_score: 0,
+            completeness_percentage: 0,
+            mapped_to: undefined,
+            source_field: undefined // Clear the source field so dropdown becomes available
+          });
+        }
       }
     } catch (error) {
       console.error('Error handling mapping action:', error);
