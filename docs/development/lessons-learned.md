@@ -120,6 +120,24 @@
 - [ ] Corrected method calls to use proper `execute_discovery_flow()` with correct context structure
 - [ ] Enabled full discovery flow integration with agentic critical attributes analysis
 
+## CrewAI Flow State Management & Error Handling
+
+### ❌ **What Was Wrong**
+- [ ] Discovery flows reporting "completed" status even when crew initialization failed
+- [ ] Premature crew initialization during flow constructor causing missing argument errors
+- [ ] False success reporting when database persistence errors occurred
+- [ ] CrewAI crews initialized without required parameters (`cleaned_data`, `field_mappings`)
+- [ ] No error propagation from crew creation failures to flow completion status
+- [ ] Import path errors: `app.models.data_import.import_session` instead of `app.models.data_import_session`
+
+### ✅ **What Was Corrected**
+- [ ] Implemented lazy crew initialization using factory pattern instead of direct instantiation
+- [ ] Added comprehensive error validation in `finalize_discovery()` before reporting success
+- [ ] Created `_create_crew_on_demand()` method with proper parameter validation
+- [ ] Enhanced error categorization and propagation through flow phases
+- [ ] Fixed import path from `import_session` to `data_import_session`
+- [ ] Added critical error checking that prevents false completion reporting
+
 ## Database & Validation
 
 ### ❌ **What Was Wrong**
@@ -145,6 +163,20 @@
 - [ ] Added proper engagement update with success/error handling
 - [ ] Implemented automatic query invalidation after successful updates
 - [ ] Eliminated React Query implementation warnings
+
+## Frontend Import & Navigation Issues
+
+### ❌ **What Was Wrong**
+- [ ] Frontend import errors: `useAuth` from `../../hooks/useAuth` (non-existent path)
+- [ ] API import errors: `apiCall` from `../../utils/api` (incorrect path)
+- [ ] Navigation route mismatches: `/discovery/data-import` vs `/discovery/import`
+- [ ] Compilation failures preventing Enhanced Discovery Dashboard from loading
+
+### ✅ **What Was Corrected**
+- [ ] Fixed `useAuth` import to use `../../contexts/AuthContext`
+- [ ] Fixed `apiCall` import to use `@/config/api`
+- [ ] Updated all navigation paths to match App.tsx routing (`/discovery/import`)
+- [ ] Eliminated all frontend compilation errors for smooth user experience
 
 ## Key Development Patterns
 
@@ -184,6 +216,20 @@
 3. ✅ Prioritize URL session IDs over state-based session IDs
 4. ✅ Ensure session ID preservation across navigation
 
+### **CrewAI Flow Best Practices**
+1. ✅ Use lazy crew initialization with factory pattern instead of direct instantiation
+2. ✅ Implement comprehensive error validation before reporting flow completion
+3. ✅ Create crews on-demand with proper parameter validation (`cleaned_data`, `field_mappings`)
+4. ✅ Add critical error checking that prevents false success reporting
+5. ✅ Follow CrewAI Flow state management patterns with proper `@start()` and `@listen()` decorators
+6. ✅ Implement error propagation through all flow phases with detailed logging
+
+### **Frontend Import & Build Management**
+1. ✅ Always verify import paths match actual file locations before deployment
+2. ✅ Use consistent import patterns: relative paths vs absolute paths (`@/config/api`)
+3. ✅ Match navigation routes exactly with App.tsx route definitions
+4. ✅ Test compilation after import changes to prevent build failures
+
 ## Critical Success Factors
 
 - **Database First**: Always ensure database records, constraints, and relationships are properly configured
@@ -193,4 +239,6 @@
 - **Error Handling**: Implement comprehensive error logging and fallback mechanisms
 - **State Management**: Use direct parameter passing to avoid React state timing issues
 - **Header Standardization**: Maintain consistent header naming across frontend and backend
-- **Service Integration**: Ensure proper import paths and method calls for backend services 
+- **Service Integration**: Ensure proper import paths and method calls for backend services
+- **CrewAI Flow Reliability**: Implement proper error validation and lazy initialization to prevent false success reporting
+- **Import Path Accuracy**: Verify all frontend import paths before deployment to prevent compilation failures 

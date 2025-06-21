@@ -1,5 +1,148 @@
 # AI Force Migration Platform - Change Log
 
+## [0.4.51] - 2025-01-21
+
+### 🎯 **UNIFIED DISCOVERY FLOW CONSOLIDATION PLAN**
+
+This release creates a comprehensive plan to eliminate the extensive code sprawl in discovery flow implementations and consolidate everything into a single CrewAI Flow architecture following official documentation patterns.
+
+### 🚀 **Discovery Flow Consolidation Planning**
+
+#### **Comprehensive Code Sprawl Analysis ✅ COMPLETED**
+- **Problem**: Multiple competing discovery flow implementations causing developer confusion and maintenance issues
+- **Scope**: Only Data Import and Attribute Mapping pages properly connected to flow system
+- **Analysis**: Identified 6 different DiscoveryFlowState classes, 3 competing frontend hooks, and 15+ documentation files
+- **Solution**: Created detailed consolidation plan following CrewAI Flow documentation patterns
+
+#### **Current State Assessment**
+```markdown
+✅ Currently Flow-Connected:
+- Data Import Page (CMDBImport.tsx)
+- Attribute Mapping Page (AttributeMapping.tsx)
+- Import Storage Handler
+
+❌ Disconnected Components:
+- Data Cleansing Page
+- Asset Inventory Page  
+- Dependency Analysis Page
+- Tech Debt Analysis Page
+- Enhanced Discovery Dashboard
+```
+
+#### **Code Sprawl Identified**
+- **Backend**: 6 competing implementations across services, models, and schemas
+- **Frontend**: 3 different state management approaches with competing hooks
+- **Documentation**: 65KB+ of overlapping and contradictory documentation
+- **Database**: Multiple persistence patterns without unified approach
+
+### 📊 **Unified Architecture Design**
+
+#### **Single Source of Truth Pattern ✅ PLANNED**
+- **Single CrewAI Flow Implementation** with structured state management
+- **Unified Frontend State Management** using proper CrewAI Flow integration  
+- **Single Database Persistence Layer** with proper multi-tenancy
+- **Consolidated Documentation** with clear patterns
+- **Unified API Layer** with consistent endpoints
+
+#### **Target Architecture**
+```mermaid
+graph TD
+    A[Data Import] --> B[Unified Discovery Flow]
+    B --> C[Field Mapping Crew]
+    C --> D[Data Cleansing Crew] 
+    D --> E[Asset Inventory Crew]
+    E --> F[Dependency Analysis Crew]
+    F --> G[Tech Debt Analysis Crew]
+    G --> H[Flow Completion]
+    
+    B --> I[Unified Frontend State]
+    I --> J[All Discovery Pages]
+```
+
+#### **Implementation Plan Structure**
+- **Phase 1 (Days 1-4)**: Backend consolidation with unified state model
+- **Phase 2 (Days 5-8)**: Frontend consolidation connecting all pages
+- **Phase 3 (Days 9-10)**: Documentation consolidation and archival
+- **Phase 4 (Days 11-12)**: Testing and validation of unified system
+
+### 🎯 **Consolidation Strategy**
+
+#### **Backend Consolidation Tasks**
+1. **Create UnifiedDiscoveryFlowState**: Single Pydantic model following CrewAI patterns
+2. **Consolidate Flow Implementation**: Replace 6 competing implementations with single CrewAI Flow
+3. **Unified API Endpoints**: Single endpoint structure for all flow operations
+4. **Database Model Enhancement**: Update WorkflowState for unified persistence
+
+#### **Frontend Consolidation Tasks**  
+1. **Create useUnifiedDiscoveryFlow Hook**: Replace 3 competing state management approaches
+2. **Connect Disconnected Pages**: Integrate all 5 disconnected pages with unified flow
+3. **Remove Competing Implementations**: Clean up duplicate hooks and contexts
+4. **Real-time State Synchronization**: Implement proper React Query patterns
+
+#### **Documentation Consolidation Tasks**
+1. **Create Master Guide**: Single comprehensive documentation source
+2. **Archive Legacy Docs**: Move 15+ competing docs to archive folder
+3. **Update API Documentation**: Reflect unified endpoint structure
+4. **Clear Implementation Patterns**: Document proper usage patterns
+
+### 📋 **Detailed Task Breakdown**
+
+#### **Files to Create**
+- `backend/app/models/unified_discovery_flow_state.py` - Single state model
+- `backend/app/api/v1/unified_discovery.py` - Unified API endpoints  
+- `src/hooks/useUnifiedDiscoveryFlow.ts` - Single frontend hook
+- `docs/development/UNIFIED_DISCOVERY_FLOW_GUIDE.md` - Master documentation
+
+#### **Files to Remove/Consolidate**
+- Remove: `backend/app/services/crewai_flows/models/flow_state.py`
+- Remove: `backend/app/schemas/flow_schemas.py` and `flow_schemas_new.py`
+- Remove: `src/hooks/useDiscoveryFlowState.ts` and competing hook
+- Remove: `src/contexts/DiscoveryFlowContext.tsx`
+- Archive: 15+ competing documentation files
+
+#### **Pages to Update**
+- Connect Data Cleansing Page to unified flow
+- Connect Asset Inventory Page to unified flow
+- Connect Dependency Analysis Page to unified flow  
+- Connect Tech Debt Analysis Page to unified flow
+- Update Enhanced Discovery Dashboard for unified state
+
+### 🎪 **Business Impact**
+
+#### **Developer Experience**
+- **Single Source of Truth**: Eliminates confusion about which implementation to use
+- **Consistent Patterns**: All pages follow same flow integration approach
+- **Reduced Maintenance**: One implementation to maintain instead of 6+
+- **Clear Documentation**: Single guide instead of 15+ competing documents
+
+#### **Platform Reliability**
+- **Unified State Management**: All pages share same flow state and updates
+- **Real-time Synchronization**: Consistent updates across all discovery pages
+- **Proper Error Handling**: Unified error management and recovery patterns
+- **Multi-tenant Isolation**: Consistent tenant scoping across all components
+
+#### **User Experience**
+- **Seamless Navigation**: Flow context maintained across all pages
+- **Real-time Updates**: Live progress updates on all discovery pages
+- **Consistent UI**: All pages follow same interaction patterns
+- **Reliable Flow Tracking**: Accurate flow IDs and status across platform
+
+### 🎯 **Success Metrics**
+- **Code Reduction**: Eliminate 6+ competing implementations down to 1
+- **Documentation Consolidation**: Reduce 15+ docs to single comprehensive guide
+- **Page Integration**: Connect all 5 disconnected pages to unified flow
+- **State Consistency**: All pages using same flow state and updates
+- **Developer Clarity**: Single clear path for discovery flow development
+
+### 📞 **Next Steps**
+1. Review consolidation plan with development team
+2. Approve unified architecture approach
+3. Begin Phase 1 backend consolidation
+4. Set up task tracking and progress monitoring
+5. Schedule regular progress reviews
+
+**This plan ensures we eliminate discovery flow code sprawl once and for all, creating a single, maintainable, and properly documented CrewAI Flow system.**
+
 ## [0.4.50] - 2025-01-21
 
 ### 🎯 **CRITICAL DISCOVERY FLOW ERROR HANDLING FIXES**
