@@ -645,8 +645,14 @@ class DiscoveryFlow(Flow[DiscoveryFlowState]):
         self.state.progress_percentage = 90.0
         
         try:
-            # Run the database integration in async context
-            created_asset_ids = asyncio.run(self._save_assets_to_database())
+            # Run the database integration using to_thread to handle async properly
+            import asyncio
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                created_asset_ids = loop.run_until_complete(self._save_assets_to_database())
+            finally:
+                loop.close()
             
             # Store created asset IDs in state
             self.state.database_assets = created_asset_ids

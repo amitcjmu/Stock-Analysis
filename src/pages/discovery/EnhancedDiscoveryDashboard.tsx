@@ -33,8 +33,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useAuth } from '../../hooks/useAuth';
-import { apiCall } from '../../utils/api';
+import { useAuth } from '../../contexts/AuthContext';
+import { apiCall } from '@/config/api';
 
 interface FlowSummary {
   flow_id: string;
@@ -481,7 +481,7 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
               <Activity className="h-5 w-5" />
               Active Discovery Flows
             </CardTitle>
-            <Button onClick={() => navigate('/discovery/data-import')}>
+            <Button onClick={() => navigate('/discovery/import')}>
               <Plus className="h-4 w-4 mr-2" />
               New Flow
             </Button>
@@ -496,7 +496,7 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
                 <p className="text-gray-600 mb-4">
                   Start a new Discovery Flow by importing your CMDB or asset data.
                 </p>
-                <Button onClick={() => navigate('/discovery/data-import')}>
+                <Button onClick={() => navigate('/discovery/import')}>
                   <Plus className="h-4 w-4 mr-2" />
                   Import Data & Start Discovery
                 </Button>
@@ -744,7 +744,7 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
                 <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
                 Refresh
               </Button>
-              <Button onClick={() => navigate('/discovery/data-import')}>
+              <Button onClick={() => navigate('/discovery/import')}>
                 <Plus className="h-4 w-4 mr-2" />
                 New Discovery Flow
               </Button>
