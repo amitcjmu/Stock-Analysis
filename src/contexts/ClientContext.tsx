@@ -34,10 +34,11 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [availableClients, setAvailableClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const { user } = useAuth();
+  const { user, client: authClient, engagement: authEngagement, session: authSession, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
+    // For demo user, set demo client immediately
     if (user && user.id === '44444444-4444-4444-4444-444444444444') {
       setCurrentClient({
         id: '11111111-1111-1111-1111-111111111111',
@@ -112,7 +113,10 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     };
 
-    if (user) {
+    // Wait for full auth context to be available before making API calls
+    // This prevents race conditions where API calls are made without proper context headers
+    if (user && !authLoading && authClient && authEngagement && authSession) {
+      console.log('🔄 ClientContext: Full auth context available, making API calls');
       const fetchClients = async () => {
         setIsLoading(true);
         try {
@@ -139,11 +143,18 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       };
       fetchClients();
     } else {
+      console.log('🔄 ClientContext: Waiting for auth context', { 
+        hasUser: !!user, 
+        authLoading, 
+        hasAuthClient: !!authClient, 
+        hasAuthEngagement: !!authEngagement, 
+        hasAuthSession: !!authSession 
+      });
       setIsLoading(false);
       setCurrentClient(null);
       setAvailableClients([]);
     }
-  }, [user, navigate]);
+  }, [user, authClient, authEngagement, authSession, authLoading, navigate]);
 
   const switchClient = async (id: string): Promise<void> => {
     const client = availableClients.find(c => c.id === id);
