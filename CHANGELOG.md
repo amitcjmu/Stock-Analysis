@@ -2782,3 +2782,43 @@ client_access.client_account_id → client_accounts.id
 ---
 
 ## [0.8.9] - 2025-06-21
+
+## [0.8.11] - 2025-01-27
+
+### 🎯 **CONTEXT HEADER STANDARDIZATION - Console Error Resolution**
+
+This release resolves console errors, context mismatches, and React Query toast issues through comprehensive header standardization and API improvements.
+
+### 🚀 **Frontend-Backend Context Alignment**
+
+#### **Context Header Standardization**
+- **Standardization**: Unified header naming convention across frontend and backend
+- **Frontend Headers**: Now consistently sends `X-Client-Account-ID`, `X-Engagement-ID`, `X-User-ID`, `X-Session-ID`
+- **Backend Recognition**: Enhanced context extraction to handle all header variations
+- **Consistency**: Eliminated context mismatches between discovery overview and data import pages
+
+#### **Console Error Resolution**
+- **CORS Headers**: Fixed missing `X-Client-Account-Id` header errors in browser console
+- **Context Validation**: Resolved 400 errors for missing client account context
+- **Request Failures**: Eliminated "Failed to fetch" errors due to header mismatches
+- **Network Stability**: Improved request success rate through proper header handling
+
+#### **React Query Implementation**
+- **Engagement Updates**: Replaced hardcoded TODO with proper React Query mutation
+- **Toast Messages**: Eliminated "Update engagement mutation should use React Query" error
+- **API Integration**: Proper engagement update with success/error handling
+- **Data Refresh**: Automatic query invalidation after successful updates
+
+### 📊 **Technical Achievements**
+- **Header Compatibility**: 100% frontend-backend header alignment
+- **Error Reduction**: Eliminated console errors on page load
+- **Context Persistence**: Consistent context across all discovery pages
+- **API Reliability**: Improved API call success rate through standardized headers
+
+### 🎯 **Success Metrics**
+- **Console Errors**: Reduced from persistent to zero on page load
+- **Context Mismatches**: Eliminated between discovery overview and data import
+- **Toast Errors**: Resolved React Query implementation warnings
+- **Header Recognition**: 100% backend recognition of frontend context headers
+
+## [0.8.10] - 2025-01-27

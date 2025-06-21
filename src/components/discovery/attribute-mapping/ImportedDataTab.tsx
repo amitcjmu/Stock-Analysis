@@ -58,7 +58,7 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
     queryFn: async () => {
       const headers = getAuthHeaders();
       if (client?.id) {
-        headers['X-Client-ID'] = client.id;
+        headers['X-Client-Account-ID'] = client.id;
       }
       if (engagement?.id) {
         headers['X-Engagement-ID'] = engagement.id;
@@ -89,7 +89,7 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
       try {
         const headers = getAuthHeaders();
         if (client?.id) {
-          headers['X-Client-ID'] = client.id;
+          headers['X-Client-Account-ID'] = client.id;
         }
         if (engagement?.id) {
           headers['X-Engagement-ID'] = engagement.id;

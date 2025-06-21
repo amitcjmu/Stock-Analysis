@@ -101,13 +101,40 @@ const EngagementManagementMain: React.FC = () => {
   // Handle engagement update
   const handleUpdateEngagement = async () => {
     if (!editingEngagement) return;
-    // TODO: Refactor to use React Query mutation for update (not in scope for this lint fix)
-    // When implemented, use engagementsQuery.refetch() after mutation to refresh data.
-    toast({
-      title: "Not Implemented",
-      description: "Update engagement mutation should use React Query.",
-      variant: "destructive",
-    });
+    
+    try {
+      const result = await apiCall(`/admin/engagements/${editingEngagement.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+      });
+      
+      if (result && result.message) {
+        toast({
+          title: "Success",
+          description: result.message || "Engagement updated successfully.",
+        });
+        // Refetch engagements after successful update
+        engagementsQuery.refetch();
+        setEditingEngagement(null);
+        resetForm();
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to update engagement.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error updating engagement:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update engagement. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Handle engagement deletion

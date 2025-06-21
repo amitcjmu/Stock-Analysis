@@ -181,20 +181,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     if (user) {
-      headers['X-User-Id'] = user.id;
+      headers['X-User-ID'] = user.id;
       headers['X-User-Role'] = user.role;
     }
 
     if (client) {
-      headers['X-Client-Account-Id'] = client.id;
+      headers['X-Client-Account-ID'] = client.id;
     }
 
     if (engagement) {
-      headers['X-Engagement-Id'] = engagement.id;
+      headers['X-Engagement-ID'] = engagement.id;
     }
     
     if (session) {
-      headers['X-Session-Id'] = session.id;
+      headers['X-Session-ID'] = session.id;
     }
 
     return headers;

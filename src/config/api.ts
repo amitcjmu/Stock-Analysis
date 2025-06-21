@@ -234,16 +234,16 @@ export const apiCall = async (
       // Add context headers if needed
       if (includeContext) {
         if (currentContext.user?.id) {
-          headers['X-User-Id'] = currentContext.user.id;
+          headers['X-User-ID'] = currentContext.user.id;
         }
         if (currentContext.client?.id) {
-          headers['X-Client-Account-Id'] = currentContext.client.id;
+          headers['X-Client-Account-ID'] = currentContext.client.id;
         }
         if (currentContext.engagement?.id) {
-          headers['X-Engagement-Id'] = currentContext.engagement.id;
+          headers['X-Engagement-ID'] = currentContext.engagement.id;
         }
         if (currentContext.session?.id) {
-          headers['X-Session-Id'] = currentContext.session.id;
+          headers['X-Session-ID'] = currentContext.session.id;
         }
       }
       

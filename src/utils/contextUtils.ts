@@ -47,7 +47,7 @@ export const getContextHeaders = (context?: Partial<ContextWithIds>) => {
   const headers: Record<string, string> = {};
   
   if (context?.client?.id) {
-    headers['X-Client-ID'] = context.client.id;
+    headers['X-Client-Account-ID'] = context.client.id;
   }
   
   if (context?.engagement?.id) {
