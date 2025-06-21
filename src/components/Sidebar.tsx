@@ -55,7 +55,7 @@ const Sidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const versionInfo = getVersionInfo();
-  const { isAuthenticated, isAdmin, user, logout } = useAuth();
+  const { isAuthenticated, isAdmin, user, logout, isLoading } = useAuth();
   const [discoveryExpanded, setDiscoveryExpanded] = useState(
     location.pathname.startsWith('/discovery')
   );
@@ -275,7 +275,11 @@ const Sidebar = () => {
         <div 
           className="flex items-center space-x-3 cursor-pointer hover:bg-gray-700 rounded-lg p-2 -m-2 transition-colors duration-200 group"
           onClick={handleAuthClick}
-          title={isAuthenticated ? `Signed in as ${user?.full_name} - Click to logout` : 'Click to login'}
+          title={
+            isLoading ? 'Loading...' :
+            isAuthenticated ? `Signed in as ${user?.full_name || user?.email || 'User'} - Click to logout` : 
+            'Click to login'
+          }
         >
           <Cloud className={`h-8 w-8 ${getCloudIconColor()} group-hover:scale-110 transition-transform duration-200`} />
           <div className="flex-1">

@@ -283,6 +283,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setEngagement(userInfo.engagement);
             setSession(userInfo.session);
             
+            // Immediately update API context before any other API calls
+            updateApiContext({ 
+              user: userInfo.user, 
+              client: userInfo.client, 
+              engagement: userInfo.engagement, 
+              session: userInfo.session 
+            });
+            
             // Save context to localStorage for persistence
             localStorage.setItem('auth_client', JSON.stringify(userInfo.client));
             localStorage.setItem('auth_engagement', JSON.stringify(userInfo.engagement));
@@ -325,6 +333,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                       
                       setEngagement(engagementData);
                       setSession(sessionData);
+                      
+                      // Immediately update API context before any other API calls
+                      updateApiContext({ 
+                        user: userInfo.user, 
+                        client: clientData, 
+                        engagement: engagementData, 
+                        session: sessionData 
+                      });
+                      
                       setIsLoading(false);
                       return; // Exit early - context fully restored
                     }
@@ -672,6 +689,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Persist to localStorage for cross-session persistence
       localStorage.setItem('auth_client', JSON.stringify(fullClientData));
       
+      // Immediately update API context
+      updateApiContext({ 
+        user, 
+        client: fullClientData, 
+        engagement, 
+        session 
+      });
+      
       // Get engagements for this client using context establishment endpoint
       const engagementsResponse = await apiCall(`/api/v1/context/engagements?client_id=${clientId}`, {
         method: 'GET',
@@ -719,6 +744,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Persist to localStorage for cross-session persistence
       localStorage.setItem('auth_engagement', JSON.stringify(fullEngagementData));
       
+      // Immediately update API context
+      updateApiContext({ 
+        user, 
+        client, 
+        engagement: fullEngagementData, 
+        session 
+      });
+      
       // Create or get session for this engagement
       const sessionResponse = await apiCall('/api/v1/sessions', {
         method: 'POST',
@@ -738,6 +771,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(sessionResponse.session);
         // Persist to localStorage for cross-session persistence
         localStorage.setItem('auth_session', JSON.stringify(sessionResponse.session));
+        
+        // Immediately update API context
+        updateApiContext({ 
+          user, 
+          client, 
+          engagement: fullEngagementData, 
+          session: sessionResponse.session 
+        });
       }
       
     } catch (error) {
