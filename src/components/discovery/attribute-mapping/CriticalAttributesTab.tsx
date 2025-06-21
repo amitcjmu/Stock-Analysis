@@ -131,10 +131,20 @@ const CriticalAttributesTab: React.FC<CriticalAttributesTabProps> = ({
 
   // Filter attributes by category
   const getFilteredAttributes = () => {
-    if (selectedCategory === 'all') {
-      return criticalAttributes;
+    let filtered = criticalAttributes;
+    
+    // Filter by category
+    if (selectedCategory !== 'all') {
+      filtered = filtered.filter(attr => attr.category === selectedCategory);
     }
-    return criticalAttributes.filter(attr => attr.category === selectedCategory);
+    
+    // Hide completed mappings (mapped attributes that have been processed)
+    // Only show unmapped and partially_mapped attributes that need action
+    filtered = filtered.filter(attr => 
+      attr.status !== 'mapped' || !attr.source_field
+    );
+    
+    return filtered;
   };
 
   // Calculate overall statistics

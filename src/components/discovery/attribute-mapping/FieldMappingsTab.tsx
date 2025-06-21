@@ -400,17 +400,19 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
                     <div className="flex items-center space-x-2 ml-4">
                       <button
                         onClick={() => onMappingAction(mapping.id, 'approve')}
-                        className="p-1 text-green-600 hover:bg-green-100 rounded"
+                        className="flex items-center space-x-1 px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 disabled:opacity-50"
                         title="Approve mapping"
                       >
-                        <CheckCircle className="h-4 w-4" />
+                        <CheckCircle className="h-3 w-3" />
+                        <span>Approve</span>
                       </button>
                       <button
                         onClick={() => onMappingAction(mapping.id, 'reject')}
-                        className="p-1 text-red-600 hover:bg-red-100 rounded"
+                        className="flex items-center space-x-1 px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 disabled:opacity-50"
                         title="Reject mapping"
                       >
-                        <X className="h-4 w-4" />
+                        <X className="h-3 w-3" />
+                        <span>Reject</span>
                       </button>
                     </div>
                   )}

@@ -774,7 +774,7 @@ async def get_context_field_mappings(
             "total_mappings": len(transformed_mappings),
             "import_info": {
                 "import_id": str(latest_import.id),
-                "filename": latest_import.filename,
+                "filename": latest_import.source_filename,
                 "completed_at": latest_import.completed_at.isoformat() if latest_import.completed_at else None
             },
             "context": {

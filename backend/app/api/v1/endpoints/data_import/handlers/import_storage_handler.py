@@ -195,41 +195,57 @@ async def _trigger_discovery_flow(
     context: RequestContext
 ):
     """
-    Trigger the Discovery Flow immediately after data import.
+    Trigger the CrewAI Discovery Flow immediately after data import.
     
-    This implements the CrewAI Flow State pattern where the flow starts
-    at data import completion rather than at attribute mapping.
+    This implements the proper CrewAI Flow pattern with @start/@listen decorators
+    that produces the purple logs and flow ID tracking.
     """
     try:
-        logger.info(f"🚀 Triggering Discovery Flow for import {data_import_id}")
+        logger.info(f"🚀 Triggering CrewAI Discovery Flow for import {data_import_id}")
         
-        # Import the Discovery Flow service
-        from app.services.crewai_flows.discovery_flow_modular import DiscoveryFlowModular
+        # Import the proper CrewAI Flow
+        logger.info(f"🔍 DEBUG: Importing CrewAI Flow modules...")
+        from app.services.crewai_flows.discovery_flow import DiscoveryFlow, create_discovery_flow
         from app.services.crewai_flow_service import CrewAIFlowService
+        logger.info(f"✅ DEBUG: CrewAI Flow modules imported successfully")
         
-        # Initialize services
+        # Initialize CrewAI service
+        logger.info(f"🔍 DEBUG: Initializing CrewAI service...")
         crewai_service = CrewAIFlowService()
-        discovery_flow = DiscoveryFlowModular(crewai_service)
+        logger.info(f"✅ DEBUG: CrewAI service initialized")
         
-        # Create flow context
-        flow_context = type('FlowContext', (), {
-            'client_account_id': client_account_id,
-            'engagement_id': engagement_id,
-            'user_id': user_id,
-            'session_id': data_import_id,  # Use data_import_id directly as session_id (valid UUID)
-            'data_import_id': data_import_id,
-            'source': 'data_import'
-        })()
+        # Create proper flow using the factory function
+        logger.info(f"🔍 DEBUG: Creating discovery flow...")
+        discovery_flow = create_discovery_flow(
+            session_id=data_import_id,
+            client_account_id=client_account_id,
+            engagement_id=engagement_id,
+            user_id=user_id,
+            cmdb_data={"file_data": file_data},
+            metadata={
+                "source": "data_import",
+                "filename": f"import_{data_import_id}",
+                "import_timestamp": datetime.utcnow().isoformat()
+            },
+            crewai_service=crewai_service,
+            context=context
+        )
+        logger.info(f"✅ DEBUG: Discovery flow created: {type(discovery_flow)}")
         
-        # Execute the Discovery Flow
-        flow_result = await discovery_flow.execute_discovery_flow(file_data, flow_context)
+        # Execute the CrewAI Flow using kickoff() method - this produces the purple logs
+        logger.info(f"🎯 Starting CrewAI Flow kickoff for session: {data_import_id}")
+        flow_result = await asyncio.to_thread(discovery_flow.kickoff)
         
-        logger.info(f"✅ Discovery Flow triggered successfully: {flow_result.get('status', 'unknown')}")
+        logger.info(f"✅ CrewAI Discovery Flow completed: {flow_result}")
         
     except ImportError as e:
-        logger.warning(f"Discovery Flow service not available: {e}")
+        logger.warning(f"CrewAI Discovery Flow service not available: {e}")
+        logger.error(f"🚨 DEBUG: ImportError details: {e}")
     except Exception as e:
-        logger.error(f"Failed to trigger Discovery Flow: {e}")
+        logger.error(f"Failed to trigger CrewAI Discovery Flow: {e}")
+        logger.error(f"🚨 DEBUG: Exception details: {e}")
+        import traceback
+        logger.error(f"🚨 DEBUG: Full traceback: {traceback.format_exc()}")
         # Don't raise - we don't want to fail the import if flow fails
 
 @router.get("/latest-import")
@@ -269,16 +285,24 @@ async def get_latest_import(
             async def _get_latest_import_with_timeout():
                 # ⚡ OPTIMIZED: Get the most substantial import (highest record count) for this context
                 # First try: Look for any status (not just 'processed')
+                # Safely parse UUIDs with fallback
+                try:
+                    client_uuid = uuid.UUID(context.client_account_id) if context.client_account_id else None
+                    engagement_uuid = uuid.UUID(context.engagement_id) if context.engagement_id else None
+                except (ValueError, TypeError):
+                    logger.warning(f"Invalid UUID format - client: {context.client_account_id}, engagement: {context.engagement_id}")
+                    return None
+                
                 latest_import_query = select(DataImport).where(
                     and_(
-                        DataImport.client_account_id == uuid.UUID(context.client_account_id),
-                        DataImport.engagement_id == uuid.UUID(context.engagement_id)
+                        DataImport.client_account_id == client_uuid,
+                        DataImport.engagement_id == engagement_uuid
                     )
                 ).order_by(
                     # First priority: imports with more records (likely real data)
                     DataImport.total_records.desc(),
                     # Second priority: most recent among those with same record count  
-                    DataImport.processed_at.desc()
+                    DataImport.completed_at.desc()
                 ).limit(1)
                 
                 result = await db.execute(latest_import_query)
@@ -291,7 +315,7 @@ async def get_latest_import(
                     logger.warning(f"❌ No imports found for context: client={context.client_account_id}, engagement={context.engagement_id}")
                     
                     # Debug: Check if there are any imports at all in the database
-                    all_imports_query = select(DataImport).order_by(DataImport.processed_at.desc()).limit(5)
+                    all_imports_query = select(DataImport).order_by(DataImport.completed_at.desc()).limit(5)
                     all_imports_result = await db.execute(all_imports_query)
                     all_imports = all_imports_result.scalars().all()
                     
@@ -393,9 +417,9 @@ async def get_latest_import(
                 "success": True,
                 "data": [],
                 "import_metadata": {
-                    "filename": latest_import.filename or "Unknown",
-                    "import_type": latest_import.intended_type,
-                    "imported_at": latest_import.processed_at.isoformat() if latest_import.processed_at else None,
+                    "filename": latest_import.source_filename or "Unknown",
+                    "import_type": latest_import.import_type,
+                    "imported_at": latest_import.completed_at.isoformat() if latest_import.completed_at else None,
                     "total_records": latest_import.total_records or 0,
                     "import_id": str(latest_import.id),
                     "client_account_id": str(latest_import.client_account_id),
@@ -414,9 +438,9 @@ async def get_latest_import(
             response_data.append(record.raw_data)
         
         import_metadata = {
-            "filename": latest_import.filename or "Unknown",
-            "import_type": latest_import.intended_type,
-            "imported_at": latest_import.processed_at.isoformat() if latest_import.processed_at else None,
+            "filename": latest_import.source_filename or "Unknown",
+            "import_type": latest_import.import_type,
+            "imported_at": latest_import.completed_at.isoformat() if latest_import.completed_at else None,
             "total_records": len(response_data),
             "actual_total_records": latest_import.total_records or 0,
             "import_id": str(latest_import.id),
