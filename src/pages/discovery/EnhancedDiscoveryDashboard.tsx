@@ -352,9 +352,14 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
 
   useEffect(() => {
     fetchDashboardData();
-    const interval = setInterval(fetchDashboardData, 30000); // Refresh every 30 seconds
-    return () => clearInterval(interval);
+    // Removed automatic polling - now using manual refresh only
   }, [selectedTimeRange]);
+
+  // Manual refresh function
+  const handleManualRefresh = async () => {
+    await fetchDashboardData();
+    setLastUpdated(new Date());
+  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -421,6 +426,25 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
 
   const OverviewTab = () => (
     <div className="space-y-6">
+      {/* Dashboard Header with Manual Refresh */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Discovery Dashboard</h2>
+          <p className="text-sm text-gray-600">
+            Last updated: {lastUpdated.toLocaleTimeString()}
+          </p>
+        </div>
+        <Button
+          onClick={handleManualRefresh}
+          disabled={isLoading}
+          variant="outline"
+          size="sm"
+        >
+          <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          Refresh Data
+        </Button>
+      </div>
+
       {/* Unified Flow Status */}
       {flowState && (
         <Card className="border-l-4 border-l-blue-500">
@@ -656,6 +680,25 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
 
   const PerformanceTab = () => (
     <div className="space-y-6">
+      {/* Performance Tab Header with Manual Refresh */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Performance Analytics</h2>
+          <p className="text-sm text-gray-600">
+            Crew performance and system metrics for the last {selectedTimeRange}
+          </p>
+        </div>
+        <Button
+          onClick={handleManualRefresh}
+          disabled={isLoading}
+          variant="outline"
+          size="sm"
+        >
+          <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          Refresh Data
+        </Button>
+      </div>
+
       {/* Crew Performance */}
       <Card>
         <CardHeader>

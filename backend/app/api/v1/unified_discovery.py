@@ -14,15 +14,15 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_async_db
-from app.core.context import RequestContext, get_request_context
+from app.core.database import get_db
+from app.core.context import RequestContext, get_current_context
 from app.services.crewai_flows.unified_discovery_flow import create_unified_discovery_flow
 from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
 from app.services.crewai_flow_service import CrewAIFlowService
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/unified-discovery", tags=["Unified Discovery Flow"])
+router = APIRouter(prefix="/unified-discovery", tags=["Unified Discovery Flow"])
 
 # Request/Response Models
 class InitializeFlowRequest(BaseModel):
@@ -50,8 +50,8 @@ class FlowStatusResponse(BaseModel):
 async def initialize_discovery_flow(
     request: InitializeFlowRequest,
     background_tasks: BackgroundTasks,
-    context: RequestContext = Depends(get_request_context),
-    db: AsyncSession = Depends(get_async_db)
+    context: RequestContext = Depends(get_current_context),
+    db: AsyncSession = Depends(get_db)
 ):
     """Initialize a new unified discovery flow"""
     try:
@@ -98,8 +98,8 @@ async def initialize_discovery_flow(
 @router.get("/flow/status/{session_id}")
 async def get_flow_status(
     session_id: str,
-    context: RequestContext = Depends(get_request_context),
-    db: AsyncSession = Depends(get_async_db)
+    context: RequestContext = Depends(get_current_context),
+    db: AsyncSession = Depends(get_db)
 ):
     """Get the current status of a discovery flow"""
     try:
@@ -126,8 +126,8 @@ async def get_flow_status(
 async def execute_flow_phase(
     phase: str,
     request: Dict[str, Any],
-    context: RequestContext = Depends(get_request_context),
-    db: AsyncSession = Depends(get_async_db)
+    context: RequestContext = Depends(get_current_context),
+    db: AsyncSession = Depends(get_db)
 ):
     """Execute a specific phase of the discovery flow"""
     try:
@@ -173,6 +173,32 @@ async def get_flow_health():
             "timestamp": datetime.utcnow().isoformat(),
             "error": str(e)
         }
+
+@router.get("/flow/active")
+async def get_active_flows(
+    context: RequestContext = Depends(get_current_context),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get all active discovery flows (compatibility endpoint for Enhanced Discovery Dashboard)"""
+    try:
+        logger.info(f"🔍 Getting active flows for client: {context.client_account_id}")
+        
+        # This is a compatibility endpoint for the Enhanced Discovery Dashboard
+        # It returns mock data in the expected format until we implement full flow tracking
+        return {
+            "success": True,
+            "message": "Active flows retrieved successfully",
+            "flow_details": [],  # Empty for now - will be populated when flows are running
+            "total_flows": 0,
+            "active_flows": 0,
+            "completed_flows": 0,
+            "failed_flows": 0,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to get active flows: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get active flows: {str(e)}")
 
 async def _execute_flow_background(flow, context: RequestContext):
     """Execute the complete discovery flow in background"""

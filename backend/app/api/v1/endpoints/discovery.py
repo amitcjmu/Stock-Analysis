@@ -151,4 +151,59 @@ async def discovery_health_check() -> Dict[str, Any]:
             "agent_discovery_endpoints": "active",
             "dependency_endpoints": "active"
         }
-    } 
+    }
+
+@router.get("/flow/active")
+async def get_active_discovery_flows(
+    context: RequestContext = Depends(get_current_context)
+) -> Dict[str, Any]:
+    """
+    Get active discovery flows (compatibility endpoint for Enhanced Discovery Dashboard).
+    
+    This endpoint provides compatibility with the Enhanced Discovery Dashboard
+    until it's updated to use the unified discovery endpoints.
+    """
+    try:
+        logger.info(f"🔍 Getting active discovery flows for client: {context.client_account_id}")
+        
+        # Return empty flows for now - this will be populated when flows are actually running
+        return {
+            "success": True,
+            "message": "Active discovery flows retrieved successfully",
+            "flow_details": [],  # Empty for now - will be populated when flows are running
+            "total_flows": 0,
+            "active_flows": 0,
+            "completed_flows": 0,
+            "failed_flows": 0,
+            "timestamp": "2024-03-21T22:17:51Z"
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to get active discovery flows: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get active discovery flows: {str(e)}")
+
+@router.get("/flow/status")
+async def get_discovery_flow_status(
+    session_id: str = None,
+    context: RequestContext = Depends(get_current_context)
+) -> Dict[str, Any]:
+    """
+    Get discovery flow status (compatibility endpoint for Enhanced Discovery Dashboard).
+    
+    This endpoint provides compatibility with the Enhanced Discovery Dashboard
+    until it's updated to use the unified discovery endpoints.
+    """
+    try:
+        logger.info(f"🔍 Getting discovery flow status for session: {session_id}")
+        
+        # Return empty flow state for now
+        return {
+            "success": True,
+            "message": "Flow status retrieved successfully",
+            "flow_state": None,  # No active flow state for now
+            "timestamp": "2024-03-21T22:17:51Z"
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to get discovery flow status: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get discovery flow status: {str(e)}") 

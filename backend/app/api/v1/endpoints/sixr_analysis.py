@@ -24,8 +24,16 @@ from app.schemas.sixr_analysis import (
     SixRParameterBase, ApplicationType, SixRParameters, SixRRecommendation
 )
 from app.services.sixr_engine_modular import SixRDecisionEngine
-from app.services.crewai_flows.crews.technical_debt_crew import create_technical_debt_crew
 from app.services.tools.sixr_tools import get_sixr_tools
+
+# Conditional import for CrewAI technical debt crew
+try:
+    from app.services.crewai_flows.crews.technical_debt_crew import create_technical_debt_crew
+    TECHNICAL_DEBT_CREW_AVAILABLE = True
+except ImportError:
+    TECHNICAL_DEBT_CREW_AVAILABLE = False
+    def create_technical_debt_crew(*args, **kwargs):
+        return None
 from app.models.asset import Asset
 
 logger = logging.getLogger(__name__)
@@ -34,7 +42,10 @@ router = APIRouter()
 
 # Initialize services
 decision_engine = SixRDecisionEngine()
-logger.info("6R services initialized successfully (using CrewAI Technical Debt Crew)")
+if TECHNICAL_DEBT_CREW_AVAILABLE:
+    logger.info("6R services initialized successfully (using CrewAI Technical Debt Crew)")
+else:
+    logger.info("6R services initialized successfully (using fallback mode - CrewAI not available)")
 
 
 @router.post("/analyze", response_model=SixRAnalysisResponse)

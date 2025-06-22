@@ -13,10 +13,9 @@ from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
-from app.services.crewai_flows.discovery_flow import (
-    create_discovery_flow,
-    DiscoveryFlow,
-    DiscoveryFlowState,
+from app.services.crewai_flows.unified_discovery_flow import (
+    create_unified_discovery_flow,
+    UnifiedDiscoveryFlow,
     CREWAI_FLOW_AVAILABLE
 )
 
@@ -67,7 +66,7 @@ class CrewAIFlowService:
         self.service_available = CREWAI_FLOW_AVAILABLE
         
         # Active flows tracking
-        self._active_flows: Dict[str, DiscoveryFlow] = {}
+        self._active_flows: Dict[str, UnifiedDiscoveryFlow] = {}
         self._flow_creation_lock = asyncio.Lock()
         self._flow_registry: Dict[str, Dict[str, Any]] = {}
         
@@ -243,16 +242,16 @@ class CrewAIFlowService:
         cmdb_data: Dict[str, Any],
         metadata: Dict[str, Any],
         flow_id: str
-    ) -> DiscoveryFlow:
+    ) -> UnifiedDiscoveryFlow:
         """Create and execute the CrewAI Flow"""
         async with self._flow_creation_lock:
             # Create the CrewAI Flow using proper factory function
-            flow = create_discovery_flow(
+            flow = create_unified_discovery_flow(
                 session_id=session_id,
                 client_account_id=context.client_account_id,
                 engagement_id=context.engagement_id,
                 user_id=context.user_id or "anonymous",
-                cmdb_data=cmdb_data,
+                raw_data=cmdb_data.get("file_data", []),
                 metadata=metadata,
                 crewai_service=self,
                 context=context
@@ -266,7 +265,7 @@ class CrewAIFlowService:
             
             return flow
     
-    async def _run_workflow_background(self, flow: DiscoveryFlow, context: RequestContext):
+    async def _run_workflow_background(self, flow: UnifiedDiscoveryFlow, context: RequestContext):
         """Run workflow in background with proper error handling"""
         try:
             logger.info(f"🚀 Starting CrewAI Flow execution for session: {flow.state.session_id}")

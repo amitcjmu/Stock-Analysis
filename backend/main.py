@@ -295,6 +295,14 @@ try:
             # Context establishment endpoints - these are needed to establish context
             "/api/v1/context/clients",  # New dedicated context establishment endpoint
             "/api/v1/context/engagements",  # New dedicated context establishment endpoint
+            # Data import endpoints that need to work before context is established
+            "/api/v1/data-import/latest-import",  # Allow checking for existing data
+            "/api/v1/data-import/status",  # Allow checking import status
+            # Discovery flow status endpoints that may be called before context
+            "/api/v1/discovery/flow/active",  # Allow checking active flows
+            "/api/v1/discovery/flow/status",  # Allow checking flow status
+            "/api/v1/unified-discovery/flow/health",  # Allow health checks
+            "/api/v1/unified-discovery/flow/status",  # Allow flow status checks
             # Authentication endpoints - should not require context
             "/api/v1/auth/login",
             "/api/v1/auth/register",
