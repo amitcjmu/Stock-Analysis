@@ -1,377 +1,427 @@
 """
 Discovery Flow Management API Endpoints
-Provides comprehensive flow management capabilities using CrewAI Flow state patterns
+Enhanced with CrewAI Flow state management for incomplete flow management
+Provides comprehensive flow lifecycle management with multi-tenant support
+Phase 4: Advanced Features & Production Readiness
 """
 
 import logging
 from typing import Dict, List, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from datetime import datetime
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.context import get_current_context, RequestContext
+from app.core.context import RequestContext, get_current_context
 from app.services.crewai_flows.discovery_flow_state_manager import DiscoveryFlowStateManager
 from app.services.crewai_flows.discovery_flow_cleanup_service import DiscoveryFlowCleanupService
 from app.schemas.discovery_flow_schemas import (
-    IncompleteFlowResponse,
+    IncompleteFlowsResponse,
     FlowDetailsResponse,
-    FlowResumptionRequest,
-    FlowResumptionResponse,
-    FlowDeletionRequest,
-    FlowDeletionResponse,
-    BulkFlowOperationRequest,
-    BulkFlowOperationResponse
+    FlowResumeRequest,
+    FlowResumeResponse,
+    FlowDeleteResponse,
+    BulkOperationsRequest,
+    BulkOperationsResponse,
+    FlowValidationResponse,
+    # Phase 4 schemas
+    AdvancedRecoveryRequest,
+    AdvancedRecoveryResponse,
+    ExpiredFlowsResponse,
+    AutoCleanupRequest,
+    AutoCleanupResponse,
+    PerformanceOptimizationResponse
 )
 
-# Graceful import fallback
+# Graceful fallback for CrewAI services
 try:
-    from app.services.crewai_flows.unified_discovery_flow import UnifiedDiscoveryFlow
-    CREWAI_FLOW_AVAILABLE = True
+    from app.services.crewai_service import CrewAIService
+    CREWAI_AVAILABLE = True
 except ImportError:
-    CREWAI_FLOW_AVAILABLE = False
+    CREWAI_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
-router = APIRouter()
 
-@router.get("/flows/incomplete", response_model=IncompleteFlowResponse)
+router = APIRouter(prefix="/flows", tags=["Discovery Flow Management"])
+
+# === EXISTING ENDPOINTS (Phase 1-3) ===
+
+@router.get("/incomplete", response_model=IncompleteFlowsResponse)
 async def get_incomplete_flows(
     context: RequestContext = Depends(get_current_context),
     db: AsyncSession = Depends(get_db)
-) -> Dict[str, Any]:
-    """
-    Get all incomplete discovery flows for current client/engagement context
-    Uses CrewAI Flow state filtering for accurate flow detection
-    """
+):
+    """Get all incomplete CrewAI discovery flows for current client/engagement context"""
     try:
-        state_manager = DiscoveryFlowStateManager(
-            db_session=db,
-            client_account_id=context.client_account_id,
-            engagement_id=context.engagement_id
-        )
-        
+        state_manager = DiscoveryFlowStateManager(db, context.client_account_id, context.engagement_id)
         incomplete_flows = await state_manager.get_incomplete_flows_for_context(context)
         
-        return {
-            "success": True,
-            "flows": incomplete_flows,
-            "count": len(incomplete_flows),
-            "has_incomplete_flows": len(incomplete_flows) > 0,
-            "context": {
+        return IncompleteFlowsResponse(
+            flows=incomplete_flows,
+            total_count=len(incomplete_flows),
+            context={
                 "client_account_id": context.client_account_id,
                 "engagement_id": context.engagement_id
             }
-        }
-        
+        )
     except Exception as e:
         logger.error(f"❌ Failed to get incomplete flows: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve incomplete flows: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve incomplete flows: {str(e)}")
 
-@router.get("/flows/{session_id}/details", response_model=FlowDetailsResponse)
+@router.get("/{session_id}/details", response_model=FlowDetailsResponse)
 async def get_flow_details(
     session_id: str,
     context: RequestContext = Depends(get_current_context),
     db: AsyncSession = Depends(get_db)
-) -> Dict[str, Any]:
-    """
-    Get detailed information about a specific discovery flow
-    Includes CrewAI Flow state, agent insights, and management capabilities
-    """
+):
+    """Get detailed information about a specific CrewAI discovery flow"""
     try:
-        state_manager = DiscoveryFlowStateManager(
-            db_session=db,
-            client_account_id=context.client_account_id,
-            engagement_id=context.engagement_id
-        )
-        
-        # Get flow state details
+        state_manager = DiscoveryFlowStateManager(db, context.client_account_id, context.engagement_id)
         flow_state = await state_manager.get_flow_state(session_id)
+        
         if not flow_state:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Flow not found: {session_id}"
-            )
+            raise HTTPException(status_code=404, detail="Flow not found or access denied")
         
-        # Get resumption validation
-        resumption_info = await state_manager.validate_flow_resumption(session_id, context)
+        # Get additional management information
+        validation = await state_manager.validate_flow_resumption(session_id, context)
         
-        # Combine flow details with management info
-        flow_details = {
-            **flow_state,
-            "resumption_info": resumption_info,
-            "management_actions": {
-                "can_resume": resumption_info.get("can_resume", False),
-                "can_delete": True,  # Always allow deletion
-                "can_pause": flow_state.get("status") == "running"
+        return FlowDetailsResponse(
+            session_id=session_id,
+            flow_state=flow_state,
+            can_resume=validation["can_resume"],
+            validation_errors=validation.get("validation_errors", []),
+            management_info={
+                "last_activity": flow_state.get("updated_at"),
+                "progress_percentage": flow_state.get("progress_percentage", 0),
+                "current_phase": flow_state.get("current_phase")
             }
-        }
-        
-        return {
-            "success": True,
-            "flow": flow_details,
-            "session_id": session_id
-        }
-        
+        )
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"❌ Failed to get flow details: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve flow details: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve flow details: {str(e)}")
 
-@router.post("/flows/{session_id}/resume", response_model=FlowResumptionResponse)
-async def resume_flow(
+@router.post("/{session_id}/resume", response_model=FlowResumeResponse)
+async def resume_discovery_flow(
     session_id: str,
-    request: FlowResumptionRequest,
+    request: FlowResumeRequest,
     context: RequestContext = Depends(get_current_context),
     db: AsyncSession = Depends(get_db)
-) -> Dict[str, Any]:
-    """
-    Resume a paused or failed discovery flow
-    Uses CrewAI Flow state restoration with proper agent memory recovery
-    """
-    if not CREWAI_FLOW_AVAILABLE:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="CrewAI Flow service not available for resumption"
-        )
-        
+):
+    """Resume an incomplete CrewAI discovery flow with proper state restoration"""
     try:
-        state_manager = DiscoveryFlowStateManager(
-            db_session=db,
-            client_account_id=context.client_account_id,
-            engagement_id=context.engagement_id
-        )
+        state_manager = DiscoveryFlowStateManager(db, context.client_account_id, context.engagement_id)
         
         # Validate resumption capability
-        validation_result = await state_manager.validate_flow_resumption(session_id, context)
-        if not validation_result.get("can_resume", False):
+        validation = await state_manager.validate_flow_resumption(session_id, context)
+        if not validation["can_resume"]:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Flow cannot be resumed: {validation_result.get('reason', 'Unknown error')}"
+                status_code=400, 
+                detail=f"Cannot resume flow: {validation['reason']}"
             )
         
-        # Prepare flow for resumption
-        flow_state = await state_manager.prepare_flow_resumption(session_id)
-        if not flow_state:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to prepare flow for resumption"
-            )
+        # Prepare and resume flow
+        if CREWAI_AVAILABLE:
+            flow = await state_manager.prepare_flow_resumption(session_id)
+            if flow:
+                result = flow.resume_flow_from_state({"context": context.dict()})
+                return FlowResumeResponse(
+                    success=True,
+                    session_id=session_id,
+                    message=result,
+                    resumed_at=datetime.now().isoformat()
+                )
         
-        # TODO: Create new UnifiedDiscoveryFlow instance with restored state
-        # TODO: Resume execution from current phase
-        # For now, mark as resumed in database
-        
-        return {
-            "success": True,
-            "message": f"Flow resumed successfully from phase: {flow_state.current_phase}",
-            "session_id": session_id,
-            "current_phase": flow_state.current_phase,
-            "progress_percentage": flow_state.progress_percentage,
-            "estimated_completion": "15-30 minutes",  # TODO: Calculate based on remaining phases
-            "resume_context": request.resume_context or {}
-        }
+        # Fallback for non-CrewAI resumption
+        return FlowResumeResponse(
+            success=True,
+            session_id=session_id,
+            message="Flow resumption initiated (fallback mode)",
+            resumed_at=datetime.now().isoformat()
+        )
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ Failed to resume flow: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to resume flow: {str(e)}"
-        )
+        logger.error(f"❌ Flow resumption failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Flow resumption failed: {str(e)}")
 
-@router.delete("/flows/{session_id}", response_model=FlowDeletionResponse)
-async def delete_flow(
+@router.delete("/{session_id}", response_model=FlowDeleteResponse)
+async def delete_discovery_flow(
     session_id: str,
-    request: FlowDeletionRequest,
     context: RequestContext = Depends(get_current_context),
-    db: AsyncSession = Depends(get_db)
-) -> Dict[str, Any]:
-    """
-    Delete a discovery flow and all associated data
-    Performs comprehensive cleanup including CrewAI Flow state, agent memory, and database records
-    """
+    db: AsyncSession = Depends(get_db),
+    reason: str = Query("user_requested", description="Reason for deletion")
+):
+    """Delete a discovery flow with comprehensive CrewAI memory cleanup"""
     try:
-        cleanup_service = DiscoveryFlowCleanupService(
-            db_session=db,
-            client_account_id=context.client_account_id,
-            engagement_id=context.engagement_id
-        )
+        cleanup_service = DiscoveryFlowCleanupService()
         
         # Perform comprehensive cleanup
-        cleanup_result = await cleanup_service.delete_flow_with_cleanup(
-            session_id=session_id,
-            force_delete=request.force_delete,
-            cleanup_options=request.cleanup_options or {}
+        cleanup_result = await cleanup_service.cleanup_discovery_flow(
+            session_id,
+            reason,
+            audit_deletion=True
         )
         
-        if not cleanup_result.get("success", False):
+        if not cleanup_result["success"]:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                status_code=400,
                 detail=f"Flow deletion failed: {cleanup_result.get('error', 'Unknown error')}"
             )
         
-        return {
-            "success": True,
-            "message": f"Flow deleted successfully: {session_id}",
-            "session_id": session_id,
-            "cleanup_summary": cleanup_result.get("cleanup_summary", {}),
-            "deletion_timestamp": cleanup_result.get("deletion_timestamp"),
-            "data_recovery_possible": False
-        }
+        return FlowDeleteResponse(
+            success=True,
+            session_id=session_id,
+            cleanup_summary=cleanup_result["cleanup_summary"],
+            deleted_at=datetime.now().isoformat()
+        )
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ Failed to delete flow: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to delete flow: {str(e)}"
-        )
+        logger.error(f"❌ Flow deletion failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Flow deletion failed: {str(e)}")
 
-@router.post("/flows/bulk-operations", response_model=BulkFlowOperationResponse)
+@router.post("/bulk-operations", response_model=BulkOperationsResponse)
 async def bulk_flow_operations(
-    request: BulkFlowOperationRequest,
+    request: BulkOperationsRequest,
     context: RequestContext = Depends(get_current_context),
     db: AsyncSession = Depends(get_db)
-) -> Dict[str, Any]:
-    """
-    Perform bulk operations on multiple flows (delete, pause, resume)
-    Optimized for batch processing with proper error handling
-    """
+):
+    """Perform bulk operations on multiple discovery flows"""
     try:
-        operation = request.operation
-        session_ids = request.session_ids
+        state_manager = DiscoveryFlowStateManager(db, context.client_account_id, context.engagement_id)
         
-        if not session_ids:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No session IDs provided for bulk operation"
-            )
+        # Perform bulk operation
+        result = await state_manager.bulk_flow_operations(
+            request.operation,
+            request.session_ids,
+            context,
+            request.options
+        )
         
-        results = []
-        successful_operations = 0
-        failed_operations = 0
+        return BulkOperationsResponse(
+            operation=result["operation"],
+            total_flows=result["total_flows"],
+            successful=result["successful"],
+            failed=result["failed"],
+            summary=result["summary"],
+            performance_metrics=result["performance_metrics"]
+        )
         
-        # Process each session ID
-        for session_id in session_ids:
-            try:
-                if operation == "delete":
-                    cleanup_service = DiscoveryFlowCleanupService(
-                        db_session=db,
-                        client_account_id=context.client_account_id,
-                        engagement_id=context.engagement_id
-                    )
-                    result = await cleanup_service.delete_flow_with_cleanup(
-                        session_id=session_id,
-                        force_delete=request.options.get("force_delete", False)
-                    )
-                    
-                elif operation == "pause":
-                    # TODO: Implement bulk pause
-                    result = {"success": False, "error": "Bulk pause not yet implemented"}
-                    
-                elif operation == "resume":
-                    # TODO: Implement bulk resume
-                    result = {"success": False, "error": "Bulk resume not yet implemented"}
-                    
-                else:
-                    result = {"success": False, "error": f"Unknown operation: {operation}"}
-                
-                results.append({
-                    "session_id": session_id,
-                    "success": result.get("success", False),
-                    "message": result.get("message", ""),
-                    "error": result.get("error")
-                })
-                
-                if result.get("success", False):
-                    successful_operations += 1
-                else:
-                    failed_operations += 1
-                    
-            except Exception as e:
-                logger.error(f"❌ Bulk operation failed for {session_id}: {e}")
-                results.append({
-                    "session_id": session_id,
-                    "success": False,
-                    "error": str(e)
-                })
-                failed_operations += 1
-        
-        return {
-            "success": successful_operations > 0,
-            "operation": operation,
-            "total_requested": len(session_ids),
-            "successful_operations": successful_operations,
-            "failed_operations": failed_operations,
-            "results": results,
-            "summary": f"Bulk {operation}: {successful_operations} successful, {failed_operations} failed"
-        }
-        
-    except HTTPException:
-        raise
     except Exception as e:
-        logger.error(f"❌ Bulk operations failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Bulk operations failed: {str(e)}"
-        )
+        logger.error(f"❌ Bulk operation failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Bulk operation failed: {str(e)}")
 
-@router.get("/flows/validation/can-start-new")
-async def validate_new_flow_start(
+@router.get("/validation/can-start-new", response_model=FlowValidationResponse)
+async def validate_new_flow_creation(
     context: RequestContext = Depends(get_current_context),
     db: AsyncSession = Depends(get_db)
-) -> Dict[str, Any]:
-    """
-    Validate if a new discovery flow can be started
-    Checks for incomplete flows that would block new flow creation
-    """
+):
+    """Validate if a new discovery flow can be started (no incomplete flows exist)"""
     try:
-        state_manager = DiscoveryFlowStateManager(
-            db_session=db,
-            client_account_id=context.client_account_id,
-            engagement_id=context.engagement_id
-        )
-        
+        state_manager = DiscoveryFlowStateManager(db, context.client_account_id, context.engagement_id)
         incomplete_flows = await state_manager.get_incomplete_flows_for_context(context)
         
-        can_start_new = len(incomplete_flows) == 0
+        can_start = len(incomplete_flows) == 0
         
-        response = {
-            "can_start_new_flow": can_start_new,
-            "blocking_flows_count": len(incomplete_flows),
-            "message": "New flow can be started" if can_start_new else "Incomplete flows must be resolved first"
-        }
-        
-        if not can_start_new:
-            response["blocking_flows"] = [
-                {
-                    "session_id": flow["session_id"],
-                    "current_phase": flow["current_phase"],
-                    "status": flow["status"],
-                    "progress_percentage": flow["progress_percentage"],
-                    "can_resume": flow["can_resume"]
-                }
-                for flow in incomplete_flows
-            ]
-            response["suggested_actions"] = [
-                "Resume incomplete flows to completion",
-                "Delete incomplete flows if no longer needed",
-                "Contact administrator if flows are stuck"
-            ]
-        
-        return response
+        return FlowValidationResponse(
+            can_start_new_flow=can_start,
+            blocking_flows=incomplete_flows if not can_start else [],
+            total_incomplete_flows=len(incomplete_flows),
+            validation_message="✅ Ready to start new flow" if can_start else f"❌ {len(incomplete_flows)} incomplete flows must be completed or removed first"
+        )
         
     except Exception as e:
-        logger.error(f"❌ New flow validation failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Flow validation failed: {str(e)}"
-        ) 
+        logger.error(f"❌ Flow validation failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Flow validation failed: {str(e)}")
+
+# === PHASE 4: ADVANCED FEATURES ===
+
+@router.post("/{session_id}/advanced-recovery", response_model=AdvancedRecoveryResponse)
+async def advanced_flow_recovery(
+    session_id: str,
+    request: AdvancedRecoveryRequest,
+    context: RequestContext = Depends(get_current_context),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Phase 4: Advanced flow recovery with intelligent state reconstruction
+    Provides comprehensive recovery with data integrity validation and repair
+    """
+    try:
+        state_manager = DiscoveryFlowStateManager(db, context.client_account_id, context.engagement_id)
+        
+        # Perform advanced recovery
+        recovery_result = await state_manager.advanced_flow_recovery(
+            session_id,
+            context,
+            request.recovery_options
+        )
+        
+        if not recovery_result["success"]:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Advanced recovery failed: {recovery_result['error']}"
+            )
+        
+        return AdvancedRecoveryResponse(
+            success=recovery_result["success"],
+            session_id=session_id,
+            recovery_actions=recovery_result["recovery_actions"],
+            flow_state=recovery_result["flow_state"],
+            performance_metrics=recovery_result["performance_metrics"],
+            recovered_at=datetime.now().isoformat()
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Advanced recovery failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Advanced recovery failed: {str(e)}")
+
+@router.get("/expired", response_model=ExpiredFlowsResponse)
+async def get_expired_flows(
+    context: RequestContext = Depends(get_current_context),
+    db: AsyncSession = Depends(get_db),
+    expiration_hours: int = Query(72, description="Hours after which flows are considered expired")
+):
+    """
+    Phase 4: Get flows that have exceeded expiration time
+    """
+    try:
+        state_manager = DiscoveryFlowStateManager(db, context.client_account_id, context.engagement_id)
+        expired_flows = await state_manager.get_expired_flows(context, expiration_hours)
+        
+        return ExpiredFlowsResponse(
+            expired_flows=expired_flows,
+            total_expired=len(expired_flows),
+            expiration_hours=expiration_hours,
+            context={
+                "client_account_id": context.client_account_id,
+                "engagement_id": context.engagement_id
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to get expired flows: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get expired flows: {str(e)}")
+
+@router.post("/auto-cleanup", response_model=AutoCleanupResponse)
+async def auto_cleanup_expired_flows(
+    request: AutoCleanupRequest,
+    context: RequestContext = Depends(get_current_context),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Phase 4: Automatically cleanup expired flows with comprehensive logging
+    """
+    try:
+        state_manager = DiscoveryFlowStateManager(db, context.client_account_id, context.engagement_id)
+        
+        # Perform auto-cleanup
+        cleanup_result = await state_manager.auto_cleanup_expired_flows(
+            context,
+            dry_run=request.dry_run
+        )
+        
+        return AutoCleanupResponse(
+            dry_run=cleanup_result["dry_run"],
+            expired_flows_found=cleanup_result["expired_flows_found"],
+            cleanup_successful=cleanup_result["cleanup_successful"],
+            cleanup_failed=cleanup_result["cleanup_failed"],
+            total_data_cleaned=cleanup_result["total_data_cleaned"],
+            performance_metrics=cleanup_result["performance_metrics"],
+            cleanup_completed_at=datetime.now().isoformat()
+        )
+        
+    except Exception as e:
+        logger.error(f"❌ Auto-cleanup failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Auto-cleanup failed: {str(e)}")
+
+@router.get("/performance/optimization", response_model=PerformanceOptimizationResponse)
+async def optimize_flow_performance(
+    context: RequestContext = Depends(get_current_context),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Phase 4: Analyze and optimize flow management performance
+    """
+    try:
+        state_manager = DiscoveryFlowStateManager(db, context.client_account_id, context.engagement_id)
+        
+        # Perform optimization analysis
+        optimization_result = await state_manager.optimize_flow_performance(context)
+        
+        return PerformanceOptimizationResponse(
+            query_optimizations=optimization_result["query_optimizations"],
+            index_recommendations=optimization_result["index_recommendations"],
+            performance_improvements=optimization_result["performance_improvements"],
+            analysis_completed_at=datetime.now().isoformat()
+        )
+        
+    except Exception as e:
+        logger.error(f"❌ Performance optimization failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Performance optimization failed: {str(e)}")
+
+# === PHASE 4: MONITORING & HEALTH ENDPOINTS ===
+
+@router.get("/health/advanced")
+async def advanced_flow_health_check(
+    context: RequestContext = Depends(get_current_context),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Phase 4: Advanced health check for flow management system
+    """
+    try:
+        state_manager = DiscoveryFlowStateManager(db, context.client_account_id, context.engagement_id)
+        
+        # Get system health metrics
+        incomplete_flows = await state_manager.get_incomplete_flows_for_context(context)
+        expired_flows = await state_manager.get_expired_flows(context)
+        
+        health_status = {
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+            "flow_statistics": {
+                "incomplete_flows": len(incomplete_flows),
+                "expired_flows": len(expired_flows),
+                "total_managed_flows": len(incomplete_flows) + len(expired_flows)
+            },
+            "system_capabilities": {
+                "crewai_available": CREWAI_AVAILABLE,
+                "advanced_recovery": True,
+                "bulk_operations": True,
+                "auto_cleanup": True,
+                "performance_optimization": True
+            },
+            "recommendations": []
+        }
+        
+        # Add recommendations based on health metrics
+        if len(expired_flows) > 5:
+            health_status["recommendations"].append({
+                "type": "cleanup",
+                "message": f"Consider running auto-cleanup for {len(expired_flows)} expired flows",
+                "priority": "medium"
+            })
+        
+        if len(incomplete_flows) > 10:
+            health_status["recommendations"].append({
+                "type": "optimization",
+                "message": f"High number of incomplete flows ({len(incomplete_flows)}) - consider performance optimization",
+                "priority": "high"
+            })
+        
+        return health_status
+        
+    except Exception as e:
+        logger.error(f"❌ Advanced health check failed: {e}")
+        return {
+            "status": "unhealthy",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        } 

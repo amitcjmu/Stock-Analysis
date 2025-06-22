@@ -1,258 +1,306 @@
 """
 Discovery Flow Management Schemas
-Pydantic schemas for flow management API endpoints
+Enhanced Pydantic models for CrewAI Flow state management and flow lifecycle operations
+Provides comprehensive validation and type safety for flow management APIs
+Phase 4: Advanced Features & Production Readiness
 """
 
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Union
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
+from enum import Enum
 
-# ========================================
-# REQUEST SCHEMAS
-# ========================================
+# === ENUMS ===
 
-class FlowResumptionRequest(BaseModel):
-    """Request schema for flow resumption"""
-    resume_context: Optional[Dict[str, Any]] = Field(
-        default=None,
-        description="Additional context for flow resumption"
-    )
-    validate_state: bool = Field(
-        default=True,
-        description="Whether to validate flow state before resumption"
-    )
-    restore_agent_memory: bool = Field(
-        default=True,
-        description="Whether to restore agent memory during resumption"
-    )
+class FlowStatus(str, Enum):
+    """Flow status enumeration"""
+    RUNNING = "running"
+    PAUSED = "paused"
+    FAILED = "failed"
+    COMPLETED = "completed"
+    ARCHIVED = "archived"
 
-class FlowDeletionRequest(BaseModel):
-    """Request schema for flow deletion"""
-    force_delete: bool = Field(
-        default=False,
-        description="Force deletion even if flow is running"
-    )
-    cleanup_options: Optional[Dict[str, Any]] = Field(
-        default=None,
-        description="Options for cleanup process"
-    )
-    reason: Optional[str] = Field(
-        default="user_requested",
-        description="Reason for deletion"
-    )
+class FlowPhase(str, Enum):
+    """Flow phase enumeration"""
+    FIELD_MAPPING = "field_mapping"
+    DATA_CLEANSING = "data_cleansing"
+    ASSET_INVENTORY = "asset_inventory"
+    DEPENDENCY_ANALYSIS = "dependency_analysis"
+    TECH_DEBT = "tech_debt"
 
-class BulkFlowOperationRequest(BaseModel):
-    """Request schema for bulk flow operations"""
-    operation: str = Field(
-        description="Operation to perform: 'delete', 'pause', or 'resume'"
-    )
-    session_ids: List[str] = Field(
-        description="List of session IDs to operate on"
-    )
-    options: Optional[Dict[str, Any]] = Field(
-        default=None,
-        description="Options for bulk operation"
-    )
+class BulkOperation(str, Enum):
+    """Bulk operation types"""
+    DELETE = "delete"
+    PAUSE = "pause"
+    RESUME = "resume"
+    ARCHIVE = "archive"
 
-# ========================================
-# RESPONSE SCHEMAS
-# ========================================
-
-class FlowInfo(BaseModel):
-    """Basic flow information"""
-    session_id: str
-    flow_id: str
-    current_phase: str
-    status: str
-    progress_percentage: float
-    phase_completion: Dict[str, bool]
-    crew_status: Dict[str, Any]
-    created_at: str
-    updated_at: str
-    started_at: Optional[str] = None
-    
-    # CrewAI Flow specific data
-    agent_insights: List[Dict[str, Any]]
-    success_criteria: Dict[str, Any]
-    errors: List[Dict[str, Any]]
-    warnings: List[Dict[str, Any]]
-    
-    # Flow management capabilities
-    can_resume: bool
-    deletion_impact: Dict[str, Any]
-    
-    # Database integration status
-    database_assets_created: List[str]
-    database_integration_status: str
-
-class IncompleteFlowResponse(BaseModel):
-    """Response schema for incomplete flows endpoint"""
-    success: bool
-    flows: List[FlowInfo]
-    count: int
-    has_incomplete_flows: bool
-    context: Dict[str, Any]
-
-class FlowDetailsResponse(BaseModel):
-    """Response schema for flow details endpoint"""
-    success: bool
-    flow: Dict[str, Any]  # Extended FlowInfo with additional details
-    session_id: str
-
-class FlowResumptionResponse(BaseModel):
-    """Response schema for flow resumption"""
-    success: bool
-    message: str
-    session_id: str
-    current_phase: str
-    progress_percentage: float
-    estimated_completion: str
-    resume_context: Dict[str, Any]
-
-class FlowDeletionResponse(BaseModel):
-    """Response schema for flow deletion"""
-    success: bool
-    message: str
-    session_id: str
-    cleanup_summary: Dict[str, Any]
-    deletion_timestamp: str
-    data_recovery_possible: bool
-
-class BulkOperationResult(BaseModel):
-    """Result for individual bulk operation"""
-    session_id: str
-    success: bool
-    message: Optional[str] = None
-    error: Optional[str] = None
-
-class BulkFlowOperationResponse(BaseModel):
-    """Response schema for bulk flow operations"""
-    success: bool
-    operation: str
-    total_requested: int
-    successful_operations: int
-    failed_operations: int
-    results: List[BulkOperationResult]
-    summary: str
-
-# ========================================
-# VALIDATION SCHEMAS
-# ========================================
-
-class FlowValidationResult(BaseModel):
-    """Flow validation result"""
-    can_resume: bool
-    reason: str
-    validation_errors: List[str]
-    current_phase: Optional[str] = None
-    progress_percentage: Optional[float] = None
-    last_activity: Optional[str] = None
-
-class NewFlowValidationResponse(BaseModel):
-    """Response for new flow validation"""
-    can_start_new_flow: bool
-    blocking_flows_count: int
-    message: str
-    blocking_flows: Optional[List[Dict[str, Any]]] = None
-    suggested_actions: Optional[List[str]] = None
-
-# ========================================
-# MANAGEMENT SCHEMAS
-# ========================================
-
-class FlowManagementInfo(BaseModel):
-    """Comprehensive flow management information"""
-    session_id: str
-    flow_id: str
-    current_phase: str
-    status: str
-    progress_percentage: float
-    phase_completion: Dict[str, bool]
-    can_resume: bool
-    deletion_impact: Dict[str, Any]
-    agent_insights: List[Dict[str, Any]]
-    recent_errors: List[Dict[str, Any]]
-    recent_warnings: List[Dict[str, Any]]
-    created_at: str
-    updated_at: str
-    estimated_remaining_time: str
-    crew_status: Dict[str, Any]
-    database_integration_status: str
-
-class CleanupImpactAnalysis(BaseModel):
-    """Analysis of cleanup impact for flow deletion"""
-    session_id: str
-    flow_phase: str
-    progress_percentage: float
-    status: str
-    data_to_delete: Dict[str, int]
-    estimated_cleanup_time: str
-    data_recovery_possible: bool
-    warnings: List[str]
-    recommendations: List[str]
-
-# ========================================
-# AUDIT SCHEMAS
-# ========================================
-
-class FlowDeletionAuditRecord(BaseModel):
-    """Audit record for flow deletion"""
-    session_id: str
-    client_account_id: str
-    engagement_id: str
-    flow_id: str
-    deleted_at: datetime
-    deletion_reason: str
-    force_delete: bool
-    flow_state_snapshot: Dict[str, Any]
-    cleanup_options: Dict[str, Any]
-    user_id: Optional[str] = None
-    admin_action: bool = False
-
-# ========================================
-# ERROR SCHEMAS
-# ========================================
-
-class FlowManagementError(BaseModel):
-    """Error response for flow management operations"""
-    success: bool = False
-    error: str
-    error_code: Optional[str] = None
-    details: Optional[Dict[str, Any]] = None
-    session_id: Optional[str] = None
-    timestamp: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
-
-# ========================================
-# CONTEXT SCHEMAS
-# ========================================
+# === BASE MODELS ===
 
 class FlowContext(BaseModel):
     """Flow context information"""
     client_account_id: str
     engagement_id: str
-    user_id: Optional[str] = None
-    session_id: str
-    flow_id: str
 
-class FlowStateSnapshot(BaseModel):
-    """Snapshot of flow state for audit/backup purposes"""
+class FlowInfo(BaseModel):
+    """Basic flow information"""
     session_id: str
-    flow_id: str
-    current_phase: str
-    status: str
-    progress_percentage: float
-    phase_completion: Dict[str, bool]
-    crew_status: Dict[str, Any]
-    field_mappings: Dict[str, Any]
-    cleaned_data: List[Dict[str, Any]]
-    asset_inventory: Dict[str, Any]
-    dependencies: Dict[str, Any]
-    technical_debt: Dict[str, Any]
-    agent_insights: List[Dict[str, Any]]
-    errors: List[Dict[str, Any]]
-    warnings: List[Dict[str, Any]]
-    workflow_log: List[Dict[str, Any]]
-    database_assets_created: List[str]
-    shared_memory_id: str
+    flow_id: Optional[str] = None
+    current_phase: FlowPhase
+    status: FlowStatus
+    progress_percentage: float = Field(ge=0, le=100)
     created_at: str
-    updated_at: str 
+    updated_at: str
+    started_at: Optional[str] = None
+
+class FlowManagementInfo(BaseModel):
+    """Flow management capabilities"""
+    can_resume: bool
+    deletion_impact: Dict[str, Any] = Field(default_factory=dict)
+    last_activity: Optional[str] = None
+    days_since_activity: Optional[int] = None
+
+# === EXISTING SCHEMAS (Phase 1-3) ===
+
+class IncompleteFlowsResponse(BaseModel):
+    """Response for incomplete flows query"""
+    flows: List[Dict[str, Any]]
+    total_count: int
+    context: FlowContext
+
+class FlowDetailsResponse(BaseModel):
+    """Response for flow details query"""
+    session_id: str
+    flow_state: Dict[str, Any]
+    can_resume: bool
+    validation_errors: List[str] = Field(default_factory=list)
+    management_info: Dict[str, Any]
+
+class FlowResumeRequest(BaseModel):
+    """Request to resume a flow"""
+    resume_context: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    force_resume: bool = False
+
+class FlowResumeResponse(BaseModel):
+    """Response for flow resumption"""
+    success: bool
+    session_id: str
+    message: str
+    resumed_at: str
+
+class FlowDeleteResponse(BaseModel):
+    """Response for flow deletion"""
+    success: bool
+    session_id: str
+    cleanup_summary: Dict[str, Any]
+    deleted_at: str
+
+class BulkOperationsRequest(BaseModel):
+    """Request for bulk operations"""
+    operation: BulkOperation
+    session_ids: List[str] = Field(min_items=1)
+    options: Optional[Dict[str, Any]] = Field(default_factory=dict)
+
+class BulkOperationResult(BaseModel):
+    """Result for individual bulk operation"""
+    session_id: str
+    result: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
+
+class BulkOperationsResponse(BaseModel):
+    """Response for bulk operations"""
+    operation: BulkOperation
+    total_flows: int
+    successful: List[BulkOperationResult]
+    failed: List[BulkOperationResult]
+    summary: Dict[str, Any]
+    performance_metrics: Dict[str, Any]
+
+class FlowValidationResponse(BaseModel):
+    """Response for flow validation"""
+    can_start_new_flow: bool
+    blocking_flows: List[Dict[str, Any]] = Field(default_factory=list)
+    total_incomplete_flows: int
+    validation_message: str
+
+# === PHASE 4: ADVANCED SCHEMAS ===
+
+class RecoveryOptions(BaseModel):
+    """Advanced recovery options"""
+    repair_corrupted_state: bool = True
+    reconstruct_agent_memory: bool = True
+    validate_data_consistency: bool = True
+    optimize_for_resumption: bool = True
+
+class AdvancedRecoveryRequest(BaseModel):
+    """Request for advanced flow recovery"""
+    recovery_options: RecoveryOptions = Field(default_factory=RecoveryOptions)
+
+class RecoveryAction(BaseModel):
+    """Individual recovery action"""
+    action_type: str
+    description: str
+    success: bool
+    details: Optional[Dict[str, Any]] = None
+
+class PerformanceMetrics(BaseModel):
+    """Performance metrics"""
+    recovery_time_ms: float = 0
+    data_integrity_score: float = Field(ge=0, le=100, default=100)
+    agent_memory_completeness: float = Field(ge=0, le=100, default=100)
+
+class AdvancedRecoveryResponse(BaseModel):
+    """Response for advanced flow recovery"""
+    success: bool
+    session_id: str
+    recovery_actions: List[str]
+    flow_state: Dict[str, Any]
+    performance_metrics: PerformanceMetrics
+    recovered_at: str
+
+class ExpiredFlow(BaseModel):
+    """Expired flow information"""
+    session_id: str
+    current_phase: FlowPhase
+    status: FlowStatus
+    last_activity: str
+    days_since_activity: int
+    auto_cleanup_eligible: bool = True
+    deletion_impact: Dict[str, Any] = Field(default_factory=dict)
+
+class ExpiredFlowsResponse(BaseModel):
+    """Response for expired flows query"""
+    expired_flows: List[ExpiredFlow]
+    total_expired: int
+    expiration_hours: int
+    context: FlowContext
+
+class AutoCleanupRequest(BaseModel):
+    """Request for auto-cleanup of expired flows"""
+    dry_run: bool = True
+    expiration_hours: Optional[int] = None
+    force_cleanup: bool = False
+
+class CleanupMetrics(BaseModel):
+    """Cleanup performance metrics"""
+    total_duration_ms: float
+    flows_per_second: float
+
+class DataCleanedSummary(BaseModel):
+    """Summary of data cleaned during auto-cleanup"""
+    flows_deleted: int = 0
+    assets_cleaned: int = 0
+    memory_freed_mb: float = 0
+
+class AutoCleanupResponse(BaseModel):
+    """Response for auto-cleanup operation"""
+    dry_run: bool
+    expired_flows_found: int
+    cleanup_successful: List[str] = Field(default_factory=list)
+    cleanup_failed: List[str] = Field(default_factory=list)
+    total_data_cleaned: DataCleanedSummary
+    performance_metrics: CleanupMetrics
+    cleanup_completed_at: str
+
+class QueryOptimization(BaseModel):
+    """Query optimization recommendation"""
+    type: str
+    description: str
+    recommendation: str
+    priority: Optional[str] = "medium"
+
+class IndexRecommendation(BaseModel):
+    """Database index recommendation"""
+    type: str
+    table: str
+    columns: List[str]
+    reason: str
+    priority: str = "medium"
+
+class PerformanceImprovement(BaseModel):
+    """Performance improvement metrics"""
+    incomplete_flow_query_ms: float = 0
+    flows_found: int = 0
+    state_update_ms: Optional[float] = None
+
+class PerformanceOptimizationResponse(BaseModel):
+    """Response for performance optimization analysis"""
+    query_optimizations: List[QueryOptimization] = Field(default_factory=list)
+    index_recommendations: List[IndexRecommendation] = Field(default_factory=list)
+    performance_improvements: Dict[str, Any] = Field(default_factory=dict)
+    analysis_completed_at: str
+
+# === PHASE 4: MONITORING SCHEMAS ===
+
+class SystemCapabilities(BaseModel):
+    """System capabilities status"""
+    crewai_available: bool
+    advanced_recovery: bool = True
+    bulk_operations: bool = True
+    auto_cleanup: bool = True
+    performance_optimization: bool = True
+
+class HealthRecommendation(BaseModel):
+    """Health check recommendation"""
+    type: str
+    message: str
+    priority: str = "medium"
+
+class FlowStatistics(BaseModel):
+    """Flow management statistics"""
+    incomplete_flows: int = 0
+    expired_flows: int = 0
+    total_managed_flows: int = 0
+
+class AdvancedHealthResponse(BaseModel):
+    """Advanced health check response"""
+    status: str
+    timestamp: str
+    flow_statistics: FlowStatistics
+    system_capabilities: SystemCapabilities
+    recommendations: List[HealthRecommendation] = Field(default_factory=list)
+
+# === VALIDATION HELPERS ===
+
+class FlowValidationError(BaseModel):
+    """Flow validation error"""
+    field: str
+    message: str
+    code: str
+
+class FlowContextValidation(BaseModel):
+    """Flow context validation"""
+    valid: bool
+    errors: List[FlowValidationError] = Field(default_factory=list)
+
+# === AUDIT SCHEMAS ===
+
+class FlowAuditEntry(BaseModel):
+    """Flow audit entry"""
+    session_id: str
+    action: str
+    user_id: str
+    timestamp: str
+    details: Dict[str, Any] = Field(default_factory=dict)
+
+class FlowAuditResponse(BaseModel):
+    """Flow audit response"""
+    entries: List[FlowAuditEntry]
+    total_entries: int
+    page: int = 1
+    page_size: int = 50
+
+# === ERROR SCHEMAS ===
+
+class FlowManagementError(BaseModel):
+    """Flow management error"""
+    error_code: str
+    message: str
+    details: Optional[Dict[str, Any]] = None
+    timestamp: str
+    session_id: Optional[str] = None
+
+class ErrorResponse(BaseModel):
+    """Generic error response"""
+    success: bool = False
+    error: FlowManagementError 

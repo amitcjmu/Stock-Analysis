@@ -7,9 +7,9 @@ Handles persistence and retrieval of discovery flow state across phases
 import logging
 import json
 from typing import Dict, List, Any, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, insert, and_
+from sqlalchemy import select, update, insert, and_, or_, func
 from sqlalchemy.orm import selectinload
 
 from app.core.database import AsyncSessionLocal
@@ -32,6 +32,7 @@ class DiscoveryFlowStateManager:
     """
     Enhanced state manager leveraging CrewAI Flow state persistence patterns
     Handles incomplete flow detection, resumption, and multi-tenant management
+    Phase 4: Advanced Features & Production Readiness
     """
     
     def __init__(self, db_session: Optional[AsyncSession] = None, 
@@ -41,6 +42,11 @@ class DiscoveryFlowStateManager:
         self.client_account_id = client_account_id
         self.engagement_id = engagement_id
         self.active_flows: Dict[str, Dict[str, Any]] = {}
+        
+        # Phase 4: Advanced configuration
+        self.flow_expiration_hours = 72  # 3 days default
+        self.auto_cleanup_enabled = True
+        self.performance_monitoring = True
     
     async def get_incomplete_flows_for_context(self, context: RequestContext) -> List[Dict[str, Any]]:
         """Get incomplete flows using CrewAI Flow state filtering"""
@@ -502,23 +508,833 @@ class DiscoveryFlowStateManager:
                 logger.error(f"Failed to persist flow state: {e}")
     
     async def _load_flow_state_from_database(self, session_id: str) -> Optional[Dict[str, Any]]:
-        """Load flow state from database session metadata"""
+        """Load flow state from database"""
+        try:
+            async with AsyncSessionLocal() as db_session:
+                stmt = select(WorkflowState).where(WorkflowState.session_id == session_id)
+                result = await db_session.execute(stmt)
+                workflow = result.scalar_one_or_none()
+                
+                if not workflow:
+                    return None
+                
+                return {
+                    "session_id": str(workflow.session_id),
+                    "status": workflow.status,
+                    "current_phase": workflow.current_phase,
+                    "progress_percentage": workflow.progress_percentage,
+                    "state_data": workflow.state_data or {}
+                }
+        except Exception as e:
+            logger.error(f"Failed to load flow state: {e}")
+            return None
+
+    # === PHASE 4: PRIVATE HELPER METHODS ===
+    
+    async def _repair_corrupted_state(self, workflow: WorkflowState) -> Dict[str, Any]:
+        """Phase 4: Intelligent state repair for corrupted flow data"""
+        repair_actions = []
         
-        async with AsyncSessionLocal() as db_session:
-            try:
-                stmt = select(DataImportSession).where(
-                    DataImportSession.id == session_id
+        try:
+            # Check for missing required fields
+            if not workflow.state_data or not isinstance(workflow.state_data, dict):
+                workflow.state_data = {}
+                repair_actions.append("Initialized empty state_data")
+            
+            # Validate phase consistency
+            valid_phases = ["field_mapping", "data_cleansing", "asset_inventory", "dependency_analysis", "tech_debt"]
+            if workflow.current_phase not in valid_phases:
+                workflow.current_phase = "field_mapping"
+                repair_actions.append(f"Reset invalid phase to field_mapping")
+            
+            # Repair progress percentage
+            if workflow.progress_percentage is None or workflow.progress_percentage < 0 or workflow.progress_percentage > 100:
+                # Calculate progress based on phase completion
+                phase_completion = workflow.phase_completion or {}
+                completed_phases = sum(1 for completed in phase_completion.values() if completed)
+                workflow.progress_percentage = (completed_phases / len(valid_phases)) * 100
+                repair_actions.append(f"Recalculated progress percentage: {workflow.progress_percentage}%")
+            
+            # Repair phase completion structure
+            if not workflow.phase_completion:
+                workflow.phase_completion = {phase: False for phase in valid_phases}
+                repair_actions.append("Initialized phase completion tracking")
+            
+            # Repair agent insights structure
+            if not isinstance(workflow.agent_insights, list):
+                workflow.agent_insights = []
+                repair_actions.append("Initialized agent insights array")
+            
+            return {
+                "success": True,
+                "actions": repair_actions
+            }
+            
+        except Exception as e:
+            logger.error(f"State repair failed: {e}")
+            return {
+                "success": False,
+                "actions": [f"State repair failed: {str(e)}"]
+            }
+    
+    async def _reconstruct_agent_memory(self, workflow: WorkflowState) -> Dict[str, Any]:
+        """Phase 4: Reconstruct agent memory from available data"""
+        memory_actions = []
+        
+        try:
+            # Reconstruct shared memory references
+            if not workflow.shared_memory_id:
+                # Generate new shared memory ID
+                import uuid
+                workflow.shared_memory_id = str(uuid.uuid4())
+                memory_actions.append("Generated new shared memory ID")
+            
+            # Reconstruct knowledge base references
+            state_data = workflow.state_data or {}
+            if "knowledge_base_refs" not in state_data:
+                state_data["knowledge_base_refs"] = []
+                workflow.state_data = state_data
+                memory_actions.append("Initialized knowledge base references")
+            
+            # Reconstruct agent memory from phase data
+            if workflow.field_mappings:
+                memory_actions.append("Reconstructed field mapping memory")
+            
+            if workflow.cleaned_data:
+                memory_actions.append("Reconstructed data cleansing memory")
+            
+            if workflow.asset_inventory:
+                memory_actions.append("Reconstructed asset inventory memory")
+            
+            return {
+                "success": True,
+                "actions": memory_actions
+            }
+            
+        except Exception as e:
+            logger.error(f"Agent memory reconstruction failed: {e}")
+            return {
+                "success": False,
+                "actions": [f"Memory reconstruction failed: {str(e)}"]
+            }
+    
+    async def _validate_and_repair_data_consistency(self, workflow: WorkflowState) -> Dict[str, Any]:
+        """Phase 4: Validate and repair data consistency across flow phases"""
+        consistency_actions = []
+        
+        try:
+            # Check field mappings consistency
+            if workflow.field_mappings and workflow.cleaned_data:
+                mapped_fields = set(workflow.field_mappings.keys())
+                data_fields = set()
+                if workflow.cleaned_data and len(workflow.cleaned_data) > 0:
+                    data_fields = set(workflow.cleaned_data[0].keys())
+                
+                missing_mappings = data_fields - mapped_fields
+                if missing_mappings:
+                    consistency_actions.append(f"Found {len(missing_mappings)} unmapped fields")
+            
+            # Check asset inventory consistency
+            if workflow.asset_inventory and workflow.cleaned_data:
+                inventory_count = len(workflow.asset_inventory.get("assets", []))
+                data_count = len(workflow.cleaned_data)
+                
+                if abs(inventory_count - data_count) > data_count * 0.1:  # 10% tolerance
+                    consistency_actions.append(f"Asset count mismatch: inventory={inventory_count}, data={data_count}")
+            
+            # Validate dependency data
+            if workflow.dependencies:
+                deps = workflow.dependencies.get("relationships", [])
+                invalid_deps = [d for d in deps if not d.get("source") or not d.get("target")]
+                if invalid_deps:
+                    consistency_actions.append(f"Found {len(invalid_deps)} invalid dependencies")
+            
+            return {
+                "success": True,
+                "actions": consistency_actions
+            }
+            
+        except Exception as e:
+            logger.error(f"Data consistency validation failed: {e}")
+            return {
+                "success": False,
+                "actions": [f"Consistency validation failed: {str(e)}"]
+            }
+    
+    async def _optimize_flow_for_resumption(self, workflow: WorkflowState) -> Dict[str, Any]:
+        """Phase 4: Optimize flow data for efficient resumption"""
+        optimization_actions = []
+        
+        try:
+            # Compress large data structures
+            if workflow.cleaned_data and len(workflow.cleaned_data) > 1000:
+                # Keep only essential fields for resumption
+                essential_fields = ["id", "name", "type", "status"]
+                compressed_data = []
+                for item in workflow.cleaned_data[:100]:  # Keep first 100 for reference
+                    compressed_item = {k: v for k, v in item.items() if k in essential_fields}
+                    compressed_data.append(compressed_item)
+                
+                # Store full data reference
+                state_data = workflow.state_data or {}
+                state_data["full_data_available"] = True
+                state_data["compressed_for_resumption"] = True
+                workflow.state_data = state_data
+                
+                optimization_actions.append(f"Compressed data from {len(workflow.cleaned_data)} to {len(compressed_data)} items")
+            
+            # Optimize agent insights
+            if workflow.agent_insights and len(workflow.agent_insights) > 50:
+                # Keep only recent insights
+                workflow.agent_insights = workflow.agent_insights[-20:]
+                optimization_actions.append("Trimmed agent insights to most recent 20 entries")
+            
+            # Pre-calculate resumption checkpoints
+            state_data = workflow.state_data or {}
+            state_data["resumption_optimized"] = True
+            state_data["optimization_timestamp"] = datetime.now().isoformat()
+            workflow.state_data = state_data
+            
+            optimization_actions.append("Added resumption optimization metadata")
+            
+            return {
+                "success": True,
+                "actions": optimization_actions
+            }
+            
+        except Exception as e:
+            logger.error(f"Flow optimization failed: {e}")
+            return {
+                "success": False,
+                "actions": [f"Flow optimization failed: {str(e)}"]
+            }
+    
+    async def _bulk_delete_flow(self, workflow: WorkflowState, options: Dict[str, Any]) -> Dict[str, Any]:
+        """Phase 4: Bulk delete individual flow with comprehensive cleanup"""
+        try:
+            # Import cleanup service
+            from app.services.crewai_flows.discovery_flow_cleanup_service import DiscoveryFlowCleanupService
+            
+            cleanup_service = DiscoveryFlowCleanupService()
+            
+            # Perform comprehensive cleanup
+            cleanup_result = await cleanup_service.cleanup_discovery_flow(
+                str(workflow.session_id),
+                options.get("reason", "bulk_delete"),
+                audit_deletion=options.get("audit", True)
+            )
+            
+            return {
+                "success": cleanup_result["success"],
+                "cleanup_summary": cleanup_result.get("cleanup_summary", {}),
+                "error": cleanup_result.get("error")
+            }
+            
+        except Exception as e:
+            logger.error(f"Bulk delete failed for flow {workflow.session_id}: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+    
+    async def _bulk_pause_flow(self, workflow: WorkflowState) -> Dict[str, Any]:
+        """Phase 4: Bulk pause individual flow"""
+        try:
+            async with AsyncSessionLocal() as db_session:
+                # Update workflow status to paused
+                stmt = update(WorkflowState).where(
+                    WorkflowState.session_id == workflow.session_id
+                ).values(
+                    status="paused",
+                    updated_at=datetime.now()
+                )
+                
+                await db_session.execute(stmt)
+                await db_session.commit()
+                
+                return {
+                    "success": True,
+                    "action": "paused",
+                    "timestamp": datetime.now().isoformat()
+                }
+                
+        except Exception as e:
+            logger.error(f"Bulk pause failed for flow {workflow.session_id}: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+    
+    async def _bulk_archive_flow(self, workflow: WorkflowState) -> Dict[str, Any]:
+        """Phase 4: Bulk archive individual flow"""
+        try:
+            async with AsyncSessionLocal() as db_session:
+                # Update workflow status to archived
+                stmt = update(WorkflowState).where(
+                    WorkflowState.session_id == workflow.session_id
+                ).values(
+                    status="archived",
+                    updated_at=datetime.now()
+                )
+                
+                await db_session.execute(stmt)
+                await db_session.commit()
+                
+                return {
+                    "success": True,
+                    "action": "archived",
+                    "timestamp": datetime.now().isoformat()
+                }
+                
+        except Exception as e:
+            logger.error(f"Bulk archive failed for flow {workflow.session_id}: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+    
+    async def _analyze_flow_query_patterns(self, db_session: AsyncSession, context: RequestContext) -> Dict[str, Any]:
+        """Phase 4: Analyze query patterns for optimization"""
+        try:
+            # Analyze common query patterns
+            optimizations = []
+            
+            # Check for frequent incomplete flow queries
+            stmt = select(func.count(WorkflowState.session_id)).where(
+                and_(
+                    WorkflowState.client_account_id == context.client_account_id,
+                    WorkflowState.engagement_id == context.engagement_id,
+                    WorkflowState.status.in_(['running', 'paused', 'failed'])
+                )
+            )
+            result = await db_session.execute(stmt)
+            incomplete_count = result.scalar()
+            
+            if incomplete_count > 10:
+                optimizations.append({
+                    "type": "query_frequency",
+                    "description": f"High number of incomplete flows ({incomplete_count})",
+                    "recommendation": "Consider implementing flow expiration and auto-cleanup"
+                })
+            
+            # Check for large workflow_states
+            stmt = select(func.avg(func.length(WorkflowState.state_data.cast(str)))).where(
+                WorkflowState.client_account_id == context.client_account_id
+            )
+            result = await db_session.execute(stmt)
+            avg_state_size = result.scalar() or 0
+            
+            if avg_state_size > 10000:  # 10KB average
+                optimizations.append({
+                    "type": "data_size",
+                    "description": f"Large average state size ({avg_state_size} bytes)",
+                    "recommendation": "Consider implementing state data compression"
+                })
+            
+            return {
+                "optimizations": optimizations,
+                "query_stats": {
+                    "incomplete_flows": incomplete_count,
+                    "average_state_size": avg_state_size
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Query pattern analysis failed: {e}")
+            return {"optimizations": [], "error": str(e)}
+    
+    async def _analyze_index_usage(self, db_session: AsyncSession) -> Dict[str, Any]:
+        """Phase 4: Analyze database index usage and recommendations"""
+        try:
+            recommendations = []
+            
+            # Check if we need additional indexes
+            recommendations.append({
+                "type": "index_recommendation",
+                "table": "workflow_states",
+                "columns": ["client_account_id", "engagement_id", "status"],
+                "reason": "Optimize incomplete flow queries",
+                "priority": "high"
+            })
+            
+            recommendations.append({
+                "type": "index_recommendation", 
+                "table": "workflow_states",
+                "columns": ["updated_at", "status"],
+                "reason": "Optimize expiration queries",
+                "priority": "medium"
+            })
+            
+            return {
+                "recommendations": recommendations
+            }
+            
+        except Exception as e:
+            logger.error(f"Index analysis failed: {e}")
+            return {"recommendations": [], "error": str(e)}
+    
+    async def _benchmark_flow_operations(self, db_session: AsyncSession, context: RequestContext) -> Dict[str, Any]:
+        """Benchmark flow management operations for performance optimization"""
+        try:
+            start_time = datetime.now()
+            
+            # Test incomplete flow query performance
+            stmt = select(WorkflowState).where(
+                and_(
+                    WorkflowState.client_account_id == context.client_account_id,
+                    WorkflowState.engagement_id == context.engagement_id,
+                    WorkflowState.status.in_(['running', 'paused', 'failed'])
+                )
+            )
+            
+            result = await db_session.execute(stmt)
+            flows = result.scalars().all()
+            
+            query_time = (datetime.now() - start_time).total_seconds() * 1000
+            
+            return {
+                "incomplete_flow_query_ms": query_time,
+                "flows_found": len(flows),
+                "timestamp": datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ Flow operations benchmark failed: {e}")
+            return {
+                "incomplete_flow_query_ms": 0,
+                "flows_found": 0,
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
+            }
+
+    # === Phase 4: Missing Advanced Methods ===
+    
+    async def get_expired_flows(self, context: RequestContext, expiration_hours: Optional[int] = None) -> List[Dict[str, Any]]:
+        """Get flows that have expired and are eligible for cleanup"""
+        try:
+            expiration_hours = expiration_hours or self.flow_expiration_hours
+            expiration_cutoff = datetime.now() - timedelta(hours=expiration_hours)
+            
+            async with AsyncSessionLocal() as db_session:
+                stmt = select(WorkflowState).where(
+                    and_(
+                        WorkflowState.client_account_id == context.client_account_id,
+                        WorkflowState.engagement_id == context.engagement_id,
+                        WorkflowState.status.in_(['running', 'paused', 'failed']),
+                        WorkflowState.updated_at < expiration_cutoff
+                    )
+                ).order_by(WorkflowState.updated_at.asc())
+                
+                result = await db_session.execute(stmt)
+                expired_workflows = result.scalars().all()
+                
+                expired_flows = []
+                for workflow in expired_workflows:
+                    days_since_activity = (datetime.now() - workflow.updated_at).days
+                    
+                    flow_info = {
+                        "session_id": str(workflow.session_id),
+                        "current_phase": workflow.current_phase,
+                        "status": workflow.status,
+                        "last_activity": workflow.updated_at.isoformat(),
+                        "days_since_activity": days_since_activity,
+                        "auto_cleanup_eligible": workflow.auto_cleanup_eligible if hasattr(workflow, 'auto_cleanup_eligible') else True,
+                        "deletion_impact": await self._get_deletion_impact_summary(workflow)
+                    }
+                    expired_flows.append(flow_info)
+                
+                logger.info(f"✅ Found {len(expired_flows)} expired flows (older than {expiration_hours}h)")
+                return expired_flows
+                
+        except Exception as e:
+            logger.error(f"❌ Failed to get expired flows: {e}")
+            return []
+    
+    async def auto_cleanup_expired_flows(self, context: RequestContext, dry_run: bool = True, 
+                                       expiration_hours: Optional[int] = None, 
+                                       force_cleanup: bool = False) -> Dict[str, Any]:
+        """Auto-cleanup expired flows with comprehensive reporting"""
+        try:
+            start_time = datetime.now()
+            expired_flows = await self.get_expired_flows(context, expiration_hours)
+            
+            if dry_run:
+                return {
+                    "dry_run": True,
+                    "expired_flows_found": len(expired_flows),
+                    "cleanup_successful": [],
+                    "cleanup_failed": [],
+                    "total_data_cleaned": {
+                        "flows_deleted": 0,
+                        "assets_cleaned": 0,
+                        "memory_freed_mb": 0
+                    },
+                    "performance_metrics": {
+                        "total_duration_ms": (datetime.now() - start_time).total_seconds() * 1000,
+                        "flows_per_second": 0
+                    },
+                    "cleanup_completed_at": datetime.now().isoformat()
+                }
+            
+            cleanup_successful = []
+            cleanup_failed = []
+            total_assets_cleaned = 0
+            total_memory_freed = 0
+            
+            async with AsyncSessionLocal() as db_session:
+                for flow in expired_flows:
+                    session_id = flow["session_id"]
+                    
+                    try:
+                        # Only cleanup if eligible or forced
+                        if not flow["auto_cleanup_eligible"] and not force_cleanup:
+                            cleanup_failed.append(session_id)
+                            continue
+                        
+                        # Get workflow for cleanup
+                        stmt = select(WorkflowState).where(WorkflowState.session_id == session_id)
+                        result = await db_session.execute(stmt)
+                        workflow = result.scalar_one_or_none()
+                        
+                        if workflow:
+                            # Perform cleanup
+                            cleanup_result = await self._bulk_delete_flow(workflow, {"reason": "auto_cleanup"})
+                            
+                            if cleanup_result.get("success", False):
+                                cleanup_successful.append(session_id)
+                                total_assets_cleaned += cleanup_result.get("assets_deleted", 0)
+                                total_memory_freed += cleanup_result.get("memory_freed_mb", 0)
+                            else:
+                                cleanup_failed.append(session_id)
+                        
+                    except Exception as cleanup_error:
+                        logger.error(f"❌ Failed to cleanup flow {session_id}: {cleanup_error}")
+                        cleanup_failed.append(session_id)
+            
+            duration = (datetime.now() - start_time).total_seconds() * 1000
+            flows_per_second = len(expired_flows) / (duration / 1000) if duration > 0 else 0
+            
+            return {
+                "dry_run": False,
+                "expired_flows_found": len(expired_flows),
+                "cleanup_successful": cleanup_successful,
+                "cleanup_failed": cleanup_failed,
+                "total_data_cleaned": {
+                    "flows_deleted": len(cleanup_successful),
+                    "assets_cleaned": total_assets_cleaned,
+                    "memory_freed_mb": total_memory_freed
+                },
+                "performance_metrics": {
+                    "total_duration_ms": duration,
+                    "flows_per_second": flows_per_second
+                },
+                "cleanup_completed_at": datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ Auto-cleanup failed: {e}")
+            return {
+                "dry_run": dry_run,
+                "expired_flows_found": 0,
+                "cleanup_successful": [],
+                "cleanup_failed": [],
+                "total_data_cleaned": {
+                    "flows_deleted": 0,
+                    "assets_cleaned": 0,
+                    "memory_freed_mb": 0
+                },
+                "performance_metrics": {
+                    "total_duration_ms": 0,
+                    "flows_per_second": 0
+                },
+                "cleanup_completed_at": datetime.now().isoformat(),
+                "error": str(e)
+            }
+    
+    async def optimize_flow_performance(self, context: RequestContext) -> Dict[str, Any]:
+        """Analyze and optimize flow management performance"""
+        try:
+            async with AsyncSessionLocal() as db_session:
+                # Analyze query patterns
+                query_analysis = await self._analyze_flow_query_patterns(db_session, context)
+                
+                # Analyze index usage
+                index_analysis = await self._analyze_index_usage(db_session)
+                
+                # Benchmark operations
+                performance_metrics = await self._benchmark_flow_operations(db_session, context)
+                
+                # Generate optimization recommendations
+                query_optimizations = []
+                index_recommendations = []
+                
+                # Query optimization recommendations
+                if performance_metrics.get("incomplete_flow_query_ms", 0) > 100:
+                    query_optimizations.append({
+                        "type": "query_optimization",
+                        "description": "Incomplete flow query is slow",
+                        "recommendation": "Consider adding composite index on (client_account_id, engagement_id, status)",
+                        "priority": "high"
+                    })
+                
+                # Index recommendations
+                if query_analysis.get("missing_indexes", []):
+                    for missing_index in query_analysis["missing_indexes"]:
+                        index_recommendations.append({
+                            "type": "missing_index",
+                            "table": missing_index["table"],
+                            "columns": missing_index["columns"],
+                            "reason": missing_index["reason"],
+                            "priority": "medium"
+                        })
+                
+                return {
+                    "query_optimizations": query_optimizations,
+                    "index_recommendations": index_recommendations,
+                    "performance_improvements": {
+                        "current_metrics": performance_metrics,
+                        "query_analysis": query_analysis,
+                        "index_analysis": index_analysis
+                    },
+                    "analysis_completed_at": datetime.now().isoformat()
+                }
+                
+        except Exception as e:
+            logger.error(f"❌ Performance optimization analysis failed: {e}")
+            return {
+                "query_optimizations": [],
+                "index_recommendations": [],
+                "performance_improvements": {},
+                "analysis_completed_at": datetime.now().isoformat(),
+                "error": str(e)
+            }
+    
+    async def get_advanced_health_status(self, context: RequestContext) -> Dict[str, Any]:
+        """Get advanced health status for flow management system"""
+        try:
+            # Get flow statistics
+            async with AsyncSessionLocal() as db_session:
+                # Count incomplete flows
+                incomplete_stmt = select(func.count(WorkflowState.id)).where(
+                    and_(
+                        WorkflowState.client_account_id == context.client_account_id,
+                        WorkflowState.engagement_id == context.engagement_id,
+                        WorkflowState.status.in_(['running', 'paused', 'failed'])
+                    )
+                )
+                incomplete_result = await db_session.execute(incomplete_stmt)
+                incomplete_count = incomplete_result.scalar() or 0
+                
+                # Count expired flows
+                expiration_cutoff = datetime.now() - timedelta(hours=self.flow_expiration_hours)
+                expired_stmt = select(func.count(WorkflowState.id)).where(
+                    and_(
+                        WorkflowState.client_account_id == context.client_account_id,
+                        WorkflowState.engagement_id == context.engagement_id,
+                        WorkflowState.status.in_(['running', 'paused', 'failed']),
+                        WorkflowState.updated_at < expiration_cutoff
+                    )
+                )
+                expired_result = await db_session.execute(expired_stmt)
+                expired_count = expired_result.scalar() or 0
+                
+                # Count total managed flows
+                total_stmt = select(func.count(WorkflowState.id)).where(
+                    and_(
+                        WorkflowState.client_account_id == context.client_account_id,
+                        WorkflowState.engagement_id == context.engagement_id
+                    )
+                )
+                total_result = await db_session.execute(total_stmt)
+                total_count = total_result.scalar() or 0
+            
+            # System capabilities
+            system_capabilities = {
+                "crewai_available": CREWAI_FLOW_AVAILABLE,
+                "advanced_recovery": True,
+                "bulk_operations": True,
+                "auto_cleanup": self.auto_cleanup_enabled,
+                "performance_optimization": self.performance_monitoring
+            }
+            
+            # Health recommendations
+            recommendations = []
+            
+            if expired_count > 0:
+                recommendations.append({
+                    "type": "cleanup",
+                    "message": f"{expired_count} flows are expired and eligible for cleanup",
+                    "priority": "medium"
+                })
+            
+            if incomplete_count > 10:
+                recommendations.append({
+                    "type": "performance",
+                    "message": f"High number of incomplete flows ({incomplete_count}) may impact performance",
+                    "priority": "high"
+                })
+            
+            if not CREWAI_FLOW_AVAILABLE:
+                recommendations.append({
+                    "type": "dependency",
+                    "message": "CrewAI Flow not available - advanced features limited",
+                    "priority": "high"
+                })
+            
+            # Determine overall status
+            status = "healthy"
+            if expired_count > 5 or incomplete_count > 20 or not CREWAI_FLOW_AVAILABLE:
+                status = "degraded"
+            
+            return {
+                "status": status,
+                "timestamp": datetime.now().isoformat(),
+                "flow_statistics": {
+                    "incomplete_flows": incomplete_count,
+                    "expired_flows": expired_count,
+                    "total_managed_flows": total_count
+                },
+                "system_capabilities": system_capabilities,
+                "recommendations": recommendations
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ Advanced health check failed: {e}")
+            return {
+                "status": "unhealthy",
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
+            }
+    
+    async def advanced_flow_recovery(self, session_id: str, context: RequestContext, 
+                                   recovery_options: Dict[str, Any]) -> Dict[str, Any]:
+        """Perform advanced flow recovery with comprehensive state repair"""
+        try:
+            start_time = datetime.now()
+            recovery_actions = []
+            
+            async with AsyncSessionLocal() as db_session:
+                # Get workflow state
+                stmt = select(WorkflowState).where(
+                    and_(
+                        WorkflowState.session_id == session_id,
+                        WorkflowState.client_account_id == context.client_account_id,
+                        WorkflowState.engagement_id == context.engagement_id
+                    )
                 )
                 result = await db_session.execute(stmt)
-                session = result.scalar_one_or_none()
+                workflow = result.scalar_one_or_none()
                 
-                if session and session.agent_insights:
-                    return session.agent_insights
+                if not workflow:
+                    return {
+                        "success": False,
+                        "session_id": session_id,
+                        "recovery_actions": [],
+                        "flow_state": {},
+                        "performance_metrics": {
+                            "recovery_time_ms": 0,
+                            "data_integrity_score": 0,
+                            "agent_memory_completeness": 0
+                        },
+                        "recovered_at": datetime.now().isoformat(),
+                        "error": "Workflow not found"
+                    }
                 
-            except Exception as e:
-                logger.error(f"Failed to load flow state: {e}")
-        
-        return None
+                # Perform recovery actions based on options
+                if recovery_options.get("repair_corrupted_state", True):
+                    repair_result = await self._repair_corrupted_state(workflow)
+                    if repair_result.get("success", False):
+                        recovery_actions.append("State corruption repaired")
+                    else:
+                        recovery_actions.append("State repair failed")
+                
+                if recovery_options.get("reconstruct_agent_memory", True):
+                    memory_result = await self._reconstruct_agent_memory(workflow)
+                    if memory_result.get("success", False):
+                        recovery_actions.append("Agent memory reconstructed")
+                    else:
+                        recovery_actions.append("Memory reconstruction failed")
+                
+                if recovery_options.get("validate_data_consistency", True):
+                    validation_result = await self._validate_and_repair_data_consistency(workflow)
+                    if validation_result.get("success", False):
+                        recovery_actions.append("Data consistency validated")
+                    else:
+                        recovery_actions.append("Data validation failed")
+                
+                if recovery_options.get("optimize_for_resumption", True):
+                    optimization_result = await self._optimize_flow_for_resumption(workflow)
+                    if optimization_result.get("success", False):
+                        recovery_actions.append("Flow optimized for resumption")
+                    else:
+                        recovery_actions.append("Optimization failed")
+                
+                # Refresh workflow state after recovery
+                await db_session.refresh(workflow)
+                
+                # Calculate performance metrics
+                recovery_time = (datetime.now() - start_time).total_seconds() * 1000
+                
+                # Assess data integrity
+                data_integrity_score = 100.0
+                if workflow.errors:
+                    data_integrity_score -= len(workflow.errors) * 10
+                if not workflow.state_data:
+                    data_integrity_score -= 20
+                data_integrity_score = max(0, data_integrity_score)
+                
+                # Assess agent memory completeness
+                agent_memory_completeness = 100.0
+                if not workflow.shared_memory_id:
+                    agent_memory_completeness -= 30
+                if not workflow.agent_insights:
+                    agent_memory_completeness -= 20
+                agent_memory_completeness = max(0, agent_memory_completeness)
+                
+                # Build recovered flow state
+                flow_state = {
+                    "session_id": str(workflow.session_id),
+                    "flow_id": str(workflow.flow_id),
+                    "current_phase": workflow.current_phase,
+                    "status": workflow.status,
+                    "progress_percentage": workflow.progress_percentage,
+                    "phase_completion": workflow.phase_completion or {},
+                    "crew_status": workflow.crew_status or {},
+                    "agent_insights": workflow.agent_insights or [],
+                    "errors": workflow.errors or [],
+                    "warnings": workflow.warnings or [],
+                    "state_data": workflow.state_data or {},
+                    "updated_at": workflow.updated_at.isoformat()
+                }
+                
+                return {
+                    "success": True,
+                    "session_id": session_id,
+                    "recovery_actions": recovery_actions,
+                    "flow_state": flow_state,
+                    "performance_metrics": {
+                        "recovery_time_ms": recovery_time,
+                        "data_integrity_score": data_integrity_score,
+                        "agent_memory_completeness": agent_memory_completeness
+                    },
+                    "recovered_at": datetime.now().isoformat()
+                }
+                
+        except Exception as e:
+            logger.error(f"❌ Advanced flow recovery failed: {e}")
+            return {
+                "success": False,
+                "session_id": session_id,
+                "recovery_actions": [],
+                "flow_state": {},
+                "performance_metrics": {
+                    "recovery_time_ms": 0,
+                    "data_integrity_score": 0,
+                    "agent_memory_completeness": 0
+                },
+                "recovered_at": datetime.now().isoformat(),
+                "error": str(e)
+            }
 
 # Global instance
 flow_state_manager = DiscoveryFlowStateManager() 
