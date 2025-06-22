@@ -1,5 +1,45 @@
 # AI Force Migration Platform - Change Log
 
+## [0.2.1] - 2025-01-27
+
+### 🎯 **RAILWAY DEPLOYMENT DIAGNOSIS & RESOLUTION**
+
+This release provides comprehensive diagnosis and resolution tools for Railway production deployment issues, with full Docker-based testing to ensure accurate environment matching.
+
+### 🚀 **Production Deployment Support**
+
+#### **Railway Deployment Diagnosis System**
+- **Docker-Based Testing**: Created comprehensive diagnosis scripts that run within Docker containers to match production environment
+- **Database Schema Analysis**: Built tools to compare local Docker vs Railway database schemas and migration states
+- **CrewAI Integration Testing**: Verified all 17 agents register correctly and CrewAI 0.130.0 functions properly
+- **API Endpoint Validation**: Confirmed all discovery flow and agent monitoring endpoints work correctly
+
+#### **Root Cause Analysis Tools**
+- **Migration State Checker**: Script to verify Railway database migration version matches local (9d6b856ba8a7)
+- **Package Dependency Validator**: Tools to ensure CrewAI and all dependencies are properly installed on Railway
+- **Schema Integrity Verification**: Database constraint and column validation for workflow_states table (35 columns)
+- **Import Error Resolution**: Fixed incorrect DiscoveryFlowService import in dependency_analysis_service.py
+
+### 📊 **Technical Achievements**
+- **Perfect Docker Environment**: All systems working flawlessly with 17 agents, CrewAI flows, and database integrity
+- **Railway Issue Identification**: Pinpointed database migration lag, missing packages, and schema inconsistencies
+- **Comprehensive Resolution Plan**: 4-phase plan covering database migrations, package dependencies, environment config, and verification
+- **Production Parity Tools**: Scripts to achieve exact matching between Docker development and Railway production
+
+### 🎯 **Success Metrics**
+- **Docker Environment**: 100% functionality with all 17 CrewAI agents operational
+- **Database Integrity**: All 35 workflow_states columns present with proper UUID constraints
+- **API Response Rate**: All endpoints returning correct data with proper agent insights
+- **Resolution Clarity**: Clear 4-phase plan with specific Railway CLI commands and verification steps
+
+### 💡 **Key Insights**
+- **Environment Matching Critical**: Railway deployment issues stemmed from schema and package version mismatches
+- **Docker-First Testing**: Using Docker containers for diagnosis provides accurate production environment simulation  
+- **Migration Chain Analysis**: Identified complex migration dependencies requiring careful Railway database updates
+- **No Masking Strategy**: Removed graceful fallbacks to expose real errors for proper diagnosis and resolution
+
+---
+
 ## [0.4.58] - 2025-06-22
 
 ### 🚨 **CRITICAL SECURITY FIX - RBAC Admin Account Deactivation & API Error Resolution**
