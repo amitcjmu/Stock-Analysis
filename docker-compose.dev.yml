@@ -1,0 +1,157 @@
+# Development Environment Configuration
+# Use: docker-compose -f docker-compose.dev.yml up -d
+
+services:
+  # PostgreSQL Database with pgvector (Development)
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: migration_postgres_dev
+    environment:
+      POSTGRES_DB: migration_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./scripts/dev-init.sql:/docker-entrypoint-initdb.d/99-dev-init.sql
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - migration_dev
+
+  # FastAPI Backend (Development)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development  # Use development stage if multi-stage
+    env_file:
+      - ./backend/.env.dev
+    container_name: migration_backend_dev
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/migration_db
+      - PYTHONUNBUFFERED=1
+      - DEEPINFRA_API_KEY=${DEEPINFRA_API_KEY}
+      - FRONTEND_URL=http://localhost:3001
+      - ENVIRONMENT=development
+      - DEBUG=true
+      - PYTHONPATH=/app
+      - LOG_LEVEL=DEBUG
+      - DEMO_DATA=true
+      - AUTO_SEED_DATA=true
+      # Development-specific settings
+      - RELOAD_ON_CHANGE=true
+      - ENABLE_PROFILING=true
+      - CORS_ALLOW_ALL=true
+      # Disable telemetry for dev
+      - OTEL_SDK_DISABLED=true
+      - OTEL_TRACES_EXPORTER=none
+      - OTEL_METRICS_EXPORTER=none
+      - OTEL_LOGS_EXPORTER=none
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - dev_logs:/app/logs
+    working_dir: /app
+    command: >
+      sh -c "
+        echo '🚀 Starting development backend...' &&
+        python -m alembic upgrade head &&
+        echo '📊 Seeding demo data...' &&
+        python scripts/populate_demo_data.py &&
+        echo '✅ Demo data seeded successfully' &&
+        uvicorn main:app --host 0.0.0.0 --port 8000 --reload --log-level debug
+      "
+    networks:
+      - migration_dev
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend (Development)
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      target: development  # Use development stage if multi-stage
+    container_name: migration_frontend_dev
+    working_dir: /app
+    environment:
+      - VITE_BACKEND_URL=http://localhost:8000
+      - VITE_WS_BASE_URL=ws://localhost:8000/ws
+      - VITE_ENVIRONMENT=development
+      - VITE_DEBUG=true
+      - VITE_DEMO_MODE=true
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true  # For file watching in containers
+    ports:
+      - "3001:3001"  # Different port for dev
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - dev_frontend_cache:/app/.vite
+    command: >
+      sh -c "
+        echo '🚀 Starting development frontend...' &&
+        npm install &&
+        npm run dev -- --host 0.0.0.0 --port 3001
+      "
+    depends_on:
+      - backend
+    networks:
+      - migration_dev
+
+  # Redis (Development - Optional for caching)
+  redis:
+    image: redis:7-alpine
+    container_name: migration_redis_dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - migration_dev
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # Adminer (Database Management UI)
+  adminer:
+    image: adminer
+    container_name: migration_adminer_dev
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    networks:
+      - migration_dev
+    environment:
+      - ADMINER_DEFAULT_SERVER=postgres
+
+volumes:
+  postgres_dev_data:
+    name: migration_dev_postgres_data
+  redis_dev_data:
+    name: migration_dev_redis_data
+  dev_logs:
+    name: migration_dev_logs
+  dev_frontend_cache:
+    name: migration_dev_frontend_cache
+
+networks:
+  migration_dev:
+    name: migration_dev_network
+    driver: bridge 
