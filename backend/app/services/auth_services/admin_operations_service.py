@@ -109,8 +109,11 @@ class AdminOperationsService:
                     )
                     
                     access_level = "admin" if is_admin else "read_write"
-                    role_name = "Administrator" if is_admin else (
-                        user_roles[0].role_type.replace('_', ' ').title() if user_roles else "User"
+                    # Use actual role_name from database, fallback to role_type formatting
+                    role_name = (
+                        user_roles[0].role_name if user_roles and user_roles[0].role_name 
+                        else user_roles[0].role_type.replace('_', ' ').title() if user_roles 
+                        else "User"
                     )
                     
                     active_users.append({

@@ -394,8 +394,8 @@ class UserManagementHandler(BaseRBACHandler):
             
             return {
                 "status": "success",
-                "pending_users": pending_users,
-                "total_count": len(pending_users)
+                "pending_approvals": pending_users,
+                "total_pending": len(pending_users)
             }
             
         except Exception as e:
