@@ -1,5 +1,6 @@
 """
 Discovery Flow State Manager
+Enhanced with CrewAI Flow state management patterns for incomplete flow management
 Handles persistence and retrieval of discovery flow state across phases
 """
 
@@ -8,21 +9,258 @@ import json
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, insert
+from sqlalchemy import select, update, insert, and_
 from sqlalchemy.orm import selectinload
 
 from app.core.database import AsyncSessionLocal
+from app.core.context import RequestContext
 from app.models.data_import_session import DataImportSession
 from app.models.asset import Asset
+from app.models.workflow_state import WorkflowState
+
+# CrewAI Flow imports with graceful fallback
+try:
+    from app.services.crewai_flows.unified_discovery_flow import UnifiedDiscoveryFlow
+    from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
+    CREWAI_FLOW_AVAILABLE = True
+except ImportError:
+    CREWAI_FLOW_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
 class DiscoveryFlowStateManager:
-    """Manages discovery flow state persistence across phases"""
+    """
+    Enhanced state manager leveraging CrewAI Flow state persistence patterns
+    Handles incomplete flow detection, resumption, and multi-tenant management
+    """
     
-    def __init__(self):
+    def __init__(self, db_session: Optional[AsyncSession] = None, 
+                 client_account_id: Optional[str] = None, 
+                 engagement_id: Optional[str] = None):
+        self.db = db_session
+        self.client_account_id = client_account_id
+        self.engagement_id = engagement_id
         self.active_flows: Dict[str, Dict[str, Any]] = {}
     
+    async def get_incomplete_flows_for_context(self, context: RequestContext) -> List[Dict[str, Any]]:
+        """Get incomplete flows using CrewAI Flow state filtering"""
+        try:
+            async with AsyncSessionLocal() as db_session:
+                # Query workflow_states for flows with status in ['running', 'paused', 'failed']
+                stmt = select(WorkflowState).where(
+                    and_(
+                        WorkflowState.client_account_id == context.client_account_id,
+                        WorkflowState.engagement_id == context.engagement_id,
+                        WorkflowState.status.in_(['running', 'paused', 'failed'])
+                    )
+                ).order_by(WorkflowState.updated_at.desc())
+                
+                result = await db_session.execute(stmt)
+                incomplete_workflows = result.scalars().all()
+                
+                # Convert to structured flow information with CrewAI state data
+                flows = []
+                for workflow in incomplete_workflows:
+                    flow_info = {
+                        "session_id": str(workflow.session_id),
+                        "flow_id": str(workflow.flow_id),
+                        "current_phase": workflow.current_phase,
+                        "status": workflow.status,
+                        "progress_percentage": workflow.progress_percentage,
+                        "phase_completion": workflow.phase_completion or {},
+                        "crew_status": workflow.crew_status or {},
+                        "created_at": workflow.created_at.isoformat(),
+                        "updated_at": workflow.updated_at.isoformat(),
+                        "started_at": workflow.started_at.isoformat() if workflow.started_at else None,
+                        
+                        # CrewAI Flow specific data
+                        "agent_insights": workflow.agent_insights or [],
+                        "success_criteria": workflow.success_criteria or {},
+                        "errors": workflow.errors or [],
+                        "warnings": workflow.warnings or [],
+                        
+                        # Flow management capabilities
+                        "can_resume": await self._can_flow_be_resumed(workflow),
+                        "deletion_impact": await self._get_deletion_impact_summary(workflow),
+                        
+                        # Database integration status
+                        "database_assets_created": workflow.database_assets_created or [],
+                        "database_integration_status": workflow.database_integration_status
+                    }
+                    flows.append(flow_info)
+                
+                logger.info(f"✅ Found {len(flows)} incomplete flows for context {context.client_account_id}/{context.engagement_id}")
+                return flows
+                
+        except Exception as e:
+            logger.error(f"❌ Failed to get incomplete flows: {e}")
+            return []
+    
+    async def validate_flow_resumption(self, session_id: str, context: RequestContext) -> Dict[str, Any]:
+        """Validate if a flow can be resumed using CrewAI Flow state validation"""
+        try:
+            async with AsyncSessionLocal() as db_session:
+                # Get workflow state
+                stmt = select(WorkflowState).where(
+                    and_(
+                        WorkflowState.session_id == session_id,
+                        WorkflowState.client_account_id == context.client_account_id,
+                        WorkflowState.engagement_id == context.engagement_id
+                    )
+                )
+                result = await db_session.execute(stmt)
+                workflow = result.scalar_one_or_none()
+                
+                if not workflow:
+                    return {
+                        "can_resume": False,
+                        "reason": "Flow not found or access denied",
+                        "validation_errors": ["Workflow state not found for session"]
+                    }
+                
+                validation_errors = []
+                
+                # Check flow state integrity
+                if workflow.status not in ['running', 'paused', 'failed']:
+                    validation_errors.append(f"Invalid flow status: {workflow.status}")
+                
+                # Check phase dependencies
+                current_phase = workflow.current_phase
+                phase_completion = workflow.phase_completion or {}
+                
+                if current_phase == "data_cleansing" and not phase_completion.get("field_mapping", False):
+                    validation_errors.append("Cannot resume data cleansing without completed field mapping")
+                
+                if current_phase == "asset_inventory" and not phase_completion.get("data_cleansing", False):
+                    validation_errors.append("Cannot resume asset inventory without completed data cleansing")
+                
+                # Check agent memory consistency (if available)
+                if workflow.shared_memory_id and not await self._validate_shared_memory_integrity(workflow.shared_memory_id):
+                    validation_errors.append("Shared memory integrity check failed")
+                
+                # Check for data corruption
+                state_data = workflow.state_data or {}
+                if not state_data.get("session_id"):
+                    validation_errors.append("State data corruption detected")
+                
+                can_resume = len(validation_errors) == 0
+                
+                return {
+                    "can_resume": can_resume,
+                    "reason": "Validation passed" if can_resume else "Validation failed",
+                    "validation_errors": validation_errors,
+                    "current_phase": current_phase,
+                    "progress_percentage": workflow.progress_percentage,
+                    "last_activity": workflow.updated_at.isoformat()
+                }
+                
+        except Exception as e:
+            logger.error(f"❌ Flow resumption validation failed: {e}")
+            return {
+                "can_resume": False,
+                "reason": f"Validation error: {str(e)}",
+                "validation_errors": [str(e)]
+            }
+    
+    async def prepare_flow_resumption(self, session_id: str) -> Optional[Any]:
+        """Prepare CrewAI Flow instance for resumption with proper state restoration"""
+        if not CREWAI_FLOW_AVAILABLE:
+            logger.warning("CrewAI Flow not available for resumption")
+            return None
+            
+        try:
+            async with AsyncSessionLocal() as db_session:
+                # Restore UnifiedDiscoveryFlowState from database
+                stmt = select(WorkflowState).where(WorkflowState.session_id == session_id)
+                result = await db_session.execute(stmt)
+                workflow = result.scalar_one_or_none()
+                
+                if not workflow:
+                    logger.error(f"Workflow not found for session: {session_id}")
+                    return None
+                
+                # Recreate UnifiedDiscoveryFlowState from persisted data
+                state_data = workflow.state_data or {}
+                
+                # Create flow state instance
+                flow_state = UnifiedDiscoveryFlowState(
+                    session_id=str(workflow.session_id),
+                    client_account_id=str(workflow.client_account_id),
+                    engagement_id=str(workflow.engagement_id),
+                    user_id=workflow.user_id,
+                    current_phase=workflow.current_phase,
+                    status=workflow.status,
+                    progress_percentage=workflow.progress_percentage,
+                    phase_completion=workflow.phase_completion or {},
+                    crew_status=workflow.crew_status or {},
+                    field_mappings=workflow.field_mappings or {},
+                    cleaned_data=workflow.cleaned_data or [],
+                    asset_inventory=workflow.asset_inventory or {},
+                    dependencies=workflow.dependencies or {},
+                    technical_debt=workflow.technical_debt or {},
+                    agent_insights=workflow.agent_insights or [],
+                    errors=workflow.errors or [],
+                    warnings=workflow.warnings or [],
+                    workflow_log=workflow.workflow_log or [],
+                    database_assets_created=workflow.database_assets_created or [],
+                    shared_memory_id=workflow.shared_memory_id or "",
+                    created_at=workflow.created_at.isoformat(),
+                    updated_at=workflow.updated_at.isoformat()
+                )
+                
+                # TODO: Reinitialize CrewAI Flow with persisted state
+                # TODO: Restore shared memory and knowledge base references
+                
+                logger.info(f"✅ Flow state prepared for resumption: {session_id}")
+                return flow_state
+                
+        except Exception as e:
+            logger.error(f"❌ Failed to prepare flow resumption: {e}")
+            return None
+
+    async def _can_flow_be_resumed(self, workflow: WorkflowState) -> bool:
+        """Check if a workflow can be resumed"""
+        if workflow.status not in ['running', 'paused', 'failed']:
+            return False
+        
+        # Check if there are critical errors that prevent resumption
+        errors = workflow.errors or []
+        critical_errors = [e for e in errors if e.get('severity') == 'critical']
+        
+        return len(critical_errors) == 0
+    
+    async def _get_deletion_impact_summary(self, workflow: WorkflowState) -> Dict[str, Any]:
+        """Get summary of what would be deleted"""
+        try:
+            async with AsyncSessionLocal() as db_session:
+                # Count associated data
+                asset_count = len(workflow.database_assets_created) if workflow.database_assets_created else 0
+                
+                # TODO: Count import sessions, field mappings, dependencies
+                
+                return {
+                    "flow_phase": workflow.current_phase,
+                    "progress_percentage": workflow.progress_percentage,
+                    "data_to_delete": {
+                        "workflow_state": 1,
+                        "assets": asset_count,
+                        "import_sessions": 0,  # TODO: Calculate
+                        "field_mappings": 0,   # TODO: Calculate
+                        "dependencies": 0      # TODO: Calculate
+                    },
+                    "estimated_cleanup_time": "< 5 seconds",
+                    "data_recovery_possible": False
+                }
+        except Exception as e:
+            logger.error(f"Failed to get deletion impact: {e}")
+            return {"error": "Could not calculate deletion impact"}
+    
+    async def _validate_shared_memory_integrity(self, shared_memory_id: str) -> bool:
+        """Validate shared memory integrity for CrewAI Flow"""
+        # TODO: Implement shared memory validation
+        # For now, assume memory is valid if ID exists
+        return bool(shared_memory_id)
+
     async def initialize_flow_state(self, session_id: str, client_account_id: str, 
                                   engagement_id: str, user_id: str, 
                                   raw_data: List[Dict[str, Any]]) -> Dict[str, Any]:
