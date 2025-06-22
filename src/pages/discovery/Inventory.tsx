@@ -69,8 +69,8 @@ const Inventory = () => {
     handleContinueToAppServerDependencies({
       flow_session_id: flowState?.session_id,
       inventory_progress: inventoryProgress,
-      client_account_id: client.id,
-      engagement_id: engagement.id,
+      client_account_id: typeof client.id === 'string' ? parseInt(client.id) : client.id,
+      engagement_id: typeof engagement.id === 'string' ? parseInt(engagement.id) : engagement.id,
     });
   };
 
@@ -107,8 +107,8 @@ const Inventory = () => {
               <InventoryStateProvider
                 isLoading={isLoading}
                 isAnalyzing={isAnalyzing}
-                error={error}
-                flowStateError={flowStateError}
+                error={error?.message || ''}
+                flowStateError={flowStateError?.message || ''}
                 totalAssets={summary.total}
                 onTriggerAnalysis={handleTriggerInventoryBuildingCrew}
                 onRetry={fetchAssets}
@@ -161,7 +161,7 @@ const Inventory = () => {
               />
 
               {/* Agent Planning Dashboard */}
-              <AgentPlanningDashboard />
+              <AgentPlanningDashboard pageContext="asset-inventory" />
             </div>
           </div>
         </div>
