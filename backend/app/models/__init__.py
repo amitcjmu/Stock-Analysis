@@ -66,6 +66,11 @@ except ImportError:
 
 # Learning Pattern models are now part of data_import
 
+# Flow Management models (Phase 3)
+from .workflow_state import WorkflowState, UnifiedFlowStateRepository
+from .flow_deletion_audit import FlowDeletionAudit
+from .crewai_flow_state_extensions import CrewAIFlowStateExtensions
+
 __all__ = [
     # Migration models
     "Migration",
@@ -111,6 +116,12 @@ __all__ = [
     # Feedback models
     "Feedback",
     "FeedbackSummary",
+    
+    # Flow Management models (Phase 3)
+    "WorkflowState",
+    "UnifiedFlowStateRepository",
+    "FlowDeletionAudit",
+    "CrewAIFlowStateExtensions",
 ]
 
 # Add client account models only if available

@@ -3,9 +3,10 @@ Enhanced Database model for persisting unified discovery flow state.
 Supports the new UnifiedDiscoveryFlowState with proper multi-tenancy.
 """
 import uuid
-from sqlalchemy import Column, Integer, String, DateTime, JSON, ForeignKey, Text, Float, Boolean
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, Integer, String, DateTime, JSON, ForeignKey, Text, Float, Boolean, TIMESTAMP
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 from app.core.database import Base
 from typing import List
 
@@ -71,11 +72,23 @@ class WorkflowState(Base):
     memory_isolation_level = Column(String, default="strict", nullable=False)
     shared_memory_id = Column(String, nullable=True)
     
+    # Flow Management Enhancements (Phase 3)
+    expiration_date = Column(TIMESTAMP(timezone=True), nullable=True)
+    auto_cleanup_eligible = Column(Boolean, nullable=False, default=True)
+    deletion_scheduled_at = Column(TIMESTAMP(timezone=True), nullable=True)
+    last_user_activity = Column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
+    flow_resumption_data = Column(JSONB, nullable=False, default={})
+    agent_memory_refs = Column(JSONB, nullable=False, default=[])
+    knowledge_base_refs = Column(JSONB, nullable=False, default=[])
+
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
     started_at = Column(DateTime(timezone=True), nullable=True)
     completed_at = Column(DateTime(timezone=True), nullable=True)
+    
+    # Relationships
+    crewai_extensions = relationship("CrewAIFlowStateExtensions", back_populates="workflow_state", uselist=False, cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<WorkflowState(id={self.id}, flow_id={self.flow_id}, session_id={self.session_id}, status='{self.status}', phase='{self.current_phase}')>"
