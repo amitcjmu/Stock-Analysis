@@ -20,7 +20,7 @@ from fastapi.responses import JSONResponse
 import uvicorn
 import os
 from dotenv import load_dotenv
-from sqlalchemy import create_engine
+
 from contextlib import asynccontextmanager
 from pathlib import Path
 from app.core.context import get_current_context, RequestContext
@@ -84,28 +84,20 @@ async def lifespan(app: FastAPI):
     
     print("✅ Startup logic completed.")
 
-    # Create database tables
+    # Test database connection
     if DATABASE_ENABLED:
         try:
-            print("🔧 Initializing database schema...")
-            # Create a synchronous engine for migrations or sync operations
-            sync_engine_url = settings.DATABASE_URL.replace("postgresql+asyncpg", "postgresql+psycopg")
-            sync_engine = create_engine(sync_engine_url)
-
-            # Log registered tables
-            if hasattr(Base, 'metadata'):
-                table_names = list(Base.metadata.tables.keys())
-                print(f"SQLAlchemy metadata has {len(table_names)} tables registered.")
-                print(f"Registered tables: {table_names}")
-
-            # Use a synchronous connection to create tables
-            # The async version was causing issues during initial setup
-            Base.metadata.create_all(bind=sync_engine)
-            
-            print("✅✅✅ Database schema initialization command executed successfully.")
+            print("🔧 Testing database connection...")
+            from app.core.database import db_manager
+            health_check_result = await db_manager.health_check()
+            if health_check_result:
+                print("✅✅✅ Database connection test successful.")
+            else:
+                print("⚠️⚠️⚠️ Database connection test failed, but continuing...")
             
         except Exception as e:
-            print(f"❌❌❌ Database schema initialization failed: {e}")
+            print(f"⚠️⚠️⚠️ Database connection test failed: {e}")
+            # Don't fail startup on database connection issues
             import traceback
             traceback.print_exc()
     

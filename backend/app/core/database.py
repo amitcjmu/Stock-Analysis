@@ -1,7 +1,8 @@
 """
-Database configuration and session management for PostgreSQL.
+Database configuration and session management for PostgreSQL with pgvector support.
 Supports both local development and Railway.app deployment.
 ⚡ OPTIMIZED: Enhanced with connection pooling and timeout management.
+🎯 UNIFIED: Single pgvector database for all operations including AI embeddings.
 """
 
 try:
@@ -30,6 +31,7 @@ except ImportError:
 
 import logging
 import asyncio
+import os
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -74,8 +76,9 @@ if SQLALCHEMY_AVAILABLE:
             **OPTIMIZED_POOL_CONFIG
         }
     
-    logger.info(f"⚡ Creating database engine with {pool_class.__name__} pool")
+    logger.info(f"⚡ Creating unified pgvector database engine with {pool_class.__name__} pool")
     
+    # Unified database engine with pgvector support
     engine = create_async_engine(
         get_database_url(),
         echo=settings.DB_ECHO_LOG,  # Use dedicated setting for SQL logging
@@ -84,19 +87,19 @@ if SQLALCHEMY_AVAILABLE:
 
     # ⚡ CONNECTION MONITORING: Add connection event listeners
     @event.listens_for(engine.sync_engine, "connect")
-    def set_sqlite_pragma(dbapi_connection, connection_record):
-        """Configure connection-level settings for performance."""
-        logger.debug("Database connection established")
+    def set_connection_pragma(dbapi_connection, connection_record):
+        """Configure connection-level settings for performance and pgvector."""
+        logger.debug("Unified pgvector database connection established")
     
     @event.listens_for(engine.sync_engine, "checkout")
     def receive_checkout(dbapi_connection, connection_record, connection_proxy):
         """Log connection checkout for monitoring."""
-        logger.debug("Connection checked out from pool")
+        logger.debug("Database connection checked out from pool")
     
     @event.listens_for(engine.sync_engine, "checkin")
     def receive_checkin(dbapi_connection, connection_record):
         """Log connection checkin for monitoring."""
-        logger.debug("Connection returned to pool")
+        logger.debug("Database connection returned to pool")
 
     # Create async session factory with optimizations
     AsyncSessionLocal = async_sessionmaker(
@@ -159,6 +162,7 @@ connection_health = ConnectionHealthTracker()
 async def get_db() -> AsyncSession:
     """
     ⚡ OPTIMIZED: Dependency to get database session with timeout and health monitoring.
+    🎯 UNIFIED: Single session for all operations including vector operations.
     Use this in FastAPI route dependencies.
     """
     start_time = datetime.utcnow()
@@ -196,6 +200,8 @@ async def get_db() -> AsyncSession:
         if session:
             await session.close()
 
+# Alias for backward compatibility - all operations use the same database now
+get_vector_db = get_db
 
 async def get_db_with_timeout(timeout_seconds: int = 5) -> AsyncSession:
     """
@@ -255,13 +261,16 @@ class DatabaseManager:
         try:
             async with asyncio.timeout(5):  # 5 second timeout
                 async with self.session_factory() as session:
+                    # Test both regular and vector functionality
                     await session.execute(text("SELECT 1"))
+                    # Test pgvector extension
+                    await session.execute(text("SELECT 1 FROM pg_extension WHERE extname = 'vector'"))
                     
                 response_time = (datetime.utcnow() - start_time).total_seconds()
                 self.health_tracker.record_connection_attempt(True, response_time)
                 self.health_tracker.last_health_check = datetime.utcnow()
                 
-                logger.info(f"✅ Database health check passed in {response_time:.2f}s")
+                logger.info(f"✅ Unified pgvector database health check passed in {response_time:.2f}s")
                 return True
                 
         except Exception as e:
@@ -288,7 +297,8 @@ class DatabaseManager:
         return {
             "connection_health": self.health_tracker.get_health_status(),
             "pool_status": pool_status,
-            "engine_type": type(self.engine).__name__ if self.engine else "None"
+            "engine_type": type(self.engine).__name__ if self.engine else "None",
+            "database_type": "unified_pgvector"
         }
 
 

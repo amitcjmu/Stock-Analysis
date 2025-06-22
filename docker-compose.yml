@@ -3,7 +3,7 @@
 services:
   # PostgreSQL Database with pgvector
   postgres:
-    image: pgvector/pgvector:pg15
+    image: pgvector/pgvector:pg16
     container_name: migration_postgres
     environment:
       POSTGRES_DB: migration_db
