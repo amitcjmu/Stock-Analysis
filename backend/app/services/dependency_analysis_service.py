@@ -8,7 +8,7 @@ import logging
 
 from app.repositories.dependency_repository import DependencyRepository
 from app.models.asset import AssetDependency
-from app.services.crewai_flows.discovery_flow import DiscoveryFlowService
+from app.services.crewai_flow_service import CrewAIFlowService
 from app.core.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ class DependencyAnalysisService:
         self.engagement_id = engagement_id
         self.session_id = session_id
         self.repository = DependencyRepository(db, client_account_id, engagement_id)
-        self.discovery_flow = DiscoveryFlowService(db, client_account_id, engagement_id)
+        self.discovery_flow = CrewAIFlowService(db)
 
     async def get_dependency_analysis(self) -> Dict[str, Any]:
         """Get comprehensive dependency analysis."""
