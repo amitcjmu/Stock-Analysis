@@ -42,7 +42,6 @@ from .serialization import (
 from .app_server_mappings import router as app_server_mappings_router
 from .testing_endpoints import router as testing_endpoints_router
 from .chat_interface import router as chat_interface_router
-from .discovery_flow import router as discovery_flow_router
 
 __all__ = [
     # Models
@@ -79,6 +78,5 @@ __all__ = [
     # Routers
     "app_server_mappings_router",
     "testing_endpoints_router",
-    "chat_interface_router",
-    "discovery_flow_router"
+    "chat_interface_router"
 ] 

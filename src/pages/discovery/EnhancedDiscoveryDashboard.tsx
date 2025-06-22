@@ -35,6 +35,7 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiCall } from '@/config/api';
+import { useUnifiedDiscoveryFlow } from '../../hooks/useUnifiedDiscoveryFlow';
 
 interface FlowSummary {
   flow_id: string;
@@ -91,6 +92,16 @@ interface PlatformAlert {
 const EnhancedDiscoveryDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, client, engagement, getAuthHeaders } = useAuth();
+  
+  // Unified discovery flow hook
+  const {
+    flowState,
+    isLoading: flowLoading,
+    error: flowError,
+    isHealthy,
+    refreshFlow
+  } = useUnifiedDiscoveryFlow();
+  
   const [activeFlows, setActiveFlows] = useState<FlowSummary[]>([]);
   const [systemMetrics, setSystemMetrics] = useState<SystemMetrics | null>(null);
   const [crewPerformance, setCrewPerformance] = useState<CrewPerformanceMetrics[]>([]);
@@ -410,6 +421,61 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
 
   const OverviewTab = () => (
     <div className="space-y-6">
+      {/* Unified Flow Status */}
+      {flowState && (
+        <Card className="border-l-4 border-l-blue-500">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Brain className="mr-2 h-5 w-5 text-blue-500" />
+              Current Unified Discovery Flow
+            </CardTitle>
+            <CardDescription>
+              Session: {flowState.session_id} | Status: {flowState.status}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Progress</span>
+                <span className="text-sm text-gray-600">{flowState.progress_percentage}%</span>
+              </div>
+              <Progress value={flowState.progress_percentage} className="w-full" />
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="font-medium">Current Phase:</span>
+                  <div className="text-blue-600">{flowState.current_phase}</div>
+                </div>
+                <div>
+                  <span className="font-medium">Completed Phases:</span>
+                  <div className="text-green-600">
+                    {Object.values(flowState.phase_completion || {}).filter(Boolean).length}/6
+                  </div>
+                </div>
+              </div>
+              <div className="flex space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={refreshFlow}
+                  disabled={flowLoading}
+                >
+                  <RefreshCw className={`mr-2 h-4 w-4 ${flowLoading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/discovery')}
+                >
+                  <Eye className="mr-2 h-4 w-4" />
+                  View Details
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* System Metrics */}
       {systemMetrics && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

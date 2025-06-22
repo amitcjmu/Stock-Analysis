@@ -122,6 +122,34 @@ async def get_flow_status(
         logger.error(f"❌ Failed to get flow status: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get flow status: {str(e)}")
 
+@router.post("/flow/execute/{phase}")
+async def execute_flow_phase(
+    phase: str,
+    request: Dict[str, Any],
+    context: RequestContext = Depends(get_request_context),
+    db: AsyncSession = Depends(get_async_db)
+):
+    """Execute a specific phase of the discovery flow"""
+    try:
+        session_id = request.get("session_id")
+        if not session_id:
+            raise HTTPException(status_code=400, detail="Session ID is required")
+        
+        logger.info(f"🔄 Executing phase {phase} for session {session_id}")
+        
+        # Implementation placeholder - integrate with unified flow
+        return {
+            "status": "success",
+            "message": f"Phase {phase} execution started",
+            "session_id": session_id,
+            "phase": phase,
+            "started_at": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to execute phase {phase}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to execute phase {phase}: {str(e)}")
+
 @router.get("/flow/health")
 async def get_flow_health():
     """Get health status of the unified discovery flow system"""

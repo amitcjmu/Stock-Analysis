@@ -21,13 +21,8 @@ class DependencyAnalysisRequest(BaseModel):
     engagement_id: str
     dependency_type: str = "app-server"  # "app-server" or "app-app"
 
-# Include discovery flow router for async CrewAI workflows
-try:
-    from app.api.v1.discovery.discovery_flow import router as discovery_flow_router
-    router.include_router(discovery_flow_router, tags=["discovery-flow"])
-    logger.info("✅ Discovery flow router included in discovery")
-except ImportError as e:
-    logger.warning(f"⚠️ Discovery flow router not available: {e}")
+# Discovery flow now handled by unified discovery router
+logger.info("✅ Discovery flow now handled by unified discovery router")
 
 # Include agent discovery endpoints
 try:

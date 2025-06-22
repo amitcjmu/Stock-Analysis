@@ -22,7 +22,7 @@ from app.api.v1.endpoints import (
 
 from app.api.v1.endpoints.context_establishment import router as context_establishment_router
 
-from app.api.v1.discovery import discovery_flow_router
+from app.api.v1.unified_discovery import router as unified_discovery_router
 from app.api.v1.routes.llm_health import router as llm_health_router
 
 from app.api.v1.admin.client_management import router as client_management_router
@@ -42,7 +42,7 @@ logger.info("--- Starting API Router Inclusion Process ---")
 
 api_router.include_router(sixr_router, prefix="/sixr", tags=["6R Analysis"])
 api_router.include_router(discovery_router, prefix="/discovery", tags=["Discovery"])
-api_router.include_router(discovery_flow_router, prefix="/discovery/flow", tags=["Discovery Flow"])
+api_router.include_router(unified_discovery_router, prefix="", tags=["Unified Discovery Flow"])
 api_router.include_router(asset_inventory_router, prefix="/assets", tags=["Asset Inventory"])
 api_router.include_router(llm_health_router, prefix="/llm", tags=["LLM Health"])
 api_router.include_router(data_import_router, prefix="/data-import", tags=["Data Import"])
