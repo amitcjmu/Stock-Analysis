@@ -143,17 +143,20 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
       if (discoveryFlowsResponse.status === 'fulfilled' && discoveryFlowsResponse.value) {
         const discoveryData = discoveryFlowsResponse.value;
         console.log('📊 Discovery flows data:', discoveryData);
+        console.log('📊 Discovery flows raw response:', JSON.stringify(discoveryData, null, 2));
 
         if (discoveryData.flow_details && Array.isArray(discoveryData.flow_details)) {
+          console.log(`📊 Processing ${discoveryData.flow_details.length} flows...`);
           for (const flow of discoveryData.flow_details) {
             try {
+              console.log('📊 Processing flow:', flow);
               allFlows.push({
                 flow_id: flow.flow_id,
                 session_id: flow.session_id || flow.flow_id,
-                engagement_name: flow.engagement_name || `${client?.name || 'Unknown'} - Discovery`,
-                engagement_id: engagement?.id || 'unknown',
-                client_name: client?.name || 'Unknown Client',
-                client_id: client?.id || 'unknown',
+                engagement_name: flow.engagement_name || `${flow.client_name || 'Unknown'} - Discovery`,
+                engagement_id: flow.engagement_id || 'unknown',
+                client_name: flow.client_name || 'Unknown Client',
+                client_id: flow.client_id || 'unknown',
                 status: flow.status || 'running',
                 progress: flow.progress || 0,
                 current_phase: flow.current_phase || 'initialization',
@@ -171,7 +174,11 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
               console.warn('Failed to process flow:', flow, flowError);
             }
           }
+        } else {
+          console.warn('📊 No flow_details found or not an array:', discoveryData);
         }
+      } else {
+        console.warn('📊 Discovery flows response failed or empty:', discoveryFlowsResponse);
       }
 
       // Process Data Import sessions to find additional flows

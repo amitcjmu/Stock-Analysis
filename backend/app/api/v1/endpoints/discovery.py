@@ -160,26 +160,149 @@ async def get_active_discovery_flows(
     """
     Get active discovery flows (compatibility endpoint for Enhanced Discovery Dashboard).
     
-    This endpoint provides compatibility with the Enhanced Discovery Dashboard
-    until it's updated to use the unified discovery endpoints.
+    For platform admin users, this returns flows across all authorized clients.
+    For regular users, this returns flows for their current client context.
     """
     try:
-        logger.info(f"🔍 Getting active discovery flows for client: {context.client_account_id}")
+        logger.info(f"🔍 Getting active discovery flows for user: {context.user_id}, client: {context.client_account_id}")
         
-        # Return empty flows for now - this will be populated when flows are actually running
-        return {
-            "success": True,
-            "message": "Active discovery flows retrieved successfully",
-            "flow_details": [],  # Empty for now - will be populated when flows are running
-            "total_flows": 0,
-            "active_flows": 0,
-            "completed_flows": 0,
-            "failed_flows": 0,
-            "timestamp": "2024-03-21T22:17:51Z"
-        }
+        from sqlalchemy.ext.asyncio import AsyncSession
+        from app.core.database import AsyncSessionLocal
+        from app.models.workflow_state import WorkflowState
+        from app.models.client_account import ClientAccount, Engagement
+        from app.models.rbac import UserRole, ClientAccess
+        from sqlalchemy import select, and_, or_
+        from sqlalchemy.orm import selectinload
+        
+        async with AsyncSessionLocal() as db:
+            # Check if user is platform admin
+            user_role_query = select(UserRole).where(UserRole.user_id == context.user_id)
+            user_roles_result = await db.execute(user_role_query)
+            user_roles = user_roles_result.scalars().all()
+            
+            is_platform_admin = any(role.role_name in ['platform_admin', 'Platform Administrator'] for role in user_roles)
+            
+            if is_platform_admin:
+                logger.info(f"🔑 Platform admin detected - querying across all authorized clients")
+                
+                # Get authorized client IDs for platform admin
+                client_access_query = select(ClientAccess.client_account_id).where(
+                    and_(
+                        ClientAccess.user_profile_id == context.user_id,
+                        ClientAccess.is_active == True
+                    )
+                )
+                client_access_result = await db.execute(client_access_query)
+                authorized_client_ids = [str(cid) for cid in client_access_result.scalars().all()]
+                
+                logger.info(f"👥 Found {len(authorized_client_ids)} authorized clients for admin")
+                
+                if authorized_client_ids:
+                    # Get flows for all authorized clients using raw SQL
+                    sql_query = select(WorkflowState).where(WorkflowState.client_account_id.in_(authorized_client_ids))
+                    flows_result = await db.execute(sql_query)
+                else:
+                    # No client access found, return empty
+                    flows_result = None
+            else:
+                # Regular user: Get flows for current client context only
+                logger.info(f"👤 Regular user - querying for client: {context.client_account_id}")
+                
+                if not context.client_account_id:
+                    logger.warning("⚠️ No client context available for regular user")
+                    return {
+                        "success": True,
+                        "total_flows": 0,
+                        "active_flows": 0,
+                        "flow_details": [],
+                        "is_platform_admin": False,
+                        "authorized_clients": 0,
+                        "message": "No client context available"
+                    }
+                
+                sql_query = select(WorkflowState).where(WorkflowState.client_account_id == context.client_account_id)
+                flows_result = await db.execute(sql_query)
+            
+            # Process results
+            flows = flows_result.scalars().all()
+            logger.info(f"📊 Found {len(flows)} flows in database")
+            
+            flow_details = []
+            for flow in flows:
+                try:
+                    # Get client and engagement names
+                    client_name = "Unknown Client"
+                    engagement_name = "Unknown Engagement"
+                    
+                    # Query client name
+                    if flow.client_account_id:
+                        client_result = await db.execute(
+                            select(ClientAccount).where(ClientAccount.id == flow.client_account_id)
+                        )
+                        client = client_result.scalar_one_or_none()
+                        if client:
+                            client_name = client.name
+                    
+                    # Query engagement name  
+                    if flow.engagement_id:
+                        engagement_result = await db.execute(
+                            select(Engagement).where(Engagement.id == flow.engagement_id)
+                        )
+                        engagement = engagement_result.scalar_one_or_none()
+                        if engagement:
+                            engagement_name = engagement.name
+                    
+                    flow_detail = {
+                        "flow_id": str(flow.flow_id),
+                        "session_id": str(flow.session_id),
+                        "client_id": str(flow.client_account_id),
+                        "client_name": client_name,
+                        "engagement_id": str(flow.engagement_id),
+                        "engagement_name": engagement_name,
+                        "status": flow.status,
+                        "current_phase": flow.current_phase,
+                        "progress": flow.progress_percentage,
+                        "workflow_type": flow.workflow_type,
+                        "created_at": flow.created_at.isoformat() if flow.created_at else None,
+                        "updated_at": flow.updated_at.isoformat() if flow.updated_at else None,
+                        "started_at": flow.started_at.isoformat() if flow.started_at else None,
+                        "completed_at": flow.completed_at.isoformat() if flow.completed_at else None,
+                        "phase_completion": flow.phase_completion or {},
+                        "crew_status": flow.crew_status or {},
+                        "errors": flow.errors or [],
+                        "warnings": flow.warnings or []
+                    }
+                    flow_details.append(flow_detail)
+                    
+                except Exception as e:
+                    logger.error(f"Error processing flow {flow.id}: {str(e)}")
+                    continue
+            
+            # Calculate summary statistics
+            total_flows = len(flow_details)
+            active_flows = len([f for f in flow_details if f["status"] == "running"])
+            completed_flows = len([f for f in flow_details if f["status"] == "completed"])
+            failed_flows = len([f for f in flow_details if f["status"] == "failed"])
+            
+            logger.info(f"📈 Flow summary: {total_flows} total, {active_flows} active, {completed_flows} completed, {failed_flows} failed")
+            
+            return {
+                "success": True,
+                "message": f"Active discovery flows retrieved successfully ({'platform-wide' if is_platform_admin else 'client-specific'})",
+                "flow_details": flow_details,
+                "total_flows": total_flows,
+                "active_flows": active_flows,
+                "completed_flows": completed_flows,
+                "failed_flows": failed_flows,
+                "is_platform_admin": is_platform_admin,
+                "authorized_clients": len(authorized_client_ids) if is_platform_admin else 1,
+                "timestamp": "2024-03-21T22:17:51Z"
+            }
         
     except Exception as e:
         logger.error(f"❌ Failed to get active discovery flows: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Failed to get active discovery flows: {str(e)}")
 
 @router.get("/flow/status")

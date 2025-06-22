@@ -299,7 +299,7 @@ try:
             "/api/v1/data-import/latest-import",  # Allow checking for existing data
             "/api/v1/data-import/status",  # Allow checking import status
             # Discovery flow status endpoints that may be called before context
-            "/api/v1/discovery/flow/active",  # Allow checking active flows
+            # Removed /api/v1/discovery/flow/active - now requires context for RBAC
             "/api/v1/discovery/flow/status",  # Allow checking flow status
             "/api/v1/unified-discovery/flow/health",  # Allow health checks
             "/api/v1/unified-discovery/flow/status",  # Allow flow status checks
