@@ -34,6 +34,17 @@ import { useToast } from '@/hooks/use-toast';
 import { DataImportValidationService, ValidationAgentResult } from '@/services/dataImportValidationService';
 import { apiCall } from '@/config/api';
 
+// Flow Management Components
+import { UploadBlocker } from '@/components/discovery/UploadBlocker';
+import { IncompleteFlowManager } from '@/components/discovery/IncompleteFlowManager';
+import { 
+  useIncompleteFlowDetection, 
+  useFlowResumption, 
+  useFlowDeletion, 
+  useBulkFlowOperations 
+} from '@/hooks/discovery/useIncompleteFlowDetection';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+
 // Data Import Validation Agents
 interface DataImportAgent {
   id: string;
@@ -198,6 +209,43 @@ const DataImport: React.FC = () => {
   const { toast } = useToast();
   const { user, client, engagement, session, getAuthHeaders } = useAuth();
   const [uploadedFiles, setUploadedFiles] = useState<UploadFile[]>([]);
+  
+  // Flow Management State
+  const { data: incompleteFlowsData, isLoading: checkingFlows } = useIncompleteFlowDetection();
+  const flowResumption = useFlowResumption();
+  const flowDeletion = useFlowDeletion();
+  const bulkFlowOperations = useBulkFlowOperations();
+  const [showFlowManager, setShowFlowManager] = useState(false);
+  
+  const incompleteFlows = incompleteFlowsData?.flows || [];
+  const hasIncompleteFlows = incompleteFlows.length > 0;
+  
+  // Flow Management Handlers
+  const handleContinueFlow = useCallback((sessionId: string) => {
+    flowResumption.mutate(sessionId);
+  }, [flowResumption]);
+
+  const handleDeleteFlow = useCallback((sessionId: string) => {
+    flowDeletion.mutate(sessionId);
+  }, [flowDeletion]);
+
+  const handleBatchDeleteFlows = useCallback((sessionIds: string[]) => {
+    bulkFlowOperations.mutate({ session_ids: sessionIds });
+  }, [bulkFlowOperations]);
+
+  const handleViewFlowDetails = useCallback((sessionId: string, phase: string) => {
+    // Navigate to phase-specific page
+    const phaseRoutes = {
+      'field_mapping': `/discovery/attribute-mapping/${sessionId}`,
+      'data_cleansing': `/discovery/data-cleansing/${sessionId}`,
+      'asset_inventory': `/discovery/asset-inventory/${sessionId}`,
+      'dependency_analysis': `/discovery/dependencies/${sessionId}`,
+      'tech_debt_analysis': `/discovery/technical-debt/${sessionId}`
+    };
+    const route = phaseRoutes[phase as keyof typeof phaseRoutes] || `/discovery/enhanced-dashboard`;
+    navigate(route);
+  }, [navigate]);
+
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [validationAgents, setValidationAgents] = useState<DataImportAgent[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -638,10 +686,25 @@ const DataImport: React.FC = () => {
             </Alert>
           </div>
 
-          {/* Upload Categories */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Choose Data Category</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Conditional Upload Interface */}
+          {checkingFlows ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+              <span className="ml-3 text-gray-600">Checking for incomplete discovery flows...</span>
+            </div>
+          ) : hasIncompleteFlows ? (
+            <UploadBlocker 
+              incompleteFlows={incompleteFlows}
+              onContinueFlow={handleContinueFlow}
+              onDeleteFlow={handleDeleteFlow}
+              onViewDetails={handleViewFlowDetails}
+              onManageFlows={() => setShowFlowManager(true)}
+              isLoading={flowResumption.isPending || flowDeletion.isPending}
+            />
+          ) : (
+            <div className="mb-8">
+              <h2 className="text-xl font-semibold text-gray-900 mb-6">Choose Data Category</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {uploadCategories.map((category) => (
                 <Card 
                   key={category.id}
@@ -735,6 +798,7 @@ const DataImport: React.FC = () => {
               ))}
             </div>
           </div>
+          )}
 
           {/* Upload Progress & Validation */}
           {uploadedFiles.length > 0 && (
@@ -952,6 +1016,23 @@ const DataImport: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Flow Management Modal */}
+      <Dialog open={showFlowManager} onOpenChange={setShowFlowManager}>
+        <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Manage Incomplete Discovery Flows</DialogTitle>
+          </DialogHeader>
+          <IncompleteFlowManager 
+            flows={incompleteFlows}
+            onContinueFlow={handleContinueFlow}
+            onDeleteFlow={handleDeleteFlow}
+            onBatchDelete={handleBatchDeleteFlows}
+            onViewDetails={handleViewFlowDetails}
+            isLoading={flowResumption.isPending || flowDeletion.isPending || bulkFlowOperations.isPending}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

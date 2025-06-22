@@ -37,6 +37,15 @@ import { useAuth } from '../../contexts/AuthContext';
 import { apiCall } from '@/config/api';
 import { useUnifiedDiscoveryFlow } from '../../hooks/useUnifiedDiscoveryFlow';
 
+// Flow Management Components
+import { 
+  useIncompleteFlowDetection, 
+  useFlowResumption, 
+  useFlowDeletion 
+} from '@/hooks/discovery/useIncompleteFlowDetection';
+import { IncompleteFlowManager } from '@/components/discovery/IncompleteFlowManager';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+
 interface FlowSummary {
   flow_id: string;
   session_id?: string;
@@ -110,6 +119,15 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [error, setError] = useState<string | null>(null);
+
+  // Flow Management State
+  const { data: incompleteFlowsData } = useIncompleteFlowDetection();
+  const flowResumption = useFlowResumption();
+  const flowDeletion = useFlowDeletion();
+  const [showIncompleteFlowManager, setShowIncompleteFlowManager] = useState(false);
+  
+  const incompleteFlows = incompleteFlowsData?.flows || [];
+  const hasIncompleteFlows = incompleteFlows.length > 0;
 
   // Fetch dashboard data
   const fetchDashboardData = async () => {
@@ -906,6 +924,42 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
             </div>
           )}
 
+          {/* Incomplete Flows Alert */}
+          {hasIncompleteFlows && (
+            <div className="mb-6 p-4 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="w-5 h-5 text-yellow-600" />
+                  <div>
+                    <p className="font-medium text-yellow-800">
+                      {incompleteFlows.length} Incomplete Discovery Flow{incompleteFlows.length > 1 ? 's' : ''} Found
+                    </p>
+                    <p className="text-sm text-yellow-700">
+                      These flows require attention before new data imports can proceed
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="bg-white text-yellow-700">
+                    {incompleteFlows.filter(f => f.status === 'failed').length} failed
+                  </Badge>
+                  <Badge variant="outline" className="bg-white text-yellow-700">
+                    {incompleteFlows.filter(f => f.status === 'paused').length} paused
+                  </Badge>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setShowIncompleteFlowManager(true)}
+                    className="bg-white hover:bg-yellow-50"
+                  >
+                    <Settings className="h-4 w-4 mr-2" />
+                    Manage Flows
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Dashboard Tabs */}
           <Tabs defaultValue="overview" className="space-y-6">
             <TabsList className="grid w-full grid-cols-3">
@@ -1007,6 +1061,36 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
           </Tabs>
         </div>
       </div>
+
+      {/* Incomplete Flow Management Modal */}
+      <Dialog open={showIncompleteFlowManager} onOpenChange={setShowIncompleteFlowManager}>
+        <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Manage Incomplete Discovery Flows</DialogTitle>
+          </DialogHeader>
+          <IncompleteFlowManager 
+            flows={incompleteFlows}
+            onContinueFlow={(sessionId) => flowResumption.mutate(sessionId)}
+            onDeleteFlow={(sessionId) => flowDeletion.mutate(sessionId)}
+            onBatchDelete={(sessionIds) => {
+              // Batch delete logic
+              sessionIds.forEach(id => flowDeletion.mutate(id));
+            }}
+            onViewDetails={(sessionId, phase) => {
+              const phaseRoutes = {
+                'field_mapping': `/discovery/attribute-mapping/${sessionId}`,
+                'data_cleansing': `/discovery/data-cleansing/${sessionId}`,
+                'asset_inventory': `/discovery/asset-inventory/${sessionId}`,
+                'dependency_analysis': `/discovery/dependencies/${sessionId}`,
+                'tech_debt_analysis': `/discovery/technical-debt/${sessionId}`
+              };
+              const route = phaseRoutes[phase as keyof typeof phaseRoutes] || `/discovery/enhanced-dashboard`;
+              navigate(route);
+            }}
+            isLoading={flowResumption.isPending || flowDeletion.isPending}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
