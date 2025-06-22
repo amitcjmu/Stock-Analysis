@@ -7,10 +7,12 @@ import AgentInsightsSection from '../../components/discovery/AgentInsightsSectio
 import { 
   AlertTriangle, Bug, Shield, Clock, TrendingUp,
   Code, Database, Globe, BarChart3, Settings,
-  CheckCircle, X, Info, GraduationCap, RotateCcw
+  CheckCircle, X, Info, GraduationCap, RotateCcw, Play, RefreshCw
 } from 'lucide-react';
-import { apiCall, API_CONFIG } from '../../config/api';
+import { useUnifiedDiscoveryFlow } from '../../hooks/useUnifiedDiscoveryFlow';
 import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '../../components/ui/button';
+import { useToast } from '../../components/ui/use-toast';
 
 interface TechDebtItem {
   id: string;
@@ -39,12 +41,34 @@ interface SupportTimeline {
 
 const TechDebtAnalysis = () => {
   const { client, engagement } = useAuth();
-  const [techDebtItems, setTechDebtItems] = useState<TechDebtItem[]>([]);
-  const [supportTimelines, setSupportTimelines] = useState<SupportTimeline[]>([]);
+  const { toast } = useToast();
+  
+  // Unified discovery flow hook
+  const {
+    flowState,
+    isLoading,
+    error,
+    getPhaseData,
+    isPhaseComplete,
+    canProceedToPhase,
+    executeFlowPhase,
+    isExecutingPhase,
+    refreshFlow
+  } = useUnifiedDiscoveryFlow();
+
+  // Get tech debt specific data
+  const techDebtData = getPhaseData('tech_debt_analysis');
+  const isTechDebtComplete = isPhaseComplete('tech_debt_analysis');
+  
+  // Local state for UI
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedRisk, setSelectedRisk] = useState('all');
-  const [isLoading, setIsLoading] = useState(true);
-  const [summary, setSummary] = useState({
+  const [agentRefreshTrigger, setAgentRefreshTrigger] = useState(0);
+
+  // Derived state from flow data
+  const techDebtItems = (techDebtData && !Array.isArray(techDebtData)) ? (techDebtData.items || []) : [];
+  const supportTimelines = (techDebtData && !Array.isArray(techDebtData)) ? (techDebtData.support_timelines || []) : [];
+  const summary = (techDebtData && !Array.isArray(techDebtData)) ? (techDebtData.summary || {
     totalItems: 0,
     critical: 0,
     high: 0,
@@ -52,15 +76,51 @@ const TechDebtAnalysis = () => {
     low: 0,
     endOfLife: 0,
     deprecated: 0
-  });
-  const [agentRefreshTrigger, setAgentRefreshTrigger] = useState(0);
+  }) : {
+    totalItems: 0,
+    critical: 0,
+    high: 0,
+    medium: 0,
+    low: 0,
+    endOfLife: 0,
+    deprecated: 0
+  };
 
-  useEffect(() => {
-    if (client_account_id && engagement_id) {
-      fetchTechDebtAnalysis();
-      fetchSupportTimelines();
+  // Handle tech debt analysis execution
+  const handleExecuteTechDebtAnalysis = async () => {
+    try {
+      await executeFlowPhase('tech_debt_analysis');
+      toast({
+        title: 'Success',
+        description: 'Tech debt analysis started.',
+      });
+    } catch (err) {
+      console.error('Failed to execute tech debt analysis phase:', err);
+      toast({
+        title: 'Error',
+        description: 'Failed to start tech debt analysis. Please try again.',
+        variant: 'destructive',
+      });
     }
-  }, [client_account_id, engagement_id]);
+  };
+
+  // Handle refresh
+  const handleRefresh = async () => {
+    try {
+      await refreshFlow();
+      toast({
+        title: 'Success',
+        description: 'Tech debt analysis data refreshed.',
+      });
+    } catch (err) {
+      console.error('Failed to refresh tech debt data:', err);
+      toast({
+        title: 'Error',
+        description: 'Failed to refresh data. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   // Trigger initial agent panel refresh on component mount
   useEffect(() => {

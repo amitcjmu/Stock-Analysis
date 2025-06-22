@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 
 // Hooks
-import { useAssetInventoryAnalysis, useRefreshAssetInventory } from '../../api/hooks/useAssetInventory';
+import { useUnifiedDiscoveryFlow } from '../../hooks/useUnifiedDiscoveryFlow';
 import { useAuth } from '../../contexts/AuthContext';
 
 // Components
@@ -48,21 +48,46 @@ const AssetInventoryRedesigned: React.FC = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   
-  // Data fetching with React Query
-  const { 
-    data: inventoryData, 
-    isLoading, 
-    isError, 
+  // Unified discovery flow hook
+  const {
+    flowState,
+    isLoading,
     error,
-    refetch: refetchInventoryData 
-  } = useAssetInventoryAnalysis();
-  
-  const refreshInventory = useRefreshAssetInventory();
+    getPhaseData,
+    isPhaseComplete,
+    canProceedToPhase,
+    executeFlowPhase,
+    isExecutingPhase,
+    refreshFlow
+  } = useUnifiedDiscoveryFlow();
+
+  // Get asset inventory specific data
+  const inventoryData = getPhaseData('asset_inventory');
+  const isAssetInventoryComplete = isPhaseComplete('asset_inventory');
+  const canProceedToDependencies = canProceedToPhase('dependency_analysis');
+
+  // Handle asset inventory execution
+  const handleExecuteAssetInventory = async () => {
+    try {
+      await executeFlowPhase('asset_inventory');
+      toast({
+        title: 'Success',
+        description: 'Asset inventory analysis started.',
+      });
+    } catch (err) {
+      console.error('Failed to execute asset inventory phase:', err);
+      toast({
+        title: 'Error',
+        description: 'Failed to start asset inventory analysis. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   // Handle refresh with error handling
   const handleRefresh = async () => {
     try {
-      await refreshInventory();
+      await refreshFlow();
       toast({
         title: 'Success',
         description: 'Asset inventory data has been refreshed.',
@@ -79,10 +104,11 @@ const AssetInventoryRedesigned: React.FC = () => {
 
   // Derived state
   const lastUpdated = useMemo(() => {
-    return inventoryData?.analysis_timestamp 
-      ? new Date(inventoryData.analysis_timestamp).toLocaleString() 
+    const timestamp = (inventoryData && !Array.isArray(inventoryData)) ? inventoryData.analysis_timestamp : null;
+    return timestamp 
+      ? new Date(timestamp).toLocaleString() 
       : 'Never';
-  }, [inventoryData?.analysis_timestamp]);
+  }, [inventoryData]);
 
   // Loading state
   if (isLoading) {
@@ -103,7 +129,7 @@ const AssetInventoryRedesigned: React.FC = () => {
   }
 
   // Error state
-  if (isError || !inventoryData) {
+  if (error || !inventoryData) {
     return (
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-7xl mx-auto">
@@ -135,16 +161,17 @@ const AssetInventoryRedesigned: React.FC = () => {
     );
   }
 
-  // Destructure data for easier access
+  // Destructure data for easier access (with safe access)
+  const safeInventoryData = (inventoryData && !Array.isArray(inventoryData)) ? inventoryData : {};
   const {
-    asset_metrics,
-    workflow_analysis,
-    data_quality,
-    migration_readiness,
-    dependency_analysis,
-    recommendations,
-    assessment_ready
-  } = inventoryData;
+    asset_metrics = { total_count: 0, by_type: {} },
+    workflow_analysis = {},
+    data_quality = { overall_score: 0 },
+    migration_readiness = {},
+    dependency_analysis = {},
+    recommendations = [],
+    assessment_ready = false
+  } = safeInventoryData;
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">

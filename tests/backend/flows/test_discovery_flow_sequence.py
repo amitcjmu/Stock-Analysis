@@ -15,14 +15,16 @@ import time
 
 # Mock imports for testing
 try:
-    from app.services.crewai_flows.discovery_flow_service import DiscoveryFlowService
+    from app.services.crewai_flows.unified_discovery_flow import UnifiedDiscoveryFlow
+    from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
     from app.models.data_import.import_session import ImportSession
-    from app.models.discovery_workflow import DiscoveryWorkflow
+    from app.models.workflow_state import WorkflowState
 except ImportError:
     # Fallback for testing environment
-    DiscoveryFlowService = Mock
+    UnifiedDiscoveryFlow = Mock
+    UnifiedDiscoveryFlowState = Mock
     ImportSession = Mock
-    DiscoveryWorkflow = Mock
+    WorkflowState = Mock
 
 
 class MockFlowResult:
