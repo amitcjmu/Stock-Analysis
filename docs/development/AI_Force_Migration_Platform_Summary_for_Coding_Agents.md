@@ -174,11 +174,10 @@ class DiscoveryFlowState(BaseModel):
 
 ## 📁 **Current File Structure (What to Use)**
 
-### **✅ ACTIVE: CrewAI Flow Implementation**
+### **✅ ACTIVE: Unified CrewAI Flow Implementation (CONSOLIDATED)**
 ```
 backend/app/services/crewai_flows/
-├── discovery_flow_modular.py          # ✅ Main CrewAI Flow implementation
-├── discovery_flow_state_manager.py    # ✅ State persistence and management
+├── unified_discovery_flow.py          # ✅ MAIN: Unified CrewAI Flow (732 lines)
 ├── crews/                             # ✅ Specialized crew implementations
 │   ├── field_mapping_crew.py         # ✅ Field mapping with manager coordination
 │   ├── data_cleansing_crew.py         # ✅ Data quality and standardization
@@ -195,13 +194,33 @@ backend/app/services/crewai_flows/
     ├── field_mapping_patterns.json
     ├── asset_classification_rules.json
     └── modernization_strategies.yaml
+
+backend/app/models/
+├── unified_discovery_flow_state.py    # ✅ MAIN: Unified state model (477 lines)
+└── workflow_state.py                  # ✅ Enhanced database model (238 lines)
+
+backend/app/api/v1/
+└── unified_discovery.py               # ✅ MAIN: Unified API endpoints (162 lines)
+
+src/hooks/
+└── useUnifiedDiscoveryFlow.ts         # ✅ MAIN: Single frontend hook (302 lines)
 ```
 
-### **❌ DEPRECATED: Legacy Individual Agents**
+### **❌ DEPRECATED: Legacy Individual Agents & Competing Implementations**
 ```
-backend/app/services/discovery_agents/  # ❌ DO NOT USE - Individual agents
+backend/app/services/discovery_agents/      # ❌ DO NOT USE - Individual agents
 backend/app/services/sixr_agents_handlers/  # ❌ DO NOT USE - Old agent handlers
 backend/app/services/analysis_handlers/     # ❌ DO NOT USE - Heuristic handlers
+
+# REMOVED: Competing implementations (2025-01-21 consolidation)
+backend/app/api/v1/discovery/discovery_flow.py     # ❌ REMOVED - 2,206 lines
+backend/app/services/crewai_flows/models/flow_state.py  # ❌ REMOVED - 442 lines
+backend/app/schemas/flow_schemas.py             # ❌ REMOVED - 63 lines
+backend/app/schemas/flow_schemas_new.py         # ❌ REMOVED - 63 lines
+
+# LEGACY: Old discovery flow files (superseded by unified flow)
+backend/app/services/crewai_flows/discovery_flow_modular.py  # ❌ SUPERSEDED
+backend/app/services/crewai_flows/discovery_flow_state_manager.py  # ❌ SUPERSEDED
 ```
 
 ---
@@ -210,17 +229,21 @@ backend/app/services/analysis_handlers/     # ❌ DO NOT USE - Heuristic handler
 
 ### **✅ DO: Current Best Practices**
 
-#### **1. Use CrewAI Flow Patterns**
+#### **1. Use Unified CrewAI Flow Patterns**
 ```python
-# ✅ Correct: CrewAI Flow with proper decorators
-@start()
-def initialize_discovery_flow(self):
-    return {"status": "initialized"}
+# ✅ Correct: Unified CrewAI Flow with proper decorators
+from app.services.crewai_flows.unified_discovery_flow import UnifiedDiscoveryFlow
 
-@listen(initialize_discovery_flow)
-def execute_field_mapping_crew(self, previous_result):
-    crew = FieldMappingCrew(self.crewai_service, self.context)
-    return crew.kickoff()
+class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
+    @start()
+    def initialize_discovery_flow(self):
+        return {"status": "initialized", "session_id": self.state.session_id}
+
+    @listen(initialize_discovery_flow)
+    def execute_field_mapping_crew(self, previous_result):
+        crew = FieldMappingCrew(self.crewai_service, self.context)
+        result = crew.kickoff()
+        return self._process_crew_result("field_mapping", result)
 ```
 
 #### **2. Implement Crew-Based Architecture**
@@ -239,18 +262,21 @@ class FieldMappingCrew:
         )
 ```
 
-#### **3. Use Proper State Management**
+#### **3. Use Unified State Management**
 ```python
-# ✅ Correct: Flow state with persistence
+# ✅ Correct: Unified flow state with persistence
+from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
+from app.models.workflow_state import UnifiedFlowStateRepository
+
 async def _process_crew_result(self, phase: str, result: Any):
-    # Update flow state
+    # Update unified flow state
     self.state.crew_status[phase] = {"status": "completed", "result": result}
+    self.state.phase_completion[phase] = True
+    self.state.progress_percentage = self._calculate_progress()
     
-    # Persist state
-    await self.state_manager.update_workflow_state(
-        self.state.session_id, 
-        self.state
-    )
+    # Persist to enhanced database model
+    repo = UnifiedFlowStateRepository(self.db, self.state.client_account_id)
+    await repo.update_workflow_state(self.state.session_id, self.state)
     
     return result
 ```
@@ -288,19 +314,35 @@ class DiscoveryService:
 
 ## 🔧 **API Integration Patterns**
 
-### **✅ Current API Endpoints**
+### **✅ Current Unified API Endpoints**
 ```python
-# Discovery Flow API (ACTIVE)
-@router.post("/api/v1/discovery/flow/run")
-async def run_discovery_flow(request: DiscoveryFlowRequest):
-    """Initialize and run CrewAI Discovery Flow"""
-    flow = DiscoveryFlow(crewai_service, context)
+# Unified Discovery Flow API (ACTIVE) - backend/app/api/v1/unified_discovery.py
+@router.post("/api/v1/unified-discovery/flow/initialize")
+async def initialize_discovery_flow(request: InitializeFlowRequest):
+    """Initialize a new unified discovery flow"""
+    flow = create_unified_discovery_flow(
+        session_id=session_id,
+        client_account_id=request.client_account_id,
+        engagement_id=request.engagement_id,
+        user_id=request.user_id,
+        raw_data=request.raw_data,
+        crewai_service=crewai_service,
+        context=context
+    )
     return await flow.kickoff()
 
-@router.get("/api/v1/discovery/flow/status")
+@router.get("/api/v1/unified-discovery/flow/status/{session_id}")
 async def get_flow_status(session_id: str):
-    """Get current flow execution status"""
-    return await flow_state_manager.get_workflow_state(session_id)
+    """Get current unified flow execution status"""
+    # Returns unified flow state with phase completion, crew status, progress
+    
+@router.post("/api/v1/unified-discovery/flow/execute/{phase}")
+async def execute_flow_phase(phase: str, request: Dict[str, Any]):
+    """Execute a specific phase of the discovery flow"""
+    
+@router.get("/api/v1/unified-discovery/flow/health")
+async def get_flow_health():
+    """Get health status of the unified discovery flow system"""
 ```
 
 ### **❌ Legacy Endpoints to Avoid**
@@ -308,53 +350,94 @@ async def get_flow_status(session_id: str):
 # ❌ DO NOT USE: Individual agent endpoints
 @router.post("/api/v1/discovery/agents/cmdb-analyst")  # DEPRECATED
 @router.post("/api/v1/discovery/agents/field-mapper")  # DEPRECATED
+
+# ❌ REMOVED: Competing discovery flow endpoints (2025-01-21)
+@router.post("/api/v1/discovery/flow/run")              # REMOVED
+@router.get("/api/v1/discovery/flow/status/{flow_id}")  # REMOVED
+@router.get("/api/v1/discovery/flow/active")            # REMOVED
+# ... and 44 other endpoints from discovery_flow.py     # REMOVED
+
+# ❌ DO NOT CREATE: New competing endpoints
+# Always use the unified discovery endpoints instead
 ```
 
 ---
 
 ## 🧪 **Testing Patterns**
 
-### **✅ Current Testing Approach**
+### **✅ Current Unified Testing Approach**
 ```python
-# Test CrewAI Flow execution
-async def test_discovery_flow_execution():
-    flow = DiscoveryFlow(mock_crewai_service, test_context)
+# Test Unified CrewAI Flow execution
+async def test_unified_discovery_flow_execution():
+    from app.services.crewai_flows.unified_discovery_flow import UnifiedDiscoveryFlow
+    
+    flow = UnifiedDiscoveryFlow(mock_crewai_service, test_context)
     result = await flow.kickoff()
     
     assert result["status"] == "completed"
-    assert "field_mappings" in result
-    assert "asset_inventory" in result
+    assert flow.state.phase_completion["field_mapping"] == True
+    assert flow.state.phase_completion["asset_inventory"] == True
+    assert flow.state.progress_percentage == 100.0
 
-# Test crew coordination
-async def test_field_mapping_crew():
+# Test crew coordination with unified state
+async def test_field_mapping_crew_unified():
     crew = FieldMappingCrew(mock_service, test_context)
     result = crew.kickoff()
     
     assert result["confidence_score"] > 0.8
     assert len(result["unmapped_fields"]) < 5
+    assert result["crew_coordination"]["manager_delegations"] > 0
+
+# Test unified frontend hook
+def test_useUnifiedDiscoveryFlow():
+    from src.hooks.useUnifiedDiscoveryFlow import useUnifiedDiscoveryFlow
+    # Test hook integration with unified API endpoints
 ```
 
 ---
 
 ## 📊 **Frontend Integration**
 
-### **✅ Current Frontend Patterns**
+### **✅ Current Unified Frontend Patterns**
 ```typescript
-// Use Discovery Flow hooks
-const { flowState, initializeFlow, executePhase } = useDiscoveryFlowState();
+// Use Unified Discovery Flow hook (SINGLE SOURCE OF TRUTH)
+import { useUnifiedDiscoveryFlow } from '../../hooks/useUnifiedDiscoveryFlow';
 
-// Monitor crew progress
-const CrewStatusCard = ({ crewName, status }) => {
+const {
+  flowState,
+  isLoading,
+  error,
+  isHealthy,
+  initializeFlow,
+  executeFlowPhase,
+  getPhaseData,
+  isPhaseComplete,
+  canProceedToPhase,
+  refreshFlow
+} = useUnifiedDiscoveryFlow();
+
+// Monitor unified flow progress
+const UnifiedFlowStatusCard = () => {
   return (
-    <Card>
-      <CardHeader>{crewName} Crew</CardHeader>
+    <Card className="border-l-4 border-l-blue-500">
+      <CardHeader>
+        <CardTitle>Current Unified Discovery Flow</CardTitle>
+        <CardDescription>Session: {flowState.session_id}</CardDescription>
+      </CardHeader>
       <CardContent>
-        <Progress value={status.progress} />
-        <p>Manager: {status.manager_status}</p>
-        <p>Agents: {status.agent_count}</p>
+        <Progress value={flowState.progress_percentage} />
+        <p>Phase: {flowState.current_phase}</p>
+        <p>Completed: {Object.values(flowState.phase_completion).filter(Boolean).length}/6</p>
       </CardContent>
     </Card>
   );
+};
+
+// All discovery pages use the same unified hook
+const AssetInventoryPage = () => {
+  const { flowState, executeFlowPhase, getPhaseData } = useUnifiedDiscoveryFlow();
+  const inventoryData = getPhaseData('asset_inventory');
+  // ...
 };
 ```
 
@@ -365,6 +448,14 @@ const AgentCard = ({ agentName }) => { /* DEPRECATED */ };
 
 // ❌ DO NOT USE: Heuristic-based displays
 const HeuristicResults = ({ rules }) => { /* DEPRECATED */ };
+
+// ❌ REMOVED: Competing discovery hooks (2025-01-21)
+import { useDiscoveryFlowState } from '...';     // REMOVED
+import { useDataCleansingLogic } from '...';     // REMOVED
+import { DiscoveryFlowContext } from '...';      // REMOVED
+
+// ❌ DO NOT CREATE: Multiple discovery state hooks
+// Always use useUnifiedDiscoveryFlow for ALL discovery pages
 ```
 
 ---
@@ -373,10 +464,13 @@ const HeuristicResults = ({ rules }) => { /* DEPRECATED */ };
 
 ### **Current Architecture Achievements**
 - ✅ **CrewAI Flow Integration**: 100% native implementation
+- ✅ **Unified Flow Consolidation**: Single source of truth achieved (2025-01-21)
+- ✅ **Code Sprawl Elimination**: ~2,774 lines of competing code removed
 - ✅ **Crew Coordination**: Manager agents with delegation control
 - ✅ **Agent Collaboration**: Cross-crew knowledge sharing
-- ✅ **State Management**: Persistent flow state with phase tracking
+- ✅ **State Management**: Unified flow state with enhanced persistence
 - ✅ **Enterprise Features**: Multi-tenancy, learning, knowledge management
+- ✅ **Frontend Unification**: All 7 discovery pages use single unified hook
 
 ### **Performance Targets**
 - **Field Mapping Accuracy**: 95%+ with confidence scoring
@@ -390,11 +484,14 @@ const HeuristicResults = ({ rules }) => { /* DEPRECATED */ };
 
 1. **NEVER use individual agent patterns** - Always use CrewAI Crews
 2. **NEVER implement hard-coded heuristics** - Use agent intelligence
-3. **ALWAYS use CrewAI Flow decorators** - @start/@listen for proper sequencing
-4. **ALWAYS implement manager agents** - Hierarchical coordination required
-5. **ALWAYS use shared memory and knowledge** - Cross-crew intelligence sharing
-6. **ALWAYS persist flow state** - Proper state management for enterprise use
-7. **ALWAYS test crew coordination** - Verify manager delegation and agent collaboration
+3. **NEVER create competing implementations** - Use unified discovery flow only
+4. **ALWAYS use unified discovery endpoints** - `/api/v1/unified-discovery/flow/*`
+5. **ALWAYS use useUnifiedDiscoveryFlow hook** - Single frontend hook for all pages
+6. **ALWAYS use CrewAI Flow decorators** - @start/@listen for proper sequencing
+7. **ALWAYS implement manager agents** - Hierarchical coordination required
+8. **ALWAYS use shared memory and knowledge** - Cross-crew intelligence sharing
+9. **ALWAYS persist unified flow state** - Enhanced database model with multi-tenancy
+10. **ALWAYS test crew coordination** - Verify manager delegation and agent collaboration
 
 ---
 
@@ -405,43 +502,65 @@ const HeuristicResults = ({ rules }) => { /* DEPRECATED */ };
 # Always use Docker containers
 docker-compose up -d --build
 
-# Access backend for debugging
+# Access backend for debugging unified flow
 docker exec -it migration_backend python -c "
-from app.services.crewai_flows.discovery_flow_modular import DiscoveryFlow
-print('CrewAI Flow implementation active')
+from app.services.crewai_flows.unified_discovery_flow import UnifiedDiscoveryFlow
+from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
+print('Unified CrewAI Flow implementation active')
+print('Single source of truth architecture confirmed')
 "
 ```
 
-### **Test Current Architecture**
+### **Test Unified Architecture**
 ```bash
-# Test CrewAI Flow
-docker exec -it migration_backend python -m pytest tests/flows/test_discovery_flow_sequence.py
+# Test Unified CrewAI Flow
+docker exec -it migration_backend python -m pytest tests/backend/flows/test_unified_discovery_flow.py
 
 # Test crew coordination
 docker exec -it migration_backend python -m pytest tests/crews/test_field_mapping_crew.py
+
+# Test unified frontend hook
+npm test -- useUnifiedDiscoveryFlow
 ```
 
-### **Verify Current Implementation**
+### **Verify Unified Implementation**
 ```bash
 # Check for legacy patterns (should return empty)
 docker exec -it migration_backend find . -name "*individual_agent*" -o -name "*heuristic*"
 
-# Verify CrewAI Flow files exist
-docker exec -it migration_backend ls -la app/services/crewai_flows/
+# Verify competing implementations removed (should return empty)
+docker exec -it migration_backend find . -name "*discovery_flow.py" -path "*/api/v1/discovery/*"
+
+# Verify unified CrewAI Flow files exist
+docker exec -it migration_backend ls -la app/services/crewai_flows/unified_discovery_flow.py
+docker exec -it migration_backend ls -la app/models/unified_discovery_flow_state.py
+docker exec -it migration_backend ls -la app/api/v1/unified_discovery.py
 ```
 
 ---
 
 ## 🎪 **Final Architecture State**
 
-**The AI Force Migration Platform is now a mature CrewAI Flow-based system with:**
+**The AI Force Migration Platform is now a mature, UNIFIED CrewAI Flow-based system with:**
 
+- **Single Unified Discovery Flow** - All code sprawl eliminated (2025-01-21)
 - **Native CrewAI Flows** for workflow orchestration
 - **Specialized Crews** with manager coordination
 - **Agent Collaboration** within and across crews
 - **Shared Memory & Knowledge** for intelligence continuity
 - **Enterprise Multi-Tenancy** with proper isolation
 - **Learning Capabilities** that improve over time
-- **Comprehensive State Management** for enterprise reliability
+- **Unified State Management** with enhanced database persistence
+- **Single Frontend Hook** for all discovery pages
+- **Consolidated API Endpoints** with no competing implementations
 
-**Any coding agent working on this platform MUST use the current CrewAI Flow-based architecture and avoid all legacy patterns from the previous two pivots.**
+## 🌟 **CONSOLIDATION ACHIEVEMENT (2025-01-21)**
+
+**✅ COMPLETED: Unified Discovery Flow Consolidation Plan**
+- **Eliminated**: ~2,774 lines of competing/duplicate code
+- **Unified**: Single source of truth for all discovery operations
+- **Connected**: All 7 discovery pages to unified flow
+- **Simplified**: Architecture following CrewAI best practices
+- **Enhanced**: Real-time flow state across all pages
+
+**Any coding agent working on this platform MUST use the UNIFIED CrewAI Flow-based architecture and avoid all legacy patterns from previous pivots and competing implementations.**
