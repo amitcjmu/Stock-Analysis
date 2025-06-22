@@ -57,6 +57,11 @@ except ImportError as e:
 from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
 from app.core.context import RequestContext
 
+# Import modular handlers
+from .handlers.unified_flow_crew_manager import UnifiedFlowCrewManager
+from .handlers.phase_executors import PhaseExecutionManager
+from .handlers.unified_flow_management import UnifiedFlowManagement
+
 @persist()  # Enable CrewAI state persistence
 class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
     """
@@ -93,96 +98,12 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         if not hasattr(self, 'state') or self.state is None:
             self.state = UnifiedDiscoveryFlowState()
         
-        # Initialize crew factories for on-demand creation
-        self._initialize_crew_factories()
+        # Initialize modular handlers
+        self.crew_manager = UnifiedFlowCrewManager(crewai_service, self.state)
+        self.phase_executor = PhaseExecutionManager(self.state, self.crew_manager)
+        self.flow_management = UnifiedFlowManagement(self.state)
         
         logger.info(f"✅ Unified Discovery Flow initialized with session: {self._init_session_id}")
-    
-    def _initialize_crew_factories(self):
-        """Initialize CrewAI crew factory functions for on-demand creation"""
-        try:
-            # Import crew factory functions
-            from app.services.crewai_flows.crews.field_mapping_crew import create_field_mapping_crew
-            from app.services.crewai_flows.crews.data_cleansing_crew import create_data_cleansing_crew
-            from app.services.crewai_flows.crews.inventory_building_crew import create_inventory_building_crew
-            from app.services.crewai_flows.crews.app_server_dependency_crew import create_app_server_dependency_crew
-            from app.services.crewai_flows.crews.technical_debt_crew import create_technical_debt_crew
-            
-            # Store factory functions
-            self.crew_factories = {
-                "field_mapping": create_field_mapping_crew,
-                "data_cleansing": create_data_cleansing_crew,
-                "asset_inventory": create_inventory_building_crew,
-                "dependency_analysis": create_app_server_dependency_crew,
-                "tech_debt_analysis": create_technical_debt_crew
-            }
-            
-            logger.info("✅ CrewAI crew factories initialized successfully")
-            
-        except ImportError as e:
-            logger.error(f"❌ Failed to import CrewAI crew factories: {e}")
-            self.crew_factories = {}
-        except Exception as e:
-            logger.error(f"❌ Failed to initialize CrewAI crew factories: {e}")
-            self.crew_factories = {}
-    
-    def _create_crew_on_demand(self, crew_type: str, **kwargs) -> Optional[Any]:
-        """Create a crew on-demand with proper error handling"""
-        try:
-            if crew_type not in self.crew_factories:
-                raise Exception(f"Crew factory not available for: {crew_type}")
-            
-            factory = self.crew_factories[crew_type]
-            
-            # Create crew with appropriate parameters
-            if crew_type == "field_mapping":
-                crew = factory(
-                    self.crewai_service,
-                    kwargs.get('sample_data', []),
-                    kwargs.get('shared_memory'),
-                    kwargs.get('knowledge_base')
-                )
-            elif crew_type == "data_cleansing":
-                crew = factory(
-                    self.crewai_service,
-                    kwargs.get('raw_data', []),
-                    kwargs.get('field_mappings', {}),
-                    kwargs.get('shared_memory'),
-                    kwargs.get('knowledge_base')
-                )
-            elif crew_type == "asset_inventory":
-                crew = factory(
-                    self.crewai_service,
-                    kwargs.get('cleaned_data', []),
-                    kwargs.get('field_mappings', {}),
-                    kwargs.get('shared_memory'),
-                    kwargs.get('knowledge_base')
-                )
-            elif crew_type == "dependency_analysis":
-                crew = factory(
-                    self.crewai_service,
-                    kwargs.get('asset_inventory', []),
-                    kwargs.get('shared_memory'),
-                    kwargs.get('knowledge_base')
-                )
-            elif crew_type == "tech_debt_analysis":
-                crew = factory(
-                    self.crewai_service,
-                    kwargs.get('asset_inventory', []),
-                    kwargs.get('dependencies', {}),
-                    kwargs.get('shared_memory'),
-                    kwargs.get('knowledge_base')
-                )
-            else:
-                raise Exception(f"Unknown crew type: {crew_type}")
-            
-            logger.info(f"✅ {crew_type} crew created successfully")
-            return crew
-            
-        except Exception as e:
-            logger.error(f"❌ Failed to create {crew_type} crew: {e}")
-            self.state.add_error(f"{crew_type}_crew_creation", str(e))
-            return None
     
     @start()
     def initialize_discovery(self):
@@ -219,48 +140,7 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             logger.error("❌ Skipping field mapping due to initialization failure")
             return "field_mapping_skipped"
         
-        logger.info("🔍 Starting Field Mapping Crew execution")
-        self.state.current_phase = "field_mapping"
-        self.state.progress_percentage = 16.7  # 1/6 phases
-        
-        try:
-            # Create field mapping crew on-demand
-            crew = self._create_crew_on_demand(
-                "field_mapping",
-                sample_data=self.state.raw_data[:5],  # First 5 records for analysis
-                shared_memory=getattr(self.state, 'shared_memory_reference', None)
-            )
-            
-            if crew and CREWAI_FLOW_AVAILABLE:
-                # Execute the crew
-                crew_input = {
-                    "columns": list(self.state.raw_data[0].keys()) if self.state.raw_data else [],
-                    "sample_data": self.state.raw_data[:5],
-                    "mapping_type": "comprehensive_field_mapping"
-                }
-                
-                crew_result = crew.kickoff(inputs=crew_input)
-                logger.info(f"Field mapping crew completed: {type(crew_result)}")
-                
-                # Process crew results
-                field_mappings = self._process_field_mapping_results(crew_result)
-                
-            else:
-                logger.warning("Field mapping crew not available - using fallback")
-                field_mappings = self._fallback_field_mapping()
-            
-            # Store results in state
-            self.state.field_mappings = field_mappings
-            self.state.mark_phase_complete("field_mapping", field_mappings)
-            self.state.update_progress()
-            
-            logger.info(f"✅ Field mapping completed: {len(field_mappings.get('mappings', {}))} mappings")
-            return "field_mapping_completed"
-            
-        except Exception as e:
-            logger.error(f"❌ Field mapping execution failed: {e}")
-            self.state.add_error("field_mapping", str(e))
-            return "field_mapping_failed"
+        return self.phase_executor.execute_field_mapping_phase(previous_result)
     
     @listen(execute_field_mapping_crew)
     def execute_data_cleansing_crew(self, previous_result):
@@ -269,50 +149,7 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             logger.error("❌ Skipping data cleansing due to field mapping issues")
             return "data_cleansing_skipped"
         
-        logger.info("🧹 Starting Data Cleansing Crew execution")
-        self.state.current_phase = "data_cleansing"
-        self.state.progress_percentage = 33.3  # 2/6 phases
-        
-        try:
-            # Create data cleansing crew on-demand
-            crew = self._create_crew_on_demand(
-                "data_cleansing",
-                raw_data=self.state.raw_data,
-                field_mappings=self.state.field_mappings,
-                shared_memory=getattr(self.state, 'shared_memory_reference', None)
-            )
-            
-            if crew and CREWAI_FLOW_AVAILABLE:
-                # Execute the crew
-                crew_input = {
-                    "raw_data": self.state.raw_data,
-                    "field_mappings": self.state.field_mappings,
-                    "cleansing_type": "comprehensive_data_cleansing"
-                }
-                
-                crew_result = crew.kickoff(inputs=crew_input)
-                logger.info(f"Data cleansing crew completed: {type(crew_result)}")
-                
-                # Process crew results
-                cleansing_results = self._process_data_cleansing_results(crew_result)
-                
-            else:
-                logger.warning("Data cleansing crew not available - using fallback")
-                cleansing_results = self._fallback_data_cleansing()
-            
-            # Store results in state
-            self.state.cleaned_data = cleansing_results.get("cleaned_data", [])
-            self.state.data_quality_metrics = cleansing_results.get("quality_metrics", {})
-            self.state.mark_phase_complete("data_cleansing", cleansing_results)
-            self.state.update_progress()
-            
-            logger.info(f"✅ Data cleansing completed: {len(self.state.cleaned_data)} records cleaned")
-            return "data_cleansing_completed"
-            
-        except Exception as e:
-            logger.error(f"❌ Data cleansing execution failed: {e}")
-            self.state.add_error("data_cleansing", str(e))
-            return "data_cleansing_failed"
+        return self.phase_executor.execute_data_cleansing_phase(previous_result)
     
     @listen(execute_data_cleansing_crew)
     def execute_asset_inventory_crew(self, previous_result):
@@ -321,50 +158,7 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             logger.error("❌ Skipping asset inventory due to data cleansing issues")
             return "asset_inventory_skipped"
         
-        logger.info("📦 Starting Asset Inventory Crew execution")
-        self.state.current_phase = "asset_inventory"
-        self.state.progress_percentage = 50.0  # 3/6 phases
-        
-        try:
-            # Create asset inventory crew on-demand
-            crew = self._create_crew_on_demand(
-                "asset_inventory",
-                cleaned_data=self.state.cleaned_data,
-                field_mappings=self.state.field_mappings,
-                shared_memory=getattr(self.state, 'shared_memory_reference', None)
-            )
-            
-            if crew and CREWAI_FLOW_AVAILABLE:
-                # Execute the crew
-                crew_input = {
-                    "cleaned_data": self.state.cleaned_data,
-                    "field_mappings": self.state.field_mappings,
-                    "inventory_type": "comprehensive_asset_classification"
-                }
-                
-                crew_result = crew.kickoff(inputs=crew_input)
-                logger.info(f"Asset inventory crew completed: {type(crew_result)}")
-                
-                # Process crew results
-                inventory_results = self._process_asset_inventory_results(crew_result)
-                
-            else:
-                logger.warning("Asset inventory crew not available - using fallback")
-                inventory_results = self._fallback_asset_inventory()
-            
-            # Store results in state
-            self.state.asset_inventory = inventory_results
-            self.state.mark_phase_complete("asset_inventory", inventory_results)
-            self.state.update_progress()
-            
-            total_assets = inventory_results.get("total_assets", 0)
-            logger.info(f"✅ Asset inventory completed: {total_assets} assets classified")
-            return "asset_inventory_completed"
-            
-        except Exception as e:
-            logger.error(f"❌ Asset inventory execution failed: {e}")
-            self.state.add_error("asset_inventory", str(e))
-            return "asset_inventory_failed"
+        return self.phase_executor.execute_asset_inventory_phase(previous_result)
     
     @listen(execute_asset_inventory_crew)
     def execute_dependency_analysis_crew(self, previous_result):
@@ -373,51 +167,7 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             logger.error("❌ Skipping dependency analysis due to asset inventory issues")
             return "dependency_analysis_skipped"
         
-        logger.info("🔗 Starting Dependency Analysis Crew execution")
-        self.state.current_phase = "dependency_analysis"
-        self.state.progress_percentage = 66.7  # 4/6 phases
-        
-        try:
-            # Create dependency analysis crew on-demand
-            crew = self._create_crew_on_demand(
-                "dependency_analysis",
-                asset_inventory=self.state.asset_inventory,
-                shared_memory=getattr(self.state, 'shared_memory_reference', None)
-            )
-            
-            if crew and CREWAI_FLOW_AVAILABLE:
-                # Execute the crew
-                crew_input = {
-                    "asset_inventory": self.state.asset_inventory,
-                    "analysis_type": "comprehensive_dependency_mapping"
-                }
-                
-                crew_result = crew.kickoff(inputs=crew_input)
-                logger.info(f"Dependency analysis crew completed: {type(crew_result)}")
-                
-                # Process crew results
-                dependency_results = self._process_dependency_analysis_results(crew_result)
-                
-            else:
-                logger.warning("Dependency analysis crew not available - using fallback")
-                dependency_results = self._fallback_dependency_analysis()
-            
-            # Store results in state
-            self.state.dependencies = dependency_results
-            self.state.mark_phase_complete("dependency_analysis", dependency_results)
-            self.state.update_progress()
-            
-            total_deps = (
-                len(dependency_results.get("app_server_dependencies", {}).get("hosting_relationships", [])) +
-                len(dependency_results.get("app_app_dependencies", {}).get("communication_patterns", []))
-            )
-            logger.info(f"✅ Dependency analysis completed: {total_deps} dependencies identified")
-            return "dependency_analysis_completed"
-            
-        except Exception as e:
-            logger.error(f"❌ Dependency analysis execution failed: {e}")
-            self.state.add_error("dependency_analysis", str(e))
-            return "dependency_analysis_failed"
+        return self.phase_executor.execute_dependency_analysis_phase(previous_result)
     
     @listen(execute_dependency_analysis_crew)
     def execute_tech_debt_analysis_crew(self, previous_result):
@@ -426,50 +176,7 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             logger.error("❌ Skipping tech debt analysis due to dependency analysis issues")
             return "tech_debt_analysis_skipped"
         
-        logger.info("⚠️ Starting Technical Debt Analysis Crew execution")
-        self.state.current_phase = "tech_debt_analysis"
-        self.state.progress_percentage = 83.3  # 5/6 phases
-        
-        try:
-            # Create tech debt analysis crew on-demand
-            crew = self._create_crew_on_demand(
-                "tech_debt_analysis",
-                asset_inventory=self.state.asset_inventory,
-                dependencies=self.state.dependencies,
-                shared_memory=getattr(self.state, 'shared_memory_reference', None)
-            )
-            
-            if crew and CREWAI_FLOW_AVAILABLE:
-                # Execute the crew
-                crew_input = {
-                    "asset_inventory": self.state.asset_inventory,
-                    "dependencies": self.state.dependencies,
-                    "analysis_type": "comprehensive_technical_debt_assessment"
-                }
-                
-                crew_result = crew.kickoff(inputs=crew_input)
-                logger.info(f"Technical debt analysis crew completed: {type(crew_result)}")
-                
-                # Process crew results
-                tech_debt_results = self._process_tech_debt_analysis_results(crew_result)
-                
-            else:
-                logger.warning("Technical debt analysis crew not available - using fallback")
-                tech_debt_results = self._fallback_tech_debt_analysis()
-            
-            # Store results in state
-            self.state.technical_debt = tech_debt_results
-            self.state.mark_phase_complete("tech_debt_analysis", tech_debt_results)
-            self.state.update_progress()
-            
-            debt_items = len(tech_debt_results.get("debt_scores", {}))
-            logger.info(f"✅ Technical debt analysis completed: {debt_items} debt items assessed")
-            return "tech_debt_analysis_completed"
-            
-        except Exception as e:
-            logger.error(f"❌ Technical debt analysis execution failed: {e}")
-            self.state.add_error("tech_debt_analysis", str(e))
-            return "tech_debt_analysis_failed"
+        return self.phase_executor.execute_tech_debt_analysis_phase(previous_result)
     
     @listen(execute_tech_debt_analysis_crew)
     def finalize_discovery(self, previous_result):
@@ -506,357 +213,20 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             return "discovery_failed"
     
     # ========================================
-    # HELPER METHODS FOR RESULT PROCESSING
-    # ========================================
-    
-    def _process_field_mapping_results(self, crew_result) -> Dict[str, Any]:
-        """Process field mapping crew results"""
-        # Extract field mappings from crew output
-        mappings = {}
-        confidence_scores = {}
-        unmapped_fields = []
-        
-        # Basic field mapping logic (enhanced by crew intelligence)
-        if self.state.raw_data:
-            sample_record = self.state.raw_data[0]
-            for field in sample_record.keys():
-                field_lower = field.lower()
-                
-                if any(keyword in field_lower for keyword in ['name', 'hostname', 'server']):
-                    mappings[field] = 'name'
-                    confidence_scores[field] = 0.9
-                elif any(keyword in field_lower for keyword in ['ip', 'address']):
-                    mappings[field] = 'ip_address'
-                    confidence_scores[field] = 0.95
-                elif any(keyword in field_lower for keyword in ['os', 'operating']):
-                    mappings[field] = 'operating_system'
-                    confidence_scores[field] = 0.85
-                elif any(keyword in field_lower for keyword in ['cpu', 'processor']):
-                    mappings[field] = 'cpu_cores'
-                    confidence_scores[field] = 0.8
-                elif any(keyword in field_lower for keyword in ['memory', 'ram']):
-                    mappings[field] = 'memory_gb'
-                    confidence_scores[field] = 0.8
-                elif any(keyword in field_lower for keyword in ['storage', 'disk']):
-                    mappings[field] = 'storage_gb'
-                    confidence_scores[field] = 0.8
-                else:
-                    unmapped_fields.append(field)
-        
-        return {
-            "mappings": mappings,
-            "confidence_scores": confidence_scores,
-            "unmapped_fields": unmapped_fields,
-            "validation_results": {"overall_confidence": sum(confidence_scores.values()) / max(len(confidence_scores), 1)},
-            "agent_insights": {"crew_output": str(crew_result)}
-        }
-    
-    def _process_data_cleansing_results(self, crew_result) -> Dict[str, Any]:
-        """Process data cleansing crew results"""
-        cleaned_data = []
-        quality_metrics = {}
-        
-        # Basic data cleansing (enhanced by crew intelligence)
-        for record in self.state.raw_data:
-            cleaned_record = {}
-            for field, value in record.items():
-                # Basic cleaning
-                if isinstance(value, str):
-                    cleaned_record[field] = value.strip()
-                else:
-                    cleaned_record[field] = value
-            cleaned_data.append(cleaned_record)
-        
-        quality_metrics = {
-            "overall_score": 0.85,
-            "completeness": len(cleaned_data) / max(len(self.state.raw_data), 1),
-            "standardization_complete": True
-        }
-        
-        return {
-            "cleaned_data": cleaned_data,
-            "quality_metrics": quality_metrics,
-            "crew_output": str(crew_result)
-        }
-    
-    def _process_asset_inventory_results(self, crew_result) -> Dict[str, Any]:
-        """Process asset inventory crew results"""
-        servers = []
-        applications = []
-        devices = []
-        
-        # Basic asset classification (enhanced by crew intelligence)
-        for record in self.state.cleaned_data:
-            asset_type = "server"  # Default classification
-            
-            # Basic classification logic
-            if any(keyword in str(record).lower() for keyword in ['server', 'host']):
-                asset_type = "server"
-            elif any(keyword in str(record).lower() for keyword in ['app', 'application']):
-                asset_type = "application"
-            elif any(keyword in str(record).lower() for keyword in ['device', 'endpoint']):
-                asset_type = "device"
-            
-            asset_data = {
-                "id": str(uuid.uuid4()),
-                "type": asset_type,
-                "data": record,
-                "classification_confidence": 0.8
-            }
-            
-            if asset_type == "server":
-                servers.append(asset_data)
-            elif asset_type == "application":
-                applications.append(asset_data)
-            else:
-                devices.append(asset_data)
-        
-        total_assets = len(servers) + len(applications) + len(devices)
-        
-        return {
-            "servers": servers,
-            "applications": applications,
-            "devices": devices,
-            "classification_metadata": {"crew_output": str(crew_result)},
-            "total_assets": total_assets,
-            "classification_confidence": {"overall": 0.8}
-        }
-    
-    def _process_dependency_analysis_results(self, crew_result) -> Dict[str, Any]:
-        """Process dependency analysis crew results"""
-        return {
-            "app_server_dependencies": {
-                "hosting_relationships": [],
-                "resource_mappings": [],
-                "topology_insights": {"crew_output": str(crew_result)}
-            },
-            "app_app_dependencies": {
-                "communication_patterns": [],
-                "api_dependencies": [],
-                "integration_complexity": {},
-                "dependency_graph": {"nodes": [], "edges": []}
-            }
-        }
-    
-    def _process_tech_debt_analysis_results(self, crew_result) -> Dict[str, Any]:
-        """Process technical debt analysis crew results"""
-        return {
-            "debt_scores": {},
-            "modernization_recommendations": [],
-            "risk_assessments": {},
-            "six_r_preparation": {"crew_output": str(crew_result)}
-        }
-    
-    # ========================================
-    # FALLBACK METHODS
-    # ========================================
-    
-    def _fallback_field_mapping(self) -> Dict[str, Any]:
-        """Fallback field mapping when crew is not available"""
-        return {
-            "mappings": {"name": "name"} if self.state.raw_data else {},
-            "confidence_scores": {"name": 0.5} if self.state.raw_data else {},
-            "unmapped_fields": [],
-            "validation_results": {"fallback_used": True},
-            "agent_insights": {"message": "Fallback field mapping used"}
-        }
-    
-    def _fallback_data_cleansing(self) -> Dict[str, Any]:
-        """Fallback data cleansing when crew is not available"""
-        return {
-            "cleaned_data": self.state.raw_data,
-            "quality_metrics": {"overall_score": 0.5, "fallback_used": True}
-        }
-    
-    def _fallback_asset_inventory(self) -> Dict[str, Any]:
-        """Fallback asset inventory when crew is not available"""
-        return {
-            "servers": [{"id": str(uuid.uuid4()), "type": "server", "data": record} for record in self.state.cleaned_data],
-            "applications": [],
-            "devices": [],
-            "classification_metadata": {"fallback_used": True},
-            "total_assets": len(self.state.cleaned_data),
-            "classification_confidence": {"overall": 0.5}
-        }
-    
-    def _fallback_dependency_analysis(self) -> Dict[str, Any]:
-        """Fallback dependency analysis when crew is not available"""
-        return {
-            "app_server_dependencies": {"hosting_relationships": [], "resource_mappings": [], "topology_insights": {}},
-            "app_app_dependencies": {"communication_patterns": [], "api_dependencies": [], "integration_complexity": {}, "dependency_graph": {"nodes": [], "edges": []}}
-        }
-    
-    def _fallback_tech_debt_analysis(self) -> Dict[str, Any]:
-        """Fallback technical debt analysis when crew is not available"""
-        return {
-            "debt_scores": {},
-            "modernization_recommendations": [],
-            "risk_assessments": {},
-            "six_r_preparation": {"fallback_used": True}
-        }
-
-    # ========================================
-    # FLOW MANAGEMENT METHODS
+    # FLOW MANAGEMENT METHODS (Delegated)
     # ========================================
 
     def pause_flow(self, reason: str = "user_requested"):
         """Pause the discovery flow with proper state preservation"""
-        logger.info(f"🔄 Pausing flow at phase: {self.state.current_phase}, reason: {reason}")
-        
-        self.state.status = "paused"
-        self.state.log_entry(f"Flow paused: {reason}")
-        self.state.updated_at = datetime.utcnow().isoformat()
-        
-        # TODO: Persist current state to database
-        # await self._persist_state_to_database()
-        
-        return f"Flow paused at phase: {self.state.current_phase}"
+        return self.flow_management.pause_flow(reason)
 
     def resume_flow_from_state(self, resume_context: Dict[str, Any]):
         """Resume flow from persisted state with CrewAI Flow continuity"""
-        logger.info(f"🔄 Resuming flow from phase: {self.state.current_phase}")
-        
-        # Validate state integrity
-        if not self._validate_resumption_state():
-            self.state.add_error("flow_resumption", "State validation failed")
-            return "Flow resumption failed: Invalid state"
-        
-        # TODO: Restore agent memory and knowledge base
-        # await self._restore_agent_memory()
-        # await self._restore_knowledge_base()
-        
-        # Continue from current phase
-        self.state.status = "running"
-        self.state.log_entry("Flow resumed from persisted state")
-        self.state.updated_at = datetime.utcnow().isoformat()
-        
-        # Determine next action based on current phase
-        next_action = self._get_next_action_for_phase(self.state.current_phase)
-        
-        return f"Flow resumed at phase: {self.state.current_phase}. Next action: {next_action}"
+        return self.flow_management.resume_flow_from_state(resume_context)
 
     def get_flow_management_info(self) -> Dict[str, Any]:
         """Get comprehensive flow information for management UI"""
-        return {
-            "session_id": self.state.session_id,
-            "flow_id": self.state.flow_id,
-            "current_phase": self.state.current_phase,
-            "status": self.state.status,
-            "progress_percentage": self.state.progress_percentage,
-            "phase_completion": self.state.phase_completion,
-            "can_resume": self._can_resume(),
-            "deletion_impact": self._get_deletion_impact(),
-            "agent_insights": self.state.agent_insights[-5:] if self.state.agent_insights else [],  # Last 5 insights
-            "recent_errors": self.state.errors[-3:] if self.state.errors else [],  # Last 3 errors
-            "recent_warnings": self.state.warnings[-3:] if self.state.warnings else [],  # Last 3 warnings
-            "created_at": self.state.created_at,
-            "updated_at": self.state.updated_at,
-            "estimated_remaining_time": self._estimate_remaining_time(),
-            "crew_status": self.state.crew_status,
-            "database_integration_status": self.state.database_integration_status
-        }
-
-    def _validate_resumption_state(self) -> bool:
-        """Validate that the flow state is valid for resumption"""
-        try:
-            # Check basic state integrity
-            if not self.state.session_id or not self.state.current_phase:
-                return False
-            
-            # Check phase dependencies
-            phase_completion = self.state.phase_completion
-            current_phase = self.state.current_phase
-            
-            # Validate phase progression
-            if current_phase == "data_cleansing" and not phase_completion.get("field_mapping", False):
-                return False
-            
-            if current_phase == "asset_inventory" and not phase_completion.get("data_cleansing", False):
-                return False
-            
-            if current_phase == "dependency_analysis" and not phase_completion.get("asset_inventory", False):
-                return False
-            
-            if current_phase == "tech_debt_analysis" and not phase_completion.get("dependency_analysis", False):
-                return False
-            
-            # Check for critical errors
-            if self.state.errors:
-                critical_errors = [e for e in self.state.errors if e.get('severity') == 'critical']
-                if critical_errors:
-                    return False
-            
-            return True
-            
-        except Exception as e:
-            logger.error(f"State validation failed: {e}")
-            return False
-
-    def _can_resume(self) -> bool:
-        """Check if flow can be resumed"""
-        if self.state.status not in ['paused', 'failed', 'running']:
-            return False
-        
-        return self._validate_resumption_state()
-
-    def _get_deletion_impact(self) -> Dict[str, Any]:
-        """Get information about what would be deleted if this flow is removed"""
-        return {
-            "flow_phase": self.state.current_phase,
-            "progress_percentage": self.state.progress_percentage,
-            "data_to_delete": {
-                "workflow_state": 1,
-                "assets_created": len(self.state.database_assets_created),
-                "field_mappings": 1 if self.state.field_mappings else 0,
-                "cleaned_data_records": len(self.state.cleaned_data),
-                "agent_insights": len(self.state.agent_insights),
-                "shared_memory_refs": 1 if self.state.shared_memory_id else 0
-            },
-            "estimated_cleanup_time": self._estimate_cleanup_time(),
-            "data_recovery_possible": False,  # Deletion is permanent
-            "warning": "All flow data and progress will be permanently lost"
-        }
-
-    def _get_next_action_for_phase(self, phase: str) -> str:
-        """Determine the next action based on current phase"""
-        phase_actions = {
-            "initialization": "Start field mapping analysis",
-            "field_mapping": "Execute field mapping crew",
-            "data_cleansing": "Execute data cleansing crew", 
-            "asset_inventory": "Execute asset inventory crew",
-            "dependency_analysis": "Execute dependency analysis crew",
-            "tech_debt_analysis": "Execute technical debt analysis crew",
-            "completed": "Flow already completed"
-        }
-        return phase_actions.get(phase, "Continue workflow execution")
-
-    def _estimate_remaining_time(self) -> str:
-        """Estimate remaining time based on current progress"""
-        progress = self.state.progress_percentage
-        if progress >= 100:
-            return "Completed"
-        elif progress >= 80:
-            return "5-10 minutes"
-        elif progress >= 60:
-            return "10-15 minutes"
-        elif progress >= 40:
-            return "15-20 minutes"
-        elif progress >= 20:
-            return "20-25 minutes"
-        else:
-            return "25-30 minutes"
-
-    def _estimate_cleanup_time(self) -> str:
-        """Estimate time required for cleanup operations"""
-        asset_count = len(self.state.database_assets_created)
-        data_records = len(self.state.cleaned_data)
-        
-        if asset_count > 1000 or data_records > 5000:
-            return "10-15 seconds"
-        elif asset_count > 100 or data_records > 1000:
-            return "5-10 seconds"
-        else:
-            return "< 5 seconds"
+        return self.flow_management.get_flow_management_info()
 
 
 # ========================================

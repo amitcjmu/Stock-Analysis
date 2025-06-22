@@ -224,7 +224,7 @@ async def _trigger_discovery_flow(
         
         # Import the proper CrewAI Flow
         logger.info(f"🔍 DEBUG: Importing CrewAI Flow modules...")
-        from app.services.crewai_flows.discovery_flow import DiscoveryFlow, create_discovery_flow
+        from app.services.crewai_flows.unified_discovery_flow import UnifiedDiscoveryFlow, create_unified_discovery_flow
         from app.services.crewai_flow_service import CrewAIFlowService
         logger.info(f"✅ DEBUG: CrewAI Flow modules imported successfully")
         
@@ -235,12 +235,12 @@ async def _trigger_discovery_flow(
         
         # Create proper flow using the factory function
         logger.info(f"🔍 DEBUG: Creating discovery flow...")
-        discovery_flow = create_discovery_flow(
+        discovery_flow = create_unified_discovery_flow(
             session_id=data_import_id,
             client_account_id=client_account_id,
             engagement_id=engagement_id,
             user_id=user_id,
-            cmdb_data={"file_data": file_data},
+            raw_data=file_data,
             metadata={
                 "source": "data_import",
                 "filename": f"import_{data_import_id}",
