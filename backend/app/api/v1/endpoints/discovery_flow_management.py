@@ -121,6 +121,23 @@ async def resume_discovery_flow(
                 detail=f"Cannot resume flow: {validation['reason']}"
             )
         
+        # Get current flow state to determine phase information
+        flow_details = await state_manager.get_flow_state(session_id)
+        current_phase = flow_details.get("current_phase", "data_import") if flow_details else "data_import"
+        progress = flow_details.get("progress_percentage", 0) if flow_details else 0
+        status = flow_details.get("status", "running") if flow_details else "running"
+        
+        # Determine next phase based on current phase and completion
+        phase_sequence = ["data_import", "field_mapping", "data_cleansing", "asset_inventory", "dependency_analysis", "tech_debt"]
+        next_phase = current_phase
+        
+        if current_phase in phase_sequence:
+            current_index = phase_sequence.index(current_phase)
+            # If current phase is incomplete or at the beginning, stay on current phase
+            # Otherwise, move to next phase
+            if progress >= 100 and current_index < len(phase_sequence) - 1:
+                next_phase = phase_sequence[current_index + 1]
+        
         # Prepare and resume flow
         if CREWAI_AVAILABLE:
             flow = await state_manager.prepare_flow_resumption(session_id)
@@ -130,7 +147,11 @@ async def resume_discovery_flow(
                     success=True,
                     session_id=session_id,
                     message=result,
-                    resumed_at=datetime.now().isoformat()
+                    resumed_at=datetime.now().isoformat(),
+                    current_phase=current_phase,
+                    next_phase=next_phase,
+                    progress_percentage=progress,
+                    status=status
                 )
         
         # Fallback for non-CrewAI resumption
@@ -138,7 +159,11 @@ async def resume_discovery_flow(
             success=True,
             session_id=session_id,
             message="Flow resumption initiated (fallback mode)",
-            resumed_at=datetime.now().isoformat()
+            resumed_at=datetime.now().isoformat(),
+            current_phase=current_phase,
+            next_phase=next_phase,
+            progress_percentage=progress,
+            status=status
         )
         
     except HTTPException:

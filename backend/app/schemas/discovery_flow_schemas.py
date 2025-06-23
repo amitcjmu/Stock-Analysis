@@ -87,6 +87,10 @@ class FlowResumeResponse(BaseModel):
     session_id: str
     message: str
     resumed_at: str
+    current_phase: Optional[str] = None
+    next_phase: Optional[str] = None
+    progress_percentage: Optional[float] = None
+    status: Optional[str] = None
 
 class FlowDeleteResponse(BaseModel):
     """Response for flow deletion"""
