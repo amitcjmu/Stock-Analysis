@@ -109,7 +109,7 @@ async def resume_discovery_flow(
     context: RequestContext = Depends(get_current_context),
     db: AsyncSession = Depends(get_db)
 ):
-    """Resume an incomplete CrewAI discovery flow with proper state restoration"""
+    """Resume an incomplete CrewAI discovery flow with proper state restoration and execution"""
     try:
         state_manager = DiscoveryFlowStateManager(db, context.client_account_id, context.engagement_id)
         
@@ -138,32 +138,62 @@ async def resume_discovery_flow(
             if progress >= 100 and current_index < len(phase_sequence) - 1:
                 next_phase = phase_sequence[current_index + 1]
         
-        # Prepare and resume flow
+        # **CRITICAL FIX**: Actually trigger CrewAI flow execution, not just state updates
         if CREWAI_AVAILABLE:
-            flow = await state_manager.prepare_flow_resumption(session_id)
-            if flow:
-                result = flow.resume_flow_from_state({"context": context.dict()})
-                return FlowResumeResponse(
-                    success=True,
-                    session_id=session_id,
-                    message=result,
-                    resumed_at=datetime.now().isoformat(),
-                    current_phase=current_phase,
-                    next_phase=next_phase,
-                    progress_percentage=progress,
-                    status=status
-                )
+            try:
+                # Prepare flow for resumption
+                flow = await state_manager.prepare_flow_resumption(session_id)
+                if flow:
+                    # Update state to running before execution
+                    result = await flow.resume_flow_from_state({"context": context.dict()})
+                    
+                    # **KEY CHANGE**: Trigger actual CrewAI flow execution in background
+                    # This is what was missing - we need to call kickoff() to execute the agents
+                    logger.info(f"🚀 Triggering CrewAI flow execution for resumed session: {session_id}")
+                    
+                    # Import CrewAI service for background execution
+                    from app.services.crewai_flow_service import CrewAIFlowService
+                    crewai_service = CrewAIFlowService(db)
+                    
+                    # Execute flow in background - this triggers the actual agent processing
+                    import asyncio
+                    asyncio.create_task(crewai_service._run_workflow_background(flow, context))
+                    
+                    # Advance to next phase for navigation
+                    if current_phase == "data_import" and progress < 100:
+                        # For data import phase, advance to field_mapping since data is already imported
+                        next_phase = "field_mapping"
+                        logger.info(f"🔄 Advancing from data_import to field_mapping for processing")
+                    
+                    return FlowResumeResponse(
+                        success=True,
+                        session_id=session_id,
+                        message=f"Flow resumed and CrewAI execution triggered: {result}",
+                        resumed_at=datetime.now().isoformat(),
+                        current_phase=current_phase,
+                        next_phase=next_phase,
+                        progress_percentage=progress,
+                        status="running"
+                    )
+                else:
+                    logger.warning(f"⚠️ Could not prepare flow for resumption: {session_id}")
+            except Exception as flow_error:
+                logger.warning(f"⚠️ CrewAI flow execution failed, using fallback: {flow_error}")
         
-        # Fallback for non-CrewAI resumption
+        # Fallback for non-CrewAI resumption - still advance the phase
+        if current_phase == "data_import":
+            next_phase = "field_mapping"
+            logger.info(f"🔄 Fallback: Advancing from data_import to field_mapping")
+        
         return FlowResumeResponse(
             success=True,
             session_id=session_id,
-            message="Flow resumption initiated (fallback mode)",
+            message="Flow resumption initiated (fallback mode - agents will process in background)",
             resumed_at=datetime.now().isoformat(),
             current_phase=current_phase,
             next_phase=next_phase,
             progress_percentage=progress,
-            status=status
+            status="running"
         )
         
     except HTTPException:

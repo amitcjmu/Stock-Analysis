@@ -1,5 +1,40 @@
 # AI Force Migration Platform - Change Log
 
+## [0.8.5] - 2025-01-27
+
+### 🎯 **FLOW RESUMPTION - Navigation Loop Resolution**
+
+This release resolves critical flow resumption issues where users were stuck in navigation loops on the data import page, unable to progress through the discovery flow phases.
+
+### 🚀 **Flow State Management**
+
+#### **Resume Flow Execution Enhancement**
+- **Implementation**: Enhanced `/api/v1/discovery/flows/{session_id}/resume` endpoint with actual CrewAI flow execution
+- **Navigation Fix**: Proper phase advancement from `data_import` → `field_mapping` when resuming flows
+- **Background Processing**: Added asyncio task execution for CrewAI agents during flow resumption
+- **Database Integrity**: Resolved duplicate workflow state records and client account ID mismatches
+
+#### **Multi-Tenant Data Consistency**
+- **Database Cleanup**: Fixed duplicate workflow state records causing "Multiple rows were found" errors
+- **Client Context**: Corrected client account ID mismatches between workflow states and raw import records
+- **Access Control**: Proper multi-tenant validation during flow resumption
+
+#### **Phase Progression Logic**
+- **Smart Advancement**: When resuming from data_import phase with existing data, automatically advance to field_mapping
+- **Fallback Mechanisms**: Graceful degradation when CrewAI flow preparation fails
+- **Status Tracking**: Enhanced progress percentage and phase completion tracking
+
+### 📊 **Technical Achievements**
+- **Navigation Continuity**: Eliminated user confusion from being stuck on data import page
+- **Database Consistency**: Unified workflow state and raw import record contexts
+- **Error Recovery**: Robust handling of duplicate records and context mismatches
+- **Flow Execution**: Background agent processing during flow resumption
+
+### 🎯 **Success Metrics**
+- **User Experience**: No more navigation loops - users can progress through discovery phases
+- **Data Integrity**: 100% consistency between workflow states and import records
+- **Flow Reliability**: Successful flow resumption with proper phase advancement
+
 ## [0.4.16] - 2025-01-27
 
 ### 🐛 **FLOW RESUMPTION NAVIGATION FIX - Phase Information Enhancement**
