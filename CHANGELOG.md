@@ -1436,3 +1436,67 @@ This release establishes the foundational architecture for the AI Force Migratio
 ---
 
 **PLATFORM EVOLUTION**: From foundational Docker architecture to comprehensive Phase 4 advanced features, the AI Force Migration Platform has evolved into a production-ready, enterprise-grade solution with intelligent agent capabilities, advanced flow management, and comprehensive monitoring.
+
+## [0.2.16] - 2025-01-22
+
+### 🔧 **CONTEXT PERSISTENCE & CLIENT ACCESS FIX**
+
+This release fixes critical context persistence issues and resolves platform administrator client access problems that were preventing proper context switching and data loading.
+
+### 🚀 **Context Management Fixes**
+
+#### **Platform Administrator Client Access**
+- **Issue**: Platform administrators had no client access records, causing context establishment to fail
+- **Fix**: Created client access records for platform admins to all clients in the system
+- **Result**: Platform administrators can now access all clients (Democorp, Acme Corporation, Marathon Petroleum)
+- **Benefit**: Proper authorization filtering in context switcher based on actual user permissions
+
+#### **Context Establishment Improvements**
+- **Enhancement**: Improved client preference persistence using separate client ID storage
+- **Logic**: Context establishment now respects stored client preferences and validates against available clients
+- **Fallback**: Better handling when stored client preferences are no longer valid
+- **Performance**: More efficient context restoration from localStorage with validation
+
+#### **Context Switcher Authorization**
+- **Security**: Context switcher now only shows clients/engagements user has explicit access to
+- **UX**: Eliminated unauthorized context options that would fail after selection
+- **Validation**: Backend properly validates client access through ClientAccess table records
+- **Admin Access**: Platform administrators get access to all clients automatically
+
+### 📊 **Technical Achievements**
+
+#### **Client Access Records**
+- **Created**: ClientAccess records for platform admin to all 3 clients in system
+- **Permissions**: Admin-level access with full data management capabilities
+- **Validation**: Proper access validation through RBAC system
+- **Persistence**: Database records ensure consistent access across sessions
+
+#### **Context Persistence Logic**
+- **Storage**: Enhanced localStorage persistence with client ID preference tracking
+- **Restoration**: Improved context restoration logic with validation and fallback
+- **Navigation**: Better context maintenance across page navigations
+- **Performance**: Reduced unnecessary API calls through better state management
+
+### 🎯 **Business Impact**
+- **Admin Experience**: Platform administrators can now properly switch between all client contexts
+- **Data Access**: Proper scoping ensures users only see data they have access to
+- **Security**: Enhanced authorization prevents unauthorized context access
+- **User Experience**: Smoother context switching with proper persistence
+
+### 🔧 **Implementation Details**
+
+#### **Database Changes**
+- Added ClientAccess records for user `347d1ecd-04f6-4e3a-86ca-d35703512301` (platform admin)
+- Access to clients: `11111111-1111-1111-1111-111111111111` (Democorp), `d838573d-f461-44e4-81b5-5af510ef83b7` (Acme Corporation), `73dee5f1-6a01-43e3-b1b8-dbe6c66f2990` (Marathon Petroleum)
+- Access level: `admin` with full permissions
+
+#### **Frontend Improvements**
+- Enhanced context preference storage in localStorage
+- Improved context establishment validation logic
+- Better error handling for invalid stored preferences
+
+### 🎯 **Success Metrics**
+- **Client Access**: Platform admin now has explicit access to all 3 clients
+- **Context Switching**: All client/engagement combinations work properly
+- **Persistence**: Context preferences maintained across page navigations
+- **Authorization**: Only authorized contexts shown in switcher interface

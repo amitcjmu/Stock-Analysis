@@ -407,10 +407,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
       
-      // Use first available client as default only if no client is set
-      const defaultClient = clientsResponse.clients[0];
-      if (!client && defaultClient) {
-        await switchClient(defaultClient.id, defaultClient);
+      console.log(`🔄 Found ${clientsResponse.clients.length} available clients:`, 
+        clientsResponse.clients.map(c => c.name));
+      
+      // Check if we have a stored client preference that's still valid
+      const storedClientId = localStorage.getItem('auth_client_id');
+      let targetClient = null;
+      
+      if (storedClientId) {
+        targetClient = clientsResponse.clients.find(c => c.id === storedClientId);
+        if (targetClient) {
+          console.log(`🔄 Using stored client preference: ${targetClient.name}`);
+        } else {
+          console.log(`🔄 Stored client ${storedClientId} not found in available clients`);
+          // Clear invalid stored client ID
+          localStorage.removeItem('auth_client_id');
+        }
+      }
+      
+      // Use first available client as default only if no valid stored client and no current client
+      if (!targetClient && !client) {
+        targetClient = clientsResponse.clients[0];
+        console.log(`🔄 Using first available client as default: ${targetClient.name}`);
+      }
+      
+      if (targetClient && (!client || client.id !== targetClient.id)) {
+        await switchClient(targetClient.id, targetClient);
       }
       
     } catch (error: any) {
@@ -578,6 +600,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setClient(fullClientData);
       // Persist to localStorage for cross-session persistence
       localStorage.setItem('auth_client', JSON.stringify(fullClientData));
+      localStorage.setItem('auth_client_id', fullClientData.id); // Store ID separately for preference
       
       // Immediately update API context
       updateApiContext({ 
