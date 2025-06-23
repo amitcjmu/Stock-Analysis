@@ -13,9 +13,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import AsyncSessionLocal
 from app.models.client_account import User, ClientAccount, Engagement
 from app.models.data_import_session import DataImportSession
-from app.models.rbac import UserProfile
+from app.models.rbac import UserProfile, UserRole, RoleType
 from datetime import datetime
 import uuid
+from sqlalchemy import select, and_
 
 async def create_demo_users(db: AsyncSession):
     """Create demo users."""
@@ -46,7 +47,6 @@ async def create_demo_users(db: AsyncSession):
     )
     
     # Check if users already exist
-    from sqlalchemy import select
     existing_admin = await db.execute(select(User).where(User.id == admin_user.id))
     if not existing_admin.scalar_one_or_none():
         db.add(admin_user)
@@ -101,7 +101,6 @@ async def create_demo_clients(db: AsyncSession):
         }
     ]
     
-    from sqlalchemy import select
     created_clients = []
     
     for client_data in clients:
@@ -173,7 +172,6 @@ async def create_demo_engagements(db: AsyncSession, clients, admin_user):
         }
     ]
     
-    from sqlalchemy import select
     created_engagements = []
     
     for eng_data in engagements_data:
@@ -229,8 +227,6 @@ async def create_demo_sessions(db: AsyncSession, engagements, admin_user):
         }
     ]
     
-    from sqlalchemy import select
-    
     for session_data in sessions_data:
         existing = await db.execute(select(DataImportSession).where(DataImportSession.id == session_data['id']))
         if not existing.scalar_one_or_none():
@@ -275,24 +271,98 @@ async def create_user_profiles(db: AsyncSession, admin_user, demo_user):
     else:
         print("✓ Admin user profile already exists")
     
-    # Demo user profile
+    # Demo user profile - SECURITY FIX: Demo users should not have admin privileges
     existing_demo_profile = await db.execute(select(UserProfile).where(UserProfile.user_id == demo_user.id))
     if not existing_demo_profile.scalar_one_or_none():
         demo_profile = UserProfile(
             user_id=demo_user.id,
             status='active',
-            requested_access_level='admin',
+            requested_access_level='read_write',  # CHANGED: was 'admin', now 'read_write' for security
             registration_reason='Demo user for testing',
             organization='Acme Corporation',
-            role_description='Client Administrator',
+            role_description='Demo Analyst',  # CHANGED: was 'Client Administrator', now 'Demo Analyst'
             approved_at=datetime.utcnow(),
             approved_by=admin_user.id,
             created_at=datetime.utcnow()
         )
         db.add(demo_profile)
-        print("✓ Created demo user profile")
+        print("✓ Created demo user profile (Analyst level - SECURE)")
     else:
         print("✓ Demo user profile already exists")
+    
+    await db.commit()
+
+async def create_user_roles(db: AsyncSession, admin_user, demo_user):
+    """Create user roles for proper RBAC authorization."""
+    print("Creating user roles...")
+    
+    from sqlalchemy import select
+    from app.models.rbac import UserRole, RoleType
+    import uuid
+    
+    # Admin user role
+    existing_admin_role = await db.execute(select(UserRole).where(
+        and_(UserRole.user_id == admin_user.id, UserRole.is_active == True)
+    ))
+    if not existing_admin_role.scalar_one_or_none():
+        admin_role = UserRole(
+            id=uuid.uuid4(),
+            user_id=admin_user.id,
+            role_type=RoleType.PLATFORM_ADMIN,
+            role_name='Platform Administrator',
+            description='Full platform administrative access',
+            permissions={
+                "can_read_all_data": True,
+                "can_write_all_data": True,
+                "can_delete_data": True,
+                "can_manage_users": True,
+                "can_approve_users": True,
+                "can_access_admin_console": True,
+                "can_view_audit_logs": True,
+                "can_manage_clients": True,
+                "can_manage_engagements": True,
+                "can_access_llm_usage": True
+            },
+            scope_type='global',
+            is_active=True,
+            assigned_by=admin_user.id,
+            created_at=datetime.utcnow()
+        )
+        db.add(admin_role)
+        print("✓ Created admin user role")
+    else:
+        print("✓ Admin user role already exists")
+    
+    # Demo user role (Analyst - SECURE)
+    existing_demo_role = await db.execute(select(UserRole).where(
+        and_(UserRole.user_id == demo_user.id, UserRole.is_active == True)
+    ))
+    if not existing_demo_role.scalar_one_or_none():
+        demo_role = UserRole(
+            id=uuid.uuid4(),
+            user_id=demo_user.id,
+            role_type=RoleType.ANALYST,  # SECURITY: Demo user is Analyst, not Admin
+            role_name='Demo Analyst',
+            description='Demo user with analyst-level access',
+            permissions={
+                "can_read_data": True,
+                "can_write_data": True,
+                "can_delete_data": False,
+                "can_run_analysis": True,
+                "can_view_reports": True,
+                "can_export_data": True,
+                "can_create_engagements": False,
+                "can_modify_configurations": False
+            },
+            scope_type='global',
+            is_active=True,
+            assigned_by=admin_user.id,
+            created_at=datetime.utcnow()
+        )
+        db.add(demo_role)
+        print("✓ Created demo user role (Analyst - SECURE)")
+    else:
+        print("✓ Demo user role already exists")
     
     await db.commit()
 
@@ -308,6 +378,8 @@ async def main():
             engagements = await create_demo_engagements(db, clients, admin_user)
             await create_demo_sessions(db, engagements, admin_user)
             await create_user_profiles(db, admin_user, demo_user)
+            await create_user_roles(db, admin_user, demo_user)
+            await create_user_roles(db, admin_user, demo_user)
             
             print("\n✅ Demo data population completed successfully!")
             print("\nDemo credentials:")
@@ -321,3 +393,76 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main()) 
+async def create_user_roles(db: AsyncSession, admin_user, demo_user):
+    """Create user roles for proper RBAC authorization."""
+    print("Creating user roles...")
+    
+    from sqlalchemy import select, and_
+    from app.models.rbac import UserRole, RoleType
+    import uuid
+    
+    # Admin user role
+    existing_admin_role = await db.execute(select(UserRole).where(
+        and_(UserRole.user_id == admin_user.id, UserRole.is_active == True)
+    ))
+    if not existing_admin_role.scalar_one_or_none():
+        admin_role = UserRole(
+            id=uuid.uuid4(),
+            user_id=admin_user.id,
+            role_type=RoleType.PLATFORM_ADMIN,
+            role_name='Platform Administrator',
+            description='Full platform administrative access',
+            permissions={
+                "can_read_all_data": True,
+                "can_write_all_data": True,
+                "can_delete_data": True,
+                "can_manage_users": True,
+                "can_approve_users": True,
+                "can_access_admin_console": True,
+                "can_view_audit_logs": True,
+                "can_manage_clients": True,
+                "can_manage_engagements": True,
+                "can_access_llm_usage": True
+            },
+            scope_type='global',
+            is_active=True,
+            assigned_by=admin_user.id,
+            created_at=datetime.utcnow()
+        )
+        db.add(admin_role)
+        print("✓ Created admin user role")
+    else:
+        print("✓ Admin user role already exists")
+    
+    # Demo user role (Analyst - SECURE)
+    existing_demo_role = await db.execute(select(UserRole).where(
+        and_(UserRole.user_id == demo_user.id, UserRole.is_active == True)
+    ))
+    if not existing_demo_role.scalar_one_or_none():
+        demo_role = UserRole(
+            id=uuid.uuid4(),
+            user_id=demo_user.id,
+            role_type=RoleType.ANALYST,  # SECURITY: Demo user is Analyst, not Admin
+            role_name='Demo Analyst',
+            description='Demo user with analyst-level access',
+            permissions={
+                "can_read_data": True,
+                "can_write_data": True,
+                "can_delete_data": False,
+                "can_run_analysis": True,
+                "can_view_reports": True,
+                "can_export_data": True,
+                "can_create_engagements": False,
+                "can_modify_configurations": False
+            },
+            scope_type='global',
+            is_active=True,
+            assigned_by=admin_user.id,
+            created_at=datetime.utcnow()
+        )
+        db.add(demo_role)
+        print("✓ Created demo user role (Analyst - SECURE)")
+    else:
+        print("✓ Demo user role already exists")
+    
+    await db.commit()

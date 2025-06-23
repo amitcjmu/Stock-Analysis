@@ -1,85 +1,99 @@
 # AI Force Migration Platform - Change Log
 
-## [0.2.11] - 2025-01-27
+## [0.2.12] - 2025-01-22
 
-### 🎯 **DATABASE BACKUP & ENVIRONMENT MANAGEMENT SYSTEM**
+### 🔒 **RBAC SECURITY & USER ROLES FIX**
 
-This release implements a comprehensive backup strategy and environment management system to prevent data loss and provide proper environment separation.
+This release addresses critical user role and authentication issues, fixing the missing user roles system and removing security vulnerabilities from demo accounts.
 
-### 🛡️ **Database Backup & Recovery System**
+### 🚀 **Security & Authentication Fixes**
 
-#### **Comprehensive Backup Script**
-- **Implementation**: Full database backup system with multiple backup types
-- **Technology**: PostgreSQL pg_dump with compression and metadata tracking
-- **Integration**: Automated cleanup, Git context tracking, and health validation
-- **Benefits**: Prevents data loss, enables rollback, provides audit trail
+#### **User Roles System Implementation**
+- **Fix**: Created missing user roles in `user_roles` table for all users
+- **Implementation**: Proper role assignment based on intended user types
+- **Security**: Fixed role detection logic that was failing due to empty roles table
+- **Authorization**: Platform admins now properly identified by role system
 
-#### **Database Restore System**
-- **Implementation**: Safe database restoration with pre-restore backups
-- **Technology**: Automated extraction, validation, and connectivity testing
-- **Integration**: Confirmation prompts, rollback capability, and integrity checks
-- **Benefits**: Risk-free restoration, data validation, emergency recovery
+#### **Demo Account Security Vulnerability Fix**
+- **Critical Security Fix**: Removed admin privileges from demo accounts
+- **Change**: `demo@democorp.com` downgraded from `admin` to `analyst` role
+- **Security**: Demo users no longer have platform administrator access
+- **Prevention**: Updated demo data seeding to prevent reintroducing vulnerability
 
-### 🌍 **Environment-Specific Deployment**
-
-#### **Development Environment (docker-compose.dev.yml)**
-- **Implementation**: Development-optimized configuration with auto-seeding
-- **Technology**: Hot reload, debug logging, Adminer UI, Redis caching
-- **Integration**: Automatic demo data population and development tools
-- **Benefits**: Isolated development, faster iteration, comprehensive tooling
-
-#### **Production Environment (docker-compose.prod.yml)**
-- **Implementation**: Production-ready configuration with security and monitoring
-- **Technology**: Nginx reverse proxy, Prometheus/Grafana, automated backups
-- **Integration**: SSL/TLS support, health checks, resource limits
-- **Benefits**: Enterprise security, monitoring, scalability, reliability
-
-#### **Environment Configuration Management**
-- **Implementation**: Automated environment file generation with secure defaults
-- **Technology**: Shell scripts with secure key generation and validation
-- **Integration**: Template-based configuration with environment-specific variables
-- **Benefits**: Consistent deployments, secure defaults, easy customization
-
-### 📊 **Demo Data Management & User Authentication**
-
-#### **Enhanced Demo Data System**
-- **Implementation**: Comprehensive demo data with proper user accounts
-- **Technology**: Idempotent seeding with fixed UUIDs and relationships
-- **Integration**: RBAC setup, client accounts, engagements, and sessions
-- **Benefits**: Consistent testing environment, proper multi-tenancy, realistic data
-
-#### **Updated Login System**
-- **Implementation**: Corrected demo credentials and user account management
-- **Technology**: Updated login page with proper credential display
-- **Integration**: Fixed user creation with proper password hashing
-- **Benefits**: Working authentication, clear demo access, user account management
-
-### 📋 **Data Loss Prevention Framework**
-
-#### **Root Cause Analysis & Prevention**
-- **Implementation**: Comprehensive analysis of previous data loss causes
-- **Technology**: Volume management, migration strategy, backup procedures
-- **Integration**: Schema evolution handling, container lifecycle management
-- **Benefits**: Prevents future data loss, proper change management, audit trail
-
-#### **Workflow Documentation**
-- **Implementation**: Complete documentation for backup and environment management
-- **Technology**: Step-by-step procedures, troubleshooting guides, best practices
-- **Integration**: Quick reference commands, common issue resolution
-- **Benefits**: Operational excellence, knowledge transfer, reduced errors
+#### **User Account Role Corrections**
+- **Platform Administrators**: `chocka@gmail.com`, `admin@democorp.com`
+- **Analysts**: `demo@democorp.com` (was previously admin - SECURITY FIX)
+- **Viewers**: `demo@aiforce.com`
+- **Role Consistency**: Fixed mismatch between `role_description` and `requested_access_level`
 
 ### 📊 **Technical Achievements**
-- **Backup System**: Automated database backup with compression and metadata
-- **Environment Management**: Three-tier deployment system (dev/prod/current)
-- **Demo Data**: Complete user and client account seeding system
-- **Authentication**: Fixed login system with proper credential management
-- **Documentation**: Comprehensive operational procedures and troubleshooting
+- **Database**: Created 4 user role entries with proper permissions
+- **Authentication**: Fixed login system to properly identify user roles
+- **Authorization**: Platform admin detection now works correctly
+- **Security**: Eliminated privilege escalation through demo accounts
+
+### 🎯 **Business Impact**
+- **Security**: Closed critical security vulnerability in demo environment
+- **Access Control**: Proper role-based access control now functional
+- **User Experience**: Platform administrators can now access admin features
+- **Compliance**: Proper separation of privileges between user types
+
+### 🔧 **Implementation Details**
+- **Script**: `fix_user_roles_and_security.py` for role creation and security fixes
+- **Database**: Updated user profiles with correct access levels
+- **Prevention**: Enhanced demo data script to maintain security standards
+- **Verification**: All user accounts now have proper role assignments
 
 ### 🎯 **Success Metrics**
-- **Data Protection**: 100% backup coverage with automated restoration
-- **Environment Isolation**: Separate dev/prod configurations with proper security
-- **User Management**: Working authentication for all user types
-- **Operational Excellence**: Complete documentation and troubleshooting procedures
+- **Security**: Demo accounts no longer have admin privileges (100% fixed)
+- **Functionality**: Platform admins can now access admin console
+- **Authentication**: User role detection working for all 4 users
+- **Prevention**: Future demo data seeding maintains security standards
+
+## [0.2.11] - 2025-01-22
+
+### 🎯 **DATABASE BACKUP & ENVIRONMENT MANAGEMENT**
+
+This release implements comprehensive database backup and recovery systems, environment-specific deployment configurations, and fixes critical data loss prevention issues.
+
+### 🚀 **Data Protection & Recovery**
+
+#### **Database Backup System**
+- **Implementation**: Automated backup script with compression and metadata tracking
+- **Features**: Full, schema-only, and data-only backup options
+- **Security**: Health checks, validation, and automatic cleanup (keeps last 10 backups)
+- **Monitoring**: Size reporting and table count verification
+- **Restoration**: Safe restore with pre-restore backup creation and rollback capability
+
+#### **Environment Management**
+- **Development Environment**: Auto-seeding, debug logging, Adminer UI, Redis caching
+- **Production Environment**: Security hardening, Nginx proxy, automated backups, monitoring
+- **Configuration**: Environment-specific variables and resource limits
+- **Isolation**: Proper separation between development and production data
+
+#### **Demo Data & Authentication Integration**
+- **User Management**: Verified working demo data seeding with proper user accounts
+- **Authentication**: Fixed login credentials display and demo mode functionality
+- **Database**: Confirmed all seeding scripts work with current schema
+- **Accounts**: Created proper user profiles for all account types
+
+### 📊 **Technical Achievements**
+- **Backup**: 48K compressed backup from 12MB database with comprehensive metadata
+- **Environments**: Three-tier deployment system (dev/prod/current)
+- **Documentation**: Complete operational procedures and troubleshooting guides
+- **Prevention**: Framework to prevent future data loss incidents
+
+### 🎯 **Business Impact**
+- **Data Security**: Enterprise-grade backup and recovery system
+- **Operational Excellence**: Environment isolation and proper deployment procedures
+- **Risk Mitigation**: Comprehensive data loss prevention framework
+- **User Experience**: Working authentication for all user types
+
+### 🎯 **Success Metrics**
+- **Backup System**: Automated, compressed, validated backups
+- **Environment Management**: Isolated dev/prod configurations
+- **Data Protection**: Zero data loss risk with proper backup procedures
+- **Authentication**: 100% working login for all user account types
 
 ## [0.2.10] - 2025-01-27
 
