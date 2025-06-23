@@ -199,6 +199,14 @@ try:
     API_ROUTES_ENABLED = True
     print("✅ API routes loaded successfully")
     
+    # Include v2 router directly to avoid /api/v1 prefix
+    try:
+        from app.api.v1.discovery_flow_v2 import router as discovery_flow_v2_router
+        app.include_router(discovery_flow_v2_router, prefix="/api/v2/discovery-flows", tags=["Discovery Flow v2 - Multi-Flow Architecture"])
+        print("✅ V2 Discovery Flow router loaded successfully")
+    except Exception as e:
+        print(f"⚠️  V2 Discovery Flow router could not be loaded: {e}")
+    
     # Test if discovery routes are available
     try:
         routes_list = [route.path for route in api_router.routes]
@@ -295,6 +303,7 @@ try:
             "/api/v1/discovery/flow/status",  # Allow checking flow status
             "/api/v1/unified-discovery/flow/health",  # Allow health checks
             "/api/v1/unified-discovery/flow/status",  # Allow flow status checks
+            "/api/v2/discovery-flows/health",  # Allow v2 discovery flows health check
             # Authentication endpoints - should not require context
             "/api/v1/auth/login",
             "/api/v1/auth/register",

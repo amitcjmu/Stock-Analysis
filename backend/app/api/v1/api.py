@@ -26,6 +26,8 @@ from app.api.v1.endpoints.discovery_flow_management_enhanced import router as di
 from app.api.v1.endpoints.context_establishment import router as context_establishment_router
 
 from app.api.v1.unified_discovery import router as unified_discovery_router
+# V2 router moved to main.py to avoid /api/v1 prefix
+# from app.api.v1.discovery_flow_v2 import router as discovery_flow_v2_router
 from app.api.v1.routes.llm_health import router as llm_health_router
 
 from app.api.v1.admin.client_management import router as client_management_router
@@ -47,6 +49,8 @@ logger.info("--- Starting API Router Inclusion Process ---")
 api_router.include_router(sixr_router, prefix="/sixr", tags=["6R Analysis"])
 api_router.include_router(discovery_router, prefix="/discovery", tags=["Discovery"])
 api_router.include_router(unified_discovery_router, prefix="", tags=["Unified Discovery Flow"])
+# V2 router moved to main.py to avoid /api/v1 prefix
+# api_router.include_router(discovery_flow_v2_router, prefix="/api/v2/discovery-flows", tags=["Discovery Flow v2 - Multi-Flow Architecture"])
 api_router.include_router(discovery_flow_management_router, prefix="/discovery", tags=["Discovery Flow Management"])
 api_router.include_router(discovery_flow_management_enhanced_router, prefix="/discovery/enhanced", tags=["Enhanced Flow Management"])
 api_router.include_router(asset_inventory_router, prefix="/assets", tags=["Asset Inventory"])

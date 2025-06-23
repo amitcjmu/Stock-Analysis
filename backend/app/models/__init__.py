@@ -71,6 +71,10 @@ from .workflow_state import WorkflowState, UnifiedFlowStateRepository
 from .flow_deletion_audit import FlowDeletionAudit
 from .crewai_flow_state_extensions import CrewAIFlowStateExtensions
 
+# New Discovery Flow models (Multi-Flow Architecture)
+from .discovery_flow import DiscoveryFlow
+from .discovery_asset import DiscoveryAsset
+
 __all__ = [
     # Migration models
     "Migration",
@@ -122,6 +126,10 @@ __all__ = [
     "UnifiedFlowStateRepository",
     "FlowDeletionAudit",
     "CrewAIFlowStateExtensions",
+    
+    # New Discovery Flow models (Multi-Flow Architecture)
+    "DiscoveryFlow",
+    "DiscoveryAsset",
 ]
 
 # Add client account models only if available
