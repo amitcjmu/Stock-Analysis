@@ -7,6 +7,7 @@ import {
   Target, 
   TrendingUp, 
   AlertCircle,
+  AlertTriangle,
   CheckCircle2,
   Clock,
   Zap,
