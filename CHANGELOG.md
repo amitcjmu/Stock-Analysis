@@ -2,42 +2,52 @@
 
 ## [0.10.0] - 2025-01-27
 
-### 🎯 **MULTI-FLOW ARCHITECTURE REDESIGN - Unified Platform Framework**
+### 🎯 **DISCOVERY FLOW FRESH ARCHITECTURE - Clean Foundation Implementation**
 
-This release completely redesigns the platform architecture to support all 5 workflow types (Discovery, Assess, Plan, Execute, Modernize) with proper data normalization, enterprise-grade multi-tenancy, complete rollback capabilities, and seamless flow handoffs.
+This release provides a simplified, focused approach to rebuilding the Discovery Flow with clean database architecture using fresh tables while preserving existing test data during transition. Focus on getting Discovery Flow working perfectly before implementing other flows.
 
-### 🏗️ **Architectural Revolution**
+### 🏗️ **Fresh Start Strategy**
 
-#### **Multi-Flow Framework Implementation**
-- **Scope Expansion**: Extended analysis from Discovery-only to complete platform supporting all 5 flow types
-- **Flow Types**: Discovery → Assess → Plan → Execute → Modernize workflow chain
-- **Unified Architecture**: Single framework supporting all workflow types with proper flow handoffs
-- **Database Redesign**: Complete schema redesign addressing data sprawl across 47+ disconnected tables
+#### **Discovery Flow Focused Implementation**
+- **Scope Focus**: Discovery Flow only - other flows are UI concepts not yet implemented
+- **Fresh Database**: Build new tables alongside existing ones with clean architecture
+- **Page-by-Page Migration**: Connect Discovery flow pages one at a time to new tables
+- **Preserve Test Data**: Keep existing data during transition, no complex migration needed
 
 #### **Critical Issues Addressed**
-- **Data Sprawl**: 47+ tables with unclear relationships and duplicate data storage
-- **Flow Isolation**: No unified framework supporting all 5 workflow types  
-- **Multi-Tenant Gaps**: Inconsistent client account scoping across tables
-- **Rollback Impossibility**: No mechanism to cleanly rollback entire flows
-- **Normalization Issues**: Large JSON blobs mixed with over-normalized structures
-- **Cross-Flow Dependencies**: No clear handoff mechanisms between flows
+- **Navigation Failures**: Users stuck in discovery flow loops and session errors
+- **Data Fragmentation**: Discovery data scattered across disconnected tables
+- **CrewAI Integration**: Maintain working CrewAI integration during architectural cleanup
+- **Asset Creation**: Automatic asset creation from discovery results
+- **Phase Progression**: Clean navigation between all discovery phases
 
-### 🏛️ **New Database Architecture**
+### 🏛️ **Simplified Database Architecture**
 
-#### **Core Flow Framework**
+#### **Discovery Flow Tables Only**
 ```python
-# Master flow entity supporting all flow types
-class MigrationFlow(Base):
+# Discovery flow entity - focused and clean
+class DiscoveryFlow(Base):
     id = Column(UUID, primary_key=True)
-    flow_type = Column(Enum(FlowType))  # discovery, assess, plan, execute, modernize
-    client_account_id = Column(UUID, ForeignKey('client_accounts.id'), nullable=False, index=True)
-    engagement_id = Column(UUID, ForeignKey('engagements.id'), nullable=False, index=True)
-    parent_flow_id = Column(UUID, ForeignKey('migration_flows.id'))  # Flow handoffs
-    crewai_flow_id = Column(UUID, index=True)
     
-    # Rollback capability
-    rollback_point = Column(JSON, default={})
-    can_rollback = Column(Boolean, default=True)
+    # Multi-tenant isolation (reuse demo constants)
+    client_account_id = Column(UUID, default="11111111-1111-1111-1111-111111111111")
+    engagement_id = Column(UUID, default="22222222-2222-2222-2222-222222222222")
+    
+    # Discovery flow state
+    current_phase = Column(String(100), default="data_import")
+    status = Column(String(20), default="active")
+    
+    # CrewAI integration
+    crewai_flow_id = Column(UUID, index=True)
+    import_session_id = Column(UUID, index=True)
+    
+    # Discovery results (strategic denormalization)
+    raw_data = Column(JSON)              # Imported raw data
+    field_mappings = Column(JSON)        # Attribute mapping results
+    cleaned_data = Column(JSON)          # Data cleansing results
+    asset_inventory = Column(JSON)       # Discovered assets
+    dependencies = Column(JSON)          # Dependency analysis
+    tech_debt = Column(JSON)             # Tech debt analysis
 ```
 
 #### **Flow Phase Management**
@@ -125,54 +135,49 @@ engagement_id = Column(UUID, ForeignKey('engagements.id'), nullable=False, index
 
 ### 📋 **Implementation Plan**
 
-#### **Phase 1: Core Flow Framework (Days 1-5)**
-- **Database Schema**: Create master flow tables with proper relationships
-- **Multi-Tenancy**: Implement consistent client scoping across all tables
-- **Repository Pattern**: Build context-aware data access layer
-- **Migration Scripts**: Migrate existing data to new structure
+#### **Phase 1: Fresh Database Foundation (Days 1-3)**
+- **Core Tables**: Create DiscoveryFlow and DiscoveryAsset models
+- **Migration Setup**: Alembic migration for new tables alongside existing ones
+- **Repository Layer**: Discovery flow repository with CRUD operations
+- **Seeding Scripts**: Populate new tables with test data using demo constants
 
-#### **Phase 2: Discovery Flow Migration (Days 6-10)**
-- **Flow Adapter**: Create discovery flow adapter for existing logic
-- **CrewAI Integration**: Bridge CrewAI flows with new framework
-- **Asset Creation**: Automatic asset creation from discovery
-- **API Migration**: Update APIs to use unified framework
+#### **Phase 2: Discovery Flow Page Migration (Days 4-8)**
+- **Data Import Page**: Connect to new DiscoveryFlow table
+- **Attribute Mapping Page**: Fix navigation and use new flow tables
+- **Data Cleansing Page**: Migrate to new architecture with phase tracking
+- **Inventory & Dependencies**: Create automatic asset creation from discovery
+- **Tech Debt & Completion**: Implement flow completion and assessment handoff
 
-#### **Phase 3: Assessment Flow Implementation (Days 11-15)**
-- **Assessment Structure**: Define assessment flow phases and executors
-- **6R Integration**: Integrate treatment analysis with flow framework
-- **Wave Planning**: Connect wave planning to flow progression
-- **Discovery Handoff**: Implement discovery-to-assessment data transfer
-
-#### **Phase 4: Plan & Execute Flow Implementation (Days 16-20)**
-- **Plan Flow**: Implement planning workflow with proper handoffs
-- **Execute Flow**: Create execution tracking with progress monitoring
-- **Modernize Flow**: Implement modernization workflows
-- **Flow Chain**: Complete end-to-end flow chain management
+#### **Phase 3: Testing & Validation (Days 9-10)**
+- **End-to-End Testing**: Complete discovery flow testing with new architecture
+- **CrewAI Integration**: Validate CrewAI integration throughout all phases
+- **Performance Testing**: Docker container testing and optimization
+- **Legacy Cleanup**: Prepare for legacy table removal after validation
 
 ### 📊 **Success Criteria**
 
 #### **Technical Success**
-- ✅ Single unified framework supports all 5 flow types
-- ✅ Complete multi-tenant data isolation with no leakage
-- ✅ Full rollback capability for any flow or cascade
-- ✅ Proper normalization with strategic denormalization
-- ✅ Clear data lineage and transformation tracking
+- ✅ Complete Discovery Flow working with clean new architecture
+- ✅ All phases (Data Import → Tech Debt) functional and connected
+- ✅ CrewAI integration maintained and working throughout
+- ✅ Asset creation automated from discovery results
+- ✅ Clean navigation between all discovery phases
 
 #### **User Experience Success**
-- ✅ Seamless navigation between all flow phases
-- ✅ Automatic handoffs between flows (Discovery → Assess → Plan → Execute → Modernize)
-- ✅ Clear progress tracking across entire migration journey
-- ✅ Reliable rollback with data integrity preservation
+- ✅ Smooth flow progression without navigation errors
+- ✅ No "cannot find session" or flow not found issues
+- ✅ Clear progress indicators throughout discovery flow
+- ✅ Fast page loads and responsive UI in Docker containers
 
 #### **Business Success**
-- ✅ Complete end-to-end migration workflow support
-- ✅ Enterprise-grade multi-tenancy and data isolation
-- ✅ Audit-compliant rollback and recovery capabilities
-- ✅ Scalable architecture supporting future flow types
+- ✅ Discovery Flow ready for production use and customer demos
+- ✅ Clean foundation for future Assessment Flow development
+- ✅ Scalable architecture pattern for implementing other flows
+- ✅ Reliable platform supporting complete discovery workflow
 
 ### 🚨 **Critical Priority**
 
-This architectural redesign is **FOUNDATIONAL** for the platform's future. The unified multi-flow architecture addresses current fragmentation while providing a scalable foundation for the complete AI Force Migration Platform supporting all workflow types with proper data management, multi-tenancy, and rollback capabilities.
+This simplified, focused approach gets Discovery Flow working perfectly with clean architecture, setting the foundation for future flows while minimizing risk and complexity. The fresh start approach eliminates complex data migration and focuses on what's actually implemented.
 
 ---
 
