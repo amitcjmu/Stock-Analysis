@@ -275,77 +275,63 @@ async def _validate_no_incomplete_discovery_flow(
     """
     Validate that no incomplete discovery flow exists for this engagement.
     
-    Returns validation result with recommendations for user action.
+    FIXED: Uses the proper DiscoveryFlowStateManager to check for actual discovery flows
+    rather than incomplete data import sessions.
     """
     try:
         from app.services.crewai_flows.discovery_flow_state_manager import DiscoveryFlowStateManager
-        from app.models.data_import_session import DataImportSession
+        from app.core.context import RequestContext
         
-        # Check for incomplete discovery flows in this engagement
-        state_manager = DiscoveryFlowStateManager()
+        # Create proper context for flow state manager
+        context = RequestContext(
+            client_account_id=client_account_id,
+            engagement_id=engagement_id,
+            user_id="system"  # System validation check
+        )
         
-        # Look for existing DataImportSessions with incomplete discovery flows
-        from sqlalchemy import select, and_
+        # Use the proper flow state manager to check for incomplete flows
+        state_manager = DiscoveryFlowStateManager(db, client_account_id, engagement_id)
+        incomplete_flows = await state_manager.get_incomplete_flows_for_context(context)
         
-        # Safely parse UUIDs
-        try:
-            client_uuid = uuid.UUID(client_account_id) if client_account_id else None
-            engagement_uuid = uuid.UUID(engagement_id) if engagement_id else None
-        except (ValueError, TypeError):
-            # If UUIDs are invalid, allow the import to proceed
+        # Filter out flows that are actually empty or have no real progress
+        # Only consider flows with actual phases and meaningful progress
+        actual_incomplete_flows = []
+        for flow in incomplete_flows:
+            # Check if this is a real flow with actual progress
+            if (flow.get("current_phase") and 
+                flow.get("current_phase") not in ["", "initialization"] and
+                (flow.get("progress_percentage", 0) > 0 or 
+                 flow.get("phase_completion", {}) and any(flow.get("phase_completion", {}).values()))):
+                actual_incomplete_flows.append(flow)
+        
+        # If we found any actual incomplete flows, prevent new import
+        if actual_incomplete_flows:
+            first_flow = actual_incomplete_flows[0]  # Use the most recent incomplete flow
+            
+            logger.info(f"🚫 Blocking data import due to incomplete discovery flow: {first_flow['session_id']} in phase {first_flow['current_phase']}")
+            
             return {
-                "can_proceed": True,
-                "message": "Invalid context UUIDs - proceeding with import"
+                "can_proceed": False,
+                "message": f"An incomplete Discovery Flow exists for this engagement. Please complete the existing flow before importing new data.",
+                "existing_flow": {
+                    "session_id": first_flow["session_id"],
+                    "current_phase": first_flow["current_phase"],
+                    "progress_percentage": first_flow["progress_percentage"],
+                    "status": first_flow["status"],
+                    "last_activity": first_flow.get("updated_at"),
+                    "next_steps": _get_next_steps_for_phase(first_flow["current_phase"])
+                },
+                "all_incomplete_flows": actual_incomplete_flows,  # For flow management UI
+                "recommendations": [
+                    f"Complete the existing Discovery Flow in the '{first_flow['current_phase']}' phase",
+                    "Navigate to the appropriate discovery page to continue the flow",
+                    "Or use the flow management tools to delete the incomplete flow"
+                ],
+                "show_flow_manager": True  # Signal frontend to show flow management UI
             }
         
-        # Query for existing sessions with incomplete flows
-        existing_sessions_query = select(DataImportSession).where(
-            and_(
-                DataImportSession.client_account_id == client_uuid,
-                DataImportSession.engagement_id == engagement_uuid,
-                DataImportSession.progress_percentage < 100
-            )
-        ).order_by(DataImportSession.last_activity_at.desc()).limit(5)
-        
-        result = await db.execute(existing_sessions_query)
-        incomplete_sessions = result.scalars().all()
-        
-        # Check each session for incomplete discovery flow
-        for session in incomplete_sessions:
-            if session.agent_insights:
-                flow_state = session.agent_insights
-                current_phase = flow_state.get("current_phase", "")
-                status = flow_state.get("status", "")
-                progress = flow_state.get("progress_percentage", 0)
-                
-                # Consider flow incomplete if:
-                # 1. Status is not "completed" 
-                # 2. Progress is less than 100%
-                # 3. Current phase is not "completed"
-                if (status != "completed" and 
-                    progress < 100 and 
-                    current_phase != "completed"):
-                    
-                    # Found incomplete flow - prevent new import
-                    return {
-                        "can_proceed": False,
-                        "message": f"An incomplete Discovery Flow exists for this engagement. Please complete the existing flow before importing new data.",
-                        "existing_flow": {
-                            "session_id": str(session.id),
-                            "current_phase": current_phase,
-                            "progress_percentage": progress,
-                            "status": status,
-                            "last_activity": session.last_activity_at.isoformat() if session.last_activity_at else None,
-                            "next_steps": _get_next_steps_for_phase(current_phase)
-                        },
-                        "recommendations": [
-                            f"Complete the existing Discovery Flow in the '{current_phase}' phase",
-                            "Navigate to the Attribute Mapping page to continue the flow",
-                            "Or contact your administrator to reset the incomplete flow"
-                        ]
-                    }
-        
-        # No incomplete flows found - allow import
+        # No actual incomplete flows found - allow import
+        logger.info(f"✅ No incomplete discovery flows found for context {client_account_id}/{engagement_id} - allowing import")
         return {
             "can_proceed": True,
             "message": "No incomplete discovery flows found - proceeding with import"
@@ -353,7 +339,7 @@ async def _validate_no_incomplete_discovery_flow(
         
     except Exception as e:
         logger.warning(f"Failed to validate discovery flow state: {e}")
-        # If validation fails, allow import to proceed (fail-open)
+        # If validation fails, allow import to proceed (fail-open) to prevent blocking users
         return {
             "can_proceed": True,
             "message": f"Discovery flow validation failed - proceeding with import: {e}"

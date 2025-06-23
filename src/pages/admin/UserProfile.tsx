@@ -142,11 +142,11 @@ const UserProfile: React.FC = () => {
               <Label className="text-sm font-medium text-gray-700">Role</Label>
               <div className="flex items-center gap-2">
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  user.role === 'admin' 
+                  (user.role === 'admin' || user.role === 'platform_admin')
                     ? 'bg-red-100 text-red-800' 
                     : 'bg-blue-100 text-blue-800'
                 }`}>
-                  {user.role === 'admin' ? 'Administrator' : 'User'}
+                  {(user.role === 'admin' || user.role === 'platform_admin') ? 'Administrator' : 'User'}
                 </span>
               </div>
             </div>

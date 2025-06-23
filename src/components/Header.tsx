@@ -39,7 +39,7 @@ const Header: React.FC<HeaderProps> = ({ user, currentClient, availableClients, 
   return (
     <header className="flex h-16 items-center justify-between border-b bg-background px-4 md:px-6">
       <div className="flex items-center gap-4">
-        {user.role === 'admin' && availableClients.length > 0 && (
+        {(user.role === 'admin' || user.role === 'platform_admin') && availableClients.length > 0 && (
           <Select onValueChange={onClientSwitch} value={currentClient?.id || ''}>
             <SelectTrigger className="w-[280px]">
               <SelectValue placeholder="Select a client account..." />

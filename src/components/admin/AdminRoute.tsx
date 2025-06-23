@@ -33,7 +33,7 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
         console.log('🛡️ AdminRoute State Stabilized:', {
           isAdmin,
           userRole: user?.role,
-          finalDecision: user?.role === 'admin'
+          finalDecision: isAdmin || user?.role === 'admin' || user?.role === 'platform_admin'
         });
       }, 100);
       return () => clearTimeout(timer);
@@ -62,7 +62,7 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
   }
 
   // Check admin access using both isAdmin computed property and direct user role check
-  const hasAdminAccess = isAdmin || user?.role === 'admin';
+  const hasAdminAccess = isAdmin || user?.role === 'admin' || user?.role === 'platform_admin';
   
   console.log('🛡️ AdminRoute Access Check:', {
     isAdmin,

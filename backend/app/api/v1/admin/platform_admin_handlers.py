@@ -28,7 +28,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 # Create router
-router = APIRouter(prefix="/platform-admin", tags=["platform-admin"])
+router = APIRouter(prefix="", tags=["platform-admin"])
 
 # Pydantic models for request/response
 class PurgeApprovalRequest(BaseModel):

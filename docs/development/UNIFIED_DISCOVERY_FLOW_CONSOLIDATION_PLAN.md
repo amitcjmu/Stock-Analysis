@@ -1,12 +1,14 @@
 # 🎯 Unified Discovery Flow Consolidation Plan
 
-**Version:** 1.0  
+**Version:** 2.0  
 **Date:** January 2025  
-**Status:** Planning Phase  
+**Status:** Planning Phase - Updated with CrewAI State Persistence Analysis
 
 ## 📊 Executive Summary
 
 The AI Force Migration Platform currently suffers from extensive code sprawl with multiple competing discovery flow implementations. Only **Data Import** and **Attribute Mapping** pages are properly connected to the flow system, while other components operate independently. This plan consolidates everything into a single CrewAI Flow architecture following the official CrewAI documentation patterns.
+
+**CRITICAL UPDATE**: Analysis of CrewAI Flow state management documentation reveals significant gaps between CrewAI's built-in SQLite persistence and our PostgreSQL multi-tenant requirements. This plan now includes comprehensive solutions to bridge these gaps.
 
 ## 🚨 Current State Analysis
 
@@ -15,6 +17,23 @@ The AI Force Migration Platform currently suffers from extensive code sprawl wit
 - **Attribute Mapping Page** (`src/pages/discovery/AttributeMapping.tsx`)
 - **Import Storage Handler** (`backend/app/api/v1/endpoints/data_import/handlers/import_storage_handler.py`)
 
+### ❌ **Critical Issue Identified: Data Import Validation Failure**
+**Problem**: The data import validation function is checking `DataImportSession` records instead of actual discovery flows, causing false positives that block new imports.
+
+**Current Broken Logic**:
+```python
+# ❌ WRONG: Checking incomplete data import sessions
+stmt = select(DataImportSession).where(
+    and_(
+        DataImportSession.client_account_id == client_uuid,
+        DataImportSession.engagement_id == engagement_uuid,
+        DataImportSession.progress_percentage < 100  # This finds ANY incomplete session
+    )
+)
+```
+
+**Root Cause**: Validation function finds incomplete `DataImportSession` records (with 0% progress and empty data) and treats them as "incomplete discovery flows", but these aren't actual flows - they're just failed import attempts.
+
 ### ❌ **Disconnected Components (Need Integration)**
 - **Data Cleansing Page** (`src/pages/discovery/DataCleansing.tsx`)
 - **Asset Inventory Page** (`src/pages/discovery/AssetInventory.tsx`)
@@ -22,546 +41,459 @@ The AI Force Migration Platform currently suffers from extensive code sprawl wit
 - **Tech Debt Analysis Page** (`src/pages/discovery/TechDebtAnalysis.tsx`)
 - **Enhanced Discovery Dashboard** (`src/pages/discovery/EnhancedDiscoveryDashboard.tsx`)
 
-### 🔄 **Code Sprawl Identified**
+## 🔍 **CrewAI Flow State Persistence Gap Analysis**
 
-#### **Backend Competing Implementations:**
-1. **`backend/app/services/crewai_flows/discovery_flow.py`** - Main CrewAI Flow (1,175 lines)
-2. **`backend/app/services/crewai_flows/discovery_flow_state_manager.py`** - State manager
-3. **`backend/app/services/crewai_flows/models/flow_state.py`** - Duplicate state model
-4. **`backend/app/schemas/flow_schemas.py`** - Duplicate schema
-5. **`backend/app/schemas/flow_schemas_new.py`** - Another duplicate schema
-6. **`backend/app/api/v1/discovery/discovery_flow.py`** - API endpoints (461 lines)
+Based on [CrewAI Flow State Management Documentation](https://docs.crewai.com/guides/flows/mastering-flow-state), we've identified critical gaps between CrewAI's built-in persistence and our enterprise requirements:
 
-#### **Frontend Competing Implementations:**
-1. **`src/hooks/useDiscoveryFlowState.ts`** - Main hook (366 lines)
-2. **`src/hooks/discovery/useDiscoveryFlowState.ts`** - Competing hook (152 lines)
-3. **`src/contexts/DiscoveryFlowContext.tsx`** - React Context (132 lines)
-4. **Individual phase hooks** using different patterns:
-   - `src/hooks/discovery/useAttributeMappingLogic.ts`
-   - `src/hooks/discovery/useDataCleansingLogic.ts`
-   - `src/hooks/discovery/useDependencyLogic.ts`
-   - `src/hooks/discovery/useInventoryLogic.ts`
+### **Gap 1: Database Engine Mismatch**
+**CrewAI Default**: Uses SQLite for `@persist()` decorator functionality
+**Our Requirement**: PostgreSQL with pgvector for multi-tenant enterprise deployment
 
-#### **Documentation Sprawl:**
-- **`DISCOVERY_FLOW_DETAILED_DESIGN.md`** (65KB, 1,620 lines)
-- **`DISCOVERY_FLOW_CORRECT_DESIGN.md`** (14KB, 368 lines)
-- **`CREWAI_FLOW_DESIGN_GUIDE.md`** (18KB, 516 lines)
-- **`crewai-flow-analysis.md`** (20KB, 659 lines)
-- **Plus 15+ other discovery-related docs**
+**Impact**: CrewAI's `@persist()` decorator may not directly integrate with our PostgreSQL database, requiring custom persistence layer.
 
-#### **State Model Duplications:**
-- **6 different `DiscoveryFlowState` class definitions**
-- **3 different schema files with same models**
-- **Multiple competing database persistence patterns**
+### **Gap 2: Multi-Tenant Context**
+**CrewAI Default**: Single-tenant flow persistence without client/engagement isolation
+**Our Requirement**: All flow state must be scoped by `client_account_id` and `engagement_id`
 
----
+**Impact**: CrewAI's built-in persistence doesn't understand our multi-tenant architecture.
 
-## 🏗️ Unified Architecture Design
+### **Gap 3: Enterprise State Management**
+**CrewAI Default**: Simple state persistence for single flows
+**Our Requirement**: Complex state management with:
+- Flow resumption across user sessions
+- Incomplete flow detection and management
+- Flow deletion with impact analysis
+- Performance monitoring and analytics
+- Agent collaboration logging
 
-### **✅ Single Source of Truth Pattern**
+### **Gap 4: Database Integration Requirements**
+**CrewAI Default**: Flow state exists independently of application database
+**Our Requirement**: Flow state must integrate with existing database models:
+- `WorkflowState` table for flow persistence
+- `DataImportSession` for import tracking
+- `Asset` table for discovered assets
+- `CrewAIFlowStateExtensions` for advanced analytics
 
-Following CrewAI Flow documentation at https://docs.crewai.com/guides/flows/mastering-flow-state:
+### **Gap 5: State Validation and Recovery**
+**CrewAI Default**: Basic state persistence without validation
+**Our Requirement**: Robust state validation with:
+- Flow integrity checks
+- Data corruption detection and repair
+- Graceful error recovery
+- State reconstruction from partial data
 
-1. **Single CrewAI Flow Implementation** with structured state management
-2. **Unified Frontend State Management** using proper CrewAI Flow integration
-3. **Single Database Persistence Layer** with proper multi-tenancy
-4. **Consolidated Documentation** with clear patterns
-5. **Unified API Layer** with consistent endpoints
+## 🏗️ **CrewAI Persistence Integration Strategy**
 
-### **🎯 Target Architecture**
+### **Strategy: Hybrid Persistence Architecture**
 
-```mermaid
-graph TD
-    A[Data Import] --> B[Unified Discovery Flow]
-    B --> C[Field Mapping Crew]
-    C --> D[Data Cleansing Crew]
-    D --> E[Asset Inventory Crew]
-    E --> F[Dependency Analysis Crew]
-    F --> G[Tech Debt Analysis Crew]
-    G --> H[Flow Completion]
-    
-    B --> I[Unified Frontend State]
-    I --> J[All Discovery Pages]
-    
-    B --> K[Single Database Model]
-    K --> L[Multi-Tenant Persistence]
-    
-    subgraph "Connected Pages"
-        J1[Data Import ✅]
-        J2[Attribute Mapping ✅]
-        J3[Data Cleansing ❌]
-        J4[Asset Inventory ❌]
-        J5[Dependency Analysis ❌]
-        J6[Tech Debt Analysis ❌]
-        J7[Discovery Dashboard ❌]
-    end
-```
+We will implement a **hybrid approach** that leverages CrewAI's `@persist()` decorator while extending it with our PostgreSQL integration:
 
----
-
-## 📋 Implementation Plan
-
-### **Phase 1: Backend Consolidation (Days 1-4)**
-
-#### **Task 1.1: Create Unified State Model** ✅
-**Priority:** Critical  
-**Effort:** 4 hours  
-**Files to Create:**
-- `backend/app/models/unified_discovery_flow_state.py`
-
-**Implementation:**
 ```python
-from pydantic import BaseModel, Field
-from typing import Dict, Any, List, Optional
-from datetime import datetime
-
-class UnifiedDiscoveryFlowState(BaseModel):
-    """
-    Single source of truth for Discovery Flow state.
-    Follows CrewAI Flow documentation patterns.
-    """
-    # Core identification
-    flow_id: str = ""
-    session_id: str = ""
-    client_account_id: str = ""
-    engagement_id: str = ""
-    user_id: str = ""
-    
-    # CrewAI Flow state management
-    current_phase: str = "initialization"
-    phase_completion: Dict[str, bool] = Field(default_factory=lambda: {
-        "data_import": False,
-        "field_mapping": False,
-        "data_cleansing": False,
-        "asset_inventory": False,
-        "dependency_analysis": False,
-        "tech_debt_analysis": False
-    })
-    crew_status: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
-    
-    # Phase-specific data
-    raw_data: List[Dict[str, Any]] = Field(default_factory=list)
-    field_mappings: Dict[str, Any] = Field(default_factory=dict)
-    cleaned_data: List[Dict[str, Any]] = Field(default_factory=list)
-    asset_inventory: Dict[str, Any] = Field(default_factory=dict)
-    dependencies: Dict[str, Any] = Field(default_factory=dict)
-    technical_debt: Dict[str, Any] = Field(default_factory=dict)
-    
-    # Flow control
-    status: str = "running"
-    progress_percentage: float = 0.0
-    errors: List[Dict[str, Any]] = Field(default_factory=list)
-    warnings: List[str] = Field(default_factory=list)
-    
-    # Timestamps
-    created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
-    updated_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
-    completed_at: Optional[str] = None
-```
-
-#### **Task 1.2: Consolidate CrewAI Flow Implementation** ✅
-**Priority:** Critical  
-**Effort:** 12 hours  
-**Files to Modify:**
-- Replace `backend/app/services/crewai_flows/discovery_flow.py`
-- Remove `backend/app/services/crewai_flows/models/flow_state.py`
-- Remove `backend/app/schemas/flow_schemas.py`
-- Remove `backend/app/schemas/flow_schemas_new.py`
-
-**Implementation:**
-```python
-from crewai import Flow
-from crewai.flow.flow import listen, start
-from crewai.flow.persistence import persist
-from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
-
-@persist()
+@persist()  # CrewAI's built-in persistence for flow continuity
 class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
     """
-    Single Discovery Flow following CrewAI documentation patterns.
-    Handles all discovery phases with proper state management.
+    Hybrid persistence strategy:
+    1. CrewAI @persist() handles flow execution state and continuity
+    2. Custom PostgreSQL integration handles enterprise requirements
     """
+    
+    def __init__(self, **kwargs):
+        super().__init__()
+        # Initialize custom PostgreSQL persistence layer
+        self.pg_persistence = PostgreSQLFlowPersistence(
+            client_account_id=kwargs['client_account_id'],
+            engagement_id=kwargs['engagement_id']
+        )
     
     @start()
     def initialize_discovery(self):
-        """Initialize discovery flow with proper state management"""
+        # CrewAI handles flow state
         self.state.status = "running"
-        self.state.current_phase = "initialization"
-        return {"status": "initialized", "flow_id": self.state.flow_id}
+        
+        # Custom PostgreSQL integration
+        await self.pg_persistence.persist_flow_initialization(self.state)
+        
+        return "initialized"
     
     @listen(initialize_discovery)
-    def execute_field_mapping_crew(self, previous_result):
-        """Execute field mapping using CrewAI crews"""
+    async def execute_field_mapping_crew(self, previous_result):
+        # CrewAI handles flow transitions
         self.state.current_phase = "field_mapping"
-        # Crew execution logic
-        self.state.phase_completion["field_mapping"] = True
-        return {"phase": "field_mapping", "status": "completed"}
-    
-    @listen(execute_field_mapping_crew)
-    def execute_data_cleansing_crew(self, previous_result):
-        """Execute data cleansing using CrewAI crews"""
-        self.state.current_phase = "data_cleansing"
-        # Crew execution logic
-        self.state.phase_completion["data_cleansing"] = True
-        return {"phase": "data_cleansing", "status": "completed"}
-    
-    @listen(execute_data_cleansing_crew)
-    def execute_asset_inventory_crew(self, previous_result):
-        """Execute asset inventory using CrewAI crews"""
-        self.state.current_phase = "asset_inventory"
-        # Crew execution logic
-        self.state.phase_completion["asset_inventory"] = True
-        return {"phase": "asset_inventory", "status": "completed"}
-    
-    @listen(execute_asset_inventory_crew)
-    def execute_dependency_analysis_crew(self, previous_result):
-        """Execute dependency analysis using CrewAI crews"""
-        self.state.current_phase = "dependency_analysis"
-        # Crew execution logic
-        self.state.phase_completion["dependency_analysis"] = True
-        return {"phase": "dependency_analysis", "status": "completed"}
-    
-    @listen(execute_dependency_analysis_crew)
-    def execute_tech_debt_analysis_crew(self, previous_result):
-        """Execute tech debt analysis using CrewAI crews"""
-        self.state.current_phase = "tech_debt_analysis"
-        # Crew execution logic
-        self.state.phase_completion["tech_debt_analysis"] = True
-        return {"phase": "tech_debt_analysis", "status": "completed"}
-    
-    @listen(execute_tech_debt_analysis_crew)
-    def finalize_discovery(self, previous_result):
-        """Finalize discovery flow and provide summary"""
-        self.state.current_phase = "completed"
-        self.state.status = "completed"
-        self.state.progress_percentage = 100.0
-        self.state.completed_at = datetime.utcnow().isoformat()
-        return {"status": "completed", "summary": self._generate_summary()}
+        
+        # Custom PostgreSQL state synchronization
+        await self.pg_persistence.update_workflow_state(self.state)
+        
+        return await self.crew_manager.execute_field_mapping(self.state)
 ```
 
-#### **Task 1.3: Create Unified API Endpoints** ✅
-**Priority:** Critical  
-**Effort:** 8 hours  
-**Files to Create:**
-- `backend/app/api/v1/unified_discovery.py`
+### **Solution Architecture Components**
 
-**Files to Remove:**
-- `backend/app/api/v1/discovery/discovery_flow.py` (consolidate into unified)
+#### **1. PostgreSQL Flow Persistence Layer**
+**File**: `backend/app/services/crewai_flows/postgresql_flow_persistence.py`
 
-#### **Task 1.4: Update Database Model** ✅
-**Priority:** High  
+```python
+class PostgreSQLFlowPersistence:
+    """
+    Custom persistence layer that bridges CrewAI Flow state with PostgreSQL.
+    Mimics CrewAI @persist() functionality while integrating with our database.
+    """
+    
+    async def persist_flow_initialization(self, state: UnifiedDiscoveryFlowState):
+        """Persist flow initialization to WorkflowState table"""
+        
+    async def update_workflow_state(self, state: UnifiedDiscoveryFlowState):
+        """Update WorkflowState table with current flow state"""
+        
+    async def persist_phase_completion(self, state: UnifiedDiscoveryFlowState, phase: str):
+        """Persist phase completion with crew results"""
+        
+    async def restore_flow_state(self, session_id: str) -> UnifiedDiscoveryFlowState:
+        """Restore flow state from PostgreSQL for resumption"""
+        
+    async def validate_flow_integrity(self, session_id: str) -> Dict[str, Any]:
+        """Validate flow state integrity and detect corruption"""
+```
+
+#### **2. Enhanced State Manager Integration**
+**File**: `backend/app/services/crewai_flows/discovery_flow_state_manager.py` (Enhanced)
+
+```python
+class DiscoveryFlowStateManager:
+    """
+    Enhanced to work with hybrid CrewAI + PostgreSQL persistence.
+    Bridges the gap between CrewAI's built-in persistence and our requirements.
+    """
+    
+    async def get_incomplete_flows_for_context(self, context: RequestContext):
+        """
+        FIXED: Check actual WorkflowState records for incomplete flows,
+        not DataImportSession records with incomplete progress.
+        """
+        
+    async def create_crewai_flow_with_persistence(self, **kwargs) -> UnifiedDiscoveryFlow:
+        """Create CrewAI Flow with proper PostgreSQL integration"""
+        
+    async def restore_crewai_flow_from_database(self, session_id: str) -> UnifiedDiscoveryFlow:
+        """Restore CrewAI Flow instance from PostgreSQL state"""
+```
+
+#### **3. Fixed Data Import Validation**
+**File**: `backend/app/api/v1/endpoints/data_import/handlers/import_storage_handler.py` (Fixed)
+
+```python
+async def _validate_no_incomplete_discovery_flow(
+    client_account_id: str,
+    engagement_id: str,
+    db: AsyncSession
+) -> Dict[str, Any]:
+    """
+    FIXED: Properly check for incomplete discovery flows using WorkflowState,
+    not incomplete DataImportSession records.
+    """
+    try:
+        # ✅ CORRECT: Check WorkflowState for actual discovery flows
+        stmt = select(WorkflowState).where(
+            and_(
+                WorkflowState.client_account_id == client_uuid,
+                WorkflowState.engagement_id == engagement_uuid,
+                WorkflowState.status.in_(['running', 'paused', 'failed']),
+                WorkflowState.current_phase.isnot(None),  # Must have actual flow phase
+                WorkflowState.current_phase != 'completed'  # Not completed
+            )
+        )
+        
+        # Only return conflict if we find ACTUAL discovery flows, not empty sessions
+        incomplete_workflows = result.scalars().all()
+        actual_flows = [w for w in incomplete_workflows if w.current_phase and w.progress_percentage > 0]
+        
+        if actual_flows:
+            # Return 409 with proper flow management UI data
+            return {
+                "can_proceed": False,
+                "existing_flows": [format_flow_for_ui(flow) for flow in actual_flows],
+                "show_flow_manager": True
+            }
+            
+        return {"can_proceed": True}
+```
+
+## 📋 **Updated Implementation Plan**
+
+### **Phase 1: Fix Critical Data Import Issue (Days 1-2)**
+
+#### **Task 1.1: Fix Data Import Validation Logic** 🚨 **CRITICAL**
+**Priority:** Immediate  
 **Effort:** 4 hours  
-**Files to Modify:**
-- `backend/app/models/workflow_state.py` (enhance for unified flow)
 
-### **Phase 2: Frontend Consolidation (Days 5-8)**
+**Problem**: Data import fails with 409 conflict due to checking wrong table
+**Solution**: Update validation to check `WorkflowState` for actual flows, not `DataImportSession` for incomplete imports
 
-#### **Task 2.1: Create Unified Frontend Hook** ✅
+**Files to Fix**:
+- `backend/app/api/v1/endpoints/data_import/handlers/import_storage_handler.py`
+
+#### **Task 1.2: Implement Proper Flow Management UI Integration** 🚨 **CRITICAL**
+**Priority:** Immediate  
+**Effort:** 6 hours  
+
+**Problem**: Frontend doesn't handle 409 response to show flow management options
+**Solution**: Update frontend to parse 409 response and show IncompleteFlowManager
+
+**Files to Fix**:
+- `src/pages/discovery/CMDBImport.tsx`
+- `src/hooks/discovery/useIncompleteFlowDetection.ts`
+
+### **Phase 2: Implement Hybrid Persistence Architecture (Days 3-7)**
+
+#### **Task 2.1: Create PostgreSQL Flow Persistence Layer** ✅
+**Priority:** Critical  
+**Effort:** 12 hours  
+**Files to Create:**
+- `backend/app/services/crewai_flows/postgresql_flow_persistence.py`
+
+#### **Task 2.2: Enhance Unified Discovery Flow with Hybrid Persistence** ✅
 **Priority:** Critical  
 **Effort:** 8 hours  
-**Files to Create:**
+**Files to Modify:**
+- `backend/app/services/crewai_flows/unified_discovery_flow.py`
+
+#### **Task 2.3: Update State Manager for Hybrid Architecture** ✅
+**Priority:** High  
+**Effort:** 6 hours  
+**Files to Modify:**
+- `backend/app/services/crewai_flows/discovery_flow_state_manager.py`
+
+### **Phase 3: Frontend Integration with Hybrid Persistence (Days 8-10)**
+
+#### **Task 3.1: Update Frontend Hook for Hybrid State** ✅
+**Priority:** High  
+**Effort:** 6 hours  
+**Files to Modify:**
 - `src/hooks/useUnifiedDiscoveryFlow.ts`
 
-**Files to Remove:**
-- `src/hooks/useDiscoveryFlowState.ts`
-- `src/hooks/discovery/useDiscoveryFlowState.ts`
-- `src/contexts/DiscoveryFlowContext.tsx`
-
-**Implementation:**
-```typescript
-import { useState, useCallback, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '../contexts/AuthContext';
-import { apiCall } from '../config/api';
-
-interface UnifiedDiscoveryFlowState {
-  flow_id: string;
-  session_id: string;
-  client_account_id: string;
-  engagement_id: string;
-  user_id: string;
-  current_phase: string;
-  phase_completion: Record<string, boolean>;
-  crew_status: Record<string, any>;
-  raw_data: any[];
-  field_mappings: Record<string, any>;
-  cleaned_data: any[];
-  asset_inventory: Record<string, any>;
-  dependencies: Record<string, any>;
-  technical_debt: Record<string, any>;
-  status: string;
-  progress_percentage: number;
-  errors: any[];
-  warnings: string[];
-  created_at: string;
-  updated_at: string;
-  completed_at?: string;
-}
-
-export const useUnifiedDiscoveryFlow = () => {
-  const { user, client, engagement, getAuthHeaders } = useAuth();
-  const queryClient = useQueryClient();
-  
-  // Single flow state query
-  const flowQuery = useQuery<UnifiedDiscoveryFlowState>({
-    queryKey: ['unified-discovery-flow', client?.id, engagement?.id],
-    queryFn: async () => {
-      const response = await apiCall('/api/v1/unified-discovery/flow/status', {
-        method: 'GET',
-        headers: getAuthHeaders()
-      });
-      return response.json();
-    },
-    enabled: !!client && !!engagement,
-    refetchInterval: 5000, // Real-time updates
-  });
-  
-  // Initialize flow mutation
-  const initializeFlow = useMutation({
-    mutationFn: async (data: any) => {
-      return apiCall('/api/v1/unified-discovery/flow/initialize', {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(data)
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['unified-discovery-flow'] });
-    }
-  });
-  
-  // Execute phase mutation
-  const executePhase = useMutation({
-    mutationFn: async (phase: string) => {
-      return apiCall(`/api/v1/unified-discovery/flow/execute/${phase}`, {
-        method: 'POST',
-        headers: getAuthHeaders()
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['unified-discovery-flow'] });
-    }
-  });
-  
-  return {
-    flowState: flowQuery.data,
-    isLoading: flowQuery.isLoading,
-    error: flowQuery.error,
-    initializeFlow,
-    executePhase,
-    refetchFlow: flowQuery.refetch
-  };
-};
-```
-
-#### **Task 2.2: Connect Disconnected Pages** ✅
+#### **Task 3.2: Connect All Discovery Pages to Hybrid Flow** ✅
 **Priority:** High  
-**Effort:** 16 hours  
-
-**Pages to Update:**
-
-1. **Data Cleansing Page** (`src/pages/discovery/DataCleansing.tsx`)
-   - Replace `useDataCleansingLogic` with `useUnifiedDiscoveryFlow`
-   - Connect to flow state for phase completion tracking
-   - Integrate with crew execution patterns
-
-2. **Asset Inventory Page** (`src/pages/discovery/AssetInventory.tsx`)
-   - Replace `useInventoryLogic` with `useUnifiedDiscoveryFlow`
-   - Connect to asset inventory crew results
-   - Implement real-time status updates
-
-3. **Dependency Analysis Page** (`src/pages/discovery/DependencyAnalysis.tsx`)
-   - Replace `useDependencyLogic` with `useUnifiedDiscoveryFlow`
-   - Connect to dependency analysis crew results
-   - Add flow navigation controls
-
-4. **Tech Debt Analysis Page** (`src/pages/discovery/TechDebtAnalysis.tsx`)
-   - Create new flow-connected implementation
-   - Connect to tech debt analysis crew results
-   - Implement completion tracking
-
-5. **Enhanced Discovery Dashboard** (`src/pages/discovery/EnhancedDiscoveryDashboard.tsx`)
-   - Update to use unified flow state
-   - Show real-time progress across all phases
-   - Display crew status and completion metrics
-
-#### **Task 2.3: Remove Competing Hooks** ✅
-**Priority:** Medium  
-**Effort:** 4 hours  
-
-**Files to Remove:**
-- `src/hooks/discovery/useAttributeMappingLogic.ts`
-- `src/hooks/discovery/useDataCleansingLogic.ts`
-- `src/hooks/discovery/useDependencyLogic.ts`
-- `src/hooks/discovery/useInventoryLogic.ts`
-
+**Effort:** 12 hours  
 **Files to Update:**
-- Update all imports to use `useUnifiedDiscoveryFlow`
+- All disconnected discovery pages
 
-### **Phase 3: Documentation Consolidation (Days 9-10)**
+### **Phase 4: Advanced Persistence Features (Days 11-14)**
 
-#### **Task 3.1: Create Master Documentation** ✅
+#### **Task 4.1: Implement Flow Recovery and Validation** 
 **Priority:** Medium  
-**Effort:** 6 hours  
-**Files to Create:**
-- `docs/development/UNIFIED_DISCOVERY_FLOW_GUIDE.md`
-
-#### **Task 3.2: Archive Old Documentation** ✅
-**Priority:** Low  
-**Effort:** 2 hours  
-**Files to Move to Archive:**
-- `docs/DISCOVERY_FLOW_DETAILED_DESIGN.md`
-- `docs/DISCOVERY_FLOW_CORRECT_DESIGN.md`
-- `docs/CREWAI_FLOW_DESIGN_GUIDE.md`
-- `docs/crewai-flow-analysis.md`
-
-### **Phase 4: Testing & Validation (Days 11-12)**
-
-#### **Task 4.1: Update Test Suite** ✅
-**Priority:** High  
 **Effort:** 8 hours  
 
-**Files to Update:**
-- `tests/backend/flows/test_discovery_flow_sequence.py`
-- `tests/frontend/discovery/`
-- Create integration tests for unified flow
+**Features**:
+- Flow state integrity validation
+- Automatic corruption detection and repair
+- Graceful error recovery mechanisms
+- State reconstruction from partial data
 
-#### **Task 4.2: End-to-End Testing** ✅
-**Priority:** Critical  
+#### **Task 4.2: Add Enterprise Analytics Integration**
+**Priority:** Medium  
 **Effort:** 6 hours  
 
-**Test Scenarios:**
-1. Complete flow from Data Import → Tech Debt Analysis
-2. Page navigation with flow state persistence
-3. Real-time status updates across all pages
-4. Error handling and recovery
-5. Multi-tenant flow isolation
+**Features**:
+- CrewAI Flow performance monitoring
+- Agent collaboration analytics
+- Flow execution metrics
+- Learning pattern tracking
 
----
+#### **Task 4.3: Implement Advanced Flow Management**
+**Priority:** Medium  
+**Effort:** 8 hours  
 
-## 🎯 Success Criteria
+**Features**:
+- Bulk flow operations (pause, resume, delete)
+- Flow expiration and cleanup
+- Performance optimization
+- Health monitoring
 
-### **Backend Success Metrics**
-- [ ] Single `UnifiedDiscoveryFlow` class handling all phases
-- [ ] All duplicate state models removed
-- [ ] Single API endpoint structure
-- [ ] Proper CrewAI Flow state persistence
-- [ ] Multi-tenant flow isolation working
+## 🔧 **Technical Implementation Details**
 
-### **Frontend Success Metrics**
-- [ ] All discovery pages connected to unified flow
-- [ ] Single `useUnifiedDiscoveryFlow` hook
-- [ ] Real-time flow state updates on all pages
-- [ ] Seamless navigation with flow context
-- [ ] No competing state management systems
+### **Hybrid Persistence Pattern**
 
-### **Documentation Success Metrics**
-- [ ] Single comprehensive guide
-- [ ] All old documentation archived
-- [ ] Clear implementation patterns
-- [ ] Updated API documentation
+```python
+class HybridFlowPersistence:
+    """
+    Combines CrewAI's @persist() decorator with PostgreSQL integration.
+    Provides best of both worlds: CrewAI flow continuity + enterprise features.
+    """
+    
+    def __init__(self, flow_instance: UnifiedDiscoveryFlow):
+        self.flow = flow_instance
+        self.crewai_persistence = flow_instance._persistence  # CrewAI's built-in
+        self.pg_persistence = PostgreSQLFlowPersistence()    # Our custom layer
+    
+    async def persist_state_change(self, state_update: Dict[str, Any]):
+        """Persist to both CrewAI and PostgreSQL"""
+        # 1. Let CrewAI handle its internal persistence
+        await self.crewai_persistence.save_state(state_update)
+        
+        # 2. Sync to PostgreSQL for enterprise features
+        await self.pg_persistence.sync_state_to_database(
+            session_id=self.flow.state.session_id,
+            state_data=state_update,
+            client_context={
+                "client_account_id": self.flow.state.client_account_id,
+                "engagement_id": self.flow.state.engagement_id
+            }
+        )
+    
+    async def restore_from_database(self, session_id: str) -> UnifiedDiscoveryFlowState:
+        """Restore state with fallback priority"""
+        try:
+            # 1. Try PostgreSQL first (more reliable for our use case)
+            state = await self.pg_persistence.restore_flow_state(session_id)
+            if state and self._validate_state_integrity(state):
+                return state
+        except Exception as e:
+            logger.warning(f"PostgreSQL restore failed: {e}")
+        
+        try:
+            # 2. Fallback to CrewAI's built-in persistence
+            state = await self.crewai_persistence.restore_state(session_id)
+            if state:
+                # Sync back to PostgreSQL
+                await self.pg_persistence.sync_state_to_database(session_id, state)
+                return state
+        except Exception as e:
+            logger.warning(f"CrewAI restore failed: {e}")
+        
+        # 3. Final fallback: reconstruct from available data
+        return await self._reconstruct_state_from_fragments(session_id)
+```
 
-### **Testing Success Metrics**
-- [ ] All tests passing with unified flow
-- [ ] End-to-end flow completion working
-- [ ] Page transitions maintaining flow state
-- [ ] Error scenarios handled gracefully
+### **State Synchronization Strategy**
 
----
+```python
+class StateSynchronizationManager:
+    """
+    Ensures consistency between CrewAI's internal state and PostgreSQL.
+    Handles conflicts, validates integrity, and provides recovery mechanisms.
+    """
+    
+    async def sync_bidirectional(self, session_id: str):
+        """Synchronize state between CrewAI and PostgreSQL"""
+        crewai_state = await self.get_crewai_state(session_id)
+        pg_state = await self.get_postgresql_state(session_id)
+        
+        # Detect conflicts and resolve
+        if self._states_conflict(crewai_state, pg_state):
+            resolved_state = await self._resolve_state_conflict(
+                crewai_state, pg_state, session_id
+            )
+            
+            # Update both systems with resolved state
+            await self._update_both_systems(session_id, resolved_state)
+        
+    def _resolve_state_conflict(self, crewai_state, pg_state, session_id):
+        """Resolve conflicts with priority rules"""
+        # Priority 1: Most recent timestamp wins
+        if crewai_state.updated_at > pg_state.updated_at:
+            return crewai_state
+        elif pg_state.updated_at > crewai_state.updated_at:
+            return pg_state
+        
+        # Priority 2: Higher progress percentage wins
+        if crewai_state.progress_percentage > pg_state.progress_percentage:
+            return crewai_state
+        
+        # Priority 3: PostgreSQL wins (more reliable for enterprise)
+        return pg_state
+```
 
-## 🚨 Risk Mitigation
+## 🎯 **Success Criteria - Updated**
+
+### **Immediate Success Metrics (Phase 1)**
+- [ ] Data import no longer fails with false 409 conflicts
+- [ ] Frontend properly shows flow management UI when real conflicts exist
+- [ ] Users can successfully upload data when no actual flows are incomplete
+
+### **Architecture Success Metrics (Phases 2-3)**
+- [ ] CrewAI `@persist()` decorator working with PostgreSQL integration
+- [ ] All flow state changes synchronized between CrewAI and PostgreSQL
+- [ ] Flow resumption works across user sessions and browser restarts
+- [ ] Multi-tenant isolation maintained in hybrid persistence
+
+### **Enterprise Success Metrics (Phase 4)**
+- [ ] Flow state integrity validation and automatic repair
+- [ ] Advanced analytics and performance monitoring
+- [ ] Bulk flow management operations
+- [ ] Comprehensive error recovery mechanisms
+
+## 🚨 **Risk Mitigation - Updated**
 
 ### **High-Risk Areas**
-1. **Data Loss During Migration**
-   - **Mitigation:** Implement backward compatibility during transition
-   - **Backup:** Create data migration scripts
+1. **CrewAI Persistence Integration Complexity**
+   - **Risk**: CrewAI's `@persist()` may not integrate smoothly with PostgreSQL
+   - **Mitigation**: Implement hybrid approach with fallback mechanisms
+   - **Testing**: Extensive integration testing with both persistence layers
 
-2. **Frontend State Synchronization**
-   - **Mitigation:** Implement proper React Query invalidation
-   - **Testing:** Extensive real-time update testing
+2. **State Synchronization Conflicts**
+   - **Risk**: Conflicts between CrewAI state and PostgreSQL state
+   - **Mitigation**: Implement conflict resolution with clear priority rules
+   - **Monitoring**: Real-time state consistency monitoring
 
-3. **CrewAI Flow Integration**
-   - **Mitigation:** Follow official CrewAI documentation patterns exactly
-   - **Validation:** Test with CrewAI examples first
+3. **Data Import Validation Regression**
+   - **Risk**: Fixing validation logic might break existing flows
+   - **Mitigation**: Comprehensive testing with various flow states
+   - **Rollback**: Keep old validation logic as fallback option
 
-### **Rollback Plan**
-- Keep old implementations in `archive/` folder during transition
-- Implement feature flags for gradual rollout
-- Maintain database backward compatibility
+### **Immediate Action Required**
+**Priority 1**: Fix data import validation issue (blocking users)
+**Priority 2**: Implement hybrid persistence architecture
+**Priority 3**: Add advanced enterprise features
 
 ---
 
-## 📅 Timeline
+## 📅 **Updated Timeline**
 
 | Phase | Duration | Dependencies | Deliverables |
 |-------|----------|--------------|--------------|
-| Phase 1 | 4 days | None | Unified backend flow |
-| Phase 2 | 4 days | Phase 1 complete | All pages connected |
-| Phase 3 | 2 days | Phase 2 complete | Documentation consolidated |
-| Phase 4 | 2 days | Phase 3 complete | Testing complete |
+| Phase 1 (Critical Fix) | 2 days | None | Data import working, flow management UI |
+| Phase 2 (Hybrid Persistence) | 5 days | Phase 1 complete | CrewAI + PostgreSQL integration |
+| Phase 3 (Frontend Integration) | 3 days | Phase 2 complete | All pages using hybrid persistence |
+| Phase 4 (Advanced Features) | 4 days | Phase 3 complete | Enterprise persistence features |
 
-**Total Duration:** 12 days  
+**Total Duration:** 14 days  
 **Target Completion:** February 2025
 
 ---
 
-## 🔄 Implementation Checklist
+## 🔄 **Implementation Checklist - Updated**
 
-### **Phase 1: Backend Consolidation** ✅ **COMPLETED**
-- [x] **Task 1.1:** Create unified state model ✅ `backend/app/models/unified_discovery_flow_state.py`
-- [x] **Task 1.2:** Consolidate CrewAI Flow implementation ✅ `backend/app/services/crewai_flows/unified_discovery_flow.py`
-- [x] **Task 1.3:** Create unified API endpoints ✅ `backend/app/api/v1/unified_discovery.py`
-- [x] **Task 1.4:** Update database model ✅ `backend/app/models/workflow_state.py`
+### **Phase 1: Critical Data Import Fix** 🚨 **IMMEDIATE**
+- [ ] **Task 1.1:** Fix validation logic in import storage handler
+- [ ] **Task 1.2:** Update frontend to handle 409 responses properly
+- [ ] **Task 1.3:** Test data import with various flow states
+- [ ] **Task 1.4:** Verify flow management UI shows correctly
 
-### **Phase 2: Frontend Consolidation** ✅ **COMPLETED**
-- [x] **Task 2.1:** Create unified frontend hook ✅ `src/hooks/useUnifiedDiscoveryFlow.ts`
-- [x] **Task 2.2:** Connect disconnected pages ✅ **ALL CONNECTED**
-  - [x] Data Cleansing Page ✅ Updated to use unified flow
-  - [x] Asset Inventory Page ✅ Updated to use unified flow
-  - [x] Dependency Analysis Page ✅ Completely rewritten with unified flow
-  - [x] Tech Debt Analysis Page ✅ Updated to use unified flow
-  - [x] Enhanced Discovery Dashboard ✅ (Not needed - covered by other pages)
-- [x] **Task 2.3:** Remove competing hooks ✅ **7 files removed**
+### **Phase 2: Hybrid Persistence Architecture** 
+- [ ] **Task 2.1:** Create `PostgreSQLFlowPersistence` class
+- [ ] **Task 2.2:** Implement `HybridFlowPersistence` manager
+- [ ] **Task 2.3:** Update `UnifiedDiscoveryFlow` with hybrid persistence
+- [ ] **Task 2.4:** Enhance `DiscoveryFlowStateManager` for hybrid architecture
 
-### **Phase 3: Documentation Consolidation** ✅ **COMPLETED**
-- [x] **Task 3.1:** Create master documentation ✅ `docs/development/UNIFIED_DISCOVERY_FLOW_GUIDE.md`
-- [x] **Task 3.2:** Archive old documentation ✅ **4 files moved to archive**
+### **Phase 3: Frontend Integration**
+- [ ] **Task 3.1:** Update `useUnifiedDiscoveryFlow` hook for hybrid state
+- [ ] **Task 3.2:** Connect all discovery pages to hybrid flow
+- [ ] **Task 3.3:** Implement real-time state synchronization
+- [ ] **Task 3.4:** Add flow management UI components
 
-### **Phase 4: Testing & Validation** ✅ **COMPLETED**
-- [x] **Task 4.1:** Update test suite ✅ **Backend and frontend tests created**
-- [x] **Task 4.2:** End-to-end testing ✅ **Comprehensive test scenarios implemented**
-
-### **Final Validation** ✅ **ALL CRITERIA MET**
-- [x] All discovery pages flow-connected ✅ **4 pages connected to unified flow**
-- [x] Single source of truth implemented ✅ **UnifiedDiscoveryFlow + useUnifiedDiscoveryFlow**
-- [x] Real-time updates working ✅ **5-second refresh intervals implemented**
-- [x] Documentation consolidated ✅ **Single guide replaces 4 scattered docs**
-- [x] Tests passing ✅ **Comprehensive test coverage implemented**
-- [x] No code duplication ✅ **~5,000+ lines of duplicate code eliminated**
-
-## 🎉 **CONSOLIDATION STATUS: COMPLETE**
-
-**All 4 phases of the Unified Discovery Flow Consolidation Plan have been successfully implemented. The code sprawl has been eliminated and a single source of truth architecture has been established.**
-
-### **Final Results Summary:**
-- ✅ **10 competing backend/frontend files eliminated**
-- ✅ **4 scattered documentation files consolidated**
-- ✅ **~5,000+ lines of duplicate code removed**
-- ✅ **Single CrewAI Flow architecture implemented**
-- ✅ **All discovery pages connected to unified system**
-- ✅ **Comprehensive testing coverage established**
-- ✅ **Complete documentation guide created**
-
-**The AI Force Migration Platform now has a single, maintainable, and properly documented discovery flow system that follows official CrewAI Flow patterns and eliminates all previous code sprawl issues.**
+### **Phase 4: Advanced Enterprise Features**
+- [ ] **Task 4.1:** Implement flow recovery and validation
+- [ ] **Task 4.2:** Add enterprise analytics integration  
+- [ ] **Task 4.3:** Implement advanced flow management
+- [ ] **Task 4.4:** Add performance monitoring and optimization
 
 ---
 
-## 📞 Next Steps
+## 🌟 **Key Insights from CrewAI Documentation Analysis**
 
-1. **Review this plan** with the development team
-2. **Approve the consolidation approach**
-3. **Begin Phase 1 implementation**
-4. **Set up tracking for each task**
-5. **Schedule regular progress reviews**
+1. **CrewAI's `@persist()` is powerful but limited to its own ecosystem** - We need hybrid approach
+2. **State management should be declarative and immutable** - Our implementation follows this
+3. **Flow transitions should be event-driven with `@listen` decorators** - We implement this correctly
+4. **Enterprise features require custom persistence layer** - Hence our PostgreSQL integration
+5. **State validation and recovery are critical for production** - We prioritize this in Phase 4
 
-**This plan ensures we eliminate the discovery flow code sprawl once and for all, creating a single, maintainable, and properly documented CrewAI Flow system that all pages can reliably use.** 
+**The hybrid persistence strategy allows us to leverage CrewAI's excellent flow management while meeting our enterprise PostgreSQL requirements. This approach provides the best of both worlds: CrewAI's robust flow execution with our multi-tenant, scalable persistence layer.** 

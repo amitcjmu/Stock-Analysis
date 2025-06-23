@@ -216,6 +216,7 @@ const DataImport: React.FC = () => {
   const flowDeletion = useFlowDeletion();
   const bulkFlowOperations = useBulkFlowOperations();
   const [showFlowManager, setShowFlowManager] = useState(false);
+  const [conflictFlows, setConflictFlows] = useState<any[]>([]); // For storing API response flows
   
   const incompleteFlows = incompleteFlowsData?.flows || [];
   const hasIncompleteFlows = incompleteFlows.length > 0;
@@ -266,7 +267,7 @@ const DataImport: React.FC = () => {
     });
 
     // For admin users, allow upload even without client/engagement context (demo mode)
-    const isAdmin = user?.role === 'admin';
+    const isAdmin = user?.role === 'admin' || user?.role === 'platform_admin';
     const hasContext = client && engagement;
     
     if (!user) {
@@ -493,7 +494,7 @@ const DataImport: React.FC = () => {
     }
 
     // Use effective client and engagement (same logic as handleFileUpload)
-    const isAdmin = user?.role === 'admin';
+    const isAdmin = user?.role === 'admin' || user?.role === 'platform_admin';
     const effectiveClient = client || (isAdmin ? { id: 'demo-client', name: 'Demo Client' } : null);
     const effectiveEngagement = engagement || (isAdmin ? { id: 'demo-engagement', name: 'Demo Engagement' } : null);
 
@@ -537,37 +538,61 @@ const DataImport: React.FC = () => {
     } catch (error: any) {
       console.error('❌ Error storing data:', error);
       
-      // Handle discovery flow conflict error
-      if (error?.response?.status === 409 && error?.response?.data?.detail?.error === 'incomplete_discovery_flow_exists') {
-        const conflictData = error.response.data.detail;
+      // Handle discovery flow conflict error (409 status)
+      if (error?.response?.status === 409) {
+        const responseData = error.response.data;
         
-        // Show detailed conflict information to user
-        toast({
-          title: "Incomplete Discovery Flow Found",
-          description: conflictData.message,
-          variant: "destructive",
-        });
-        
-        // Show additional information and recommendations
-        setTimeout(() => {
+        // Check if this is the new format with flow management data
+        if (responseData?.show_flow_manager && responseData?.all_incomplete_flows) {
+          // New format: Show flow management UI
+          console.log('🚫 Incomplete discovery flows detected:', responseData.all_incomplete_flows);
+          
+                     // Store flow data for the flow management UI
+           setConflictFlows(responseData.all_incomplete_flows);
+           setShowFlowManager(true);
+          
+          // Show user-friendly message
           toast({
-            title: "Next Steps",
-            description: `Current phase: ${conflictData.existing_flow.current_phase}. Please complete the existing flow before importing new data.`,
-            variant: "default",
+            title: "Incomplete Discovery Flow Detected",
+            description: responseData.message || "Please complete or delete existing flows before importing new data.",
+            variant: "destructive",
           });
-        }, 2000);
+          
+          return null;
+        }
         
-        // Optionally navigate to the existing flow
-        const existingSessionId = conflictData.existing_flow.session_id;
-        if (existingSessionId) {
+        // Legacy format handling (fallback)
+        if (responseData?.detail?.error === 'incomplete_discovery_flow_exists') {
+          const conflictData = responseData.detail;
+          
+          // Show detailed conflict information to user
+          toast({
+            title: "Incomplete Discovery Flow Found",
+            description: conflictData.message,
+            variant: "destructive",
+          });
+          
+          // Show additional information and recommendations
           setTimeout(() => {
-            const shouldNavigate = window.confirm(
-              `Would you like to continue with the existing Discovery Flow (${conflictData.existing_flow.current_phase} phase, ${conflictData.existing_flow.progress_percentage}% complete)?`
-            );
-            if (shouldNavigate) {
-              navigate(`/discovery/attribute-mapping/${existingSessionId}`);
-            }
-          }, 3000);
+            toast({
+              title: "Next Steps",
+              description: `Current phase: ${conflictData.existing_flow.current_phase}. Please complete the existing flow before importing new data.`,
+              variant: "default",
+            });
+          }, 2000);
+          
+          // Optionally navigate to the existing flow
+          const existingSessionId = conflictData.existing_flow.session_id;
+          if (existingSessionId) {
+            setTimeout(() => {
+              const shouldNavigate = window.confirm(
+                `Would you like to continue with the existing Discovery Flow (${conflictData.existing_flow.current_phase} phase, ${conflictData.existing_flow.progress_percentage}% complete)?`
+              );
+              if (shouldNavigate) {
+                navigate(`/discovery/attribute-mapping/${existingSessionId}`);
+              }
+            }, 3000);
+          }
         }
       }
       
@@ -1024,7 +1049,7 @@ const DataImport: React.FC = () => {
             <DialogTitle>Manage Incomplete Discovery Flows</DialogTitle>
           </DialogHeader>
           <IncompleteFlowManager 
-            flows={incompleteFlows}
+            flows={conflictFlows.length > 0 ? conflictFlows : incompleteFlows}
             onContinueFlow={handleContinueFlow}
             onDeleteFlow={handleDeleteFlow}
             onBatchDelete={handleBatchDeleteFlows}

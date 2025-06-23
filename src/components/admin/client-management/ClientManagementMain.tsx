@@ -544,7 +544,7 @@ const ClientManagementMain: React.FC = () => {
       // Make API call to create client
       const response = await apiCall('/admin/clients/', {
         method: 'POST',
-        body: formData
+        body: JSON.stringify(formData)
       });
 
       if (response.status === 'success') {
@@ -587,10 +587,14 @@ const ClientManagementMain: React.FC = () => {
     try {
       setActionLoading(editingClient.id);
       
+      // Debug logging to see what data is being sent
+      console.log('🔍 Updating client with data:', formData);
+      console.log('🔍 Client ID:', editingClient.id);
+      
       // Make API call to update client
       const response = await apiCall(`/admin/clients/${editingClient.id}`, {
         method: 'PUT',
-        body: formData
+        body: JSON.stringify(formData)
       });
 
       if (response.status === 'success') {
@@ -614,10 +618,27 @@ const ClientManagementMain: React.FC = () => {
         throw new Error(response.message || 'Failed to update client');
       }
     } catch (error: any) {
-      console.error('Error updating client:', error);
+      console.error('❌ Error updating client:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        status: error.status,
+        response: error.response,
+        requestId: error.requestId
+      });
+      
+      // Show detailed error message if available
+      let errorMessage = error.message || "Failed to update client. Please try again.";
+      if (error.response && error.response.detail) {
+        if (Array.isArray(error.response.detail)) {
+          errorMessage = error.response.detail.map((d: any) => d.msg || d.message || JSON.stringify(d)).join(', ');
+        } else {
+          errorMessage = error.response.detail;
+        }
+      }
+      
       toast({
         title: "Error",
-        description: error.message || "Failed to update client. Please try again.",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {

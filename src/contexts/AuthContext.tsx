@@ -113,7 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const isDemoMode = false; // Demo mode authentication bypass removed for security
   const isAuthenticated = !!user;
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.role === 'admin' || user?.role === 'platform_admin';
 
   // Debug logging for admin access with more details
   useEffect(() => {
