@@ -68,13 +68,7 @@ MOCK_DATA = {
             "last_name": "User",
             "is_verified": True
         },
-        {
-            "email": "admin@democorp.com", 
-            "password": "admin123",
-            "first_name": "Admin",
-            "last_name": "User",
-            "is_verified": True
-        }
+        # SECURITY: admin@democorp.com account removed - no demo accounts with admin privileges
     ],
     
     "engagements": [
@@ -379,7 +373,7 @@ async def create_mock_users(session: AsyncSession, client_account_id: uuid.UUID)
                 role_description="Platform Administrator" if is_admin else "Platform User",
                 requested_access_level=AccessLevel.ADMIN if is_admin else AccessLevel.READ_WRITE,
                 approved_at=datetime.utcnow(),
-                approved_by=user_ids.get("admin@democorp.com", DEMO_USER_ID), # Self-approved or by admin
+                approved_by=user_ids.get("demo@democorp.com", DEMO_USER_ID), # Self-approved by demo user
             )
             session.add(user_profile)
             logger.info(f"Created user profile for {email}")
@@ -398,7 +392,7 @@ async def create_mock_users(session: AsyncSession, client_account_id: uuid.UUID)
                 description=f"{role_type.name.replace('_', ' ').title()} for Demo Corporation",
                 scope_type="client",
                 scope_client_id=client_account_id,
-                assigned_by=user_ids.get("admin@democorp.com", DEMO_USER_ID),
+                assigned_by=user_ids.get("demo@democorp.com", DEMO_USER_ID),
                 is_active=True
             )
             session.add(user_role)
@@ -419,7 +413,7 @@ async def create_mock_users(session: AsyncSession, client_account_id: uuid.UUID)
                 user_profile_id=user_id,
                 client_account_id=client_account_id,
                 access_level=AccessLevel.ADMIN if is_admin else AccessLevel.READ_WRITE,
-                granted_by=user_ids.get("admin@democorp.com", DEMO_USER_ID)
+                granted_by=user_ids.get("demo@democorp.com", DEMO_USER_ID)
             )
             session.add(client_access)
             logger.info(f"Granted client access to {email}")
@@ -467,7 +461,7 @@ async def create_mock_engagement(session: AsyncSession, client_account_id: uuid.
             client_contact_name=engagement_data["client_contact_name"],
             client_contact_email=engagement_data["client_contact_email"],
             is_mock=True,
-            created_by=user_ids["admin@democorp.com"]
+            created_by=user_ids["demo@democorp.com"]
         )
         session.add(engagement)
         await session.flush()
@@ -493,7 +487,7 @@ async def create_mock_engagement(session: AsyncSession, client_account_id: uuid.
             engagement_id=engagement_id,
             access_level=AccessLevel.ADMIN if is_admin else AccessLevel.READ_WRITE,
             engagement_role="Engagement Lead" if is_admin else "Analyst",
-            granted_by=user_ids["admin@democorp.com"]
+            granted_by=user_ids["demo@democorp.com"]
         )
         session.add(engagement_access)
         logger.info(f"Granted engagement access to {email}")
@@ -716,20 +710,20 @@ async def initialize_mock_data(force: bool = False):
         engagement_id = await create_mock_engagement(session, client_account_id, user_ids)
         tag_ids = await create_mock_tags(session, client_account_id)
         
-        admin_user_id = user_ids.get("admin@democorp.com")
-        if not admin_user_id:
-            logger.error("Could not find admin user ID after user creation.")
+        demo_user_id = user_ids.get("demo@democorp.com")
+        if not demo_user_id:
+            logger.error("Could not find demo user ID after user creation.")
             # Fallback to a static ID if needed, though this indicates an issue
-            admin_user_id_result = await session.execute(select(User.id).where(User.email == "admin@democorp.com"))
-            admin_user_id = admin_user_id_result.scalar_one_or_none() or ADMIN_USER_ID
+            demo_user_id_result = await session.execute(select(User.id).where(User.email == "demo@democorp.com"))
+            demo_user_id = demo_user_id_result.scalar_one_or_none() or DEMO_USER_ID
 
-        asset_ids = await create_mock_assets(session, client_account_id, engagement_id, admin_user_id, tag_ids)
+        asset_ids = await create_mock_assets(session, client_account_id, engagement_id, demo_user_id, tag_ids)
         
         if asset_ids:
             # Pass correct UUID types
-            await create_mock_sixr_analysis(session, client_account_id, engagement_id, admin_user_id, asset_ids)
+            await create_mock_sixr_analysis(session, client_account_id, engagement_id, demo_user_id, asset_ids)
         
-        await create_mock_migration_waves(session, client_account_id, engagement_id, admin_user_id)
+        await create_mock_migration_waves(session, client_account_id, engagement_id, demo_user_id)
 
         logger.info("--- Mock Data Initialization Complete ---")
 

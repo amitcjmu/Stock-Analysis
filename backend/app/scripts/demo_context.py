@@ -12,8 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 # Constants for the seeded demo data
 DEMO_CLIENT_SLUG = "demo-corp"
 DEMO_ENGAGEMENT_SLUG = "cloud-migration-2024"
-ADMIN_EMAIL = "admin@democorp.com"
-FALLBACK_EMAIL = "demo@democorp.com"
+# SECURITY: Only use demo user - no admin@democorp account
+DEMO_EMAIL = "demo@democorp.com"
 
 try:
     from app.models.client_account import ClientAccount, Engagement, User
@@ -49,12 +49,9 @@ async def get_demo_context(session: AsyncSession) -> Dict[str, uuid.UUID]:
         raise RuntimeError("Demo engagement not found – run init_db.py first.")
 
     # --- User -------------------------------------------------------------
-    result = await session.execute(select(User.id).where(User.email == ADMIN_EMAIL))
+    # SECURITY: Only use demo user - no admin@democorp fallback
+    result = await session.execute(select(User.id).where(User.email == DEMO_EMAIL))
     user_id: uuid.UUID | None = result.scalar_one_or_none()
-    if user_id is None:
-        # Fallback to the non-admin demo user
-        result = await session.execute(select(User.id).where(User.email == FALLBACK_EMAIL))
-        user_id = result.scalar_one_or_none()
     if user_id is None:
         raise RuntimeError("Demo user not found – run init_db.py first.")
 

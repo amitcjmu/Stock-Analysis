@@ -51,17 +51,13 @@ async def get_demo_status():
                 "Test user management"
             ],
             "demo_credentials": {
-                "admin_user": {
-                    "email": "admin@democorp.com",
-                    "password": "admin123",
-                    "description": "Platform administrator with full access"
-                },
                 "demo_user": {
                     "email": "demo@democorp.com",
-                    "password": "password123",
-                    "description": "Standard user for testing workflows"
+                    "password": "password",
+                    "description": "Demo analyst user for testing workflows"
                 }
-            }
+            },
+            "security_note": "SECURE: No admin@democorp account - demo users have analyst-level access only"
         }
         
     except Exception as e:

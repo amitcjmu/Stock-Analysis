@@ -45,11 +45,7 @@ async def fix_user_roles_and_security():
                     access_level = "super_admin"
                     print("   🔑 Setting as Platform Administrator")
                     
-                elif user.email == "admin@democorp.com":
-                    role_type = RoleType.PLATFORM_ADMIN
-                    role_name = "Platform Administrator"
-                    access_level = "super_admin"
-                    print("   🔑 Setting as Platform Administrator")
+                # SECURITY: admin@democorp.com account removed - no longer created
                     
                 elif user.email == "demo@democorp.com":
                     # SECURITY FIX: Demo user should be Analyst, not Admin

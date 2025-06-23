@@ -16,14 +16,12 @@ from app.schemas.auth_schemas import TokenPayload
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/token")
 
-# Demo mode constants
+# Demo mode constants - SECURITY: Only demo user, no admin@democorp
 DEMO_USER_ID = UUID("44444444-4444-4444-4444-444444444444")
 DEMO_USER_EMAIL = "demo@democorp.com"
 DEMO_CLIENT_ID = UUID("11111111-1111-1111-1111-111111111111")
 DEMO_ENGAGEMENT_ID = UUID("22222222-2222-2222-2222-222222222222")
 DEMO_SESSION_ID = UUID("33333333-3333-3333-3333-333333333333")
-ADMIN_USER_ID = UUID("55555555-5555-5555-5555-555555555555")
-ADMIN_USER_EMAIL = "admin@democorp.com"
 
 async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db = Depends(get_db)):
     credentials_exception = HTTPException(
@@ -66,13 +64,10 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db = D
                 return user
 
             # If user not found in DB, create a mock user object based on ID
-            if user_id == ADMIN_USER_ID:
-                mock_user = User(id=ADMIN_USER_ID, email=ADMIN_USER_EMAIL, is_active=True, is_mock=True)
-                mock_user.role = "admin"
-            else: # Default to regular demo user
-                mock_user = User(id=DEMO_USER_ID, email=DEMO_USER_EMAIL, is_active=True, is_mock=True)
-                mock_user.role = "demo"
-                
+            # SECURITY: Only create demo user mock - no admin@democorp fallback
+            mock_user = User(id=DEMO_USER_ID, email=DEMO_USER_EMAIL, is_active=True, is_mock=True)
+            mock_user.role = "demo"
+            
             # Attach required relationship data to the mock object
             mock_user.client_accounts = [{"id": str(DEMO_CLIENT_ID), "name": "Democorp"}]
             mock_user.engagements = [{"id": str(DEMO_ENGAGEMENT_ID), "name": "Cloud Migration 2024"}]
