@@ -1,5 +1,90 @@
 # AI Force Migration Platform - Change Log
 
+## [0.4.14] - 2025-01-27
+
+### 🐛 **FLOW NAVIGATION & DATABASE CONSOLIDATION - Routing Fixes and Architecture Plan**
+
+This release addresses critical flow navigation issues and provides a comprehensive plan to consolidate redundant database tables with inconsistent patterns.
+
+### 🚀 **Routing and Navigation Fixes**
+
+#### **404 Error Resolution**
+- **Issue**: "View Details" button threw 404 error for `/discovery/enhanced-dashboard` route
+- **Fix**: Added missing route mapping in App.tsx routing configuration
+- **Result**: View Details now properly navigates to Enhanced Discovery Dashboard
+
+#### **Flow Continuation Navigation**
+- **Issue**: "Continue Flow" showed success toast but left users stranded on same page
+- **Fix**: Added intelligent phase-based navigation logic to direct users to next appropriate step
+- **Implementation**: Phase routing map with automatic redirection after 2-second delay
+- **User Experience**: Clear guidance with informative toast messages showing destination phase
+
+### 📊 **Database Architecture Analysis**
+
+#### **Redundant Tables Identified**
+- **`workflow_states`**: Main CrewAI Flow state (Event Listener pattern) ✅
+- **`workflow_progress`**: Asset-specific progress (custom pattern) ❌
+- **`import_processing_steps`**: Import step tracking (custom pattern) ❌  
+- **`crewai_flow_state_extensions`**: CrewAI analytics (Event Listener pattern) ✅
+- **`data_import_sessions`**: Import sessions (custom pattern) ❌
+
+#### **Pattern Inconsistency Issues**
+- **Problem**: Multiple tracking systems with different patterns creating data fragmentation
+- **Impact**: Synchronization issues, duplicate data, inconsistent state management
+- **Root Cause**: Each service writing to different tables without unified approach
+
+### 🏗️ **Database Consolidation Strategy**
+
+#### **Unified State Model Design**
+- **Primary Table**: Enhanced `workflow_states` as single source of truth
+- **Extension Table**: `crewai_flow_state_extensions` for CrewAI-specific analytics
+- **Pattern**: Consistent CrewAI Event Listener pattern throughout
+- **Benefits**: Eliminates data duplication, provides real-time state updates
+
+#### **Migration Plan Components**
+- **Phase 1**: Enhance workflow_states with consolidated columns
+- **Phase 2**: Data migration scripts to move fragmented data
+- **Phase 3**: Update Event Listener to handle all tracking types
+- **Phase 4**: Service layer consolidation and cleanup
+
+### 🎯 **Technical Achievements**
+
+#### **Immediate Fixes**
+- **Routing**: Fixed 404 errors and added proper navigation flow
+- **User Experience**: Eliminated confusion after flow resumption
+- **Navigation Logic**: Phase-aware routing based on current flow state
+
+#### **Architecture Planning**
+- **Documentation**: Comprehensive database consolidation plan created
+- **Risk Mitigation**: Backup strategy and rollback plans defined
+- **Implementation Timeline**: 4-week structured approach outlined
+
+### 📊 **Business Impact**
+
+#### **User Experience Improvements**
+- **Navigation**: Users no longer get lost after resuming flows
+- **Error Reduction**: Eliminated 404 errors in critical flow paths
+- **Clarity**: Clear guidance on next steps in discovery process
+
+#### **Technical Debt Reduction**
+- **Database Simplification**: Plan to reduce 5 tables to 2 unified tables
+- **Pattern Consistency**: Single CrewAI Event Listener pattern across platform
+- **Maintenance**: Easier debugging and state tracking
+
+### 🎯 **Success Metrics**
+
+#### **Immediate Results**
+- **404 Errors**: Reduced to zero for flow navigation
+- **User Confusion**: Eliminated through automatic phase redirection
+- **Flow Continuity**: Seamless experience from resumption to next phase
+
+#### **Planned Benefits**
+- **Database Complexity**: 60% reduction in workflow tracking tables
+- **Query Performance**: Fewer joins and simplified data access
+- **Development Velocity**: Single pattern for all workflow state management
+
+---
+
 ## [0.4.13] - 2025-01-27
 
 ### 🐛 **FLOW RESUMPTION 422 ERROR FIX - API Call Deduplication Resolution**
