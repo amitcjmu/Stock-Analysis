@@ -1560,3 +1560,86 @@ curl -X POST /api/v1/data-import/store-import \
 ---
 
 ## [0.4.9] - 2025-01-26
+
+## [0.4.11] - 2025-01-27
+
+### 🚀 **HYBRID CREWAI + POSTGRESQL PERSISTENCE ARCHITECTURE**
+
+This release implements the comprehensive hybrid persistence strategy outlined in the Unified Discovery Flow Consolidation Plan, bridging CrewAI's built-in SQLite persistence with our PostgreSQL multi-tenant enterprise requirements.
+
+### 🏗️ **Major Architecture Implementation**
+
+#### **PostgreSQL Flow Persistence Layer**
+- **Implementation**: Created `PostgreSQLFlowPersistence` class that mirrors CrewAI's `@persist()` functionality while integrating with our PostgreSQL database
+- **Features**: Multi-tenant flow isolation, state validation, integrity checks, advanced recovery capabilities, and performance monitoring
+- **Database Integration**: Seamless integration with existing `WorkflowState` and `CrewAIFlowStateExtensions` models
+- **Enterprise Ready**: Full support for client account scoping and engagement-level data isolation
+
+#### **Flow State Bridge**
+- **Implementation**: Created `FlowStateBridge` that coordinates between CrewAI Flow state and PostgreSQL persistence
+- **Strategy**: Let CrewAI handle flow execution continuity while PostgreSQL handles enterprise requirements
+- **Features**: Automatic state synchronization, fallback recovery, integrity validation, and performance optimization controls
+- **Non-Critical Design**: PostgreSQL sync failures don't break CrewAI flow execution
+
+#### **Enhanced Phase Executors**
+- **Integration**: Updated `BasePhaseExecutor` and `PhaseExecutionManager` to integrate with Flow State Bridge
+- **Persistence**: All phase transitions now sync to PostgreSQL with crew results and error handling
+- **Async Support**: Converted all phase execution methods to async for proper database operations
+- **Validation**: Added comprehensive phase integrity validation across both persistence layers
+
+#### **Unified Discovery Flow Enhancement**
+- **Hybrid Persistence**: Integrated Flow State Bridge into `UnifiedDiscoveryFlow` for seamless dual persistence
+- **State Management**: Enhanced flow management methods with PostgreSQL recovery and validation
+- **Error Handling**: Graceful degradation when PostgreSQL sync fails - CrewAI flow continues uninterrupted
+- **Monitoring**: Added comprehensive flow integrity validation and state cleanup capabilities
+
+### 🎯 **Consolidation Plan Gaps Addressed**
+
+#### **Gap #1: CrewAI @persist() + PostgreSQL Multi-Tenancy**
+- **Solution**: Hybrid persistence strategy that leverages both CrewAI's SQLite and our PostgreSQL
+- **Implementation**: Flow State Bridge coordinates between both systems seamlessly
+- **Benefit**: Maintains CrewAI flow continuity while enabling enterprise multi-tenant requirements
+
+#### **Gap #2: Manager-Level State Updates**
+- **Solution**: Phase executors now sync state updates to PostgreSQL during crew execution
+- **Implementation**: Automatic state synchronization at phase start, completion, and error handling
+- **Benefit**: Real-time state visibility across both persistence layers
+
+#### **Gap #3: State Validation and Integrity**
+- **Solution**: Comprehensive validation across CrewAI and PostgreSQL persistence layers
+- **Implementation**: `validate_flow_integrity()` method provides health checks for both systems
+- **Benefit**: Early detection of state corruption and consistency issues
+
+#### **Gap #4: Advanced Recovery and Reconstruction**
+- **Solution**: PostgreSQL-based state recovery when CrewAI persistence fails
+- **Implementation**: `recover_flow_state()` method reconstructs flow state from PostgreSQL
+- **Benefit**: Robust recovery mechanism for production environments
+
+#### **Gap #5: Performance Monitoring and Analytics**
+- **Solution**: Enhanced analytics integration through PostgreSQL persistence
+- **Implementation**: `CrewAIFlowStateExtensions` model captures detailed flow metrics
+- **Benefit**: Production-ready monitoring and performance analytics
+
+### 📊 **Technical Achievements**
+
+- **Hybrid Architecture**: Successfully bridges CrewAI's SQLite persistence with PostgreSQL enterprise requirements
+- **Non-Breaking Integration**: Existing CrewAI flows continue to work with added PostgreSQL benefits
+- **Performance Optimized**: Sync operations don't impact CrewAI flow execution performance
+- **Enterprise Ready**: Full multi-tenant support with client account and engagement scoping
+- **Production Resilient**: Graceful degradation ensures system stability
+
+### 🎯 **Business Impact**
+
+- **Enterprise Deployment**: Platform now supports enterprise multi-tenant requirements while maintaining CrewAI benefits
+- **Data Governance**: Comprehensive state persistence meets enterprise audit and compliance needs
+- **System Reliability**: Dual persistence provides robust backup and recovery capabilities
+- **Operational Excellence**: Real-time state monitoring and validation enables proactive system management
+
+### 🔧 **Implementation Details**
+
+- **Files Created**: `postgresql_flow_persistence.py`, `flow_state_bridge.py`
+- **Files Enhanced**: `unified_discovery_flow.py`, `base_phase_executor.py`, `phase_execution_manager.py`
+- **Database Models**: Leverages existing `WorkflowState` and `CrewAIFlowStateExtensions`
+- **API Integration**: Ready for API endpoint integration for flow management operations
+
+## [0.4.10] - 2025-01-27

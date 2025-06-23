@@ -62,11 +62,22 @@ from .handlers.unified_flow_crew_manager import UnifiedFlowCrewManager
 from .handlers.phase_executors import PhaseExecutionManager
 from .handlers.unified_flow_management import UnifiedFlowManagement
 
+# Import Flow State Bridge for PostgreSQL persistence
+from .flow_state_bridge import FlowStateBridge, managed_flow_bridge
+
 @persist()  # Enable CrewAI state persistence
 class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
     """
     Unified Discovery Flow following CrewAI documentation patterns.
     Single source of truth for all discovery flow operations.
+    
+    Now integrated with Flow State Bridge for hybrid CrewAI + PostgreSQL persistence.
+    Addresses gaps from the consolidation plan:
+    - Gap #1: CrewAI @persist() + PostgreSQL multi-tenancy
+    - Gap #2: Manager-level state updates during crew execution
+    - Gap #3: State validation and integrity checks
+    - Gap #4: Advanced recovery and reconstruction capabilities
+    - Gap #5: Performance monitoring and analytics integration
     
     Handles all discovery phases with proper state management:
     1. Field Mapping
@@ -77,7 +88,7 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
     """
     
     def __init__(self, crewai_service, context: RequestContext, **kwargs):
-        """Initialize unified discovery flow with proper state management"""
+        """Initialize unified discovery flow with hybrid persistence"""
         
         # Store initialization parameters
         self._init_session_id = kwargs.get('session_id', str(uuid.uuid4()))
@@ -94,21 +105,24 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         self.crewai_service = crewai_service
         self.context = context
         
+        # Initialize Flow State Bridge for PostgreSQL persistence
+        self.flow_bridge = FlowStateBridge(context)
+        
         # Initialize state if not exists
         if not hasattr(self, 'state') or self.state is None:
             self.state = UnifiedDiscoveryFlowState()
         
-        # Initialize modular handlers
+        # Initialize modular handlers with flow bridge
         self.crew_manager = UnifiedFlowCrewManager(crewai_service, self.state)
-        self.phase_executor = PhaseExecutionManager(self.state, self.crew_manager)
+        self.phase_executor = PhaseExecutionManager(self.state, self.crew_manager, self.flow_bridge)
         self.flow_management = UnifiedFlowManagement(self.state)
         
-        logger.info(f"✅ Unified Discovery Flow initialized with session: {self._init_session_id}")
+        logger.info(f"✅ Unified Discovery Flow initialized with hybrid persistence: session={self._init_session_id}")
     
     @start()
-    def initialize_discovery(self):
-        """Initialize the unified discovery workflow"""
-        logger.info("🚀 Starting Unified Discovery Flow initialization")
+    async def initialize_discovery(self):
+        """Initialize the unified discovery workflow with PostgreSQL persistence"""
+        logger.info("🚀 Starting Unified Discovery Flow initialization with hybrid persistence")
         
         # Set core state fields
         self.state.session_id = self._init_session_id
@@ -128,58 +142,65 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             self.state.add_error("initialization", "No raw data provided")
             return "initialization_failed"
         
+        # Initialize PostgreSQL persistence
+        try:
+            bridge_result = await self.flow_bridge.initialize_flow_state(self.state)
+            logger.info(f"✅ Flow State Bridge initialized: {bridge_result}")
+        except Exception as e:
+            logger.warning(f"⚠️ Flow State Bridge initialization failed (non-critical): {e}")
+        
         self.state.log_entry(f"Discovery Flow initialized with {len(self.state.raw_data)} records")
         logger.info(f"✅ Unified Discovery Flow initialized with {len(self.state.raw_data)} records")
         
         return "initialized"
     
     @listen(initialize_discovery)
-    def execute_field_mapping_crew(self, previous_result):
-        """Execute field mapping using CrewAI crew"""
+    async def execute_field_mapping_crew(self, previous_result):
+        """Execute field mapping using CrewAI crew with PostgreSQL persistence"""
         if previous_result == "initialization_failed":
             logger.error("❌ Skipping field mapping due to initialization failure")
             return "field_mapping_skipped"
         
-        return self.phase_executor.execute_field_mapping_phase(previous_result)
+        return await self.phase_executor.execute_field_mapping_phase(previous_result)
     
     @listen(execute_field_mapping_crew)
-    def execute_data_cleansing_crew(self, previous_result):
-        """Execute data cleansing using CrewAI crew"""
+    async def execute_data_cleansing_crew(self, previous_result):
+        """Execute data cleansing using CrewAI crew with PostgreSQL persistence"""
         if previous_result in ["field_mapping_skipped", "field_mapping_failed"]:
             logger.error("❌ Skipping data cleansing due to field mapping issues")
             return "data_cleansing_skipped"
         
-        return self.phase_executor.execute_data_cleansing_phase(previous_result)
+        return await self.phase_executor.execute_data_cleansing_phase(previous_result)
     
     @listen(execute_data_cleansing_crew)
-    def execute_asset_inventory_crew(self, previous_result):
-        """Execute asset inventory using CrewAI crew"""
+    async def execute_asset_inventory_crew(self, previous_result):
+        """Execute asset inventory using CrewAI crew with PostgreSQL persistence"""
         if previous_result in ["data_cleansing_skipped", "data_cleansing_failed"]:
             logger.error("❌ Skipping asset inventory due to data cleansing issues")
             return "asset_inventory_skipped"
         
-        return self.phase_executor.execute_asset_inventory_phase(previous_result)
+        return await self.phase_executor.execute_asset_inventory_phase(previous_result)
     
     @listen(execute_asset_inventory_crew)
-    def execute_dependency_analysis_crew(self, previous_result):
-        """Execute dependency analysis using CrewAI crew"""
+    async def execute_dependency_analysis_crew(self, previous_result):
+        """Execute dependency analysis using CrewAI crew with PostgreSQL persistence"""
         if previous_result in ["asset_inventory_skipped", "asset_inventory_failed"]:
             logger.error("❌ Skipping dependency analysis due to asset inventory issues")
             return "dependency_analysis_skipped"
         
-        return self.phase_executor.execute_dependency_analysis_phase(previous_result)
+        return await self.phase_executor.execute_dependency_analysis_phase(previous_result)
     
     @listen(execute_dependency_analysis_crew)
-    def execute_tech_debt_analysis_crew(self, previous_result):
-        """Execute technical debt analysis using CrewAI crew"""
+    async def execute_tech_debt_analysis_crew(self, previous_result):
+        """Execute technical debt analysis using CrewAI crew with PostgreSQL persistence"""
         if previous_result in ["dependency_analysis_skipped", "dependency_analysis_failed"]:
             logger.error("❌ Skipping tech debt analysis due to dependency analysis issues")
             return "tech_debt_analysis_skipped"
         
-        return self.phase_executor.execute_tech_debt_analysis_phase(previous_result)
+        return await self.phase_executor.execute_tech_debt_analysis_phase(previous_result)
     
     @listen(execute_tech_debt_analysis_crew)
-    def finalize_discovery(self, previous_result):
+    async def finalize_discovery(self, previous_result):
         """Finalize the discovery flow and provide comprehensive summary"""
         logger.info("🎯 Finalizing Unified Discovery Flow")
         self.state.current_phase = "finalization"
@@ -213,20 +234,130 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             return "discovery_failed"
     
     # ========================================
-    # FLOW MANAGEMENT METHODS (Delegated)
+    # FLOW MANAGEMENT METHODS (Enhanced with PostgreSQL Bridge)
     # ========================================
 
-    def pause_flow(self, reason: str = "user_requested"):
-        """Pause the discovery flow with proper state preservation"""
+    async def pause_flow(self, reason: str = "user_requested"):
+        """Pause the discovery flow with PostgreSQL persistence"""
+        logger.info(f"⏸️ Pausing Unified Discovery Flow: {reason}")
+        self.state.status = "paused"
+        
+        # Sync pause state to PostgreSQL
+        if self.flow_bridge:
+            try:
+                await self.flow_bridge.sync_state_update(
+                    self.state, 
+                    self.state.current_phase, 
+                    crew_results={"action": "paused", "reason": reason}
+                )
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to sync pause state: {e}")
+        
+        # Delegate to flow management for additional handling
         return self.flow_management.pause_flow(reason)
 
-    def resume_flow_from_state(self, resume_context: Dict[str, Any]):
-        """Resume flow from persisted state with CrewAI Flow continuity"""
+    async def resume_flow_from_state(self, resume_context: Dict[str, Any]):
+        """Resume flow from saved state with PostgreSQL recovery"""
+        logger.info("▶️ Resuming Unified Discovery Flow from saved state")
+        
+        # Try to recover state from PostgreSQL if needed
+        if self.flow_bridge and resume_context.get("recover_from_postgresql", False):
+            try:
+                recovered_state = await self.flow_bridge.recover_flow_state(self.state.session_id)
+                if recovered_state:
+                    self.state = recovered_state
+                    logger.info("✅ State recovered from PostgreSQL")
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to recover state from PostgreSQL: {e}")
+        
+        self.state.status = "running"
+        
+        # Sync resume state to PostgreSQL
+        if self.flow_bridge:
+            try:
+                await self.flow_bridge.sync_state_update(
+                    self.state, 
+                    self.state.current_phase, 
+                    crew_results={"action": "resumed", "context": resume_context}
+                )
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to sync resume state: {e}")
+        
+        # Delegate to flow management for additional handling
         return self.flow_management.resume_flow_from_state(resume_context)
 
-    def get_flow_management_info(self) -> Dict[str, Any]:
-        """Get comprehensive flow information for management UI"""
-        return self.flow_management.get_flow_management_info()
+    async def get_flow_management_info(self) -> Dict[str, Any]:
+        """Get flow management information with PostgreSQL validation"""
+        # Get base info from flow management
+        base_info = self.flow_management.get_flow_management_info()
+        
+        # Add PostgreSQL persistence status
+        if self.flow_bridge:
+            try:
+                validation_result = await self.flow_bridge.validate_state_integrity(self.state.session_id)
+                base_info["postgresql_persistence"] = {
+                    "available": True,
+                    "state_valid": validation_result.get("overall_valid", False),
+                    "last_validation": validation_result.get("validation_timestamp")
+                }
+            except Exception as e:
+                base_info["postgresql_persistence"] = {
+                    "available": False,
+                    "error": str(e)
+                }
+        else:
+            base_info["postgresql_persistence"] = {"available": False}
+        
+        return base_info
+    
+    async def validate_flow_integrity(self) -> Dict[str, Any]:
+        """Validate flow integrity across CrewAI and PostgreSQL persistence layers"""
+        if not self.flow_bridge:
+            return {
+                "status": "bridge_unavailable",
+                "message": "Flow State Bridge not available for validation"
+            }
+        
+        try:
+            # Validate overall flow integrity
+            validation_result = await self.flow_bridge.validate_state_integrity(self.state.session_id)
+            
+            # Add phase executor validation
+            phase_validation = await self.phase_executor.validate_phase_integrity(self.state.session_id)
+            validation_result["phase_executors"] = phase_validation.get("phase_executors", {})
+            
+            return validation_result
+            
+        except Exception as e:
+            logger.error(f"❌ Flow integrity validation failed: {e}")
+            return {
+                "status": "validation_error",
+                "error": str(e)
+            }
+    
+    async def cleanup_flow_state(self, expiration_hours: int = 72) -> Dict[str, Any]:
+        """Clean up expired flow state data"""
+        if not self.flow_bridge:
+            return {
+                "status": "bridge_unavailable",
+                "message": "Flow State Bridge not available for cleanup"
+            }
+        
+        try:
+            cleanup_result = await self.phase_executor.cleanup_phase_states(
+                self.state.session_id, 
+                expiration_hours
+            )
+            
+            logger.info(f"✅ Flow state cleanup completed: {cleanup_result}")
+            return cleanup_result
+            
+        except Exception as e:
+            logger.error(f"❌ Flow state cleanup failed: {e}")
+            return {
+                "status": "cleanup_error",
+                "error": str(e)
+            }
 
 
 # ========================================
@@ -247,7 +378,13 @@ def create_unified_discovery_flow(
     Factory function to create and initialize a Unified Discovery Flow.
     
     This replaces all previous factory functions and creates a single,
-    properly configured CrewAI Flow instance.
+    properly configured CrewAI Flow instance with hybrid persistence.
+    
+    Features:
+    - CrewAI @persist() for flow execution continuity
+    - PostgreSQL persistence for multi-tenant enterprise requirements
+    - Flow State Bridge for seamless integration
+    - Comprehensive state validation and recovery
     """
     
     flow = UnifiedDiscoveryFlow(
@@ -261,5 +398,8 @@ def create_unified_discovery_flow(
         metadata=metadata
     )
     
-    logger.info(f"✅ Unified Discovery Flow created: {session_id}")
+    logger.info(f"✅ Unified Discovery Flow created with hybrid persistence: {session_id}")
+    logger.info(f"🔄 Flow State Bridge: {'enabled' if flow.flow_bridge else 'disabled'}")
+    logger.info(f"📊 Data records: {len(raw_data)}")
+    
     return flow 
