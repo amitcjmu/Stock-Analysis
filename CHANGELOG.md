@@ -1,5 +1,119 @@
 # AI Force Migration Platform - Change Log
 
+## [0.9.15] - 2025-01-27
+
+### 🎯 **DISCOVERY FLOW ARCHITECTURAL ANALYSIS & CONSOLIDATION PLANNING**
+
+This release provides comprehensive analysis of the discovery flow architectural fragmentation and creates detailed implementation plans for consolidating the broken system into a unified, reliable architecture.
+
+### 🔍 **Architectural Analysis**
+
+#### **Critical Issues Identified**
+- **Database Architecture Analysis**: Identified 47+ database tables with complex fragmented relationships
+- **Triple Data Storage Problem**: Data scattered across `data_import_sessions`, `workflow_states`, and `assets` with no proper connections
+- **Multiple ID Confusion**: 4 different ID types (`import_session_id`, `data_import_id`, `flow_id`, `session_id`) causing navigation failures
+- **Raw Data Disconnect**: CrewAI flows cannot access imported data due to architectural separation
+- **Asset Creation Gap**: No automatic asset creation from discovery results
+- **Assessment Handoff Missing**: Discovery flows don't prepare data for assessment phase
+
+#### **Impact Assessment**
+- **User Experience**: Users stuck in navigation loops, cannot complete discovery flows
+- **Business Value**: Discovery results not converted to actionable assets  
+- **System Reliability**: Frequent 404 errors and session failures
+- **Data Integrity**: Imported data isolated from workflow processing
+
+### 📊 **Documentation Created**
+
+#### **Comprehensive Analysis Document**
+- **File**: `docs/development/DISCOVERY_FLOW_ARCHITECTURAL_ANALYSIS.md`
+- **Analysis**: Complete database relationship mapping and architectural break identification
+- **Scope**: 47+ database tables analyzed for relationships and data flow
+- **Issues**: 5 major architectural breaks documented with technical details
+- **Impact**: Business and technical impact assessment
+
+#### **Implementation Plan Document**  
+- **File**: `docs/development/DISCOVERY_FLOW_CONSOLIDATION_IMPLEMENTATION_PLAN.md`
+- **Timeline**: 9-day phased implementation plan
+- **Strategy**: Extend WorkflowState model as single source of truth
+- **Phases**: Database consolidation → API consolidation → Frontend consolidation → Asset creation integration
+- **Testing**: Comprehensive testing strategy with risk mitigation
+
+### 🛠️ **Consolidation Strategy**
+
+#### **Database Consolidation Approach**
+- **Primary Strategy**: Extend `WorkflowState` model to serve as single source of truth
+- **New Fields**: `data_import_id`, `import_session_id`, `raw_data`, `created_assets`, `assessment_ready`
+- **Relationships**: Direct connections between import layer and workflow layer
+- **Data Flow**: Linear progression from import → discovery → assets → assessment
+
+#### **API Consolidation Plan**
+- **Unified Endpoints**: Single endpoint for complete discovery flow management
+- **CrewAI Integration**: Ensure flows can access imported raw data
+- **Asset Creation**: Automatic asset creation from discovery results
+- **Assessment Preparation**: Proper handoff packages for assessment phase
+
+#### **Frontend Consolidation Plan**
+- **Single ID Navigation**: Use `flow_id` consistently throughout system
+- **Unified Hook**: Single hook managing entire discovery flow
+- **Component Updates**: Remove fragmented data fetching patterns
+- **Error Handling**: Proper handling of missing/invalid flows
+
+### 📋 **Technical Specifications**
+
+#### **Database Schema Changes**
+```python
+# WorkflowState model extensions
+data_import_id = Column(UUID, ForeignKey('data_imports.id'))
+import_session_id = Column(UUID, ForeignKey('data_import_sessions.id'))
+raw_data = Column(JSON)  # Denormalized for CrewAI access
+created_assets = Column(JSON, default=[])
+asset_creation_status = Column(String, default="pending")
+assessment_ready = Column(Boolean, default=False)
+assessment_flow_package = Column(JSON)
+```
+
+#### **API Architecture Changes**
+```python
+# Unified discovery endpoints
+POST /api/v1/discovery/unified-flow
+GET /api/v1/discovery/unified-flow/{flow_id}
+POST /api/v1/discovery/unified-flow/{flow_id}/create-assets
+```
+
+#### **Frontend Architecture Changes**
+```typescript
+// Single unified hook
+export const useUnifiedDiscoveryFlow = (flowId?: string) => {
+  // Manages entire flow from import → discovery → asset creation
+}
+```
+
+### 🎯 **Success Criteria**
+
+#### **Technical Success**
+- ✅ Single database model handles entire discovery flow
+- ✅ CrewAI flows can access imported data
+- ✅ Assets automatically created from discovery results
+- ✅ Assessment phase prepared from discovery completion
+
+#### **User Experience Success**
+- ✅ Users navigate smoothly through all discovery phases
+- ✅ No more "flow not found" errors
+- ✅ Clear progress indicators throughout flow
+- ✅ Seamless transition to assessment phase
+
+#### **Business Success**
+- ✅ Complete discovery flow from data import to assessment readiness
+- ✅ Reliable asset inventory creation
+- ✅ Proper preparation for migration planning
+- ✅ Reduced support issues and user confusion
+
+### 🚨 **Critical Priority**
+
+This architectural consolidation is **CRITICAL** for platform success. The current fragmented approach prevents users from completing discovery flows and accessing the full value of the AI-powered migration platform. Implementation should begin immediately to restore system functionality.
+
+---
+
 ## [0.8.6] - 2025-01-27
 
 ### 🎯 **SESSION NAVIGATION - Cannot Find Session Error Resolution**
