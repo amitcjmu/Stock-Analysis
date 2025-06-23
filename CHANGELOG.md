@@ -1,5 +1,66 @@
 # AI Force Migration Platform - Change Log
 
+## [0.4.12] - 2025-01-27
+
+### 🎯 **ENHANCED FLOW MANAGEMENT API & UI - Complete Integration**
+
+This release completes the hybrid persistence architecture implementation by adding comprehensive API endpoints and React components that expose the new flow management capabilities to users, providing enterprise-grade flow validation, recovery, and cleanup tools.
+
+### 🚀 **Enhanced Flow Management API Layer**
+
+#### **Comprehensive API Endpoints**
+- **Flow Validation**: Advanced flow state validation across CrewAI and PostgreSQL persistence layers
+- **State Recovery**: Sophisticated flow state recovery with multiple strategies (PostgreSQL, hybrid)
+- **Flow Cleanup**: Intelligent cleanup tools for expired flows with dry-run capabilities
+- **Bulk Operations**: Efficient bulk validation and monitoring for multiple flows
+- **Health Monitoring**: Real-time persistence health checks and system status monitoring
+
+#### **Enterprise-Grade Features**
+- **Background Tasks**: Automated post-cleanup validation and system maintenance
+- **Multi-Strategy Recovery**: PostgreSQL-first and hybrid recovery approaches
+- **Comprehensive Validation**: Deep integrity checks with actionable recommendations
+- **Performance Monitoring**: Real-time flow health scoring and analytics
+
+### 🎪 **React Integration & User Experience**
+
+#### **Enhanced Flow Management Hook**
+- **Complete Integration**: Full React hook integration with the enhanced API endpoints
+- **Real-Time Monitoring**: Automatic health monitoring with configurable refresh intervals
+- **Convenience Methods**: High-level methods for common flow management operations
+- **Error Handling**: Comprehensive error handling with user-friendly toast notifications
+
+#### **Flow Management Dashboard Component**
+- **Tabbed Interface**: Organized dashboard with validation, recovery, cleanup, and monitoring tabs
+- **Visual Status**: Color-coded health indicators and progress tracking
+- **Interactive Controls**: User-friendly controls for all flow management operations
+- **Real-Time Updates**: Live status updates and health score monitoring
+
+#### **Advanced UI Features**
+- **Health Scoring**: Visual health score indicators with percentage-based progress bars
+- **Bulk Validation**: Efficient bulk operations with detailed results breakdown
+- **Cleanup Preview**: Dry-run capabilities for safe cleanup operations
+- **Recovery Strategies**: Multiple recovery options with guided next steps
+
+### 📊 **User Experience Enhancements**
+
+#### **Operational Efficiency**
+- **One-Click Operations**: Simple buttons for complex flow management tasks
+- **Status Visualization**: Clear visual indicators for flow health and system status
+- **Guided Workflows**: Step-by-step guidance for recovery and cleanup operations
+- **Real-Time Feedback**: Immediate feedback through toast notifications and status updates
+
+#### **Enterprise Features**
+- **Bulk Operations**: Manage multiple flows simultaneously for operational efficiency
+- **Health Monitoring**: Continuous monitoring with automatic alerts for issues
+- **Cleanup Automation**: Scheduled cleanup with configurable expiration policies
+- **Recovery Tools**: Advanced recovery mechanisms for production environments
+
+### 🎯 **Technical Achievements**
+- **Complete API Coverage**: Full API endpoint coverage for all hybrid persistence features
+- **React Integration**: Seamless React integration with TypeScript type safety
+- **User Experience**: Enterprise-grade UI with intuitive flow management capabilities
+- **Production Ready**: Comprehensive error handling, monitoring, and user feedback systems
+
 ## [0.2.16] - 2025-01-23
 
 ### 🛡️ **ADMIN PAGE ACCESS FIX FOR PLATFORM ADMINISTRATORS**
