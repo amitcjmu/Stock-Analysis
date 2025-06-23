@@ -251,38 +251,15 @@ class AdminOperationsService:
             raise HTTPException(status_code=500, detail=f"Failed to get access logs: {str(e)}")
     
     async def create_demo_admin_user(self) -> Dict[str, Any]:
-        """Create a demo admin user for development/testing purposes."""
-        try:
-            rbac_service = create_rbac_service(self.db)
-            
-            # Check if demo admin user already exists
-            demo_email = "admin@aiforce.com"
-            existing_user = await self.db.execute(
-                select(User).where(User.email == demo_email)
-            )
-            user = existing_user.scalar_one_or_none()
-            
-            if user:
-                return {
-                    "status": "success",
-                    "message": "Demo admin user already exists",
-                    "user_id": str(user.id),
-                    "email": user.email
-                }
-            
-            # Create new demo admin user
-            result = await rbac_service.create_demo_admin()
-            
-            if result["status"] == "error":
-                raise HTTPException(status_code=400, detail=result["message"])
-            
-            return result
-            
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"Error in create_demo_admin_user: {e}")
-            raise HTTPException(status_code=500, detail=f"Demo user creation failed: {str(e)}")
+        """
+        SECURITY: Demo admin user creation DISABLED for production safety.
+        This method has been disabled to prevent unauthorized admin account creation.
+        """
+        return {
+            "status": "error",
+            "message": "Demo admin user creation disabled for security",
+            "security_note": "Admin accounts must be created through secure channels only"
+        }
     
     async def admin_create_user(self, user_data: Dict[str, Any], created_by: str, request_data: Dict[str, Any]) -> UserRegistrationResponse:
         """

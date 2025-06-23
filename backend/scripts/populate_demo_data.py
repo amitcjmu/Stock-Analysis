@@ -23,8 +23,13 @@ import uuid
 from sqlalchemy import select, and_
 
 async def create_demo_users(db: AsyncSession):
-    """Create demo users."""
+    """
+    Create demo users - SECURITY HARDENED.
+    Only creates legitimate demo user with analyst privileges.
+    NO ADMIN DEMO ACCOUNTS ALLOWED.
+    """
     print("Creating demo users...")
+    print("🔒 SECURITY: Only legitimate demo user (analyst level) will be created")
     
     # SECURITY: Only create the demo user - no admin@democorp account
     # Demo user - using fixed UUID from system design
@@ -38,6 +43,10 @@ async def create_demo_users(db: AsyncSession):
         is_mock=True,  # Mark as mock data for easy identification
         created_at=datetime.utcnow()
     )
+    
+    # SECURITY GUARD: Prevent any admin demo account creation
+    if DEMO_USER_EMAIL in ['admin@democorp.com', 'admin@aiforce.com', 'admin@demo.com']:
+        raise ValueError("🚨 SECURITY VIOLATION: Admin demo accounts are prohibited")
     
     # Check if demo user already exists
     existing_demo = await db.execute(select(User).where(User.id == demo_user.id))

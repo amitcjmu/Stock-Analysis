@@ -22,18 +22,19 @@ async def create_demo_admin_user(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Create a demo admin user for development/testing purposes.
-    This endpoint creates a fully functional admin user for demo scenarios.
+    SECURITY: Demo admin user creation PERMANENTLY DISABLED.
+    This endpoint has been disabled to prevent unauthorized admin account creation.
+    Admin accounts must only be created through secure, authorized channels.
     """
-    try:
-        admin_service = AdminOperationsService(db)
-        return await admin_service.create_demo_admin_user()
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error in create_demo_admin_user: {e}")
-        raise HTTPException(status_code=500, detail=f"Demo user creation failed: {str(e)}")
+    logger.warning("Attempted demo admin user creation - BLOCKED for security")
+    raise HTTPException(
+        status_code=403, 
+        detail={
+            "error": "Demo admin user creation disabled",
+            "security_note": "Admin accounts must be created through secure channels only",
+            "contact": "Contact system administrator for legitimate admin account creation"
+        }
+    )
 
 
 @demo_router.get("/demo/status")

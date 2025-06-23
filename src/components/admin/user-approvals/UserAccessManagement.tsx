@@ -80,22 +80,12 @@ export const UserAccessManagement: React.FC = () => {
       if (response.status === 'success') {
         setUsers(response.active_users || []);
       } else {
-        // Demo data fallback
+        // SECURITY: Removed hardcoded admin demo users
+        // Only show legitimate demo user if API fails
         setUsers([
           {
-            user_id: '2a0de3df-7484-4fab-98b9-2ca126e2ab21',
-            email: 'admin@aiforce.com',
-            full_name: 'Platform Administrator',
-            username: 'admin',
-            organization: 'AI Force Platform',
-            role_description: 'System Administrator',
-            access_level: 'admin',
-            role_name: 'Administrator',
-            is_active: true
-          },
-          {
             user_id: 'demo-user-12345678-1234-5678-9012-123456789012',
-            email: 'user@demo.com',
+            email: 'demo@democorp.com',
             full_name: 'Demo User',
             username: 'demo_user',
             organization: 'Demo Organization',
@@ -104,6 +94,7 @@ export const UserAccessManagement: React.FC = () => {
             role_name: 'Analyst',
             is_active: true
           }
+          // SECURITY: No admin@aiforce.com or other admin demo accounts
         ]);
       }
     } catch (error) {
@@ -181,7 +172,7 @@ export const UserAccessManagement: React.FC = () => {
           resource_type: 'client',
           resource_id: 'cc92315a-4bae-469d-9550-46d1c6e5ab68',
           access_level: 'read_write',
-          granted_by: '2a0de3df-7484-4fab-98b9-2ca126e2ab21',
+          granted_by: '2a0de3df-7484-4fab-98b9-2ca126e2ab21', // Current admin user
           granted_at: '2025-01-28T10:00:00Z',
           resource_name: 'Pujyam Corp'
         },
