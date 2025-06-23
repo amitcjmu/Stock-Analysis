@@ -154,13 +154,15 @@ export const useFlowResumption = () => {
       
       // Determine next phase and navigate appropriately
       const nextPhase = data?.next_phase || data?.current_phase;
+      
+      // ✅ Include session ID in phase routes
       const phaseRoutes = {
-        'data_import': '/discovery/import',
-        'field_mapping': '/discovery/attribute-mapping',
-        'data_cleansing': '/discovery/data-cleansing',
-        'asset_inventory': '/discovery/inventory',
-        'dependency_analysis': '/discovery/dependencies',
-        'tech_debt': '/discovery/tech-debt'
+        'data_import': `/discovery/import/${sessionId}`,
+        'field_mapping': `/discovery/attribute-mapping/${sessionId}`,
+        'data_cleansing': `/discovery/data-cleansing/${sessionId}`,
+        'asset_inventory': `/discovery/inventory/${sessionId}`,
+        'dependency_analysis': `/discovery/dependencies/${sessionId}`,
+        'tech_debt': `/discovery/tech-debt/${sessionId}`
       };
       
       const nextRoute = phaseRoutes[nextPhase as keyof typeof phaseRoutes] || '/discovery/enhanced-dashboard';

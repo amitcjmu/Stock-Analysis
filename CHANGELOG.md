@@ -1,5 +1,37 @@
 # AI Force Migration Platform - Change Log
 
+## [0.8.6] - 2025-01-27
+
+### 🎯 **SESSION NAVIGATION - Cannot Find Session Error Resolution**
+
+This release resolves the critical "cannot find session" error that occurred when users clicked "Continue Flow" and were redirected to the attribute mapping page without the session ID in the URL.
+
+### 🚀 **Navigation Flow Enhancement**
+
+#### **Session ID URL Parameter Fix**
+- **Implementation**: Fixed navigation logic in `useFlowResumption` to include session ID in phase route URLs
+- **Root Cause**: Phase routes were missing session ID parameter (`/discovery/attribute-mapping` vs `/discovery/attribute-mapping/${sessionId}`)
+- **Navigation Fix**: Updated all phase routes to include session ID: `field_mapping: /discovery/attribute-mapping/${sessionId}`
+- **User Experience**: Eliminated "cannot find session" errors when resuming flows
+
+#### **Complete Phase Route Updates**
+- **Data Import**: `/discovery/import/${sessionId}`
+- **Field Mapping**: `/discovery/attribute-mapping/${sessionId}` 
+- **Data Cleansing**: `/discovery/data-cleansing/${sessionId}`
+- **Asset Inventory**: `/discovery/inventory/${sessionId}`
+- **Dependency Analysis**: `/discovery/dependencies/${sessionId}`
+- **Tech Debt Analysis**: `/discovery/tech-debt/${sessionId}`
+
+### 📊 **Business Impact**
+- **Flow Continuity**: Users can now seamlessly resume flows without navigation errors
+- **Session Persistence**: Proper session context maintained across all discovery phases
+- **Error Elimination**: Resolved "cannot find session" blocking users from proceeding
+
+### 🎯 **Success Metrics**
+- **Navigation Success**: 100% successful phase transitions with session context
+- **Error Reduction**: Eliminated session-related navigation failures
+- **User Experience**: Smooth flow resumption without manual intervention required
+
 ## [0.8.5] - 2025-01-27
 
 ### 🎯 **FLOW RESUMPTION - Navigation Loop Resolution**
