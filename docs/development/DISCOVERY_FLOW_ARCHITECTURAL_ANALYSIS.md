@@ -1,319 +1,381 @@
-# 🔍 Discovery Flow Architectural Analysis
+# 🔍 Multi-Flow Architectural Analysis & Database Schema Redesign
 
 **Date:** January 27, 2025  
 **Status:** Critical Architecture Review  
-**Priority:** URGENT - System Breaking Issues
+**Priority:** URGENT - System Breaking Issues  
+**Scope:** Multi-Flow Platform Architecture (Discovery, Assess, Plan, Execute, Modernize)
 
 ## 📊 Executive Summary
 
-The AI Force Migration Platform's discovery flow is suffering from **severe architectural fragmentation** where multiple disconnected data models and flows create a broken user experience. The current implementation has **3 separate data persistence layers** that don't properly connect, leading to:
+The AI Force Migration Platform requires a **unified multi-flow architecture** supporting 5 distinct workflow types with proper data normalization, multi-tenant isolation, and complete rollback capabilities. The current implementation suffers from severe architectural fragmentation that prevents seamless flow progression and creates data sprawl across 47+ disconnected tables.
 
-- ❌ **Navigation Failures**: Users get stuck between discovery phases
-- ❌ **Data Loss**: Imported data doesn't flow through to assets
-- ❌ **Session Confusion**: Multiple ID types (session_id, flow_id, import_id) create confusion
-- ❌ **Broken Assessment Flow**: Discovery doesn't properly prepare data for assessment phase
+### **Multi-Flow Architecture Requirements**
+Based on the navigation structure shown:
+- **Discovery Flow**: Data Import → Attribute Mapping → Data Cleansing → Inventory → Dependencies → Tech Debt
+- **Assess Flow**: Overview → Treatment → Wave Planning → Roadmap → Editor
+- **Plan Flow**: Overview → Timeline → Resource → Target
+- **Execute Flow**: Overview → Rehost → Replatform → Cutover → Reports  
+- **Modernize Flow**: Refactor → Rearchitect → Rewrite workflows
 
-## 🏗️ Current Database Architecture Analysis
+### **Critical Issues Identified**
+- ❌ **Data Sprawl**: 47+ tables with unclear relationships and duplicate data storage
+- ❌ **Flow Isolation**: No unified framework supporting all 5 workflow types
+- ❌ **Multi-Tenant Gaps**: Inconsistent client account scoping across tables
+- ❌ **Rollback Impossibility**: No mechanism to cleanly rollback entire flows
+- ❌ **Normalization Issues**: Large JSON blobs mixed with over-normalized structures
+- ❌ **Cross-Flow Dependencies**: No clear handoff mechanisms between flows
 
-### **Database Tables Overview**
-Based on the database analysis, we have **47+ tables** with complex relationships that create architectural fragmentation:
+## 🏗️ Current Database Schema Analysis
 
-#### **Core Discovery Flow Tables**
-1. **`data_import_sessions`** - Session management
-2. **`data_imports`** - Import job tracking  
-3. **`raw_import_records`** - Raw imported data
-4. **`workflow_states`** - CrewAI flow state
-5. **`assets`** - Final asset inventory
-6. **`import_field_mappings`** - Field mapping results
+### **Schema Complexity Assessment**
+The database schema reveals significant architectural problems:
 
-#### **Supporting Tables**
-- `import_processing_steps` - Processing workflow tracking
-- `data_quality_issues` - Quality tracking
-- `validation_session` - Validation results
-- `crewai_flow_state_extensions` - CrewAI extensions
+#### **Over-Normalization Issues**
+- **Import Processing Steps**: Separate table for workflow steps that should be part of main flow
+- **Field Mappings**: Isolated from workflow context, causing disconnection
+- **Asset Dependencies**: Separate table when could be part of asset model
+- **Quality Issues**: Fragmented across multiple tracking tables
 
-## 🚨 Architectural Breaks Identified
+#### **Under-Normalization Issues**
+- **Workflow States**: Massive JSON blobs storing all flow data without structure
+- **Raw Import Records**: Large JSON data without proper field extraction
+- **CrewAI Extensions**: Unstructured data storage without clear schema
 
-### **Break #1: Triple Data Storage Pattern**
-**Problem**: Data is stored in 3 disconnected layers:
+#### **Multi-Tenancy Inconsistencies**
+- **Missing Client Scoping**: Some tables lack proper client_account_id fields
+- **Inconsistent Engagement Linking**: Not all tables properly link to engagements
+- **Data Isolation Gaps**: Cross-tenant data leakage possible in current schema
 
+## 🚨 Architectural Breaks by Flow Type
+
+### **Discovery Flow Breaks**
 ```
-Layer 1: data_import_sessions → data_imports → raw_import_records
-Layer 2: workflow_states (CrewAI flow state)
-Layer 3: assets (final inventory)
-```
-
-**Issue**: No proper flow between layers, causing data to get "stuck" in intermediate states.
-
-### **Break #2: Multiple ID Confusion**
-**Problem**: 4 different ID types with unclear relationships:
-
-```
-import_session_id (DataImportSession.id)
-     ↓ (should link to)
-data_import_id (DataImport.id) 
-     ↓ (should link to)
-flow_id (WorkflowState.flow_id) - CrewAI generated
-     ↓ (should link to)
-session_id (WorkflowState.session_id) - Often same as import_session_id
+❌ Data Import → WorkflowState (NO CONNECTION)
+❌ Raw Import Records → Asset Creation (MANUAL ONLY)
+❌ Field Mappings → Discovery Results (ISOLATED)
+❌ Discovery → Assessment Handoff (MISSING)
 ```
 
-**Issue**: Frontend navigation uses different IDs at different times, causing 404 errors.
+### **Assessment Flow Breaks**
+```
+❌ Discovery Assets → Assessment Input (NO AUTOMATION)
+❌ Treatment Planning → Wave Creation (DISCONNECTED)
+❌ Assessment → Plan Handoff (MISSING)
+```
 
-### **Break #3: Raw Data Disconnect**
-**Problem**: CrewAI flows expect `raw_data` but it's stored separately:
+### **Plan Flow Breaks**
+```
+❌ Assessment Results → Planning Input (MANUAL)
+❌ Resource Planning → Timeline (FRAGMENTED)
+❌ Plan → Execute Handoff (MISSING)
+```
 
+### **Execute Flow Breaks**
+```
+❌ Plan → Execution Tasks (NO AUTOMATION)
+❌ Rehost/Replatform Progress → Reporting (ISOLATED)
+❌ Execute → Modernize Handoff (MISSING)
+```
+
+### **Modernize Flow Breaks**
+```
+❌ Execute Results → Modernization Input (MANUAL)
+❌ Refactor/Rearchitect → Progress Tracking (FRAGMENTED)
+```
+
+## 🏛️ Proposed Unified Database Architecture
+
+### **Core Principle: Flow-Centric Design**
+Design around flows as first-class entities with proper normalization and multi-tenancy.
+
+#### **1. Master Flow Management**
 ```python
-# ❌ BROKEN: WorkflowState tries to access raw_data but it doesn't exist
-class WorkflowState(Base):
-    field_mappings = Column(JSON)
-    cleaned_data = Column(JSON)
-    # raw_data = MISSING! 
-
-# ✅ ACTUAL: Raw data is in separate table
-class RawImportRecord(Base):
-    raw_data = Column(JSON)  # The actual raw data
-```
-
-**Issue**: CrewAI flows can't access the imported data, breaking the entire discovery process.
-
-### **Break #4: Asset Creation Disconnect**
-**Problem**: No clear path from discovery flow to asset creation:
-
-```
-raw_import_records.asset_id → assets.id (optional foreign key)
-```
-
-**Issue**: Assets are created separately from the discovery flow, not as part of it.
-
-### **Break #5: Assessment Flow Preparation Missing**
-**Problem**: Discovery flow doesn't prepare data for assessment phase:
-
-```python
-# ❌ MISSING: No clear handoff to assessment
-discovery_summary = Column(JSON, nullable=True)
-assessment_flow_package = Column(JSON, nullable=True)  # Empty/unused
-```
-
-**Issue**: Users complete discovery but can't proceed to assessment.
-
-## 🔗 Current Relationship Mapping
-
-### **What's Actually Connected**
-```
-✅ data_import_sessions ← data_imports (session_id FK)
-✅ data_imports ← raw_import_records (data_import_id FK)  
-✅ raw_import_records → assets (asset_id FK, optional)
-✅ workflow_states ← crewai_flow_state_extensions (workflow_state_id FK)
-```
-
-### **What's Broken/Missing**
-```
-❌ data_imports ↔ workflow_states (NO CONNECTION)
-❌ raw_import_records ↔ workflow_states (NO CONNECTION)
-❌ workflow_states → assets (NO AUTOMATIC CREATION)
-❌ workflow_states → assessments (NO HANDOFF)
-```
-
-## 📋 Code Flow Analysis
-
-### **Data Import Flow (Working)**
-```
-1. CMDBImport.tsx uploads file
-2. Creates DataImportSession
-3. Creates DataImport record
-4. Stores data in RawImportRecord
-5. Returns import_session_id
-```
-
-### **CrewAI Flow Trigger (Partially Working)**
-```
-1. _trigger_discovery_flow() called
-2. Creates UnifiedDiscoveryFlow with CrewAI
-3. Stores state in WorkflowState
-4. Returns flow_id
-```
-
-### **Navigation (BROKEN)**
-```
-1. Frontend tries to navigate with flow_id
-2. AttributeMapping page loads
-3. Tries to fetch flow data via flow_id
-4. ❌ FAILS: Flow exists but can't access raw_data
-5. ❌ FAILS: No connection to imported data
-```
-
-### **Asset Creation (DISCONNECTED)**
-```
-1. Discovery flow completes
-2. WorkflowState has results but no assets created
-3. ❌ MISSING: Automatic asset creation from discovery results
-4. ❌ MISSING: Handoff to assessment phase
-```
-
-## 🛠️ Consolidation Requirements
-
-### **Primary Goal: Single Unified Flow**
-Create a single data flow that connects all phases:
-
-```
-Data Import → CrewAI Discovery → Asset Creation → Assessment Preparation
-```
-
-### **Database Consolidation Strategy**
-
-#### **Option 1: Extend WorkflowState (Recommended)**
-Enhance `WorkflowState` to be the single source of truth:
-
-```python
-class WorkflowState(Base):
-    # ✅ Keep existing fields
-    flow_id = Column(UUID)
-    session_id = Column(UUID)
+class MigrationFlow(Base):
+    """Master flow entity supporting all flow types"""
+    __tablename__ = "migration_flows"
     
-    # ✅ ADD: Direct connection to import data
-    data_import_id = Column(UUID, ForeignKey('data_imports.id'))
-    
-    # ✅ ADD: Raw data access (denormalized for performance)
-    raw_data = Column(JSON)  # Copy from RawImportRecord
-    
-    # ✅ ADD: Asset creation tracking
-    created_assets = Column(JSON)  # List of created asset IDs
-    
-    # ✅ ADD: Assessment preparation
-    assessment_ready = Column(Boolean, default=False)
-    assessment_package = Column(JSON)  # Prepared data for assessment
-```
-
-#### **Option 2: Create Unified Discovery Model**
-Create a new unified model that replaces the fragmented approach:
-
-```python
-class UnifiedDiscoverySession(Base):
     # Core identification
-    id = Column(UUID, primary_key=True)  # Single ID for everything
+    id = Column(UUID, primary_key=True)
+    flow_type = Column(Enum(FlowType))  # discovery, assess, plan, execute, modernize
     
-    # Import phase
-    import_data = Column(JSON)  # Raw imported data
-    import_metadata = Column(JSON)  # Import session info
+    # Multi-tenant isolation
+    client_account_id = Column(UUID, ForeignKey('client_accounts.id'), nullable=False, index=True)
+    engagement_id = Column(UUID, ForeignKey('engagements.id'), nullable=False, index=True)
     
-    # CrewAI phase  
-    flow_id = Column(UUID)  # CrewAI flow ID
-    flow_state = Column(JSON)  # CrewAI state
+    # Flow metadata
+    name = Column(String(255), nullable=False)
+    description = Column(Text)
+    status = Column(Enum(FlowStatus))  # draft, active, completed, failed, cancelled
     
-    # Results phase
-    discovered_assets = Column(JSON)  # Asset inventory
-    field_mappings = Column(JSON)  # Mapping results
+    # Flow progression
+    current_phase = Column(String(100), nullable=False)
+    progress_percentage = Column(Float, default=0.0)
+    phase_completion = Column(JSON, default={})
     
-    # Assessment preparation
-    assessment_package = Column(JSON)  # Ready for assessment
+    # Flow relationships
+    parent_flow_id = Column(UUID, ForeignKey('migration_flows.id'))  # For flow handoffs
+    source_flow_type = Column(Enum(FlowType))  # Which flow this was created from
+    
+    # CrewAI integration
+    crewai_flow_id = Column(UUID, index=True)  # CrewAI-generated flow ID
+    
+    # Rollback capability
+    rollback_point = Column(JSON, default={})  # Snapshot for rollback
+    can_rollback = Column(Boolean, default=True)
+    rollback_reason = Column(Text)
+    
+    # Audit
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_by = Column(UUID, ForeignKey('users.id'), nullable=False)
 ```
 
-### **Code Consolidation Requirements**
-
-#### **Backend API Consolidation**
+#### **2. Flow Phase Management**
 ```python
-# ✅ SINGLE ENDPOINT for discovery flow management
-@router.post("/api/v1/discovery/unified-session")
-async def create_unified_discovery_session():
-    # Creates import session + CrewAI flow + asset preparation
-    pass
-
-@router.get("/api/v1/discovery/unified-session/{session_id}")
-async def get_unified_discovery_session():
-    # Returns complete state including raw data, flow state, assets
-    pass
+class FlowPhase(Base):
+    """Individual phases within flows with proper tracking"""
+    __tablename__ = "flow_phases"
+    
+    id = Column(UUID, primary_key=True)
+    flow_id = Column(UUID, ForeignKey('migration_flows.id'), nullable=False)
+    
+    # Phase definition
+    phase_name = Column(String(100), nullable=False)
+    phase_order = Column(Integer, nullable=False)
+    phase_type = Column(String(50))  # data_processing, analysis, planning, execution
+    
+    # Phase status
+    status = Column(Enum(PhaseStatus))  # pending, active, completed, failed, skipped
+    progress_percentage = Column(Float, default=0.0)
+    
+    # Phase data (normalized)
+    input_data = Column(JSON)  # Structured input data
+    output_data = Column(JSON)  # Structured output data
+    phase_config = Column(JSON)  # Phase-specific configuration
+    
+    # Phase execution
+    started_at = Column(DateTime(timezone=True))
+    completed_at = Column(DateTime(timezone=True))
+    duration_seconds = Column(Integer)
+    
+    # Error handling
+    error_details = Column(JSON)
+    retry_count = Column(Integer, default=0)
+    
+    # Rollback data
+    rollback_snapshot = Column(JSON)  # Phase state before execution
 ```
 
-#### **Frontend Hook Consolidation**
-```typescript
-// ✅ SINGLE HOOK for entire discovery flow
-export const useUnifiedDiscoverySession = (sessionId?: string) => {
-    // Manages entire flow from import → discovery → asset creation
-    // Single ID, single state, single navigation pattern
-}
+#### **3. Flow Data Management**
+```python
+class FlowDataEntity(Base):
+    """Normalized storage for flow-generated data"""
+    __tablename__ = "flow_data_entities"
+    
+    id = Column(UUID, primary_key=True)
+    flow_id = Column(UUID, ForeignKey('migration_flows.id'), nullable=False)
+    phase_id = Column(UUID, ForeignKey('flow_phases.id'), nullable=True)
+    
+    # Multi-tenant isolation
+    client_account_id = Column(UUID, ForeignKey('client_accounts.id'), nullable=False, index=True)
+    engagement_id = Column(UUID, ForeignKey('engagements.id'), nullable=False, index=True)
+    
+    # Entity classification
+    entity_type = Column(String(50), nullable=False)  # asset, dependency, mapping, analysis
+    entity_subtype = Column(String(50))  # server, database, network, etc.
+    
+    # Structured data
+    entity_data = Column(JSON, nullable=False)  # Structured entity data
+    metadata = Column(JSON, default={})  # Additional metadata
+    
+    # Data lineage
+    source_entity_id = Column(UUID, ForeignKey('flow_data_entities.id'))  # Data source tracking
+    transformation_log = Column(JSON, default=[])  # How data was transformed
+    
+    # Quality tracking
+    quality_score = Column(Float)
+    validation_status = Column(String(20))
+    validation_errors = Column(JSON, default=[])
+    
+    # Lifecycle
+    is_active = Column(Boolean, default=True)
+    archived_at = Column(DateTime(timezone=True))
+    archived_reason = Column(Text)
 ```
 
-## 🎯 Implementation Plan
+#### **4. Flow Handoffs**
+```python
+class FlowHandoff(Base):
+    """Manages data handoffs between flows"""
+    __tablename__ = "flow_handoffs"
+    
+    id = Column(UUID, primary_key=True)
+    
+    # Source and target flows
+    source_flow_id = Column(UUID, ForeignKey('migration_flows.id'), nullable=False)
+    target_flow_id = Column(UUID, ForeignKey('migration_flows.id'), nullable=False)
+    
+    # Handoff metadata
+    handoff_type = Column(String(50), nullable=False)  # discovery_to_assess, assess_to_plan, etc.
+    handoff_status = Column(String(20), default='pending')  # pending, completed, failed
+    
+    # Data package
+    handoff_data = Column(JSON, nullable=False)  # Structured handoff package
+    data_summary = Column(JSON)  # Summary for validation
+    
+    # Validation
+    validation_rules = Column(JSON)  # Rules for handoff validation
+    validation_results = Column(JSON)  # Validation outcomes
+    
+    # Audit
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    completed_at = Column(DateTime(timezone=True))
+```
 
-### **Phase 1: Database Consolidation (Days 1-3)**
-1. **Extend WorkflowState Model**
-   - Add `data_import_id` foreign key
-   - Add `raw_data` denormalized field
-   - Add `created_assets` tracking
-   - Add `assessment_package` preparation
+#### **5. Unified Asset Management**
+```python
+class Asset(Base):
+    """Unified asset model linked to flows"""
+    __tablename__ = "assets"
+    
+    # Existing fields...
+    
+    # Flow integration
+    source_flow_id = Column(UUID, ForeignKey('migration_flows.id'))  # Flow that created asset
+    discovery_data_entity_id = Column(UUID, ForeignKey('flow_data_entities.id'))  # Link to discovery data
+    
+    # Flow progression tracking
+    discovery_completed = Column(Boolean, default=False)
+    assessment_completed = Column(Boolean, default=False)
+    planning_completed = Column(Boolean, default=False)
+    execution_completed = Column(Boolean, default=False)
+    modernization_completed = Column(Boolean, default=False)
+    
+    # Cross-flow data
+    flow_history = Column(JSON, default=[])  # Track which flows processed this asset
+```
 
-2. **Create Migration Scripts**
-   - Migrate existing data to new structure
-   - Populate missing relationships
-   - Validate data integrity
+### **Database Normalization Strategy**
 
-3. **Update Repository Patterns**
-   - Single repository for unified discovery
-   - Remove fragmented data access patterns
+#### **Properly Normalized Entities**
+- **Flow Phases**: Separate table for phase management with clear structure
+- **Data Entities**: Normalized storage for all flow-generated data
+- **Handoffs**: Dedicated table for inter-flow data transfer
+- **Assets**: Enhanced with flow integration but maintain entity integrity
 
-### **Phase 2: API Consolidation (Days 4-5)**
-1. **Unified Discovery Endpoints**
-   - Replace fragmented endpoints with unified ones
-   - Single ID for navigation
-   - Complete data access in single call
+#### **Strategic Denormalization**
+- **Flow Progress**: Keep phase completion in main flow table for performance
+- **Entity Metadata**: Store frequently accessed metadata with entities
+- **Handoff Summaries**: Cache summary data for quick validation
 
-2. **CrewAI Integration Fix**
-   - Ensure CrewAI flows can access raw_data
-   - Automatic asset creation from discovery results
-   - Assessment package preparation
+#### **JSON Usage Guidelines**
+- **Configuration Data**: Use JSON for flexible configuration storage
+- **Structured Results**: Use JSON for well-defined result structures
+- **Avoid**: Large unstructured data dumps in JSON fields
 
-### **Phase 3: Frontend Consolidation (Days 6-7)**
-1. **Single Navigation Pattern**
-   - Use single session ID throughout
-   - Remove flow_id/import_id confusion
-   - Unified state management
+### **Multi-Tenancy Architecture**
 
-2. **Component Updates**
-   - Update all discovery components to use unified session
-   - Remove fragmented data fetching
-   - Consistent loading and error states
+#### **Consistent Client Scoping**
+```python
+# Every table must have these fields
+client_account_id = Column(UUID, ForeignKey('client_accounts.id'), nullable=False, index=True)
+engagement_id = Column(UUID, ForeignKey('engagements.id'), nullable=False, index=True)
+```
 
-### **Phase 4: Assessment Integration (Days 8-9)**
-1. **Discovery → Assessment Handoff**
-   - Automatic assessment package creation
-   - Clear navigation to assessment phase
-   - Data validation and preparation
+#### **Data Isolation Enforcement**
+- **Repository Pattern**: All data access through context-aware repositories
+- **Query Filtering**: Automatic client account filtering on all queries
+- **Cross-Tenant Prevention**: Explicit checks to prevent data leakage
 
-## 🚨 Critical Issues to Address
+#### **Engagement-Level Isolation**
+- **Flow Scoping**: All flows scoped to specific engagements
+- **Data Segregation**: Complete data isolation between engagements
+- **Resource Allocation**: Per-engagement resource tracking
 
-### **Immediate Fixes Needed**
-1. **Raw Data Access**: CrewAI flows must be able to access imported data
-2. **Navigation Consistency**: Single ID pattern throughout the system
-3. **Asset Creation**: Automatic creation from discovery results
-4. **Error Handling**: Proper handling of missing/invalid flows
+### **Rollback Architecture**
 
-### **Long-term Architecture Goals**
-1. **Single Source of Truth**: One model for discovery session state
-2. **Linear Data Flow**: Clear progression from import → discovery → assessment
-3. **Proper Handoffs**: Each phase prepares data for the next
-4. **Unified Navigation**: Consistent ID usage and navigation patterns
+#### **Flow-Level Rollback**
+```python
+class FlowRollback(Base):
+    """Complete flow rollback management"""
+    __tablename__ = "flow_rollbacks"
+    
+    id = Column(UUID, primary_key=True)
+    flow_id = Column(UUID, ForeignKey('migration_flows.id'), nullable=False)
+    
+    # Rollback metadata
+    rollback_type = Column(String(50))  # phase, flow, cascade
+    rollback_reason = Column(Text, nullable=False)
+    rollback_scope = Column(JSON)  # What will be rolled back
+    
+    # Snapshot data
+    flow_snapshot = Column(JSON, nullable=False)  # Complete flow state
+    data_snapshot = Column(JSON, nullable=False)  # All associated data
+    asset_snapshot = Column(JSON)  # Asset states before flow
+    
+    # Rollback execution
+    rollback_status = Column(String(20), default='pending')
+    executed_at = Column(DateTime(timezone=True))
+    execution_log = Column(JSON, default=[])
+    
+    # Recovery
+    recovery_actions = Column(JSON)  # Actions taken during rollback
+    data_integrity_check = Column(JSON)  # Post-rollback validation
+```
+
+#### **Cascade Rollback Support**
+- **Dependent Flow Identification**: Track which flows depend on others
+- **Cascade Impact Analysis**: Calculate rollback impact across flows
+- **Selective Rollback**: Ability to rollback specific components
+- **Data Integrity Validation**: Ensure data consistency post-rollback
+
+## 🎯 Implementation Strategy
+
+### **Phase 1: Core Flow Framework (Days 1-5)**
+1. **Create Master Flow Tables**: MigrationFlow, FlowPhase, FlowDataEntity
+2. **Implement Multi-Tenancy**: Consistent client scoping across all tables
+3. **Build Repository Pattern**: Context-aware data access layer
+4. **Create Migration Scripts**: Migrate existing data to new structure
+
+### **Phase 2: Flow Integration (Days 6-10)**
+1. **Discovery Flow Integration**: Connect existing discovery components
+2. **Assessment Flow Setup**: Prepare assessment flow structure
+3. **Handoff Mechanisms**: Implement inter-flow data transfer
+4. **Rollback Framework**: Basic rollback capability
+
+### **Phase 3: Advanced Features (Days 11-15)**
+1. **Complete Rollback System**: Full cascade rollback capability
+2. **Cross-Flow Analytics**: Flow performance and progression tracking
+3. **Data Lineage**: Complete data transformation tracking
+4. **Quality Assurance**: Automated data validation and quality scoring
+
+### **Phase 4: Platform Extension (Days 16-20)**
+1. **Plan Flow Implementation**: Full planning workflow
+2. **Execute Flow Implementation**: Execution workflow with progress tracking
+3. **Modernize Flow Implementation**: Modernization workflow support
+4. **Performance Optimization**: Query optimization and caching
 
 ## 📊 Success Criteria
 
 ### **Technical Success**
-- ✅ Single database model handles entire discovery flow
-- ✅ CrewAI flows can access imported data
-- ✅ Assets are automatically created from discovery results
-- ✅ Assessment phase can be started from discovery completion
+- ✅ Single unified framework supports all 5 flow types
+- ✅ Complete multi-tenant data isolation with no leakage
+- ✅ Full rollback capability for any flow or cascade
+- ✅ Proper normalization with strategic denormalization
+- ✅ Clear data lineage and transformation tracking
 
 ### **User Experience Success**
-- ✅ Users can navigate smoothly through all discovery phases
-- ✅ No more "flow not found" errors
-- ✅ Clear progress indicators throughout the flow
-- ✅ Seamless transition to assessment phase
+- ✅ Seamless navigation between all flow phases
+- ✅ Automatic handoffs between flows (Discovery → Assess → Plan → Execute → Modernize)
+- ✅ Clear progress tracking across entire migration journey
+- ✅ Reliable rollback with data integrity preservation
 
 ### **Business Success**
-- ✅ Complete discovery flow from data import to assessment readiness
-- ✅ Reliable asset inventory creation
-- ✅ Proper preparation for migration planning
-- ✅ Reduced support issues and user confusion
+- ✅ Complete end-to-end migration workflow support
+- ✅ Enterprise-grade multi-tenancy and data isolation
+- ✅ Audit-compliant rollback and recovery capabilities
+- ✅ Scalable architecture supporting future flow types
 
 ---
 
-**This architectural consolidation is CRITICAL for the platform's success. The current fragmented approach is preventing users from completing discovery flows and accessing the full value of the AI-powered migration platform.** 
+**This unified multi-flow architecture addresses the current fragmentation while providing a scalable foundation for the complete AI Force Migration Platform supporting all workflow types with proper data management, multi-tenancy, and rollback capabilities.** 
