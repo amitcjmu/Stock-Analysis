@@ -152,11 +152,29 @@ export const useFlowResumption = () => {
       queryClient.invalidateQueries({ queryKey: ['incomplete-flows'] });
       queryClient.invalidateQueries({ queryKey: ['flow-validation'] });
       
+      // Determine next phase and navigate appropriately
+      const nextPhase = data?.next_phase || data?.current_phase;
+      const phaseRoutes = {
+        'data_import': '/discovery/import',
+        'field_mapping': '/discovery/attribute-mapping',
+        'data_cleansing': '/discovery/data-cleansing',
+        'asset_inventory': '/discovery/inventory',
+        'dependency_analysis': '/discovery/dependencies',
+        'tech_debt': '/discovery/tech-debt'
+      };
+      
+      const nextRoute = phaseRoutes[nextPhase as keyof typeof phaseRoutes] || '/discovery/enhanced-dashboard';
+      
       toast({
         title: "Flow Resumed Successfully",
-        description: `Discovery flow ${sessionId.substring(0, 8)}... has been resumed and will continue processing.`,
+        description: `Discovery flow has been resumed. Redirecting to ${nextPhase?.replace('_', ' ')} phase...`,
         variant: "default",
       });
+      
+      // Navigate to the appropriate phase after a short delay
+      setTimeout(() => {
+        window.location.href = nextRoute;
+      }, 2000);
     },
     onError: (error: any, sessionId) => {
       console.error('Flow resumption failed:', error);

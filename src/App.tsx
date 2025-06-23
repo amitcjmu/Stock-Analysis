@@ -100,6 +100,7 @@ const AuthenticatedApp = () => {
               <Route path="/discovery" element={<Discovery />} />
               <Route path="/discovery/overview" element={<DiscoveryDashboard />} />
               <Route path="/discovery/dashboard" element={<DiscoveryDashboard />} />
+              <Route path="/discovery/enhanced-dashboard" element={<DiscoveryDashboard />} />
               <Route path="/discovery/import" element={<DataImport />} />
               <Route path="/discovery/inventory" element={<Inventory />} />
               <Route path="/discovery/dependencies" element={<Dependencies />} />
