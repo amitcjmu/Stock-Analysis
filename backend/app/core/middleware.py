@@ -18,19 +18,21 @@ from .context import (
     is_demo_client
 )
 
+# Import security audit service
+try:
+    from app.services.security_audit_service import SecurityAuditService
+    AUDIT_AVAILABLE = True
+except ImportError:
+    AUDIT_AVAILABLE = False
+    SecurityAuditService = None
+
 logger = logging.getLogger(__name__)
 
 
 class ContextMiddleware(BaseHTTPMiddleware):
     """
-    Middleware for extracting and injecting multi-tenant context.
-    
-    This middleware:
-    1. Extracts context from request headers
-    2. Validates context if required
-    3. Sets context variables for the request scope
-    4. Provides fallback to demo client (Pujyam Corp)
-    5. Logs context for debugging
+    Enhanced middleware with comprehensive security audit logging.
+    Tracks all admin access, security violations, and suspicious activity.
     """
     
     def __init__(
@@ -138,6 +140,23 @@ class ContextMiddleware(BaseHTTPMiddleware):
             # Grant exemption for platform admins
             is_exempt = True
             logger.info(f"Admin exemption granted for {path} to user {user_id}")
+            
+            # Security audit logging for admin access
+            try:
+                from app.services.security_audit_service import SecurityAuditService
+                from app.core.database import AsyncSessionLocal
+                
+                async with AsyncSessionLocal() as audit_db:
+                    audit_service = SecurityAuditService(audit_db)
+                    await audit_service.log_admin_access(
+                        user_id=user_id,
+                        endpoint=path,
+                        ip_address=request.client.host if request.client else None,
+                        user_agent=request.headers.get("user-agent")
+                    )
+            except Exception as audit_error:
+                logger.warning(f"Failed to log admin access audit: {audit_error}")
+                # Don't fail the request if audit logging fails
 
         if is_exempt:
             return await call_next(request)

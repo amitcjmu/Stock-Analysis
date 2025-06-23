@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { apiCall } from '@/config/api';
 
 interface CreateUserData {
   email: string;
@@ -30,21 +32,20 @@ interface CreateUserData {
 const CreateUser: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { getAuthHeaders } = useAuth();
+  
   // Server state: useMutation for API interaction
   const createUserMutation = useMutation({
     mutationFn: async (payload: CreateUserData) => {
-      const response = await fetch('/api/v1/auth/admin/create-user', {
+      const result = await apiCall('/auth/admin/create-user', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer demo_token'
+          ...getAuthHeaders()
         },
         body: JSON.stringify(payload)
       });
-      if (!response.ok) {
-        throw new Error('Failed to create user');
-      }
-      return response.json();
+      return result;
     },
     onSuccess: (data) => {
       toast({

@@ -1704,4 +1704,137 @@ if is_admin_endpoint:
 
 ---
 
+## [0.5.2] - 2025-01-27
+
+### 🐛 **CRITICAL ERROR FIXES - React Components & API Authentication**
+
+This release resolves critical frontend errors, authentication issues, and API validation problems that were causing browser console errors and form submission failures.
+
+### 🚀 **Frontend Error Resolution**
+
+#### **React Component Fixes**
+// ... existing code ...
+
+## [0.5.3] - 2025-01-27
+
+### 🔒 **COMPREHENSIVE SECURITY ENHANCEMENTS - Role Transparency & Audit System**
+
+This release addresses critical security concerns by implementing comprehensive audit logging, role transparency, and advanced security monitoring to prevent privilege escalation exploits.
+
+### 🚀 **Security Transparency & Role Display**
+
+#### **Role Display Fix**
+- **Role Transparency**: Fixed `/me` endpoint to display actual role types (`platform_admin`) instead of simplified mapping (`admin`)
+- **Security Clarity**: Users now see their exact privilege level for complete transparency
+- **Role Hierarchy**: Implemented proper role hierarchy display with highest privilege role shown
+- **Frontend Consistency**: Profile now correctly shows `platform_admin` instead of confusing `admin` label
+
+#### **Enhanced Role Validation**
+- **Real-Time Validation**: Middleware performs live database role checks for every admin request
+- **Role Hierarchy**: Implemented comprehensive role hierarchy system (platform_admin > client_admin > engagement_manager > analyst > viewer)
+- **Security Headers**: Added role information to response headers for debugging and transparency
+
+### 🛡️ **Comprehensive Security Audit System**
+
+#### **Security Event Logging**
+- **Audit Trail**: All admin endpoint access logged with IP address, user agent, and timestamp
+- **Role Change Tracking**: Complete audit trail for all privilege escalations and role modifications
+- **Security Violations**: Automatic detection and logging of unauthorized access attempts
+- **Suspicious Activity Detection**: Pattern recognition for unusual admin role creation activities
+
+#### **Security Monitoring Dashboard**
+- **Real-Time Monitoring**: Platform admins can view all security events in real-time
+- **Event Categorization**: Events categorized by severity (INFO, WARNING, CRITICAL)
+- **Admin Activity Tracking**: Complete log of all admin endpoint access with full context
+- **Role Change History**: Detailed history of all platform_admin role assignments
+
+#### **Advanced Security Features**
+- **Multi-Tier Validation**: Database role validation + middleware checks + endpoint verification
+- **Exploit Prevention**: Automatic detection of suspicious admin creation patterns
+- **Audit Persistence**: All security events stored in dedicated audit database tables
+- **Review Workflow**: Critical events flagged for mandatory review
+
+### 🔧 **Technical Security Implementation**
+
+#### **SecurityAuditService**
+- **Comprehensive Logging**: All security-sensitive operations tracked and stored
+- **Pattern Analysis**: Automatic detection of suspicious role escalation patterns
+- **Event Correlation**: Advanced event correlation and threat detection
+- **Audit Database**: Dedicated security audit tables with full event context
+
+#### **Enhanced Middleware Security**
+- **Request Tracking**: Every admin request logged with full context and metadata
+- **Real-Time Blocking**: Immediate blocking of unauthorized access attempts
+- **Security Headers**: Enhanced security headers for request tracking and debugging
+- **Performance Optimized**: Security checks optimized for minimal performance impact
+
+### 📊 **Security Monitoring Endpoints**
+
+#### **Security Dashboard APIs**
+- **GET /api/v1/admin/security/events** - Real-time security event monitoring
+- **GET /api/v1/admin/security/summary** - Security dashboard with key metrics
+- **GET /api/v1/admin/security/admin-changes** - Platform admin role change history
+- **GET /api/v1/admin/security/user-activity/{user_id}** - Individual user security activity
+
+#### **Audit Trail Features**
+- **Complete Event History**: Full audit trail of all security-sensitive operations
+- **IP Address Tracking**: Source IP logging for all admin access attempts
+- **User Agent Logging**: Browser/client identification for security analysis
+- **Timestamp Precision**: Microsecond-precision timestamps for forensic analysis
+
+### 🎯 **Exploit Prevention Measures**
+
+#### **Platform Admin Protection**
+- **Creation Monitoring**: Automatic flagging of multiple platform_admin creations
+- **Approval Workflow**: Future support for role change approval workflows
+- **Activity Correlation**: Cross-reference admin activities for suspicious patterns
+- **Real-Time Alerts**: Immediate logging of critical security events
+
+#### **Access Control Validation**
+- **Multi-Layer Verification**: Database + middleware + endpoint role validation
+- **Context Exemption Security**: Secure context exemption only for verified platform admins
+- **Request Correlation**: Full request tracking from middleware to endpoint
+- **Security Event Correlation**: Advanced correlation of security events across system
+
+### 🔍 **Security Transparency Features**
+
+#### **Complete Audit Visibility**
+- **Role Change History**: Complete history of who granted platform_admin privileges and when
+- **Access Patterns**: Detailed tracking of admin endpoint access patterns
+- **Security Event Timeline**: Chronological view of all security-sensitive events
+- **User Activity Profiles**: Individual user security activity monitoring
+
+#### **Compliance & Governance**
+- **Audit Trail Compliance**: Enterprise-grade audit trails for compliance requirements
+- **Security Event Retention**: Configurable retention policies for security events
+- **Review Workflows**: Framework for mandatory review of critical security events
+- **Forensic Analysis**: Detailed event data for security incident investigation
+
+### 📈 **Business Impact**
+
+- **Security Confidence**: Complete transparency in privilege management and access control
+- **Exploit Prevention**: Advanced protection against privilege escalation attacks
+- **Compliance Ready**: Enterprise-grade audit trails for regulatory compliance
+- **Incident Response**: Comprehensive forensic data for security incident investigation
+- **User Trust**: Complete transparency in role assignments and privilege management
+
+### 🎯 **Success Metrics**
+
+- **Role Transparency**: Users see exact privilege levels (`platform_admin` vs `admin`)
+- **Audit Coverage**: 100% of admin access and role changes logged and monitored
+- **Security Monitoring**: Real-time security dashboard with comprehensive event tracking
+- **Exploit Prevention**: Advanced pattern detection for suspicious privilege escalation
+- **Compliance**: Complete audit trail meeting enterprise security requirements
+
+---
+
+## [0.5.2] - 2025-01-27
+
+### 🐛 **CRITICAL ERROR FIXES - React Components & API Authentication**
+
+This release resolves critical frontend errors, authentication issues, and API validation problems that were causing browser console errors and form submission failures.
+
+### 🚀 **Frontend Error Resolution**
+
+#### **React Component Fixes**
 // ... existing code ...

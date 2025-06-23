@@ -2,6 +2,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { apiCall } from '@/config/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   Calendar, 
   DollarSign, 
@@ -51,6 +52,7 @@ const EngagementDetails: React.FC = () => {
   const { engagementId } = useParams<{ engagementId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const fetchEngagementDetails = async (id: string): Promise<Engagement> => {
     return await apiCall(`/admin/engagements/${id}`);
@@ -61,22 +63,23 @@ const EngagementDetails: React.FC = () => {
     isLoading: loading,
     isError,
     error
-  } = useQuery<Engagement>(
-    ['engagement-details', engagementId],
-    () => fetchEngagementDetails(engagementId!),
-    {
-      enabled: !!engagementId,
-      retry: 1,
-      onError: () => {
-        toast({
-          title: "Error",
-          description: "Failed to fetch engagement details. Using demo data.",
-          variant: "destructive"
-        });
-      },
-      // fallback: handled below
+  } = useQuery({
+    queryKey: ['engagement-details', engagementId],
+    queryFn: () => fetchEngagementDetails(engagementId!),
+    enabled: !!engagementId,
+    retry: 1
+  });
+
+  // Handle query error
+  React.useEffect(() => {
+    if (isError) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch engagement details. Using demo data.",
+        variant: "destructive"
+      });
     }
-  );
+  }, [isError, toast]);
 
   // Demo data fallback
   const demoEngagement: Engagement = {
@@ -100,6 +103,8 @@ const EngagementDetails: React.FC = () => {
     is_active: true
   };
 
+  // Use engagement data or fallback to demo data
+  const displayEngagement = engagement || (isError ? demoEngagement : null);
 
   const formatDate = (dateString: string) => {
     if (!dateString) return 'Not set';
@@ -201,7 +206,7 @@ const EngagementDetails: React.FC = () => {
     );
   }
 
-  if (!engagement) {
+  if (!displayEngagement) {
     return (
       <div className="container mx-auto p-6">
         <div className="text-center py-8">
@@ -231,8 +236,8 @@ const EngagementDetails: React.FC = () => {
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-3">
               <Cloud className="w-8 h-8" />
-              {engagement.engagement_name}
-              {engagement.is_active ? (
+              {displayEngagement.engagement_name}
+              {displayEngagement.is_active ? (
                 <CheckCircle className="w-6 h-6 text-green-500" />
               ) : (
                 <XCircle className="w-6 h-6 text-red-500" />
@@ -240,7 +245,7 @@ const EngagementDetails: React.FC = () => {
             </h1>
             <p className="text-muted-foreground flex items-center gap-2">
               <Building2 className="w-4 h-4" />
-              {engagement.client_account_name}
+              {displayEngagement.client_account_name}
             </p>
           </div>
         </div>
@@ -267,29 +272,29 @@ const EngagementDetails: React.FC = () => {
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Overall Progress</span>
               <span className="text-2xl font-bold text-green-600">
-                {isNaN(engagement.progress_percentage) ? 'N/A' : `${engagement.progress_percentage}%`}
+                {isNaN(displayEngagement.progress_percentage) ? 'N/A' : `${displayEngagement.progress_percentage}%`}
               </span>
             </div>
-            <Progress value={isNaN(engagement.progress_percentage) ? 0 : engagement.progress_percentage} className="h-3" />
+            <Progress value={isNaN(displayEngagement.progress_percentage) ? 0 : displayEngagement.progress_percentage} className="h-3" />
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
               <div className="text-center p-4 bg-gray-50 rounded-lg">
                 <div className="text-2xl font-bold text-blue-600">
-                  {isNaN(engagement.total_applications) ? 'N/A' : engagement.total_applications}
+                  {isNaN(displayEngagement.total_applications) ? 'N/A' : displayEngagement.total_applications}
                 </div>
                 <div className="text-sm text-muted-foreground">Total Applications</div>
               </div>
               <div className="text-center p-4 bg-gray-50 rounded-lg">
                 <div className="text-2xl font-bold text-green-600">
-                  {isNaN(engagement.migrated_applications) ? 'N/A' : engagement.migrated_applications}
+                  {isNaN(displayEngagement.migrated_applications) ? 'N/A' : displayEngagement.migrated_applications}
                 </div>
                 <div className="text-sm text-muted-foreground">Migrated</div>
               </div>
               <div className="text-center p-4 bg-gray-50 rounded-lg">
                 <div className="text-2xl font-bold text-orange-600">
                   {(() => {
-                    const total = isNaN(engagement.total_applications) ? 0 : engagement.total_applications;
-                    const migrated = isNaN(engagement.migrated_applications) ? 0 : engagement.migrated_applications;
+                    const total = isNaN(displayEngagement.total_applications) ? 0 : displayEngagement.total_applications;
+                    const migrated = isNaN(displayEngagement.migrated_applications) ? 0 : displayEngagement.migrated_applications;
                     const remaining = total - migrated;
                     return isNaN(remaining) || remaining < 0 ? 'N/A' : remaining;
                   })()}
@@ -316,14 +321,14 @@ const EngagementDetails: React.FC = () => {
                   <Target className="w-5 h-5 text-muted-foreground" />
                   <div>
                     <p className="font-medium">Migration Scope</p>
-                    <p className="text-sm text-muted-foreground">{getScopeLabel(engagement.migration_scope)}</p>
+                    <p className="text-sm text-muted-foreground">{getScopeLabel(displayEngagement.migration_scope)}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <Cloud className="w-5 h-5 text-muted-foreground" />
                   <div>
                     <p className="font-medium">Target Cloud</p>
-                    <p className="text-sm text-muted-foreground">{getProviderLabel(engagement.target_cloud_provider)}</p>
+                    <p className="text-sm text-muted-foreground">{getProviderLabel(displayEngagement.target_cloud_provider)}</p>
                   </div>
                 </div>
               </div>
@@ -332,9 +337,9 @@ const EngagementDetails: React.FC = () => {
 
               <div>
                 <h4 className="font-medium mb-3">Current Phase</h4>
-                <Badge className={getPhaseColor(engagement.migration_phase)}>
-                  {engagement.migration_phase ? 
-                    engagement.migration_phase.charAt(0).toUpperCase() + engagement.migration_phase.slice(1) :
+                <Badge className={getPhaseColor(displayEngagement.migration_phase)}>
+                  {displayEngagement.migration_phase ? 
+                    displayEngagement.migration_phase.charAt(0).toUpperCase() + displayEngagement.migration_phase.slice(1) :
                     'Unknown'
                   }
                 </Badge>
@@ -353,14 +358,14 @@ const EngagementDetails: React.FC = () => {
                 <User className="w-5 h-5 text-muted-foreground" />
                 <div>
                   <p className="font-medium">Engagement Manager</p>
-                  <p className="text-sm text-muted-foreground">{engagement.engagement_manager}</p>
+                  <p className="text-sm text-muted-foreground">{displayEngagement.engagement_manager}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <User className="w-5 h-5 text-muted-foreground" />
                 <div>
                   <p className="font-medium">Technical Lead</p>
-                  <p className="text-sm text-muted-foreground">{engagement.technical_lead}</p>
+                  <p className="text-sm text-muted-foreground">{displayEngagement.technical_lead}</p>
                 </div>
               </div>
             </CardContent>
@@ -379,14 +384,14 @@ const EngagementDetails: React.FC = () => {
                 <Calendar className="w-5 h-5 text-muted-foreground" />
                 <div>
                   <p className="text-sm text-muted-foreground">Start Date</p>
-                  <p className="font-medium">{formatDate(engagement.start_date)}</p>
+                  <p className="font-medium">{formatDate(displayEngagement.start_date)}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <Calendar className="w-5 h-5 text-muted-foreground" />
                 <div>
                   <p className="text-sm text-muted-foreground">End Date</p>
-                  <p className="font-medium">{formatDate(engagement.end_date)}</p>
+                  <p className="font-medium">{formatDate(displayEngagement.end_date)}</p>
                 </div>
               </div>
               <Separator />
@@ -395,7 +400,7 @@ const EngagementDetails: React.FC = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">Duration</p>
                   <p className="font-medium">
-                    {calculateDurationMonths(engagement.start_date, engagement.end_date)}
+                    {calculateDurationMonths(displayEngagement.start_date, displayEngagement.end_date)}
                   </p>
                 </div>
               </div>
@@ -413,8 +418,8 @@ const EngagementDetails: React.FC = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">Total Budget</p>
                   <p className="text-2xl font-bold text-green-600">
-                    {engagement.budget ? 
-                      formatCurrency(engagement.budget, engagement.budget_currency || 'USD') :
+                    {displayEngagement.budget ? 
+                      formatCurrency(displayEngagement.budget, displayEngagement.budget_currency || 'USD') :
                       'No budget set'
                     }
                   </p>

@@ -68,6 +68,7 @@ async def get_user_context(
         from sqlalchemy import select, and_
         
         user_role = "user"  # Default role
+        actual_role_type = None  # Track the actual role type
         try:
             roles_query = select(UserRole).where(
                 and_(UserRole.user_id == current_user.id, UserRole.is_active == True)
@@ -75,9 +76,20 @@ async def get_user_context(
             roles_result = await db.execute(roles_query)
             user_roles = roles_result.scalars().all()
             
-            # Determine if user is admin based on roles
-            if any(role.role_type in ["platform_admin", "client_admin"] for role in user_roles):
-                user_role = "admin"
+            # Use the actual role type instead of simplified mapping
+            if user_roles:
+                # Get the highest privilege role
+                role_hierarchy = {
+                    "platform_admin": 5,
+                    "client_admin": 4,
+                    "engagement_manager": 3,
+                    "analyst": 2,
+                    "viewer": 1
+                }
+                
+                highest_role = max(user_roles, key=lambda r: role_hierarchy.get(r.role_type, 0))
+                actual_role_type = highest_role.role_type
+                user_role = actual_role_type  # Use actual role type for security transparency
         except Exception as role_error:
             print(f"Error determining user role: {role_error}")
             # Continue with default role
@@ -105,8 +117,18 @@ async def get_user_context(
             roles_result = await db.execute(roles_query)
             user_roles = roles_result.scalars().all()
             
-            if any(role.role_type in ["platform_admin", "client_admin"] for role in user_roles):
-                user_role = "admin"
+            # Use actual role type for security transparency
+            if user_roles:
+                role_hierarchy = {
+                    "platform_admin": 5,
+                    "client_admin": 4,
+                    "engagement_manager": 3,
+                    "analyst": 2,
+                    "viewer": 1
+                }
+                
+                highest_role = max(user_roles, key=lambda r: role_hierarchy.get(r.role_type, 0))
+                user_role = highest_role.role_type
         except Exception:
             pass  # Use default role
         
