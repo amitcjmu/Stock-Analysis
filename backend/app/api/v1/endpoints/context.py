@@ -226,7 +226,87 @@ async def get_user_context(
             except Exception as fallback_error:
                 print(f"Error creating real user context: {fallback_error}")
             
-            # If all else fails for real users, raise an error instead of demo context
+            # 🔧 PLATFORM ADMIN FIX: If user is platform admin, create a minimal context
+            if user_role == "admin":
+                # Platform admins get a minimal context that allows them to access admin functions
+                now = datetime.utcnow()
+                
+                # Use first available client for admin context
+                try:
+                    from app.models.client_account import ClientAccount, Engagement
+                    
+                    # Get first client for admin context
+                    client_query = select(ClientAccount).where(
+                        ClientAccount.is_active == True
+                    ).limit(1)
+                    
+                    client_result = await db.execute(client_query)
+                    first_client = client_result.scalar_one_or_none()
+                    
+                    if first_client:
+                        # Get first engagement for this client
+                        engagement_query = select(Engagement).where(
+                            and_(
+                                Engagement.client_account_id == first_client.id,
+                                Engagement.is_active == True
+                            )
+                        ).limit(1)
+                        
+                        engagement_result = await db.execute(engagement_query)
+                        first_engagement = engagement_result.scalar_one_or_none()
+                        
+                        if first_engagement:
+                            # Create admin context from first available client/engagement
+                            client_base = ClientBase(
+                                id=str(first_client.id),
+                                name=first_client.name,
+                                description=first_client.description or f"Client: {first_client.name}",
+                                created_at=first_client.created_at or now,
+                                updated_at=first_client.updated_at or now
+                            )
+                            
+                            engagement_base = EngagementBase(
+                                id=str(first_engagement.id),
+                                name=first_engagement.name,
+                                description=first_engagement.description or f"Engagement: {first_engagement.name}",
+                                client_id=str(first_client.id),
+                                created_at=first_engagement.created_at or now,
+                                updated_at=first_engagement.updated_at or now
+                            )
+                            
+                            # Create a default session for this engagement
+                            session_base = SessionBase(
+                                id=str(first_engagement.id),  # Use engagement ID as session ID for now
+                                name=f"Admin Session - {first_engagement.name}",
+                                description=f"Admin session for {first_engagement.name}",
+                                engagement_id=str(first_engagement.id),
+                                is_default=True,
+                                created_by=str(current_user.id),
+                                created_at=now,
+                                updated_at=now
+                            )
+                            
+                            return UserContext(
+                                user={"id": str(current_user.id), "email": current_user.email, "role": user_role},
+                                client=client_base,
+                                engagement=engagement_base,
+                                session=session_base,
+                                available_sessions=[session_base]
+                            )
+                            
+                except Exception as admin_context_error:
+                    print(f"Error creating admin context: {admin_context_error}")
+                
+                # If no clients/engagements exist, create minimal admin-only context
+                return UserContext(
+                    user={"id": str(current_user.id), "email": current_user.email, "role": user_role},
+                    client=None,
+                    engagement=None,
+                    session=None,
+                    available_sessions=[]
+                )
+            
+            # If all else fails for regular users, raise an error
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="No accessible clients or engagements found for user. Please contact administrator."

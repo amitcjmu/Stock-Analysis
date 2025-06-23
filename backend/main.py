@@ -310,7 +310,24 @@ try:
             "/api/v1/admin/clients/dashboard/stats",
             "/api/v1/admin/engagements/dashboard/stats",
             "/api/v1/admin/clients/health",
-            "/api/v1/admin/engagements/health"
+            "/api/v1/admin/engagements/health",
+            # Admin CRUD endpoints - should be global for admin management
+            "/api/v1/admin/clients",
+            "/api/v1/admin/clients/",
+            "/api/v1/admin/engagements",
+            "/api/v1/admin/engagements/",
+            "/api/v1/admin/users",
+            "/api/v1/admin/users/",
+            "/api/v1/admin/user-profiles",
+            "/api/v1/admin/user-profiles/",
+            "/api/v1/auth/admin/create-user",
+            "/api/v1/auth/pending-approvals",
+            "/api/v1/auth/approve-user",
+            "/api/v1/auth/reject-user",
+            "/api/v1/auth/active-users",
+            "/api/v1/auth/admin/access-logs",
+            # User profile endpoint for admin context
+            "/api/v1/me"
         ]
     )
     
