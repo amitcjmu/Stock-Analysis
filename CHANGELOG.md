@@ -32,6 +32,12 @@ This release fixes critical issues with the admin dashboard where CORS errors an
 - **Result**: Platform administrators can now access their profile and admin dashboard properly
 - **Benefit**: Admin users no longer blocked by client context requirements
 
+#### **React Router Deprecation Warnings Fix**
+- **Issue**: React Router v7 future flag warnings appearing on all pages
+- **Warnings**: `v7_startTransition` and `v7_relativeSplatPath` deprecation messages
+- **Fix**: Added future flags to BrowserRouter configuration in `src/main.tsx`
+- **Result**: Clean browser console with no React Router deprecation warnings
+
 ### 📊 **Technical Achievements**
 
 #### **Middleware Configuration**
@@ -85,6 +91,7 @@ This release fixes critical issues with the admin dashboard where CORS errors an
 - **Authentication**: Proper admin access validation maintained
 - **User Experience**: Clean, functional admin dashboard interface
 - **Admin Access**: Platform administrators can access all admin functions without context issues
+- **Console Cleanup**: Eliminated React Router deprecation warnings across all pages
 
 ## [0.2.14] - 2025-01-22
 

@@ -10,7 +10,12 @@ import GlobalErrorBoundary from './components/GlobalErrorBoundary';
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <GlobalErrorBoundary>
-      <BrowserRouter>
+      <BrowserRouter
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true
+        }}
+      >
         <QueryClientProvider client={queryClient}>
           <App />
         </QueryClientProvider>
