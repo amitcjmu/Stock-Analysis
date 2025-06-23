@@ -17,7 +17,7 @@ const DEMO_PASSWORD = "password"; // This matches the database seed
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, register, loginWithDemoUser } = useAuth();
+  const { login, register } = useAuth();
   const { toast } = useToast();
   
   const [isLogin, setIsLogin] = useState(true);
@@ -109,11 +109,6 @@ const Login: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleDemoMode = () => {
-    loginWithDemoUser();
-    // navigation is handled in AuthContext
   };
 
   if (registrationSuccess) {
@@ -218,17 +213,21 @@ const Login: React.FC = () => {
 
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <h4 className="font-medium text-blue-900 text-sm mb-2">Demo Credentials:</h4>
-                                  <div className="text-xs text-blue-800 space-y-1">
-                    <div><strong>Admin:</strong> admin@democorp.com / password</div>
-                    <div><strong>Demo:</strong> demo@democorp.com / password</div>
-                    <div><strong>User:</strong> chocka@gmail.com / password123</div>
-                    <div className="text-blue-600 mt-1 italic">Or use "Try Demo Mode" button below</div>
-                  </div>
+                <div className="text-xs text-blue-800">
+                  <div><strong>Demo User:</strong> demo@democorp.com / password</div>
+                </div>
               </div>
               
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? 'Signing In...' : 'Sign In'}
               </Button>
+
+              {error && (
+                <div className="flex items-center text-red-600 text-sm mt-2">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  <span>{error}</span>
+                </div>
+              )}
             </form>
           ) : (
             <form onSubmit={handleRegister} className="space-y-4">
@@ -408,23 +407,6 @@ const Login: React.FC = () => {
               >
                 Back to Platform
               </Link>
-            </div>
-          )}
-
-          {error && (
-            <div className="flex flex-col items-center space-y-2 mt-2">
-              <div className="flex items-center text-red-600 text-sm">
-                <AlertCircle className="w-4 h-4 mr-1" />
-                <span>{error}</span>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full mt-2"
-                onClick={handleDemoMode}
-              >
-                Try Demo Mode
-              </Button>
             </div>
           )}
         </CardContent>

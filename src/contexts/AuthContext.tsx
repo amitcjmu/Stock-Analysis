@@ -51,11 +51,7 @@ const tokenStorage: TokenStorage = {
   removeToken: () => localStorage.removeItem('auth_token'),
 };
 
-// --- Demo Mode Constants ---
-const DEMO_USER_ID = '44444444-4444-4444-4444-444444444444';
-const DEMO_CLIENT_ID = '11111111-1111-1111-1111-111111111111';
-const DEMO_ENGAGEMENT_ID = '22222222-2222-2222-2222-222222222222';
-const DEMO_SESSION_ID = '33333333-3333-3333-3333-333333333333';
+
 
 // --- Context Persistence ---
 const CONTEXT_STORAGE_KEY = 'user_context_selection';
@@ -78,41 +74,7 @@ const contextStorage = {
   }
 };
 
-const DEMO_USER: User = {
-  id: DEMO_USER_ID,
-  email: 'demo@democorp.com',
-  role: 'admin', // Give demo user admin privileges
-  full_name: 'Demo User',
-  username: 'demo',
-  status: 'active',
-  organization: 'Democorp',
-  role_description: 'Demo User',
-  client_account_id: DEMO_CLIENT_ID,
-  client_accounts: [{ 
-    id: DEMO_CLIENT_ID, 
-    name: 'Democorp', 
-    role: 'admin' 
-  }],
-};
 
-const DEMO_CLIENT: Client = {
-  id: DEMO_CLIENT_ID,
-  name: 'Democorp',
-  status: 'active',
-};
-
-const DEMO_ENGAGEMENT: Engagement = {
-  id: DEMO_ENGAGEMENT_ID,
-  name: 'Cloud Migration 2024',
-  status: 'active',
-};
-
-const DEMO_SESSION: Session = {
-  id: DEMO_SESSION_ID,
-  name: 'Demo Session',
-  status: 'active',
-};
-// -------------------------
 
 interface AuthContextType {
   user: User | null;
@@ -130,7 +92,7 @@ interface AuthContextType {
   switchClient: (clientId: string, clientData?: Client) => Promise<void>;
   switchEngagement: (engagementId: string, engagementData?: Engagement) => Promise<void>;
   switchSession: (sessionId: string) => Promise<void>;
-  loginWithDemoUser: () => Promise<void>;
+
   setCurrentSession: (session: Session | null) => void;
   currentEngagementId: string | null;
   currentSessionId: string | null;
@@ -149,7 +111,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [error, setError] = useState<string | null>(null);
   const [isLoginInProgress, setIsLoginInProgress] = useState(false);
 
-  const isDemoMode = user?.id === DEMO_USER_ID;
+  const isDemoMode = false; // Demo mode authentication bypass removed for security
   const isAuthenticated = !!user;
   const isAdmin = user?.role === 'admin';
 
@@ -169,8 +131,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isDemoMode,
       token: token ? `present (${token.substring(0, 20)}...)` : 'missing',
       tokenLength: token ? token.length : 0,
-      localStorage_user: storedUser ? `present (${storedUser.email})` : 'missing',
-      demoMode: localStorage.getItem('demoMode')
+      localStorage_user: storedUser ? `present (${storedUser.email})` : 'missing'
     });
   }, [user, isAuthenticated, isAdmin, isDemoMode]);
 
@@ -207,8 +168,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [user, client, engagement, session]);
 
   const logout = useCallback(() => {
-    localStorage.removeItem('demoMode');
-    tokenStorage.removeToken(); // Use removeToken instead of setToken('')
+    tokenStorage.removeToken();
     tokenStorage.setUser(null);
     contextStorage.clearContext(); // Clear persisted context on logout
     setUser(null);
@@ -570,77 +530,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoginInProgress(false);
     }
   };
-  const loginWithDemoUser = async () => {
-    setIsLoading(true);
-    setIsLoginInProgress(true);
-    try {
-      // Set the demo token that the backend expects
-      const demoToken = 'db-token-' + DEMO_USER_ID + '-demo123';
-      
-      localStorage.setItem('demoMode', 'true');
-      tokenStorage.setToken(demoToken);
-      tokenStorage.setUser(DEMO_USER);
-      
-      setUser(DEMO_USER);
-      
-      // Small delay to ensure localStorage is updated
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      console.log('🔐 Demo login - Token set:', demoToken);
-      console.log('🔐 Demo login - Token in storage:', tokenStorage.getToken());
-      
-      // Fetch context from backend to ensure consistency
-      try {
-        const backendContext = await apiCall('/me', {}, false); // Don't include context headers for /me endpoint
-        console.log('🔐 Demo login - Backend context:', backendContext);
-        
-        if (backendContext?.client) {
-          setClient(backendContext.client);
-          setEngagement(backendContext.engagement || null);
-          setSession(backendContext.session || null);
-          
-          // Save the actual backend context
-          contextStorage.setContext({
-            client: backendContext.client,
-            engagement: backendContext.engagement,
-            session: backendContext.session,
-            timestamp: Date.now(),
-            source: 'demo_login_backend'
-          });
-          
-          console.log('🔐 Demo login complete - Context set:', {
-            client: backendContext.client,
-            engagement: backendContext.engagement,
-            session: backendContext.session
-          });
-        } else {
-          console.warn('🔐 Backend context missing for demo, using hardcoded');
-          setClient(DEMO_CLIENT);
-          setEngagement(DEMO_ENGAGEMENT);
-          setSession(DEMO_SESSION);
-        }
-      } catch (error) {
-        console.error('🔐 Failed to fetch demo context from backend, using hardcoded:', error);
-        setClient(DEMO_CLIENT);
-        setEngagement(DEMO_ENGAGEMENT);
-        setSession(DEMO_SESSION);
-      }
-      
-      setError(null);
-      
-      // Use setTimeout to ensure state updates are complete before navigation
-      setTimeout(() => {
-        console.log('🔐 Demo login - Navigating to discovery dashboard');
-        navigate('/discovery');
-      }, 300);
-    } catch (error) {
-      console.error('Demo login failed:', error);
-      setError('Demo login failed');
-    } finally {
-      setIsLoading(false);
-      setIsLoginInProgress(false);
-    }
-  };
+
 
   const setCurrentSession = useCallback((session: Session | null) => {
     setSession(session);
@@ -821,7 +711,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       switchClient,
       switchEngagement,
       switchSession,
-      loginWithDemoUser,
+
       setCurrentSession,
       currentEngagementId: engagement?.id || null,
       currentSessionId: session?.id || null,
