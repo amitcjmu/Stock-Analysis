@@ -304,7 +304,13 @@ try:
             "/api/v1/auth/demo/status",
             "/api/v1/auth/demo/reset",
             "/api/v1/auth/demo/health",
-            "/api/v1/auth/system/info"
+            "/api/v1/auth/system/info",
+            # Admin dashboard endpoints - should be global, not client-scoped
+            "/api/v1/auth/admin/dashboard-stats",
+            "/api/v1/admin/clients/dashboard/stats",
+            "/api/v1/admin/engagements/dashboard/stats",
+            "/api/v1/admin/clients/health",
+            "/api/v1/admin/engagements/health"
         ]
     )
     
