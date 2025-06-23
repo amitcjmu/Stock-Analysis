@@ -68,14 +68,14 @@ interface PhaseExecutionParams {
   configuration: Record<string, any>;
 }
 
-export const useUnifiedDiscoveryFlow = () => {
+export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null) => {
   const { user, client, engagement, getAuthHeaders } = useAuth();
   const queryClient = useQueryClient();
   
-  // Current session tracking - now auto-detected
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  // Current flow tracking - use provided flow ID if available, otherwise auto-detect
+  const [currentFlowId, setCurrentFlowId] = useState<string | null>(providedFlowId || null);
   
-  // Auto-detect current flow query
+  // Auto-detect current flow query (only when no flow ID is provided)
   const currentFlowQuery = useQuery<CurrentFlowResponse>({
     queryKey: ['current-discovery-flow', client?.id, engagement?.id],
     queryFn: async () => {
@@ -90,45 +90,99 @@ export const useUnifiedDiscoveryFlow = () => {
       
       return response.json();
     },
-    enabled: !!client && !!engagement,
-    refetchInterval: 10000, // Check for current flow every 10 seconds
+    enabled: !!client && !!engagement && !providedFlowId, // Only auto-detect when no flow ID provided
+    refetchInterval: (data, query) => {
+      // Stop polling if there's an error
+      if (query.state.error) {
+        console.log('🛑 Stopping current flow polling due to error:', query.state.error);
+        return false;
+      }
+      // Continue polling every 10 seconds if successful
+      return 10000;
+    },
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
+    retry: (failureCount, error) => {
+      // Retry up to 3 times for network errors
+      return failureCount < 3;
+    },
     onSuccess: (data) => {
-      // Auto-set current session ID when flow is detected
-      if (data.has_current_flow && data.session_id && data.session_id !== currentSessionId) {
-        console.log(`🔄 Auto-detected current flow session: ${data.session_id}`);
-        setCurrentSessionId(data.session_id);
-      } else if (!data.has_current_flow && currentSessionId) {
-        console.log('ℹ️ No current flow detected, clearing session');
-        setCurrentSessionId(null);
+      // Auto-set current flow ID when flow is detected (only if no provided flow ID)
+      if (!providedFlowId && data.has_current_flow && data.flow_id && data.flow_id !== currentFlowId) {
+        console.log(`🔄 Auto-detected current flow ID: ${data.flow_id}`);
+        setCurrentFlowId(data.flow_id);
+      } else if (!providedFlowId && !data.has_current_flow && currentFlowId) {
+        console.log('ℹ️ No current flow detected, clearing flow ID');
+        setCurrentFlowId(null);
       }
+    },
+    onError: (error) => {
+      console.error('Current flow detection error:', error);
     }
   });
 
-  // Single flow state query with real-time updates
+  // Update flow ID when provided flow ID changes
+  useEffect(() => {
+    if (providedFlowId !== undefined && providedFlowId !== currentFlowId) {
+      console.log(`🔄 Using provided flow ID: ${providedFlowId}`);
+      setCurrentFlowId(providedFlowId);
+    }
+  }, [providedFlowId, currentFlowId]);
+
+  // Single flow state query with real-time updates (using flow_id)
   const flowQuery = useQuery<UnifiedDiscoveryFlowState>({
-    queryKey: ['unified-discovery-flow', client?.id, engagement?.id, currentSessionId],
+    queryKey: ['unified-discovery-flow', client?.id, engagement?.id, currentFlowId],
     queryFn: async () => {
-      if (!currentSessionId) {
-        throw new Error('No active session');
+      if (!currentFlowId) {
+        throw new Error('No active flow ID');
       }
       
-      const response = await apiCall(`/api/v1/unified-discovery/flow/status/${currentSessionId}`, {
+      const response = await apiCall(`/api/v1/unified-discovery/flow/by-id/${currentFlowId}`, {
         method: 'GET',
         headers: getAuthHeaders()
       });
       
       if (!response.ok) {
+        if (response.status === 404) {
+          // Flow not found - clear the current flow ID and stop polling
+          console.warn(`⚠️ Flow not found: ${currentFlowId}. Clearing flow ID.`);
+          setCurrentFlowId(null);
+          throw new Error(`Flow not found: ${currentFlowId}`);
+        }
         throw new Error(`Failed to fetch flow status: ${response.statusText}`);
       }
       
       return response.json();
     },
-    enabled: !!client && !!engagement && !!currentSessionId,
-    refetchInterval: 5000, // Real-time updates every 5 seconds
+    enabled: !!client && !!engagement && !!currentFlowId,
+    refetchInterval: (data, query) => {
+      // Stop polling if there's an error (like 404)
+      if (query.state.error) {
+        console.log('🛑 Stopping polling due to error:', query.state.error);
+        return false;
+      }
+      // Continue polling every 5 seconds if successful
+      return 5000;
+    },
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
+    retry: (failureCount, error) => {
+      // Don't retry 404 errors (flow not found)
+      if (error?.message?.includes('Flow not found') || error?.message?.includes('404')) {
+        console.log('🛑 Not retrying 404 error for flow:', currentFlowId);
+        return false;
+      }
+      // Retry other errors up to 3 times
+      return failureCount < 3;
+    },
+    onError: (error) => {
+      console.error('Flow query error:', error);
+      // If it's a 404 error, clear the flow ID
+      if (error?.message?.includes('Flow not found') || error?.message?.includes('404')) {
+        console.log('🔄 Clearing flow ID due to 404 error');
+        setCurrentFlowId(null);
+      }
+    }
   });
 
   // Health check query
@@ -169,8 +223,8 @@ export const useUnifiedDiscoveryFlow = () => {
       return response.json();
     },
     onSuccess: (data) => {
-      // Set current session ID for tracking
-      setCurrentSessionId(data.session_id);
+      // Set current flow ID for tracking
+      setCurrentFlowId(data.flow_id);
       
       // Invalidate and refetch flow state
       queryClient.invalidateQueries({ 
@@ -188,8 +242,8 @@ export const useUnifiedDiscoveryFlow = () => {
   // Execute specific phase mutation
   const executePhase = useMutation({
     mutationFn: async (params: PhaseExecutionParams) => {
-      if (!currentSessionId) {
-        throw new Error('No active session for phase execution');
+      if (!currentFlowId) {
+        throw new Error('No active flow ID for phase execution');
       }
       
       const response = await apiCall(`/api/v1/unified-discovery/flow/execute/${params.phase}`, {
@@ -199,7 +253,7 @@ export const useUnifiedDiscoveryFlow = () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          session_id: currentSessionId,
+          flow_id: currentFlowId,
           data: params.data,
           configuration: params.configuration
         })
@@ -214,7 +268,7 @@ export const useUnifiedDiscoveryFlow = () => {
     onSuccess: () => {
       // Invalidate flow state to trigger refresh
       queryClient.invalidateQueries({ 
-        queryKey: ['unified-discovery-flow', client?.id, engagement?.id, currentSessionId] 
+        queryKey: ['unified-discovery-flow', client?.id, engagement?.id, currentFlowId] 
       });
     }
   });
@@ -300,7 +354,7 @@ export const useUnifiedDiscoveryFlow = () => {
   
   // Reset flow state (for testing/development)
   const resetFlow = useCallback(() => {
-    setCurrentSessionId(null);
+    setCurrentFlowId(null);
     queryClient.removeQueries({ 
       queryKey: ['unified-discovery-flow', client?.id, engagement?.id] 
     });
@@ -309,13 +363,13 @@ export const useUnifiedDiscoveryFlow = () => {
     });
   }, [queryClient, client, engagement]);
 
-  // Force set session ID (for URL-based navigation)
-  const setSessionId = useCallback((sessionId: string | null) => {
-    if (sessionId !== currentSessionId) {
-      console.log(`🔄 Manually setting session ID: ${sessionId}`);
-      setCurrentSessionId(sessionId);
+  // Force set flow ID (for URL-based navigation)
+  const setFlowId = useCallback((flowId: string | null) => {
+    if (flowId !== currentFlowId) {
+      console.log(`🔄 Manually setting flow ID: ${flowId}`);
+      setCurrentFlowId(flowId);
     }
-  }, [currentSessionId]);
+  }, [currentFlowId]);
   
   return {
     // Flow state
@@ -330,7 +384,7 @@ export const useUnifiedDiscoveryFlow = () => {
     executeFlowPhase,
     refreshFlow,
     resetFlow,
-    setSessionId,
+    setFlowId,
     
     // Phase helpers
     getPhaseData,
@@ -344,8 +398,8 @@ export const useUnifiedDiscoveryFlow = () => {
     status: flowQuery.data?.status || currentFlowQuery.data?.status || 'idle',
     
     // Session management
-    sessionId: currentSessionId,
-    hasActiveSession: !!currentSessionId || !!currentFlowQuery.data?.has_current_flow,
+    flowId: currentFlowId,
+    hasActiveFlow: !!currentFlowId || !!currentFlowQuery.data?.has_current_flow,
     hasCurrentFlow: currentFlowQuery.data?.has_current_flow || false,
     
     // Mutation states

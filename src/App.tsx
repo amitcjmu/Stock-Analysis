@@ -106,7 +106,7 @@ const AuthenticatedApp = () => {
               <Route path="/discovery/dependencies" element={<Dependencies />} />
               <Route path="/discovery/data-cleansing" element={<DataCleansing />} />
               <Route path="/discovery/attribute-mapping" element={<AttributeMapping />} />
-              <Route path="/discovery/attribute-mapping/:sessionId" element={<AttributeMapping />} />
+              <Route path="/discovery/attribute-mapping/:flowId" element={<AttributeMapping />} />
               <Route path="/discovery/tech-debt" element={<TechDebtAnalysis />} />
               <Route path="/assess" element={<Assess />} />
               <Route path="/assess/overview" element={<AssessIndex />} />

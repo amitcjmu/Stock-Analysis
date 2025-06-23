@@ -50,6 +50,7 @@ os.makedirs(VALIDATION_SESSIONS_PATH, exist_ok=True)
 class ImportStorageResponse(BaseModel):
     success: bool
     import_session_id: Optional[str] = None
+    flow_id: Optional[str] = None  # ✅ CrewAI-generated flow ID
     error: Optional[str] = None
     message: str
     records_stored: int = 0
@@ -176,8 +177,9 @@ async def store_import_data(
         await db.commit()
         
         # 🚀 Trigger Discovery Flow immediately after successful storage
+        crewai_flow_id = None  # Initialize to None
         try:
-            await _trigger_discovery_flow(
+            crewai_flow_id = await _trigger_discovery_flow(
                 data_import_id=str(data_import.id),
                 client_account_id=client_account_id,
                 engagement_id=engagement_id,
@@ -185,15 +187,21 @@ async def store_import_data(
                 file_data=file_data,
                 context=context
             )
+            if crewai_flow_id:
+                logger.info(f"✅ CrewAI Discovery Flow triggered with flow_id: {crewai_flow_id}")
+            else:
+                logger.warning("⚠️ CrewAI Discovery Flow trigger returned no flow_id")
         except Exception as flow_error:
             logger.warning(f"Discovery Flow trigger failed: {flow_error}")
-            # Don't fail the import if flow trigger fails
+            # Don't fail the import if flow trigger fails, but log the error
+            crewai_flow_id = None
         
         logger.info(f"✅ Successfully stored {records_stored} field mappings for import {data_import.id}")
         
         return ImportStorageResponse(
             success=True,
             import_session_id=str(data_import.id),
+            flow_id=crewai_flow_id,
             message=f"Successfully stored {records_stored} records and triggered Discovery Flow",
             records_stored=records_stored
         )
@@ -212,12 +220,15 @@ async def _trigger_discovery_flow(
     user_id: str,
     file_data: List[Dict[str, Any]],
     context: RequestContext
-):
+) -> Optional[str]:
     """
     Trigger the CrewAI Discovery Flow immediately after data import.
     
     This implements the proper CrewAI Flow pattern with @start/@listen decorators
     that produces the purple logs and flow ID tracking.
+    
+    Returns:
+        Optional[str]: The CrewAI-generated flow_id if successful, None otherwise
     """
     try:
         logger.info(f"🚀 Triggering CrewAI Discovery Flow for import {data_import_id}")
@@ -251,21 +262,29 @@ async def _trigger_discovery_flow(
         )
         logger.info(f"✅ DEBUG: Discovery flow created: {type(discovery_flow)}")
         
+        # ✅ CRITICAL: Capture the CrewAI-generated flow_id BEFORE kickoff
+        crewai_flow_id = discovery_flow.state.flow_id
+        logger.info(f"🎯 CrewAI Flow ID generated: {crewai_flow_id}")
+        
         # Execute the CrewAI Flow using kickoff() method - this produces the purple logs
         logger.info(f"🎯 Starting CrewAI Flow kickoff for session: {data_import_id}")
         flow_result = await asyncio.to_thread(discovery_flow.kickoff)
         
         logger.info(f"✅ CrewAI Discovery Flow completed: {flow_result}")
+        logger.info(f"🎯 Returning CrewAI Flow ID: {crewai_flow_id}")
+        
+        return crewai_flow_id
         
     except ImportError as e:
         logger.warning(f"CrewAI Discovery Flow service not available: {e}")
         logger.error(f"🚨 DEBUG: ImportError details: {e}")
+        return None
     except Exception as e:
         logger.error(f"Failed to trigger CrewAI Discovery Flow: {e}")
         logger.error(f"🚨 DEBUG: Exception details: {e}")
         import traceback
         logger.error(f"🚨 DEBUG: Full traceback: {traceback.format_exc()}")
-        # Don't raise - we don't want to fail the import if flow fails
+        return None
 
 async def _validate_no_incomplete_discovery_flow(
     client_account_id: str,

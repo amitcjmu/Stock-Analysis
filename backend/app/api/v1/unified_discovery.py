@@ -124,7 +124,8 @@ async def get_flow_status(
             and_(
                 WorkflowState.session_id == session_uuid,
                 WorkflowState.client_account_id == context.client_account_id,
-                WorkflowState.engagement_id == context.engagement_id
+                WorkflowState.engagement_id == context.engagement_id,
+                WorkflowState.workflow_type == "unified_discovery"
             )
         ).order_by(desc(WorkflowState.updated_at))
         
@@ -583,6 +584,7 @@ async def resume_discovery_flow(
                 "success": True,
                 "message": "Flow is already complete",
                 "session_id": session_id,
+                "flow_id": str(workflow.flow_id),
                 "status": "completed",
                 "progress_percentage": 100.0
             }
@@ -606,6 +608,7 @@ async def resume_discovery_flow(
             "success": True,
             "message": f"Flow resumed successfully",
             "session_id": session_id,
+            "flow_id": str(workflow.flow_id),
             "current_phase": next_phase,
             "status": "running",
             "progress_percentage": workflow.progress_percentage,
@@ -697,4 +700,90 @@ async def get_flow_details(
         raise
     except Exception as e:
         logger.error(f"❌ Failed to get flow details: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to get flow details: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Failed to get flow details: {str(e)}")
+
+@router.get("/flow/by-id/{flow_id}")
+async def get_flow_status_by_id(
+    flow_id: str,
+    context: RequestContext = Depends(get_current_context),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get the current status of a discovery flow by flow_id (cleaner than session_id lookup)"""
+    try:
+        logger.info(f"🔍 Getting flow status by flow_id: {flow_id}")
+        
+        # Query the database for the actual workflow state by flow_id
+        try:
+            flow_uuid = UUID(flow_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid flow ID format")
+        
+        # First try: Query workflow state with multi-tenant filtering by flow_id
+        stmt = select(WorkflowState).where(
+            and_(
+                WorkflowState.flow_id == flow_uuid,
+                WorkflowState.client_account_id == context.client_account_id,
+                WorkflowState.engagement_id == context.engagement_id,
+                WorkflowState.workflow_type == "unified_discovery"
+            )
+        ).order_by(desc(WorkflowState.updated_at))
+        
+        result = await db.execute(stmt)
+        workflow = result.scalar_one_or_none()
+        
+        # Second try: If not found by flow_id, try by session_id (for backward compatibility)
+        if not workflow:
+            logger.info(f"🔍 Flow not found by flow_id, trying session_id: {flow_id}")
+            stmt = select(WorkflowState).where(
+                and_(
+                    WorkflowState.session_id == flow_uuid,
+                    WorkflowState.client_account_id == context.client_account_id,
+                    WorkflowState.engagement_id == context.engagement_id,
+                    WorkflowState.workflow_type == "unified_discovery"
+                )
+            ).order_by(desc(WorkflowState.updated_at))
+            
+            result = await db.execute(stmt)
+            workflow = result.scalar_one_or_none()
+        
+        if not workflow:
+            logger.warning(f"⚠️ No workflow found for flow_id or session_id: {flow_id}")
+            raise HTTPException(status_code=404, detail="Discovery flow not found")
+        
+        # Convert workflow state to response format
+        response = {
+            "flow_id": str(workflow.flow_id),
+            "session_id": str(workflow.session_id),
+            "client_account_id": str(workflow.client_account_id),
+            "engagement_id": str(workflow.engagement_id),
+            "user_id": workflow.user_id or "",
+            "status": workflow.status or "running",
+            "current_phase": workflow.current_phase or "initialization",
+            "progress_percentage": workflow.progress_percentage or 0.0,
+            "phase_completion": workflow.phase_completion or {},
+            "crew_status": workflow.crew_status or {},
+            "errors": workflow.errors or [],
+            "warnings": workflow.warnings or [],
+            "started_at": workflow.started_at.isoformat() if workflow.started_at else None,
+            "updated_at": workflow.updated_at.isoformat() if workflow.updated_at else datetime.utcnow().isoformat(),
+            "created_at": workflow.created_at.isoformat() if workflow.created_at else None,
+            
+            # Phase-specific data (only fields that exist on WorkflowState)
+            "field_mappings": workflow.field_mappings or {},
+            "cleaned_data": workflow.cleaned_data or [],
+            "asset_inventory": workflow.asset_inventory or {},
+            "dependencies": workflow.dependencies or {},
+            "technical_debt": workflow.technical_debt or {},
+            "data_quality_metrics": workflow.data_quality_metrics or {},
+            "agent_insights": workflow.agent_insights or [],
+            "discovery_summary": workflow.discovery_summary or {}
+        }
+        
+        logger.info(f"✅ Flow status retrieved by flow_id: {flow_id}, phase: {response['current_phase']}, progress: {response['progress_percentage']}%")
+        return response
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to get flow status by flow_id: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get flow status: {str(e)}") 

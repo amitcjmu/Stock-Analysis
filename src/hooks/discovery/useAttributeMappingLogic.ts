@@ -1,37 +1,30 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useUnifiedDiscoveryFlow } from '../useUnifiedDiscoveryFlow';
+import { useLocation, useNavigate } from 'react-router-dom';
 
-export const useAttributeMappingLogic = (urlSessionId?: string) => {
-  // Use the unified discovery flow
+export const useAttributeMappingLogic = () => {
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
+  
+  // Extract flow ID from URL path
+  const urlFlowId = useMemo(() => {
+    const match = pathname.match(/\/discovery\/attribute-mapping\/([^\/]+)/);
+    return match ? match[1] : null;
+  }, [pathname]);
+
+  // Use unified discovery flow with URL flow ID
   const {
-    flowState,
-    currentFlow,
-    isLoading,
-    error,
-    getPhaseData,
-    isPhaseComplete,
-    canProceedToPhase,
-    executeFlowPhase,
-    isExecutingPhase,
+    flow,
+    isLoading: isFlowLoading,
+    error: flowError,
+    executePhase,
     refreshFlow,
-    sessionId: detectedSessionId,
-    hasCurrentFlow,
-    setSessionId
-  } = useUnifiedDiscoveryFlow();
-
-  // Handle URL session ID vs auto-detected session ID
-  useEffect(() => {
-    if (urlSessionId && urlSessionId !== detectedSessionId) {
-      console.log(`🔄 Setting session ID from URL: ${urlSessionId}`);
-      setSessionId(urlSessionId);
-    }
-  }, [urlSessionId, detectedSessionId, setSessionId]);
-
-  // Determine the active session ID
-  const activeSessionId = urlSessionId || detectedSessionId;
+    flowId,
+    hasActiveFlow
+  } = useUnifiedDiscoveryFlow(urlFlowId); // Pass URL flow ID directly
 
   // Get field mapping data from unified flow
-  const fieldMappingData = getPhaseData('field_mapping');
+  const fieldMappingData = flow?.field_mapping;
   
   // Extract data with proper type checking
   const agenticData = (fieldMappingData && !Array.isArray(fieldMappingData) && fieldMappingData.attributes) 
@@ -55,29 +48,28 @@ export const useAttributeMappingLogic = (urlSessionId?: string) => {
     : [];
 
   // Session and flow information
-  const sessionId = activeSessionId;
-  const flowId = flowState?.flow_id || currentFlow?.flow_id;
+  const sessionId = urlFlowId;
   const availableDataImports: any[] = []; // TODO: Implement data import management
   const selectedDataImportId = null;
 
   // Loading states
-  const isAgenticLoading = isLoading;
-  const isFlowStateLoading = isLoading;
-  const isAnalyzing = isExecutingPhase;
+  const isAgenticLoading = isFlowLoading;
+  const isFlowStateLoading = isFlowLoading;
+  const isAnalyzing = flow?.isExecutingPhase || false;
 
   // Error states
-  const agenticError = error;
-  const flowStateError = error;
+  const agenticError = flowError;
+  const flowStateError = flowError;
 
   // Action handlers
   const handleTriggerFieldMappingCrew = useCallback(async () => {
     try {
       console.log('🔄 Triggering field mapping crew execution');
-      await executeFlowPhase('field_mapping', {}, {});
+      await executePhase('field_mapping', {}, {});
     } catch (error) {
       console.error('❌ Failed to trigger field mapping crew:', error);
     }
-  }, [executeFlowPhase]);
+  }, [executePhase]);
 
   const handleApproveMapping = useCallback(async (mappingId: string) => {
     try {
@@ -121,8 +113,8 @@ export const useAttributeMappingLogic = (urlSessionId?: string) => {
   }, [refreshFlow]);
 
   const canContinueToDataCleansing = useCallback(() => {
-    return isPhaseComplete('field_mapping') && canProceedToPhase('data_cleansing');
-  }, [isPhaseComplete, canProceedToPhase]);
+    return flow?.isPhaseComplete('field_mapping') && flow?.canProceedToPhase('data_cleansing');
+  }, [flow]);
 
   return {
     // Data
@@ -133,7 +125,7 @@ export const useAttributeMappingLogic = (urlSessionId?: string) => {
     criticalAttributes,
     
     // Flow state
-    flowState,
+    flow,
     sessionId,
     flowId,
     availableDataImports,
@@ -158,8 +150,8 @@ export const useAttributeMappingLogic = (urlSessionId?: string) => {
     canContinueToDataCleansing,
     
     // Flow status
-    hasCurrentFlow,
-    currentPhase: flowState?.current_phase || currentFlow?.current_phase,
-    flowProgress: flowState?.progress_percentage || currentFlow?.progress_percentage || 0
+    hasActiveFlow,
+    currentPhase: flow?.current_phase || flow?.currentFlow?.current_phase,
+    flowProgress: flow?.progress_percentage || flow?.currentFlow?.progress_percentage || 0
   };
 }; 

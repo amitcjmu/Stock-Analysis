@@ -1080,10 +1080,10 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
             onViewDetails={(sessionId, phase) => {
               const phaseRoutes = {
                 'field_mapping': `/discovery/attribute-mapping/${sessionId}`,
-                'data_cleansing': `/discovery/data-cleansing/${sessionId}`,
-                'asset_inventory': `/discovery/asset-inventory/${sessionId}`,
-                'dependency_analysis': `/discovery/dependencies/${sessionId}`,
-                'tech_debt_analysis': `/discovery/technical-debt/${sessionId}`
+                'data_cleansing': `/discovery/attribute-mapping/${sessionId}`,
+                'asset_inventory': `/discovery/attribute-mapping/${sessionId}`,
+                'dependency_analysis': `/discovery/attribute-mapping/${sessionId}`,
+                'tech_debt_analysis': `/discovery/attribute-mapping/${sessionId}`
               };
               const route = phaseRoutes[phase as keyof typeof phaseRoutes] || `/discovery/enhanced-dashboard`;
               navigate(route);

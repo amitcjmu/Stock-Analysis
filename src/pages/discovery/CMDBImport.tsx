@@ -65,6 +65,7 @@ interface UploadFile {
   agentResults: ValidationAgentResult[];
   validationSessionId?: string;
   importSessionId?: string;
+  flow_id?: string;  // ✅ CrewAI-generated flow ID
   // Additional progress tracking properties
   upload_progress?: number;
   validation_progress?: number;
@@ -353,8 +354,8 @@ const DataImport: React.FC = () => {
         const csvData = await parseCsvData(file);
         
         console.log('Persisting validated data to database...');
-        const importSessionId = await storeImportData(csvData, file, validationResponse.validation_session.file_id, categoryId);
-        console.log('Received importSessionId:', importSessionId);
+        const { import_session_id, flow_id } = await storeImportData(csvData, file, validationResponse.validation_session.file_id, categoryId);
+        console.log('Received importSessionId:', import_session_id);
 
 
         setUploadedFiles(prev => prev.map(f => f.id === newFile.id ? { 
@@ -364,9 +365,10 @@ const DataImport: React.FC = () => {
           security_clearance: validationResponse.security_clearances.security_clearance,
           privacy_clearance: validationResponse.security_clearances.privacy_clearance,
           format_validation: validationResponse.security_clearances.format_validation,
-          importSessionId: importSessionId || undefined,
+          importSessionId: import_session_id || undefined,
           validationSessionId: validationResponse.validation_session.file_id,
           agents_completed: validationResponse.agent_results.length,
+          flow_id: flow_id || undefined,
         } : f));
 
         // Update agent statuses
@@ -407,10 +409,21 @@ const DataImport: React.FC = () => {
         return;
     }
 
+    // ✅ Check for CrewAI flow_id first (preferred for navigation)
+    if (!uploadedFile.flow_id) {
+        toast({
+            title: "Error",
+            description: "No CrewAI Flow ID found. The discovery flow may not have been created properly.",
+            variant: "destructive",
+        });
+        return;
+    }
+
     setIsStartingFlow(true); // ✅ Set loading state
 
     try {
-        console.log(`Starting Discovery Flow with session ID: ${uploadedFile.importSessionId}`);
+        console.log(`Starting Discovery Flow with CrewAI Flow ID: ${uploadedFile.flow_id}`);
+        console.log(`Import Session ID: ${uploadedFile.importSessionId}`);
         
         // Retrieve stored data to ensure it's available for the flow
         const storedData = await getStoredImportData(uploadedFile.importSessionId);
@@ -423,8 +436,8 @@ const DataImport: React.FC = () => {
           throw new Error("No data found for the import session. The discovery flow cannot start.");
         }
 
-        // Navigate to attribute mapping with the session ID
-        navigate(`/discovery/attribute-mapping/${uploadedFile.importSessionId}`);
+        // ✅ Navigate using CrewAI Flow ID (follows CrewAI best practices)
+        navigate(`/discovery/attribute-mapping/${uploadedFile.flow_id}`);
 
     } catch (error) {
         const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred.";
@@ -487,10 +500,10 @@ const DataImport: React.FC = () => {
     });
   };
 
-  const storeImportData = async (csvData: any[], file: File, sessionId: string, categoryId: string): Promise<string | null> => {
+  const storeImportData = async (csvData: any[], file: File, sessionId: string, categoryId: string): Promise<{import_session_id: string | null, flow_id: string | null}> => {
     if (!sessionId) {
       console.error('No session ID available for storing data.');
-      return null;
+      return { import_session_id: null, flow_id: null };
     }
 
     // Use effective client and engagement (same logic as handleFileUpload)
@@ -530,10 +543,14 @@ const DataImport: React.FC = () => {
 
       if (response.success) {
         console.log('✅ Data stored successfully, import session ID:', response.import_session_id);
-        return response.import_session_id;
+        console.log('✅ CrewAI Flow ID:', response.flow_id);
+        return { 
+          import_session_id: response.import_session_id,
+          flow_id: response.flow_id 
+        };
       } else {
         console.error('❌ Failed to store data:', response.error);
-        return null;
+        return { import_session_id: null, flow_id: null };
       }
     } catch (error: any) {
       console.error('❌ Error storing data:', error);
@@ -558,7 +575,7 @@ const DataImport: React.FC = () => {
             variant: "destructive",
           });
           
-          return null;
+          return { import_session_id: null, flow_id: null };
         }
         
         // Legacy format handling (fallback)
@@ -596,7 +613,7 @@ const DataImport: React.FC = () => {
         }
       }
       
-      return null;
+      return { import_session_id: null, flow_id: null };
     }
   };
 

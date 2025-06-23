@@ -126,13 +126,13 @@ export const useFlowResumption = () => {
       
       console.log('🔄 Flow resumption request:', {
         sessionId,
-        endpoint: `/discovery/flows/${sessionId}/resume`,
+        endpoint: `/api/v1/unified-discovery/flow/${sessionId}/resume`,
         body: requestBody
       });
       
       // Make the API call with explicit body handling
       try {
-        const response = await apiCall(`/discovery/flows/${sessionId}/resume`, {
+        const response = await apiCall(`/api/v1/unified-discovery/flow/${sessionId}/resume`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -154,15 +154,17 @@ export const useFlowResumption = () => {
       
       // Determine next phase and navigate appropriately
       const nextPhase = data?.next_phase || data?.current_phase;
+      const flowId = data?.flow_id; // Get flow_id from response
       
-      // ✅ Include session ID in phase routes
+      // ✅ Use flow_id in phase routes instead of session_id
+      // Note: Currently only attribute-mapping supports flowId parameter
       const phaseRoutes = {
-        'data_import': `/discovery/import/${sessionId}`,
-        'field_mapping': `/discovery/attribute-mapping/${sessionId}`,
-        'data_cleansing': `/discovery/data-cleansing/${sessionId}`,
-        'asset_inventory': `/discovery/inventory/${sessionId}`,
-        'dependency_analysis': `/discovery/dependencies/${sessionId}`,
-        'tech_debt': `/discovery/tech-debt/${sessionId}`
+        'data_import': `/discovery/attribute-mapping/${flowId}`, // Data import is done, go to field mapping
+        'field_mapping': `/discovery/attribute-mapping/${flowId}`,
+        'data_cleansing': `/discovery/attribute-mapping/${flowId}`, // TODO: Add flowId support to data-cleansing route
+        'asset_inventory': `/discovery/attribute-mapping/${flowId}`, // TODO: Add flowId support to inventory route  
+        'dependency_analysis': `/discovery/attribute-mapping/${flowId}`, // TODO: Add flowId support to dependencies route
+        'tech_debt': `/discovery/attribute-mapping/${flowId}` // TODO: Add flowId support to tech-debt route
       };
       
       const nextRoute = phaseRoutes[nextPhase as keyof typeof phaseRoutes] || '/discovery/enhanced-dashboard';

@@ -63,6 +63,9 @@ const AttributeMapping: React.FC = () => {
   const hasError = !!(flowStateError || agenticError);
   const errorMessage = flowStateError?.message || agenticError?.message;
   const hasData = !!(agenticData?.attributes?.length);
+  
+  // Check for flow not found error
+  const isFlowNotFound = errorMessage?.includes('Flow not found') || errorMessage?.includes('404');
 
   // 🔧 SESSION AND FLOW DISPLAY
   const sessionInfo = {
@@ -98,8 +101,50 @@ const AttributeMapping: React.FC = () => {
               <p className="text-gray-600">Map your data fields to standard migration attributes and verify data quality.</p>
             </div>
 
+            {/* Show flow not found error */}
+            {isFlowNotFound && (
+              <Alert className="mb-6 border-red-200 bg-red-50">
+                <AlertTriangle className="h-5 w-5 text-red-600" />
+                <AlertDescription className="text-red-800">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="font-medium mb-2">Discovery Flow Not Found</p>
+                      <p className="text-sm mb-3">
+                        The discovery flow you're trying to access could not be found. This might happen if:
+                      </p>
+                      <ul className="text-sm list-disc list-inside space-y-1 mb-3">
+                        <li>The flow was deleted or expired</li>
+                        <li>You're using an invalid or outdated flow ID</li>
+                        <li>The flow wasn't created properly during data import</li>
+                      </ul>
+                      <p className="text-sm">
+                        Please start a new discovery flow by uploading your data on the Data Import page.
+                      </p>
+                    </div>
+                    <div className="ml-4 flex flex-col space-y-2">
+                      <Button 
+                        onClick={() => navigate('/discovery/cmdb-import')}
+                        className="bg-red-600 hover:bg-red-700 flex items-center space-x-2"
+                      >
+                        <Upload className="h-4 w-4" />
+                        <span>Start New Import</span>
+                      </Button>
+                      <Button 
+                        onClick={() => navigate('/discovery')}
+                        variant="outline"
+                        className="flex items-center space-x-2"
+                      >
+                        <ArrowLeft className="h-4 w-4" />
+                        <span>Back to Discovery</span>
+                      </Button>
+                    </div>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* Show redirect message if showing old data */}
-            {!sessionId && (
+            {!sessionId && !isFlowNotFound && (
               <Alert className="mb-6 border-blue-200 bg-blue-50">
                 <Upload className="h-5 w-5 text-blue-600" />
                 <AlertDescription className="text-blue-800">
@@ -123,141 +168,144 @@ const AttributeMapping: React.FC = () => {
               </Alert>
             )}
 
-
-
             <div className="mb-6">
               <ContextBreadcrumbs />
             </div>
 
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-3">
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900">Field Mapping & Critical Attributes</h1>
-                  <p className="text-gray-600">
-                    {mappingProgress.total > 0 
-                      ? `${mappingProgress.total} attributes analyzed with ${mappingProgress.mapped} mapped and ${mappingProgress.critical_mapped} migration-critical` 
-                      : 'AI-powered field mapping and critical attribute identification'
-                    }
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-3">
-                <Button
-                  onClick={refetchAgentic}
-                  disabled={isAgenticLoading}
-                  variant="outline"
-                  className="flex items-center space-x-2"
-                >
-                  {isAgenticLoading ? (
-                    <RefreshCw className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-4 w-4" />
-                  )}
-                  <span>Refresh Analysis</span>
-                </Button>
-                
-                <Button
-                  onClick={handleTriggerFieldMappingCrew}
-                  disabled={isAnalyzing}
-                  className="flex items-center space-x-2"
-                >
-                  {isAnalyzing ? (
-                    <RefreshCw className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Zap className="h-4 w-4" />
-                  )}
-                  <span>{isAnalyzing ? 'Analyzing...' : 'Trigger Field Mapping'}</span>
-                </Button>
-              </div>
-            </div>
-
-            <ProgressDashboard 
-              mappingProgress={mappingProgress}
-              isLoading={isAgenticLoading}
-            />
-
-            {flowState?.session_id && (
-              <div className="mb-6">
-                <EnhancedAgentOrchestrationPanel
-                  sessionId={flowState.session_id}
-                  flowState={flowState}
-                />
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-              <div className="xl:col-span-3 space-y-6">
-                <div className="bg-white rounded-lg shadow-md">
-                  <NavigationTabs 
-                    activeTab={activeTab}
-                    onTabChange={setActiveTab}
-                  />
+            {/* Only render main content if flow is found */}
+            {!isFlowNotFound && (
+              <>
+                {/* Header */}
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center space-x-3">
+                    <div>
+                      <h1 className="text-3xl font-bold text-gray-900">Field Mapping & Critical Attributes</h1>
+                      <p className="text-gray-600">
+                        {mappingProgress.total > 0 
+                          ? `${mappingProgress.total} attributes analyzed with ${mappingProgress.mapped} mapped and ${mappingProgress.critical_mapped} migration-critical` 
+                          : 'AI-powered field mapping and critical attribute identification'
+                        }
+                      </p>
+                    </div>
+                  </div>
                   
-                  <AttributeMappingTabContent
-                    activeTab={activeTab}
-                    fieldMappings={fieldMappings}
-                    criticalAttributes={criticalAttributes}
-                    agenticData={agenticData}
-                    onApproveMapping={handleApproveMapping}
-                    onRejectMapping={handleRejectMapping}
-                    refetchAgentic={() => refetchAgentic()}
-                    onAttributeUpdate={handleAttributeUpdate}
-                    sessionInfo={sessionInfo}
-                  />
+                  <div className="flex items-center space-x-3">
+                    <Button
+                      onClick={refetchAgentic}
+                      disabled={isAgenticLoading}
+                      variant="outline"
+                      className="flex items-center space-x-2"
+                    >
+                      {isAgenticLoading ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-4 w-4" />
+                      )}
+                      <span>Refresh Analysis</span>
+                    </Button>
+                    
+                    <Button
+                      onClick={handleTriggerFieldMappingCrew}
+                      disabled={isAnalyzing}
+                      className="flex items-center space-x-2"
+                    >
+                      {isAnalyzing ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Zap className="h-4 w-4" />
+                      )}
+                      <span>{isAnalyzing ? 'Analyzing...' : 'Trigger Field Mapping'}</span>
+                    </Button>
+                  </div>
                 </div>
 
-                <CrewAnalysisPanel 
-                  crewAnalysis={crewAnalysis}
+                <ProgressDashboard 
+                  mappingProgress={mappingProgress}
                   isLoading={isAgenticLoading}
                 />
 
-                {/* Navigation Button */}
-                {canContinueToDataCleansing() && (
-                  <div className="flex justify-end">
-                    <Button
-                      onClick={handleContinueToDataCleansing}
-                      className="flex items-center space-x-2 bg-green-600 hover:bg-green-700"
-                    >
-                      <span>Continue to Data Cleansing</span>
-                      <ArrowRight className="h-4 w-4" />
-                    </Button>
+                {flowState?.session_id && (
+                  <div className="mb-6">
+                    <EnhancedAgentOrchestrationPanel
+                      sessionId={flowState.session_id}
+                      flowState={flowState}
+                    />
                   </div>
                 )}
-              </div>
 
-              <div className="xl:col-span-1 space-y-6">
-                <AgentClarificationPanel 
-                  pageContext="field-mapping"
-                  refreshTrigger={0}
-                  onQuestionAnswered={(questionId, response) => {
-                    console.log('Field mapping question answered:', questionId, response);
-                    refetchAgentic();
-                  }}
-                />
+                <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+                  <div className="xl:col-span-3 space-y-6">
+                    <div className="bg-white rounded-lg shadow-md">
+                      <NavigationTabs 
+                        activeTab={activeTab}
+                        onTabChange={setActiveTab}
+                      />
+                      
+                      <AttributeMappingTabContent
+                        activeTab={activeTab}
+                        fieldMappings={fieldMappings}
+                        criticalAttributes={criticalAttributes}
+                        agenticData={agenticData}
+                        onApproveMapping={handleApproveMapping}
+                        onRejectMapping={handleRejectMapping}
+                        refetchAgentic={() => refetchAgentic()}
+                        onAttributeUpdate={handleAttributeUpdate}
+                        sessionInfo={sessionInfo}
+                      />
+                    </div>
 
-                <DataClassificationDisplay 
-                  pageContext="field-mapping"
-                  refreshTrigger={0}
-                  onClassificationUpdate={(itemId, newClassification) => {
-                    console.log('Field mapping classification updated:', itemId, newClassification);
-                    refetchAgentic();
-                  }}
-                />
+                    <CrewAnalysisPanel 
+                      crewAnalysis={crewAnalysis}
+                      isLoading={isAgenticLoading}
+                    />
 
-                <AgentInsightsSection 
-                  pageContext="field-mapping"
-                  refreshTrigger={0}
-                  onInsightAction={(insightId, action) => {
-                    console.log('Field mapping insight action:', insightId, action);
-                    if (action === 'apply_insight') {
-                      refetchAgentic();
-                    }
-                  }}
-                />
-              </div>
-            </div>
+                    {/* Navigation Button */}
+                    {canContinueToDataCleansing() && (
+                      <div className="flex justify-end">
+                        <Button
+                          onClick={handleContinueToDataCleansing}
+                          className="flex items-center space-x-2 bg-green-600 hover:bg-green-700"
+                        >
+                          <span>Continue to Data Cleansing</span>
+                          <ArrowRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="xl:col-span-1 space-y-6">
+                    <AgentClarificationPanel 
+                      pageContext="field-mapping"
+                      refreshTrigger={0}
+                      onQuestionAnswered={(questionId, response) => {
+                        console.log('Field mapping question answered:', questionId, response);
+                        refetchAgentic();
+                      }}
+                    />
+
+                    <DataClassificationDisplay 
+                      pageContext="field-mapping"
+                      refreshTrigger={0}
+                      onClassificationUpdate={(itemId, newClassification) => {
+                        console.log('Field mapping classification updated:', itemId, newClassification);
+                        refetchAgentic();
+                      }}
+                    />
+
+                    <AgentInsightsSection 
+                      pageContext="field-mapping"
+                      refreshTrigger={0}
+                      onInsightAction={(insightId, action) => {
+                        console.log('Field mapping insight action:', insightId, action);
+                        if (action === 'apply_insight') {
+                          refetchAgentic();
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
