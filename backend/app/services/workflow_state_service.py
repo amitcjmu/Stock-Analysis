@@ -1,5 +1,9 @@
 """
 Service for CRUD operations on WorkflowState model with smart session management.
+
+⚠️ DEPRECATED: This service is deprecated in favor of V2 Discovery Flow architecture.
+New implementations should use DiscoveryFlowService with flow_id based patterns.
+This service is maintained for backward compatibility with V1 unified discovery flow only.
 """
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, or_, desc

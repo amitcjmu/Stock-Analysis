@@ -2,6 +2,10 @@
 Session Management Service for automatic session creation and lifecycle management.
 Handles auto-naming, status management, and session reference for data imports.
 Uses a modular handler pattern for better organization and maintainability.
+
+⚠️ DEPRECATED: This service is deprecated in favor of V2 Discovery Flow architecture.
+New implementations should use DiscoveryFlowService and flow_id based patterns.
+This service is maintained for backward compatibility with V1 endpoints only.
 """
 
 import logging
@@ -11,7 +15,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 
 from app.models.data_import_session import DataImportSession, SessionType
-from .session_handlers import ContextHandler, SessionHandler
+
+# Conditional imports for graceful degradation
+try:
+    from .session_handlers import ContextHandler, SessionHandler
+    SESSION_HANDLERS_AVAILABLE = True
+except ImportError:
+    # Session handlers have been archived - provide fallback implementations
+    SESSION_HANDLERS_AVAILABLE = False
+    ContextHandler = None
+    SessionHandler = None
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +45,15 @@ class SessionManagementService:
             db: Database session
         """
         self.db = db
-        self._context_handler = ContextHandler(db)
-        self._session_handler = SessionHandler(db)
+        
+        # Initialize handlers if available, otherwise use fallback mode
+        if SESSION_HANDLERS_AVAILABLE:
+            self._context_handler = ContextHandler(db)
+            self._session_handler = SessionHandler(db)
+        else:
+            logger.warning("⚠️ Session handlers not available - using fallback mode. Consider migrating to V2 Discovery Flow architecture.")
+            self._context_handler = None
+            self._session_handler = None
     
     # Context Management Methods
     
@@ -49,7 +69,18 @@ class SessionManagementService:
         Returns:
             Dict containing user, client, engagement, and session info
         """
-        return await self._context_handler.get_user_context(user_id)
+        if self._context_handler:
+            return await self._context_handler.get_user_context(user_id)
+        else:
+            # Fallback implementation
+            logger.warning("⚠️ Using fallback user context - migrate to V2 Discovery Flow")
+            return {
+                "user_id": str(user_id),
+                "client": None,
+                "engagement": None,
+                "session": None,
+                "fallback_mode": True
+            }
     
     async def switch_session(self, user_id: UUID, session_id: UUID) -> Dict[str, Any]:
         """

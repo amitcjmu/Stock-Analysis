@@ -390,23 +390,41 @@ async def validate_asset(
         logger.error(f"❌ Failed to validate asset {asset_id}: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to validate asset")
 
-@router.delete("/flows/{flow_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/flows/{flow_id}", response_model=Dict[str, Any])
 async def delete_discovery_flow(
     flow_id: str,
+    force_delete: bool = Query(False, description="Force deletion even if flow is active"),
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context)
 ):
-    """Delete discovery flow and all associated assets"""
+    """Delete discovery flow with comprehensive cleanup using V2 cleanup service"""
     try:
         logger.info(f"🗑️ Deleting discovery flow: {flow_id}")
         
-        service = DiscoveryFlowService(db, context)
-        deleted = await service.delete_flow(flow_id)
+        # Import V2 cleanup service
+        from app.services.discovery_flow_cleanup_service_v2 import create_discovery_flow_cleanup_service_v2
         
-        if not deleted:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Discovery flow not found: {flow_id}")
+        cleanup_service = create_discovery_flow_cleanup_service_v2(db, context)
+        cleanup_result = await cleanup_service.delete_flow_with_cleanup(
+            flow_id=flow_id,
+            force_delete=force_delete,
+            cleanup_options={
+                "reason": "user_requested",
+                "delete_discovery_assets": True,
+                "delete_created_assets": True,
+                "clean_data_imports": True,
+                "create_audit": True
+            }
+        )
         
-        logger.info(f"✅ Discovery flow deleted: {flow_id}")
+        if not cleanup_result["success"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail=cleanup_result.get("error", "Failed to delete discovery flow")
+            )
+        
+        logger.info(f"✅ Discovery flow deleted with cleanup: {flow_id}")
+        return cleanup_result
         
     except HTTPException:
         raise

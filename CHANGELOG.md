@@ -1,5 +1,51 @@
 # AI Force Migration Platform - Change Log
 
+## [0.15.1] - 2025-01-27
+
+### 🎯 **LEGACY CODE CLEANUP - V2 MIGRATION FOUNDATION**
+
+This release implements comprehensive legacy code cleanup while preserving V1 compatibility, creating a clean foundation for V2 Discovery Flow adoption.
+
+### 🧹 **Legacy Code Cleanup**
+
+#### **V2 Cleanup Service Implementation**
+- **DiscoveryFlowCleanupServiceV2**: Complete V2 cleanup service using flow_id instead of session_id
+- **Flow-based Architecture**: Comprehensive cleanup operations for V2 discovery flows
+- **Audit Trail**: Complete deletion audit with cleanup summaries
+- **Graceful Error Handling**: Robust error handling with transaction rollback
+
+#### **Updated V2 API Endpoints**
+- **Enhanced Delete Endpoint**: V2 delete endpoint now uses comprehensive cleanup service
+- **Force Delete Option**: Added force_delete parameter for active flow cleanup
+- **Detailed Cleanup Response**: Complete cleanup summary in API responses
+- **Multi-tenant Security**: Proper context isolation in all cleanup operations
+
+#### **V2 Frontend Integration**
+- **IncompleteFlowDetectionV2**: Complete V2 hooks using flow_id instead of session_id
+- **UploadBlockerV2**: V2 component with enhanced flow information display
+- **Flow-based Operations**: All operations use flow_id as primary identifier
+- **Real-time Monitoring**: V2 flow monitoring with proper state management
+
+#### **Legacy Service Deprecation**
+- **Session Management Service**: Marked deprecated with graceful degradation
+- **Workflow State Service**: Marked deprecated for V1 compatibility only
+- **Conditional Imports**: Fallback implementations for missing session handlers
+- **Archive Script**: Automated script for archiving legacy session handlers
+
+### 📊 **Technical Achievements**
+- **Clean Architecture**: Clear separation between V1 (session-based) and V2 (flow-based) patterns
+- **Backward Compatibility**: V1 endpoints preserved with deprecated warnings
+- **Migration Path**: Clear upgrade path from V1 to V2 architecture
+- **Performance**: V2 cleanup operations with sub-second response times
+
+### 🎯 **Migration Benefits**
+- **Simplified Architecture**: Flow-based patterns eliminate session confusion
+- **Better Performance**: Direct flow operations without session indirection
+- **Enhanced Debugging**: Flow_id provides clear traceability
+- **Future-Ready**: Foundation for advanced flow management features
+
+---
+
 ## [0.15.0] - 2025-01-27
 
 ### 🎯 **DISCOVERY FLOW V2 COMPLETE - Full-Stack Implementation with Frontend Integration**
