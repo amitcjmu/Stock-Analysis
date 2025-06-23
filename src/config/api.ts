@@ -192,10 +192,12 @@ export const apiCall = async (
   const method = (options.method || 'GET').toUpperCase();
   
   // Create a unique key for this request to prevent duplicates
+  // Exclude POST/PUT/PATCH/DELETE requests from deduplication as they can have side effects
   const requestKey = `${method}:${normalizedEndpoint}`;
+  const shouldDeduplicate = ['GET', 'HEAD', 'OPTIONS'].includes(method);
   
-  // If we already have a request with the same key, return that instead
-  if (pendingRequests.has(requestKey)) {
+  // If we already have a request with the same key, return that instead (only for safe methods)
+  if (shouldDeduplicate && pendingRequests.has(requestKey)) {
     console.log(`[${requestId}] Request already in flight: ${requestKey}`);
     return pendingRequests.get(requestKey);
   }
@@ -314,14 +316,18 @@ export const apiCall = async (
       // Re-throw the enhanced error
       throw apiError;
     } finally {
-      // Clean up the pending request
-      pendingRequests.delete(requestKey);
+      // Clean up the pending request (only if it was stored for deduplication)
+      if (shouldDeduplicate) {
+        pendingRequests.delete(requestKey);
+      }
       console.groupEnd();
     }
   })();
   
-  // Store the promise for deduplication
-  pendingRequests.set(requestKey, requestPromise);
+  // Store the promise for deduplication (only for safe methods)
+  if (shouldDeduplicate) {
+    pendingRequests.set(requestKey, requestPromise);
+  }
   
   return requestPromise;
 };

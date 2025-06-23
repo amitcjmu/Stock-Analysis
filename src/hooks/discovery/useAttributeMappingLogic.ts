@@ -1,10 +1,11 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useUnifiedDiscoveryFlow } from '../useUnifiedDiscoveryFlow';
 
 export const useAttributeMappingLogic = (urlSessionId?: string) => {
   // Use the unified discovery flow
   const {
     flowState,
+    currentFlow,
     isLoading,
     error,
     getPhaseData,
@@ -12,8 +13,22 @@ export const useAttributeMappingLogic = (urlSessionId?: string) => {
     canProceedToPhase,
     executeFlowPhase,
     isExecutingPhase,
-    refreshFlow
+    refreshFlow,
+    sessionId: detectedSessionId,
+    hasCurrentFlow,
+    setSessionId
   } = useUnifiedDiscoveryFlow();
+
+  // Handle URL session ID vs auto-detected session ID
+  useEffect(() => {
+    if (urlSessionId && urlSessionId !== detectedSessionId) {
+      console.log(`🔄 Setting session ID from URL: ${urlSessionId}`);
+      setSessionId(urlSessionId);
+    }
+  }, [urlSessionId, detectedSessionId, setSessionId]);
+
+  // Determine the active session ID
+  const activeSessionId = urlSessionId || detectedSessionId;
 
   // Get field mapping data from unified flow
   const fieldMappingData = getPhaseData('field_mapping');
@@ -40,8 +55,8 @@ export const useAttributeMappingLogic = (urlSessionId?: string) => {
     : [];
 
   // Session and flow information
-  const sessionId = flowState?.session_id || urlSessionId;
-  const flowId = flowState?.flow_id;
+  const sessionId = activeSessionId;
+  const flowId = flowState?.flow_id || currentFlow?.flow_id;
   const availableDataImports: any[] = []; // TODO: Implement data import management
   const selectedDataImportId = null;
 
@@ -56,54 +71,84 @@ export const useAttributeMappingLogic = (urlSessionId?: string) => {
 
   // Action handlers
   const handleTriggerFieldMappingCrew = useCallback(async () => {
-    await executeFlowPhase('field_mapping');
+    try {
+      console.log('🔄 Triggering field mapping crew execution');
+      await executeFlowPhase('field_mapping', {}, {});
+    } catch (error) {
+      console.error('❌ Failed to trigger field mapping crew:', error);
+    }
   }, [executeFlowPhase]);
 
-  const refetchAgentic = useCallback(async () => {
-    await refreshFlow();
+  const handleApproveMapping = useCallback(async (mappingId: string) => {
+    try {
+      console.log(`✅ Approving mapping: ${mappingId}`);
+      // TODO: Implement mapping approval logic
+    } catch (error) {
+      console.error('❌ Failed to approve mapping:', error);
+    }
+  }, []);
+
+  const handleRejectMapping = useCallback(async (mappingId: string) => {
+    try {
+      console.log(`❌ Rejecting mapping: ${mappingId}`);
+      // TODO: Implement mapping rejection logic
+    } catch (error) {
+      console.error('❌ Failed to reject mapping:', error);
+    }
+  }, []);
+
+  const handleAttributeUpdate = useCallback(async (attributeId: string, updates: any) => {
+    try {
+      console.log(`🔄 Updating attribute: ${attributeId}`, updates);
+      // TODO: Implement attribute update logic
+    } catch (error) {
+      console.error('❌ Failed to update attribute:', error);
+    }
+  }, []);
+
+  const handleDataImportSelection = useCallback(async (importId: string) => {
+    try {
+      console.log(`🔄 Selecting data import: ${importId}`);
+      // TODO: Implement data import selection logic
+    } catch (error) {
+      console.error('❌ Failed to select data import:', error);
+    }
+  }, []);
+
+  const refetchAgentic = useCallback(() => {
+    console.log('🔄 Refreshing agentic data');
+    return refreshFlow();
   }, [refreshFlow]);
 
   const canContinueToDataCleansing = useCallback(() => {
-    return canProceedToPhase('data_cleansing');
-  }, [canProceedToPhase]);
-
-  // Placeholder handlers for UI interactions
-  const handleApproveMapping = useCallback(() => {
-    // TODO: Implement mapping approval logic
-    console.log('Mapping approved');
-  }, []);
-
-  const handleRejectMapping = useCallback(() => {
-    // TODO: Implement mapping rejection logic
-    console.log('Mapping rejected');
-  }, []);
-
-  const handleAttributeUpdate = useCallback(() => {
-    // TODO: Implement attribute update logic
-    console.log('Attribute updated');
-  }, []);
-
-  const handleDataImportSelection = useCallback(() => {
-    // TODO: Implement data import selection logic
-    console.log('Data import selected');
-  }, []);
+    return isPhaseComplete('field_mapping') && canProceedToPhase('data_cleansing');
+  }, [isPhaseComplete, canProceedToPhase]);
 
   return {
+    // Data
     agenticData,
     fieldMappings,
     crewAnalysis,
     mappingProgress,
     criticalAttributes,
+    
+    // Flow state
     flowState,
     sessionId,
     flowId,
     availableDataImports,
     selectedDataImportId,
+    
+    // Loading states
     isAgenticLoading,
     isFlowStateLoading,
     isAnalyzing,
+    
+    // Error states
     agenticError,
     flowStateError,
+    
+    // Action handlers
     handleTriggerFieldMappingCrew,
     handleApproveMapping,
     handleRejectMapping,
@@ -111,5 +156,10 @@ export const useAttributeMappingLogic = (urlSessionId?: string) => {
     handleDataImportSelection,
     refetchAgentic,
     canContinueToDataCleansing,
+    
+    // Flow status
+    hasCurrentFlow,
+    currentPhase: flowState?.current_phase || currentFlow?.current_phase,
+    flowProgress: flowState?.progress_percentage || currentFlow?.progress_percentage || 0
   };
 }; 

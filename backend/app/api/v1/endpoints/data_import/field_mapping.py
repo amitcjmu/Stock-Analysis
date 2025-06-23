@@ -862,82 +862,68 @@ async def get_simple_field_mappings(
         else:
             field_names = []
         
-        # Create intelligent field mappings based on field names - FIXED MAPPINGS
-        mappings = []
-        field_mapping_rules = {
-            # Identity fields
-            'asset_id': {'target': 'asset_id', 'confidence': 0.95, 'category': 'identification'},
-            'asset_name': {'target': 'name', 'confidence': 0.90, 'category': 'identification'},
-            'ci_name': {'target': 'name', 'confidence': 0.80, 'category': 'identification'},
-            'hostname': {'target': 'hostname', 'confidence': 0.95, 'category': 'identification'},
-            'server_name': {'target': 'hostname', 'confidence': 0.85, 'category': 'identification'},
-            'name': {'target': 'name', 'confidence': 0.80, 'category': 'identification'},
-            
-            # Technical fields - FIXED OS MAPPING
-            'asset_type': {'target': 'asset_type', 'confidence': 0.95, 'category': 'technical'},
-            'operating_system': {'target': 'operating_system', 'confidence': 0.90, 'category': 'technical'},
-            'os': {'target': 'operating_system', 'confidence': 0.85, 'category': 'technical'},  # FIXED: was 'hostname'
-            'os_version': {'target': 'os_version', 'confidence': 0.85, 'category': 'technical'},
-            'cpu_cores': {'target': 'cpu_cores', 'confidence': 0.90, 'category': 'technical'},
-            'memory_gb': {'target': 'memory_gb', 'confidence': 0.90, 'category': 'technical'},
-            'ram_gb': {'target': 'memory_gb', 'confidence': 0.85, 'category': 'technical'},
-            'storage_gb': {'target': 'storage_gb', 'confidence': 0.90, 'category': 'technical'},
-            
-            # Network fields
-            'ip_address': {'target': 'ip_address', 'confidence': 0.95, 'category': 'network'},
-            'ip_addr': {'target': 'ip_address', 'confidence': 0.90, 'category': 'network'},
-            
-            # Environment fields
-            'environment': {'target': 'environment', 'confidence': 0.95, 'category': 'environment'},
-            'datacenter': {'target': 'datacenter', 'confidence': 0.90, 'category': 'environment'},
-            'location': {'target': 'datacenter', 'confidence': 0.65, 'category': 'environment'},
-            'location_datacenter': {'target': 'datacenter', 'confidence': 0.85, 'category': 'environment'},
-            
-            # Business fields - FIXED SYNTAX ERROR
-            'business_owner': {'target': 'business_owner', 'confidence': 0.85, 'category': 'business'},
-            'application': {'target': 'business_owner', 'confidence': 0.60, 'category': 'business'},
-            'application_owner': {'target': 'business_owner', 'confidence': 0.80, 'category': 'business'},
-            'department': {'target': 'department', 'confidence': 0.85, 'category': 'business'},
-        }
+        # 🎯 AGENTIC FIELD MAPPING: Use CrewAI for intelligent field mapping analysis
+        # NO hard-coded heuristics - this is an agentic-first platform
         
-        mapping_id = 1
-        for field_name in field_names:
-            field_lower = field_name.lower()
+        logger.info("🤖 Triggering agentic field mapping analysis for imported data")
+        
+        # Trigger the agentic field mapping crew analysis
+        try:
+            from app.api.v1.endpoints.data_import.agentic_critical_attributes import _execute_field_mapping_crew
+            from app.core.context import extract_context_from_request
             
-            # Check for direct matches
-            if field_lower in field_mapping_rules:
-                rule = field_mapping_rules[field_lower]
-                mappings.append({
-                    "id": str(mapping_id),
-                    "sourceField": field_name,
-                    "targetAttribute": rule['target'],
-                    "confidence": rule['confidence'],
-                    "mapping_type": "direct",
-                    "sample_values": [],
-                    "status": "pending" if rule['confidence'] < 0.90 else "approved",
-                    "ai_reasoning": f"Agent identified {field_name} as {rule['target']} based on field name pattern matching",
-                    "is_user_defined": False,
-                    "category": rule['category']
-                })
-                mapping_id += 1
+            # Get context for crew execution
+            request_context = extract_context_from_request(request)
+            
+            # Execute the agentic field mapping crew
+            crew_result = await _execute_field_mapping_crew(
+                context=request_context,
+                data_import=latest_import,
+                db=db
+            )
+            
+            # Extract mappings from crew results
+            if crew_result.get("crew_execution") == "completed" and "field_mappings" in crew_result:
+                mappings = crew_result["field_mappings"]
+                logger.info(f"✅ Agentic field mapping completed with {len(mappings)} mappings")
             else:
-                # Check for partial matches
-                for pattern, rule in field_mapping_rules.items():
-                    if pattern in field_lower or field_lower in pattern:
-                        mappings.append({
-                            "id": str(mapping_id),
-                            "sourceField": field_name,
-                            "targetAttribute": rule['target'],
-                            "confidence": max(0.60, rule['confidence'] - 0.20),  # Lower confidence for partial matches
-                            "mapping_type": "derived",
-                            "sample_values": [],
-                            "status": "pending",
-                            "ai_reasoning": f"Agent suggested {field_name} maps to {rule['target']} based on partial pattern match",
-                            "is_user_defined": False,
-                            "category": rule['category']
-                        })
-                        mapping_id += 1
-                        break
+                logger.warning(f"Agentic field mapping failed: {crew_result.get('analysis_result', 'Unknown error')}")
+                # Create basic mappings for all fields without heuristics
+                mappings = []
+                for i, field_name in enumerate(field_names):
+                    mappings.append({
+                        "id": str(i + 1),
+                        "sourceField": field_name,
+                        "targetAttribute": "unmapped",
+                        "confidence": 0.0,
+                        "mapping_type": "agentic_pending",
+                        "sample_values": [],
+                        "status": "pending",
+                        "ai_reasoning": "Agentic analysis required - trigger field mapping crew",
+                        "is_user_defined": False,
+                        "category": "agentic_analysis_required"
+                    })
+                    
+        except Exception as e:
+            logger.error(f"Agentic field mapping failed: {e}")
+            # Create basic mappings for all fields without heuristics  
+            mappings = []
+            for i, field_name in enumerate(field_names):
+                mappings.append({
+                    "id": str(i + 1),
+                    "sourceField": field_name,
+                    "targetAttribute": "unmapped", 
+                    "confidence": 0.0,
+                    "mapping_type": "agentic_error",
+                    "sample_values": [],
+                    "status": "pending",
+                    "ai_reasoning": f"Agentic analysis failed: {str(e)}",
+                    "is_user_defined": False,
+                    "category": "agentic_analysis_error"
+                })
+        
+        # 🎯 AGENTIC: All field mapping analysis completed by CrewAI agents above
+        # No additional heuristic processing needed
         
         return {
             "success": True,

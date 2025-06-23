@@ -123,6 +123,7 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
     async def initialize_discovery(self):
         """Initialize the unified discovery workflow with PostgreSQL persistence"""
         logger.info("🚀 Starting Unified Discovery Flow initialization with hybrid persistence")
+        logger.info(f"📋 Flow Context: session={self._init_session_id}, client={self._init_client_account_id}, engagement={self._init_engagement_id}")
         
         # Set core state fields
         self.state.session_id = self._init_session_id
@@ -137,9 +138,12 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         self.state.status = "running"
         self.state.started_at = datetime.utcnow().isoformat()
         
+        logger.info(f"🔄 Flow State Initialized: phase={self.state.current_phase}, status={self.state.status}, progress={self.state.progress_percentage}%")
+        
         # Validate input data
         if not self.state.raw_data:
             self.state.add_error("initialization", "No raw data provided")
+            logger.error("❌ Flow initialization failed: No raw data provided")
             return "initialization_failed"
         
         # Initialize PostgreSQL persistence
@@ -151,6 +155,7 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         
         self.state.log_entry(f"Discovery Flow initialized with {len(self.state.raw_data)} records")
         logger.info(f"✅ Unified Discovery Flow initialized with {len(self.state.raw_data)} records")
+        logger.info(f"🎯 Next Phase: field_mapping")
         
         return "initialized"
     

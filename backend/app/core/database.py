@@ -170,7 +170,7 @@ async def get_db() -> AsyncSession:
     
     try:
         # ⚡ TIMEOUT: Limit session creation time to prevent hanging
-        async with asyncio.timeout(10):  # 10 second timeout for session creation
+        async with asyncio.timeout(30):  # 30 second timeout for session creation (increased for CrewAI operations)
             session = AsyncSessionLocal()
             
             # ⚡ HEALTH CHECK: Quick ping to verify connection

@@ -37,30 +37,75 @@ interface UnifiedDiscoveryFlowState {
   completed_at?: string;
 }
 
-// Phase execution parameters
-interface PhaseExecutionParams {
-  phase: string;
-  data?: any;
-  configuration?: Record<string, any>;
+// Current Flow Response Interface
+interface CurrentFlowResponse {
+  has_current_flow: boolean;
+  flow_id?: string;
+  session_id?: string;
+  current_phase?: string;
+  status?: string;
+  progress_percentage?: number;
+  started_at?: string;
+  updated_at?: string;
+  message?: string;
+  timestamp: string;
 }
 
-// Flow initialization parameters
+// Flow Initialization Parameters
 interface FlowInitializationParams {
   client_account_id: string;
   engagement_id: string;
   user_id: string;
   raw_data: any[];
-  metadata?: Record<string, any>;
-  configuration?: Record<string, any>;
+  metadata: Record<string, any>;
+  configuration: Record<string, any>;
+}
+
+// Phase Execution Parameters
+interface PhaseExecutionParams {
+  phase: string;
+  data: any;
+  configuration: Record<string, any>;
 }
 
 export const useUnifiedDiscoveryFlow = () => {
   const { user, client, engagement, getAuthHeaders } = useAuth();
   const queryClient = useQueryClient();
   
-  // Current session tracking
+  // Current session tracking - now auto-detected
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   
+  // Auto-detect current flow query
+  const currentFlowQuery = useQuery<CurrentFlowResponse>({
+    queryKey: ['current-discovery-flow', client?.id, engagement?.id],
+    queryFn: async () => {
+      const response = await apiCall('/api/v1/unified-discovery/flow/current', {
+        method: 'GET',
+        headers: getAuthHeaders()
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to get current flow: ${response.statusText}`);
+      }
+      
+      return response.json();
+    },
+    enabled: !!client && !!engagement,
+    refetchInterval: 10000, // Check for current flow every 10 seconds
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    onSuccess: (data) => {
+      // Auto-set current session ID when flow is detected
+      if (data.has_current_flow && data.session_id && data.session_id !== currentSessionId) {
+        console.log(`🔄 Auto-detected current flow session: ${data.session_id}`);
+        setCurrentSessionId(data.session_id);
+      } else if (!data.has_current_flow && currentSessionId) {
+        console.log('ℹ️ No current flow detected, clearing session');
+        setCurrentSessionId(null);
+      }
+    }
+  });
+
   // Single flow state query with real-time updates
   const flowQuery = useQuery<UnifiedDiscoveryFlowState>({
     queryKey: ['unified-discovery-flow', client?.id, engagement?.id, currentSessionId],
@@ -85,7 +130,26 @@ export const useUnifiedDiscoveryFlow = () => {
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
   });
-  
+
+  // Health check query
+  const healthQuery = useQuery({
+    queryKey: ['unified-discovery-health'],
+    queryFn: async () => {
+      const response = await apiCall('/api/v1/unified-discovery/flow/health', {
+        method: 'GET',
+        headers: getAuthHeaders()
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Health check failed: ${response.statusText}`);
+      }
+      
+      return response.json();
+    },
+    refetchInterval: 30000, // Health check every 30 seconds
+    enabled: !!client && !!engagement
+  });
+
   // Initialize flow mutation
   const initializeFlowMutation = useMutation({
     mutationFn: async (params: FlowInitializationParams) => {
@@ -111,6 +175,9 @@ export const useUnifiedDiscoveryFlow = () => {
       // Invalidate and refetch flow state
       queryClient.invalidateQueries({ 
         queryKey: ['unified-discovery-flow', client?.id, engagement?.id] 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['current-discovery-flow', client?.id, engagement?.id] 
       });
     },
     onError: (error) => {
@@ -151,55 +218,34 @@ export const useUnifiedDiscoveryFlow = () => {
       });
     }
   });
-  
-  // Health check query
-  const healthQuery = useQuery({
-    queryKey: ['unified-discovery-health'],
-    queryFn: async () => {
-      const response = await apiCall('/api/v1/unified-discovery/flow/health', {
-        method: 'GET',
-        headers: getAuthHeaders()
-      });
-      
-      if (!response.ok) {
-        throw new Error('Health check failed');
-      }
-      
-      return response.json();
-    },
-    refetchInterval: 30000, // Health check every 30 seconds
-    retry: 3
-  });
-  
-  // Initialize flow with default parameters
-  const initializeFlow = useCallback(async (rawData: any[], metadata: Record<string, any> = {}) => {
+
+  // Convenience functions
+  const initializeFlow = useCallback(async (params: Omit<FlowInitializationParams, 'client_account_id' | 'engagement_id' | 'user_id'>) => {
     if (!client || !engagement || !user) {
-      throw new Error('Missing required authentication context');
+      throw new Error('Missing required context');
     }
     
-    const params: FlowInitializationParams = {
+    return initializeFlowMutation.mutateAsync({
+      ...params,
       client_account_id: client.id,
       engagement_id: engagement.id,
-      user_id: user.id,
-      raw_data: rawData,
-      metadata,
-      configuration: {}
-    };
-    
-    return initializeFlowMutation.mutateAsync(params);
+      user_id: user.id
+    });
   }, [client, engagement, user, initializeFlowMutation]);
-  
-  // Execute specific phase with data
-  const executeFlowPhase = useCallback(async (phase: string, data?: any, configuration?: Record<string, any>) => {
+
+  const executeFlowPhase = useCallback(async (phase: string, data: any = {}, configuration: Record<string, any> = {}) => {
     return executePhase.mutateAsync({ phase, data, configuration });
   }, [executePhase]);
-  
-  // Get phase-specific data helpers
+
+  // Get data for a specific phase
   const getPhaseData = useCallback((phase: string) => {
     const state = flowQuery.data;
     if (!state) return null;
     
     switch (phase) {
+      case 'data_import':
+      case 'raw_data':
+        return state.raw_data;
       case 'field_mapping':
         return state.field_mappings;
       case 'data_cleansing':
@@ -258,13 +304,25 @@ export const useUnifiedDiscoveryFlow = () => {
     queryClient.removeQueries({ 
       queryKey: ['unified-discovery-flow', client?.id, engagement?.id] 
     });
+    queryClient.removeQueries({ 
+      queryKey: ['current-discovery-flow', client?.id, engagement?.id] 
+    });
   }, [queryClient, client, engagement]);
+
+  // Force set session ID (for URL-based navigation)
+  const setSessionId = useCallback((sessionId: string | null) => {
+    if (sessionId !== currentSessionId) {
+      console.log(`🔄 Manually setting session ID: ${sessionId}`);
+      setCurrentSessionId(sessionId);
+    }
+  }, [currentSessionId]);
   
   return {
     // Flow state
     flowState: flowQuery.data,
-    isLoading: flowQuery.isLoading,
-    error: flowQuery.error,
+    currentFlow: currentFlowQuery.data,
+    isLoading: flowQuery.isLoading || currentFlowQuery.isLoading,
+    error: flowQuery.error || currentFlowQuery.error,
     isHealthy: healthQuery.data?.status === 'healthy',
     
     // Flow control
@@ -272,6 +330,7 @@ export const useUnifiedDiscoveryFlow = () => {
     executeFlowPhase,
     refreshFlow,
     resetFlow,
+    setSessionId,
     
     // Phase helpers
     getPhaseData,
@@ -280,20 +339,21 @@ export const useUnifiedDiscoveryFlow = () => {
     canProceedToPhase,
     
     // Current state
-    currentPhase: flowQuery.data?.current_phase || 'initialization',
-    progress: flowQuery.data?.progress_percentage || 0,
-    status: flowQuery.data?.status || 'idle',
+    currentPhase: flowQuery.data?.current_phase || currentFlowQuery.data?.current_phase || 'initialization',
+    progress: flowQuery.data?.progress_percentage || currentFlowQuery.data?.progress_percentage || 0,
+    status: flowQuery.data?.status || currentFlowQuery.data?.status || 'idle',
     
     // Session management
     sessionId: currentSessionId,
-    hasActiveSession: !!currentSessionId,
+    hasActiveSession: !!currentSessionId || !!currentFlowQuery.data?.has_current_flow,
+    hasCurrentFlow: currentFlowQuery.data?.has_current_flow || false,
     
     // Mutation states
     isInitializing: initializeFlowMutation.isPending,
     isExecutingPhase: executePhase.isPending,
     
     // Real-time updates
-    lastUpdated: flowQuery.data?.updated_at,
+    lastUpdated: flowQuery.data?.updated_at || currentFlowQuery.data?.updated_at,
     
     // Error handling
     errors: flowQuery.data?.errors || [],

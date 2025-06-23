@@ -118,9 +118,34 @@ export const useFlowResumption = () => {
   
   return useMutation({
     mutationFn: async (sessionId: string) => {
-      return await apiCall(`/discovery/flows/${sessionId}/resume`, {
-        method: 'POST'
+      // Prepare the request body
+      const requestBody = {
+        resume_context: {},
+        force_resume: false
+      };
+      
+      console.log('🔄 Flow resumption request:', {
+        sessionId,
+        endpoint: `/discovery/flows/${sessionId}/resume`,
+        body: requestBody
       });
+      
+      // Make the API call with explicit body handling
+      try {
+        const response = await apiCall(`/discovery/flows/${sessionId}/resume`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(requestBody)
+        });
+        
+        console.log('✅ Flow resumption response:', response);
+        return response;
+      } catch (error) {
+        console.error('❌ Flow resumption error:', error);
+        throw error;
+      }
     },
     onSuccess: (data, sessionId) => {
       // Invalidate incomplete flows query to refresh UI
@@ -134,6 +159,8 @@ export const useFlowResumption = () => {
       });
     },
     onError: (error: any, sessionId) => {
+      console.error('Flow resumption failed:', error);
+      
       toast({
         title: "Flow Resumption Failed",
         description: error?.message || `Failed to resume flow ${sessionId.substring(0, 8)}...`,
