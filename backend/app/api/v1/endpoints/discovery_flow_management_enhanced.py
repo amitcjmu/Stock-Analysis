@@ -12,7 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel, Field
 
 from app.core.database import get_db
-from app.core.context import get_context, RequestContext
+from app.core.middleware import get_current_context_dependency
+from app.core.context import RequestContext
 from app.services.crewai_flows.discovery_flow_state_manager import DiscoveryFlowStateManager
 from app.services.crewai_flows.flow_state_bridge import create_flow_state_bridge
 from app.services.crewai_flows.postgresql_flow_persistence import PostgreSQLFlowPersistence
@@ -89,7 +90,7 @@ class FlowPersistenceStatusResponse(BaseModel):
 async def validate_flow_state(
     session_id: str,
     request: FlowStateValidationRequest,
-    context: RequestContext = Depends(get_context),
+    context: RequestContext = Depends(get_current_context_dependency),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -153,7 +154,7 @@ async def validate_flow_state(
 async def recover_flow_state(
     session_id: str,
     request: FlowRecoveryRequest,
-    context: RequestContext = Depends(get_context),
+    context: RequestContext = Depends(get_current_context_dependency),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -216,7 +217,7 @@ async def recover_flow_state(
 async def cleanup_expired_flows(
     request: FlowCleanupRequest,
     background_tasks: BackgroundTasks,
-    context: RequestContext = Depends(get_context),
+    context: RequestContext = Depends(get_current_context_dependency),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -282,7 +283,7 @@ async def cleanup_expired_flows(
 @router.get("/flows/{session_id}/persistence-status", response_model=FlowPersistenceStatusResponse)
 async def get_flow_persistence_status(
     session_id: str,
-    context: RequestContext = Depends(get_context),
+    context: RequestContext = Depends(get_current_context_dependency),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -350,7 +351,7 @@ async def get_flow_persistence_status(
 @router.post("/flows/bulk-validate")
 async def bulk_validate_flows(
     session_ids: List[str],
-    context: RequestContext = Depends(get_context),
+    context: RequestContext = Depends(get_current_context_dependency),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -437,7 +438,7 @@ async def _post_cleanup_validation(context: RequestContext, cleaned_session_ids:
 
 @router.get("/health/persistence")
 async def check_persistence_health(
-    context: RequestContext = Depends(get_context),
+    context: RequestContext = Depends(get_current_context_dependency),
     db: AsyncSession = Depends(get_db)
 ):
     """

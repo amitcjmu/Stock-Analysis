@@ -14,7 +14,7 @@ CREWAI_AVAILABLE = bool(os.getenv('DEEPINFRA_API_KEY') and os.getenv('CREWAI_ENA
 
 try:
     from app.services.crewai_flows.data_cleansing_crew import create_data_cleansing_crew
-    from app.services.crewai_flows.inventory_building_crew import create_inventory_building_crew
+    from app.services.crewai_flows.crews.inventory_building_crew import create_inventory_building_crew
     CREWS_AVAILABLE = True
 except ImportError:
     CREWS_AVAILABLE = False

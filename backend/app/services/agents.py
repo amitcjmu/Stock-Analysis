@@ -19,8 +19,8 @@ if not CREWAI_AVAILABLE:
     logging.warning("CrewAI not available. Using fallback mode.")
 
 try:
-    from app.services.crewai_flows.inventory_building_crew import create_inventory_building_crew
-    from app.services.crewai_flows.field_mapping_crew import create_field_mapping_crew
+    from app.services.crewai_flows.crews.inventory_building_crew import create_inventory_building_crew
+    from app.services.crewai_flows.crews.field_mapping_crew import create_field_mapping_crew
     from app.services.crewai_flows.technical_debt_crew import create_technical_debt_crew
     from app.services.crewai_flows.data_cleansing_crew import create_data_cleansing_crew
     from app.services.crewai_flows.app_server_dependency_crew import create_app_server_dependency_crew

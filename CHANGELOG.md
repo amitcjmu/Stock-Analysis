@@ -61,6 +61,12 @@ This release completes the hybrid persistence architecture implementation by add
 - **User Experience**: Enterprise-grade UI with intuitive flow management capabilities
 - **Production Ready**: Comprehensive error handling, monitoring, and user feedback systems
 
+### 🔧 **Critical Import Fixes**
+- **Context Dependency**: Fixed import error with `get_context` - updated to use `get_current_context_dependency`
+- **CrewAI Imports**: Fixed incorrect import paths for `inventory_building_crew` module
+- **API Startup**: Resolved import issues preventing API router from loading
+- **Docker Compatibility**: Ensured all enhanced endpoints work correctly in containerized environment
+
 ## [0.2.16] - 2025-01-23
 
 ### 🛡️ **ADMIN PAGE ACCESS FIX FOR PLATFORM ADMINISTRATORS**
