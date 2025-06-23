@@ -60,65 +60,69 @@ class ValidateAssetRequest(BaseModel):
     validation_results: Optional[Dict[str, Any]] = Field(default={}, description="Validation results")
 
 class DiscoveryFlowResponse(BaseModel):
-    """Response model for discovery flow"""
+    """Response model for discovery flow - V2 Clean Architecture"""
     id: str
     flow_id: str
     client_account_id: str
     engagement_id: str
     user_id: str
-    current_phase: str
-    progress_percentage: float
+    import_session_id: Optional[str]
+    data_import_id: Optional[str]
+    flow_name: str
+    flow_description: Optional[str]
     status: str
-    phase_completion: Dict[str, bool]
-    raw_data: List[Dict[str, Any]]
-    field_mappings: Optional[Dict[str, Any]]
-    cleaned_data: Dict[str, Any]
-    asset_inventory: Optional[Dict[str, Any]]
-    dependencies: Optional[Dict[str, Any]]
-    tech_debt: Optional[Dict[str, Any]]
-    crew_status: Dict[str, Any]
-    agent_insights: List[Dict[str, Any]]
-    errors: List[Dict[str, Any]]
-    warnings: List[Dict[str, Any]]
+    progress_percentage: float
+    phases: Dict[str, bool]
+    crewai_persistence_id: Optional[str]
+    learning_scope: str
+    memory_isolation_level: str
     assessment_ready: bool
+    is_mock: bool
     created_at: Optional[str]
     updated_at: Optional[str]
-    started_at: Optional[str]
     completed_at: Optional[str]
+    migration_readiness_score: float
+    next_phase: Optional[str]
+    is_complete: bool
 
 class DiscoveryAssetResponse(BaseModel):
-    """Response model for discovery asset"""
+    """Response model for discovery asset - V2 Clean Architecture"""
     id: str
     discovery_flow_id: str
+    client_account_id: str
+    engagement_id: str
     asset_name: str
-    asset_type: str
+    asset_type: Optional[str]
     asset_subtype: Optional[str]
-    asset_data: Dict[str, Any]
+    raw_data: Dict[str, Any]
+    normalized_data: Optional[Dict[str, Any]]
     discovered_in_phase: str
     discovery_method: Optional[str]
-    quality_score: float
-    validation_status: str
-    confidence_score: float
-    tech_debt_score: float
-    six_r_recommendation: Optional[str]
+    confidence_score: Optional[float]
     migration_ready: bool
+    migration_complexity: Optional[str]
+    migration_priority: Optional[int]
+    asset_status: str
+    validation_status: str
+    is_mock: bool
     created_at: Optional[str]
     updated_at: Optional[str]
 
 class FlowSummaryResponse(BaseModel):
-    """Response model for flow summary"""
+    """Response model for flow summary - V2 Clean Architecture"""
     flow_id: str
+    flow_name: str
     status: str
-    current_phase: str
+    next_phase: Optional[str]
     progress_percentage: float
-    phase_completion: Dict[str, bool]
+    phases: Dict[str, bool]
     completed_phases: int
     total_phases: int
-    assets: Dict[str, Any]
+    assets_summary: Dict[str, Any]
     timestamps: Dict[str, Optional[str]]
     assessment_ready: bool
-    crew_status: Dict[str, Any]
-    agent_insights: List[Dict[str, Any]]
+    migration_readiness_score: float
+    is_complete: bool
 
 
 # === API Endpoints ===
@@ -477,6 +481,41 @@ async def sync_crewai_state(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to sync CrewAI state")
 
 
+# === Asset Creation Bridge ===
+
+@router.post("/flows/{flow_id}/create-assets", response_model=Dict[str, Any])
+async def create_assets_from_discovery(
+    flow_id: str,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+):
+    """
+    Create assets in main inventory from discovery flow results.
+    Critical bridge for completing inventory phase and handoff to assessment.
+    """
+    try:
+        logger.info(f"🏗️ Creating assets from discovery flow: {flow_id}")
+        
+        # Import the service here to avoid circular imports
+        from app.services.asset_creation_bridge_service import AssetCreationBridgeService
+        
+        bridge_service = AssetCreationBridgeService(db, context)
+        result = await bridge_service.create_assets_from_discovery(
+            discovery_flow_id=uuid.UUID(flow_id),
+            user_id=uuid.UUID(context.user_id) if context.user_id else None
+        )
+        
+        logger.info(f"✅ Asset creation completed for flow: {flow_id}")
+        return result
+        
+    except ValueError as e:
+        logger.error(f"❌ Validation error: {e}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        logger.error(f"❌ Failed to create assets from discovery flow {flow_id}: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to create assets from discovery")
+
+
 # === Health Check ===
 
 @router.get("/health", dependencies=[])
@@ -494,6 +533,7 @@ async def health_check():
             "phase_completion_tracking",
             "asset_normalization",
             "crewai_integration",
-            "assessment_handoff_preparation"
+            "assessment_handoff_preparation",
+            "asset_creation_bridge"
         ]
     } 

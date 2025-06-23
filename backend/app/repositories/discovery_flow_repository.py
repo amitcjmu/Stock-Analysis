@@ -47,15 +47,14 @@ class DiscoveryFlowRepository(ContextAwareRepository):
         demo_user_id = uuid.UUID("33333333-3333-3333-3333-333333333333")
         
         flow = DiscoveryFlow(
-            flow_id=flow_id,  # CrewAI generated - single source of truth
+            flow_id=uuid.UUID(flow_id) if len(flow_id) == 36 else uuid.uuid4(),  # Handle both UUID and string flow IDs
             client_account_id=uuid.UUID(self.client_account_id) if self.client_account_id else demo_client_id,
             engagement_id=uuid.UUID(self.engagement_id) if self.engagement_id else demo_engagement_id,
-            user_id=uuid.UUID(user_id) if user_id else demo_user_id,
+            user_id=str(uuid.UUID(user_id)) if user_id else str(demo_user_id),
             import_session_id=uuid.UUID(import_session_id) if import_session_id else None,
-            current_phase="data_import",
+            flow_name=f"Discovery Flow {flow_id[:8]}",
             status="active",
-            raw_data=raw_data or [],
-            started_at=datetime.utcnow()
+            crewai_state_data=metadata or {}
         )
         
         self.db.add(flow)
@@ -102,7 +101,6 @@ class DiscoveryFlowRepository(ContextAwareRepository):
         
         # Build update values based on phase
         update_values = {
-            "current_phase": phase,
             "updated_at": datetime.utcnow()
         }
         
@@ -119,24 +117,18 @@ class DiscoveryFlowRepository(ContextAwareRepository):
         if phase in phase_completion_map:
             update_values[phase_completion_map[phase]] = True
         
-        # Store phase-specific data
-        phase_data_map = {
-            "attribute_mapping": "field_mappings",
-            "data_cleansing": "cleaned_data",
-            "inventory": "asset_inventory",
-            "dependencies": "dependencies",
-            "tech_debt": "tech_debt"
-        }
-        
-        if phase in phase_data_map:
-            update_values[phase_data_map[phase]] = data
-        
-        # Update crew status and agent insights
-        if crew_status:
-            update_values["crew_status"] = crew_status
-        
-        if agent_insights:
-            update_values["agent_insights"] = agent_insights
+        # Store phase-specific data in crewai_state_data
+        if data:
+            # Get existing flow to merge data
+            existing_flow = await self.get_by_flow_id(flow_id)
+            if existing_flow:
+                state_data = existing_flow.crewai_state_data or {}
+                state_data[phase] = data
+                if crew_status:
+                    state_data["crew_status"] = crew_status
+                if agent_insights:
+                    state_data["agent_insights"] = agent_insights
+                update_values["crewai_state_data"] = state_data
         
         # Calculate progress percentage
         completed_phases = 0
@@ -197,7 +189,6 @@ class DiscoveryFlowRepository(ContextAwareRepository):
                     }.items() if completed
                 ],
                 "quality_metrics": {
-                    "avg_quality_score": 0.0,
                     "avg_confidence_score": 0.0,
                     "validation_status_distribution": {}
                 }
@@ -208,10 +199,10 @@ class DiscoveryFlowRepository(ContextAwareRepository):
         
         # Calculate quality metrics
         if flow.assets:
-            total_quality = sum(asset.quality_score or 0.0 for asset in flow.assets)
             total_confidence = sum(asset.confidence_score or 0.0 for asset in flow.assets)
-            assessment_package["summary"]["quality_metrics"]["avg_quality_score"] = total_quality / len(flow.assets)
             assessment_package["summary"]["quality_metrics"]["avg_confidence_score"] = total_confidence / len(flow.assets)
+            # Remove avg_quality_score as it doesn't exist in DiscoveryAsset model
+            del assessment_package["summary"]["quality_metrics"]["avg_quality_score"]
             
             # Asset type distribution
             asset_types = {}
@@ -326,7 +317,7 @@ class DiscoveryAssetRepository(ContextAwareRepository):
                 asset_data=asset_data,
                 discovered_in_phase=discovered_in_phase,
                 discovery_method="crewai_discovery_flow",
-                quality_score=asset_data.get('quality_score', 0.0),
+                # quality_score field doesn't exist in DiscoveryAsset model
                 confidence_score=asset_data.get('confidence_score', 0.0),
                 validation_status="pending"
             )
