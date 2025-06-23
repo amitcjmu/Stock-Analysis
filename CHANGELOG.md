@@ -1552,3 +1552,52 @@ field_mapping = {
 - **Data Accuracy**: No more silent failures or lost form data
 - **API Consistency**: Response data matches updated database values
 - **Error Reduction**: Eliminated "changes lost in ether" issue completely
+
+## [0.2.17] - 2025-01-23
+
+### 🔧 **COMPREHENSIVE ADMIN CRUD FIELD MAPPING FIX**
+
+This release completely resolves the critical issue where admin form changes appeared to work on the frontend but weren't being saved to the database properly across ALL admin management pages (clients, engagements, and users). Additionally, implements advanced role-based security for user profile management.
+
+### 🚀 **Complete Admin System Field Mapping Resolution**
+
+#### **Client Management Fix**
+- **Issue**: Frontend `account_name` field wasn't mapping to database `name` field
+- **Root Cause**: Update handler using simple `hasattr()` check instead of proper field mapping
+- **Solution**: Comprehensive field mapping with all frontend-to-database field translations
+- **Fields Fixed**: `account_name`, `primary_contact_phone`, `billing_contact_email`, `settings`, `branding`
+- **Complex Fields**: Proper handling of JSON fields for business objectives, IT guidelines, decision criteria
+
+#### **Engagement Management Fix**
+- **Issue**: Frontend engagement form fields not mapping to database model fields
+- **Solution**: Enhanced field mapping for engagement-specific fields
+- **Fields Fixed**: `engagement_name` → `name`, `migration_phase` → `status`, date fields, budget handling
+- **Budget Integration**: Proper storage in settings JSON field with currency support
+
+#### **User Management Fix**
+- **Issue**: Missing `get_user_profile` and `update_user_profile` methods in RBAC system
+- **Solution**: Implemented complete user profile management with field mapping
+- **Fields Fixed**: `full_name` split into `first_name`/`last_name`, profile fields, notification preferences
+- **Integration**: Added methods to UserManagementHandler and RBACService
+
+#### **Response Conversion Enhancement**
+- **Issue**: API responses missing updated field values (showing null for updated fields)
+- **Solution**: Enhanced `_convert_client_to_response` method with all field mappings
+- **Validation Fix**: Proper type checking for budget_constraints and timeline_constraints
+- **JSON Field Extraction**: Proper handling of complex JSON field structures
+
+### 🔒 **Advanced Role-Based Security Implementation**
+
+#### **Role-Based Context Exemption**
+- **Security Issue**: Static exempt paths could allow unauthorized access to user profiles
+- **Solution**: Dynamic role-based exemption in context middleware
+- **Implementation**: Platform admins can access user profile endpoints without client context
+- **Security**: Non-admin users and unauthenticated requests still require full context validation
+- **Admin Detection**: Real-time database lookup of user roles for exemption decisions
+
+#### **Security Validation Results**
+- ✅ **Platform Admin Access**: Can update user profiles without client context
+- ✅ **Non-Admin Blocked**: Regular users still require client context headers
+- ✅ **Unauthenticated Blocked**: Requests without X-User-ID header are rejected
+- ✅ **Authorization Check**: Database validation of platform_admin role before exemption
+- ✅ **Audit Trail**: All admin exemptions logged for security monitoring

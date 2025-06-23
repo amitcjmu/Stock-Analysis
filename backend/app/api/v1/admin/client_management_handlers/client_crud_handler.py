@@ -6,7 +6,7 @@ import logging
 from typing import Dict, Any
 from fastapi import HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, text
+from sqlalchemy import select, func, text, and_
 from datetime import datetime, timedelta
 
 from app.schemas.admin_schemas import (
@@ -131,7 +131,7 @@ class ClientCRUDHandler:
         db: AsyncSession,
         admin_user: str
     ) -> AdminSuccessResponse:
-        """Update client account"""
+        """Update client account with proper field mapping."""
         try:
             if not CLIENT_MODELS_AVAILABLE:
                 raise HTTPException(status_code=503, detail="Client models not available")
@@ -143,10 +143,96 @@ class ClientCRUDHandler:
             if not client:
                 raise HTTPException(status_code=404, detail="Client account not found")
             
-            # Update fields
-            for field, value in update_data.dict(exclude_unset=True).items():
-                if hasattr(client, field):
-                    setattr(client, field, value)
+            # Get update data as dictionary for field mapping
+            update_dict = update_data.dict(exclude_unset=True)
+            
+            # Field mapping from frontend to database model
+            field_mapping = {
+                'account_name': 'name',  # Frontend sends 'account_name', DB expects 'name'
+                'industry': 'industry',
+                'company_size': 'company_size',
+                'headquarters_location': 'headquarters_location',
+                'primary_contact_name': 'primary_contact_name',
+                'primary_contact_email': 'primary_contact_email',
+                'primary_contact_phone': 'primary_contact_phone',
+                'description': 'description',
+                'subscription_tier': 'subscription_tier',
+                'billing_contact_email': 'billing_contact_email',
+                'settings': 'settings',
+                'branding': 'branding',
+                'it_guidelines': 'it_guidelines',
+                'decision_criteria': 'decision_criteria',
+                'agent_preferences': 'agent_preferences'
+            }
+            
+            # Update basic fields with direct mapping
+            for frontend_field, db_field in field_mapping.items():
+                if frontend_field in update_dict and update_dict[frontend_field] is not None:
+                    value = update_dict[frontend_field]
+                    if hasattr(client, db_field):
+                        setattr(client, db_field, value)
+            
+            # Handle complex fields that need special processing
+            if 'business_objectives' in update_dict:
+                # Business objectives can be a list or need to be stored in the JSON structure
+                current_objectives = client.business_objectives or {}
+                if not isinstance(current_objectives, dict):
+                    current_objectives = {"primary_goals": []}
+                
+                if isinstance(update_dict['business_objectives'], list):
+                    current_objectives['primary_goals'] = update_dict['business_objectives']
+                else:
+                    current_objectives.update(update_dict['business_objectives'])
+                
+                client.business_objectives = current_objectives
+            
+            if 'target_cloud_providers' in update_dict:
+                # Store target cloud providers in IT guidelines
+                current_it_guidelines = client.it_guidelines or {}
+                if not isinstance(current_it_guidelines, dict):
+                    current_it_guidelines = {}
+                
+                current_it_guidelines['target_cloud_providers'] = update_dict['target_cloud_providers']
+                client.it_guidelines = current_it_guidelines
+            
+            if 'business_priorities' in update_dict:
+                # Store business priorities in business objectives
+                current_objectives = client.business_objectives or {}
+                if not isinstance(current_objectives, dict):
+                    current_objectives = {}
+                
+                current_objectives['business_priorities'] = update_dict['business_priorities']
+                client.business_objectives = current_objectives
+            
+            if 'compliance_requirements' in update_dict:
+                # Store compliance requirements in business objectives
+                current_objectives = client.business_objectives or {}
+                if not isinstance(current_objectives, dict):
+                    current_objectives = {}
+                
+                current_objectives['compliance_requirements'] = update_dict['compliance_requirements']
+                client.business_objectives = current_objectives
+            
+            if 'budget_constraints' in update_dict:
+                # Store budget constraints in business objectives
+                current_objectives = client.business_objectives or {}
+                if not isinstance(current_objectives, dict):
+                    current_objectives = {}
+                
+                current_objectives['budget_constraints'] = update_dict['budget_constraints']
+                client.business_objectives = current_objectives
+            
+            if 'timeline_constraints' in update_dict:
+                # Store timeline constraints in business objectives
+                current_objectives = client.business_objectives or {}
+                if not isinstance(current_objectives, dict):
+                    current_objectives = {}
+                
+                current_objectives['timeline_constraints'] = update_dict['timeline_constraints']
+                client.business_objectives = current_objectives
+            
+            # Update the updated_at timestamp
+            client.updated_at = datetime.utcnow()
             
             await db.commit()
             await db.refresh(client)
@@ -408,12 +494,45 @@ class ClientCRUDHandler:
 
     @staticmethod
     async def _convert_client_to_response(client: Any, db: AsyncSession) -> ClientAccountResponse:
-        """Convert a ClientAccount model to a ClientAccountResponse schema."""
+        """Convert a ClientAccount model to a ClientAccountResponse schema with all fields."""
         
         # Count engagements for this client
         engagement_query = select(func.count()).select_from(Engagement).where(Engagement.client_account_id == client.id)
         engagement_result = await db.execute(engagement_query)
         engagement_count = engagement_result.scalar_one()
+        
+        # Count active engagements
+        active_engagement_query = select(func.count()).select_from(Engagement).where(
+            and_(
+                Engagement.client_account_id == client.id,
+                Engagement.is_active == True
+            )
+        )
+        active_engagement_result = await db.execute(active_engagement_query)
+        active_engagement_count = active_engagement_result.scalar_one()
+        
+        # Extract business objectives, IT guidelines, etc. from JSON fields
+        business_objectives = client.business_objectives or {}
+        it_guidelines = client.it_guidelines or {}
+        decision_criteria = client.decision_criteria or {}
+        agent_preferences = client.agent_preferences or {}
+        
+        # Extract arrays from business objectives
+        primary_goals = business_objectives.get('primary_goals', []) if isinstance(business_objectives, dict) else []
+        compliance_requirements = business_objectives.get('compliance_requirements', []) if isinstance(business_objectives, dict) else []
+        business_priorities = business_objectives.get('business_priorities', []) if isinstance(business_objectives, dict) else []
+        
+        # Handle budget_constraints and timeline_constraints with proper type checking
+        budget_constraints = business_objectives.get('budget_constraints') if isinstance(business_objectives, dict) else None
+        if budget_constraints is not None and not isinstance(budget_constraints, dict):
+            budget_constraints = None  # Convert non-dict values to None
+            
+        timeline_constraints = business_objectives.get('timeline_constraints') if isinstance(business_objectives, dict) else None
+        if timeline_constraints is not None and not isinstance(timeline_constraints, dict):
+            timeline_constraints = None  # Convert non-dict values to None
+        
+        # Extract target cloud providers from IT guidelines
+        target_cloud_providers = it_guidelines.get('target_cloud_providers', []) if isinstance(it_guidelines, dict) else []
 
         return ClientAccountResponse(
             id=str(client.id),
@@ -424,19 +543,26 @@ class ClientCRUDHandler:
             headquarters_location=client.headquarters_location,
             primary_contact_name=client.primary_contact_name,
             primary_contact_email=client.primary_contact_email,
-            engagement_count=engagement_count,
+            primary_contact_phone=client.primary_contact_phone,
+            description=client.description,
+            subscription_tier=client.subscription_tier,
+            billing_contact_email=client.billing_contact_email,
+            settings=client.settings,
+            branding=client.branding,
+            created_by=str(client.created_by) if client.created_by else None,
+            business_objectives=primary_goals,
+            target_cloud_providers=target_cloud_providers,
+            business_priorities=business_priorities,
+            compliance_requirements=compliance_requirements,
+            it_guidelines=it_guidelines,
+            decision_criteria=decision_criteria,
+            agent_preferences=agent_preferences,
+            budget_constraints=budget_constraints,
+            timeline_constraints=timeline_constraints,
             created_at=client.created_at,
             updated_at=client.updated_at,
             is_active=client.is_active,
-            subscription_tier=client.subscription_tier,
-            description=client.description,
-            business_objectives=[],
-            it_guidelines={},
-            decision_criteria={},
-            agent_preferences={},
-            target_cloud_providers=[],
-            business_priorities=[],
-            compliance_requirements=[],
             total_engagements=engagement_count,
-            active_engagements=0  # Placeholder, needs proper calculation
+            active_engagements=active_engagement_count,
+            engagement_count=engagement_count
         ) 

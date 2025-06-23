@@ -104,6 +104,17 @@ class ContextMiddleware(BaseHTTPMiddleware):
                 is_exempt = True
                 break
 
+        # Role-based exemption for admin endpoints
+        is_admin_endpoint = self._is_admin_endpoint(path)
+        user_id = self._extract_user_id(request)
+        is_platform_admin = False
+        
+        if is_admin_endpoint and user_id:
+            is_platform_admin = await self._check_platform_admin(user_id)
+            if is_platform_admin:
+                is_exempt = True
+                logger.info(f"Admin exemption granted for {path} to user {user_id}")
+
         if is_exempt:
             return await call_next(request)
         
@@ -162,6 +173,48 @@ class ContextMiddleware(BaseHTTPMiddleware):
         except Exception as e:
             logger.error(f"Request processing failed: {e}")
             raise
+    
+    def _is_admin_endpoint(self, path: str) -> bool:
+        """Check if endpoint is admin-only and should allow context exemption for platform admins."""
+        admin_paths = [
+            "/api/v1/admin/",
+            "/api/v1/auth/admin/",
+            "/api/v1/auth/user-profile/",  # User profile management
+            "/api/v1/auth/pending-approvals",
+            "/api/v1/auth/approve-user",
+            "/api/v1/auth/reject-user"
+        ]
+        return any(path.startswith(admin_path) for admin_path in admin_paths)
+    
+    def _extract_user_id(self, request: Request) -> str:
+        """Extract user ID from request headers."""
+        return (
+            request.headers.get("X-User-ID") or
+            request.headers.get("x-user-id") or
+            request.headers.get("X-User-Id")
+        )
+    
+    async def _check_platform_admin(self, user_id: str) -> bool:
+        """Check if user is a platform administrator."""
+        try:
+            from app.core.database import AsyncSessionLocal
+            from app.models.rbac import UserRole
+            from sqlalchemy import select, and_
+            
+            async with AsyncSessionLocal() as db:
+                query = select(UserRole).where(
+                    and_(
+                        UserRole.user_id == user_id,
+                        UserRole.role_type == 'platform_admin',
+                        UserRole.is_active == True
+                    )
+                )
+                result = await db.execute(query)
+                return result.scalar_one_or_none() is not None
+                
+        except Exception as e:
+            logger.error(f"Error checking platform admin status for {user_id}: {e}")
+            return False
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):

@@ -66,6 +66,14 @@ class RBACService:
         """Get all users pending approval."""
         return await self.user_management.get_pending_approvals(admin_user_id)
     
+    async def get_user_profile(self, user_id: str) -> Dict[str, Any]:
+        """Get user profile information."""
+        return await self.user_management.get_user_profile(user_id)
+    
+    async def update_user_profile(self, user_id: str, profile_updates: Dict[str, Any]) -> Dict[str, Any]:
+        """Update user profile information with proper field mapping."""
+        return await self.user_management.update_user_profile(user_id, profile_updates)
+    
     # =========================
     # Access Validation Operations (Delegated to AccessValidationHandler)
     # =========================

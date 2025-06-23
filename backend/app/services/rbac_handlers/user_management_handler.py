@@ -400,4 +400,136 @@ class UserManagementHandler(BaseRBACHandler):
             
         except Exception as e:
             logger.error(f"Error in get_pending_approvals: {e}")
-            return {"status": "error", "message": f"Failed to get pending approvals: {str(e)}"} 
+            return {"status": "error", "message": f"Failed to get pending approvals: {str(e)}"}
+    
+    async def get_user_profile(self, user_id: str) -> Dict[str, Any]:
+        """Get user profile information."""
+        if not self.is_available:
+            return {"status": "error", "message": "RBAC models not available"}
+        
+        try:
+            # Get user profile with related user data
+            query = (
+                select(UserProfile)
+                .options(selectinload(UserProfile.user))
+                .where(UserProfile.user_id == user_id)
+            )
+            
+            result = await self.db.execute(query)
+            user_profile = result.scalar_one_or_none()
+            
+            if not user_profile:
+                return {"status": "error", "message": "User profile not found"}
+            
+            # Convert to response format
+            profile_data = {
+                "user_id": str(user_profile.user_id),
+                "email": user_profile.user.email if user_profile.user else "",
+                "full_name": f"{user_profile.user.first_name} {user_profile.user.last_name}".strip() if user_profile.user else "",
+                "first_name": user_profile.user.first_name if user_profile.user else "",
+                "last_name": user_profile.user.last_name if user_profile.user else "",
+                "status": user_profile.status,
+                "organization": user_profile.organization,
+                "role_description": user_profile.role_description,
+                "requested_access_level": user_profile.requested_access_level,
+                "phone_number": user_profile.phone_number,
+                "manager_email": user_profile.manager_email,
+                "linkedin_profile": user_profile.linkedin_profile,
+                "notification_preferences": user_profile.notification_preferences or {},
+                "last_login_at": user_profile.last_login_at.isoformat() if user_profile.last_login_at else None,
+                "login_count": user_profile.login_count or 0,
+                "created_at": user_profile.created_at.isoformat() if user_profile.created_at else None,
+                "updated_at": user_profile.updated_at.isoformat() if user_profile.updated_at else None,
+                "is_active": user_profile.user.is_active if user_profile.user else False
+            }
+            
+            return {
+                "status": "success",
+                "user_profile": profile_data
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in get_user_profile: {e}")
+            return {"status": "error", "message": f"Failed to get user profile: {str(e)}"}
+    
+    async def update_user_profile(self, user_id: str, profile_updates: Dict[str, Any]) -> Dict[str, Any]:
+        """Update user profile information with proper field mapping."""
+        if not self.is_available:
+            return {"status": "error", "message": "RBAC models not available"}
+        
+        try:
+            # Get user profile with related user data
+            query = (
+                select(UserProfile)
+                .options(selectinload(UserProfile.user))
+                .where(UserProfile.user_id == user_id)
+            )
+            
+            result = await self.db.execute(query)
+            user_profile = result.scalar_one_or_none()
+            
+            if not user_profile:
+                return {"status": "error", "message": "User profile not found"}
+            
+            # Field mapping from frontend to database model
+            user_field_mapping = {
+                'full_name': None,  # Special handling needed - split into first_name and last_name
+                'first_name': 'first_name',
+                'last_name': 'last_name',
+                'email': 'email'
+            }
+            
+            profile_field_mapping = {
+                'organization': 'organization',
+                'role_description': 'role_description',
+                'phone_number': 'phone_number',
+                'manager_email': 'manager_email',
+                'linkedin_profile': 'linkedin_profile',
+                'notification_preferences': 'notification_preferences'
+            }
+            
+            # Update User model fields
+            if user_profile.user:
+                for frontend_field, db_field in user_field_mapping.items():
+                    if frontend_field in profile_updates and profile_updates[frontend_field] is not None:
+                        value = profile_updates[frontend_field]
+                        
+                        if frontend_field == 'full_name':
+                            # Split full_name into first_name and last_name
+                            name_parts = value.strip().split(' ', 1)
+                            user_profile.user.first_name = name_parts[0] if len(name_parts) > 0 else ""
+                            user_profile.user.last_name = name_parts[1] if len(name_parts) > 1 else ""
+                        elif db_field and hasattr(user_profile.user, db_field):
+                            setattr(user_profile.user, db_field, value)
+            
+            # Update UserProfile model fields
+            for frontend_field, db_field in profile_field_mapping.items():
+                if frontend_field in profile_updates and profile_updates[frontend_field] is not None:
+                    value = profile_updates[frontend_field]
+                    if hasattr(user_profile, db_field):
+                        setattr(user_profile, db_field, value)
+            
+            # Update the updated_at timestamp
+            from datetime import datetime
+            user_profile.updated_at = datetime.utcnow()
+            
+            await self.db.commit()
+            await self.db.refresh(user_profile)
+            
+            # Log the update
+            await self._log_access(
+                user_id=user_id,
+                action_type="user_profile_updated",
+                result="success",
+                reason="User profile updated successfully",
+                details={"updated_fields": list(profile_updates.keys())}
+            )
+            
+            # Return updated profile data
+            updated_profile = await self.get_user_profile(user_id)
+            return updated_profile
+            
+        except Exception as e:
+            await self.db.rollback()
+            logger.error(f"Error in update_user_profile: {e}")
+            return {"status": "error", "message": f"Failed to update user profile: {str(e)}"}
