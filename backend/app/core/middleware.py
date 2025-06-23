@@ -109,11 +109,35 @@ class ContextMiddleware(BaseHTTPMiddleware):
         user_id = self._extract_user_id(request)
         is_platform_admin = False
         
-        if is_admin_endpoint and user_id:
+        if is_admin_endpoint:
+            if not user_id:
+                # Block unauthenticated access to admin endpoints
+                logger.warning(f"Unauthenticated access blocked for admin endpoint: {path}")
+                return JSONResponse(
+                    status_code=401,
+                    content={
+                        "error": "Authentication required",
+                        "detail": "Admin endpoints require authentication",
+                        "path": path
+                    }
+                )
+            
             is_platform_admin = await self._check_platform_admin(user_id)
-            if is_platform_admin:
-                is_exempt = True
-                logger.info(f"Admin exemption granted for {path} to user {user_id}")
+            if not is_platform_admin:
+                # Block non-admin access to admin endpoints
+                logger.warning(f"Non-admin access blocked for {path} by user {user_id}")
+                return JSONResponse(
+                    status_code=403,
+                    content={
+                        "error": "Access denied",
+                        "detail": "Platform administrator role required",
+                        "path": path
+                    }
+                )
+            
+            # Grant exemption for platform admins
+            is_exempt = True
+            logger.info(f"Admin exemption granted for {path} to user {user_id}")
 
         if is_exempt:
             return await call_next(request)
@@ -177,12 +201,16 @@ class ContextMiddleware(BaseHTTPMiddleware):
     def _is_admin_endpoint(self, path: str) -> bool:
         """Check if endpoint is admin-only and should allow context exemption for platform admins."""
         admin_paths = [
-            "/api/v1/admin/",
-            "/api/v1/auth/admin/",
-            "/api/v1/auth/user-profile/",  # User profile management
-            "/api/v1/auth/pending-approvals",
-            "/api/v1/auth/approve-user",
-            "/api/v1/auth/reject-user"
+            "/api/v1/admin/",                    # All admin CRUD operations
+            "/api/v1/auth/admin/",               # Admin dashboard and management
+            "/api/v1/auth/user-profile/",        # User profile management
+            "/api/v1/auth/pending-approvals",    # User approval management
+            "/api/v1/auth/approve-user",         # User approval actions
+            "/api/v1/auth/reject-user",          # User rejection actions
+            "/api/v1/auth/active-users",         # Active user management
+            "/api/v1/auth/admin/create-user",    # Admin user creation
+            "/api/v1/auth/admin/access-logs",    # Access log viewing
+            "/api/v1/auth/admin/dashboard-stats" # Admin dashboard statistics
         ]
         return any(path.startswith(admin_path) for admin_path in admin_paths)
     
