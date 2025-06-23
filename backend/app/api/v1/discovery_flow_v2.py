@@ -17,6 +17,7 @@ from pydantic import BaseModel, Field
 from app.core.database import get_db
 from app.core.context import get_current_context, RequestContext
 from app.services.discovery_flow_service import DiscoveryFlowService, DiscoveryFlowIntegrationService
+from app.services.discovery_flow_completion_service import DiscoveryFlowCompletionService
 from app.models.discovery_flow import DiscoveryFlow
 from app.models.discovery_asset import DiscoveryAsset
 
@@ -516,6 +517,156 @@ async def create_assets_from_discovery(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to create assets from discovery")
 
 
+# === Flow Completion & Assessment Handoff ===
+
+@router.get("/flows/{flow_id}/validation", response_model=Dict[str, Any])
+async def validate_flow_completion_readiness(
+    flow_id: str,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+):
+    """Validate if a discovery flow is ready for completion and assessment handoff"""
+    try:
+        logger.info(f"🔍 Validating completion readiness for flow: {flow_id}")
+        
+        completion_service = DiscoveryFlowCompletionService(db, context)
+        validation_results = await completion_service.validate_flow_completion_readiness(
+            uuid.UUID(flow_id)
+        )
+        
+        logger.info(f"✅ Flow validation completed: {flow_id}")
+        return validation_results
+        
+    except ValueError as e:
+        logger.error(f"❌ Validation error: {e}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        logger.error(f"❌ Failed to validate flow completion: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to validate flow completion")
+
+@router.get("/flows/{flow_id}/assessment-ready-assets", response_model=Dict[str, Any])
+async def get_assessment_ready_assets(
+    flow_id: str,
+    migration_ready: Optional[bool] = Query(None, description="Filter by migration readiness"),
+    asset_type: Optional[str] = Query(None, description="Filter by asset type"),
+    min_confidence: Optional[float] = Query(None, description="Minimum confidence score"),
+    validation_status: Optional[str] = Query(None, description="Filter by validation status"),
+    migration_complexity: Optional[str] = Query(None, description="Filter by migration complexity"),
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+):
+    """Get assets that are ready for assessment with optional filtering"""
+    try:
+        logger.info(f"🔍 Getting assessment-ready assets for flow: {flow_id}")
+        
+        # Build filters
+        filters = {}
+        if migration_ready is not None:
+            filters["migration_ready"] = migration_ready
+        if asset_type:
+            filters["asset_type"] = asset_type
+        if min_confidence is not None:
+            filters["min_confidence"] = min_confidence
+        if validation_status:
+            filters["validation_status"] = validation_status
+        if migration_complexity:
+            filters["migration_complexity"] = migration_complexity
+        
+        completion_service = DiscoveryFlowCompletionService(db, context)
+        assets_data = await completion_service.get_assessment_ready_assets(
+            uuid.UUID(flow_id),
+            filters if filters else None
+        )
+        
+        logger.info(f"✅ Retrieved assessment-ready assets for flow: {flow_id}")
+        return assets_data
+        
+    except ValueError as e:
+        logger.error(f"❌ Validation error: {e}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        logger.error(f"❌ Failed to get assessment-ready assets: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to get assessment-ready assets")
+
+class GenerateAssessmentPackageRequest(BaseModel):
+    """Request model for generating assessment package"""
+    selected_asset_ids: Optional[List[str]] = Field(default=None, description="Optional list of specific asset IDs to include")
+
+@router.post("/flows/{flow_id}/assessment-package", response_model=Dict[str, Any])
+async def generate_assessment_package(
+    flow_id: str,
+    request: GenerateAssessmentPackageRequest,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+):
+    """Generate a comprehensive assessment package for handoff to assessment phase"""
+    try:
+        logger.info(f"🎯 Generating assessment package for flow: {flow_id}")
+        
+        completion_service = DiscoveryFlowCompletionService(db, context)
+        assessment_package = await completion_service.generate_assessment_package(
+            uuid.UUID(flow_id),
+            request.selected_asset_ids
+        )
+        
+        logger.info(f"✅ Assessment package generated for flow: {flow_id}")
+        return assessment_package
+        
+    except ValueError as e:
+        logger.error(f"❌ Validation error: {e}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        logger.error(f"❌ Failed to generate assessment package: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to generate assessment package")
+
+class CompleteDiscoveryFlowRequest(BaseModel):
+    """Request model for completing discovery flow"""
+    selected_asset_ids: Optional[List[str]] = Field(default=None, description="Optional list of specific asset IDs to include in assessment")
+
+@router.post("/flows/{flow_id}/complete-with-assessment", response_model=Dict[str, Any])
+async def complete_discovery_flow_with_assessment(
+    flow_id: str,
+    request: CompleteDiscoveryFlowRequest,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+):
+    """Complete discovery flow and generate assessment package for handoff"""
+    try:
+        logger.info(f"🎯 Completing discovery flow with assessment: {flow_id}")
+        
+        completion_service = DiscoveryFlowCompletionService(db, context)
+        
+        # First validate flow readiness
+        validation_results = await completion_service.validate_flow_completion_readiness(
+            uuid.UUID(flow_id)
+        )
+        
+        if not validation_results["is_ready"]:
+            raise ValueError(f"Flow not ready for completion: {validation_results['errors']}")
+        
+        # Generate assessment package
+        assessment_package = await completion_service.generate_assessment_package(
+            uuid.UUID(flow_id),
+            request.selected_asset_ids
+        )
+        
+        # Complete the flow
+        completion_result = await completion_service.complete_discovery_flow(
+            uuid.UUID(flow_id),
+            assessment_package
+        )
+        
+        logger.info(f"✅ Discovery flow completed with assessment: {flow_id}")
+        return completion_result
+        
+    except ValueError as e:
+        logger.error(f"❌ Validation error: {e}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        logger.error(f"❌ Failed to complete discovery flow: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to complete discovery flow")
+
+
 # === Health Check ===
 
 @router.get("/health", dependencies=[])
@@ -534,6 +685,11 @@ async def health_check():
             "asset_normalization",
             "crewai_integration",
             "assessment_handoff_preparation",
-            "asset_creation_bridge"
+            "asset_creation_bridge",
+            "flow_completion_validation",
+            "assessment_ready_asset_selection",
+            "assessment_package_generation",
+            "migration_wave_planning",
+            "six_r_strategy_recommendations"
         ]
     } 
