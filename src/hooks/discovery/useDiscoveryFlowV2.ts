@@ -142,7 +142,6 @@ interface CreateFlowData {
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-const V2_API_BASE = `${API_BASE_URL}/api/v2/discovery-flows`;
 
 // Default headers for multi-tenant context
 const getDefaultHeaders = () => ({
@@ -151,147 +150,144 @@ const getDefaultHeaders = () => ({
   'X-Engagement-Id': '22222222-2222-2222-2222-222222222222'
 });
 
-// API functions
+// API functions - Updated to use unified discovery service
 const apiClient = {
   async createFlow(data: CreateFlowData): Promise<DiscoveryFlowV2> {
-    const response = await fetch(`${V2_API_BASE}/flows`, {
-      method: 'POST',
-      headers: getDefaultHeaders(),
-      body: JSON.stringify(data),
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to create flow: ${response.statusText}`);
+    try {
+      const response = await unifiedDiscoveryService.initializeFlow({
+        raw_data: data.raw_data || [],
+        metadata: data.metadata,
+        import_session_id: data.import_session_id
+      });
+      
+      // Convert unified response to V2 format
+      return {
+        id: response.flow_id,
+        flow_id: response.flow_id,
+        client_account_id: '11111111-1111-1111-1111-111111111111',
+        engagement_id: '22222222-2222-2222-2222-222222222222',
+        user_id: data.user_id || 'default-user',
+        import_session_id: data.import_session_id,
+        flow_name: data.flow_name,
+        flow_description: data.flow_description,
+        status: response.status,
+        progress_percentage: response.progress_percentage || 0,
+        phases: response.phases || {},
+        learning_scope: 'client',
+        memory_isolation_level: 'engagement',
+        assessment_ready: false,
+        is_mock: false,
+        migration_readiness_score: 0,
+        is_complete: response.status === 'completed'
+      } as DiscoveryFlowV2;
+    } catch (error) {
+      console.error('Failed to create flow:', error);
+      throw error;
     }
-    
-    return response.json();
   },
 
   async getFlow(flowId: string): Promise<DiscoveryFlowV2> {
-    const response = await fetch(`${V2_API_BASE}/flows/${flowId}`, {
-      headers: getDefaultHeaders()
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to get flow: ${response.statusText}`);
+    try {
+      const response = await unifiedDiscoveryService.getFlowStatus(flowId);
+      
+      // Convert unified response to V2 format
+      return {
+        id: flowId,
+        flow_id: flowId,
+        client_account_id: '11111111-1111-1111-1111-111111111111',
+        engagement_id: '22222222-2222-2222-2222-222222222222',
+        user_id: 'default-user',
+        flow_name: `Flow ${flowId}`,
+        status: response.status,
+        progress_percentage: response.progress_percentage || 0,
+        phases: response.phases || {},
+        learning_scope: 'client',
+        memory_isolation_level: 'engagement',
+        assessment_ready: response.assessment_ready || false,
+        is_mock: false,
+        migration_readiness_score: response.migration_readiness_score || 0,
+        is_complete: response.status === 'completed'
+      } as DiscoveryFlowV2;
+    } catch (error) {
+      console.error('Failed to get flow:', error);
+      throw error;
     }
-    
-    return response.json();
   },
 
-  async updatePhase(flowId: string, phase: string, data: any): Promise<DiscoveryFlowV2> {
-    const response = await fetch(`${V2_API_BASE}/flows/${flowId}/phase`, {
-      method: 'PUT',
-      headers: getDefaultHeaders(),
-      body: JSON.stringify({ phase, phase_data: data }),
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to update phase: ${response.statusText}`);
+  async updateFlowPhase(flowId: string, phase: string): Promise<DiscoveryFlowV2> {
+    try {
+      const response = await unifiedDiscoveryService.executePhase(flowId, phase);
+      
+      // Convert unified response to V2 format
+      return {
+        id: flowId,
+        flow_id: flowId,
+        client_account_id: '11111111-1111-1111-1111-111111111111',
+        engagement_id: '22222222-2222-2222-2222-222222222222',
+        user_id: 'default-user',
+        flow_name: `Flow ${flowId}`,
+        status: response.status,
+        progress_percentage: response.progress_percentage || 0,
+        phases: response.phases || {},
+        learning_scope: 'client',
+        memory_isolation_level: 'engagement',
+        assessment_ready: response.assessment_ready || false,
+        is_mock: false,
+        migration_readiness_score: response.migration_readiness_score || 0,
+        is_complete: response.status === 'completed',
+        next_phase: response.next_phase
+      } as DiscoveryFlowV2;
+    } catch (error) {
+      console.error('Failed to update flow phase:', error);
+      throw error;
     }
-    
-    return response.json();
   },
 
   async completeFlow(flowId: string): Promise<DiscoveryFlowV2> {
-    const response = await fetch(`${V2_API_BASE}/flows/${flowId}/complete`, {
-      method: 'POST',
-      headers: getDefaultHeaders(),
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to complete flow: ${response.statusText}`);
+    try {
+      const response = await unifiedDiscoveryService.completeFlow(flowId);
+      
+      // Convert unified response to V2 format
+      return {
+        id: flowId,
+        flow_id: flowId,
+        client_account_id: '11111111-1111-1111-1111-111111111111',
+        engagement_id: '22222222-2222-2222-2222-222222222222',
+        user_id: 'default-user',
+        flow_name: `Flow ${flowId}`,
+        status: 'completed',
+        progress_percentage: 100,
+        phases: response.phases || {},
+        learning_scope: 'client',
+        memory_isolation_level: 'engagement',
+        assessment_ready: true,
+        is_mock: false,
+        migration_readiness_score: response.migration_readiness_score || 0,
+        is_complete: true,
+        completed_at: new Date().toISOString()
+      } as DiscoveryFlowV2;
+    } catch (error) {
+      console.error('Failed to complete flow:', error);
+      throw error;
     }
-    
-    return response.json();
-  },
-
-  async getAssets(flowId: string): Promise<DiscoveryAssetV2[]> {
-    const response = await fetch(`${V2_API_BASE}/flows/${flowId}/assets`, {
-      headers: getDefaultHeaders()
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to get assets: ${response.statusText}`);
-    }
-    
-    return response.json();
-  },
-
-  async createAssetsFromDiscovery(flowId: string): Promise<any> {
-    const response = await fetch(`${V2_API_BASE}/flows/${flowId}/create-assets`, {
-      method: 'POST',
-      headers: getDefaultHeaders(),
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to create assets: ${response.statusText}`);
-    }
-    
-    return response.json();
   },
 
   async validateCompletion(flowId: string): Promise<FlowCompletionValidation> {
-    const response = await fetch(`${V2_API_BASE}/flows/${flowId}/validation`, {
-      headers: getDefaultHeaders()
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to validate completion: ${response.statusText}`);
+    try {
+      const response = await unifiedDiscoveryService.getFlowStatus(flowId);
+      
+      return {
+        is_valid: response.assessment_ready || false,
+        missing_phases: [],
+        asset_count: response.total_assets || 0,
+        readiness_score: response.migration_readiness_score || 0,
+        validation_errors: []
+      };
+    } catch (error) {
+      console.error('Failed to validate completion:', error);
+      throw error;
     }
-    
-    return response.json();
-  },
-
-  async getAssessmentReadyAssets(flowId: string, filters?: any): Promise<any> {
-    const params = new URLSearchParams();
-    if (filters) {
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          params.append(key, String(value));
-        }
-      });
-    }
-    
-    const url = `${V2_API_BASE}/flows/${flowId}/assessment-ready-assets${params.toString() ? `?${params.toString()}` : ''}`;
-    const response = await fetch(url, {
-      headers: getDefaultHeaders()
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to get assessment-ready assets: ${response.statusText}`);
-    }
-    
-    return response.json();
-  },
-
-  async generateAssessmentPackage(flowId: string, selectedAssetIds?: string[]): Promise<AssessmentPackage> {
-    const response = await fetch(`${V2_API_BASE}/flows/${flowId}/assessment-package`, {
-      method: 'POST',
-      headers: getDefaultHeaders(),
-      body: JSON.stringify({ selected_asset_ids: selectedAssetIds }),
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to generate assessment package: ${response.statusText}`);
-    }
-    
-    return response.json();
-  },
-
-  async completeWithAssessment(flowId: string, selectedAssetIds?: string[]): Promise<any> {
-    const response = await fetch(`${V2_API_BASE}/flows/${flowId}/complete-with-assessment`, {
-      method: 'POST',
-      headers: getDefaultHeaders(),
-      body: JSON.stringify({ selected_asset_ids: selectedAssetIds }),
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to complete with assessment: ${response.statusText}`);
-    }
-    
-    return response.json();
-  },
+  }
 };
 
 /**
@@ -399,18 +395,7 @@ export function useDiscoveryFlowV2(
       }
     },
     enabled: !!flowId,
-    refetchInterval: (query) => {
-      // Only poll if explicitly enabled and conditions are met
-      if (!shouldPoll()) return false;
-      
-      // Stop polling if flow is completed or failed
-      const flowData = query.state.data;
-      if (flowData?.status === 'completed' || flowData?.status === 'failed') {
-        return false;
-      }
-      
-      return pollInterval;
-    },
+    refetchInterval: false, // DISABLED: No automatic polling - use manual refresh only
     staleTime: 60000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
@@ -468,7 +453,7 @@ export function useDiscoveryFlowV2(
 
   const updatePhaseMutation = useMutation({
     mutationFn: ({ phase, data }: { phase: string; data: any }) =>
-      flowId ? apiClient.updatePhase(flowId, phase, data) : Promise.reject(new Error('No flow ID')),
+      flowId ? apiClient.updateFlowPhase(flowId, phase) : Promise.reject(new Error('No flow ID')),
     onSuccess: (data) => {
       queryClient.setQueryData(flowQueryKey, data);
       toast.success(`Phase ${data.next_phase || 'updated'} completed`);
@@ -647,13 +632,13 @@ export function useDiscoveryFlowList() {
   return useQuery({
     queryKey: ['discoveryFlowsV2'],
     queryFn: async () => {
-      const response = await fetch(`${V2_API_BASE}/flows`, {
-        headers: getDefaultHeaders()
-      });
-      if (!response.ok) {
-        throw new Error(`Failed to get flows: ${response.statusText}`);
+      try {
+        const response = await unifiedDiscoveryService.getActiveFlows();
+        return response.flow_details || [];
+      } catch (error) {
+        console.error('Failed to get flows:', error);
+        throw error;
       }
-      return response.json();
     },
     staleTime: 60000,
   });
@@ -663,13 +648,13 @@ export function useDiscoveryFlowHealth() {
   return useQuery({
     queryKey: ['discoveryFlowV2Health'],
     queryFn: async () => {
-      const response = await fetch(`${V2_API_BASE}/health`);
+      const response = await fetch(`${API_BASE_URL}/health`);
       if (!response.ok) {
         throw new Error(`Health check failed: ${response.statusText}`);
       }
       return response.json();
     },
-    staleTime: 30000,
-    refetchInterval: 30000,
+    staleTime: 300000, // Consider health data fresh for 5 minutes
+    refetchInterval: false, // DISABLED: No automatic health polling
   });
 } 

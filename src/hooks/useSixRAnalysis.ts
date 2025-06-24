@@ -235,29 +235,8 @@ export const useSixRAnalysis = (options: UseSixRAnalysisOptions = {}): [Analysis
       clearInterval(pollingIntervalRef.current);
     }
     
-    pollingIntervalRef.current = setInterval(async () => {
-      if (state.currentAnalysisId && (state.analysisStatus === 'pending' || state.analysisStatus === 'in_progress')) {
-        // Anti-spam: Stop polling after 3 consecutive errors
-        if (consecutiveErrors.current >= 3) {
-          console.warn(`🚫 Stopping polling for analysis ${state.currentAnalysisId} due to consecutive errors`);
-          stopPolling();
-          return;
-        }
-        
-        try {
-          console.log(`Polling analysis ${state.currentAnalysisId} for updates...`);
-          await loadAnalysis(state.currentAnalysisId);
-          consecutiveErrors.current = 0; // Reset error count on success
-          lastSuccessfulPoll.current = Date.now();
-        } catch (error) {
-          consecutiveErrors.current += 1;
-          console.error(`❌ Analysis polling error (attempt ${consecutiveErrors.current}):`, error);
-        }
-      } else {
-        // Stop polling if analysis is completed or no longer active
-        stopPolling();
-      }
-    }, 30000); // Increased from 3000 to 30000 (30 seconds) to reduce log spam
+    // DISABLED: No automatic polling - use manual refresh only
+    console.log('🔇 DISABLED: 6R Analysis polling disabled - use manual refresh instead');
   }, [state.currentAnalysisId, state.analysisStatus, loadAnalysis]);
   
   const stopPolling = useCallback(() => {

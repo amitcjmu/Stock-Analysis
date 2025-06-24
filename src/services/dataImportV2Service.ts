@@ -167,6 +167,30 @@ export const updatePhaseCompletion = async (
 };
 
 /**
+ * Execute discovery flow phase
+ */
+export const executeDiscoveryFlowPhase = async (flowId: string, phase: string): Promise<{
+  success: boolean;
+  current_phase: string;
+  progress_percentage: number;
+  message: string;
+}> => {
+  try {
+    // Use unified discovery service
+    const response = await unifiedDiscoveryService.executePhase(flowId, phase);
+    return {
+      success: true,
+      current_phase: response.current_phase,
+      progress_percentage: response.progress_percentage,
+      message: `Phase ${phase} executed successfully`
+    };
+  } catch (error) {
+    console.error('Error executing discovery flow phase:', error);
+    throw error;
+  }
+};
+
+/**
  * Complete discovery flow
  */
 export const completeDiscoveryFlow = async (flowId: string): Promise<{
@@ -175,17 +199,13 @@ export const completeDiscoveryFlow = async (flowId: string): Promise<{
   message: string;
 }> => {
   try {
-    const response = await apiCall(`/api/v2/discovery-flows/flows/${flowId}/complete`, {
-      method: 'POST',
-      headers: getAuthHeaders()
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || `Failed to complete discovery flow: ${response.statusText}`);
-    }
-
-    return await response.json();
+    // Use unified discovery service
+    const response = await unifiedDiscoveryService.completeFlow(flowId);
+    return {
+      success: true,
+      assessment_package: response.assessment_package || {},
+      message: 'Discovery flow completed successfully'
+    };
   } catch (error) {
     console.error('Error completing discovery flow:', error);
     throw error;
@@ -202,17 +222,14 @@ export const getDiscoveryFlowSummary = async (flowId: string): Promise<{
   phase_progress: Record<string, boolean>;
 }> => {
   try {
-    const response = await apiCall(`/api/v2/discovery-flows/flows/${flowId}/summary`, {
-      method: 'GET',
-      headers: getAuthHeaders()
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || `Failed to get flow summary: ${response.statusText}`);
-    }
-
-    return await response.json();
+    // Use unified discovery service
+    const response = await unifiedDiscoveryService.getFlowStatus(flowId);
+    return {
+      flow: response as DiscoveryFlowResponse,
+      statistics: response.statistics || {},
+      assets_by_type: response.assets_by_type || {},
+      phase_progress: response.phases || {}
+    };
   } catch (error) {
     console.error('Error getting flow summary:', error);
     throw error;
@@ -232,17 +249,9 @@ export const getDiscoveryFlowAssets = async (flowId: string): Promise<Array<{
   validation_status: string;
 }>> => {
   try {
-    const response = await apiCall(`/api/v2/discovery-flows/flows/${flowId}/assets`, {
-      method: 'GET',
-      headers: getAuthHeaders()
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || `Failed to get flow assets: ${response.statusText}`);
-    }
-
-    return await response.json();
+    // Use unified discovery service
+    const response = await unifiedDiscoveryService.getFlowAssets(flowId);
+    return response.assets || [];
   } catch (error) {
     console.error('Error getting flow assets:', error);
     throw error;
@@ -289,18 +298,17 @@ export const checkV2ApiHealth = async (): Promise<{
   version: string;
 }> => {
   try {
-    const response = await apiCall('/api/v2/discovery-flows/health', {
-      method: 'GET',
-      headers: getAuthHeaders()
-    });
-
-    if (!response.ok) {
-      throw new Error(`Health check failed: ${response.statusText}`);
-    }
-
-    return await response.json();
+    // Use unified discovery service health check
+    const response = await unifiedDiscoveryService.checkHealth();
+    return {
+      status: response.status,
+      service: response.service,
+      endpoints_available: 1,
+      database_connected: true,
+      version: response.version || '1.0.0'
+    };
   } catch (error) {
-    console.error('Error checking v2 API health:', error);
+    console.error('Error checking API health:', error);
     throw error;
   }
 };
@@ -319,26 +327,25 @@ export const listDiscoveryFlows = async (
   offset: number;
 }> => {
   try {
-    const params = new URLSearchParams({
-      limit: limit.toString(),
-      offset: offset.toString()
-    });
+    // Use unified discovery service
+    const response = await unifiedDiscoveryService.getActiveFlows();
     
+    // Filter by status if provided
+    let flows = response.flow_details || [];
     if (status) {
-      params.append('status', status);
+      flows = flows.filter(flow => flow.status === status);
     }
-
-    const response = await apiCall(`/api/v2/discovery-flows/flows?${params.toString()}`, {
-      method: 'GET',
-      headers: getAuthHeaders()
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || `Failed to list flows: ${response.statusText}`);
-    }
-
-    return await response.json();
+    
+    // Apply pagination
+    const total = flows.length;
+    const paginatedFlows = flows.slice(offset, offset + limit);
+    
+    return {
+      flows: paginatedFlows,
+      total,
+      limit,
+      offset
+    };
   } catch (error) {
     console.error('Error listing discovery flows:', error);
     throw error;

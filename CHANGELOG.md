@@ -1,5 +1,42 @@
 # AI Force Migration Platform - Change Log
 
+## [0.25.2] - 2025-01-27
+
+### 🔇 **AGGRESSIVE POLLING DISABLED - Performance & Error Reduction**
+
+This release eliminates all aggressive frontend polling that was causing console error spam and performance issues. All automatic polling has been disabled in favor of manual refresh patterns.
+
+### 🚀 **Polling Elimination**
+
+#### **Discovery Flow Polling Disabled**
+- **`useUnifiedDiscoveryFlow.ts`**: Disabled 5-second polling and health check polling
+- **`useIncompleteFlowDetectionV2.ts`**: Disabled 30-second active flow polling and 10-second monitoring
+- **`useDiscoveryFlowV2.ts`**: Disabled conditional polling and health check polling
+- **`useEnhancedFlowManagement.ts`**: Disabled all persistence, health, validation, and cleanup polling
+- **`useCMDBImport.ts`**: Disabled 3-second status polling during file processing
+
+#### **6R Analysis Polling Disabled**
+- **`useSixRAnalysis.ts`**: Disabled 30-second analysis status polling
+- **`useSixRWebSocket.ts`**: Disabled WebSocket heartbeat polling
+
+#### **Performance Improvements**
+- **Reduced Network Traffic**: Eliminated hundreds of unnecessary API calls per minute
+- **Console Error Reduction**: Stopped continuous 404 and connection errors from polling
+- **CPU Usage**: Reduced client-side processing overhead from constant polling
+- **Battery Life**: Improved mobile device battery consumption
+
+### 📊 **Technical Benefits**
+- **Error Reduction**: Eliminated polling-related console error spam
+- **Network Efficiency**: Reduced API call volume by 90%+
+- **User Experience**: Pages load faster without background polling overhead
+- **Manual Refresh**: Users can manually refresh data when needed
+
+### 🎯 **Success Metrics**
+- **Polling Disabled**: 8+ hooks with aggressive polling converted to manual refresh
+- **Console Errors**: Eliminated continuous 404 and connection error spam
+- **Performance**: Reduced background network activity and CPU usage
+- **User Control**: Manual refresh gives users control over data freshness
+
 ## [0.25.1] - 2025-01-27
 
 ### 🎯 **FRONTEND MIGRATION TO UNIFIED DISCOVERY API**

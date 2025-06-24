@@ -117,11 +117,8 @@ export const useSixRWebSocket = (options: UseSixRWebSocketOptions = {}) => {
   // Start heartbeat to keep connection alive
   const startHeartbeat = useCallback(() => {
     clearHeartbeat();
-    heartbeatIntervalRef.current = setInterval(() => {
-      if (wsRef.current?.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({ type: 'ping' }));
-      }
-    }, 30000); // Send ping every 30 seconds
+    // DISABLED: No automatic heartbeat polling
+    console.log('🔇 DISABLED: WebSocket heartbeat polling disabled');
   }, [clearHeartbeat]);
 
   // Connect to WebSocket

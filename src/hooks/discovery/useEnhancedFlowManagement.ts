@@ -177,7 +177,7 @@ export const useEnhancedFlowManagement = () => {
       queryKey: ['flow-persistence-status', sessionId],
       queryFn: () => getFlowPersistenceStatus(sessionId),
       enabled: enabled && !!sessionId,
-      refetchInterval: 30000, // Refresh every 30 seconds
+      refetchInterval: false, // DISABLED: No automatic polling
     });
   };
 
@@ -186,7 +186,7 @@ export const useEnhancedFlowManagement = () => {
     return useQuery({
       queryKey: ['persistence-health'],
       queryFn: checkPersistenceHealth,
-      refetchInterval: 60000, // Refresh every minute
+      refetchInterval: false, // DISABLED: No automatic polling
     });
   };
 
@@ -324,7 +324,7 @@ export const useFlowHealthMonitor = (sessionIds: string[], enabled: boolean = tr
     queryKey: ['flow-health-monitor', sessionIds],
     queryFn: () => performBulkValidation(sessionIds),
     enabled: enabled && sessionIds.length > 0,
-    refetchInterval: 120000, // Check every 2 minutes
+    refetchInterval: false, // DISABLED: No automatic polling
     retry: 2,
   });
 };
@@ -339,7 +339,7 @@ export const useAutomaticCleanup = (enabled: boolean = false) => {
     queryKey: ['automatic-cleanup'],
     queryFn: () => performFlowCleanup({ expirationHours: 72, dryRun: false }),
     enabled,
-    refetchInterval: 24 * 60 * 60 * 1000, // Run daily
+    refetchInterval: false, // DISABLED: No automatic daily polling
     retry: 1,
   });
 }; 

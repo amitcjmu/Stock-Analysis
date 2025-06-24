@@ -156,17 +156,17 @@ export const useUnifiedDiscoveryFlow = (): UseUnifiedDiscoveryFlowReturn => {
     queryKey: ['unifiedDiscoveryFlow', sessionId],
     queryFn: () => sessionId ? unifiedDiscoveryAPI.getFlowStatus(sessionId) : null,
     enabled: !!sessionId,
-    refetchInterval: 5000, // Poll every 5 seconds for real-time updates
-    refetchIntervalInBackground: true,
-    staleTime: 2000,
+    refetchInterval: false, // DISABLED: No automatic polling - use manual refresh
+    refetchIntervalInBackground: false,
+    staleTime: 30000, // Consider data fresh for 30 seconds
   });
 
   // Health check query
   const { data: healthStatus } = useQuery({
     queryKey: ['unifiedDiscoveryFlowHealth'],
     queryFn: unifiedDiscoveryAPI.getHealthStatus,
-    refetchInterval: 30000, // Check health every 30 seconds
-    staleTime: 15000,
+    refetchInterval: false, // DISABLED: No automatic health polling
+    staleTime: 300000, // Consider health data fresh for 5 minutes
   });
 
   // Initialize flow mutation

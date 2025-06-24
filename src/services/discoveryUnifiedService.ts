@@ -7,9 +7,7 @@
 import { apiCall } from '../config/api';
 import { getAuthHeaders } from '../utils/contextUtils';
 
-// Configuration
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-const UNIFIED_API_BASE = `${API_BASE_URL}/api/v1/discovery`;
+// Configuration - API base URL no longer needed as apiCall handles the full URL construction
 
 // Types for unified discovery API
 export interface UnifiedDiscoveryFlowRequest {
@@ -58,7 +56,7 @@ class UnifiedDiscoveryError extends Error {
 const httpClient = {
   async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     try {
-      const response = await apiCall(`${UNIFIED_API_BASE}${endpoint}`, {
+      const response = await apiCall(`/discovery${endpoint}`, {
         ...options,
         headers: {
           'Content-Type': 'application/json',

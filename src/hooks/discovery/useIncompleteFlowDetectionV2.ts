@@ -7,6 +7,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiCall } from '@/config/api';
 import { useToast } from '@/hooks/use-toast';
+import { unifiedDiscoveryService } from '../../services/discoveryUnifiedService';
+import { useCallback } from 'react';
 
 export interface IncompleteFlowV2 {
   flow_id: string;  // Primary identifier - CrewAI Flow ID
@@ -82,9 +84,6 @@ export interface BulkDeleteResultV2 {
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-import { unifiedDiscoveryService } from '../../services/discoveryUnifiedService';
-
-const V2_API_BASE = `${API_BASE_URL}/api/v2/discovery-flows`; // DEPRECATED - Use unified service
 
 // Default headers for multi-tenant context
 const getDefaultHeaders = () => ({
@@ -152,10 +151,10 @@ export const useIncompleteFlowDetectionV2 = () => {
       };
     },
     enabled: !!client?.id && !!engagement?.id,
-    refetchInterval: 30000, // Check every 30 seconds for real-time updates
-    staleTime: 10000, // Consider data stale after 10 seconds
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    refetchInterval: false, // DISABLED: No automatic polling - use manual refresh
+    staleTime: 60000, // Consider data fresh for 1 minute
+    retry: 1, // Reduce retry attempts
+    retryDelay: 5000, // Fixed 5 second delay
   });
 };
 
@@ -185,7 +184,7 @@ export const useNewFlowValidationV2 = () => {
       return { can_start: true };
     },
     enabled: !!incompleteFlows,
-    staleTime: 5000, // Fresh data for validation
+    staleTime: 60000, // Consider validation data fresh for 1 minute
   });
 };
 
@@ -198,7 +197,7 @@ export const useFlowDetailsV2 = (flowId: string | null) => {
     queryFn: async (): Promise<IncompleteFlowV2> => {
       if (!flowId) throw new Error('Flow ID required');
       
-      const response = await fetch(`${V2_API_BASE}/flows/${flowId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/v2/discovery-flows/flows/${flowId}`, {
         headers: getDefaultHeaders()
       });
       
@@ -241,7 +240,7 @@ export const useFlowDetailsV2 = (flowId: string | null) => {
       };
     },
     enabled: !!flowId,
-    staleTime: 15000,
+    staleTime: 300000, // Consider flow details fresh for 5 minutes
   });
 };
 
@@ -259,7 +258,7 @@ export const useFlowResumptionV2 = () => {
       console.log('🔄 V2 Flow continuation request for:', flowId);
       
       // Get flow details to determine next phase
-      const response = await fetch(`${V2_API_BASE}/flows/${flowId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/v2/discovery-flows/flows/${flowId}`, {
         headers: getDefaultHeaders()
       });
       
@@ -328,7 +327,7 @@ export const useFlowDeletionV2 = () => {
       
       console.log('🗑️ V2 Flow deletion request:', { flowId: actualFlowId, forceDelete });
       
-      const response = await fetch(`${V2_API_BASE}/flows/${actualFlowId}?force_delete=${forceDelete}`, {
+      const response = await fetch(`${API_BASE_URL}/api/v2/discovery-flows/flows/${actualFlowId}?force_delete=${forceDelete}`, {
         method: 'DELETE',
         headers: getDefaultHeaders()
       });
@@ -389,7 +388,7 @@ export const useBulkFlowOperationsV2 = () => {
       
       for (const flowId of flow_ids) {
         try {
-          const response = await fetch(`${V2_API_BASE}/flows/${flowId}?force_delete=${force_delete}`, {
+          const response = await fetch(`${API_BASE_URL}/api/v2/discovery-flows/flows/${flowId}?force_delete=${force_delete}`, {
             method: 'DELETE',
             headers: getDefaultHeaders()
           });
@@ -468,7 +467,7 @@ export const useFlowMonitoringV2 = (flowIds: string[]) => {
     queryFn: async () => {
       // Poll multiple flows for status updates
       const promises = flowIds.map(flowId => 
-        fetch(`${V2_API_BASE}/flows/${flowId}`, {
+        fetch(`${API_BASE_URL}/api/v2/discovery-flows/flows/${flowId}`, {
           headers: getDefaultHeaders()
         }).then(res => res.ok ? res.json() : null).catch(() => null)
       );
@@ -476,7 +475,72 @@ export const useFlowMonitoringV2 = (flowIds: string[]) => {
       return results.filter(Boolean);
     },
     enabled: flowIds.length > 0,
-    refetchInterval: 10000, // More frequent updates for active monitoring
+    refetchInterval: false, // DISABLED: No automatic monitoring polling
     staleTime: 5000,
   });
-}; 
+};
+
+// API functions - Updated to use unified discovery service
+const fetchFlowDetails = async (flowId: string): Promise<IncompleteFlow | null> => {
+  try {
+    const response = await unifiedDiscoveryService.getFlowStatus(flowId);
+    
+    // Convert unified response to IncompleteFlow format
+    return {
+      flow_id: flowId,
+      status: response.status,
+      current_phase: response.current_phase || 'unknown',
+      progress_percentage: response.progress_percentage || 0,
+      phases: response.phases || {},
+      last_activity: new Date().toISOString(),
+      is_resumable: response.status !== 'completed' && response.status !== 'failed'
+    };
+  } catch (error) {
+    console.error(`Failed to fetch flow details for ${flowId}:`, error);
+    return null;
+  }
+};
+
+// Delete flow function - Updated to use unified discovery service
+const deleteFlowById = async (flowId: string, forceDelete: boolean = false): Promise<boolean> => {
+  try {
+    // Use unified discovery service for deletion
+    await unifiedDiscoveryService.deleteFlow(flowId, forceDelete);
+    return true;
+  } catch (error) {
+    console.error(`Failed to delete flow ${flowId}:`, error);
+    return false;
+  }
+};
+
+// Continue flow function - Updated to use unified discovery service  
+const continueFlowById = async (flowId: string, force_delete: boolean = false): Promise<boolean> => {
+  try {
+    // Get current flow status first
+    const flowStatus = await unifiedDiscoveryService.getFlowStatus(flowId);
+    
+    if (flowStatus.status === 'completed') {
+      console.log(`Flow ${flowId} is already completed`);
+      return true;
+    }
+    
+    // Continue with next phase
+    const nextPhase = flowStatus.next_phase || 'analysis';
+    await unifiedDiscoveryService.executePhase(flowId, nextPhase);
+    return true;
+  } catch (error) {
+    console.error(`Failed to continue flow ${flowId}:`, error);
+    return false;
+  }
+};
+
+// Health check function - Updated to use unified discovery service
+const checkFlowHealth = useCallback(async (flowId: string): Promise<boolean> => {
+  try {
+    const response = await unifiedDiscoveryService.getFlowStatus(flowId);
+    return response.status !== 'failed';
+  } catch (error) {
+    console.error(`Health check failed for flow ${flowId}:`, error);
+    return false;
+  }
+}, []); 

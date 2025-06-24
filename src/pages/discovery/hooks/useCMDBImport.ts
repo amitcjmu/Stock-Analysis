@@ -359,22 +359,7 @@ export const useAuthenticatedDiscoveryStatus = (sessionId: string | null) => {
       }
     },
     enabled: !!sessionId,
-    refetchInterval: (query) => {
-      const data = query.state.data;
-      
-      // Stop polling if workflow is completed, failed, or idle
-      const shouldStopPolling = data?.status === 'completed' || 
-                              data?.status === 'failed' || 
-                              data?.status === 'idle' ||
-                              data?.status === 'error';
-      
-      const shouldPoll = data?.status === 'running' || 
-                        data?.status === 'in_progress' ||
-                        data?.status === 'processing';
-      
-      // Poll every 3 seconds if workflow is running, otherwise stop
-      return shouldPoll ? 3000 : false;
-    },
+    refetchInterval: false, // DISABLED: No automatic polling - use manual refresh only
     retry: (failureCount, error) => {
       // Only retry on network errors, not on 4xx errors
       if (error.message.includes('Failed to fetch') && failureCount < 3) {

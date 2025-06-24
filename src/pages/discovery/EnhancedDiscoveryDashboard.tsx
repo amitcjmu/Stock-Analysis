@@ -166,9 +166,7 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
       setFlowLoading(true);
       
       // Call V2 continue endpoint to initialize CrewAI orchestration
-      const response = await apiCall(`/api/v2/discovery-flows/flows/${flowId}/continue`, {
-        method: 'POST'
-      });
+      const response = await unifiedDiscoveryService.continueFlow(flowId);
       
       // V2 API returns the flow object directly, not wrapped in success/data
       if (response && response.flow_id) {
@@ -208,7 +206,7 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
       // Fetch real-time active flows from multiple sources
       const [discoveryFlowsResponse, dataImportsResponse] = await Promise.allSettled([
         // Get active Discovery flows
-        apiCall('/api/v2/discovery-flows/flows/active', {
+        apiCall('/discovery/flows/active', {
           method: 'GET',
           headers: getAuthHeaders()
         }),

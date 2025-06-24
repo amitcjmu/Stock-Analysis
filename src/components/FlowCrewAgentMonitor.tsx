@@ -1,16 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Bot, Loader2, AlertTriangle, Activity, Clock, CheckCircle, XCircle, 
   AlertCircle, Play, Pause, StopCircle, RefreshCw, Users, Zap,
   Brain, Network, Target, TrendingUp, Eye, Settings
 } from 'lucide-react';
 import { Alert } from '@/components/ui/alert';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
+import { unifiedDiscoveryService } from '../services/discoveryUnifiedService';
 
 type FlowStatus = 'running' | 'completed' | 'failed' | 'pending' | 'paused';
 type CrewStatus = 'active' | 'completed' | 'failed' | 'pending' | 'paused';
@@ -111,10 +112,18 @@ const FlowCrewAgentMonitor: React.FC = () => {
         headers: getAuthHeaders()
       });
       
-      // Fetch Discovery Flow specific active flows
-              const discoveryFlowResponse = await fetch('/api/v2/discovery-flows/flows/active', {
-        headers: getAuthHeaders()
-      });
+      // Get discovery flows using unified service
+      try {
+        const discoveryData = await unifiedDiscoveryService.getActiveFlows();
+        if (discoveryData.success && discoveryData.flow_details) {
+          const activeFlows = discoveryData.flow_details.filter(flow => 
+            flow.status === 'active' || flow.status === 'in_progress'
+          );
+          setDiscoveryFlows(activeFlows);
+        }
+      } catch (error) {
+        console.error('Failed to fetch discovery flows:', error);
+      }
       
       if (!flowsResponse.ok) {
         throw new Error('Failed to fetch flows data');
@@ -122,7 +131,6 @@ const FlowCrewAgentMonitor: React.FC = () => {
       
       const flowsData = await flowsResponse.json();
       const agentRegistryData = agentRegistryResponse.ok ? await agentRegistryResponse.json() : null;
-      const discoveryFlowData = discoveryFlowResponse.ok ? await discoveryFlowResponse.json() : null;
       
       // Debug logging
       console.log('🔍 Monitoring Data Sources:', {
