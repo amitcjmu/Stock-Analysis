@@ -197,7 +197,16 @@ try:
     from app.api.v1.api import api_router
     app.include_router(api_router, prefix="/api/v1")
     API_ROUTES_ENABLED = True
-    print("✅ API routes loaded successfully")
+    print("✅ API v1 routes loaded successfully")
+except Exception as e:
+    print(f"⚠️  API v1 routes error: {e}")
+    API_ROUTES_ERROR = str(e)
+
+# Try to import API v2 routes
+try:
+    from app.api.v2.api import api_v2_router
+    app.include_router(api_v2_router, prefix="/api/v2")
+    print("✅ API v2 routes loaded successfully")
     
     # Include v2 router directly to avoid /api/v1 prefix
     try:

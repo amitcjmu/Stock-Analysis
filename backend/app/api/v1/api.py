@@ -24,6 +24,13 @@ from app.api.v1.endpoints import (
 # from app.api.v1.endpoints.discovery_flow_management import router as discovery_flow_management_router
 # from app.api.v1.endpoints.discovery_flow_management_enhanced import router as discovery_flow_management_enhanced_router
 
+# V2 Discovery Flow API - MOVED TO /api/v2/ for proper versioning
+# try:
+#     from app.api.v1.discovery_flow_v2 import router as discovery_flow_v2_router
+#     DISCOVERY_FLOW_V2_AVAILABLE = True
+# except ImportError:
+#     DISCOVERY_FLOW_V2_AVAILABLE = False
+
 # Import only existing endpoint files
 from app.api.v1.endpoints.context_establishment import router as context_establishment_router
 
@@ -130,6 +137,13 @@ logger.info("--- Starting API Router Inclusion Process ---")
 # Core Discovery and Analysis
 api_router.include_router(sixr_router, prefix="/6r", tags=["6R Analysis"])
 api_router.include_router(discovery_router, prefix="/discovery", tags=["Discovery"])
+
+# V2 Discovery Flow Management - MOVED TO /api/v2/ for proper versioning
+# if DISCOVERY_FLOW_V2_AVAILABLE:
+#     api_router.include_router(discovery_flow_v2_router, prefix="/discovery-flows-v2", tags=["Discovery Flow v2"])
+#     logger.info("✅ Discovery Flow V2 router included at /discovery-flows-v2")
+# else:
+#     logger.warning("⚠️ Discovery Flow V2 router not available")
 
 # Migrations if available
 if MIGRATIONS_AVAILABLE:
