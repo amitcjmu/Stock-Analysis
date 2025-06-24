@@ -127,35 +127,34 @@ class TestCrewAIFlowMigration:
     @pytest.mark.asyncio
     async def test_initiate_discovery_workflow(self, mock_db_session, sample_context, sample_cmdb_data):
         """Test the main workflow initiation method."""
-        with patch('app.services.crewai_flow_service.WorkflowStateService'):
-            service = CrewAIFlowService(mock_db_session)
+        service = CrewAIFlowService(mock_db_session)
+        
+        # Mock the create_discovery_flow function
+        with patch('app.services.crewai_flow_service.create_discovery_flow') as mock_create:
+            mock_flow = Mock()
+            mock_flow.state = DiscoveryFlowState(
+                session_id="test-session",
+                client_account_id="test-client",
+                engagement_id="test-engagement",
+                user_id="test-user"
+            )
+            mock_create.return_value = mock_flow
             
-            # Mock the create_discovery_flow function
-            with patch('app.services.crewai_flow_service.create_discovery_flow') as mock_create:
-                mock_flow = Mock()
-                mock_flow.state = DiscoveryFlowState(
-                    session_id="test-session",
-                    client_account_id="test-client",
-                    engagement_id="test-engagement",
-                    user_id="test-user"
+            # Mock asyncio.create_task to avoid actual background execution
+            with patch('asyncio.create_task'):
+                result = await service.initiate_discovery_workflow(
+                    sample_cmdb_data, sample_context
                 )
-                mock_create.return_value = mock_flow
-                
-                # Mock asyncio.create_task to avoid actual background execution
-                with patch('asyncio.create_task'):
-                    result = await service.initiate_discovery_workflow(
-                        sample_cmdb_data, sample_context
-                    )
-                
-                # Verify result structure
-                assert "session_id" in result
-                assert "client_account_id" in result
-                assert "status" in result
-                assert "current_phase" in result
-                
-                # Verify flow was created and stored
-                mock_create.assert_called_once()
-                assert "test-session" in service._active_flows or len(service._active_flows) > 0
+            
+            # Verify result structure
+            assert "session_id" in result
+            assert "client_account_id" in result
+            assert "status" in result
+            assert "current_phase" in result
+            
+            # Verify flow was created and stored
+            mock_create.assert_called_once()
+            assert "test-session" in service._active_flows or len(service._active_flows) > 0
     
     def test_native_format_structure(self, mock_db_session):
         """Test that the service returns native DiscoveryFlowState format."""

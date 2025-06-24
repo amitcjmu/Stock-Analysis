@@ -1,122 +1,199 @@
-import { apiCall } from "@/config/api";
+/**
+ * Session Service - DEPRECATED
+ * 
+ * ⚠️ DEPRECATION NOTICE: This service is deprecated in favor of V2 Discovery Flow architecture.
+ * New implementations should use the V2 Discovery Flow API.
+ * 
+ * Migration Guide:
+ * - Use /api/v2/discovery-flows/ endpoints instead of /api/v1/sessions/
+ * - Replace session_id with flow_id patterns
+ * - Use DiscoveryFlowService for flow management
+ */
 
-export type SessionType = 'data_import' | 'validation_run' | 'incremental_update' | 'comparison_analysis' | 'cleanup_operation';
+import { api } from '../config/api';
 
-export interface Session {
-  id: string;
-  session_name: string;
-  session_display_name: string;
-  session_type: SessionType;
-  engagement_id: string;
+export interface SessionData {
+  session_id: string;
   client_account_id: string;
-  is_default: boolean;
-  status: 'active' | 'archived' | 'deleted';
-  auto_created: boolean;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface CreateSessionRequest {
-  session_name: string;
-  session_display_name: string;
   engagement_id: string;
+  status: string;
+  metadata?: Record<string, any>;
+  migration_notice?: string;
+}
+
+export interface SessionCreateRequest {
   client_account_id: string;
-  is_default: boolean;
-  session_type: SessionType;
-  status: 'active' | 'archived' | 'deleted';
-  auto_created: boolean;
-  created_by: string;
+  engagement_id: string;
+  metadata?: Record<string, any>;
 }
 
-export interface MergeSessionsRequest {
-  source_session_id: string;
-  target_session_id: string;
-  merge_strategy: 'preserve_target' | 'overwrite' | 'merge';
+export interface SessionUpdateRequest {
+  metadata?: Record<string, any>;
+  status?: string;
 }
 
-const SESSION_ENDPOINTS = {
-  SESSIONS: '/api/v1/sessions',
-  SESSION_BY_ID: (id: string) => `/api/v1/sessions/${id}`,
-  SET_DEFAULT: (id: string) => `/api/v1/sessions/${id}/set-default`,
-  MERGE: '/api/v1/sessions/merge',
-  ENGAGEMENT_DEFAULT: (engagementId: string) => 
-    `/api/v1/sessions/engagements/${engagementId}/default`,
-  ENGAGEMENT_SESSIONS: (engagementId: string) => 
-    `/api/v1/sessions/engagement/${engagementId}`
-} as const;
+export interface SessionListResponse {
+  sessions: SessionData[];
+  total: number;
+  limit: number;
+  offset: number;
+  message?: string;
+  migration_notice?: string;
+}
 
-export const sessionService = {
-  /**
-   * Create a new session
-   */
-  async createSession(data: CreateSessionRequest): Promise<Session> {
-    return apiCall(SESSION_ENDPOINTS.SESSIONS, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
+class SessionService {
+  private readonly baseUrl = '/api/v1/sessions';
 
   /**
-   * Get a session by ID
+   * ⚠️ DEPRECATED: Create a new session
+   * 
+   * Use V2 Discovery Flow API: POST /api/v2/discovery-flows/
    */
-  async getSession(sessionId: string): Promise<Session> {
-    return apiCall(SESSION_ENDPOINTS.SESSION_BY_ID(sessionId));
-  },
+  async createSession(data: SessionCreateRequest): Promise<SessionData> {
+    console.warn('⚠️ Deprecated: createSession() - Use V2 Discovery Flow API');
+    
+    try {
+      const response = await api.post<SessionData>(this.baseUrl, data);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to create session (deprecated):', error);
+      throw new Error('Session creation deprecated - use V2 Discovery Flow API');
+    }
+  }
 
   /**
-   * Get the default session for an engagement
+   * ⚠️ DEPRECATED: Get session by ID
+   * 
+   * Use V2 Discovery Flow API: GET /api/v2/discovery-flows/{flow_id}
    */
-  async getDefaultSession(engagementId: string): Promise<Session> {
-    return apiCall(SESSION_ENDPOINTS.ENGAGEMENT_DEFAULT(engagementId));
-  },
+  async getSession(sessionId: string): Promise<SessionData> {
+    console.warn(`⚠️ Deprecated: getSession(${sessionId}) - Use V2 Discovery Flow API`);
+    
+    try {
+      const response = await api.get<SessionData>(`${this.baseUrl}/${sessionId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to get session ${sessionId} (deprecated):`, error);
+      throw new Error('Session lookup deprecated - use V2 Discovery Flow API');
+    }
+  }
 
   /**
-   * Set a session as the default for its engagement
+   * ⚠️ DEPRECATED: Update session
+   * 
+   * Use V2 Discovery Flow API: PUT /api/v2/discovery-flows/{flow_id}
    */
-  async setDefaultSession(sessionId: string): Promise<Session> {
-    return apiCall(SESSION_ENDPOINTS.SET_DEFAULT(sessionId), {
-      method: 'POST',
-    });
-  },
+  async updateSession(sessionId: string, data: SessionUpdateRequest): Promise<SessionData> {
+    console.warn(`⚠️ Deprecated: updateSession(${sessionId}) - Use V2 Discovery Flow API`);
+    
+    try {
+      const response = await api.put<SessionData>(`${this.baseUrl}/${sessionId}`, data);
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to update session ${sessionId} (deprecated):`, error);
+      throw new Error('Session update deprecated - use V2 Discovery Flow API');
+    }
+  }
 
   /**
-   * Merge two sessions
+   * ⚠️ DEPRECATED: Delete session
+   * 
+   * Use V2 Discovery Flow API: DELETE /api/v2/discovery-flows/{flow_id}
    */
-  async mergeSessions(engagementId: string, sourceSessionId: string, targetSessionId: string, strategy: 'preserve_target' | 'overwrite' | 'merge'): Promise<void> {
-    await apiCall(SESSION_ENDPOINTS.MERGE, {
-      method: 'POST',
-      body: JSON.stringify({
-        source_session_id: sourceSessionId,
-        target_session_id: targetSessionId,
-        merge_strategy: strategy,
-      }),
-    });
-  },
+  async deleteSession(sessionId: string): Promise<{ message: string }> {
+    console.warn(`⚠️ Deprecated: deleteSession(${sessionId}) - Use V2 Discovery Flow API`);
+    
+    try {
+      const response = await api.delete<{ message: string }>(`${this.baseUrl}/${sessionId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to delete session ${sessionId} (deprecated):`, error);
+      throw new Error('Session deletion deprecated - use V2 Discovery Flow API');
+    }
+  }
 
   /**
-   * List all sessions for a given engagement
+   * ⚠️ DEPRECATED: List sessions
+   * 
+   * Use V2 Discovery Flow API: GET /api/v2/discovery-flows/
    */
-  async listSessions(engagementId: string): Promise<Session[]> {
-    return apiCall(SESSION_ENDPOINTS.ENGAGEMENT_SESSIONS(engagementId));
-  },
+  async listSessions(limit = 50, offset = 0): Promise<SessionListResponse> {
+    console.warn('⚠️ Deprecated: listSessions() - Use V2 Discovery Flow API');
+    
+    try {
+      const response = await api.get<SessionListResponse>(
+        `${this.baseUrl}?limit=${limit}&offset=${offset}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Failed to list sessions (deprecated):', error);
+      throw new Error('Session listing deprecated - use V2 Discovery Flow API');
+    }
+  }
 
   /**
-   * Update a session
+   * ⚠️ DEPRECATED: Get session status
+   * 
+   * Use V2 Discovery Flow API: GET /api/v2/discovery-flows/{flow_id}/status
    */
-  async updateSession(sessionId: string, data: Partial<Session>): Promise<Session> {
-    return apiCall(SESSION_ENDPOINTS.SESSION_BY_ID(sessionId), {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-  },
+  async getSessionStatus(sessionId: string): Promise<{
+    session_id: string;
+    status: string;
+    current_phase: string;
+    progress: number;
+    message?: string;
+    migration_notice?: string;
+  }> {
+    console.warn(`⚠️ Deprecated: getSessionStatus(${sessionId}) - Use V2 Discovery Flow API`);
+    
+    try {
+      const response = await api.get(`${this.baseUrl}/${sessionId}/status`);
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to get session status ${sessionId} (deprecated):`, error);
+      throw new Error('Session status lookup deprecated - use V2 Discovery Flow API');
+    }
+  }
 
   /**
-   * Delete a session
+   * Migration helper: Get V2 API recommendations
    */
-  async deleteSession(sessionId: string): Promise<void> {
-    await apiCall(SESSION_ENDPOINTS.SESSION_BY_ID(sessionId), {
-      method: 'DELETE',
-    });
-  },
-};
+  getV2MigrationGuide(): {
+    deprecated_endpoints: string[];
+    v2_endpoints: string[];
+    migration_benefits: string[];
+  } {
+    return {
+      deprecated_endpoints: [
+        'POST /api/v1/sessions - Create session',
+        'GET /api/v1/sessions/{id} - Get session',
+        'PUT /api/v1/sessions/{id} - Update session',
+        'DELETE /api/v1/sessions/{id} - Delete session',
+        'GET /api/v1/sessions - List sessions',
+        'GET /api/v1/sessions/{id}/status - Get session status'
+      ],
+      v2_endpoints: [
+        'POST /api/v2/discovery-flows/ - Create discovery flow',
+        'GET /api/v2/discovery-flows/{flow_id} - Get flow details',
+        'PUT /api/v2/discovery-flows/{flow_id} - Update flow',
+        'DELETE /api/v2/discovery-flows/{flow_id} - Delete flow',
+        'GET /api/v2/discovery-flows/ - List flows',
+        'GET /api/v2/discovery-flows/{flow_id}/status - Get flow status'
+      ],
+      migration_benefits: [
+        'Simplified architecture with flow-based patterns',
+        'Better performance with direct flow operations',
+        'Enhanced debugging with flow_id traceability',
+        'Real-time progress tracking and monitoring',
+        'Multi-tenant isolation built-in',
+        'CrewAI Flow integration for agentic workflows'
+      ]
+    };
+  }
+}
+
+// Export singleton instance
+export const sessionService = new SessionService();
+
+// Export for backward compatibility
+export default sessionService;

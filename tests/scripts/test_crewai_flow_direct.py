@@ -207,8 +207,8 @@ async def test_workflow_initiation():
         mock_db = AsyncMock()
         
         # Create service
-        with patch('app.services.crewai_flow_service.WorkflowStateService'):
-            service = CrewAIFlowService(mock_db)
+        # WorkflowStateService removed - using V2 Discovery Flow architecture
+        service = CrewAIFlowService(mock_db)
             
             # Create context
             context = RequestContext(
