@@ -2,9 +2,9 @@
 
 ## [0.24.14] - 2025-01-27
 
-### 🔒 **AUTHENTICATION - Route Protection Enhancement**
+### 🔒 **AUTHENTICATION - Route Protection & Context Switching Fix**
 
-This release fixes a critical authentication flow issue where unauthenticated users were not properly redirected to the login page.
+This release fixes critical authentication flow issues including route protection and context switching failures caused by deprecated API endpoints.
 
 ### 🚀 **Authentication & Security**
 
@@ -14,14 +14,23 @@ This release fixes a critical authentication flow issue where unauthenticated us
 - **Debug Logging**: Added comprehensive authentication state logging for troubleshooting
 - **Security Enhancement**: Prevents access to application features without proper authentication
 
+#### **Context Switching Fix**
+- **Deprecated API Removal**: Fixed `switchEngagement` function to stop calling deprecated `/api/v1/sessions` endpoint
+- **V2 API Compatibility**: Updated context switching to work with V2 Discovery Flow architecture
+- **Session Management**: Implemented client-side session object creation for demo users
+- **Error Resolution**: Eliminated 404 Not Found errors during engagement switching
+
 ### 📊 **Technical Achievements**
 - **Route Security**: All application routes now properly protected behind authentication
 - **User Experience**: Eliminates confusion from accessing features without being logged in
 - **Error Prevention**: Prevents API calls with missing authentication tokens
+- **Context Switching**: Seamless switching between clients, engagements, and sessions
 
 ### 🎯 **Success Metrics**
 - **Security**: 100% of application routes now properly protected
 - **UX**: Clear authentication flow with automatic login redirection
+- **API Compatibility**: Context switching works with both V1 and V2 API architecture
+- **Error Resolution**: Zero 404 errors during context switching operations
 
 ## [0.24.13] - 2025-01-27
 

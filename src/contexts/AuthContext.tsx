@@ -131,7 +131,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isDemoMode,
       token: token ? `present (${token.substring(0, 20)}...)` : 'missing',
       tokenLength: token ? token.length : 0,
-      localStorage_user: storedUser ? `present (${storedUser.email})` : 'missing'
+      localStorage_user: storedUser ? `present (${storedUser.email})` : 'missing',
+      localStorage_keys: Object.keys(localStorage).filter(key => key.startsWith('auth_')),
+      getAuthHeaders_result: getAuthHeaders()
     });
   }, [user, isAuthenticated, isAdmin, isDemoMode]);
 
@@ -662,37 +664,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         session 
       });
       
-      // Create or get session for this engagement
-      const sessionResponse = await apiCall('/api/v1/sessions', {
-        method: 'POST',
-        headers: {
-          ...getAuthHeaders(),
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          client_account_id: client?.id,
-          engagement_id: engagementId,
-          session_name: `${fullEngagementData.name.toLowerCase().replace(/\s+/g, '_')}_session`,
-          session_display_name: `${fullEngagementData.name} Session`,
-          session_type: 'data_import',
-          is_default: true,
-          auto_created: true
-        })
-      });
+      // For demo user, create a simple session object based on engagement
+      // V2 Discovery Flow API handles session management internally
+      const sessionData = {
+        id: fullEngagementData.id, // Use engagement ID as session ID for demo
+        name: `${fullEngagementData.name} Session`,
+        session_display_name: `${fullEngagementData.name} Session`,
+        session_name: `${fullEngagementData.name.toLowerCase().replace(/\s+/g, '_')}_session`,
+        engagement_id: engagementId,
+        is_default: true,
+        status: 'active',
+        session_type: 'data_import',
+        auto_created: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
       
-      if (sessionResponse?.session) {
-        setSession(sessionResponse.session);
-        // Persist to localStorage for cross-session persistence
-        localStorage.setItem('auth_session', JSON.stringify(sessionResponse.session));
-        
-        // Immediately update API context
-        updateApiContext({ 
-          user, 
-          client, 
-          engagement: fullEngagementData, 
-          session: sessionResponse.session 
-        });
-      }
+      setSession(sessionData);
+      // Persist to localStorage for cross-session persistence
+      localStorage.setItem('auth_session', JSON.stringify(sessionData));
+      
+      // Immediately update API context
+      updateApiContext({ 
+        user, 
+        client, 
+        engagement: fullEngagementData, 
+        session: sessionData 
+      });
       
     } catch (error) {
       console.error('Error switching engagement:', error);
