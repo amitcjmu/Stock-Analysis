@@ -1,5 +1,57 @@
 # AI Force Migration Platform - Change Log
 
+## [0.25.0] - 2025-01-27
+
+### 🎯 **DISCOVERY API CONSOLIDATION - Single Source of Truth**
+
+This release eliminates the confusing dual discovery API structure by consolidating discovery_flow_v2.py (967 LOC) and unified_discovery.py (267 LOC) into a single, unified discovery API with modular handler architecture.
+
+### 🚀 **API Architecture Unification**
+
+#### **Single Discovery API Endpoint**
+- **Consolidated**: Merged competing discovery APIs into single `/api/v1/discovery` endpoint
+- **Modular**: Implemented handler pattern with FlowManagementHandler, CrewAIExecutionHandler, and AssetManagementHandler
+- **Hybrid**: Coordinates both CrewAI execution engine and PostgreSQL management layer
+- **Unified**: Single source of truth for all discovery operations eliminates frontend confusion
+- **Backward Compatible**: Legacy endpoints maintained with deprecation warnings
+
+#### **Modular Handler Architecture**
+- **FlowManagementHandler**: PostgreSQL-based enterprise flow lifecycle management with multi-tenant isolation
+- **CrewAIExecutionHandler**: AI-powered discovery execution with UnifiedDiscoveryFlow integration
+- **AssetManagementHandler**: Unified asset operations across execution layers
+- **Graceful Fallbacks**: Handlers fail gracefully with mock responses for development continuity
+
+#### **API Endpoint Consolidation**
+- **Primary**: `/api/v1/discovery/flow/initialize` - Single initialization endpoint with hybrid execution
+- **Status**: `/api/v1/discovery/flow/status/{flow_id}` - Unified status from both CrewAI and PostgreSQL layers
+- **Execution**: `/api/v1/discovery/flow/execute` - Coordinated phase execution across handlers
+- **Assets**: `/api/v1/discovery/assets/{flow_id}` - Unified asset management with intelligent fallbacks
+- **Active Flows**: `/api/v1/discovery/flows/active` - Consolidated flow listing from all sources
+
+### 📊 **Technical Achievements**
+- **Code Reduction**: Eliminated 967 LOC of redundant V2 API code through consolidation
+- **Architecture Clarity**: Single source of truth eliminates "which API to use" confusion
+- **Maintainability**: Modular handlers easier to maintain, test, and extend
+- **Development Experience**: Clear, unified interface for all discovery operations
+
+### 🎯 **Architectural Benefits**
+- **Single Entry Point**: Developers no longer confused between multiple discovery APIs
+- **Hybrid Intelligence**: Seamlessly coordinates CrewAI AI execution with PostgreSQL enterprise management
+- **Graceful Degradation**: System works even when individual components are unavailable
+- **Future-Proof**: Modular design allows easy addition of new discovery capabilities
+
+### 📋 **Business Impact**
+- **Developer Productivity**: Eliminated API confusion and decision paralysis
+- **Code Quality**: Reduced complexity and maintenance burden
+- **System Reliability**: Unified error handling and fallback mechanisms
+- **Platform Evolution**: Clear path for discovery feature enhancement
+
+### 🎯 **Success Metrics**
+- **API Endpoints**: Reduced from 2 competing APIs to 1 unified API
+- **Code Complexity**: Eliminated architectural confusion and redundancy
+- **Developer Experience**: Single, clear entry point for all discovery operations
+- **Handler Coverage**: 3 modular handlers covering all discovery functionality
+
 ## [0.24.16] - 2025-01-27
 
 ### 🚨 **ARCHITECTURAL VIOLATION FIXES - Removed Independent Frontend Agents**

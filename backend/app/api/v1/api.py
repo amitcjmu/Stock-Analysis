@@ -34,6 +34,13 @@ from app.api.v1.endpoints import (
 # Import only existing endpoint files
 from app.api.v1.endpoints.context_establishment import router as context_establishment_router
 
+# Import Unified Discovery Flow API
+try:
+    from app.api.v1.unified_discovery import router as unified_discovery_router
+    UNIFIED_DISCOVERY_AVAILABLE = True
+except ImportError:
+    UNIFIED_DISCOVERY_AVAILABLE = False
+
 # Import the /me endpoint function for root-level access
 from app.api.v1.endpoints.context import get_user_context
 from app.core.database import get_db
@@ -136,7 +143,25 @@ logger.info("--- Starting API Router Inclusion Process ---")
 
 # Core Discovery and Analysis
 api_router.include_router(sixr_router, prefix="/6r", tags=["6R Analysis"])
-api_router.include_router(discovery_router, prefix="/discovery", tags=["Discovery"])
+
+# Unified Discovery API (Single Source of Truth)
+try:
+    from app.api.v1.discovery import router as unified_discovery_api_router
+    api_router.include_router(unified_discovery_api_router, prefix="/discovery", tags=["Discovery - Unified API"])
+    logger.info("✅ Unified Discovery API router included at /discovery")
+    UNIFIED_DISCOVERY_API_AVAILABLE = True
+except ImportError:
+    # Fallback to legacy discovery router
+    api_router.include_router(discovery_router, prefix="/discovery", tags=["Discovery - Legacy"])
+    logger.warning("⚠️ Unified Discovery API not available, using legacy discovery router")
+    UNIFIED_DISCOVERY_API_AVAILABLE = False
+
+# Legacy Unified Discovery Flow endpoints (DEPRECATED - use /discovery instead)
+if UNIFIED_DISCOVERY_AVAILABLE:
+    api_router.include_router(unified_discovery_router, prefix="/unified-discovery", tags=["Unified Discovery Flow - DEPRECATED"])
+    logger.info("⚠️ DEPRECATED: Unified Discovery Flow router included at /unified-discovery - use /discovery instead")
+else:
+    logger.warning("⚠️ Unified Discovery Flow router not available")
 
 # V2 Discovery Flow Management - MOVED TO /api/v2/ for proper versioning
 # if DISCOVERY_FLOW_V2_AVAILABLE:
