@@ -207,13 +207,21 @@ async def get_active_discovery_flows(
                 
                 logger.info(f"👥 Found {len(authorized_client_ids)} authorized clients for admin")
                 
+                flows = []
                 if authorized_client_ids:
-                    # Get flows for all authorized clients using raw SQL
-                    sql_query = select(WorkflowState).where(WorkflowState.client_account_id.in_(authorized_client_ids))
-                    flows_result = await db.execute(sql_query)
+                    # Get flows for all authorized clients using V2 DiscoveryFlowService
+                    for client_id in authorized_client_ids:
+                        try:
+                            flow_repo = DiscoveryFlowRepository(db, client_id)
+                            flow_service = DiscoveryFlowService(flow_repo)
+                            client_flows = await flow_service.list_flows(status_filter="active")
+                            flows.extend(client_flows)
+                        except Exception as e:
+                            logger.warning(f"⚠️ Failed to get flows for client {client_id}: {e}")
+                            continue
                 else:
                     # No client access found, return empty
-                    flows_result = None
+                    flows = []
             else:
                 # Regular user: Get flows for current client context only
                 logger.info(f"👤 Regular user - querying for client: {context.client_account_id}")
@@ -230,11 +238,11 @@ async def get_active_discovery_flows(
                         "message": "No client context available"
                     }
                 
-                sql_query = select(WorkflowState).where(WorkflowState.client_account_id == context.client_account_id)
-                flows_result = await db.execute(sql_query)
+                # Use V2 DiscoveryFlowService for regular users
+                flow_repo = DiscoveryFlowRepository(db, context.client_account_id)
+                flow_service = DiscoveryFlowService(flow_repo)
+                flows = await flow_service.list_flows(status_filter="active")
             
-            # Process results
-            flows = flows_result.scalars().all()
             logger.info(f"📊 Found {len(flows)} flows in database")
             
             flow_details = []
@@ -264,7 +272,6 @@ async def get_active_discovery_flows(
                     
                     flow_detail = {
                         "flow_id": str(flow.flow_id),
-                        "session_id": str(flow.session_id),
                         "client_id": str(flow.client_account_id),
                         "client_name": client_name,
                         "engagement_id": str(flow.engagement_id),
@@ -272,20 +279,16 @@ async def get_active_discovery_flows(
                         "status": flow.status,
                         "current_phase": flow.current_phase,
                         "progress": flow.progress_percentage,
-                        "workflow_type": flow.workflow_type,
                         "created_at": flow.created_at.isoformat() if flow.created_at else None,
                         "updated_at": flow.updated_at.isoformat() if flow.updated_at else None,
-                        "started_at": flow.started_at.isoformat() if flow.started_at else None,
-                        "completed_at": flow.completed_at.isoformat() if flow.completed_at else None,
-                        "phase_completion": flow.phase_completion or {},
-                        "crew_status": flow.crew_status or {},
-                        "errors": flow.errors or [],
-                        "warnings": flow.warnings or []
+                        "phase_completion": getattr(flow, 'phases', {}) or {},  # V2 uses 'phases' instead of 'phase_completion'
+                        "errors": getattr(flow, 'errors', []) or [],
+                        "warnings": getattr(flow, 'warnings', []) or []
                     }
                     flow_details.append(flow_detail)
                     
                 except Exception as e:
-                    logger.error(f"Error processing flow {flow.id}: {str(e)}")
+                    logger.error(f"Error processing flow {getattr(flow, 'flow_id', 'unknown')}: {str(e)}")
                     continue
             
             # Calculate summary statistics

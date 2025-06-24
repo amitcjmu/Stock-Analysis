@@ -80,8 +80,12 @@ const queryClient = new QueryClient();
 const AuthenticatedApp = () => {
   const { isLoading, isAuthenticated } = useAuth();
 
+  // Debug logging
+  console.log('🔍 AuthenticatedApp State:', { isLoading, isAuthenticated });
+
   // Show loading screen while authentication is being determined
   if (isLoading) {
+    console.log('🔄 Showing loading screen...');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -92,6 +96,19 @@ const AuthenticatedApp = () => {
     );
   }
 
+  // If user is not authenticated and not on login page, show only login route
+  if (!isAuthenticated) {
+    console.log('🚫 User not authenticated, redirecting to login...');
+    return (
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="*" element={<Login />} />
+      </Routes>
+    );
+  }
+
+  // User is authenticated, show all routes
+  console.log('✅ User authenticated, showing all routes...');
   return (
     <Routes>
               <Route path="/" element={<Index />} />

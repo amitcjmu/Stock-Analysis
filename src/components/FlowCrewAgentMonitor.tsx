@@ -112,7 +112,7 @@ const FlowCrewAgentMonitor: React.FC = () => {
       });
       
       // Fetch Discovery Flow specific active flows
-      const discoveryFlowResponse = await fetch('/api/v1/discovery/flow/active', {
+              const discoveryFlowResponse = await fetch('/api/v2/discovery-flows/flows/active', {
         headers: getAuthHeaders()
       });
       

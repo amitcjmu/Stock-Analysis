@@ -151,7 +151,7 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
       // Fetch real-time active flows from multiple sources
       const [discoveryFlowsResponse, dataImportsResponse] = await Promise.allSettled([
         // Get active Discovery flows
-        apiCall('/api/v1/discovery/flow/active', {
+        apiCall('/api/v2/discovery-flows/flows/active', {
           method: 'GET',
           headers: getAuthHeaders()
         }),

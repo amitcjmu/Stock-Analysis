@@ -1,12 +1,35 @@
 # AI Force Migration Platform - Change Log
 
+## [0.24.14] - 2025-01-27
+
+### 🔒 **AUTHENTICATION - Route Protection Enhancement**
+
+This release fixes a critical authentication flow issue where unauthenticated users were not properly redirected to the login page.
+
+### 🚀 **Authentication & Security**
+
+#### **Route Protection Implementation**
+- **Authentication Guard**: Added proper route-level authentication checking in `AuthenticatedApp` component
+- **Automatic Redirect**: Unauthenticated users are now automatically redirected to login page for all protected routes
+- **Debug Logging**: Added comprehensive authentication state logging for troubleshooting
+- **Security Enhancement**: Prevents access to application features without proper authentication
+
+### 📊 **Technical Achievements**
+- **Route Security**: All application routes now properly protected behind authentication
+- **User Experience**: Eliminates confusion from accessing features without being logged in
+- **Error Prevention**: Prevents API calls with missing authentication tokens
+
+### 🎯 **Success Metrics**
+- **Security**: 100% of application routes now properly protected
+- **UX**: Clear authentication flow with automatic login redirection
+
 ## [0.24.13] - 2025-01-27
 
 ### 🔧 **COMPREHENSIVE FLOW MANAGEMENT RESTORATION - Active Flow Deletion Resolution**
 
 **UPDATE**: Fixed V2 API endpoint connectivity issue that was preventing frontend from accessing discovery flows.
 
-**ARCHITECTURAL IMPROVEMENT**: Implemented proper V2 API structure at `/api/v2/` instead of cramming V2 endpoints into V1 for clean future deprecation path.
+**ARCHITECTURAL IMPROVEMENT**: Implemented proper V2 API structure at `/api/v2/` instead of cramming V2 endpoints into V1 for clean future deprecation path.\n\n**LEGACY MIGRATION COMPLETE**: Eliminated all `session_id` references and `WorkflowState` dependencies from active flow management. Frontend now calls V2 `/api/v2/discovery-flows/flows/active` endpoint using pure `flow_id` architecture.
 
 This release resolves the critical issue where pending active flows were preventing data imports but users couldn't view or modify them. The solution leverages existing comprehensive flow management infrastructure that was already implemented but not properly connected.
 

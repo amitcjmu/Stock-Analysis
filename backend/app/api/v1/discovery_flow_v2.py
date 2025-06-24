@@ -18,6 +18,7 @@ from app.core.database import get_db
 from app.core.context import get_current_context, RequestContext
 from app.services.discovery_flow_service import DiscoveryFlowService, DiscoveryFlowIntegrationService
 from app.services.discovery_flow_completion_service import DiscoveryFlowCompletionService
+from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 from app.models.discovery_flow import DiscoveryFlow
 from app.models.discovery_asset import DiscoveryAsset
 
@@ -161,6 +162,166 @@ async def create_discovery_flow(
     except Exception as e:
         logger.error(f"❌ Failed to create discovery flow: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to create discovery flow")
+
+@router.get("/flows/active", response_model=Dict[str, Any])
+async def get_active_discovery_flows_v2(
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+) -> Dict[str, Any]:
+    """
+    Get active discovery flows for Enhanced Discovery Dashboard - V2 API.
+    
+    For platform admin users, this returns flows across all authorized clients.
+    For regular users, this returns flows for their current client context.
+    
+    This replaces the legacy V1 endpoint that used WorkflowState.
+    """
+    try:
+        logger.info(f"🔍 V2: Getting active discovery flows for user: {context.user_id}, client: {context.client_account_id}")
+        
+        # Check if user is platform admin
+        from app.models.rbac import UserRole, ClientAccess
+        from app.models.client_account import ClientAccount, Engagement
+        from sqlalchemy import select, and_
+        
+        user_role_query = select(UserRole).where(UserRole.user_id == context.user_id)
+        user_roles_result = await db.execute(user_role_query)
+        user_roles = user_roles_result.scalars().all()
+        
+        is_platform_admin = any(role.role_name in ['platform_admin', 'Platform Administrator'] for role in user_roles)
+        
+        flows = []
+        authorized_client_ids = []
+        
+        if is_platform_admin:
+            logger.info(f"🔑 Platform admin detected - querying across all authorized clients")
+            
+            # Get authorized client IDs for platform admin
+            client_access_query = select(ClientAccess.client_account_id).where(
+                and_(
+                    ClientAccess.user_profile_id == context.user_id,
+                    ClientAccess.is_active == True
+                )
+            )
+            client_access_result = await db.execute(client_access_query)
+            authorized_client_ids = [str(cid) for cid in client_access_result.scalars().all()]
+            
+            logger.info(f"👥 Found {len(authorized_client_ids)} authorized clients for admin")
+            
+            if authorized_client_ids:
+                # Get flows for all authorized clients using V2 DiscoveryFlowService
+                for client_id in authorized_client_ids:
+                    try:
+                        # Create context for each client
+                        client_context = RequestContext(
+                            client_account_id=client_id,
+                            engagement_id=context.engagement_id,
+                            user_id=context.user_id
+                        )
+                        flow_service = DiscoveryFlowService(db, client_context)
+                        client_flows = await flow_service.get_active_flows()
+                        flows.extend(client_flows)
+                    except Exception as e:
+                        logger.warning(f"⚠️ Failed to get flows for client {client_id}: {e}")
+                        continue
+        else:
+            # Regular user: Get flows for current client context only
+            logger.info(f"👤 Regular user - querying for client: {context.client_account_id}")
+            
+            if not context.client_account_id:
+                logger.warning("⚠️ No client context available for regular user")
+                return {
+                    "success": True,
+                    "total_flows": 0,
+                    "active_flows": 0,
+                    "flow_details": [],
+                    "is_platform_admin": False,
+                    "authorized_clients": 0,
+                    "message": "No client context available"
+                }
+            
+            # Use V2 DiscoveryFlowService for regular users
+            flow_service = DiscoveryFlowService(db, context)
+            flows = await flow_service.get_active_flows()
+            authorized_client_ids = [context.client_account_id]
+        
+        logger.info(f"📊 Found {len(flows)} active flows in database")
+        
+        # Process flows for frontend compatibility
+        flow_details = []
+        for flow in flows:
+            try:
+                # Get client and engagement names
+                client_name = "Unknown Client"
+                engagement_name = "Unknown Engagement"
+                
+                # Query client name
+                if flow.client_account_id:
+                    client_result = await db.execute(
+                        select(ClientAccount).where(ClientAccount.id == flow.client_account_id)
+                    )
+                    client = client_result.scalar_one_or_none()
+                    if client:
+                        client_name = client.name
+                
+                # Query engagement name  
+                if flow.engagement_id:
+                    engagement_result = await db.execute(
+                        select(Engagement).where(Engagement.id == flow.engagement_id)
+                    )
+                    engagement = engagement_result.scalar_one_or_none()
+                    if engagement:
+                        engagement_name = engagement.name
+                
+                flow_detail = {
+                    "flow_id": str(flow.flow_id),
+                    "client_id": str(flow.client_account_id),
+                    "client_name": client_name,
+                    "engagement_id": str(flow.engagement_id),
+                    "engagement_name": engagement_name,
+                    "status": flow.status,
+                    "current_phase": flow.current_phase,
+                    "progress": flow.progress_percentage,
+                    "created_at": flow.created_at.isoformat() if flow.created_at else None,
+                    "updated_at": flow.updated_at.isoformat() if flow.updated_at else None,
+                    "phases": getattr(flow, 'phases', {}) or {},
+                    "errors": getattr(flow, 'errors', []) or [],
+                    "warnings": getattr(flow, 'warnings', []) or [],
+                    "agent_insights": getattr(flow, 'agent_insights', []) or []
+                }
+                flow_details.append(flow_detail)
+                
+            except Exception as e:
+                logger.error(f"Error processing flow {getattr(flow, 'flow_id', 'unknown')}: {str(e)}")
+                continue
+        
+        # Calculate summary statistics
+        total_flows = len(flow_details)
+        active_flows = len([f for f in flow_details if f["status"] in ["running", "active"]])
+        completed_flows = len([f for f in flow_details if f["status"] == "completed"])
+        failed_flows = len([f for f in flow_details if f["status"] == "failed"])
+        
+        logger.info(f"📈 V2 Flow summary: {total_flows} total, {active_flows} active, {completed_flows} completed, {failed_flows} failed")
+        
+        return {
+            "success": True,
+            "message": f"Active discovery flows retrieved successfully via V2 API ({'platform-wide' if is_platform_admin else 'client-specific'})",
+            "flow_details": flow_details,
+            "total_flows": total_flows,
+            "active_flows": active_flows,
+            "completed_flows": completed_flows,
+            "failed_flows": failed_flows,
+            "is_platform_admin": is_platform_admin,
+            "authorized_clients": len(authorized_client_ids),
+            "api_version": "2.0",
+            "timestamp": "2025-01-27T16:00:00Z"
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ V2: Failed to get active discovery flows: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to get active discovery flows: {str(e)}")
 
 @router.get("/flows/{flow_id}", response_model=DiscoveryFlowResponse)
 async def get_discovery_flow(
@@ -684,7 +845,6 @@ async def complete_discovery_flow_with_assessment(
     except Exception as e:
         logger.error(f"❌ Failed to complete discovery flow: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to complete discovery flow")
-
 
 # === Health Check ===
 
