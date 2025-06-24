@@ -5,7 +5,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Routes, Route } from "react-router-dom";
 import { ChatFeedbackProvider } from "./contexts/ChatFeedbackContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
-import { SessionProvider } from "./contexts/SessionContext";
 import { ClientProvider } from "./contexts/ClientContext";
 // import { AppContextProvider } from "./hooks/useContext";
 import GlobalChatFeedback from "./components/GlobalChatFeedback";
@@ -178,14 +177,12 @@ const App = () => (
       <Toaster />
       <Sonner />
       <AuthProvider>
-        <SessionProvider>
-          <ClientProvider>
-            <ChatFeedbackProvider>
-              <AuthenticatedApp />
-              <GlobalChatFeedback />
-            </ChatFeedbackProvider>
-          </ClientProvider>
-        </SessionProvider>
+        <ClientProvider>
+          <ChatFeedbackProvider>
+            <AuthenticatedApp />
+            <GlobalChatFeedback />
+          </ChatFeedbackProvider>
+        </ClientProvider>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>

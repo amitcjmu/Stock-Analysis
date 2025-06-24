@@ -1,19 +1,16 @@
 import { useState, useCallback } from 'react';
-import { useUnifiedDiscoveryFlow } from '../useUnifiedDiscoveryFlow';
+import { useDiscoveryFlowV2 } from './useDiscoveryFlowV2';
 
-export const useInventoryLogic = () => {
-  // Use the unified discovery flow
+export const useInventoryLogic = (flowId?: string) => {
+  // Use the V2 discovery flow
   const {
-    flowState,
+    flow,
+    assets,
     isLoading,
     error,
-    getPhaseData,
-    isPhaseComplete,
-    canProceedToPhase,
-    executeFlowPhase,
-    isExecutingPhase,
-    refreshFlow
-  } = useUnifiedDiscoveryFlow();
+    updatePhase,
+    refresh
+  } = useDiscoveryFlowV2(flowId);
 
   // Local UI state for filters, pagination, etc.
   const [currentPage, setCurrentPage] = useState(1);
@@ -22,14 +19,13 @@ export const useInventoryLogic = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
 
-  // Get asset inventory data from unified flow
-  const inventoryData = getPhaseData('asset_inventory');
-  const assets = (inventoryData && !Array.isArray(inventoryData) && inventoryData.assets) ? inventoryData.assets : [];
-  const summary = (inventoryData && !Array.isArray(inventoryData) && inventoryData.summary) ? inventoryData.summary : { total: 0 };
-  const inventoryProgress = (inventoryData && !Array.isArray(inventoryData) && inventoryData.progress) ? inventoryData.progress : {
-    total_assets: 0,
-    classified_assets: 0,
-    classification_accuracy: 0
+  // Get asset inventory data from V2 flow
+  const flowAssets = assets || [];
+  const summary = { total: flowAssets.length };
+  const inventoryProgress = {
+    total_assets: flowAssets.length,
+    classified_assets: flowAssets.filter((asset: any) => asset.asset_type).length,
+    classification_accuracy: flowAssets.length > 0 ? (flowAssets.filter((asset: any) => asset.asset_type).length / flowAssets.length) * 100 : 0
   };
 
   // Pagination
@@ -42,7 +38,7 @@ export const useInventoryLogic = () => {
 
   // Loading states
   const isFlowStateLoading = isLoading;
-  const isAnalyzing = isExecutingPhase;
+  const isAnalyzing = isLoading;
   const lastUpdated = new Date();
 
   // Error states
@@ -50,16 +46,18 @@ export const useInventoryLogic = () => {
 
   // Action handlers
   const handleTriggerInventoryBuildingCrew = useCallback(async () => {
-    await executeFlowPhase('asset_inventory');
-  }, [executeFlowPhase]);
+    if (flow?.flow_id) {
+      await updatePhase('asset_inventory', { trigger_crew: true });
+    }
+  }, [flow, updatePhase]);
 
   const fetchAssets = useCallback(async () => {
-    await refreshFlow();
-  }, [refreshFlow]);
+    refresh();
+  }, [refresh]);
 
   const canContinueToAppServerDependencies = useCallback(() => {
-    return canProceedToPhase('dependency_analysis');
-  }, [canProceedToPhase]);
+    return flow?.phases?.asset_inventory === true;
+  }, [flow]);
 
   // UI action handlers
   const handleFilterChange = useCallback((newFilters: any) => {
@@ -104,11 +102,11 @@ export const useInventoryLogic = () => {
 
   return {
     // Data
-    assets,
+    assets: flowAssets,
     summary,
     pagination,
     inventoryProgress,
-    flowState,
+    flowState: flow,
     
     // Loading states
     isLoading,

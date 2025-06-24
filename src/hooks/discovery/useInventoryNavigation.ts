@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUnifiedDiscoveryFlow } from '../useUnifiedDiscoveryFlow';
+import { useDiscoveryFlowV2 } from './useDiscoveryFlowV2';
 
 interface InventoryProgress {
   total_assets: number;
@@ -21,9 +21,9 @@ interface InventoryNavigationOptions {
   engagement_id: string;
 }
 
-export const useInventoryNavigation = () => {
+export const useInventoryNavigation = (flowId?: string) => {
   const navigate = useNavigate();
-  const { executeFlowPhase, canProceedToPhase } = useUnifiedDiscoveryFlow();
+  const { flow, updatePhase } = useDiscoveryFlowV2(flowId);
 
   const handleContinueToAppServerDependencies = useCallback(async (options?: {
     flow_session_id?: string;
@@ -31,11 +31,20 @@ export const useInventoryNavigation = () => {
     client_account_id?: number;
     engagement_id?: number;
   }) => {
-    if (canProceedToPhase('dependency_analysis')) {
-      await executeFlowPhase('dependency_analysis');
-      navigate('/discovery/dependencies');
+    try {
+      if (flow && flow.flow_id) {
+        // Update to dependency analysis phase using V2 API
+        await updatePhase('dependency_analysis', {
+          completed_phases: [...(flow.phases ? Object.keys(flow.phases).filter(p => flow.phases[p]) : []), 'inventory'],
+          current_phase: 'dependency_analysis',
+          progress_data: options?.inventory_progress
+        });
+        navigate('/discovery/dependencies');
+      }
+    } catch (error) {
+      console.error('Failed to proceed to dependency analysis:', error);
     }
-  }, [executeFlowPhase, canProceedToPhase, navigate]);
+  }, [flow, updatePhase, navigate]);
 
   const handleNavigateToDataCleansing = useCallback(() => {
     navigate('/discovery/data-cleansing');

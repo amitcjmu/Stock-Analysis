@@ -7,7 +7,6 @@ export const Paths = {
   },
   contexts: {
     AuthContext: '../../contexts/AuthContext',
-    SessionContext: '../../contexts/SessionContext',
   },
   components: {
     ui: '../../components/ui',

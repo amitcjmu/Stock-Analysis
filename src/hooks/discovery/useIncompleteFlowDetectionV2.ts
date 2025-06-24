@@ -62,7 +62,7 @@ export interface BulkDeleteResultV2 {
   failed: number;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 const V2_API_BASE = `${API_BASE_URL}/api/v2/discovery-flows`;
 
 // Default headers for multi-tenant context

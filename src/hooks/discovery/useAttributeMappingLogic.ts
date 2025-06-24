@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo } from 'react';
-import { useUnifiedDiscoveryFlow } from '../useUnifiedDiscoveryFlow';
+import { useDiscoveryFlowV2 } from './useDiscoveryFlowV2';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 export const useAttributeMappingLogic = () => {
@@ -12,16 +12,14 @@ export const useAttributeMappingLogic = () => {
     return match ? match[1] : null;
   }, [pathname]);
 
-  // Use unified discovery flow with URL flow ID
+  // Use V2 discovery flow with URL flow ID
   const {
     flow,
     isLoading: isFlowLoading,
     error: flowError,
-    executePhase,
-    refreshFlow,
-    flowId,
-    hasActiveFlow
-  } = useUnifiedDiscoveryFlow(urlFlowId); // Pass URL flow ID directly
+    updatePhase,
+    refresh
+  } = useDiscoveryFlowV2(urlFlowId);
 
   // Get field mapping data from unified flow
   const fieldMappingData = flow?.field_mapping;
@@ -55,7 +53,7 @@ export const useAttributeMappingLogic = () => {
   // Loading states
   const isAgenticLoading = isFlowLoading;
   const isFlowStateLoading = isFlowLoading;
-  const isAnalyzing = flow?.isExecutingPhase || false;
+  const isAnalyzing = isFlowLoading;
 
   // Error states
   const agenticError = flowError;
@@ -65,11 +63,13 @@ export const useAttributeMappingLogic = () => {
   const handleTriggerFieldMappingCrew = useCallback(async () => {
     try {
       console.log('🔄 Triggering field mapping crew execution');
-      await executePhase('field_mapping', {}, {});
+      if (flow?.flow_id) {
+        await updatePhase('field_mapping', { trigger_crew: true });
+      }
     } catch (error) {
       console.error('❌ Failed to trigger field mapping crew:', error);
     }
-  }, [executePhase]);
+  }, [flow, updatePhase]);
 
   const handleApproveMapping = useCallback(async (mappingId: string) => {
     try {
@@ -109,11 +109,11 @@ export const useAttributeMappingLogic = () => {
 
   const refetchAgentic = useCallback(() => {
     console.log('🔄 Refreshing agentic data');
-    return refreshFlow();
-  }, [refreshFlow]);
+    return refresh();
+  }, [refresh]);
 
   const canContinueToDataCleansing = useCallback(() => {
-    return flow?.isPhaseComplete('field_mapping') && flow?.canProceedToPhase('data_cleansing');
+    return flow?.phases?.field_mapping === true;
   }, [flow]);
 
   return {
@@ -127,7 +127,7 @@ export const useAttributeMappingLogic = () => {
     // Flow state
     flow,
     sessionId,
-    flowId,
+    flowId: flow?.flow_id,
     availableDataImports,
     selectedDataImportId,
     
@@ -150,8 +150,8 @@ export const useAttributeMappingLogic = () => {
     canContinueToDataCleansing,
     
     // Flow status
-    hasActiveFlow,
-    currentPhase: flow?.current_phase || flow?.currentFlow?.current_phase,
-    flowProgress: flow?.progress_percentage || flow?.currentFlow?.progress_percentage || 0
+    hasActiveFlow: !!flow,
+    currentPhase: flow?.next_phase,
+    flowProgress: flow?.progress_percentage || 0
   };
 }; 
