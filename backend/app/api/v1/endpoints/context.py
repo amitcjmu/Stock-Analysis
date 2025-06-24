@@ -8,10 +8,12 @@ Provides endpoints for managing user context including:
 
 from typing import Optional, Dict, Any
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.context import get_current_context
+from app.core.context import get_current_context
 from app.models import User
 from app.api.v1.auth.auth_utils import get_current_user
 from app.schemas.context import UserContext, ClientBase, EngagementBase, SessionBase
@@ -19,6 +21,7 @@ from datetime import datetime
 from app.services.discovery_flow_service import DiscoveryFlowService
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 import logging
+from app.core.context import get_current_context
 
 router = APIRouter(tags=["context"])
 
@@ -274,6 +277,12 @@ async def get_default_client(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="No accessible clients or engagements found for user. Please contact administrator."
             )
+    except Exception as get_default_client_error:
+        print(f"Error in get_default_client: {get_default_client_error}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Internal server error: {str(get_default_client_error)}"
+        )
 
 @router.post(
     "/sessions/{session_id}/switch",

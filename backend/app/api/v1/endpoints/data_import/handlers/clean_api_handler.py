@@ -20,6 +20,15 @@ from app.schemas.data_import_schemas import (
     ValidationSession,
     FileMetadata
 )
+from pydantic import BaseModel
+from typing import List
+
+# V2 Discovery Flow schema for data cleaning
+class DataCleaningRequest(BaseModel):
+    """Data cleaning request schema for V2 Discovery Flow"""
+    flow_id: str
+    cleaning_rules: Optional[List[str]] = []
+    validation_level: Optional[str] = "standard"
 from app.services.discovery_flow_service import DiscoveryFlowService
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 

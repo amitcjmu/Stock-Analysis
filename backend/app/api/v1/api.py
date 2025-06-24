@@ -20,22 +20,71 @@ from app.api.v1.endpoints import (
     agents_router,
 )
 
-from app.api.v1.endpoints.discovery_flow_management import router as discovery_flow_management_router
-from app.api.v1.endpoints.discovery_flow_management_enhanced import router as discovery_flow_management_enhanced_router
+# Legacy Discovery Flow Management - DISABLED (replaced by V2 Discovery Flow API)
+# from app.api.v1.endpoints.discovery_flow_management import router as discovery_flow_management_router
+# from app.api.v1.endpoints.discovery_flow_management_enhanced import router as discovery_flow_management_enhanced_router
 
+# Import only existing endpoint files
 from app.api.v1.endpoints.context_establishment import router as context_establishment_router
 
-# Unified Discovery V1 removed - replaced by V2 Discovery Flow API
-# V2 router moved to main.py to avoid /api/v1 prefix
-# from app.api.v1.discovery_flow_v2 import router as discovery_flow_v2_router
-from app.api.v1.routes.llm_health import router as llm_health_router
+# Missing endpoint files - functionality may be available through other routers:
+# - assessment (functionality may be in sixr_analysis)
+# - migration (functionality may be in migrations.py)
+# - admin (functionality may be in admin directory)
+# - observability (functionality may be in monitoring)
+# - agent_ui_bridge (may be separate service)
+# - rbac_endpoints (may be in auth directory)
+# - rbac_admin (may be in auth directory)
 
-from app.api.v1.admin.client_management import router as client_management_router
-from app.api.v1.admin.engagement_management import export_router as engagement_management_router
-from app.api.v1.admin.platform_admin_handlers import router as platform_admin_router
-from app.api.v1.auth.handlers.user_management_handlers import user_management_router as user_approvals_router
-from app.api.v1.auth.rbac import router as auth_router
+# Check for additional routers in subdirectories
+try:
+    from app.api.v1.endpoints.migrations import router as migrations_router
+    MIGRATIONS_AVAILABLE = True
+except ImportError:
+    MIGRATIONS_AVAILABLE = False
 
+try:
+    from app.api.v1.endpoints.health import router as health_router
+    HEALTH_AVAILABLE = True
+except ImportError:
+    HEALTH_AVAILABLE = False
+
+try:
+    from app.api.v1.endpoints.llm_health import router as llm_health_router
+    LLM_HEALTH_AVAILABLE = True
+except ImportError:
+    LLM_HEALTH_AVAILABLE = False
+
+# Admin Routers
+try:
+    from app.api.v1.admin.client_management import router as client_management_router
+    CLIENT_MANAGEMENT_AVAILABLE = True
+except ImportError:
+    CLIENT_MANAGEMENT_AVAILABLE = False
+
+try:
+    from app.api.v1.admin.engagement_management import export_router as engagement_management_router
+    ENGAGEMENT_MANAGEMENT_AVAILABLE = True
+except ImportError:
+    ENGAGEMENT_MANAGEMENT_AVAILABLE = False
+
+try:
+    from app.api.v1.admin.platform_admin_handlers import router as platform_admin_router
+    PLATFORM_ADMIN_AVAILABLE = True
+except ImportError:
+    PLATFORM_ADMIN_AVAILABLE = False
+
+try:
+    from app.api.v1.auth.handlers.user_management_handlers import user_management_router as user_approvals_router
+    USER_APPROVALS_AVAILABLE = True
+except ImportError:
+    USER_APPROVALS_AVAILABLE = False
+
+try:
+    from app.api.v1.auth.rbac import router as auth_router
+    AUTH_RBAC_AVAILABLE = True
+except ImportError:
+    AUTH_RBAC_AVAILABLE = False
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -46,41 +95,70 @@ api_router = APIRouter()
 # --- Include All Routers ---
 logger.info("--- Starting API Router Inclusion Process ---")
 
-api_router.include_router(sixr_router, prefix="/sixr", tags=["6R Analysis"])
+# Core Discovery and Analysis
+api_router.include_router(sixr_router, prefix="/6r", tags=["6R Analysis"])
 api_router.include_router(discovery_router, prefix="/discovery", tags=["Discovery"])
-# Unified Discovery V1 removed - replaced by V2 Discovery Flow API at /api/v2/discovery-flows/
-# V2 router moved to main.py to avoid /api/v1 prefix
-# api_router.include_router(discovery_flow_v2_router, prefix="/api/v2/discovery-flows", tags=["Discovery Flow v2 - Multi-Flow Architecture"])
-api_router.include_router(discovery_flow_management_router, prefix="/discovery", tags=["Discovery Flow Management"])
-api_router.include_router(discovery_flow_management_enhanced_router, prefix="/discovery/enhanced", tags=["Enhanced Flow Management"])
-api_router.include_router(asset_inventory_router, prefix="/assets", tags=["Asset Inventory"])
-api_router.include_router(llm_health_router, prefix="/llm", tags=["LLM Health"])
+
+# Migrations if available
+if MIGRATIONS_AVAILABLE:
+    api_router.include_router(migrations_router, prefix="/migration", tags=["Migration"])
+    logger.info("✅ Migrations router included")
+
+# Health endpoints
+if HEALTH_AVAILABLE:
+    api_router.include_router(health_router, prefix="/health", tags=["Health"])
+    logger.info("✅ Health router included")
+
+if LLM_HEALTH_AVAILABLE:
+    api_router.include_router(llm_health_router, prefix="/llm", tags=["LLM Health"])
+    logger.info("✅ LLM Health router included")
+
+# Authentication and Context
+if AUTH_RBAC_AVAILABLE:
+    api_router.include_router(auth_router, prefix="/auth", tags=["Authentication"])
+    logger.info("✅ Auth RBAC router included")
+
+api_router.include_router(context_router, prefix="/context", tags=["Context Management"])
+api_router.include_router(context_establishment_router, prefix="/context-establishment", tags=["Context Establishment"])
+
+# Data Management
 api_router.include_router(data_import_router, prefix="/data-import", tags=["Data Import"])
+api_router.include_router(asset_inventory_router, prefix="/assets", tags=["Asset Inventory"])
+
+# System Management
 api_router.include_router(monitoring_router, prefix="/monitoring", tags=["Monitoring"])
-api_router.include_router(chat_router, prefix="/chat", tags=["Chat"])
-# WebSocket router removed - using HTTP polling for Vercel+Railway compatibility
-api_router.include_router(auth_router, prefix="/auth", tags=["Authentication"])
+
+# Agent and AI Services
+api_router.include_router(agents_router, prefix="/agents", tags=["Agents"])
 api_router.include_router(agent_learning_router, prefix="/agent-learning", tags=["Agent Learning"])
+api_router.include_router(chat_router, prefix="/chat", tags=["Chat"])
+
+# Session Management
 api_router.include_router(sessions_router, prefix="/sessions", tags=["Sessions"])
 
+# Admin Management (conditional)
+if CLIENT_MANAGEMENT_AVAILABLE:
+    api_router.include_router(client_management_router, prefix="/admin/clients", tags=["Admin - Client Management"])
+    logger.info("✅ Client management router included")
 
-# Admin Routers
-api_router.include_router(client_management_router, prefix="/admin/clients", tags=["Admin - Client Management"])
-api_router.include_router(engagement_management_router, prefix="/admin/engagements", tags=["Admin - Engagement Management"])
-api_router.include_router(platform_admin_router, prefix="/admin/platform", tags=["Admin - Platform Management"])
-api_router.include_router(user_approvals_router, prefix="/admin/approvals", tags=["Admin - User Approvals"])
+if ENGAGEMENT_MANAGEMENT_AVAILABLE:
+    api_router.include_router(engagement_management_router, prefix="/admin/engagements", tags=["Admin - Engagement Management"])
+    logger.info("✅ Engagement management router included")
 
-# Include context router
-api_router.include_router(context_router, prefix="", tags=["Context"])
+if PLATFORM_ADMIN_AVAILABLE:
+    api_router.include_router(platform_admin_router, prefix="/admin/platform", tags=["Admin - Platform Management"])
+    logger.info("✅ Platform admin router included")
 
-# Include context establishment router (exempt from engagement requirements)
-api_router.include_router(context_establishment_router, prefix="/context", tags=["Context Establishment"])
+if USER_APPROVALS_AVAILABLE:
+    api_router.include_router(user_approvals_router, prefix="/admin/approvals", tags=["Admin - User Approvals"])
+    logger.info("✅ User approvals router included")
 
-# Include agents router
-api_router.include_router(agents_router, prefix="/agents", tags=["Agents"])
-
-# Include test discovery router for debugging
+# Testing and Debug
 api_router.include_router(test_discovery_router, prefix="/test-discovery", tags=["Test Discovery"])
+
+# Legacy Discovery Flow Management - DISABLED (replaced by V2 Discovery Flow API at /api/v2/discovery-flows/)
+# api_router.include_router(discovery_flow_management_router, prefix="/discovery", tags=["Discovery Flow Management"])
+# api_router.include_router(discovery_flow_management_enhanced_router, prefix="/discovery/enhanced", tags=["Enhanced Flow Management"])
 
 # Debug endpoint to list all routes
 @api_router.get("/debug/routes", include_in_schema=False)

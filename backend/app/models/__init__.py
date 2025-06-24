@@ -16,7 +16,7 @@ from app.models.discovery_flow import DiscoveryFlow
 from app.models.discovery_asset import DiscoveryAsset
 
 # Data Import Models
-from app.models.data_import import DataImport
+from app.models.data_import.core import DataImport
 from app.models.data_import_session import DataImportSession
 
 # Assessment Models
@@ -29,22 +29,31 @@ from app.models.asset import Asset, AssetDependency
 from app.models.migration import Migration
 
 # RBAC Models
-from app.models.rbac import UserRole, ClientAccess, PermissionLevel
+from app.models.rbac import UserRole, ClientAccess, AccessLevel
 
 # Agent Communication Models
-from app.models.agent_communication import AgentCommunication
+from app.models.agent_communication import AgentQuestion, DataItem, AgentInsight
 
 # CrewAI Flow Models
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 
-# Field Mapping Models
-from app.models.field_mapping import FieldMapping
+# Flow Deletion Audit Models
+from app.models.flow_deletion_audit import FlowDeletionAudit
 
-# Learning Models
-from app.models.learning_pattern import LearningPattern
+# Feedback Models
+from app.models.feedback import Feedback
 
-# Tech Debt Models
-from app.models.tech_debt_analysis import TechDebtAnalysis
+# Security Audit Models
+from app.models.security_audit import SecurityAuditLog, RoleChangeApproval
+
+# Tags Models
+from app.models.tags import Tag, AssetTag
+
+# LLM Usage Models
+from app.models.llm_usage import LLMUsageLog, LLMUsageSummary
+
+# SixR Analysis Models
+from app.models.sixr_analysis import SixRAnalysis
 
 # DEPRECATED MODELS (Legacy V1 - Use V2 Discovery Flow instead)
 # from app.models.workflow_state import WorkflowState  # REMOVED - Use DiscoveryFlow
@@ -78,20 +87,34 @@ __all__ = [
     # RBAC Models
     "UserRole",
     "ClientAccess", 
-    "PermissionLevel",
+    "AccessLevel",
     
     # Agent Communication Models
-    "AgentCommunication",
+    "AgentQuestion",
+    "DataItem", 
+    "AgentInsight",
     
     # CrewAI Flow Models
     "CrewAIFlowStateExtensions",
     
-    # Field Mapping Models
-    "FieldMapping",
+    # Flow Deletion Audit Models
+    "FlowDeletionAudit",
     
-    # Learning Models
-    "LearningPattern",
+    # Feedback Models
+    "Feedback",
     
-    # Tech Debt Models
-    "TechDebtAnalysis"
+    # Security Audit Models
+    "SecurityAuditLog",
+    "RoleChangeApproval",
+    
+    # Tags Models
+    "Tag",
+    "AssetTag",
+    
+    # LLM Usage Models
+    "LLMUsageLog",
+    "LLMUsageSummary",
+    
+    # SixR Analysis Models
+    "SixRAnalysis"
 ] 
