@@ -89,7 +89,7 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
     queryFn: async () => {
       if (!selectedClientId) return [];
       try {
-        const response = await apiCall(`/api/v1/context/engagements?client_id=${selectedClientId}`, {
+        const response = await apiCall(`/context/clients/${selectedClientId}/engagements`, {
           method: 'GET',
           headers: getAuthHeaders()
         });

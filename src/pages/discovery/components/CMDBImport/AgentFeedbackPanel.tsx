@@ -131,8 +131,8 @@ const AgentFeedbackPanel: React.FC<AgentFeedbackPanelProps> = ({
                   <p className="text-xs text-gray-600">Records</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-sm font-medium text-green-600 truncate" title={filename}>
-                    {filename.length > 12 ? filename.substring(0, 12) + '...' : filename}
+                  <p className="text-sm font-medium text-green-600 truncate" title={filename || 'Unknown file'}>
+                    {filename && filename.length > 12 ? filename.substring(0, 12) + '...' : (filename || 'Unknown file')}
                   </p>
                   <p className="text-xs text-gray-600">Source File</p>
                 </div>

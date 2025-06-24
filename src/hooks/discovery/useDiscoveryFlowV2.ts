@@ -302,6 +302,43 @@ export function useDiscoveryFlowV2(
     autoRefresh = false
   } = options;
 
+  // 🚨 DEBUG: Check for problematic flow ID
+  const PROBLEM_FLOW_ID = '11055bdf-5e39-4e0d-913e-0c7080f82e2c';
+  if (flowId === PROBLEM_FLOW_ID) {
+    console.error('🚨 PROBLEM FLOW ID DETECTED:', {
+      flowId,
+      stackTrace: new Error().stack,
+      component: 'useDiscoveryFlowV2'
+    });
+    // Don't proceed with the problematic flow ID
+    return {
+      flow: null,
+      assets: [],
+      isLoading: false,
+      isCreating: false,
+      isUpdating: false,
+      isCompleting: false,
+      error: new Error(`Flow ID ${flowId} does not exist in database`),
+      createFlow: async () => { throw new Error('Invalid flow ID'); },
+      updatePhase: async () => { throw new Error('Invalid flow ID'); },
+      completeFlow: async () => { throw new Error('Invalid flow ID'); },
+      getAssets: async () => [],
+      createAssetsFromDiscovery: async () => { throw new Error('Invalid flow ID'); },
+      validateCompletion: async () => { throw new Error('Invalid flow ID'); },
+      getAssessmentReadyAssets: async () => { throw new Error('Invalid flow ID'); },
+      generateAssessmentPackage: async () => { throw new Error('Invalid flow ID'); },
+      completeWithAssessment: async () => { throw new Error('Invalid flow ID'); },
+      subscribeToUpdates: () => {},
+      unsubscribeFromUpdates: () => {},
+      progressPercentage: 0,
+      currentPhase: null,
+      completedPhases: [],
+      nextPhase: null,
+      refresh: () => {},
+      reset: () => {}
+    };
+  }
+
   const queryClient = useQueryClient();
   const wsRef = useRef<WebSocket | null>(null);
   const [error, setError] = useState<Error | null>(null);
@@ -378,8 +415,20 @@ export function useDiscoveryFlowV2(
       if (failureCount >= 3) return false;
       
       // Don't retry 404 errors (flow doesn't exist)
-      if (error && 'status' in error && error.status === 404) {
+      if (error && ('status' in error && error.status === 404)) {
         console.warn(`🚫 Flow ${flowId} not found, stopping retries`);
+        return false;
+      }
+      
+      // Don't retry if error message indicates flow not found
+      if (error && error.message && error.message.includes('Discovery flow not found')) {
+        console.warn(`🚫 Flow ${flowId} not found (from message), stopping retries`);
+        return false;
+      }
+      
+      // Don't retry if response indicates flow not found
+      if (error && error.message && error.message.includes('Failed to get flow')) {
+        console.warn(`🚫 Flow ${flowId} fetch failed, stopping retries`);
         return false;
       }
       

@@ -144,6 +144,17 @@ class DiscoveryFlow(Base):
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for API responses"""
+        # Extract agent_insights from crewai_state_data
+        agent_insights = []
+        if self.crewai_state_data:
+            agent_insights = self.crewai_state_data.get("agent_insights", [])
+            # Also check for agent_insights in phase-specific data
+            for phase_data in self.crewai_state_data.values():
+                if isinstance(phase_data, dict) and "agent_insights" in phase_data:
+                    phase_insights = phase_data["agent_insights"]
+                    if isinstance(phase_insights, list):
+                        agent_insights.extend(phase_insights)
+        
         return {
             "id": str(self.id),
             "flow_id": str(self.flow_id),
@@ -174,5 +185,6 @@ class DiscoveryFlow(Base):
             "completed_at": self.completed_at.isoformat() if self.completed_at else None,
             "migration_readiness_score": self.get_migration_readiness_score(),
             "next_phase": self.get_next_phase(),
-            "is_complete": self.is_complete()
+            "is_complete": self.is_complete(),
+            "agent_insights": agent_insights  # Critical for agent-UI bridge functionality
         } 

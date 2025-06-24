@@ -43,49 +43,6 @@ This release completes the migration from V1 to V2 discovery flow APIs by resolv
 - **Graceful Degradation**: Components handle missing data without breaking user interface
 - **Agent-UI Bridge**: Preserved critical agent intelligence integration during migration
 
-## [0.24.10] - 2025-01-26
-
-### 🐛 **V1 to V2 Migration Console Error Fixes**
-
-This release completes the migration from V1 to V2 discovery flow APIs by resolving all remaining browser console errors caused by missing hooks and incompatible property mappings.
-
-### 🚀 **Frontend Compatibility Fixes**
-
-#### **Enhanced Discovery Dashboard V2 Migration**
-- **Hook Migration**: Replaced missing V1 hooks (`useUnifiedDiscoveryFlow`, `useFlowResumption`, `useFlowDeletion`) with V2 equivalents (`useIncompleteFlowDetectionV2`, `useFlowDeletionV2`)
-- **Property Mapping**: Updated all V1 property references (`phase_completion` → `phases`, `session_id` → `flow_id`)
-- **State Management**: Implemented V2-compatible state management with proper fallback handling
-- **Error Prevention**: Added defensive programming patterns to handle undefined/loading data gracefully
-
-#### **IncompleteFlowManager Component Rebuild**
-- **V2 Interface**: Complete rebuild to use `IncompleteFlowV2` interface with proper `flow_id` handling
-- **Agent Insights**: Restored critical `agent_insights` functionality for agent-UI bridge panel
-- **Safe Property Access**: Implemented `safeSubstring()` helper to prevent substring errors on undefined values
-- **Backward Compatibility**: Added support for both V1 and V2 agent insight formats during transition
-
-#### **Backend Agent Insights Integration**
-- **V2 Response Model**: Added `agent_insights` field to `DiscoveryFlowResponse` model to restore agent-UI bridge functionality
-- **Data Extraction**: Enhanced `to_dict()` method to extract `agent_insights` from `crewai_state_data` JSONB field
-- **Multi-Source Aggregation**: Implemented logic to collect agent insights from both flow-level and phase-specific data
-
-### 📊 **Business Impact**
-- **Zero Console Errors**: All browser console 404 and ReferenceError issues resolved
-- **Agent Intelligence Preserved**: Critical agent-insights functionality maintained during V2 migration
-- **User Experience**: Enhanced Discovery Dashboard now loads without errors and displays complete flow information
-- **Platform Stability**: Robust error handling ensures components render safely even with incomplete data
-
-### 🎯 **Success Metrics**
-- **Error Resolution**: 100% of console ReferenceError and substring errors eliminated
-- **Build Success**: Frontend builds cleanly with no compilation errors
-- **Component Functionality**: All discovery flow management features working with V2 APIs
-- **Agent Integration**: Agent insights panel fully functional across all discovery pages
-
-### 🔧 **Technical Achievements**
-- **Complete V1 to V2 Migration**: All discovery flow components now use V2 APIs and interfaces
-- **Defensive Programming**: Comprehensive null/undefined checking prevents runtime errors
-- **Graceful Degradation**: Components handle missing data without breaking user interface
-- **Agent-UI Bridge**: Preserved critical agent intelligence integration during migration
-
 ## [0.24.9] - 2025-01-27
 
 ### 🎯 **POLLING MANAGEMENT SYSTEM - Runaway Polling Resolution**

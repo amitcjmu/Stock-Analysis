@@ -583,7 +583,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // If no client data provided, fetch it
       if (!fullClientData) {
-        const response = await apiCall(`/api/v1/clients/${clientId}`, {
+        const response = await apiCall(`/context/clients/${clientId}`, {
           method: 'GET',
           headers: getAuthHeaders()
         });
@@ -608,7 +608,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       
       // Get engagements for this client using context establishment endpoint
-      const engagementsResponse = await apiCall(`/api/v1/context/engagements?client_id=${clientId}`, {
+      const engagementsResponse = await apiCall(`/context/clients/${clientId}/engagements`, {
         method: 'GET',
         headers: getAuthHeaders()
       });
@@ -639,7 +639,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // If no engagement data provided, fetch it
       if (!fullEngagementData && client) {
-        const response = await apiCall(`/api/v1/clients/${client.id}/engagements/${engagementId}`, {
+        const response = await apiCall(`/context/clients/${client.id}/engagements/${engagementId}`, {
           method: 'GET',
           headers: getAuthHeaders()
         });

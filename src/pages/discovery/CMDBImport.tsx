@@ -38,11 +38,11 @@ import { apiCall } from '@/config/api';
 import { UploadBlocker } from '@/components/discovery/UploadBlocker';
 import { IncompleteFlowManager } from '@/components/discovery/IncompleteFlowManager';
 import { 
-  useIncompleteFlowDetection, 
-  useFlowResumption, 
-  useFlowDeletion, 
-  useBulkFlowOperations 
-} from '@/hooks/discovery/useIncompleteFlowDetection';
+  useIncompleteFlowDetectionV2, 
+  useFlowResumptionV2, 
+  useFlowDeletionV2, 
+  useBulkFlowOperationsV2 
+} from '@/hooks/discovery/useIncompleteFlowDetectionV2';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 // Data Import Validation Agents
@@ -212,10 +212,10 @@ const DataImport: React.FC = () => {
   const [uploadedFiles, setUploadedFiles] = useState<UploadFile[]>([]);
   
   // Flow Management State
-  const { data: incompleteFlowsData, isLoading: checkingFlows } = useIncompleteFlowDetection();
-  const flowResumption = useFlowResumption();
-  const flowDeletion = useFlowDeletion();
-  const bulkFlowOperations = useBulkFlowOperations();
+  const { data: incompleteFlowsData, isLoading: checkingFlows } = useIncompleteFlowDetectionV2();
+  const flowResumption = useFlowResumptionV2();
+  const flowDeletion = useFlowDeletionV2();
+  const bulkFlowOperations = useBulkFlowOperationsV2();
   const [showFlowManager, setShowFlowManager] = useState(false);
   const [conflictFlows, setConflictFlows] = useState<any[]>([]); // For storing API response flows
   

@@ -36,14 +36,12 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiCall } from '@/config/api';
-import { useDiscoveryFlowV2 } from '../../hooks/discovery/useDiscoveryFlowV2';
 
-// Flow Management Components
+// V2 Flow Management Components
 import { 
-  useIncompleteFlowDetection, 
-  useFlowResumption, 
-  useFlowDeletion 
-} from '@/hooks/discovery/useIncompleteFlowDetection';
+  useIncompleteFlowDetectionV2,
+  useFlowDeletionV2
+} from '@/hooks/discovery/useIncompleteFlowDetectionV2';
 import { IncompleteFlowManager } from '@/components/discovery/IncompleteFlowManager';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -103,14 +101,11 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, client, engagement, getAuthHeaders } = useAuth();
   
-  // Unified discovery flow hook
-  const {
-    flowState,
-    isLoading: flowLoading,
-    error: flowError,
-    isHealthy,
-    refreshFlow
-  } = useUnifiedDiscoveryFlow();
+  // V2 Discovery flow state - using incompleteFlowsData for current flow info
+  const [currentFlow, setCurrentFlow] = useState(null);
+  const [flowLoading, setFlowLoading] = useState(false);
+  const [flowError, setFlowError] = useState(null);
+  const [isHealthy, setIsHealthy] = useState(true);
   
   const [activeFlows, setActiveFlows] = useState<FlowSummary[]>([]);
   const [systemMetrics, setSystemMetrics] = useState<SystemMetrics | null>(null);
@@ -121,14 +116,25 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [error, setError] = useState<string | null>(null);
 
-  // Flow Management State
-  const { data: incompleteFlowsData } = useIncompleteFlowDetection();
-  const flowResumption = useFlowResumption();
-  const flowDeletion = useFlowDeletion();
+  // Flow Management State - V2 hooks
+  const { data: incompleteFlowsData } = useIncompleteFlowDetectionV2();
+  const { mutate: deleteFlow, isPending: isDeleting } = useFlowDeletionV2();
   const [showIncompleteFlowManager, setShowIncompleteFlowManager] = useState(false);
   
   const incompleteFlows = incompleteFlowsData?.flows || [];
   const hasIncompleteFlows = incompleteFlows.length > 0;
+
+  // Helper function to refresh flow data
+  const refreshFlow = async () => {
+    setFlowLoading(true);
+    try {
+      await fetchDashboardData();
+    } catch (error) {
+      setFlowError(error);
+    } finally {
+      setFlowLoading(false);
+    }
+  };
 
   // Fetch dashboard data
   const fetchDashboardData = async () => {
@@ -235,7 +241,7 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
                   crew_count: 6,
                   active_agents: 18,
                   data_sources: 1,
-                  success_criteria_met: Object.values(flowState.phase_completion || {}).filter(Boolean).length,
+                  success_criteria_met: Object.values(flowState.phases || {}).filter(Boolean).length,
                   total_success_criteria: 6, // 6 phases in discovery
                   flow_type: 'discovery'
                 });
@@ -472,7 +478,7 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
       </div>
 
       {/* Unified Flow Status */}
-      {flowState && (
+      {currentFlow && (
         <Card className="border-l-4 border-l-blue-500">
           <CardHeader>
             <CardTitle className="flex items-center">
@@ -480,25 +486,25 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
               Current Unified Discovery Flow
             </CardTitle>
             <CardDescription>
-              Session: {flowState.session_id} | Status: {flowState.status}
+              Session: {currentFlow.session_id} | Status: {currentFlow.status}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Progress</span>
-                <span className="text-sm text-gray-600">{flowState.progress_percentage}%</span>
+                <span className="text-sm text-gray-600">{currentFlow.progress}%</span>
               </div>
-              <Progress value={flowState.progress_percentage} className="w-full" />
+              <Progress value={currentFlow.progress} className="w-full" />
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="font-medium">Current Phase:</span>
-                  <div className="text-blue-600">{flowState.current_phase}</div>
+                  <div className="text-blue-600">{currentFlow.current_phase}</div>
                 </div>
                 <div>
                   <span className="font-medium">Completed Phases:</span>
                   <div className="text-green-600">
-                    {Object.values(flowState.phase_completion || {}).filter(Boolean).length}/6
+                    {Object.values(currentFlow.phases || {}).filter(Boolean).length}/6
                   </div>
                 </div>
               </div>
@@ -720,147 +726,76 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
           variant="outline"
           size="sm"
         >
-          <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
           Refresh Data
         </Button>
       </div>
 
-      {/* Crew Performance */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Crew Performance Analytics
-          </CardTitle>
-          <CardDescription>Performance metrics across all crews in the last {selectedTimeRange}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {crewPerformance.map((crew, index) => (
-              <div key={index} className="p-4 border rounded-lg">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-medium">{crew.crew_name}</h3>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-xs">
-                      {crew.current_active} active
-                    </Badge>
-                    <Badge variant="outline" className="text-xs">
-                      {crew.total_executions} total runs
-                    </Badge>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+      {/* Crew Performance Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {crewPerformance.map((crew) => (
+          <Card key={crew.crew_name}>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center justify-between">
+                {crew.crew_name}
+                <Badge variant={crew.current_active > 0 ? "default" : "secondary"}>
+                  {crew.current_active} active
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="font-medium">Success Rate:</span>
                     <div className="text-green-600">{(crew.success_rate * 100).toFixed(1)}%</div>
                   </div>
                   <div>
                     <span className="font-medium">Avg Duration:</span>
-                    <div>{crew.avg_duration_minutes}m</div>
+                    <div>{crew.avg_duration_minutes}min</div>
+                  </div>
+                  <div>
+                    <span className="font-medium">Executions:</span>
+                    <div>{crew.total_executions}</div>
                   </div>
                   <div>
                     <span className="font-medium">Collaboration:</span>
-                    <div>{crew.collaboration_score.toFixed(1)}/10</div>
+                    <div className="text-blue-600">{crew.collaboration_score}/10</div>
                   </div>
-                  <div>
-                    <span className="font-medium">Efficiency Trend:</span>
-                    <div className={crew.efficiency_trend > 0 ? 'text-green-600' : 'text-red-600'}>
+                </div>
+                
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span>Efficiency Trend</span>
+                    <span className={crew.efficiency_trend > 0 ? 'text-green-600' : 'text-red-600'}>
                       {crew.efficiency_trend > 0 ? '+' : ''}{(crew.efficiency_trend * 100).toFixed(1)}%
-                    </div>
+                    </span>
                   </div>
-                </div>
-
-                <div className="mt-3 space-y-2">
-                  <div className="flex justify-between text-xs">
-                    <span>Success Rate</span>
-                    <span>{(crew.success_rate * 100).toFixed(1)}%</span>
-                  </div>
-                  <Progress value={crew.success_rate * 100} className="h-1" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* System Performance */}
-      {systemMetrics && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">System Resources</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <div className="flex justify-between text-sm mb-2">
-                  <span>Memory Utilization</span>
-                  <span>{((systemMetrics.memory_utilization_gb / systemMetrics.total_memory_gb) * 100).toFixed(1)}%</span>
-                </div>
-                <Progress value={(systemMetrics.memory_utilization_gb / systemMetrics.total_memory_gb) * 100} className="h-2" />
-              </div>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <div className="font-medium">Active Agents</div>
-                  <div className="text-xl font-bold">{systemMetrics.total_agents}</div>
-                </div>
-                <div>
-                  <div className="font-medium">Knowledge Bases</div>
-                  <div className="text-xl font-bold">{systemMetrics.knowledge_bases_loaded}</div>
+                  <Progress value={crew.success_rate * 100} className="h-2" />
                 </div>
               </div>
             </CardContent>
           </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Operational Metrics</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <div className="font-medium">Success Rate</div>
-                  <div className="text-xl font-bold text-green-600">{(systemMetrics.success_rate * 100).toFixed(1)}%</div>
-                </div>
-                <div>
-                  <div className="font-medium">Avg Completion</div>
-                  <div className="text-xl font-bold">{systemMetrics.avg_completion_time_hours.toFixed(1)}h</div>
-                </div>
-              </div>
-              <div>
-                <div className="font-medium mb-2">Collaboration Events Today</div>
-                <div className="text-2xl font-bold text-blue-600">{systemMetrics.collaboration_events_today}</div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+        ))}
+      </div>
     </div>
   );
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      {/* Sidebar */}
-      <div className="hidden lg:block w-64 border-r bg-white">
-        <Sidebar />
-      </div>
-      
-      {/* Main Content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-7xl">
-          {/* Context Breadcrumbs */}
-          <div className="mb-6">
-            <ContextBreadcrumbs />
-          </div>
-          
+    <div className="min-h-screen bg-gray-50">
+      <Sidebar />
+      <div className="ml-64 p-8">
+        <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+          <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Enhanced Discovery Dashboard</h1>
-              <p className="mt-2 text-gray-600">
-                Real-time monitoring of intelligent discovery flows, crew performance, and system analytics
+              <ContextBreadcrumbs />
+              <p className="text-gray-600 mt-2">
+                Real-time monitoring and management of Discovery Flows, CrewAI agents, and system performance
               </p>
             </div>
+
             <div className="flex items-center gap-4 mt-4 md:mt-0">
               <div className="flex items-center gap-2">
                 <label className="text-sm font-medium">Time Range:</label>
@@ -887,43 +822,22 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
           </div>
 
           {/* Status Indicator */}
-          {error ? (
-            <div className="mb-6 p-4 bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <AlertCircle className="w-5 h-5 text-red-500" />
-                  <div>
-                    <p className="font-medium text-red-800">Connection Error</p>
-                    <p className="text-sm text-red-600">
-                      {error} • Showing fallback data
-                    </p>
-                  </div>
-                </div>
-                <Button variant="outline" size="sm" onClick={fetchDashboardData}>
-                  <RefreshCw className="h-4 w-4 mr-1" />
-                  Retry
-                </Button>
-              </div>
+          <div className="mb-6 flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <div className={`w-3 h-3 rounded-full ${isHealthy ? 'bg-green-500' : 'bg-red-500'}`}></div>
+              <span className="text-sm font-medium">
+                System Status: {isHealthy ? 'Healthy' : 'Issues Detected'}
+              </span>
             </div>
-          ) : (
-            <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                  <div>
-                    <p className="font-medium text-green-800">Platform Status: Operational</p>
-                    <p className="text-sm text-green-600">
-                      All systems running optimally • Last updated: {lastUpdated.toLocaleTimeString()}
-                    </p>
-                  </div>
-                </div>
-                <Badge variant="outline" className="bg-white">
-                  <Activity className="h-3 w-3 mr-1" />
-                  {systemMetrics?.total_active_flows || 0} active flows
-                </Badge>
-              </div>
+            <div className="text-sm text-gray-600">
+              Last Updated: {lastUpdated.toLocaleTimeString()}
             </div>
-          )}
+            {error && (
+              <div className="text-sm text-red-600">
+                Error: {error}
+              </div>
+            )}
+          </div>
 
           {/* Incomplete Flows Alert */}
           {hasIncompleteFlows && (
@@ -1071,24 +985,30 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
           </DialogHeader>
           <IncompleteFlowManager 
             flows={incompleteFlows}
-            onContinueFlow={(sessionId) => flowResumption.mutate(sessionId)}
-            onDeleteFlow={(sessionId) => flowDeletion.mutate(sessionId)}
-            onBatchDelete={(sessionIds) => {
-              // Batch delete logic
-              sessionIds.forEach(id => flowDeletion.mutate(id));
+            onContinueFlow={(flowId) => {
+              // Navigate to continue flow - V2 uses flow_id
+              navigate(`/discovery/attribute-mapping/${flowId}`);
             }}
-            onViewDetails={(sessionId, phase) => {
+            onDeleteFlow={(flowId) => {
+              // Use V2 delete function
+              deleteFlow(flowId);
+            }}
+            onBatchDelete={(flowIds) => {
+              // Batch delete using V2 function
+              flowIds.forEach(id => deleteFlow(id));
+            }}
+            onViewDetails={(flowId, phase) => {
               const phaseRoutes = {
-                'field_mapping': `/discovery/attribute-mapping/${sessionId}`,
-                'data_cleansing': `/discovery/attribute-mapping/${sessionId}`,
-                'asset_inventory': `/discovery/attribute-mapping/${sessionId}`,
-                'dependency_analysis': `/discovery/attribute-mapping/${sessionId}`,
-                'tech_debt_analysis': `/discovery/attribute-mapping/${sessionId}`
+                'field_mapping': `/discovery/attribute-mapping/${flowId}`,
+                'data_cleansing': `/discovery/attribute-mapping/${flowId}`,
+                'asset_inventory': `/discovery/attribute-mapping/${flowId}`,
+                'dependency_analysis': `/discovery/attribute-mapping/${flowId}`,
+                'tech_debt_analysis': `/discovery/attribute-mapping/${flowId}`
               };
               const route = phaseRoutes[phase as keyof typeof phaseRoutes] || `/discovery/enhanced-dashboard`;
               navigate(route);
             }}
-            isLoading={flowResumption.isPending || flowDeletion.isPending}
+            isLoading={isDeleting}
           />
         </DialogContent>
       </Dialog>
@@ -1096,4 +1016,4 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
   );
 };
 
-export default EnhancedDiscoveryDashboard; 
+export default EnhancedDiscoveryDashboard;

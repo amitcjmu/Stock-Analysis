@@ -25,6 +25,25 @@ export interface IncompleteFlowV2 {
   updated_at: string;
   completed_at?: string;
   can_resume: boolean;
+  agent_insights: Array<{
+    id?: string;
+    agent_id?: string;
+    agent_name?: string;
+    insight_type?: string;
+    title?: string;
+    description?: string;
+    confidence?: string | number;
+    supporting_data?: Record<string, any>;
+    actionable?: boolean;
+    page?: string;
+    created_at?: string;
+    // Legacy V1 format support
+    agent?: string;
+    insight?: string;
+    priority?: string;
+    timestamp?: string;
+    phase?: string;
+  }>;
   deletion_impact?: {
     flow_phase: string;
     data_to_delete: Record<string, number>;
@@ -113,6 +132,7 @@ export const useIncompleteFlowDetectionV2 = () => {
           updated_at: flow.updated_at,
           completed_at: flow.completed_at,
           can_resume: flow.status === 'paused' || flow.status === 'failed',
+          agent_insights: flow.agent_insights || [],
           deletion_impact: {
             flow_phase: flow.next_phase || 'unknown',
             data_to_delete: { 'discovery_assets': 0 },
@@ -208,6 +228,7 @@ export const useFlowDetailsV2 = (flowId: string | null) => {
         updated_at: flow.updated_at,
         completed_at: flow.completed_at,
         can_resume: flow.status === 'paused' || flow.status === 'failed',
+        agent_insights: flow.agent_insights || [],
         deletion_impact: {
           flow_phase: flow.next_phase || 'unknown',
           data_to_delete: { 'discovery_assets': 0 },

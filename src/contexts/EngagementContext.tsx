@@ -35,7 +35,7 @@ export const EngagementProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [currentEngagement, setCurrentEngagement] = useState<Engagement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const { getContextHeaders } = useAuth();
+  const { user, getContextHeaders } = useAuth();
   const { currentClient } = useClient();
   const navigate = useNavigate();
 
@@ -46,8 +46,8 @@ export const EngagementProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       id: '22222222-2222-2222-2222-222222222222',
       name: 'Cloud Migration 2024',
       client_id: '11111111-1111-1111-1111-111111111111',
-      status: 'active',
-      type: 'migration',
+      status: 'active' as const,
+      type: 'migration' as const,
       start_date: '2024-01-01T00:00:00Z',
       end_date: '2024-12-31T23:59:59Z',
       created_at: '2024-01-01T00:00:00Z',
@@ -72,7 +72,7 @@ export const EngagementProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           return;
         }
 
-        const response = await apiCall(`/api/v1/engagements/${engagementId}`, {
+        const response = await apiCall(`/context/engagements/${engagementId}`, {
           method: 'GET',
           headers: getContextHeaders()
         });
@@ -94,7 +94,7 @@ export const EngagementProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     };
 
     initializeEngagement();
-  }, [getContextHeaders, currentClient]);
+  }, [user, getContextHeaders, currentClient]);
 
   const selectEngagement = async (id: string): Promise<void> => {
     try {
@@ -105,7 +105,7 @@ export const EngagementProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setIsLoading(true);
       setError(null);
 
-      const response = await apiCall(`/api/v1/engagements/${id}`, {
+      const response = await apiCall(`/context/engagements/${id}`, {
         method: 'GET',
         headers: getContextHeaders()
       });

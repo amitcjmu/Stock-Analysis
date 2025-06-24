@@ -74,7 +74,7 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
     queryKey: ['engagements', stagedClient?.id],
     queryFn: async () => {
       if (!stagedClient?.id) return [];
-      const response = await apiCall(`/api/v1/clients/${stagedClient.id}/engagements`, {
+      const response = await apiCall(`/context/clients/${stagedClient.id}/engagements`, {
         method: 'GET',
         headers: getContextHeaders()
       });
@@ -87,7 +87,7 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
     queryKey: ['sessions', stagedEngagement?.id],
     queryFn: async () => {
       if (!stagedEngagement?.id) return [];
-      const response = await apiCall(`/api/v1/engagements/${stagedEngagement.id}/sessions`, {
+      const response = await apiCall(`/context/engagements/${stagedEngagement.id}/sessions`, {
         method: 'GET',
         headers: getContextHeaders()
       });

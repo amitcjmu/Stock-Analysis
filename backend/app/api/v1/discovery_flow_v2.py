@@ -85,6 +85,7 @@ class DiscoveryFlowResponse(BaseModel):
     migration_readiness_score: float
     next_phase: Optional[str]
     is_complete: bool
+    agent_insights: Optional[List[Dict[str, Any]]] = Field(default=[], description="Agent insights for UI bridge")
 
 class DiscoveryAssetResponse(BaseModel):
     """Response model for discovery asset - V2 Clean Architecture"""

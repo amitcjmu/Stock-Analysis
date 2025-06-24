@@ -70,7 +70,7 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         
         if (clientId) {
           // Try to get the specific client
-          const response = await apiCall(`/clients/${clientId}`);
+          const response = await apiCall(`/context/clients/${clientId}`);
 
         if (response.client) {
           setCurrentClient(response.client);
@@ -80,7 +80,7 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
 
         // If no client ID in session or client not found, get default client
-        const defaultResponse = await apiCall('/clients/default');
+        const defaultResponse = await apiCall('/context/clients/default');
 
         if (defaultResponse) {
           sessionStorage.setItem(CLIENT_KEY, defaultResponse.id);
@@ -120,7 +120,7 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const fetchClients = async () => {
         setIsLoading(true);
         try {
-          const response = await apiCall('clients'); 
+          const response = await apiCall('/context/clients'); 
           if (response.items) {
             setAvailableClients(response.items);
             const storedClientId = sessionStorage.getItem(CLIENT_KEY);
@@ -171,7 +171,7 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setIsLoading(true);
       setError(null);
 
-      const response = await apiCall(`/api/v1/clients/${id}`);
+      const response = await apiCall(`/api/v1/context/clients/${id}`);
 
       if (response.client) {
         sessionStorage.setItem(CLIENT_KEY, id);

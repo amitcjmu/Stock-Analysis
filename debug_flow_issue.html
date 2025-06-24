@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Flow ID Issue</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        button { padding: 10px 15px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .danger { background: #dc3545; }
+        .danger:hover { background: #c82333; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug Flow ID Issue</h1>
+    
+    <div class="section">
+        <h2>Problem Flow ID</h2>
+        <p><strong>Problematic ID:</strong> <code>11055bdf-5e39-4e0d-913e-0c7080f82e2c</code></p>
+        <p>This flow ID is causing 404 errors because it doesn't exist in the database.</p>
+    </div>
+
+    <div class="section">
+        <h2>Browser Storage Check</h2>
+        <button onclick="checkStorage()">Check Storage</button>
+        <pre id="storageResults">Click "Check Storage" to see results...</pre>
+    </div>
+
+    <div class="section">
+        <h2>Clear Cache Actions</h2>
+        <button onclick="clearFlowData()">Clear Flow Data</button>
+        <button onclick="clearReactQuery()">Clear React Query Cache</button>
+        <button onclick="stopPolling()">Stop All Polling</button>
+        <button onclick="clearAll()" class="danger">Clear Everything</button>
+        <pre id="clearResults">Click actions above to see results...</pre>
+    </div>
+
+    <div class="section">
+        <h2>Current Flows in Database</h2>
+        <button onclick="checkDatabase()">Check Database Flows</button>
+        <pre id="databaseResults">Click "Check Database Flows" to see results...</pre>
+    </div>
+
+    <script>
+        const PROBLEM_FLOW_ID = '11055bdf-5e39-4e0d-913e-0c7080f82e2c';
+        
+        function checkStorage() {
+            const results = [];
+            
+            // Check localStorage
+            results.push('=== LOCAL STORAGE ===');
+            Object.keys(localStorage).forEach(key => {
+                const value = localStorage.getItem(key);
+                if (value && value.includes(PROBLEM_FLOW_ID)) {
+                    results.push(`🚨 FOUND IN: ${key} = ${value.substring(0, 100)}...`);
+                } else if (key.toLowerCase().includes('flow') || key.toLowerCase().includes('discovery')) {
+                    results.push(`📝 ${key} = ${value ? value.substring(0, 50) + '...' : 'null'}`);
+                }
+            });
+            
+            // Check sessionStorage
+            results.push('\n=== SESSION STORAGE ===');
+            Object.keys(sessionStorage).forEach(key => {
+                const value = sessionStorage.getItem(key);
+                if (value && value.includes(PROBLEM_FLOW_ID)) {
+                    results.push(`🚨 FOUND IN: ${key} = ${value.substring(0, 100)}...`);
+                } else if (key.toLowerCase().includes('flow') || key.toLowerCase().includes('discovery')) {
+                    results.push(`📝 ${key} = ${value ? value.substring(0, 50) + '...' : 'null'}`);
+                }
+            });
+            
+            // Check URL
+            results.push('\n=== CURRENT URL ===');
+            results.push(`URL: ${window.location.href}`);
+            if (window.location.href.includes(PROBLEM_FLOW_ID)) {
+                results.push(`🚨 PROBLEM FLOW ID FOUND IN URL!`);
+            }
+            
+            document.getElementById('storageResults').textContent = results.join('\n');
+        }
+        
+        function clearFlowData() {
+            const results = [];
+            let cleared = 0;
+            
+            // Clear localStorage flow data
+            Object.keys(localStorage).forEach(key => {
+                if (key.toLowerCase().includes('flow') || key.toLowerCase().includes('discovery') || 
+                    localStorage.getItem(key)?.includes(PROBLEM_FLOW_ID)) {
+                    localStorage.removeItem(key);
+                    results.push(`✅ Cleared localStorage: ${key}`);
+                    cleared++;
+                }
+            });
+            
+            // Clear sessionStorage flow data
+            Object.keys(sessionStorage).forEach(key => {
+                if (key.toLowerCase().includes('flow') || key.toLowerCase().includes('discovery') || 
+                    sessionStorage.getItem(key)?.includes(PROBLEM_FLOW_ID)) {
+                    sessionStorage.removeItem(key);
+                    results.push(`✅ Cleared sessionStorage: ${key}`);
+                    cleared++;
+                }
+            });
+            
+            results.push(`\n🎯 Total items cleared: ${cleared}`);
+            document.getElementById('clearResults').textContent = results.join('\n');
+        }
+        
+        function clearReactQuery() {
+            const results = [];
+            
+            if (window.queryClient) {
+                window.queryClient.clear();
+                results.push('✅ React Query cache cleared');
+            } else {
+                results.push('⚠️ React Query client not found on window');
+            }
+            
+            // Try to clear React Query from localStorage if it exists
+            Object.keys(localStorage).forEach(key => {
+                if (key.includes('react-query') || key.includes('tanstack')) {
+                    localStorage.removeItem(key);
+                    results.push(`✅ Cleared React Query storage: ${key}`);
+                }
+            });
+            
+            document.getElementById('clearResults').textContent = results.join('\n');
+        }
+        
+        function stopPolling() {
+            const results = [];
+            
+            if (window.pollingManager) {
+                window.pollingManager.emergencyStop();
+                results.push('✅ Emergency stop executed on polling manager');
+            } else {
+                results.push('⚠️ Polling manager not found on window');
+            }
+            
+            // Clear any intervals that might be running
+            for (let i = 1; i < 10000; i++) {
+                clearInterval(i);
+                clearTimeout(i);
+            }
+            results.push('✅ Cleared all intervals and timeouts');
+            
+            document.getElementById('clearResults').textContent = results.join('\n');
+        }
+        
+        function clearAll() {
+            if (confirm('This will clear ALL browser data for this site. Continue?')) {
+                localStorage.clear();
+                sessionStorage.clear();
+                
+                if (window.queryClient) {
+                    window.queryClient.clear();
+                }
+                
+                if (window.pollingManager) {
+                    window.pollingManager.emergencyStop();
+                }
+                
+                // Clear intervals
+                for (let i = 1; i < 10000; i++) {
+                    clearInterval(i);
+                    clearTimeout(i);
+                }
+                
+                document.getElementById('clearResults').textContent = '🚨 ALL DATA CLEARED! Please refresh the page.';
+            }
+        }
+        
+        async function checkDatabase() {
+            try {
+                const response = await fetch('http://localhost:8000/api/v2/discovery-flows/flows', {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Client-Account-Id': '11111111-1111-1111-1111-111111111111',
+                        'X-Engagement-Id': '22222222-2222-2222-2222-222222222222'
+                    }
+                });
+                
+                if (response.ok) {
+                    const flows = await response.json();
+                    const results = [];
+                    results.push('=== EXISTING FLOWS IN DATABASE ===');
+                    flows.forEach(flow => {
+                        results.push(`📋 ${flow.flow_name}`);
+                        results.push(`   ID: ${flow.flow_id}`);
+                        results.push(`   Status: ${flow.status}`);
+                        results.push(`   Created: ${flow.created_at}`);
+                        results.push('');
+                    });
+                    
+                    if (flows.some(f => f.flow_id === PROBLEM_FLOW_ID)) {
+                        results.push('🚨 PROBLEM FLOW ID FOUND IN DATABASE!');
+                    } else {
+                        results.push('✅ Problem flow ID NOT in database (as expected)');
+                    }
+                    
+                    document.getElementById('databaseResults').textContent = results.join('\n');
+                } else {
+                    document.getElementById('databaseResults').textContent = `❌ API Error: ${response.status} ${response.statusText}`;
+                }
+            } catch (error) {
+                document.getElementById('databaseResults').textContent = `❌ Network Error: ${error.message}`;
+            }
+        }
+        
+        // Auto-check storage on load
+        window.onload = () => {
+            checkStorage();
+        };
+    </script>
+</body>
+</html> 
