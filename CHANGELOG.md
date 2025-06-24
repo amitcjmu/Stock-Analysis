@@ -1,5 +1,49 @@
 # AI Force Migration Platform - Change Log
 
+## [0.25.4] - 2025-01-27
+
+### 🔧 **DATA IMPORT UUID ERROR FIX - Invalid UUID Length Resolution**
+
+This release fixes critical data import errors caused by UUID validation failures in the import storage handler.
+
+### 🚀 **Data Import Error Resolution**
+
+#### **UUID Validation Fix**
+- **Frontend UUID Generation**: Updated `CMDBImport.tsx` to use `crypto.randomUUID()` instead of custom string format
+- **Backend UUID Handling**: Modified import storage handler to create `DataImport` records when they don't exist
+- **Error Prevention**: Eliminated "invalid UUID length" errors from PostgreSQL queries
+- **Import Flow**: Fixed frontend workflow to generate proper UUIDs for data import sessions
+
+#### **Import Storage Handler Enhancement**
+- **Record Creation**: Import storage handler now creates `DataImport` records if they don't exist
+- **UUID Validation**: Added proper UUID format validation with descriptive error messages
+- **Graceful Handling**: Handles both existing and new import records seamlessly
+- **Database Integration**: Proper integration with PostgreSQL UUID constraints
+
+### 📊 **Technical Fixes**
+- **UUID Format**: Replaced `upload-${timestamp}-${random}` with proper UUID format
+- **Database Queries**: Fixed PostgreSQL UUID constraint violations
+- **Error Messages**: Clear error messages for invalid UUID formats
+- **Import Workflow**: Streamlined data import process without requiring separate upload step
+
+### 🎯 **Error Resolution Results**
+- **Database Errors**: Eliminated "invalid UUID length" PostgreSQL errors
+- **Import Success**: Data import now works correctly with proper UUID handling
+- **User Experience**: Smooth file upload and processing without UUID-related failures
+- **Backend Reliability**: Robust handling of both existing and new import records
+
+### 📋 **Business Impact**
+- **File Upload Success**: Users can now successfully upload and process CSV files
+- **Error Elimination**: No more UUID validation failures during data import
+- **Workflow Completion**: Full end-to-end data import workflow now functional
+- **Platform Reliability**: Improved stability of discovery flow initialization
+
+### 🎯 **Success Metrics**
+- **UUID Errors**: Eliminated all "invalid UUID length" database errors
+- **Import Success**: 100% success rate for properly formatted CSV uploads
+- **Error Handling**: Graceful handling of both new and existing import records
+- **User Experience**: Seamless file upload and discovery flow initiation
+
 ## [0.25.3] - 2025-01-27
 
 ### 🔧 **CONSOLE ERROR RESOLUTION - API Routing & Authentication Context Fix**

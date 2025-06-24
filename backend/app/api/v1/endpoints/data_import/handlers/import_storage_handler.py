@@ -139,18 +139,47 @@ async def store_import_data(
                 detail="Client account and engagement context required"
             )
         
-        logger.info(f"Using existing import record {validation_session_id} for store-import")
-        
-        # Find the existing DataImport record created by the upload endpoint
+        # Try to find existing DataImport record, or create one if it doesn't exist
         from sqlalchemy import select
-        existing_import_query = select(DataImport).where(DataImport.id == validation_session_id)
-        result = await db.execute(existing_import_query)
-        data_import = result.scalar_one_or_none()
+        import uuid as uuid_pkg
         
-        if not data_import:
+        try:
+            # Validate that validation_session_id is a proper UUID
+            uuid_obj = uuid_pkg.UUID(validation_session_id)
+            logger.info(f"Looking for existing import record {validation_session_id}")
+            
+            existing_import_query = select(DataImport).where(DataImport.id == validation_session_id)
+            result = await db.execute(existing_import_query)
+            data_import = result.scalar_one_or_none()
+            
+            if not data_import:
+                # Create new DataImport record since none exists
+                logger.info(f"No existing import record found. Creating new DataImport record with ID: {validation_session_id}")
+                data_import = DataImport(
+                    id=uuid_obj,
+                    client_account_id=client_account_id,
+                    engagement_id=engagement_id,
+                    import_name=f"{filename} Import",
+                    import_type=intended_type,
+                    description=f"Data import for {intended_type} category",
+                    source_filename=filename,
+                    file_size_bytes=file_size,
+                    file_type=file_type,
+                    status="pending",
+                    imported_by=user_id,
+                    is_mock=False
+                )
+                db.add(data_import)
+                await db.flush()  # Flush to get the record in the session
+                logger.info(f"✅ Created new DataImport record: {data_import.id}")
+            else:
+                logger.info(f"✅ Found existing DataImport record: {data_import.id}")
+                
+        except ValueError as e:
+            logger.error(f"Invalid UUID format for validation_session_id: {validation_session_id}")
             raise HTTPException(
-                status_code=404,
-                detail=f"Import record {validation_session_id} not found. Please upload the file first."
+                status_code=400,
+                detail=f"Invalid session ID format. Expected UUID, got: {validation_session_id}"
             )
         
         # Update the existing import record instead of creating a new one

@@ -256,8 +256,8 @@ const DataImport: React.FC = () => {
 
       console.log(`Parsed ${csvData.length} records from CSV file`);
       
-      // Generate a temporary session ID for the upload
-      const tempSessionId = `upload-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      // Generate a proper UUID for the upload session
+      const tempSessionId = crypto.randomUUID();
       
       // Store data and trigger UnifiedDiscoveryFlow directly
       console.log('Storing data and triggering UnifiedDiscoveryFlow...');
