@@ -21,7 +21,7 @@ class CrewAIFlowStateExtensions(Base):
     __tablename__ = "crewai_flow_state_extensions"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    session_id = Column(UUID(as_uuid=True), ForeignKey("workflow_states.session_id", ondelete="CASCADE"), nullable=False, index=True)
+    discovery_flow_id = Column(UUID(as_uuid=True), ForeignKey("discovery_flows.id", ondelete="CASCADE"), nullable=False, index=True)
     flow_id = Column(UUID(as_uuid=True), nullable=False, index=True)
     
     # CrewAI Flow persistence data
@@ -44,17 +44,17 @@ class CrewAIFlowStateExtensions(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
-    # Relationship to workflow_states
-    workflow_state = relationship("WorkflowState", back_populates="crewai_extensions")
+    # Updated relationship to discovery_flows
+    discovery_flow = relationship("DiscoveryFlow", back_populates="crewai_extensions")
     
     def __repr__(self):
-        return f"<CrewAIFlowStateExtensions(session_id={self.session_id}, flow_id={self.flow_id})>"
+        return f"<CrewAIFlowStateExtensions(discovery_flow_id={self.discovery_flow_id}, flow_id={self.flow_id})>"
     
     def to_dict(self):
         """Convert to dictionary for API responses"""
         return {
             "id": str(self.id),
-            "session_id": str(self.session_id),
+            "discovery_flow_id": str(self.discovery_flow_id),
             "flow_id": str(self.flow_id),
             "flow_persistence_data": self.flow_persistence_data or {},
             "agent_collaboration_log": self.agent_collaboration_log or [],

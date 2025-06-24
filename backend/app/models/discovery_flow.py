@@ -67,6 +67,7 @@ class DiscoveryFlow(Base):
     
     # Relationships
     assets = relationship("DiscoveryAsset", back_populates="discovery_flow", cascade="all, delete-orphan")
+    crewai_extensions = relationship("CrewAIFlowStateExtensions", back_populates="discovery_flow", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<DiscoveryFlow(flow_id={self.flow_id}, name='{self.flow_name}', status='{self.status}')>"
