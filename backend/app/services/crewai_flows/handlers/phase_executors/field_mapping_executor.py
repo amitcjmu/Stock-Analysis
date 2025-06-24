@@ -19,7 +19,7 @@ class FieldMappingExecutor(BasePhaseExecutor):
     
     def get_phase_name(self) -> str:
         """Get the name of this phase"""
-        return "field_mapping"
+        return "attribute_mapping"
     
     def get_progress_percentage(self) -> float:
         """Get the progress percentage when this phase completes"""
@@ -28,7 +28,7 @@ class FieldMappingExecutor(BasePhaseExecutor):
     def execute_with_crew(self, crew_input: Dict[str, Any]) -> Dict[str, Any]:
         """Execute field mapping using CrewAI crew"""
         crew = self.crew_manager.create_crew_on_demand(
-            "field_mapping",
+            "attribute_mapping",
             **self._get_crew_context()
         )
         
@@ -84,7 +84,7 @@ class FieldMappingExecutor(BasePhaseExecutor):
             },
             "crew_execution": True,
             "execution_metadata": {
-                "timestamp": self.state.updated_at.isoformat() if self.state.updated_at else None,
+                "timestamp": self._get_timestamp(),
                 "method": "crewai_field_mapping"
             }
         }
@@ -133,7 +133,7 @@ class FieldMappingExecutor(BasePhaseExecutor):
             },
             "crew_execution": False,
             "execution_metadata": {
-                "timestamp": self.state.updated_at.isoformat() if self.state.updated_at else None,
+                "timestamp": self._get_timestamp(),
                 "method": "fallback_field_mapping"
             }
         }
@@ -152,4 +152,21 @@ class FieldMappingExecutor(BasePhaseExecutor):
                     target = parts[1].strip().strip('"\'')
                     mappings[source] = target
         
-        return mappings 
+        return mappings
+    
+    def _get_timestamp(self) -> str:
+        """Get current timestamp as ISO format string"""
+        from datetime import datetime
+        try:
+            if hasattr(self.state, 'updated_at') and self.state.updated_at:
+                if hasattr(self.state.updated_at, 'isoformat'):
+                    return self.state.updated_at.isoformat()
+                else:
+                    # If it's already a string, return it
+                    return str(self.state.updated_at)
+            else:
+                # Fallback to current time
+                return datetime.utcnow().isoformat()
+        except Exception:
+            # Final fallback
+            return datetime.utcnow().isoformat() 

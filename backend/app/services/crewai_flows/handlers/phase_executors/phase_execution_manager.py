@@ -33,17 +33,23 @@ class PhaseExecutionManager:
         self.flow_bridge = flow_bridge  # FlowStateBridge for PostgreSQL persistence
         
         # Initialize phase executors with flow bridge
+        from .data_import_validation_executor import DataImportValidationExecutor
         from .field_mapping_executor import FieldMappingExecutor
         from .data_cleansing_executor import DataCleansingExecutor
         from .asset_inventory_executor import AssetInventoryExecutor
         from .dependency_analysis_executor import DependencyAnalysisExecutor
         from .tech_debt_executor import TechDebtExecutor
         
+        self.data_import_validation_executor = DataImportValidationExecutor(state, crew_manager, flow_bridge)
         self.field_mapping_executor = FieldMappingExecutor(state, crew_manager, flow_bridge)
         self.data_cleansing_executor = DataCleansingExecutor(state, crew_manager, flow_bridge)
         self.asset_inventory_executor = AssetInventoryExecutor(state, crew_manager, flow_bridge)
         self.dependency_analysis_executor = DependencyAnalysisExecutor(state, crew_manager, flow_bridge)
         self.tech_debt_executor = TechDebtExecutor(state, crew_manager, flow_bridge)
+    
+    async def execute_data_import_validation_phase(self, previous_result):
+        """Execute data import validation phase with PostgreSQL persistence"""
+        return await self.data_import_validation_executor.execute(previous_result)
     
     async def execute_field_mapping_phase(self, previous_result):
         """Execute field mapping phase with PostgreSQL persistence"""
@@ -68,6 +74,7 @@ class PhaseExecutionManager:
     def get_phase_executor(self, phase_name: str):
         """Get specific phase executor by name"""
         executors = {
+            "data_import_validation": self.data_import_validation_executor,
             "field_mapping": self.field_mapping_executor,
             "data_cleansing": self.data_cleansing_executor,
             "asset_inventory": self.asset_inventory_executor,
@@ -83,7 +90,7 @@ class PhaseExecutionManager:
             "progress_percentage": self.state.progress_percentage,
             "phase_completion": self.state.phase_completion,
             "available_executors": [
-                "field_mapping", "data_cleansing", "asset_inventory",
+                "data_import_validation", "field_mapping", "data_cleansing", "asset_inventory",
                 "dependency_analysis", "tech_debt_analysis"
             ],
             "crewai_available": CREWAI_FLOW_AVAILABLE,
@@ -106,7 +113,7 @@ class PhaseExecutionManager:
             
             # Add phase-specific validation
             phase_status = {}
-            for phase_name in ["field_mapping", "data_cleansing", "asset_inventory", "dependency_analysis", "tech_debt_analysis"]:
+            for phase_name in ["data_import_validation", "field_mapping", "data_cleansing", "asset_inventory", "dependency_analysis", "tech_debt_analysis"]:
                 executor = self.get_phase_executor(phase_name)
                 if executor:
                     phase_status[phase_name] = {

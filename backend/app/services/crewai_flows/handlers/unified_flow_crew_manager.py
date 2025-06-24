@@ -47,11 +47,11 @@ class UnifiedFlowCrewManager:
             
             # Store factory functions
             self.crew_factories = {
-                "field_mapping": create_field_mapping_crew,
+                "attribute_mapping": create_field_mapping_crew,  # Fixed: Use attribute_mapping to match DB schema
                 "data_cleansing": create_data_cleansing_crew,
-                "asset_inventory": create_inventory_building_crew,
-                "dependency_analysis": create_app_server_dependency_crew,
-                "tech_debt_analysis": create_technical_debt_crew
+                "inventory": create_inventory_building_crew,  # Fixed: Use inventory to match DB schema
+                "dependencies": create_app_server_dependency_crew,  # Fixed: Use dependencies to match DB schema
+                "tech_debt": create_technical_debt_crew  # Fixed: Use tech_debt to match DB schema
             }
             
             logger.info("✅ CrewAI crew factories initialized successfully")
@@ -72,7 +72,7 @@ class UnifiedFlowCrewManager:
             factory = self.crew_factories[crew_type]
             
             # Create crew with appropriate parameters
-            if crew_type == "field_mapping":
+            if crew_type == "attribute_mapping":
                 crew = factory(
                     self.crewai_service,
                     kwargs.get('sample_data', []),
@@ -87,7 +87,7 @@ class UnifiedFlowCrewManager:
                     kwargs.get('shared_memory'),
                     kwargs.get('knowledge_base')
                 )
-            elif crew_type == "asset_inventory":
+            elif crew_type == "inventory":
                 crew = factory(
                     self.crewai_service,
                     kwargs.get('cleaned_data', []),
@@ -95,14 +95,14 @@ class UnifiedFlowCrewManager:
                     kwargs.get('shared_memory'),
                     kwargs.get('knowledge_base')
                 )
-            elif crew_type == "dependency_analysis":
+            elif crew_type == "dependencies":
                 crew = factory(
                     self.crewai_service,
                     kwargs.get('asset_inventory', []),
                     kwargs.get('shared_memory'),
                     kwargs.get('knowledge_base')
                 )
-            elif crew_type == "tech_debt_analysis":
+            elif crew_type == "tech_debt":
                 crew = factory(
                     self.crewai_service,
                     kwargs.get('asset_inventory', []),

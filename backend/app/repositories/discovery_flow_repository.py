@@ -76,6 +76,15 @@ class DiscoveryFlowRepository(ContextAwareRepository):
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
     
+    async def get_by_flow_id_global(self, flow_id: str) -> Optional[DiscoveryFlow]:
+        """Get discovery flow by CrewAI Flow ID without tenant filtering (for duplicate checking)"""
+        stmt = select(DiscoveryFlow).where(
+            DiscoveryFlow.flow_id == flow_id
+        ).options(selectinload(DiscoveryFlow.assets))
+        
+        result = await self.db.execute(stmt)
+        return result.scalar_one_or_none()
+    
     async def get_by_import_session_id(self, import_session_id: str) -> Optional[DiscoveryFlow]:
         """Get discovery flow by import session ID (for backward compatibility)"""
         stmt = select(DiscoveryFlow).where(

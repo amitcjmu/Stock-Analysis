@@ -51,7 +51,7 @@ class DiscoveryFlowService:
     ) -> DiscoveryFlow:
         """
         Create a new discovery flow using CrewAI Flow ID as single source of truth.
-        No more session_id confusion.
+        Handles duplicate flow IDs gracefully by returning existing flow if found.
         """
         try:
             logger.info(f"🚀 Creating discovery flow with CrewAI Flow ID: {flow_id}")
@@ -62,6 +62,13 @@ class DiscoveryFlowService:
             
             if not raw_data:
                 raise ValueError("Raw data is required for discovery flow")
+            
+            # Check if flow already exists (global check to handle duplicates)
+            existing_flow = await self.flow_repo.get_by_flow_id_global(flow_id)
+            if existing_flow:
+                logger.info(f"✅ Discovery flow already exists globally, returning existing: {flow_id}")
+                logger.info(f"   Existing flow client: {existing_flow.client_account_id}, current context: {self.context.client_account_id}")
+                return existing_flow
             
             # Create discovery flow
             flow = await self.flow_repo.create_discovery_flow(
@@ -78,6 +85,26 @@ class DiscoveryFlowService:
         except Exception as e:
             logger.error(f"❌ Failed to create discovery flow: {e}")
             raise
+    
+    async def create_or_get_discovery_flow(
+        self,
+        flow_id: str,
+        raw_data: List[Dict[str, Any]],
+        metadata: Dict[str, Any] = None,
+        import_session_id: str = None,
+        user_id: str = None
+    ) -> DiscoveryFlow:
+        """
+        Create a new discovery flow or return existing one if it already exists.
+        This is the preferred method for flow creation from CrewAI flows.
+        """
+        return await self.create_discovery_flow(
+            flow_id=flow_id,
+            raw_data=raw_data,
+            metadata=metadata,
+            import_session_id=import_session_id,
+            user_id=user_id
+        )
     
     async def get_flow_by_id(self, flow_id: str) -> Optional[DiscoveryFlow]:
         """Get discovery flow by CrewAI Flow ID (single source of truth)"""

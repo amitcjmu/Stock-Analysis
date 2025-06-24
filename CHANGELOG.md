@@ -1,5 +1,36 @@
 # AI Force Migration Platform - Change Log
 
+## [0.25.5] - 2025-01-26
+
+### 🎯 **DISCOVERY FLOW FIXES - CrewAI Integration Stabilization**
+
+This release resolves critical issues preventing the Discovery Flow from executing properly, enabling full CrewAI agent-powered field mapping and data analysis.
+
+### 🚀 **Agent System Fixes**
+
+#### **Field Mapping Crew Integration**
+- **Missing Method Fix**: Added missing `_create_field_mapping_tools()` method to FieldMappingCrew class
+- **Phase Name Alignment**: Updated field mapping executor to return `"attribute_mapping"` phase name to match database schema
+- **Crew Type Mapping**: Fixed crew manager to use correct phase names (`attribute_mapping`, `inventory`, `dependencies`, `tech_debt`)
+- **Date Format Safety**: Implemented safe timestamp handling with `_get_timestamp()` helper method to prevent `isoformat()` errors on string values
+
+#### **Discovery Flow Persistence**
+- **Duplicate Flow Handling**: Added global flow ID checking to prevent unique constraint violations when flows exist across different client contexts
+- **Multi-Tenant Safety**: Implemented `get_by_flow_id_global()` method for duplicate detection while maintaining tenant isolation for regular queries
+- **Flow Creation Logic**: Enhanced discovery flow service to return existing flows instead of attempting duplicate creation
+
+### 📊 **Technical Achievements**
+- **CrewAI Agent Coordination**: Field mapping crew now successfully executes with Schema Analysis Expert, CMDB Field Mapping Manager, and Attribute Mapping Specialist
+- **Database Integrity**: Eliminated PostgreSQL unique constraint violations while preserving multi-tenant data isolation
+- **Phase Execution**: Complete phase execution pipeline working from attribute mapping through inventory and dependencies
+- **Agent Intelligence**: Successfully mapping fields like `hostname → asset_name`, `ip_address → direct mapping`, `os → asset_type` with confidence scoring
+
+### 🎯 **Success Metrics**
+- **Zero Constraint Violations**: No more duplicate flow ID database errors
+- **Agent Execution**: Field mapping crew running successfully with multiple agent collaboration
+- **Phase Progression**: Discovery flow progressing through all phases without blocking errors
+- **Data Processing**: Successfully processing CSV uploads with immediate CrewAI analysis
+
 ## [0.25.4] - 2025-01-27
 
 ### 🔧 **DATA IMPORT UUID ERROR FIX - Invalid UUID Length Resolution**

@@ -473,6 +473,11 @@ class FieldMappingCrew:
         """Create tools for mapping confidence scoring"""
         # For now, return empty list - tools will be implemented in Task 7  
         return []
+    
+    def _create_field_mapping_tools(self):
+        """Create tools for field mapping coordination"""
+        # For now, return empty list - tools will be implemented in Task 7
+        return []
 
 def create_field_mapping_crew(crewai_service, raw_data: List[Dict[str, Any]], 
                              shared_memory=None, knowledge_base=None) -> Crew:

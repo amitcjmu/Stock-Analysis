@@ -134,7 +134,7 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         self.state.metadata = self._init_metadata
         
         # Set flow status
-        self.state.current_phase = "initialization"
+        self.state.current_phase = "data_import"
         self.state.status = "running"
         self.state.started_at = datetime.utcnow().isoformat()
         
@@ -142,7 +142,7 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         
         # Validate input data
         if not self.state.raw_data:
-            self.state.add_error("initialization", "No raw data provided")
+            self.state.add_error("data_import", "No raw data provided")
             logger.error("❌ Flow initialization failed: No raw data provided")
             return "initialization_failed"
         
@@ -155,23 +155,102 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         
         self.state.log_entry(f"Discovery Flow initialized with {len(self.state.raw_data)} records")
         logger.info(f"✅ Unified Discovery Flow initialized with {len(self.state.raw_data)} records")
-        logger.info(f"🎯 Next Phase: field_mapping")
+        logger.info(f"🎯 Next Phase: data_import_validation")
         
         return "initialized"
     
     @listen(initialize_discovery)
+    async def execute_data_import_validation(self, previous_result):
+        """Execute data import validation: PII detection, malicious payload scanning, data type validation"""
+        if previous_result == "initialization_failed":
+            logger.error("❌ Skipping data validation due to initialization failure")
+            return "data_validation_skipped"
+        
+        logger.info("🔍 Starting Data Import Validation Phase")
+        self.state.current_phase = "data_import"
+        
+        try:
+            # Execute data validation phase
+            validation_result = await self.phase_executor.execute_data_import_validation_phase(previous_result)
+            
+            if validation_result in ["data_validation_failed", "data_validation_skipped"]:
+                logger.error("❌ Data validation failed - flow cannot proceed")
+                self.state.status = "validation_failed"
+                self.state.add_error("data_import", "Data validation failed")
+                return "data_validation_failed"
+            
+            # Update phase completion
+            self.state.phase_completion["data_import"] = True
+            self.state.update_progress()
+            
+            logger.info("✅ Data Import Validation completed successfully")
+            logger.info("⏸️ Flow paused - awaiting user confirmation to proceed to field mapping")
+            
+            # Set status to waiting for user input before proceeding to field mapping
+            self.state.status = "awaiting_user_input"
+            self.state.current_phase = "data_import_complete"
+            self.state.log_entry("Data validation completed - awaiting user confirmation for field mapping")
+            
+            return "data_validation_completed"
+            
+        except Exception as e:
+            logger.error(f"❌ Data validation phase failed: {e}")
+            self.state.add_error("data_import", f"Data validation error: {str(e)}")
+            return "data_validation_failed"
+    
+    @listen(execute_data_import_validation)
     async def execute_field_mapping_crew(self, previous_result):
         """Execute field mapping using CrewAI crew with PostgreSQL persistence"""
-        if previous_result == "initialization_failed":
-            logger.error("❌ Skipping field mapping due to initialization failure")
+        if previous_result in ["initialization_failed", "data_validation_failed", "data_validation_skipped"]:
+            logger.error("❌ Skipping field mapping due to previous phase failure")
             return "field_mapping_skipped"
         
+        # IMPORTANT: Only proceed if user has confirmed or this is a manual trigger
+        if previous_result == "data_validation_completed":
+            # Check if the flow should pause for user confirmation
+            if self.state.status == "awaiting_user_input":
+                logger.info("⏸️ Field mapping phase waiting for user confirmation")
+                logger.info("💡 User must confirm field mapping before proceeding")
+                return "field_mapping_awaiting_confirmation"
+            else:
+                # If not awaiting user input, this might be a resumed flow - check if we should still pause
+                logger.info("⚠️ Data validation completed but status is not 'awaiting_user_input'")
+                logger.info(f"Current status: {self.state.status}")
+                # Force pause anyway to ensure proper flow control
+                self.state.status = "awaiting_user_input"
+                self.state.current_phase = "data_import_complete"
+                logger.info("⏸️ Forcing flow pause for user confirmation")
+                return "field_mapping_awaiting_confirmation"
+        
+        # If we reach here, user has confirmed or this is a manual trigger
+        logger.info("🔄 Starting Field Mapping Phase")
+        self.state.current_phase = "attribute_mapping"
+        self.state.status = "running"
+        
         return await self.phase_executor.execute_field_mapping_phase(previous_result)
+    
+    async def proceed_to_field_mapping(self):
+        """Manual trigger to proceed from data validation to field mapping"""
+        if self.state.current_phase != "data_import_complete":
+            logger.warning(f"⚠️ Cannot proceed to field mapping from phase: {self.state.current_phase}")
+            return "invalid_phase_transition"
+        
+        if not self.state.phase_completion.get("data_import", False):
+            logger.error("❌ Cannot proceed to field mapping: data import validation not completed")
+            return "data_validation_incomplete"
+        
+        logger.info("🚀 User confirmed - proceeding to field mapping phase")
+        self.state.status = "running"
+        self.state.current_phase = "attribute_mapping"
+        
+        # Execute field mapping phase
+        result = await self.phase_executor.execute_field_mapping_phase("user_confirmed")
+        return result
     
     @listen(execute_field_mapping_crew)
     async def execute_data_cleansing_crew(self, previous_result):
         """Execute data cleansing using CrewAI crew with PostgreSQL persistence"""
-        if previous_result in ["field_mapping_skipped", "field_mapping_failed"]:
+        if previous_result in ["field_mapping_skipped", "field_mapping_failed", "field_mapping_awaiting_confirmation"]:
             logger.error("❌ Skipping data cleansing due to field mapping issues")
             return "data_cleansing_skipped"
         
@@ -180,8 +259,8 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
     @listen(execute_data_cleansing_crew)
     async def execute_asset_inventory_crew(self, previous_result):
         """Execute asset inventory using CrewAI crew with PostgreSQL persistence"""
-        if previous_result in ["data_cleansing_skipped", "data_cleansing_failed"]:
-            logger.error("❌ Skipping asset inventory due to data cleansing issues")
+        if previous_result in ["data_cleansing_skipped", "data_cleansing_failed", "field_mapping_awaiting_confirmation"]:
+            logger.error("❌ Skipping asset inventory due to previous phase issues")
             return "asset_inventory_skipped"
         
         return await self.phase_executor.execute_asset_inventory_phase(previous_result)
@@ -189,8 +268,8 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
     @listen(execute_asset_inventory_crew)
     async def execute_dependency_analysis_crew(self, previous_result):
         """Execute dependency analysis using CrewAI crew with PostgreSQL persistence"""
-        if previous_result in ["asset_inventory_skipped", "asset_inventory_failed"]:
-            logger.error("❌ Skipping dependency analysis due to asset inventory issues")
+        if previous_result in ["asset_inventory_skipped", "asset_inventory_failed", "field_mapping_awaiting_confirmation"]:
+            logger.error("❌ Skipping dependency analysis due to previous phase issues")
             return "dependency_analysis_skipped"
         
         return await self.phase_executor.execute_dependency_analysis_phase(previous_result)
@@ -198,8 +277,8 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
     @listen(execute_dependency_analysis_crew)
     async def execute_tech_debt_analysis_crew(self, previous_result):
         """Execute technical debt analysis using CrewAI crew with PostgreSQL persistence"""
-        if previous_result in ["dependency_analysis_skipped", "dependency_analysis_failed"]:
-            logger.error("❌ Skipping tech debt analysis due to dependency analysis issues")
+        if previous_result in ["dependency_analysis_skipped", "dependency_analysis_failed", "field_mapping_awaiting_confirmation"]:
+            logger.error("❌ Skipping tech debt analysis due to previous phase issues")
             return "tech_debt_analysis_skipped"
         
         return await self.phase_executor.execute_tech_debt_analysis_phase(previous_result)
@@ -207,6 +286,13 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
     @listen(execute_tech_debt_analysis_crew)
     async def finalize_discovery(self, previous_result):
         """Finalize the discovery flow and provide comprehensive summary"""
+        # Check if we're in a paused state waiting for user input
+        if previous_result == "field_mapping_awaiting_confirmation":
+            logger.info("⏸️ Flow paused at data validation - awaiting user confirmation")
+            self.state.status = "awaiting_user_input"
+            self.state.current_phase = "data_import_complete"
+            return "flow_paused_for_user_input"
+        
         logger.info("🎯 Finalizing Unified Discovery Flow")
         self.state.current_phase = "finalization"
         self.state.progress_percentage = 100.0

@@ -366,17 +366,27 @@ async def _trigger_discovery_flow(
         logger.info(f"🎯 Starting CrewAI Flow kickoff for session: {data_import_id}")
         flow_result = await asyncio.to_thread(discovery_flow.kickoff)
         
-        # 🚨 CRITICAL: Check if flow actually succeeded
+        # 🚨 CRITICAL: Check if flow actually succeeded or is properly paused
         flow_success = False
+        flow_paused = False
+        
         if hasattr(flow_result, 'status'):
             flow_success = flow_result.status not in ['discovery_failed', 'failed', 'error']
+            flow_paused = flow_result.status == 'awaiting_user_input'
         elif isinstance(flow_result, str):
             flow_success = flow_result not in ['discovery_failed', 'failed', 'error']
+            flow_paused = flow_result in ['flow_paused_for_user_input', 'field_mapping_awaiting_confirmation']
         elif isinstance(flow_result, dict):
             flow_success = flow_result.get('status') not in ['discovery_failed', 'failed', 'error']
+            flow_paused = flow_result.get('status') == 'awaiting_user_input'
         else:
             # If we can't determine status, check if we have meaningful data
             flow_success = len(file_data) > 0
+            
+        # Consider paused flows as successful (they completed data validation)
+        if flow_paused:
+            flow_success = True
+            logger.info("✅ Flow paused for user input - data validation completed successfully")
         
         logger.info(f"🎯 CrewAI Discovery Flow completed: {flow_result} (Success: {flow_success})")
         
