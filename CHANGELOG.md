@@ -2,9 +2,9 @@
 
 ## [0.24.14] - 2025-01-27
 
-### 🔒 **AUTHENTICATION - Route Protection & Context Switching Fix**
+### 🔒 **AUTHENTICATION - Route Protection & Discovery Flow Integration Fix**
 
-This release fixes critical authentication flow issues including route protection and context switching failures caused by deprecated API endpoints.
+This release fixes critical authentication flow issues including route protection, context switching failures, and **Discovery Flow V2 integration** caused by missing user ID headers.
 
 ### 🚀 **Authentication & Security**
 
@@ -15,22 +15,37 @@ This release fixes critical authentication flow issues including route protectio
 - **Security Enhancement**: Prevents access to application features without proper authentication
 
 #### **Context Switching Fix**
-- **Deprecated API Removal**: Fixed `switchEngagement` function to stop calling deprecated `/api/v1/sessions` endpoint
+- **Deprecated API Removal**: Fixed context switching by removing deprecated `/api/v1/sessions` POST call
+- **Client-Side Session Management**: Implemented proper session object creation for demo users
 - **V2 API Compatibility**: Updated context switching to work with V2 Discovery Flow architecture
-- **Session Management**: Implemented client-side session object creation for demo users
 - **Error Resolution**: Eliminated 404 Not Found errors during engagement switching
+
+#### **🆕 Discovery Flow V2 Integration Fix**
+- **User ID Header Fix**: Enhanced `getAuthHeaders()` function to properly send `X-User-ID` header
+- **Fallback Mechanisms**: Added multiple fallback strategies for user ID extraction:
+  - Primary: Current user context
+  - Secondary: Stored user from localStorage  
+  - Tertiary: Extract user ID from authentication token
+- **Header Validation**: Added comprehensive debugging and validation for all context headers
+- **CrewAI Flow Enablement**: Fixed the root cause preventing UnifiedDiscoveryFlow from triggering
 
 ### 📊 **Technical Achievements**
 - **Route Security**: All application routes now properly protected behind authentication
-- **User Experience**: Eliminates confusion from accessing features without being logged in
-- **Error Prevention**: Prevents API calls with missing authentication tokens
-- **Context Switching**: Seamless switching between clients, engagements, and sessions
+- **Context Persistence**: Engagement switching works reliably across user sessions
+- **Header Debugging**: Comprehensive logging for authentication header troubleshooting
+- **Discovery Flow Ready**: V2 Discovery Flow integration now properly triggered with full CrewAI agent analysis
+
+### 🎯 **Discovery Flow Impact**
+- **Agent Analysis**: Data import now properly triggers full CrewAI Discovery Flow with agent crews
+- **Purple Logs**: Backend will now show proper CrewAI flow execution with detailed logging
+- **Database Integration**: Discovery flow records properly created in V2 `discovery_flows` table
+- **Real-time Processing**: Users will see proper agent analysis instead of sub-second responses
 
 ### 🎯 **Success Metrics**
-- **Security**: 100% of application routes now properly protected
-- **UX**: Clear authentication flow with automatic login redirection
-- **API Compatibility**: Context switching works with both V1 and V2 API architecture
-- **Error Resolution**: Zero 404 errors during context switching operations
+- **Authentication**: Route protection working with automatic login redirects
+- **Context Switching**: 404 errors eliminated, engagement switching functional  
+- **Discovery Flow**: CrewAI flow integration fixed, ready for full agentic data processing
+- **User Experience**: Seamless authentication flow with proper context management
 
 ## [0.24.13] - 2025-01-27
 

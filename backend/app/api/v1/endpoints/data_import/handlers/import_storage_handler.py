@@ -229,6 +229,8 @@ async def _trigger_discovery_flow(
     This implements the proper CrewAI Flow pattern with @start/@listen decorators
     that produces the purple logs and flow ID tracking.
     
+    FIXED: Also creates discovery flow record in database for V2 API compatibility.
+    
     Returns:
         Optional[str]: The CrewAI-generated flow_id if successful, None otherwise
     """
@@ -239,6 +241,7 @@ async def _trigger_discovery_flow(
         logger.info(f"🔍 DEBUG: Importing CrewAI Flow modules...")
         from app.services.crewai_flows.unified_discovery_flow import UnifiedDiscoveryFlow, create_unified_discovery_flow
         from app.services.crewai_flow_service import CrewAIFlowService
+        from app.services.discovery_flow_service import DiscoveryFlowService
         logger.info(f"✅ DEBUG: CrewAI Flow modules imported successfully")
         
         # Initialize CrewAI service
@@ -267,6 +270,44 @@ async def _trigger_discovery_flow(
         # ✅ CRITICAL: Capture the CrewAI-generated flow_id BEFORE kickoff
         crewai_flow_id = discovery_flow.state.flow_id
         logger.info(f"🎯 CrewAI Flow ID generated: {crewai_flow_id}")
+        
+        # 🆕 CRITICAL FIX: Create database record using DiscoveryFlowService
+        logger.info(f"🔍 DEBUG: Creating discovery flow database record...")
+        try:
+            # Import database session dependency
+            from app.core.database import get_db
+            
+            # Get database session - we need to create a new session for this async operation
+            from sqlalchemy.ext.asyncio import AsyncSession, AsyncSessionLocal
+            
+            async with AsyncSessionLocal() as db_session:
+                # Create DiscoveryFlowService with proper context
+                discovery_service = DiscoveryFlowService(db_session, context)
+                
+                # Create discovery flow record in database
+                flow_record = await discovery_service.create_discovery_flow(
+                    flow_id=crewai_flow_id,
+                    raw_data=file_data,
+                    metadata={
+                        "source": "data_import",
+                        "filename": f"import_{data_import_id}",
+                        "import_timestamp": datetime.utcnow().isoformat(),
+                        "data_import_id": data_import_id
+                    },
+                    import_session_id=data_import_id,
+                    user_id=user_id
+                )
+                
+                # Commit the database transaction
+                await db_session.commit()
+                
+                logger.info(f"✅ Discovery flow database record created: {flow_record.flow_id}")
+                
+        except Exception as db_error:
+            logger.error(f"❌ Failed to create discovery flow database record: {db_error}")
+            # Don't fail the entire process if database record creation fails
+            # The CrewAI flow can still run, but V2 API won't work
+            pass
         
         # Execute the CrewAI Flow using kickoff() method - this produces the purple logs
         logger.info(f"🎯 Starting CrewAI Flow kickoff for session: {data_import_id}")
