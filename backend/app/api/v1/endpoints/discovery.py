@@ -5,11 +5,20 @@ entry point for the discovery module, centered around the agentic CrewAI workflo
 """
 
 import logging
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from typing import Dict, Any
 from fastapi import Depends
 from pydantic import BaseModel
 from app.core.context import get_current_context, RequestContext
+from app.services.discovery_flow_service import DiscoveryFlowService
+from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.database import AsyncSessionLocal
+from app.models.client_account import ClientAccount, Engagement
+from app.models.rbac import UserRole, ClientAccess
+from sqlalchemy import select, and_, or_
+from sqlalchemy.orm import selectinload
+from fastapi import status
 
 logger = logging.getLogger(__name__)
 
@@ -166,9 +175,10 @@ async def get_active_discovery_flows(
     try:
         logger.info(f"🔍 Getting active discovery flows for user: {context.user_id}, client: {context.client_account_id}")
         
+        # ⚠️ DEPRECATED: WorkflowState removed - using V2 Discovery Flow architecture
+        
         from sqlalchemy.ext.asyncio import AsyncSession
         from app.core.database import AsyncSessionLocal
-        from app.models.workflow_state import WorkflowState
         from app.models.client_account import ClientAccount, Engagement
         from app.models.rbac import UserRole, ClientAccess
         from sqlalchemy import select, and_, or_
@@ -306,27 +316,154 @@ async def get_active_discovery_flows(
         raise HTTPException(status_code=500, detail=f"Failed to get active discovery flows: {str(e)}")
 
 @router.get("/flow/status")
-async def get_discovery_flow_status(
-    session_id: str = None,
-    context: RequestContext = Depends(get_current_context)
-) -> Dict[str, Any]:
+async def get_flow_status(
+    flow_id: str = Query(..., description="Discovery Flow ID"),
+    db: AsyncSession = Depends(AsyncSessionLocal),
+    context: dict = Depends(get_current_context)
+):
     """
-    Get discovery flow status (compatibility endpoint for Enhanced Discovery Dashboard).
-    
-    This endpoint provides compatibility with the Enhanced Discovery Dashboard
-    until it's updated to use the unified discovery endpoints.
+    Get discovery flow status using V2 architecture.
+    Uses flow_id instead of session_id.
     """
     try:
-        logger.info(f"🔍 Getting discovery flow status for session: {session_id}")
+        logger.info(f"📊 Getting flow status for: {flow_id}")
         
-        # Return empty flow state for now
+        # Initialize V2 services
+        flow_repo = DiscoveryFlowRepository(db, context.get('client_account_id'))
+        flow_service = DiscoveryFlowService(flow_repo)
+        
+        # Get flow status
+        flow = await flow_service.get_flow(flow_id)
+        if not flow:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Discovery flow not found: {flow_id}"
+            )
+        
+        # Get detailed flow summary
+        flow_summary = await flow_service.get_flow_summary(flow_id)
+        
         return {
             "success": True,
-            "message": "Flow status retrieved successfully",
-            "flow_state": None,  # No active flow state for now
-            "timestamp": "2024-03-21T22:17:51Z"
+            "flow_id": flow_id,
+            "status": flow.status,
+            "current_phase": flow.current_phase,
+            "progress_percentage": flow.progress_percentage,
+            "summary": flow_summary,
+            "created_at": flow.created_at.isoformat() if flow.created_at else None,
+            "updated_at": flow.updated_at.isoformat() if flow.updated_at else None
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to get flow status for {flow_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get flow status: {str(e)}"
+        )
+
+@router.post("/flow/initialize")
+async def initialize_discovery_flow(
+    request: Dict[str, Any],
+    db: AsyncSession = Depends(AsyncSessionLocal),
+    context: dict = Depends(get_current_context)
+):
+    """
+    Initialize a new discovery flow using V2 architecture.
+    """
+    try:
+        logger.info("🚀 Initializing new discovery flow")
+        
+        # Initialize V2 services
+        flow_repo = DiscoveryFlowRepository(db, context.get('client_account_id'))
+        flow_service = DiscoveryFlowService(flow_repo)
+        
+        # Create new discovery flow
+        flow = await flow_service.create_flow(
+            import_session_id=request.get('import_session_id'),
+            initial_phase="data_import",
+            metadata=request.get('metadata', {})
+        )
+        
+        logger.info(f"✅ Discovery flow initialized: {flow.flow_id}")
+        
+        return {
+            "success": True,
+            "flow_id": flow.flow_id,
+            "status": flow.status,
+            "current_phase": flow.current_phase,
+            "message": "Discovery flow initialized successfully"
         }
         
     except Exception as e:
-        logger.error(f"❌ Failed to get discovery flow status: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to get discovery flow status: {str(e)}") 
+        logger.error(f"❌ Failed to initialize discovery flow: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to initialize discovery flow: {str(e)}"
+        )
+
+@router.post("/flow/{flow_id}/advance-phase")
+async def advance_flow_phase(
+    flow_id: str,
+    request: Dict[str, Any],
+    db: AsyncSession = Depends(AsyncSessionLocal),
+    context: dict = Depends(get_current_context)
+):
+    """
+    Advance discovery flow to the next phase.
+    """
+    try:
+        logger.info(f"⏭️ Advancing flow phase for: {flow_id}")
+        
+        # Initialize V2 services
+        flow_repo = DiscoveryFlowRepository(db, context.get('client_account_id'))
+        flow_service = DiscoveryFlowService(flow_repo)
+        
+        # Get current flow
+        flow = await flow_service.get_flow(flow_id)
+        if not flow:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Discovery flow not found: {flow_id}"
+            )
+        
+        # Advance phase
+        next_phase = request.get('next_phase')
+        if next_phase:
+            await flow_service.update_phase(flow_id, next_phase)
+        else:
+            # Use default phase progression
+            phase_progression = {
+                "data_import": "attribute_mapping",
+                "attribute_mapping": "data_cleansing", 
+                "data_cleansing": "inventory",
+                "inventory": "dependencies",
+                "dependencies": "tech_debt",
+                "tech_debt": "completed"
+            }
+            next_phase = phase_progression.get(flow.current_phase, "completed")
+            await flow_service.update_phase(flow_id, next_phase)
+        
+        # Get updated flow
+        updated_flow = await flow_service.get_flow(flow_id)
+        
+        logger.info(f"✅ Flow phase advanced: {flow_id} -> {updated_flow.current_phase}")
+        
+        return {
+            "success": True,
+            "flow_id": flow_id,
+            "previous_phase": flow.current_phase,
+            "current_phase": updated_flow.current_phase,
+            "progress_percentage": updated_flow.progress_percentage,
+            "message": "Flow phase advanced successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to advance flow phase for {flow_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to advance flow phase: {str(e)}"
+        ) 

@@ -1,6 +1,6 @@
 """
-Legacy Upload Handler - Original file upload and processing system.
-Handles the traditional file upload workflow with session management.
+Legacy Upload Handler - Updated for V2 Discovery Flow Architecture
+Handles traditional file upload workflow with V2 flow management.
 """
 
 import hashlib
@@ -25,13 +25,15 @@ except ImportError:
     ClientAccount = None
     Engagement = None
 
-# Import session management service
+# V2 Discovery Flow Services
 try:
-    from app.services.session_management_service import SessionManagementService, create_session_management_service
-    SESSION_MANAGEMENT_AVAILABLE = True
+    from app.services.discovery_flow_service import DiscoveryFlowService
+    from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
+    DISCOVERY_FLOW_AVAILABLE = True
 except ImportError:
-    SESSION_MANAGEMENT_AVAILABLE = False
-    SessionManagementService = None
+    DISCOVERY_FLOW_AVAILABLE = False
+    DiscoveryFlowService = None
+    DiscoveryFlowRepository = None
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -44,7 +46,7 @@ async def upload_data_file(
     description: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db)
 ):
-    """Upload and create a new data import session with automatic session management."""
+    """Upload and create a new data import session with V2 Discovery Flow management."""
     data_import = None
     try:
         # Get current context from middleware
@@ -54,20 +56,27 @@ async def upload_data_file(
         content = await file.read()
         file_hash = hashlib.sha256(content).hexdigest()
         
-        # Create or get active session using SessionManagementService
-        session_id = None
-        if SESSION_MANAGEMENT_AVAILABLE:
+        # Create Discovery Flow using V2 architecture
+        flow_id = None
+        if DISCOVERY_FLOW_AVAILABLE:
             try:
-                session_service = create_session_management_service(db)
-                session = await session_service.get_or_create_active_session(
-                    client_account_id=context.client_account_id,
-                    engagement_id=context.engagement_id,
-                    auto_create=True
+                flow_repo = DiscoveryFlowRepository(db, context.client_account_id)
+                flow_service = DiscoveryFlowService(flow_repo)
+                
+                # Create new discovery flow
+                flow = await flow_service.create_flow(
+                    initial_phase="data_import",
+                    metadata={
+                        "filename": file.filename,
+                        "import_type": import_type,
+                        "file_size": len(content),
+                        "file_hash": file_hash
+                    }
                 )
-                session_id = str(session.id) if session else None
-                logger.info(f"Using session {session_id} for data import")
-            except Exception as session_e:
-                logger.warning(f"Session management failed, continuing without session: {session_e}")
+                flow_id = flow.flow_id
+                logger.info(f"Created V2 Discovery Flow: {flow_id}")
+            except Exception as flow_e:
+                logger.warning(f"V2 Discovery Flow creation failed, continuing without flow: {flow_e}")
         
         # Default user for testing if not in context
         default_user_id = "eef6ea50-6550-4f14-be2c-081d4eb23038" # John Doe
@@ -76,7 +85,7 @@ async def upload_data_file(
         data_import = DataImport(
             client_account_id=context.client_account_id or "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990",
             engagement_id=context.engagement_id,
-            session_id=session_id,
+            session_id=flow_id,  # Use flow_id as session_id for V2 compatibility
             import_name=import_name or f"{file.filename} Import",
             import_type=import_type,
             description=description,
@@ -100,13 +109,14 @@ async def upload_data_file(
 
         return {
             "import_id": str(data_import.id),
-            "session_id": session_id,
+            "flow_id": flow_id,  # Return flow_id instead of session_id
+            "session_id": flow_id,  # Backward compatibility
             "client_account_id": context.client_account_id,
             "engagement_id": context.engagement_id,
             "status": data_import.status,
             "filename": file.filename,
             "size_bytes": len(content),
-            "message": "File uploaded and processed successfully"
+            "message": "File uploaded and processed successfully with V2 Discovery Flow"
         }
         
     except Exception as e:
@@ -145,7 +155,7 @@ async def process_uploaded_file(data_import: DataImport, content: bytes, db: Asy
             data_import_id=data_import.id,
             client_account_id=context.client_account_id,
             engagement_id=context.engagement_id,
-            session_id=data_import.session_id,
+            session_id=data_import.session_id,  # This is now flow_id
             row_number=row_number,
             record_id=row.get('ID') or row.get('id') or f"ROW_{row_number}",
             raw_data=dict(row),

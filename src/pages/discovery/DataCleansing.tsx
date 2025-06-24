@@ -15,30 +15,31 @@ import DataCleansingNavigationButtons from '../../components/discovery/data-clea
 import DataCleansingStateProvider from '../../components/discovery/data-cleansing/DataCleansingStateProvider';
 
 // Hooks
-import { useUnifiedDiscoveryFlow } from '../../hooks/useUnifiedDiscoveryFlow';
+import { useDiscoveryFlowV2 } from '../../hooks/discovery/useDiscoveryFlowV2';
 
 const DataCleansing: React.FC = () => {
-  // Unified discovery flow hook
+  // V2 Discovery flow hook
   const {
-    flowState,
+    flow,
     isLoading,
     error,
-    getPhaseData,
-    isPhaseComplete,
-    canProceedToPhase,
-    executeFlowPhase,
-    isExecutingPhase
-  } = useUnifiedDiscoveryFlow();
+    updatePhase,
+    isUpdating,
+    progressPercentage,
+    currentPhase,
+    completedPhases,
+    nextPhase
+  } = useDiscoveryFlowV2();
 
-  // Get data cleansing specific data
-  const cleansingData = getPhaseData('data_cleansing');
-  const isDataCleansingComplete = isPhaseComplete('data_cleansing');
-  const canContinueToInventory = canProceedToPhase('asset_inventory');
+  // Get data cleansing specific data from V2 flow
+  const cleansingData = flow?.phases?.data_cleansing ? { quality_issues: [], recommendations: [] } : null;
+  const isDataCleansingComplete = completedPhases.includes('data_cleansing');
+  const canContinueToInventory = completedPhases.includes('data_cleansing');
 
   // Handle data cleansing execution
   const handleTriggerDataCleansingCrew = async () => {
     try {
-      await executeFlowPhase('data_cleansing');
+      await updatePhase('data_cleansing', { action: 'start_cleansing' });
     } catch (error) {
       console.error('Failed to execute data cleansing phase:', error);
     }
@@ -89,7 +90,7 @@ const DataCleansing: React.FC = () => {
   const hasError = !!error;
   const errorMessage = error?.message;
   const hasData = !!(Array.isArray(cleansingData) ? cleansingData.length : cleansingData?.quality_issues?.length);
-  const isAnalyzing = isExecutingPhase;
+  const isAnalyzing = isUpdating;
 
   return (
     <DataCleansingStateProvider
@@ -132,11 +133,11 @@ const DataCleansing: React.FC = () => {
               isLoading={isLoading}
             />
 
-            {flowState?.session_id && (
+            {flow?.flow_id && (
               <div className="mb-6">
                 <EnhancedAgentOrchestrationPanel
-                  sessionId={flowState.session_id}
-                  flowState={flowState}
+                  sessionId={flow.flow_id}
+                  flowState={flow}
                 />
               </div>
             )}

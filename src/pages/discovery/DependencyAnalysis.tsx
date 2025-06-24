@@ -1,7 +1,7 @@
 import React from 'react';
 import Sidebar from '../../components/Sidebar';
 import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
-import { useUnifiedDiscoveryFlow } from '../../hooks/useUnifiedDiscoveryFlow';
+import { useDiscoveryFlowV2 } from '../../hooks/discovery/useDiscoveryFlowV2';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';

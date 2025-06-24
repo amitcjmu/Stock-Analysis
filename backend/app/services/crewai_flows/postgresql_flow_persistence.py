@@ -1,7 +1,9 @@
 """
 PostgreSQL Flow Persistence Layer
+⚠️ LEGACY COMPATIBILITY LAYER - MIGRATING TO V2 ARCHITECTURE
+
 Custom persistence layer that bridges CrewAI Flow state with PostgreSQL.
-Mimics CrewAI @persist() functionality while integrating with our database.
+Migrating from WorkflowState to DiscoveryFlow V2 architecture.
 
 This addresses the gap between CrewAI's built-in SQLite persistence and our
 PostgreSQL multi-tenant enterprise requirements.
@@ -19,7 +21,14 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.database import AsyncSessionLocal
 from app.core.context import RequestContext
-from app.models.workflow_state import WorkflowState
+
+# V2 Discovery Flow imports (target architecture)
+from app.models.discovery_flow import DiscoveryFlow
+from app.models.discovery_asset import DiscoveryAsset
+from app.services.discovery_flow_service import DiscoveryFlowService
+from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
+
+# Legacy imports for backward compatibility
 from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 
@@ -27,6 +36,8 @@ logger = logging.getLogger(__name__)
 
 class PostgreSQLFlowPersistence:
     """
+    ⚠️ LEGACY COMPATIBILITY LAYER - Use DiscoveryFlowService for new development
+    
     Custom persistence layer that bridges CrewAI Flow state with PostgreSQL.
     
     Provides hybrid persistence strategy:
@@ -38,7 +49,7 @@ class PostgreSQLFlowPersistence:
     - Flow state validation and integrity checks
     - Advanced recovery and reconstruction capabilities
     - Performance monitoring and analytics integration
-    - Seamless integration with existing database models
+    - Seamless integration with V2 DiscoveryFlow models
     """
     
     def __init__(self, client_account_id: str, engagement_id: str, user_id: Optional[str] = None):
@@ -58,194 +69,150 @@ class PostgreSQLFlowPersistence:
     
     async def persist_flow_initialization(self, state: UnifiedDiscoveryFlowState) -> Dict[str, Any]:
         """
-        Persist flow initialization to WorkflowState table.
-        Called when CrewAI Flow starts execution.
+        Persist flow initialization to V2 DiscoveryFlow table.
+        ⚠️ LEGACY METHOD - Use DiscoveryFlowService.create_discovery_flow() for new development
         """
         try:
+            logger.info(f"🔄 [LEGACY] Persisting flow initialization using V2 architecture: {state.flow_id}")
+            
             async with AsyncSessionLocal() as db_session:
-                # Create or update workflow state record
-                workflow_state = WorkflowState(
-                    session_id=uuid.UUID(state.session_id),
-                    flow_id=uuid.UUID(state.flow_id) if state.flow_id else uuid.uuid4(),
+                # Create mock context for V2 service
+                from app.core.context import RequestContext
+                context = RequestContext(
                     client_account_id=self.client_uuid,
                     engagement_id=self.engagement_uuid,
-                    user_id=self.user_uuid,
-                    
-                    # Flow state
-                    current_phase=state.current_phase,
-                    status=state.status,
-                    progress_percentage=state.progress_percentage,
-                    phase_completion=state.phase_completion,
-                    crew_status=state.crew_status,
-                    
-                    # Data state
-                    raw_data=state.raw_data,
-                    field_mappings=state.field_mappings,
-                    cleaned_data=state.cleaned_data,
-                    asset_inventory=state.asset_inventory,
-                    dependencies=state.dependencies,
-                    technical_debt=state.technical_debt,
-                    
-                    # Metadata
-                    agent_insights=state.agent_insights,
-                    success_criteria=state.success_criteria,
-                    errors=state.errors,
-                    warnings=state.warnings,
-                    workflow_log=state.workflow_log,
-                    
-                    # Timestamps
-                    started_at=datetime.fromisoformat(state.started_at) if state.started_at else datetime.utcnow(),
-                    created_at=datetime.utcnow(),
-                    updated_at=datetime.utcnow()
+                    user_id=self.user_id or "system"
                 )
                 
-                db_session.add(workflow_state)
-                await db_session.flush()
+                # Use V2 Discovery Flow Service
+                flow_service = DiscoveryFlowService(db_session, context)
                 
-                # Create CrewAI extensions record for advanced analytics
-                crewai_extensions = CrewAIFlowStateExtensions(
-                    session_id=workflow_state.session_id,
-                    flow_id=workflow_state.flow_id,
-                    flow_persistence_data={
-                        "crewai_state_snapshot": state.dict(),
-                        "initialization_context": {
-                            "client_account_id": self.client_account_id,
-                            "engagement_id": self.engagement_id,
-                            "user_id": self.user_id,
-                            "timestamp": datetime.utcnow().isoformat()
-                        }
+                # Create V2 discovery flow
+                flow = await flow_service.create_discovery_flow(
+                    flow_id=state.flow_id,
+                    raw_data=state.raw_data or [],
+                    metadata={
+                        "legacy_migration": True,
+                        "original_session_id": state.session_id,
+                        "crewai_state": state.dict()
                     },
-                    agent_collaboration_log=[{
-                        "event": "flow_initialization",
-                        "timestamp": datetime.utcnow().isoformat(),
-                        "details": {
-                            "session_id": state.session_id,
-                            "initial_phase": state.current_phase,
-                            "data_records": len(state.raw_data)
-                        }
-                    }]
+                    user_id=self.user_id
                 )
                 
-                db_session.add(crewai_extensions)
-                await db_session.commit()
-                
-                logger.info(f"✅ Flow initialization persisted: session={state.session_id}, flow={workflow_state.flow_id}")
+                logger.info(f"✅ [LEGACY] Flow initialization persisted using V2: flow_id={flow.flow_id}")
                 
                 return {
                     "status": "success",
-                    "workflow_state_id": str(workflow_state.session_id),
-                    "flow_id": str(workflow_state.flow_id),
-                    "persisted_at": datetime.utcnow().isoformat()
+                    "flow_id": str(flow.flow_id),
+                    "legacy_session_id": state.session_id,  # For backward compatibility
+                    "persisted_at": datetime.utcnow().isoformat(),
+                    "migration_note": "Persisted using V2 DiscoveryFlow architecture"
                 }
                 
         except Exception as e:
-            logger.error(f"❌ Failed to persist flow initialization: {e}")
+            logger.error(f"❌ [LEGACY] Failed to persist flow initialization: {e}")
             raise
     
     async def update_workflow_state(self, state: UnifiedDiscoveryFlowState) -> Dict[str, Any]:
         """
-        Update WorkflowState table with current flow state.
-        Called during CrewAI Flow phase transitions.
+        Update V2 DiscoveryFlow with current flow state.
+        ⚠️ LEGACY METHOD - Use DiscoveryFlowService.update_phase_completion() for new development
         """
         try:
+            logger.info(f"🔄 [LEGACY] Updating flow state using V2 architecture: {state.flow_id}")
+            
             async with AsyncSessionLocal() as db_session:
-                # Update existing workflow state
-                stmt = update(WorkflowState).where(
-                    and_(
-                        WorkflowState.session_id == uuid.UUID(state.session_id),
-                        WorkflowState.client_account_id == self.client_uuid,
-                        WorkflowState.engagement_id == self.engagement_uuid
-                    )
-                ).values(
-                    current_phase=state.current_phase,
-                    status=state.status,
-                    progress_percentage=state.progress_percentage,
-                    phase_completion=state.phase_completion,
-                    crew_status=state.crew_status,
-                    
-                    # Updated data
-                    field_mappings=state.field_mappings,
-                    cleaned_data=state.cleaned_data,
-                    asset_inventory=state.asset_inventory,
-                    dependencies=state.dependencies,
-                    technical_debt=state.technical_debt,
-                    
-                    # Metadata updates
-                    agent_insights=state.agent_insights,
-                    errors=state.errors,
-                    warnings=state.warnings,
-                    workflow_log=state.workflow_log,
-                    
-                    # Timestamp
-                    updated_at=datetime.utcnow(),
-                    completed_at=datetime.fromisoformat(state.completed_at) if state.completed_at else None
+                # Create mock context for V2 service
+                from app.core.context import RequestContext
+                context = RequestContext(
+                    client_account_id=self.client_uuid,
+                    engagement_id=self.engagement_uuid,
+                    user_id=self.user_id or "system"
                 )
                 
-                result = await db_session.execute(stmt)
+                # Use V2 Discovery Flow Service
+                flow_service = DiscoveryFlowService(db_session, context)
                 
-                if result.rowcount == 0:
-                    logger.warning(f"No workflow state found to update for session: {state.session_id}")
-                    return {"status": "not_found", "session_id": state.session_id}
+                # Update flow with current phase if available
+                if state.current_phase and state.current_phase != "initialization":
+                    flow = await flow_service.update_phase_completion(
+                        flow_id=state.flow_id,
+                        phase=state.current_phase,
+                        phase_data={
+                            "status": state.status,
+                            "progress": state.progress_percentage,
+                            "crew_status": state.crew_status,
+                            "legacy_data": state.dict()
+                        },
+                        crew_status=state.crew_status,
+                        agent_insights=state.agent_insights or []
+                    )
+                else:
+                    # Just get the flow for response
+                    flow = await flow_service.get_flow_by_id(state.flow_id)
                 
-                # Update CrewAI extensions with collaboration log
-                await self._update_crewai_extensions(db_session, state)
+                if not flow:
+                    logger.warning(f"⚠️ [LEGACY] No V2 flow found for ID: {state.flow_id}")
+                    return {"status": "not_found", "flow_id": state.flow_id}
                 
-                await db_session.commit()
-                
-                logger.info(f"✅ Workflow state updated: session={state.session_id}, phase={state.current_phase}, progress={state.progress_percentage}%")
+                logger.info(f"✅ [LEGACY] Flow state updated using V2: flow_id={flow.flow_id}, progress={flow.progress_percentage}%")
                 
                 return {
                     "status": "success",
-                    "session_id": state.session_id,
+                    "flow_id": str(flow.flow_id),
+                    "legacy_session_id": state.session_id,  # For backward compatibility
                     "updated_at": datetime.utcnow().isoformat(),
-                    "current_phase": state.current_phase,
-                    "progress_percentage": state.progress_percentage
+                    "progress_percentage": flow.progress_percentage,
+                    "current_phase": flow.get_next_phase() or "completed"
                 }
                 
         except Exception as e:
-            logger.error(f"❌ Failed to update workflow state: {e}")
-            raise
-    
+            logger.error(f"❌ [LEGACY] Failed to update flow state: {e}")
+            return {"status": "error", "error": str(e)}
+
     async def persist_phase_completion(self, state: UnifiedDiscoveryFlowState, phase: str, crew_results: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Persist phase completion with crew results.
-        Called when CrewAI Flow completes a phase.
+        Persist phase completion using V2 architecture
+        ⚠️ LEGACY METHOD - Use DiscoveryFlowService.update_phase_completion() directly
         """
         try:
+            logger.info(f"🔄 [LEGACY] Persisting phase completion using V2: {state.flow_id}, phase: {phase}")
+            
             async with AsyncSessionLocal() as db_session:
-                # Update phase completion status
-                stmt = update(WorkflowState).where(
-                    and_(
-                        WorkflowState.session_id == uuid.UUID(state.session_id),
-                        WorkflowState.client_account_id == self.client_uuid,
-                        WorkflowState.engagement_id == self.engagement_uuid
-                    )
-                ).values(
-                    phase_completion=state.phase_completion,
-                    crew_status=state.crew_status,
-                    updated_at=datetime.utcnow()
+                # Create mock context for V2 service
+                from app.core.context import RequestContext
+                context = RequestContext(
+                    client_account_id=self.client_uuid,
+                    engagement_id=self.engagement_uuid,
+                    user_id=self.user_id or "system"
                 )
                 
-                await db_session.execute(stmt)
+                # Use V2 Discovery Flow Service
+                flow_service = DiscoveryFlowService(db_session, context)
                 
-                # Log phase completion in CrewAI extensions
-                await self._log_phase_completion(db_session, state.session_id, phase, crew_results)
+                # Update phase completion
+                flow = await flow_service.update_phase_completion(
+                    flow_id=state.flow_id,
+                    phase=phase,
+                    phase_data=crew_results,
+                    crew_status=state.crew_status,
+                    agent_insights=state.agent_insights or []
+                )
                 
-                await db_session.commit()
-                
-                logger.info(f"✅ Phase completion persisted: session={state.session_id}, phase={phase}")
+                logger.info(f"✅ [LEGACY] Phase completion persisted using V2: {phase}, progress: {flow.progress_percentage}%")
                 
                 return {
                     "status": "success",
-                    "session_id": state.session_id,
-                    "completed_phase": phase,
-                    "crew_results": crew_results,
-                    "timestamp": datetime.utcnow().isoformat()
+                    "flow_id": str(flow.flow_id),
+                    "phase": phase,
+                    "progress_percentage": flow.progress_percentage,
+                    "next_phase": flow.get_next_phase(),
+                    "persisted_at": datetime.utcnow().isoformat()
                 }
                 
         except Exception as e:
-            logger.error(f"❌ Failed to persist phase completion: {e}")
-            raise
+            logger.error(f"❌ [LEGACY] Failed to persist phase completion: {e}")
+            return {"status": "error", "error": str(e)}
     
     async def restore_flow_state(self, session_id: str) -> Optional[UnifiedDiscoveryFlowState]:
         """

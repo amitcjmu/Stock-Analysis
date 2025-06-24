@@ -16,8 +16,9 @@ from sqlalchemy import select, and_
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
 from app.models.client_account import User
-from app.services.crewai_flow_service import CrewAIFlowService
-from app.services.session_management_service import SessionManagementService
+from app.models.client_account import ClientAccount, Engagement, User
+from app.services.discovery_flow_service import DiscoveryFlowService
+from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 
 logger = logging.getLogger(__name__)
 
@@ -27,23 +28,27 @@ router = APIRouter(tags=["agent-status"])
 _crewai_service_cache = {}
 
 # Dependency injection for CrewAI Flow Service with caching
-async def get_crewai_flow_service(db: AsyncSession = Depends(get_db)) -> CrewAIFlowService:
-    """Cached CrewAI Flow Service to avoid repeated initialization."""
+async def get_crewai_flow_service(db: AsyncSession = Depends(get_db)) -> DiscoveryFlowService:
+    """Cached Discovery Flow Service to avoid repeated initialization."""
     try:
         # Use database session ID as cache key
-        cache_key = f"crewai_service_{id(db)}"
+        cache_key = f"discovery_flow_service_{id(db)}"
         
         if cache_key not in _crewai_service_cache:
-            _crewai_service_cache[cache_key] = CrewAIFlowService(db=db)
+            _crewai_service_cache[cache_key] = DiscoveryFlowService(db=db)
         
         return _crewai_service_cache[cache_key]
     except Exception as e:
-        logger.warning(f"CrewAI service unavailable: {e}")
+        logger.warning(f"Discovery Flow service unavailable: {e}")
         # Return a mock service for graceful degradation
-        class MockCrewAIService:
-            async def get_flow_state_by_session(self, session_id, context):
-                return None
-        return MockCrewAIService()
+        class MockDiscoveryFlowService:
+            async def get_active_flows(self):
+                return []
+            async def get_flow_statistics(self):
+                return {}
+            async def get_agent_status(self):
+                return {}
+        return MockDiscoveryFlowService()
 
 async def _get_dynamic_agent_insights(db: AsyncSession, context: RequestContext):
     """Get dynamic agent insights based on actual imported data."""
@@ -254,230 +259,56 @@ def _get_cached_agent_insights():
     # This is now deprecated - use _get_dynamic_agent_insights instead
     return _get_fallback_agent_insights()
 
-@router.get("/agent-status")
-async def get_agent_status(
-    request: Request,
-    page_context: Optional[str] = None,
-    engagement_id: Optional[str] = None,
-    client_id: Optional[str] = None,
-    session_id: Optional[str] = None,
+@router.get("/status")
+async def get_discovery_status(
     db: AsyncSession = Depends(get_db),
-    crewai_service: CrewAIFlowService = Depends(get_crewai_flow_service)
-) -> Dict[str, Any]:
+    context: dict = Depends(get_current_context)
+):
     """
-    🚀 OPTIMIZED: Returns the status of the active discovery flow with session context.
-    Performance improvements: caching, simplified queries, fast-path responses.
-    
-    Args:
-        page_context: The context of the page making the request (e.g., 'data-import', 'dependencies')
-        engagement_id: Optional engagement ID to scope the data
-        client_id: Optional client ID to scope the data
-        session_id: Optional specific session ID to get status for
-    """
-    start_time = datetime.utcnow()
-    
-    # Extract context from request headers (same as data-import endpoint)
-    from app.core.context import extract_context_from_request
-    context = extract_context_from_request(request)
-    
-    # Ensure we have a valid page context
-    page_context = page_context or "data-import"
-    
-    try:
-        # ⚡ FAST PATH: Return response with dynamic insights even without session
-        if not session_id:
-            logger.info("⚡ Fast path: No session ID, returning status with dynamic insights")
-            
-            # Get dynamic insights based on context
-            agent_insights = await _get_dynamic_agent_insights(db, context)
-            data_classifications = await _get_data_classifications(db, context)
-            
-            return {
-                "status": "success",
-                "session_id": None,
-                "flow_status": {
-                    "status": "idle",
-                    "current_phase": "initial_scan",
-                    "progress_percentage": 0,
-                    "message": "Ready for discovery workflow"
-                },
-                "page_data": {
-                    "agent_insights": agent_insights,
-                    "pending_questions": [],
-                    "data_classifications": data_classifications
-                },
-                "available_clients": [],
-                "available_engagements": [],
-                "available_sessions": [],
-                "performance": {
-                    "response_time_ms": (datetime.utcnow() - start_time).total_seconds() * 1000
-                }
-            }
-        
-        # ⚡ OPTIMIZED: Simple session validation without complex UUID operations
-        try:
-            import uuid
-            uuid.UUID(session_id)
-            is_valid_uuid = True
-        except (ValueError, TypeError):
-            logger.warning(f"Invalid session ID format: {session_id}")
-            is_valid_uuid = False
-        
-        # ⚡ FAST PATH: Invalid session ID - return default status quickly
-        if not is_valid_uuid:
-            logger.info("⚡ Fast path: Invalid session ID, returning default status")
-            
-            # Get dynamic insights even for invalid session
-            agent_insights = await _get_dynamic_agent_insights(db, context)
-            data_classifications = await _get_data_classifications(db, context)
-            
-            return {
-                "status": "success",
-                "session_id": session_id,
-                "flow_status": {
-                    "status": "idle",
-                    "current_phase": "initial_scan",
-                    "progress_percentage": 0,
-                    "message": "Invalid session format"
-                },
-                "page_data": {
-                    "agent_insights": agent_insights,
-                    "pending_questions": [],
-                    "data_classifications": data_classifications
-                },
-                "available_clients": [],
-                "available_engagements": [],
-                "available_sessions": [],
-                "performance": {
-                    "response_time_ms": (datetime.utcnow() - start_time).total_seconds() * 1000
-                }
-            }
-        
-        # ⚡ OPTIMIZED: Simplified database query with timeout
-        flow_status = await _get_simplified_flow_status(db, session_id, context)
-        
-        # ⚡ DYNAMIC: Get agent insights based on actual data
-        agent_insights = await _get_dynamic_agent_insights(db, context)
-        
-        # ⚡ DYNAMIC: Get data classifications based on actual data
-        data_classifications = await _get_data_classifications(db, context)
-        
-        response = {
-            "status": "success",
-            "session_id": session_id,
-            "flow_status": flow_status,
-            "page_data": {
-                "agent_insights": agent_insights,
-                "pending_questions": [],
-                "data_classifications": data_classifications
-            },
-            "available_clients": [],
-            "available_engagements": [],
-            "available_sessions": [],
-            "performance": {
-                "response_time_ms": (datetime.utcnow() - start_time).total_seconds() * 1000
-            }
-        }
-        
-        logger.info(f"✅ Optimized status response in {(datetime.utcnow() - start_time).total_seconds():.2f}s")
-        return response
-        
-    except Exception as e:
-        logger.exception(f"Error getting agent status: {str(e)}")
-        # Return a valid response even on error to prevent frontend crashes
-        return {
-            "status": "success",
-            "session_id": session_id,
-            "flow_status": {
-                "status": "error",
-                "current_phase": "error",
-                "progress_percentage": 0,
-                "message": f"Error: {str(e)}"
-            },
-            "page_data": {"agent_insights": []},
-            "available_clients": [],
-            "available_engagements": [],
-            "available_sessions": [],
-            "performance": {
-                "response_time_ms": (datetime.utcnow() - start_time).total_seconds() * 1000,
-                "error": True
-            }
-        }
-
-async def _get_simplified_flow_status(db: AsyncSession, session_id: str, context: RequestContext) -> Dict[str, Any]:
-    """
-    ⚡ OPTIMIZED: Simplified flow status lookup with timeout and minimal database queries.
+    Get comprehensive discovery status using V2 Discovery Flow architecture.
+    Replaces legacy session-based status checks.
     """
     try:
-        # Set a timeout for database operations
-        timeout_seconds = 5
+        logger.info("🔍 Getting discovery status using V2 Discovery Flow")
         
-        async def _query_with_timeout():
-            if not context or not context.client_account_id or not context.engagement_id:
-                return None
-                
-            # ⚡ SIMPLIFIED: Single optimized query
-            from app.models.workflow_state import WorkflowState
-            import uuid
-            
-            result = await db.execute(
-                select(WorkflowState)
-                .where(
-                    WorkflowState.session_id == uuid.UUID(session_id),
-                    WorkflowState.client_account_id == uuid.UUID(context.client_account_id),
-                    WorkflowState.engagement_id == uuid.UUID(context.engagement_id)
-                )
-                .order_by(WorkflowState.updated_at.desc())
-                .limit(1)
-            )
-            return result.scalar_one_or_none()
+        # Initialize V2 services
+        flow_repo = DiscoveryFlowRepository(db, context.get('client_account_id'))
+        flow_service = DiscoveryFlowService(flow_repo)
         
-        # Execute with timeout
-        workflow = await asyncio.wait_for(_query_with_timeout(), timeout=timeout_seconds)
+        # Get all active discovery flows for this client
+        active_flows = await flow_service.get_active_flows()
         
-        if workflow:
-            # ⚡ SIMPLIFIED: Basic status mapping
-            status_map = {
-                'completed': {'status': 'completed', 'phase': 'next_steps', 'progress': 100},
-                'failed': {'status': 'failed', 'phase': 'error', 'progress': 0},
-                'running': {'status': 'in_progress', 'phase': 'processing', 'progress': 50},
-                'in_progress': {'status': 'in_progress', 'phase': 'processing', 'progress': 50}
-            }
-            
-            status_info = status_map.get(workflow.status, {'status': 'idle', 'phase': 'initial_scan', 'progress': 0})
-            
-            return {
-                "status": status_info['status'],
-                "current_phase": status_info['phase'],
-                "progress_percentage": status_info['progress'],
-                "message": f"Workflow {status_info['status']}",
-                "workflow_id": str(workflow.id),
-                "updated_at": workflow.updated_at.isoformat() if workflow.updated_at else None
-            }
-        else:
-            # No workflow found - return idle status
-            return {
-                "status": "idle",
-                "current_phase": "initial_scan",
-                "progress_percentage": 0,
-                "message": "No active workflow found"
-            }
-            
-    except asyncio.TimeoutError:
-        logger.warning(f"Database query timeout for session {session_id}")
+        # Get flow statistics
+        flow_stats = await flow_service.get_flow_statistics()
+        
         return {
-            "status": "timeout",
-            "current_phase": "database_timeout",
-            "progress_percentage": 0,
-            "message": "Database query timeout - please try again"
+            "success": True,
+            "data": {
+                "active_flows": len(active_flows),
+                "total_flows": flow_stats.get('total_flows', 0),
+                "completed_flows": flow_stats.get('completed_flows', 0),
+                "in_progress_flows": flow_stats.get('in_progress_flows', 0),
+                "agent_status": "active",  # Simplified agent status
+                "flows": [
+                    {
+                        "flow_id": flow.flow_id,
+                        "current_phase": flow.current_phase,
+                        "progress_percentage": flow.progress_percentage,
+                        "status": flow.status,
+                        "created_at": flow.created_at.isoformat() if flow.created_at else None,
+                        "updated_at": flow.updated_at.isoformat() if flow.updated_at else None
+                    }
+                    for flow in active_flows
+                ]
+            }
         }
+        
     except Exception as e:
-        logger.error(f"Error in simplified flow status lookup: {e}")
+        logger.error(f"❌ Failed to get discovery status: {e}")
         return {
-            "status": "error",
-            "current_phase": "error",
-            "progress_percentage": 0,
-            "message": f"Status lookup error: {str(e)}"
+            "success": False,
+            "error": str(e),
+            "message": "Failed to get discovery status using V2 architecture"
         }
 
 # Health check endpoint
@@ -495,7 +326,7 @@ async def agent_discovery_health():
 async def get_agent_monitor(
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context),
-    crewai_service: CrewAIFlowService = Depends(get_crewai_flow_service)
+    crewai_service: DiscoveryFlowService = Depends(get_crewai_flow_service)
 ) -> Dict[str, Any]:
     """
     ⚡ OPTIMIZED: Returns agent monitoring data with performance improvements.

@@ -36,7 +36,7 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiCall } from '@/config/api';
-import { useUnifiedDiscoveryFlow } from '../../hooks/useUnifiedDiscoveryFlow';
+import { useDiscoveryFlowV2 } from '../../hooks/discovery/useDiscoveryFlowV2';
 
 // Flow Management Components
 import { 

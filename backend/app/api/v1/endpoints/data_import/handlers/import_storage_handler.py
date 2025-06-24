@@ -30,13 +30,15 @@ except ImportError:
     ClientAccount = None
     Engagement = None
 
-# Import session management service
+# V2 Discovery Flow Services
 try:
-    from app.services.session_management_service import SessionManagementService, create_session_management_service
-    SESSION_MANAGEMENT_AVAILABLE = True
+    from app.services.discovery_flow_service import DiscoveryFlowService
+    from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
+    DISCOVERY_FLOW_AVAILABLE = True
 except ImportError:
-    SESSION_MANAGEMENT_AVAILABLE = False
-    SessionManagementService = None
+    DISCOVERY_FLOW_AVAILABLE = False
+    DiscoveryFlowService = None
+    DiscoveryFlowRepository = None
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

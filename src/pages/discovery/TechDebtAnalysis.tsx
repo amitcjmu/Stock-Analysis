@@ -9,7 +9,7 @@ import {
   Code, Database, Globe, BarChart3, Settings,
   CheckCircle, X, Info, GraduationCap, RotateCcw, Play, RefreshCw
 } from 'lucide-react';
-import { useUnifiedDiscoveryFlow } from '../../hooks/useUnifiedDiscoveryFlow';
+import { useDiscoveryFlowV2 } from '../../hooks/discovery/useDiscoveryFlowV2';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '../../components/ui/button';
 import { useToast } from '../../components/ui/use-toast';

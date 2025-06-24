@@ -1,390 +1,360 @@
 """
-CrewAI Flow Service - Modular Implementation
-Uses existing handlers to support the CrewAI Flow while maintaining proper separation of concerns
-Following CrewAI best practices and platform modular handler patterns
+CrewAI Flow Service - V2 Discovery Flow Integration
+
+This service bridges CrewAI flows with the V2 Discovery Flow architecture.
+Uses flow_id as single source of truth instead of session_id.
 """
 
 import logging
-import asyncio
-import uuid
-import json
-from typing import Dict, List, Any, Optional
+from typing import Dict, Any, Optional, List, Union, TYPE_CHECKING
 from datetime import datetime
+import asyncio
+import json
+from uuid import UUID, uuid4
+
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, and_, or_, desc
+from sqlalchemy.orm import selectinload
 
-from app.core.context import RequestContext
-from app.core.database import AsyncSessionLocal
+from app.core.database import get_db
+from app.core.context import get_current_context
 
-# Import handlers with graceful fallback
+# V2 Discovery Flow Models
+from app.models.discovery_flow import DiscoveryFlow
+from app.models.discovery_asset import DiscoveryAsset
+
+# V2 Discovery Flow Services
+from app.services.discovery_flow_service import DiscoveryFlowService
+from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
+
+# CrewAI Flow Integration (Conditional)
+if TYPE_CHECKING:
+    from app.services.crewai_flows.unified_discovery_flow import UnifiedDiscoveryFlow
+
 try:
-    from .crewai_flows.handlers.session_handler import SessionHandler
-    from .crewai_flows.handlers.status_handler import StatusHandler
-    from .crewai_flows.handlers.error_handler import ErrorHandler
-    from .crewai_flows.handlers.callback_handler import CallbackHandler
-    from .crewai_flows.handlers.planning_coordination_handler import PlanningCoordinationHandler
-    from .crewai_flows.handlers.learning_management_handler import LearningManagementHandler
-    from .crewai_flows.handlers.collaboration_tracking_handler import CollaborationTrackingHandler
-    from .crewai_flows.handlers.initialization_handler import InitializationHandler
-    HANDLERS_AVAILABLE = True
+    from app.services.crewai_flows.unified_discovery_flow import UnifiedDiscoveryFlow
+    CREWAI_FLOWS_AVAILABLE = True
 except ImportError:
-    HANDLERS_AVAILABLE = False
-
-# Import CrewAI Flow with graceful fallback
-try:
-    from .crewai_flows.unified_discovery_flow import UnifiedDiscoveryFlow, create_unified_discovery_flow
-    CREWAI_FLOW_AVAILABLE = True
-except ImportError:
-    CREWAI_FLOW_AVAILABLE = False
-
-# OpenLIT observability for CrewAI agents
-try:
-    import openlit
-    openlit.init(
-        otlp_endpoint="http://127.0.0.1:4318",
-        disable_metrics=True
-    )
-    OPENLIT_AVAILABLE = True
-    logging.info("✅ OpenLIT observability initialized for CrewAI agents")
-except ImportError:
-    OPENLIT_AVAILABLE = False
-    logging.warning("⚠️ OpenLIT not available - agent observability limited")
+    CREWAI_FLOWS_AVAILABLE = False
+    UnifiedDiscoveryFlow = None
 
 logger = logging.getLogger(__name__)
 
 class CrewAIFlowService:
     """
-    Modular CrewAI Flow Service for Discovery Workflows
+    V2 CrewAI Flow Service - Bridges CrewAI flows with Discovery Flow architecture.
     
-    Provides a unified interface for CrewAI-powered discovery workflows with:
-    - Modular handler architecture for maintainability
-    - Graceful fallback when CrewAI Flow is not available
-    - V2 Discovery Flow architecture support
+    Key Changes:
+    - Uses flow_id instead of session_id
+    - Integrates with V2 Discovery Flow models
+    - Provides graceful fallback when CrewAI flows unavailable
+    - Multi-tenant isolation through context-aware repositories
     """
     
     def __init__(self, db: Optional[AsyncSession] = None):
         self.db = db
+        self._discovery_flow_service: Optional[DiscoveryFlowService] = None
         
-        # V2 Discovery Flow architecture - no workflow state service needed
-        logger.info("✅ Using V2 Discovery Flow state management")
+    async def _get_discovery_flow_service(self, context: Dict[str, Any]) -> DiscoveryFlowService:
+        """Get or create discovery flow service with context."""
+        if not self._discovery_flow_service:
+            if not self.db:
+                raise ValueError("Database session required for V2 Discovery Flow service")
+            
+            flow_repo = DiscoveryFlowRepository(self.db, context.get('client_account_id'))
+            self._discovery_flow_service = DiscoveryFlowService(flow_repo)
         
-        self.service_available = CREWAI_FLOW_AVAILABLE
-        
-        # Active flows tracking
-        self._active_flows: Dict[str, UnifiedDiscoveryFlow] = {}
-        self._flow_creation_lock = asyncio.Lock()
-        self._flow_registry: Dict[str, Dict[str, Any]] = {}
-        
-        # Initialize modular handlers
-        self._initialize_handlers()
-        
-        # Initialize agents using existing logic
-        self.agents = self._initialize_agents()
-        
-        logger.info("✅ Modular CrewAI Flow Service initialized with V2 architecture")
-        if not self.service_available:
-            logger.warning("⚠️ CrewAI Flow not available - using fallback mode")
+        return self._discovery_flow_service
     
-    def _initialize_handlers(self):
-        """Initialize all modular handlers"""
-        if not HANDLERS_AVAILABLE:
-            logger.warning("⚠️ Handlers not available - using minimal functionality")
-            return
-            
-        # Core handlers
-        self.session_handler = SessionHandler()
-        self.status_handler = StatusHandler()
-        self.error_handler = ErrorHandler()
-        self.callback_handler = CallbackHandler()
-        
-        # Advanced handlers
-        self.planning_handler = PlanningCoordinationHandler(self)
-        self.learning_handler = LearningManagementHandler(self)
-        self.collaboration_handler = CollaborationTrackingHandler(self)
-        
-        # Setup handler components
-        self.session_handler.setup_database_sessions()
-        self.callback_handler.setup_callbacks()
-        self.planning_handler.setup_planning_components()
-        
-        logger.info("✅ All modular handlers initialized")
-    
-    def _initialize_agents(self) -> Dict[str, Any]:
-        """Initialize CrewAI crews for enhanced discovery workflows"""
-        agents = {}
-        
-        try:
-            # Import CrewAI crew factory functions (but don't initialize yet)
-            # Crews will be created on-demand during flow execution with proper parameters
-            from app.services.crewai_flows.crews.inventory_building_crew import create_inventory_building_crew
-            from app.services.crewai_flows.crews.field_mapping_crew import create_field_mapping_crew
-            from app.services.crewai_flows.crews.app_server_dependency_crew import create_app_server_dependency_crew
-            from app.services.crewai_flows.crews.data_cleansing_crew import create_data_cleansing_crew
-            
-            # Store crew factory functions for on-demand creation
-            agents['inventory_building_factory'] = create_inventory_building_crew
-            agents['field_mapping_factory'] = create_field_mapping_crew
-            agents['dependency_analysis_factory'] = create_app_server_dependency_crew
-            agents['data_cleansing_factory'] = create_data_cleansing_crew
-            
-            logger.info(f"✅ Initialized {len(agents)} CrewAI Crew factories for discovery workflows")
-            
-        except ImportError as e:
-            logger.warning(f"CrewAI crew factories not available: {e}")
-        except Exception as e:
-            logger.error(f"Failed to initialize CrewAI crew factories: {e}")
-        
-        return agents
-    
-    async def initiate_discovery_workflow(
+
+
+    async def initialize_flow(
         self,
-        data_source: Dict[str, Any],
-        context: RequestContext
+        flow_id: str,
+        context: Dict[str, Any],
+        metadata: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
-        Initiate a discovery workflow using modular handlers and CrewAI Flow
-        """
-        logger.info(f"🚀 Initiating discovery workflow with session: {context.session_id}")
+        Initialize a new CrewAI flow using V2 Discovery Flow architecture.
         
-        # Validate database availability
-        if not self.db:
+        Args:
+            flow_id: Discovery Flow ID (replaces session_id)
+            context: Request context with client/engagement info
+            metadata: Optional flow metadata
+        """
+        try:
+            logger.info(f"🚀 Initializing CrewAI flow: {flow_id}")
+            
+            # Get V2 services
+            discovery_service = await self._get_discovery_flow_service(context)
+            
+            # Check if flow already exists
+            existing_flow = await discovery_service.get_flow(flow_id)
+            if existing_flow:
+                logger.info(f"✅ Flow already exists: {flow_id}")
+                return {
+                    "status": "existing",
+                    "flow_id": flow_id,
+                    "current_phase": existing_flow.current_phase,
+                    "progress": existing_flow.progress_percentage
+                }
+            
+            # Initialize CrewAI flow if available
+            crewai_flow = None
+            if CREWAI_FLOWS_AVAILABLE and UnifiedDiscoveryFlow:
+                try:
+                    crewai_flow = UnifiedDiscoveryFlow()
+                    await crewai_flow.initialize(flow_id=flow_id, context=context)
+                    logger.info(f"✅ CrewAI flow initialized: {flow_id}")
+                except Exception as e:
+                    logger.warning(f"CrewAI flow initialization failed: {e}")
+            
+            # Create flow through discovery service
+            result = await discovery_service.create_flow(
+                import_session_id=metadata.get('import_session_id') if metadata else None,
+                initial_phase="data_import",
+                metadata=metadata or {}
+            )
+            
+            logger.info(f"✅ Flow initialization complete: {flow_id}")
+            
+            return {
+                "status": "initialized",
+                "flow_id": flow_id,
+                "crewai_available": CREWAI_FLOWS_AVAILABLE,
+                "result": {
+                    "flow_id": result.flow_id,
+                    "status": result.status,
+                    "current_phase": result.current_phase
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to initialize flow {flow_id}: {e}")
             return {
                 "status": "error",
-                "message": "Database not available for workflow state management"
+                "flow_id": flow_id,
+                "error": str(e),
+                "message": "Flow initialization failed"
             }
+
+    async def get_flow_status(
+        self,
+        flow_id: str,
+        context: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Get comprehensive flow status using V2 architecture.
         
+        Args:
+            flow_id: Discovery Flow ID
+            context: Request context
+        """
         try:
-            # Parse and validate input data
-            parsed_data = self._parse_input_data(data_source)
-            metadata = data_source.get("metadata", {})
-            cmdb_data = {"file_data": parsed_data, "metadata": metadata}
+            logger.info(f"📊 Getting flow status: {flow_id}")
             
-            # Validate context
-            session_id, validated_context = self._validate_context(context)
+            # Get V2 services
+            discovery_service = await self._get_discovery_flow_service(context)
             
-            # Ensure data import session exists
-            await self._ensure_data_import_session_exists(
-                session_id, validated_context, metadata
-            )
+            # Get flow from V2 architecture
+            flow = await discovery_service.get_flow(flow_id)
+            if not flow:
+                return {
+                    "status": "not_found",
+                    "flow_id": flow_id,
+                    "message": "Flow not found in V2 architecture"
+                }
             
-            # Use initialization handler to setup flow
-            if HANDLERS_AVAILABLE:
-                initialization_handler = InitializationHandler(self, validated_context)
-                flow_id = initialization_handler.setup_flow_id(
-                    session_id, 
-                    validated_context.client_account_id,
-                    validated_context.engagement_id,
-                    parsed_data
-                )
-            else:
-                flow_id = str(uuid.uuid4())
+            # Get detailed flow summary
+            flow_summary = await discovery_service.get_flow_summary(flow_id)
             
-            # Create and execute the CrewAI Flow
-            flow = await self._create_and_execute_flow(
-                session_id, validated_context, cmdb_data, metadata, flow_id
-            )
+            # Get CrewAI flow status if available
+            crewai_status = {}
+            if CREWAI_FLOWS_AVAILABLE:
+                try:
+                    # Attempt to get CrewAI flow state
+                    crewai_status = {
+                        "crewai_available": True,
+                        "flow_active": True  # Placeholder
+                    }
+                except Exception as e:
+                    logger.warning(f"CrewAI status check failed: {e}")
+                    crewai_status = {
+                        "crewai_available": False,
+                        "error": str(e)
+                    }
             
-            # Track active flow
-            self._active_flows[flow_id] = flow
-            
-            # Return status using status handler
             return {
                 "status": "success",
-                "message": "Discovery workflow initiated successfully",
-                "session_id": session_id,
                 "flow_id": flow_id,
-                "workflow_status": "running",
-                "current_phase": "initialization"
+                "flow_status": flow.status,
+                "current_phase": flow.current_phase,
+                "progress_percentage": flow.progress_percentage,
+                "summary": flow_summary,
+                "crewai_status": crewai_status,
+                "created_at": flow.created_at.isoformat() if flow.created_at else None,
+                "updated_at": flow.updated_at.isoformat() if flow.updated_at else None
             }
             
         except Exception as e:
-            logger.error(f"❌ Failed to initiate discovery workflow: {e}")
+            logger.error(f"❌ Failed to get flow status {flow_id}: {e}")
             return {
                 "status": "error",
-                "message": str(e)
+                "flow_id": flow_id,
+                "error": str(e),
+                "message": "Failed to get flow status"
             }
-    
-    def _parse_input_data(self, data_source: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Parse and validate input data"""
-        file_data = data_source.get("file_data")
-        if not file_data:
-            raise ValueError("file_data is required for analysis")
-        
-        if isinstance(file_data, str):
-            try:
-                if file_data.strip().startswith('['):
-                    return json.loads(file_data)
-                else:
-                    # Handle base64 encoded CSV
-                    import base64
-                    import csv
-                    import io
-                    decoded = base64.b64decode(file_data).decode('utf-8')
-                    string_io = io.StringIO(decoded)
-                    return list(csv.DictReader(string_io))
-            except Exception as e:
-                raise ValueError(f"Invalid file_data format: {str(e)}")
-        elif isinstance(file_data, list):
-            return file_data
-        else:
-            raise ValueError("file_data must be a list or string")
-    
-    def _validate_context(self, context: RequestContext) -> tuple[str, RequestContext]:
-        """Validate and normalize context"""
-        session_id = context.session_id or str(uuid.uuid4())
-        
-        if not context.client_account_id or not context.engagement_id:
-            raise ValueError(f"Missing required context: client_account_id={context.client_account_id}, engagement_id={context.engagement_id}")
-        
-        # Validate UUID formats
-        try:
-            client_account_uuid = uuid.UUID(context.client_account_id)
-            engagement_uuid = uuid.UUID(context.engagement_id)
-        except (ValueError, TypeError) as e:
-            raise ValueError(f"Invalid UUID format in context: {e}")
-        
-        # Update context with validated UUIDs
-        context.client_account_id = str(client_account_uuid)
-        context.engagement_id = str(engagement_uuid)
-        
-        return session_id, context
-    
-    async def _create_and_execute_flow(
+
+    async def advance_flow_phase(
         self,
-        session_id: str,
-        context: RequestContext,
-        cmdb_data: Dict[str, Any],
-        metadata: Dict[str, Any],
-        flow_id: str
-    ) -> UnifiedDiscoveryFlow:
-        """Create and execute the CrewAI Flow"""
-        async with self._flow_creation_lock:
-            # Create the CrewAI Flow using proper factory function
-            if CREWAI_FLOW_AVAILABLE:
-                flow = create_unified_discovery_flow(
-                    session_id=session_id,
-                    client_account_id=context.client_account_id,
-                    engagement_id=context.engagement_id,
-                    user_id=context.user_id or "anonymous",
-                    raw_data=cmdb_data.get("file_data", []),
-                    metadata=metadata,
-                    crewai_service=self,
-                    context=context
-                )
-                
-                # Execute in background (non-blocking)
-                asyncio.create_task(self._run_workflow_background(flow, context))
-                
-                return flow
-            else:
-                # Fallback for when CrewAI Flow is not available
-                logger.warning("⚠️ CrewAI Flow not available - using fallback")
-                return None
-    
-    async def _run_workflow_background(self, flow: UnifiedDiscoveryFlow, context: RequestContext):
-        """Run workflow in background with proper error handling"""
+        flow_id: str,
+        next_phase: str,
+        context: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Advance flow to next phase using V2 architecture.
+        
+        Args:
+            flow_id: Discovery Flow ID
+            next_phase: Target phase name
+            context: Request context
+        """
         try:
-            logger.info(f"🚀 Starting CrewAI Flow execution for session: {flow.state.session_id}")
+            logger.info(f"⏭️ Advancing flow phase: {flow_id} -> {next_phase}")
             
-            # Execute the CrewAI Flow (this triggers @start and @listen methods)
-            result = flow.kickoff()
+            # Get V2 services
+            discovery_service = await self._get_discovery_flow_service(context)
             
-            logger.info(f"✅ CrewAI Flow completed successfully")
-            return result
+            # Advance phase through discovery service
+            await discovery_service.update_phase(flow_id, next_phase)
+            result = await discovery_service.get_flow(flow_id)
+            
+            logger.info(f"✅ Flow phase advanced: {flow_id} -> {next_phase}")
+            
+            return {
+                "status": "success",
+                "flow_id": flow_id,
+                "next_phase": next_phase,
+                "result": {
+                    "current_phase": result.current_phase,
+                    "progress_percentage": result.progress_percentage,
+                    "status": result.status
+                }
+            }
             
         except Exception as e:
-            logger.error(f"❌ CrewAI Flow execution failed: {e}")
-            # V2 Discovery Flow architecture - no workflow state service needed
-            logger.error(f"Error that would have been recorded: {e}")
-    
-    # Delegation methods to handlers
-    
-    async def get_flow_state_by_session(self, session_id: str, context: RequestContext) -> Optional[Dict[str, Any]]:
-        """Get flow state using status handler"""
-        if session_id in self._active_flows:
-            flow = self._active_flows[session_id]
-            if HANDLERS_AVAILABLE:
-                return self.status_handler.get_current_status(flow.state, {})
-            else:
-                return {"session_id": session_id, "status": "running"}
-        
-        # V2 Discovery Flow architecture - use V2 API instead
-        logger.warning("⚠️ Flow state lookup - use V2 Discovery Flow API")
-        return None
-    
-    def get_active_flows(self, context: Optional[RequestContext] = None) -> List[Dict[str, Any]]:
-        """Get summary of active flows"""
-        flows = []
-        for flow_id, flow in self._active_flows.items():
-            flows.append({
+            logger.error(f"❌ Failed to advance flow phase {flow_id}: {e}")
+            return {
+                "status": "error",
                 "flow_id": flow_id,
-                "session_id": getattr(flow.state, 'session_id', 'unknown'),
-                "status": getattr(flow.state, 'status', 'unknown'),
-                "current_phase": getattr(flow.state, 'current_phase', 'unknown')
-            })
-        return flows
-    
-    def get_health_status(self) -> Dict[str, Any]:
-        """Get service health status"""
-        return {
-            "service_name": "CrewAI Flow Service",
-            "status": "healthy" if self.service_available else "degraded",
-            "active_flows": len(self._active_flows),
-            "features": {
-                "crewai_flow": self.service_available,
-                "handlers": HANDLERS_AVAILABLE,
-                "v2_architecture": True
+                "error": str(e),
+                "message": "Failed to advance flow phase"
             }
-        }
-    
-    def get_performance_metrics(self) -> Dict[str, Any]:
-        """Get performance metrics"""
-        return {"active_flows": len(self._active_flows), "registry_size": len(self._flow_registry)}
-    
-    def cleanup_resources(self) -> Dict[str, Any]:
-        """Clean up service resources"""
-        cleaned_flows = len(self._active_flows)
-        self._active_flows.clear()
-        self._flow_registry.clear()
+
+    async def get_active_flows(
+        self,
+        context: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
+        """
+        Get all active flows for the current context.
         
-        return {
-            "cleaned_flows": cleaned_flows,
-            "status": "cleanup_completed",
-            "timestamp": datetime.utcnow().isoformat()
-        }
-    
-    def generate_flow_id(self, flow_type: str, session_id: str, 
-                        client_account_id: str, engagement_id: str) -> str:
-        """Generate unique flow ID"""
-        base_id = f"{flow_type}_{session_id}_{client_account_id}_{engagement_id}"
-        return str(uuid.uuid5(uuid.NAMESPACE_DNS, base_id))
-    
-    def register_flow(self, flow_id: str, flow_type: str, metadata: Dict[str, Any]):
-        """Register flow in registry"""
-        self._flow_registry[flow_id] = {
-            "flow_type": flow_type,
-            "metadata": metadata,
-            "created_at": datetime.utcnow().isoformat()
-        }
-    
-    def get_flow_info(self, flow_id: str) -> Dict[str, Any]:
-        """Get flow information from registry"""
-        return self._flow_registry.get(flow_id, {})
-    
-    async def _ensure_data_import_session_exists(
-        self, 
-        session_id: str, 
-        context: RequestContext, 
-        metadata: Dict[str, Any]
-    ):
-        """Ensure data import session exists - simplified for V2 architecture"""
-        # V2 Discovery Flow architecture - simplified session management
-        logger.info(f"✅ Session management simplified for V2 architecture: {session_id}")
+        Args:
+            context: Request context with client/engagement info
+        """
+        try:
+            logger.info("📋 Getting active flows")
+            
+            # Get V2 services
+            discovery_service = await self._get_discovery_flow_service(context)
+            
+            # Get active flows
+            active_flows = await discovery_service.get_active_flows()
+            
+            # Convert to response format
+            flows_data = []
+            for flow in active_flows:
+                flows_data.append({
+                    "flow_id": flow.flow_id,
+                    "status": flow.status,
+                    "current_phase": flow.current_phase,
+                    "progress_percentage": flow.progress_percentage,
+                    "created_at": flow.created_at.isoformat() if flow.created_at else None,
+                    "updated_at": flow.updated_at.isoformat() if flow.updated_at else None
+                })
+            
+            logger.info(f"✅ Found {len(flows_data)} active flows")
+            
+            return flows_data
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to get active flows: {e}")
+            return []
 
+    async def cleanup_flow(
+        self,
+        flow_id: str,
+        context: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Clean up a flow and all associated data.
+        
+        Args:
+            flow_id: Discovery Flow ID
+            context: Request context
+        """
+        try:
+            logger.info(f"🧹 Cleaning up flow: {flow_id}")
+            
+            # Get V2 services
+            discovery_service = await self._get_discovery_flow_service(context)
+            
+            # Delete flow through service
+            result = await discovery_service.delete_flow(flow_id)
+            
+            logger.info(f"✅ Flow cleanup complete: {flow_id}")
+            
+            return {
+                "status": "success",
+                "flow_id": flow_id,
+                "result": result
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to cleanup flow {flow_id}: {e}")
+            return {
+                "status": "error",
+                "flow_id": flow_id,
+                "error": str(e),
+                "message": "Failed to cleanup flow"
+            }
 
-def create_crewai_flow_service(db: AsyncSession) -> CrewAIFlowService:
-    """Factory function to create CrewAI Flow Service"""
-    return CrewAIFlowService(db)
+    # Legacy compatibility methods (deprecated)
+    async def get_flow_state_by_session(
+        self,
+        session_id: str,
+        context: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
+        """
+        DEPRECATED: Legacy method for session-based flow lookup.
+        Use get_flow_status(flow_id) instead.
+        """
+        logger.warning(f"⚠️ Deprecated method called: get_flow_state_by_session({session_id})")
+        logger.warning("Use get_flow_status(flow_id) instead")
+        
+        # Treat session_id as flow_id for backward compatibility
+        return await self.get_flow_status(session_id, context)
 
-def get_crewai_flow_service() -> CrewAIFlowService:
-    """Get CrewAI Flow Service instance"""
-    return CrewAIFlowService() 
+# Factory function for dependency injection
+async def get_crewai_flow_service(
+    db: AsyncSession = None,
+    context: Dict[str, Any] = None
+) -> CrewAIFlowService:
+    """
+    Factory function to create CrewAI Flow Service with proper dependencies.
+    """
+    if not db:
+        # Get database session from dependency injection
+        async with get_db() as session:
+            return CrewAIFlowService(db=session)
+    
+    return CrewAIFlowService(db=db) 

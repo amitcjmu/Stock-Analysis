@@ -14,20 +14,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.context import get_current_context, RequestContext
-from app.schemas.session_schemas import (
-    SessionCreateRequest,
-    SessionUpdateRequest,
-    SessionResponse,
-    SessionListResponse
+from app.schemas.session import (
+    SessionCreate,
+    SessionUpdate,
+    Session,
+    SessionList
 )
+from app.services.discovery_flow_service import DiscoveryFlowService
+from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
-@router.post("/", response_model=SessionResponse)
+@router.post("/", response_model=Session)
 async def create_session(
-    request: SessionCreateRequest,
+    request: SessionCreate,
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context)
 ) -> Dict[str, Any]:
@@ -41,12 +43,18 @@ async def create_session(
     try:
         # Minimal compatibility response
         return {
-            "session_id": context.session_id,
-            "status": "created",
-            "message": "Session created (deprecated - use V2 Discovery Flow API)",
-            "client_account_id": context.client_account_id,
+            "id": context.session_id,
+            "session_name": getattr(request, 'session_name', 'deprecated_session'),
+            "session_display_name": getattr(request, 'session_display_name', 'Deprecated Session'),
+            "session_type": getattr(request, 'session_type', 'data_import'),
             "engagement_id": context.engagement_id,
-            "metadata": request.metadata or {},
+            "client_account_id": context.client_account_id,
+            "is_default": False,
+            "status": "active",
+            "auto_created": True,
+            "created_by": context.user_id or "anonymous",
+            "created_at": "2025-01-22T00:00:00Z",
+            "updated_at": "2025-01-22T00:00:00Z",
             "migration_notice": "Use POST /api/v2/discovery-flows/ for new development"
         }
         
@@ -57,42 +65,120 @@ async def create_session(
             detail=f"Failed to create session: {str(e)}"
         )
 
-@router.get("/{session_id}", response_model=SessionResponse)
-async def get_session(
-    session_id: str,
+@router.get("/sessions")
+async def get_sessions(
     db: AsyncSession = Depends(get_db),
-    context: RequestContext = Depends(get_current_context)
-) -> Dict[str, Any]:
+    context: dict = Depends(get_current_context)
+):
     """
-    ⚠️ DEPRECATED: Get session by ID
+    DEPRECATED: Legacy session endpoint.
+    Use V2 Discovery Flow API instead: /api/v2/discovery-flows/
     
-    Use V2 Discovery Flow API: GET /api/v2/discovery-flows/{flow_id}
+    This endpoint provides migration guidance for existing clients.
     """
-    logger.warning(f"⚠️ Deprecated session lookup for {session_id} - migrate to V2 Discovery Flow API")
-    
     try:
-        # Minimal compatibility response
+        logger.warning("⚠️ Legacy sessions endpoint accessed - recommend V2 migration")
+        
+        # Initialize V2 services for migration data
+        flow_repo = DiscoveryFlowRepository(db, context.get('client_account_id'))
+        flow_service = DiscoveryFlowService(flow_repo)
+        
+        # Get all flows for migration guidance
+        flows = await flow_service.get_all_flows()
+        
+        # Convert to legacy session format for backward compatibility
+        legacy_sessions = []
+        for flow in flows:
+            legacy_sessions.append({
+                "id": flow.flow_id,  # Use flow_id as session id
+                "session_id": flow.flow_id,  # Deprecated field
+                "status": flow.status,
+                "current_phase": flow.current_phase,
+                "progress_percentage": flow.progress_percentage,
+                "created_at": flow.created_at.isoformat() if flow.created_at else None,
+                "updated_at": flow.updated_at.isoformat() if flow.updated_at else None,
+                "migration_note": "Use V2 API: /api/v2/discovery-flows/"
+            })
+        
         return {
-            "session_id": session_id,
-            "status": "unknown",
-            "message": "Session lookup deprecated - use V2 Discovery Flow API",
-            "client_account_id": context.client_account_id,
-            "engagement_id": context.engagement_id,
-            "metadata": {},
-            "migration_notice": f"Use GET /api/v2/discovery-flows/ to find flows for this context"
+            "success": True,
+            "data": legacy_sessions,
+            "deprecation_warning": {
+                "message": "This endpoint is deprecated. Use V2 Discovery Flow API.",
+                "new_endpoint": "/api/v2/discovery-flows/",
+                "migration_guide": "Replace session_id with flow_id in all requests"
+            }
         }
         
     except Exception as e:
-        logger.error(f"Failed to get session {session_id}: {e}")
+        logger.error(f"❌ Failed to get legacy sessions: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "message": "Failed to get sessions - consider migrating to V2 API"
+        }
+
+@router.get("/sessions/{session_id}")
+async def get_session(
+    session_id: str,
+    db: AsyncSession = Depends(get_db),
+    context: dict = Depends(get_current_context)
+):
+    """
+    DEPRECATED: Legacy session detail endpoint.
+    Use V2 Discovery Flow API instead: /api/v2/discovery-flows/{flow_id}
+    """
+    try:
+        logger.warning(f"⚠️ Legacy session detail endpoint accessed: {session_id}")
+        
+        # Initialize V2 services
+        flow_repo = DiscoveryFlowRepository(db, context.get('client_account_id'))
+        flow_service = DiscoveryFlowService(flow_repo)
+        
+        # Try to get flow by ID (treating session_id as flow_id)
+        flow = await flow_service.get_flow(session_id)
+        if not flow:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Session not found: {session_id}. Use V2 API: /api/v2/discovery-flows/{session_id}"
+            )
+        
+        # Get flow summary
+        flow_summary = await flow_service.get_flow_summary(session_id)
+        
+        return {
+            "success": True,
+            "data": {
+                "id": flow.flow_id,
+                "session_id": flow.flow_id,  # Deprecated field
+                "flow_id": flow.flow_id,  # New field
+                "status": flow.status,
+                "current_phase": flow.current_phase,
+                "progress_percentage": flow.progress_percentage,
+                "summary": flow_summary,
+                "created_at": flow.created_at.isoformat() if flow.created_at else None,
+                "updated_at": flow.updated_at.isoformat() if flow.updated_at else None
+            },
+            "deprecation_warning": {
+                "message": "This endpoint is deprecated. Use V2 Discovery Flow API.",
+                "new_endpoint": f"/api/v2/discovery-flows/{session_id}",
+                "migration_guide": "Replace session_id with flow_id in all requests"
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to get legacy session {session_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get session: {str(e)}"
+            detail=f"Failed to get session - consider migrating to V2 API: {str(e)}"
         )
 
-@router.put("/{session_id}", response_model=SessionResponse)
+@router.put("/{session_id}", response_model=Session)
 async def update_session(
     session_id: str,
-    request: SessionUpdateRequest,
+    request: SessionUpdate,
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context)
 ) -> Dict[str, Any]:
@@ -106,12 +192,18 @@ async def update_session(
     try:
         # Minimal compatibility response
         return {
-            "session_id": session_id,
-            "status": "updated",
-            "message": "Session update deprecated - use V2 Discovery Flow API",
-            "client_account_id": context.client_account_id,
+            "id": session_id,
+            "session_name": "deprecated_session",
+            "session_display_name": "Deprecated Session",
+            "session_type": "data_import",
             "engagement_id": context.engagement_id,
-            "metadata": request.metadata or {},
+            "client_account_id": context.client_account_id,
+            "is_default": False,
+            "status": "active",
+            "auto_created": True,
+            "created_by": context.user_id or "anonymous",
+            "created_at": "2025-01-22T00:00:00Z",
+            "updated_at": "2025-01-22T00:00:00Z",
             "migration_notice": f"Use PUT /api/v2/discovery-flows/{{flow_id}} for updates"
         }
         
@@ -151,7 +243,7 @@ async def delete_session(
             detail=f"Failed to delete session: {str(e)}"
         )
 
-@router.get("/", response_model=SessionListResponse)
+@router.get("/", response_model=SessionList)
 async def list_sessions(
     limit: int = 50,
     offset: int = 0,

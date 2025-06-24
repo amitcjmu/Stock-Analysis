@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 
 // Hooks
-import { useUnifiedDiscoveryFlow } from '../../hooks/useUnifiedDiscoveryFlow';
+import { useDiscoveryFlowV2 } from '../../hooks/discovery/useDiscoveryFlowV2';
 import { useAuth } from '../../contexts/AuthContext';
 
 // Components

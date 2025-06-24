@@ -1,169 +1,97 @@
 """
-Models package initialization.
-Imports all models to ensure they are registered with SQLAlchemy.
+AI Force Migration Platform - Database Models
+
+V2 Discovery Flow Architecture:
+- Uses CrewAI Flow ID as single source of truth
+- Eliminates session_id confusion
+- Multi-tenant isolation with context-aware repositories
+- Unified flow state management
 """
 
-from .migration import Migration, MigrationLog, MigrationStatus, MigrationPhase
-from .asset import Asset, AssetDependency, AssetType, AssetStatus, SixRStrategy, MigrationWave, WorkflowProgress
-from .assessment import Assessment, WavePlan, AssessmentType, AssessmentStatus, RiskLevel
-from .sixr_analysis import (
-    SixRIteration, SixRRecommendation,
-    SixRQuestion, SixRQuestionResponse, SixRAnalysis, SixRAnalysisParameters
-)
+# Core Models
+from app.models.client_account import ClientAccount, Engagement, User
 
-# New multi-tenant models (primary imports)
-try:
-    from .client_account import ClientAccount, Engagement, User, UserAccountAssociation
-    CLIENT_ACCOUNT_AVAILABLE = True
-except ImportError:
-    CLIENT_ACCOUNT_AVAILABLE = False
-    ClientAccount = None
-    Engagement = None
-    User = None
-    UserAccountAssociation = None
+# V2 Discovery Flow Models (Primary)
+from app.models.discovery_flow import DiscoveryFlow
+from app.models.discovery_asset import DiscoveryAsset
 
-from .tags import Tag, AssetEmbedding, AssetTag
-from .data_import import (
-    DataImport,
-    RawImportRecord,
-    ImportFieldMapping,
-)
-from .data_import_session import DataImportSession
-from .feedback import Feedback, FeedbackSummary
+# Data Import Models
+from app.models.data_import import DataImport
+from app.models.data_import_session import DataImportSession
 
-# RBAC models (conditional import)
-try:
-    from .rbac import UserProfile, UserRole, ClientAccess, EngagementAccess, AccessAuditLog
-    RBAC_AVAILABLE = True
-except ImportError:
-    RBAC_AVAILABLE = False
-    UserProfile = None
-    UserRole = None
-    ClientAccess = None
-    EngagementAccess = None
-    AccessAuditLog = None
+# Assessment Models
+from app.models.assessment import Assessment, WavePlan
 
-# Enhanced RBAC models (conditional import)
-try:
-    from .rbac_enhanced import EnhancedUserProfile, RolePermissions, SoftDeletedItems, EnhancedAccessAuditLog
-    ENHANCED_RBAC_AVAILABLE = True
-except ImportError:
-    ENHANCED_RBAC_AVAILABLE = False
-    EnhancedUserProfile = None
-    RolePermissions = None
-    SoftDeletedItems = None
-    EnhancedAccessAuditLog = None
+# Asset Models
+from app.models.asset import Asset, AssetDependency
 
-# LLM Usage tracking models (conditional import)
-try:
-    from .llm_usage import LLMUsageLog, LLMModelPricing, LLMUsageSummary
-    LLM_USAGE_AVAILABLE = True
-except ImportError:
-    LLM_USAGE_AVAILABLE = False
-    LLMUsageLog = None
-    LLMModelPricing = None
-    LLMUsageSummary = None
+# Migration Models
+from app.models.migration import Migration
 
-# Learning Pattern models are now part of data_import
+# RBAC Models
+from app.models.rbac import UserRole, ClientAccess, PermissionLevel
 
-# Flow Management models (Phase 3)
-from .workflow_state import WorkflowState, UnifiedFlowStateRepository
-from .flow_deletion_audit import FlowDeletionAudit
-from .crewai_flow_state_extensions import CrewAIFlowStateExtensions
+# Agent Communication Models
+from app.models.agent_communication import AgentCommunication
 
-# New Discovery Flow models (Multi-Flow Architecture)
-from .discovery_flow import DiscoveryFlow
-from .discovery_asset import DiscoveryAsset
+# CrewAI Flow Models
+from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+
+# Field Mapping Models
+from app.models.field_mapping import FieldMapping
+
+# Learning Models
+from app.models.learning_pattern import LearningPattern
+
+# Tech Debt Models
+from app.models.tech_debt_analysis import TechDebtAnalysis
+
+# DEPRECATED MODELS (Legacy V1 - Use V2 Discovery Flow instead)
+# from app.models.workflow_state import WorkflowState  # REMOVED - Use DiscoveryFlow
+# from app.models.session_management import SessionManagement  # REMOVED - Use DiscoveryFlow
 
 __all__ = [
-    # Migration models
-    "Migration",
-    "MigrationLog", 
-    "MigrationStatus",
-    "MigrationPhase",
+    # Core Models
+    "ClientAccount",
+    "Engagement", 
+    "User",
     
-    # Asset models
-    "Asset",
-    "AssetDependency",
-    "AssetType", 
-    "AssetStatus",
-    "SixRStrategy",
-    "MigrationWave",
-    "WorkflowProgress",
-    
-    # Assessment models
-    "Assessment",
-    "WavePlan",
-    "AssessmentType",
-    "AssessmentStatus", 
-    "RiskLevel",
-    
-    # 6R Analysis models
-    "SixRAnalysis",
-    "SixRAnalysisParameters",
-    "SixRIteration",
-    "SixRRecommendation",
-    "SixRQuestion",
-    "SixRQuestionResponse",
-    
-    # Tags and embeddings
-    "Tag",
-    "AssetEmbedding",
-    "AssetTag",
-    
-    # Data Import models
-    "DataImport",
-    "RawImportRecord",
-    "ImportFieldMapping",
-    "DataImportSession",
-    
-    # Feedback models
-    "Feedback",
-    "FeedbackSummary",
-    
-    # Flow Management models (Phase 3)
-    "WorkflowState",
-    "UnifiedFlowStateRepository",
-    "FlowDeletionAudit",
-    "CrewAIFlowStateExtensions",
-    
-    # New Discovery Flow models (Multi-Flow Architecture)
+    # V2 Discovery Flow Models (Primary)
     "DiscoveryFlow",
     "DiscoveryAsset",
-]
-
-# Add client account models only if available
-if CLIENT_ACCOUNT_AVAILABLE:
-    __all__.extend([
-        "ClientAccount",
-        "Engagement", 
-        "User",
-        "UserAccountAssociation"
-    ])
-
-# Add RBAC models only if available
-if RBAC_AVAILABLE:
-    __all__.extend([
-        "UserProfile",
-        "UserRole",
-        "ClientAccess", 
-        "EngagementAccess",
-        "AccessAuditLog"
-    ])
-
-# Add Enhanced RBAC models only if available
-if ENHANCED_RBAC_AVAILABLE:
-    __all__.extend([
-        "EnhancedUserProfile",
-        "RolePermissions",
-        "SoftDeletedItems",
-        "EnhancedAccessAuditLog"
-    ])
-
-# Add LLM Usage models only if available
-if LLM_USAGE_AVAILABLE:
-    __all__.extend([
-        "LLMUsageLog",
-        "LLMModelPricing", 
-        "LLMUsageSummary"
-    ]) 
+    
+    # Data Import Models
+    "DataImport",
+    "DataImportSession",
+    
+    # Assessment Models
+    "Assessment",
+    "WavePlan",
+    
+    # Asset Models
+    "Asset",
+    "AssetDependency",
+    
+    # Migration Models
+    "Migration",
+    
+    # RBAC Models
+    "UserRole",
+    "ClientAccess", 
+    "PermissionLevel",
+    
+    # Agent Communication Models
+    "AgentCommunication",
+    
+    # CrewAI Flow Models
+    "CrewAIFlowStateExtensions",
+    
+    # Field Mapping Models
+    "FieldMapping",
+    
+    # Learning Models
+    "LearningPattern",
+    
+    # Tech Debt Models
+    "TechDebtAnalysis"
+] 
