@@ -1,6 +1,6 @@
 """
-Discovery Handlers Package
-Modular handlers for the unified discovery API.
+Discovery Handlers Module
+Modular handlers for unified discovery API operations.
 """
 
 __all__ = [

@@ -143,14 +143,14 @@ api_router.include_router(sixr_router, prefix="/6r", tags=["6R Analysis"])
 
 # Unified Discovery API (Single Source of Truth)
 try:
-    from app.api.v1.discovery import router as unified_discovery_api_router
+    from app.api.v1.unified_discovery_api import router as unified_discovery_api_router
     api_router.include_router(unified_discovery_api_router, prefix="/discovery", tags=["Discovery - Unified API"])
     logger.info("✅ Unified Discovery API router included at /discovery")
     UNIFIED_DISCOVERY_API_AVAILABLE = True
-except ImportError:
+except ImportError as e:
     # Fallback to legacy discovery router
     api_router.include_router(discovery_router, prefix="/discovery", tags=["Discovery - Legacy"])
-    logger.warning("⚠️ Unified Discovery API not available, using legacy discovery router")
+    logger.warning(f"⚠️ Unified Discovery API not available ({e}), using legacy discovery router")
     UNIFIED_DISCOVERY_API_AVAILABLE = False
 
 # Legacy Unified Discovery Flow endpoints (REMOVED - redirects to /discovery)

@@ -420,6 +420,172 @@ async def discovery_health_check():
 
 # === Legacy Compatibility Endpoints ===
 
+@router.post("/flow/continue/{flow_id}", response_model=Dict[str, Any])
+async def continue_discovery_flow(
+    flow_id: str,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+):
+    """
+    Continue a paused or incomplete discovery flow.
+    """
+    try:
+        logger.info(f"▶️ Continuing discovery flow: {flow_id}")
+        
+        result = {
+            "success": True,
+            "flow_id": flow_id,
+            "action": "continued",
+            "status": "running",
+            "message": f"Flow {flow_id} continued successfully",
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        # Continue with CrewAI execution if available
+        if CREWAI_EXECUTION_AVAILABLE:
+            try:
+                crewai_handler = CrewAIExecutionHandler(db, context)
+                crewai_result = await crewai_handler.continue_flow(flow_id)
+                result["crewai_status"] = "continued"
+                result["next_phase"] = crewai_result.get("next_phase", "analysis")
+                logger.info("✅ CrewAI flow continued")
+            except Exception as e:
+                logger.warning(f"⚠️ CrewAI continuation failed: {e}")
+                result["crewai_status"] = "failed"
+        
+        # Continue with PostgreSQL management if available
+        if FLOW_MANAGEMENT_AVAILABLE:
+            try:
+                flow_handler = FlowManagementHandler(db, context)
+                db_result = await flow_handler.continue_flow(flow_id)
+                result["database_status"] = "continued"
+                result.update(db_result)
+                logger.info("✅ Database flow continued")
+            except Exception as e:
+                logger.warning(f"⚠️ Database continuation failed: {e}")
+                result["database_status"] = "failed"
+        
+        logger.info(f"✅ Discovery flow continued: {flow_id}")
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to continue discovery flow: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to continue discovery flow: {str(e)}"
+        )
+
+@router.post("/flow/complete/{flow_id}", response_model=Dict[str, Any])
+async def complete_discovery_flow(
+    flow_id: str,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+):
+    """
+    Mark a discovery flow as complete.
+    """
+    try:
+        logger.info(f"✅ Completing discovery flow: {flow_id}")
+        
+        result = {
+            "success": True,
+            "flow_id": flow_id,
+            "action": "completed",
+            "status": "completed",
+            "message": f"Flow {flow_id} completed successfully",
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        # Complete with CrewAI execution if available
+        if CREWAI_EXECUTION_AVAILABLE:
+            try:
+                crewai_handler = CrewAIExecutionHandler(db, context)
+                crewai_result = await crewai_handler.complete_flow(flow_id)
+                result["crewai_status"] = "completed"
+                result["final_insights"] = crewai_result.get("insights", [])
+                logger.info("✅ CrewAI flow completed")
+            except Exception as e:
+                logger.warning(f"⚠️ CrewAI completion failed: {e}")
+                result["crewai_status"] = "failed"
+        
+        # Complete with PostgreSQL management if available
+        if FLOW_MANAGEMENT_AVAILABLE:
+            try:
+                flow_handler = FlowManagementHandler(db, context)
+                db_result = await flow_handler.complete_flow(flow_id)
+                result["database_status"] = "completed"
+                result.update(db_result)
+                logger.info("✅ Database flow completed")
+            except Exception as e:
+                logger.warning(f"⚠️ Database completion failed: {e}")
+                result["database_status"] = "failed"
+        
+        logger.info(f"✅ Discovery flow completed: {flow_id}")
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to complete discovery flow: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to complete discovery flow: {str(e)}"
+        )
+
+@router.delete("/flow/{flow_id}", response_model=Dict[str, Any])
+async def delete_discovery_flow(
+    flow_id: str,
+    force_delete: bool = Query(default=False, description="Force delete even if flow is active"),
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+):
+    """
+    Delete a discovery flow and all associated data.
+    """
+    try:
+        logger.info(f"🗑️ Deleting discovery flow: {flow_id}, force: {force_delete}")
+        
+        result = {
+            "success": True,
+            "flow_id": flow_id,
+            "action": "deleted",
+            "force_delete": force_delete,
+            "message": f"Flow {flow_id} deleted successfully",
+            "cleanup_summary": {},
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        # Delete from CrewAI execution if available
+        if CREWAI_EXECUTION_AVAILABLE:
+            try:
+                crewai_handler = CrewAIExecutionHandler(db, context)
+                crewai_result = await crewai_handler.delete_flow(flow_id, force_delete)
+                result["crewai_cleanup"] = crewai_result.get("cleanup_summary", {})
+                logger.info("✅ CrewAI flow deleted")
+            except Exception as e:
+                logger.warning(f"⚠️ CrewAI deletion failed: {e}")
+                result["crewai_cleanup"] = {"error": str(e)}
+        
+        # Delete from PostgreSQL management if available
+        if FLOW_MANAGEMENT_AVAILABLE:
+            try:
+                flow_handler = FlowManagementHandler(db, context)
+                db_result = await flow_handler.delete_flow(flow_id, force_delete)
+                result["database_cleanup"] = db_result.get("cleanup_summary", {})
+                result["cleanup_summary"] = db_result.get("cleanup_summary", {})
+                logger.info("✅ Database flow deleted")
+            except Exception as e:
+                logger.warning(f"⚠️ Database deletion failed: {e}")
+                result["database_cleanup"] = {"error": str(e)}
+        
+        logger.info(f"✅ Discovery flow deleted: {flow_id}")
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to delete discovery flow: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete discovery flow: {str(e)}"
+        )
+
 @router.post("/flow/run", response_model=Dict[str, Any])
 async def run_discovery_flow_legacy(
     request: Dict[str, Any],

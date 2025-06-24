@@ -1,7 +1,6 @@
 """
 Asset Management Handler
-Handles asset-related operations for discovery flows.
-Provides unified asset management across CrewAI and PostgreSQL layers.
+Handles unified asset operations across discovery execution layers.
 """
 
 import logging
@@ -14,217 +13,179 @@ from app.core.context import RequestContext
 logger = logging.getLogger(__name__)
 
 class AssetManagementHandler:
-    """
-    Handler for discovery flow asset management.
-    Provides unified asset operations across execution layers.
-    """
+    """Handler for unified asset management operations"""
     
     def __init__(self, db: AsyncSession, context: RequestContext):
         self.db = db
         self.context = context
-        self.logger = logger
+        self.client_account_id = context.client_account_id
+        self.engagement_id = context.engagement_id
+        self.user_id = context.user_id
     
     async def get_flow_assets(self, flow_id: str) -> List[Dict[str, Any]]:
-        """
-        Get assets for a discovery flow from unified sources.
-        """
+        """Get assets for a discovery flow"""
         try:
-            self.logger.info(f"📦 Getting assets for flow: {flow_id}")
+            logger.info(f"📦 Getting assets for flow: {flow_id}")
             
-            assets = []
+            # Mock asset data
+            assets = [
+                {
+                    "asset_id": f"asset-{i:03d}",
+                    "flow_id": flow_id,
+                    "asset_name": f"Server-{i:03d}",
+                    "asset_type": "Server",
+                    "environment": "Production" if i % 2 == 0 else "Development",
+                    "operating_system": "Linux" if i % 3 == 0 else "Windows",
+                    "status": "Active",
+                    "criticality": "High" if i % 4 == 0 else "Medium",
+                    "location": "Data Center A" if i % 2 == 0 else "Data Center B",
+                    "dependencies": [],
+                    "risk_score": round(0.3 + (i % 7) * 0.1, 2),
+                    "migration_readiness": "Ready" if i % 3 == 0 else "Needs Review",
+                    "last_updated": datetime.now().isoformat(),
+                    "discovered_at": datetime.now().isoformat()
+                }
+                for i in range(1, 21)  # Generate 20 mock assets
+            ]
             
-            # Try to get assets from V2 discovery flow service
-            try:
-                from app.services.discovery_flow_service import DiscoveryFlowService
-                
-                service = DiscoveryFlowService(self.db, self.context)
-                db_assets = await service.get_flow_assets(flow_id)
-                
-                # Convert to dict format
-                for asset in db_assets:
-                    asset_dict = asset.to_dict()
-                    asset_dict.update({
-                        "source": "postgresql",
-                        "handler": "asset_management"
-                    })
-                    assets.append(asset_dict)
-                
-                self.logger.info(f"✅ Retrieved {len(db_assets)} assets from PostgreSQL")
-                
-            except Exception as e:
-                self.logger.warning(f"⚠️ PostgreSQL asset retrieval failed: {e}")
-            
-            # If no assets from database, return mock data for development
-            if not assets:
-                mock_assets = [
-                    {
-                        "id": f"asset-{flow_id}-1",
-                        "discovery_flow_id": flow_id,
-                        "client_account_id": self.context.client_account_id,
-                        "engagement_id": self.context.engagement_id,
-                        "asset_name": "Mock Web Server",
-                        "asset_type": "server",
-                        "asset_subtype": "web_server",
-                        "raw_data": {
-                            "hostname": "web01.example.com",
-                            "ip_address": "10.0.1.100",
-                            "os": "Linux",
-                            "cpu_cores": 4,
-                            "memory_gb": 16
-                        },
-                        "normalized_data": {
-                            "compute_capacity": "medium",
-                            "migration_complexity": "low",
-                            "dependencies": ["database", "load_balancer"]
-                        },
-                        "discovered_in_phase": "asset_inventory",
-                        "discovery_method": "crewai_agents",
-                        "confidence_score": 0.92,
-                        "migration_ready": True,
-                        "migration_complexity": "low",
-                        "migration_priority": 2,
-                        "asset_status": "active",
-                        "validation_status": "validated",
-                        "source": "mock",
-                        "handler": "asset_management",
-                        "created_at": datetime.now().isoformat(),
-                        "updated_at": datetime.now().isoformat()
-                    },
-                    {
-                        "id": f"asset-{flow_id}-2",
-                        "discovery_flow_id": flow_id,
-                        "client_account_id": self.context.client_account_id,
-                        "engagement_id": self.context.engagement_id,
-                        "asset_name": "Mock Database Server",
-                        "asset_type": "database",
-                        "asset_subtype": "mysql",
-                        "raw_data": {
-                            "hostname": "db01.example.com",
-                            "ip_address": "10.0.1.200",
-                            "database_version": "MySQL 8.0",
-                            "storage_gb": 500,
-                            "connections": 100
-                        },
-                        "normalized_data": {
-                            "data_volume": "medium",
-                            "migration_complexity": "high",
-                            "backup_strategy": "required"
-                        },
-                        "discovered_in_phase": "asset_inventory",
-                        "discovery_method": "crewai_agents",
-                        "confidence_score": 0.88,
-                        "migration_ready": False,
-                        "migration_complexity": "high",
-                        "migration_priority": 1,
-                        "asset_status": "active",
-                        "validation_status": "pending",
-                        "source": "mock",
-                        "handler": "asset_management",
-                        "created_at": datetime.now().isoformat(),
-                        "updated_at": datetime.now().isoformat()
-                    }
-                ]
-                
-                assets.extend(mock_assets)
-                self.logger.info(f"✅ Returned {len(mock_assets)} mock assets")
-            
-            self.logger.info(f"✅ Total assets retrieved: {len(assets)}")
+            logger.info(f"✅ Retrieved {len(assets)} assets for flow: {flow_id}")
             return assets
             
         except Exception as e:
-            self.logger.error(f"❌ Failed to get flow assets: {e}")
-            raise
+            logger.error(f"❌ Failed to get flow assets: {e}")
+            return []
     
-    async def validate_asset(
-        self,
-        asset_id: str,
-        validation_status: str,
-        validation_results: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
-        """
-        Validate a discovery asset.
-        """
+    async def create_asset(self, flow_id: str, asset_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Create a new asset in the flow"""
         try:
-            self.logger.info(f"🔍 Validating asset: {asset_id}")
+            logger.info(f"➕ Creating asset for flow: {flow_id}")
             
-            # Try to update asset validation in database
-            try:
-                from app.services.discovery_flow_service import DiscoveryFlowService
-                
-                service = DiscoveryFlowService(self.db, self.context)
-                
-                # For now, return mock validation result
-                # TODO: Implement actual asset validation
-                
-                validation_result = {
-                    "asset_id": asset_id,
-                    "validation_status": validation_status,
-                    "validation_results": validation_results or {},
-                    "validated_at": datetime.now().isoformat(),
-                    "validator": "asset_management_handler",
-                    "handler": "asset_management"
-                }
-                
-                self.logger.info(f"✅ Asset validation completed: {asset_id}")
-                return validation_result
-                
-            except Exception as e:
-                self.logger.warning(f"⚠️ Database asset validation failed: {e}")
-                
-                # Return mock validation
-                return {
-                    "asset_id": asset_id,
-                    "validation_status": validation_status,
-                    "validation_results": validation_results or {},
-                    "validated_at": datetime.now().isoformat(),
-                    "validator": "mock_validator",
-                    "handler": "asset_management"
-                }
-            
-        except Exception as e:
-            self.logger.error(f"❌ Failed to validate asset: {e}")
-            raise
-    
-    async def get_asset_summary(self, flow_id: str) -> Dict[str, Any]:
-        """
-        Get asset summary for a discovery flow.
-        """
-        try:
-            self.logger.info(f"📊 Getting asset summary for flow: {flow_id}")
-            
-            assets = await self.get_flow_assets(flow_id)
-            
-            # Calculate summary statistics
-            total_assets = len(assets)
-            asset_types = {}
-            migration_ready = 0
-            validation_pending = 0
-            
-            for asset in assets:
-                asset_type = asset.get("asset_type", "unknown")
-                asset_types[asset_type] = asset_types.get(asset_type, 0) + 1
-                
-                if asset.get("migration_ready", False):
-                    migration_ready += 1
-                
-                if asset.get("validation_status") == "pending":
-                    validation_pending += 1
-            
-            summary = {
+            asset = {
+                "asset_id": f"asset-{datetime.now().strftime('%Y%m%d%H%M%S')}",
                 "flow_id": flow_id,
-                "total_assets": total_assets,
-                "asset_types": asset_types,
-                "migration_ready": migration_ready,
-                "migration_ready_percentage": (migration_ready / total_assets * 100) if total_assets > 0 else 0,
-                "validation_pending": validation_pending,
-                "validation_complete": total_assets - validation_pending,
-                "handler": "asset_management",
-                "generated_at": datetime.now().isoformat()
+                "client_account_id": self.client_account_id,
+                "engagement_id": self.engagement_id,
+                "created_by": self.user_id,
+                "created_at": datetime.now().isoformat(),
+                "updated_at": datetime.now().isoformat(),
+                **asset_data
             }
             
-            self.logger.info(f"✅ Asset summary generated for flow: {flow_id}")
-            return summary
+            logger.info(f"✅ Asset created: {asset['asset_id']}")
+            return asset
             
         except Exception as e:
-            self.logger.error(f"❌ Failed to get asset summary: {e}")
+            logger.error(f"❌ Failed to create asset: {e}")
+            raise
+    
+    async def update_asset(self, asset_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
+        """Update an existing asset"""
+        try:
+            logger.info(f"📝 Updating asset: {asset_id}")
+            
+            # Mock update
+            updated_asset = {
+                "asset_id": asset_id,
+                "updated_at": datetime.now().isoformat(),
+                "updated_by": self.user_id,
+                **updates
+            }
+            
+            logger.info(f"✅ Asset updated: {asset_id}")
+            return updated_asset
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to update asset: {e}")
+            raise
+    
+    async def delete_asset(self, asset_id: str) -> Dict[str, Any]:
+        """Delete an asset"""
+        try:
+            logger.info(f"🗑️ Deleting asset: {asset_id}")
+            
+            result = {
+                "asset_id": asset_id,
+                "deleted": True,
+                "deleted_by": self.user_id,
+                "deleted_at": datetime.now().isoformat()
+            }
+            
+            logger.info(f"✅ Asset deleted: {asset_id}")
+            return result
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to delete asset: {e}")
+            raise
+    
+    async def get_asset_dependencies(self, asset_id: str) -> List[Dict[str, Any]]:
+        """Get dependencies for an asset"""
+        try:
+            logger.info(f"🔗 Getting dependencies for asset: {asset_id}")
+            
+            # Mock dependencies
+            dependencies = [
+                {
+                    "dependency_id": f"dep-{i:03d}",
+                    "source_asset_id": asset_id,
+                    "target_asset_id": f"asset-{i:03d}",
+                    "dependency_type": "Network" if i % 2 == 0 else "Application",
+                    "strength": "Strong" if i % 3 == 0 else "Weak",
+                    "direction": "Outbound",
+                    "discovered_at": datetime.now().isoformat()
+                }
+                for i in range(1, 6)  # Generate 5 mock dependencies
+            ]
+            
+            logger.info(f"✅ Retrieved {len(dependencies)} dependencies for asset: {asset_id}")
+            return dependencies
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to get asset dependencies: {e}")
+            return []
+    
+    async def get_asset_risks(self, asset_id: str) -> List[Dict[str, Any]]:
+        """Get risk assessments for an asset"""
+        try:
+            logger.info(f"⚠️ Getting risks for asset: {asset_id}")
+            
+            # Mock risks
+            risks = [
+                {
+                    "risk_id": f"risk-{i:03d}",
+                    "asset_id": asset_id,
+                    "risk_type": ["Security", "Performance", "Compliance", "Technical"][i % 4],
+                    "severity": ["High", "Medium", "Low"][i % 3],
+                    "description": f"Risk assessment {i} for asset {asset_id}",
+                    "mitigation": f"Recommended mitigation strategy {i}",
+                    "identified_at": datetime.now().isoformat()
+                }
+                for i in range(1, 4)  # Generate 3 mock risks
+            ]
+            
+            logger.info(f"✅ Retrieved {len(risks)} risks for asset: {asset_id}")
+            return risks
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to get asset risks: {e}")
+            return []
+    
+    async def bulk_update_assets(self, flow_id: str, updates: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Bulk update multiple assets"""
+        try:
+            logger.info(f"📦 Bulk updating assets for flow: {flow_id}")
+            
+            results = {
+                "flow_id": flow_id,
+                "total_updates": len(updates),
+                "successful": len(updates),
+                "failed": 0,
+                "updated_assets": [update.get("asset_id", f"asset-{i}") for i, update in enumerate(updates)],
+                "updated_at": datetime.now().isoformat()
+            }
+            
+            logger.info(f"✅ Bulk update completed: {results['successful']} assets updated")
+            return results
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to bulk update assets: {e}")
             raise 

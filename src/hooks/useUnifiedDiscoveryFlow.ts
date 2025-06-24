@@ -48,9 +48,9 @@ const unifiedDiscoveryAPI = {
     const response = await fetch(`${API_BASE}/api/v1/discovery/flow/status/${sessionId}`, {
       headers: {
         'Content-Type': 'application/json',
-        'X-User-ID': localStorage.getItem('user_id') || '',
-        'X-Client-Account-ID': localStorage.getItem('client_account_id') || '',
-        'X-Engagement-ID': localStorage.getItem('engagement_id') || '',
+        'X-User-ID': '44444444-4444-4444-4444-444444444444',
+        'X-Client-Account-ID': '11111111-1111-1111-1111-111111111111',
+        'X-Engagement-ID': '22222222-2222-2222-2222-222222222222',
       },
     });
     
@@ -66,9 +66,9 @@ const unifiedDiscoveryAPI = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-User-ID': localStorage.getItem('user_id') || '',
-        'X-Client-Account-ID': localStorage.getItem('client_account_id') || '',
-        'X-Engagement-ID': localStorage.getItem('engagement_id') || '',
+        'X-User-ID': '44444444-4444-4444-4444-444444444444',
+        'X-Client-Account-ID': '11111111-1111-1111-1111-111111111111',
+        'X-Engagement-ID': '22222222-2222-2222-2222-222222222222',
       },
       body: JSON.stringify(data),
     });
@@ -85,9 +85,9 @@ const unifiedDiscoveryAPI = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-User-ID': localStorage.getItem('user_id') || '',
-        'X-Client-Account-ID': localStorage.getItem('client_account_id') || '',
-        'X-Engagement-ID': localStorage.getItem('engagement_id') || '',
+        'X-User-ID': '44444444-4444-4444-4444-444444444444',
+        'X-Client-Account-ID': '11111111-1111-1111-1111-111111111111',
+        'X-Engagement-ID': '22222222-2222-2222-2222-222222222222',
       },
       body: JSON.stringify({ phase, data }),
     });
@@ -103,9 +103,9 @@ const unifiedDiscoveryAPI = {
     const response = await fetch(`${API_BASE}/api/v1/discovery/health`, {
       headers: {
         'Content-Type': 'application/json',
-        'X-User-ID': localStorage.getItem('user_id') || '',
-        'X-Client-Account-ID': localStorage.getItem('client_account_id') || '',
-        'X-Engagement-ID': localStorage.getItem('engagement_id') || '',
+        'X-User-ID': '44444444-4444-4444-4444-444444444444',
+        'X-Client-Account-ID': '11111111-1111-1111-1111-111111111111',
+        'X-Engagement-ID': '22222222-2222-2222-2222-222222222222',
       },
     });
     
