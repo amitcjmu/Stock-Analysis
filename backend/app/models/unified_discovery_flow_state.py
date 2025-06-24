@@ -72,6 +72,9 @@ class UnifiedDiscoveryFlowState(BaseModel):
     metadata: Dict[str, Any] = Field(default_factory=dict)
     data_source_type: str = "cmdb"
     
+    # Phase execution data storage
+    phase_data: Dict[str, Any] = Field(default_factory=dict)
+    
     # Field mapping results
     field_mappings: Dict[str, Any] = Field(default_factory=lambda: {
         "mappings": {},

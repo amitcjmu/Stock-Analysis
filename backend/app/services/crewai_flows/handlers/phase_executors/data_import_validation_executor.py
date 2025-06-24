@@ -46,9 +46,9 @@ class DataImportValidationExecutor(BasePhaseExecutor):
             self.state.phase_completion["data_import"] = True
     
     async def execute_with_crew(self, crew_input: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute validation using CrewAI crew (not implemented yet)"""
-        # For now, use the direct validation logic
-        # TODO: Implement CrewAI validation crew
+        """Execute validation using direct validation (no crew needed for data validation)"""
+        # Data validation doesn't need a crew - it's a direct technical validation
+        # User approval will be handled by the field mapping crew manager
         return await self._perform_validation_checks()
     
     async def execute_fallback(self) -> Dict[str, Any]:

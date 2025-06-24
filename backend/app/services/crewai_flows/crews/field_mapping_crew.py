@@ -326,10 +326,10 @@ class FieldMappingCrew:
         headers = list(raw_data[0].keys()) if raw_data else []
         data_sample = raw_data[:5] if raw_data else []
         
-        # Manager coordination task with knowledge integration
+        # Manager coordination task with knowledge integration and user approval
         coordination_task = Task(
             description=f"""
-            Coordinate comprehensive CMDB field mapping analysis with knowledge management integration:
+            Coordinate comprehensive CMDB field mapping analysis with knowledge management integration and user approval:
             
             PRIMARY COORDINATION OBJECTIVES:
             1. Orchestrate schema analysis by delegating to Schema Analysis Expert
@@ -337,6 +337,7 @@ class FieldMappingCrew:
             3. Integrate knowledge management insights via Knowledge Management Coordinator
             4. Ensure 95%+ field mapping confidence before completion
             5. Resolve conflicts and make final mapping decisions after 2nd delegation
+            6. **CRITICAL: Request user approval before proceeding to next phase**
             
             DATA CONTEXT:
             - Raw data headers: {headers}
@@ -348,13 +349,21 @@ class FieldMappingCrew:
             - Delegate field mapping to Attribute Mapping Specialist
             - Consult Knowledge Management Coordinator for domain expertise
             - Make final decisions after 2nd delegation attempt
-            - Escalate to user via Agent-UI-Bridge when confidence < 80%
+            - Present results to user and request approval to proceed to data cleansing
+            
+            USER APPROVAL REQUIREMENTS:
+            After completing the field mapping analysis, present a summary to the user including:
+            - Total fields mapped vs unmapped
+            - Confidence scores for critical attributes
+            - Any mapping concerns or recommendations
+            - Request explicit approval: "Do you approve these field mappings to proceed to data cleansing? (Type 'approve' to continue or 'reject' to revise)"
             
             SUCCESS CRITERIA:
             - All fields mapped with confidence scores
             - Critical attributes coverage ≥ 95%
             - Mapping conflicts resolved or escalated
             - Knowledge base updated with new patterns
+            - **User approval obtained to proceed**
             """,
             agent=manager,
             expected_output="""
@@ -363,10 +372,11 @@ class FieldMappingCrew:
             - Confidence scores for all mappings  
             - Critical attributes validation
             - Knowledge integration summary
-            - Escalation recommendations if needed
+            - User approval status for proceeding to next phase
             """,
             tools=self._create_field_mapping_tools(),
             context=[],  # No dependencies for manager task
+            human_input=True,  # Enable human input for approval
             max_execution_time=300,  # 5 minute timeout
             max_retry=1  # Prevent retry loops
         )
