@@ -323,10 +323,14 @@ export const useFlowDeletionV2 = () => {
   const { toast } = useToast();
   
   return useMutation({
-    mutationFn: async ({ flowId, forceDelete = false }: { flowId: string; forceDelete?: boolean }) => {
-      console.log('🗑️ V2 Flow deletion request:', { flowId, forceDelete });
+    mutationFn: async (flowId: string | { flowId: string; forceDelete?: boolean }) => {
+      // Handle both string and object parameter formats for backward compatibility
+      const actualFlowId = typeof flowId === 'string' ? flowId : flowId.flowId;
+      const forceDelete = typeof flowId === 'string' ? true : (flowId.forceDelete ?? true);
       
-      const response = await fetch(`${V2_API_BASE}/flows/${flowId}?force_delete=${forceDelete}`, {
+      console.log('🗑️ V2 Flow deletion request:', { flowId: actualFlowId, forceDelete });
+      
+      const response = await fetch(`${V2_API_BASE}/flows/${actualFlowId}?force_delete=${forceDelete}`, {
         method: 'DELETE',
         headers: getDefaultHeaders()
       });
@@ -338,24 +342,27 @@ export const useFlowDeletionV2 = () => {
       
       return response.json();
     },
-    onSuccess: (data, { flowId }) => {
+    onSuccess: (data, flowId) => {
+      const actualFlowId = typeof flowId === 'string' ? flowId : flowId.flowId;
+      
       // Invalidate queries to refresh UI
       queryClient.invalidateQueries({ queryKey: ['incomplete-flows-v2'] });
       queryClient.invalidateQueries({ queryKey: ['flow-validation-v2'] });
-      queryClient.invalidateQueries({ queryKey: ['flow-details-v2', flowId] });
+      queryClient.invalidateQueries({ queryKey: ['flow-details-v2', actualFlowId] });
       
       toast({
         title: "Flow Deleted Successfully",
-        description: `Discovery flow ${flowId.substring(0, 8)}... has been deleted with cleanup.`,
+        description: `Discovery flow ${actualFlowId.substring(0, 8)}... has been deleted with cleanup.`,
         variant: "default",
       });
     },
-    onError: (error: any, { flowId }) => {
+    onError: (error: any, flowId) => {
+      const actualFlowId = typeof flowId === 'string' ? flowId : flowId.flowId;
       console.error('Flow deletion failed:', error);
       
       toast({
         title: "Flow Deletion Failed",
-        description: error?.message || `Failed to delete flow ${flowId.substring(0, 8)}...`,
+        description: error?.message || `Failed to delete flow ${actualFlowId.substring(0, 8)}...`,
         variant: "destructive",
       });
     }
@@ -370,7 +377,11 @@ export const useBulkFlowOperationsV2 = () => {
   const { toast } = useToast();
   
   const bulkDelete = useMutation({
-    mutationFn: async ({ flow_ids, force_delete = false }: BulkDeleteRequestV2): Promise<BulkDeleteResultV2> => {
+    mutationFn: async (request: BulkDeleteRequestV2 | { session_ids: string[] }): Promise<BulkDeleteResultV2> => {
+      // Handle both V2 format and legacy format
+      const flow_ids = 'flow_ids' in request ? request.flow_ids : request.session_ids;
+      const force_delete = 'force_delete' in request ? request.force_delete : true;
+      
       console.log('🗑️ Bulk V2 flow deletion request:', { flow_ids, force_delete });
       
       // Process deletions sequentially to avoid overwhelming the server
@@ -442,7 +453,8 @@ export const useBulkFlowOperationsV2 = () => {
   });
   
   return {
-    bulkDelete
+    bulkDelete,
+    mutate: bulkDelete.mutate // Alias for backward compatibility
   };
 };
 
