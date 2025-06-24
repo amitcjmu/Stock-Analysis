@@ -486,11 +486,15 @@ const DataImport: React.FC = () => {
 
   const parseCsvData = async (file: File): Promise<any[]> => {
     const text = await file.text();
-    const lines = text.split('\\n').filter(line => line.trim());
-    if (lines.length <= 1) return [];
+    const lines = text.split('\n').filter(line => line.trim());
+    console.log(`🔍 DEBUG: Parsed ${lines.length} lines from CSV file`);
+    if (lines.length <= 1) {
+      console.warn('🚨 DEBUG: CSV file has no data rows or only header');
+      return [];
+    }
     
     const headers = lines[0].split(',').map(h => h.trim().replace(/\"/g, ''));
-    return lines.slice(1).map((line, index) => {
+    const records = lines.slice(1).map((line, index) => {
       const values = line.split(',').map(v => v.trim().replace(/\"/g, ''));
       const record: any = { row_index: index + 1 };
       headers.forEach((header, headerIndex) => {
@@ -498,6 +502,14 @@ const DataImport: React.FC = () => {
       });
       return record;
     });
+    
+    console.log(`🔍 DEBUG: Parsed ${records.length} data records from CSV`);
+    console.log(`🔍 DEBUG: Headers: ${headers.join(', ')}`);
+    if (records.length > 0) {
+      console.log(`🔍 DEBUG: First record sample:`, records[0]);
+    }
+    
+    return records;
   };
 
   const storeImportData = async (csvData: any[], file: File, sessionId: string, categoryId: string): Promise<{import_session_id: string | null, flow_id: string | null}> => {
@@ -1071,7 +1083,7 @@ const DataImport: React.FC = () => {
             onDeleteFlow={handleDeleteFlow}
             onBatchDelete={handleBatchDeleteFlows}
             onViewDetails={handleViewFlowDetails}
-            isLoading={flowResumption.isPending || flowDeletion.isPending || bulkFlowOperations.isPending}
+            isLoading={flowResumption.isPending || flowDeletion.isPending || bulkFlowOperations.bulkDelete.isPending}
           />
         </DialogContent>
       </Dialog>

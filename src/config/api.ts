@@ -183,10 +183,15 @@ export const apiCall = async (
   const requestId = Math.random().toString(36).substring(2, 8);
   const startTime = performance.now();
   
-  // Normalize endpoint to prevent double /api/v1 prefix
-  const normalizedEndpoint = endpoint.startsWith('/api/v1') 
-    ? endpoint 
-    : `/api/v1${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  // Normalize endpoint to handle both V1 and V2 APIs
+  let normalizedEndpoint: string;
+  if (endpoint.startsWith('/api/v1') || endpoint.startsWith('/api/v2')) {
+    // Endpoint already has version prefix
+    normalizedEndpoint = endpoint;
+  } else {
+    // Add V1 prefix for legacy endpoints
+    normalizedEndpoint = `/api/v1${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  }
   
   const url = `${API_CONFIG.BASE_URL}${normalizedEndpoint}`;
   const method = (options.method || 'GET').toUpperCase();

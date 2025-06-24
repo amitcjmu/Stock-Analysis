@@ -16,7 +16,7 @@ import json
 import os
 from pydantic import BaseModel, ValidationError
 
-from app.core.database import get_db
+from app.core.database import get_db, AsyncSessionLocal
 from app.core.context import get_current_context, RequestContext
 from app.models.data_import import DataImport, RawImportRecord, ImportStatus, ImportFieldMapping
 from app.schemas.data_import_schemas import StoreImportRequest
@@ -120,6 +120,14 @@ async def store_import_data(
         validation_session_id = store_request.upload_context.validation_session_id
         upload_timestamp = store_request.upload_context.upload_timestamp
         
+        # 🔍 DEBUG: Log the actual data being received
+        logger.info(f"🔍 DEBUG: file_data type: {type(file_data)}, length: {len(file_data) if file_data else 'None'}")
+        if file_data and len(file_data) > 0:
+            logger.info(f"🔍 DEBUG: First record sample: {file_data[0] if file_data else 'Empty'}")
+            logger.info(f"🔍 DEBUG: First record keys: {list(file_data[0].keys()) if file_data and len(file_data) > 0 else 'No keys'}")
+        else:
+            logger.error(f"🚨 DEBUG: file_data is empty or None - this will cause flow failure!")
+        
         # Use context for client/engagement IDs
         client_account_id = context.client_account_id
         engagement_id = context.engagement_id
@@ -180,6 +188,9 @@ async def store_import_data(
         
         # 🚀 Trigger Discovery Flow immediately after successful storage
         crewai_flow_id = None  # Initialize to None
+        flow_success = False
+        flow_error_message = None
+        
         try:
             crewai_flow_id = await _trigger_discovery_flow(
                 data_import_id=str(data_import.id),
@@ -191,21 +202,36 @@ async def store_import_data(
             )
             if crewai_flow_id:
                 logger.info(f"✅ CrewAI Discovery Flow triggered with flow_id: {crewai_flow_id}")
+                flow_success = True
             else:
-                logger.warning("⚠️ CrewAI Discovery Flow trigger returned no flow_id")
+                logger.error("❌ CrewAI Discovery Flow FAILED - no flow_id returned")
+                flow_success = False
+                flow_error_message = "Discovery Flow initialization failed. No assets were processed."
         except Exception as flow_error:
-            logger.warning(f"Discovery Flow trigger failed: {flow_error}")
-            # Don't fail the import if flow trigger fails, but log the error
+            logger.error(f"❌ Discovery Flow trigger failed: {flow_error}")
+            flow_success = False
+            flow_error_message = f"Discovery Flow failed: {str(flow_error)}"
             crewai_flow_id = None
         
-        logger.info(f"✅ Successfully stored {records_stored} field mappings for import {data_import.id}")
+        # 🚨 CRITICAL: Update import status based on flow success
+        if flow_success:
+            data_import.status = "discovery_initiated"
+            message = f"Successfully stored {records_stored} records and initiated Discovery Flow"
+            logger.info(f"✅ Successfully stored {records_stored} field mappings and initiated discovery flow for import {data_import.id}")
+        else:
+            data_import.status = "discovery_failed"
+            message = f"Data stored ({records_stored} records) but Discovery Flow failed: {flow_error_message}"
+            logger.error(f"❌ Data import stored but discovery flow failed for import {data_import.id}: {flow_error_message}")
+        
+        await db.commit()
         
         return ImportStorageResponse(
-            success=True,
+            success=flow_success,  # Only success if flow succeeded
             import_session_id=str(data_import.id),
             flow_id=crewai_flow_id,
-            message=f"Successfully stored {records_stored} records and triggered Discovery Flow",
-            records_stored=records_stored
+            message=message,
+            records_stored=records_stored,
+            error=flow_error_message if not flow_success else None
         )
         
     except HTTPException:
@@ -274,12 +300,10 @@ async def _trigger_discovery_flow(
         # 🆕 CRITICAL FIX: Create database record using DiscoveryFlowService
         logger.info(f"🔍 DEBUG: Creating discovery flow database record...")
         try:
-            # Import database session dependency
-            from app.core.database import get_db
+            # Import database session dependency - use proper import
+            from app.core.database import AsyncSessionLocal
             
             # Get database session - we need to create a new session for this async operation
-            from sqlalchemy.ext.asyncio import AsyncSession, AsyncSessionLocal
-            
             async with AsyncSessionLocal() as db_session:
                 # Create DiscoveryFlowService with proper context
                 discovery_service = DiscoveryFlowService(db_session, context)
@@ -313,9 +337,25 @@ async def _trigger_discovery_flow(
         logger.info(f"🎯 Starting CrewAI Flow kickoff for session: {data_import_id}")
         flow_result = await asyncio.to_thread(discovery_flow.kickoff)
         
-        logger.info(f"✅ CrewAI Discovery Flow completed: {flow_result}")
-        logger.info(f"🎯 Returning CrewAI Flow ID: {crewai_flow_id}")
+        # 🚨 CRITICAL: Check if flow actually succeeded
+        flow_success = False
+        if hasattr(flow_result, 'status'):
+            flow_success = flow_result.status not in ['discovery_failed', 'failed', 'error']
+        elif isinstance(flow_result, str):
+            flow_success = flow_result not in ['discovery_failed', 'failed', 'error']
+        elif isinstance(flow_result, dict):
+            flow_success = flow_result.get('status') not in ['discovery_failed', 'failed', 'error']
+        else:
+            # If we can't determine status, check if we have meaningful data
+            flow_success = len(file_data) > 0
         
+        logger.info(f"🎯 CrewAI Discovery Flow completed: {flow_result} (Success: {flow_success})")
+        
+        if not flow_success:
+            logger.error(f"❌ Discovery Flow FAILED - returning None to indicate failure")
+            return None
+        
+        logger.info(f"✅ Discovery Flow succeeded - returning CrewAI Flow ID: {crewai_flow_id}")
         return crewai_flow_id
         
     except ImportError as e:
@@ -341,7 +381,7 @@ async def _validate_no_incomplete_discovery_flow(
     rather than incomplete data import sessions.
     """
     try:
-        from app.services.crewai_flows.discovery_flow_state_manager import DiscoveryFlowStateManager
+        from app.services.crewai_flows.flow_state_bridge import DiscoveryFlowStateManager
         from app.core.context import RequestContext
         
         # Create proper context for flow state manager

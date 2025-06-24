@@ -24,7 +24,8 @@ import {
   Lightbulb,
   Shield,
   Layers,
-  Settings
+  Settings,
+  Trash2
 } from 'lucide-react';
 
 import Sidebar from '../../components/Sidebar';
@@ -36,6 +37,7 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiCall } from '@/config/api';
+import { toast } from 'sonner';
 
 // V2 Flow Management Components
 import { 
@@ -52,7 +54,7 @@ interface FlowSummary {
   engagement_id: string;
   client_name: string;
   client_id: string;
-  status: 'running' | 'completed' | 'failed' | 'paused' | 'not_found';
+  status: 'running' | 'active' | 'completed' | 'failed' | 'paused' | 'not_found';
   progress: number;
   current_phase: string;
   started_at: string;
@@ -136,6 +138,61 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
     }
   };
 
+  // Handle view details navigation
+  const handleViewDetails = (flowId: string, phase: string) => {
+    // Navigate to phase-specific page based on current phase
+    const phaseRoutes = {
+      'field_mapping': `/discovery/attribute-mapping/${flowId}`,
+      'attribute_mapping': `/discovery/attribute-mapping/${flowId}`, // Add this mapping
+      'data_cleansing': `/discovery/data-cleansing/${flowId}`,
+      'asset_inventory': `/discovery/asset-inventory/${flowId}`,
+      'inventory': `/discovery/asset-inventory/${flowId}`, // Alternative name
+      'dependency_analysis': `/discovery/dependencies/${flowId}`,
+      'dependencies': `/discovery/dependencies/${flowId}`, // Alternative name
+      'tech_debt_analysis': `/discovery/technical-debt/${flowId}`,
+      'tech_debt': `/discovery/technical-debt/${flowId}`, // Alternative name
+      'data_import': `/discovery/attribute-mapping/${flowId}`, // Default to attribute mapping
+      'initialization': `/discovery/attribute-mapping/${flowId}` // Default to attribute mapping
+    };
+    
+    const route = phaseRoutes[phase as keyof typeof phaseRoutes] || `/discovery/attribute-mapping/${flowId}`;
+    console.log(`Navigating to phase-specific page: ${route} for phase: ${phase}`);
+    navigate(route);
+  };
+
+  // Handle continue flow with CrewAI orchestration
+  const handleContinueFlow = async (flowId: string) => {
+    try {
+      setFlowLoading(true);
+      
+      // Call V2 continue endpoint to initialize CrewAI orchestration
+      const response = await apiCall(`/api/v2/discovery-flows/flows/${flowId}/continue`, {
+        method: 'POST'
+      });
+      
+      // V2 API returns the flow object directly, not wrapped in success/data
+      if (response && response.flow_id) {
+        toast.success(`Flow ${flowId} continued successfully! CrewAI agents are now processing.`);
+        
+        // Navigate to the appropriate phase page
+        const nextPhase = response.next_phase || 'field_mapping';
+        handleViewDetails(flowId, nextPhase);
+        
+        // Refresh dashboard data
+        await fetchDashboardData();
+      } else {
+        const errorMessage = response?.detail || response?.message || 'Unknown error';
+        toast.error(`Failed to continue flow: ${errorMessage}`);
+      }
+    } catch (error) {
+      console.error('Failed to continue flow:', error);
+      const errorMessage = error?.response?.data?.detail || error?.message || 'Unknown error';
+      toast.error(`Failed to continue flow: ${errorMessage}`);
+    } finally {
+      setFlowLoading(false);
+    }
+  };
+
   // Fetch dashboard data
   const fetchDashboardData = async () => {
     setIsLoading(true);
@@ -182,7 +239,7 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
                 engagement_id: flow.engagement_id || 'unknown',
                 client_name: flow.client_name || 'Unknown Client',
                 client_id: flow.client_id || 'unknown',
-                status: flow.status || 'running',
+                status: flow.status === 'active' ? 'active' : (flow.status || 'running'),
                 progress: flow.progress || 0,
                 current_phase: flow.current_phase || 'initialization',
                 started_at: flow.start_time || new Date().toISOString(),
@@ -257,7 +314,7 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
       console.log('✅ Processed flows:', allFlows);
 
       // Calculate real system metrics from flows
-      const runningFlows = allFlows.filter(f => f.status === 'running');
+      const runningFlows = allFlows.filter(f => f.status === 'running' || f.status === 'active');
       const completedFlows = allFlows.filter(f => f.status === 'completed');
       const totalActiveAgents = runningFlows.reduce((sum, flow) => sum + flow.active_agents, 0);
       const successRate = allFlows.length > 0 ? completedFlows.length / allFlows.length : 0;
@@ -611,7 +668,7 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {activeFlows.filter(flow => flow.status === 'running').length === 0 ? (
+            {activeFlows.filter(flow => flow.status === 'running' || flow.status === 'active').length === 0 ? (
               <div className="text-center py-8">
                 <Database className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No Active Discovery Flows</h3>
@@ -624,53 +681,91 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
                 </Button>
               </div>
             ) : (
-              activeFlows.filter(flow => flow.status === 'running').map((flow) => (
-              <div key={flow.flow_id} className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer"
-                   onClick={() => navigate(`/discovery/attribute-mapping/${flow.session_id || flow.flow_id}`)}>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    {getStatusIcon(flow.status)}
-                    <div>
-                      <h3 className="font-medium">{flow.engagement_name}</h3>
-                      <p className="text-sm text-gray-600">
-                        {flow.client_name} • {flow.flow_type.charAt(0).toUpperCase() + flow.flow_type.slice(1)} Flow
-                      </p>
-                      <p className="text-xs text-gray-500">Session: {flow.session_id || flow.flow_id}</p>
+              activeFlows.filter(flow => flow.status === 'running' || flow.status === 'active').map((flow) => (
+              <Card key={flow.flow_id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      {getStatusIcon(flow.status)}
+                      <div>
+                        <h3 className="font-medium">{flow.engagement_name}</h3>
+                        <p className="text-sm text-gray-600">
+                          {flow.client_name} • {flow.flow_type.charAt(0).toUpperCase() + flow.flow_type.slice(1)} Flow
+                        </p>
+                        <p className="text-xs text-gray-500">Session: {flow.session_id || flow.flow_id}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {getStatusBadge(flow.status)}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {getStatusBadge(flow.status)}
-                    <ArrowRight className="h-4 w-4 text-gray-400" />
+                  
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm mb-3">
+                    <div>
+                      <span className="font-medium">Progress:</span>
+                      <div className="text-blue-600">{flow.progress}%</div>
+                    </div>
+                    <div>
+                      <span className="font-medium">Phase:</span>
+                      <div>{flow.current_phase}</div>
+                    </div>
+                    <div>
+                      <span className="font-medium">Agents:</span>
+                      <div>{flow.active_agents} active</div>
+                    </div>
+                    <div>
+                      <span className="font-medium">Success Criteria:</span>
+                      <div>{flow.success_criteria_met}/{flow.total_success_criteria}</div>
+                    </div>
                   </div>
-                </div>
-                
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm mb-3">
-                  <div>
-                    <span className="font-medium">Progress:</span>
-                    <div className="text-blue-600">{flow.progress}%</div>
-                  </div>
-                  <div>
-                    <span className="font-medium">Phase:</span>
-                    <div>{flow.current_phase}</div>
-                  </div>
-                  <div>
-                    <span className="font-medium">Agents:</span>
-                    <div>{flow.active_agents} active</div>
-                  </div>
-                  <div>
-                    <span className="font-medium">Success Criteria:</span>
-                    <div>{flow.success_criteria_met}/{flow.total_success_criteria}</div>
-                  </div>
-                </div>
 
-                <div className="space-y-2">
-                  <div className="flex justify-between text-xs">
-                    <span>Overall Progress</span>
-                    <span>ETA: {flow.estimated_completion ? formatTimeAgo(flow.estimated_completion) : 'Calculating...'}</span>
+                  <div className="space-y-2 mb-4">
+                    <div className="flex justify-between text-xs">
+                      <span>Overall Progress</span>
+                      <span>ETA: {flow.estimated_completion ? formatTimeAgo(flow.estimated_completion) : 'Calculating...'}</span>
+                    </div>
+                    <Progress value={flow.progress} className="h-2" />
                   </div>
-                  <Progress value={flow.progress} className="h-2" />
-                </div>
-              </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center justify-between pt-3 border-t">
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        onClick={() => handleContinueFlow(flow.flow_id)}
+                        className="flex items-center gap-1"
+                      >
+                        <Play className="h-3 w-3" />
+                        Continue Flow
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleViewDetails(flow.flow_id, flow.current_phase)}
+                        className="flex items-center gap-1"
+                      >
+                        <Eye className="h-3 w-3" />
+                        View Details
+                      </Button>
+                    </div>
+                    <Button 
+                      size="sm" 
+                      variant="destructive"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (confirm(`Are you sure you want to delete flow ${flow.flow_id}?`)) {
+                          deleteFlow(flow.flow_id);
+                        }
+                      }}
+                      className="flex items-center gap-1"
+                      disabled={isDeleting}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                      Delete
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
               ))
             )}
           </div>

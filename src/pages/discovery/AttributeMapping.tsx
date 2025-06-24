@@ -24,7 +24,7 @@ import { useAttributeMappingNavigation } from '../../hooks/discovery/useAttribut
 const AttributeMapping: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'mappings' | 'data' | 'critical'>('critical');
   const navigate = useNavigate();
-  const { sessionId: urlSessionId } = useParams<{ sessionId?: string }>();
+  const { flowId: urlFlowId } = useParams<{ flowId?: string }>();
 
   // Custom hooks for business logic
   const {
@@ -50,7 +50,7 @@ const AttributeMapping: React.FC = () => {
     handleDataImportSelection,
     refetchAgentic,
     canContinueToDataCleansing,
-  } = useAttributeMappingLogic(urlSessionId);
+  } = useAttributeMappingLogic(urlFlowId);
 
   // Navigation logic
   const { handleContinueToDataCleansing } = useAttributeMappingNavigation(

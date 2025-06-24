@@ -101,47 +101,44 @@ export const useIncompleteFlowDetectionV2 = () => {
   return useQuery({
     queryKey: ['incomplete-flows-v2', client?.id, engagement?.id],
     queryFn: async (): Promise<FlowDetectionResultV2> => {
-      // Get all flows and filter for incomplete ones
-      const response = await fetch(`${V2_API_BASE}/flows?status_filter=active&limit=50`, {
-        headers: getDefaultHeaders()
-      });
+      // Use the flows/active endpoint that we know works
+      const flows = await apiCall('/api/v2/discovery-flows/flows/active', {
+        method: 'GET'
+      }, true);
       
-      if (!response.ok) {
-        throw new Error(`Failed to fetch flows: ${response.statusText}`);
-      }
-      
-      const flows = await response.json();
+      // The flows/active endpoint returns { success: true, flow_details: [...] }
+      const flowList = flows.flow_details || [];
       
       // Transform to IncompleteFlowV2 format and filter incomplete
-      const incompleteFlows: IncompleteFlowV2[] = flows
+      const incompleteFlows: IncompleteFlowV2[] = flowList
         .filter((flow: any) => !flow.is_complete && flow.status !== 'completed')
         .map((flow: any) => ({
           flow_id: flow.flow_id,
-          id: flow.id,
-          current_phase: flow.next_phase || 'data_import',
+          id: flow.client_id, // V2 API uses client_id in flow_details
+          current_phase: flow.current_phase || 'data_import',
           status: flow.status,
-          progress_percentage: flow.progress_percentage,
-          phases: flow.phases,
-          flow_name: flow.flow_name,
-          flow_description: flow.flow_description,
-          next_phase: flow.next_phase,
-          is_complete: flow.is_complete,
-          assessment_ready: flow.assessment_ready,
-          migration_readiness_score: flow.migration_readiness_score,
+          progress_percentage: flow.progress || 0,
+          phases: flow.phases || {},
+          flow_name: flow.client_name || 'Discovery Flow', // V2 API structure
+          flow_description: flow.engagement_name || '',
+          next_phase: flow.current_phase,
+          is_complete: false, // Active flows are not complete
+          assessment_ready: false,
+          migration_readiness_score: 0,
           created_at: flow.created_at,
           updated_at: flow.updated_at,
           completed_at: flow.completed_at,
           can_resume: flow.status === 'paused' || flow.status === 'failed',
           agent_insights: flow.agent_insights || [],
           deletion_impact: {
-            flow_phase: flow.next_phase || 'unknown',
+            flow_phase: flow.current_phase || 'unknown',
             data_to_delete: { 'discovery_assets': 0 },
             estimated_cleanup_time: '< 1 minute'
           },
           flow_management_info: {
             estimated_remaining_time: '5-10 minutes',
-            next_phase: flow.next_phase || 'data_import',
-            completion_percentage: flow.progress_percentage,
+            next_phase: flow.current_phase || 'data_import',
+            completion_percentage: flow.progress || 0,
             resumption_possible: flow.status !== 'failed'
           }
         }));

@@ -280,14 +280,21 @@ async def get_active_discovery_flows_v2(
                     "engagement_id": str(flow.engagement_id),
                     "engagement_name": engagement_name,
                     "status": flow.status,
-                    "current_phase": flow.current_phase,
+                    "current_phase": flow.get_next_phase(),
                     "progress": flow.progress_percentage,
                     "created_at": flow.created_at.isoformat() if flow.created_at else None,
                     "updated_at": flow.updated_at.isoformat() if flow.updated_at else None,
-                    "phases": getattr(flow, 'phases', {}) or {},
-                    "errors": getattr(flow, 'errors', []) or [],
-                    "warnings": getattr(flow, 'warnings', []) or [],
-                    "agent_insights": getattr(flow, 'agent_insights', []) or []
+                    "phases": {
+                        "data_import_completed": flow.data_import_completed,
+                        "attribute_mapping_completed": flow.attribute_mapping_completed,
+                        "data_cleansing_completed": flow.data_cleansing_completed,
+                        "inventory_completed": flow.inventory_completed,
+                        "dependencies_completed": flow.dependencies_completed,
+                        "tech_debt_completed": flow.tech_debt_completed
+                    },
+                    "errors": [],  # V2 flows don't store errors in the same way
+                    "warnings": [],  # V2 flows don't store warnings in the same way
+                    "agent_insights": flow.crewai_state_data.get("agent_insights", []) if flow.crewai_state_data else []
                 }
                 flow_details.append(flow_detail)
                 
@@ -660,6 +667,92 @@ async def sync_crewai_state(
     except Exception as e:
         logger.error(f"❌ Failed to sync CrewAI state for {flow_id}: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to sync CrewAI state")
+
+@router.post("/flows/{flow_id}/continue", response_model=DiscoveryFlowResponse)
+async def continue_discovery_flow_with_crewai(
+    flow_id: str,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+):
+    """
+    Continue/resume a V2 discovery flow with proper CrewAI orchestration.
+    This bridges existing V2 flows with CrewAI execution.
+    """
+    try:
+        logger.info(f"🚀 Continuing discovery flow with CrewAI: {flow_id}")
+        
+        # Get the existing flow
+        discovery_service = DiscoveryFlowService(db, context)
+        flow = await discovery_service.get_flow_by_id(flow_id)
+        
+        if not flow:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Discovery flow not found")
+        
+        # Determine next phase to execute
+        next_phase = flow.get_next_phase()
+        if not next_phase:
+            logger.info(f"✅ Flow {flow_id} is already complete")
+            return DiscoveryFlowResponse(**flow.to_dict())
+        
+        logger.info(f"🔄 Continuing flow {flow_id} from phase: {next_phase}")
+        
+        # Initialize CrewAI flow if available
+        crewai_result = None
+        try:
+            # Try to initialize CrewAI flow for this existing flow
+            from app.services.crewai_flow_service import CrewAIFlowService
+            crewai_service = CrewAIFlowService(db)
+            
+            # Create CrewAI state from existing flow data
+            crewai_state = {
+                "flow_id": str(flow.flow_id),
+                "client_account_id": str(flow.client_account_id),
+                "engagement_id": str(flow.engagement_id),
+                "current_phase": next_phase,
+                "progress_percentage": flow.progress_percentage,
+                "phases": flow.to_dict()["phases"],
+                "crewai_state_data": flow.crewai_state_data or {}
+            }
+            
+            # Initialize CrewAI flow
+            crewai_result = await crewai_service.initialize_flow(
+                flow_id=str(flow.flow_id),
+                context=context.dict(),
+                metadata={
+                    "resume_mode": True,
+                    "existing_flow": True,
+                    "next_phase": next_phase
+                }
+            )
+            
+            logger.info(f"✅ CrewAI flow initialized for existing flow: {flow_id}")
+            
+        except Exception as e:
+            logger.warning(f"⚠️ CrewAI initialization failed, continuing with database-only mode: {e}")
+            crewai_result = {"status": "fallback", "error": str(e)}
+        
+        # Update flow status to indicate it's being processed
+        await discovery_service.update_phase_completion(
+            flow_id=str(flow.flow_id),
+            phase=next_phase,
+            phase_data={
+                "continued_at": datetime.now().isoformat(),
+                "crewai_status": crewai_result.get("status", "unknown"),
+                "next_phase": next_phase
+            }
+        )
+        
+        # Get updated flow
+        updated_flow = await discovery_service.get_flow_by_id(flow_id)
+        
+        logger.info(f"✅ Flow continuation initiated: {flow_id}, next phase: {next_phase}")
+        return DiscoveryFlowResponse(**updated_flow.to_dict())
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to continue discovery flow {flow_id}: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to continue discovery flow")
 
 
 # === Asset Creation Bridge ===

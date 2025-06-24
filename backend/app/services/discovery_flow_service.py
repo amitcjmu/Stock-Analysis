@@ -84,7 +84,7 @@ class DiscoveryFlowService:
         try:
             flow = await self.flow_repo.get_by_flow_id(flow_id)
             if flow:
-                logger.info(f"✅ Discovery flow found: {flow_id}, phase: {flow.current_phase}")
+                logger.info(f"✅ Discovery flow found: {flow_id}, next phase: {flow.get_next_phase()}")
             else:
                 logger.warning(f"⚠️ Discovery flow not found: {flow_id}")
             
@@ -311,7 +311,7 @@ class DiscoveryFlowService:
             summary = {
                 "flow_id": flow.flow_id,
                 "status": flow.status,
-                "current_phase": flow.current_phase,
+                "current_phase": flow.get_next_phase(),
                 "progress_percentage": flow.progress_percentage,
                 "phase_completion": phase_completion,
                 "completed_phases": completed_phases,
@@ -325,13 +325,11 @@ class DiscoveryFlowService:
                 },
                 "timestamps": {
                     "created_at": flow.created_at.isoformat() if flow.created_at else None,
-                    "started_at": flow.started_at.isoformat() if flow.started_at else None,
                     "updated_at": flow.updated_at.isoformat() if flow.updated_at else None,
                     "completed_at": flow.completed_at.isoformat() if flow.completed_at else None
                 },
                 "assessment_ready": flow.assessment_ready,
-                "crew_status": flow.crew_status or {},
-                "agent_insights": flow.agent_insights or []
+                "crewai_state": flow.crewai_state_data or {}
             }
             
             logger.info(f"✅ Flow summary generated: {flow_id}")
