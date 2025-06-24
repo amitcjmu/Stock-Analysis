@@ -1,5 +1,64 @@
 # AI Force Migration Platform - Change Log
 
+## [0.25.6] - 2025-01-26
+
+### 🎯 **CREWAI HUMAN INPUT INTEGRATION - Native User Approval System**
+
+This release implements CrewAI's native `human_input=True` functionality for user approval in the discovery flow, eliminating complex manual pause/resume logic in favor of built-in agent interaction capabilities.
+
+### 🚀 **CrewAI Native Integration**
+
+#### **Field Mapping Crew User Approval**
+- **Human Input Task**: Added `human_input=True` to field mapping crew manager coordination task
+- **Native User Interaction**: CrewAI agents now directly request user approval with context-aware prompts
+- **Approval Context**: Manager presents field mapping summary with confidence scores and recommendations
+- **Decision Parsing**: Built-in approval/rejection parsing with "approve" or "reject" keywords
+- **Flow Control**: Natural phase progression based on user approval decisions
+
+#### **Simplified Flow Architecture**
+- **Removed Manual Pause Logic**: Eliminated complex `field_mapping_awaiting_confirmation` status handling
+- **Eliminated Proceed Methods**: Removed manual `proceed_to_field_mapping()` method and pause/resume complexity
+- **Native Flow Control**: CrewAI handles user interaction timing and flow progression automatically
+- **Streamlined Phases**: All subsequent phases now use standard error handling without special pause states
+
+#### **Data Import Validation Simplification**
+- **Technical Validation Focus**: Data import validation executor now focuses on PII detection and security scanning
+- **Removed Approval Crew**: Eliminated duplicate approval crew in data validation phase
+- **Single Approval Point**: User approval consolidated to field mapping crew manager for better UX
+- **Simplified Architecture**: Reduced complexity by using existing crew manager agents
+
+### 📊 **Technical Improvements**
+
+#### **Agent Responsibility Clarification**
+- **Field Mapping Manager**: Enhanced with user approval responsibilities and clear delegation boundaries
+- **Existing Agent Structure**: Leveraged existing manager agents instead of creating new approval agents
+- **Proper Delegation**: Manager agents now handle user interaction as part of their coordination role
+- **Agent Boundaries**: Clear separation between technical validation and user approval phases
+
+#### **Flow State Management**
+- **Removed Pause States**: Eliminated `awaiting_user_input` and `field_mapping_awaiting_confirmation` statuses
+- **Natural Progression**: Phases now progress naturally with CrewAI's built-in human input handling
+- **Error Handling**: Simplified error conditions without special pause state considerations
+- **Status Clarity**: Clear phase status without complex pause/resume state management
+
+### 🎯 **User Experience Enhancements**
+- **Contextual Approval**: Users receive detailed field mapping summaries before approval decisions
+- **Clear Instructions**: Explicit "Type 'approve' to continue or 'reject' to revise" guidance
+- **Natural Interaction**: User approval feels like natural conversation with AI agents
+- **Reduced Complexity**: Simplified flow without manual proceed buttons or complex state management
+
+### 📋 **Business Impact**
+- **Improved UX**: More intuitive user approval process integrated into agent workflow
+- **Reduced Errors**: Eliminated complex pause/resume logic that could cause flow failures
+- **Agent-Centric**: Proper agentic platform behavior with AI agents handling user interaction
+- **Maintainability**: Simplified codebase with reduced complexity and edge cases
+
+### 🎯 **Success Metrics**
+- **Code Reduction**: Removed 60+ lines of complex pause/resume logic
+- **Agent Integration**: Native CrewAI human input working with existing manager agents
+- **Flow Simplification**: Eliminated 5 special pause state conditions across all phases
+- **User Approval**: Contextual approval with field mapping confidence scores and recommendations
+
 ## [0.25.5] - 2025-01-26
 
 ### 🎯 **DISCOVERY FLOW FIXES - CrewAI Integration Stabilization**
