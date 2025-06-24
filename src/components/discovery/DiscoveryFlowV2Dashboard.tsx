@@ -60,8 +60,8 @@ export function DiscoveryFlowV2Dashboard({
     refresh
   } = useDiscoveryFlowV2(flowId, {
     enableRealTimeUpdates,
-    autoRefresh: true,
-    pollInterval: 5000
+    autoRefresh: false,
+    pollInterval: 30000
   });
 
   // Handle validation check

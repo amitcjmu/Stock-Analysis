@@ -3,7 +3,7 @@ Main API router for the AI Force Migration Platform.
 Includes all endpoint routers and API versioning.
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 import logging
 
 from app.api.v1.endpoints import (
@@ -26,6 +26,12 @@ from app.api.v1.endpoints import (
 
 # Import only existing endpoint files
 from app.api.v1.endpoints.context_establishment import router as context_establishment_router
+
+# Import the /me endpoint function for root-level access
+from app.api.v1.endpoints.context import get_user_context
+from app.core.database import get_db
+from app.api.v1.auth.auth_utils import get_current_user
+from app.schemas.context import UserContext
 
 # Missing endpoint files - functionality may be available through other routers:
 # - assessment (functionality may be in sixr_analysis)
@@ -54,6 +60,18 @@ try:
     LLM_HEALTH_AVAILABLE = True
 except ImportError:
     LLM_HEALTH_AVAILABLE = False
+try:
+    from app.api.v1.endpoints.observability import router as observability_router
+    OBSERVABILITY_AVAILABLE = True
+except ImportError:
+    OBSERVABILITY_AVAILABLE = False
+
+
+try:
+    from app.api.v1.endpoints.observability import router as observability_router
+    OBSERVABILITY_AVAILABLE = True
+except ImportError:
+    OBSERVABILITY_AVAILABLE = False
 
 # Admin Routers
 try:
@@ -92,6 +110,20 @@ logger = logging.getLogger(__name__)
 # --- API Router Setup ---
 api_router = APIRouter()
 
+# Add direct /me endpoint at root level (required for frontend authentication flow)
+@api_router.get(
+    "/me",
+    response_model=UserContext,
+    summary="Get current user context",
+    description="Get complete context for the current user including client, engagement, and session."
+)
+async def get_me_endpoint(
+    db = Depends(get_db),
+    current_user = Depends(get_current_user)
+) -> UserContext:
+    """Direct /me endpoint at root level for frontend authentication."""
+    return await get_user_context(db=db, current_user=current_user)
+
 # --- Include All Routers ---
 logger.info("--- Starting API Router Inclusion Process ---")
 
@@ -112,6 +144,20 @@ if HEALTH_AVAILABLE:
 if LLM_HEALTH_AVAILABLE:
     api_router.include_router(llm_health_router, prefix="/llm", tags=["LLM Health"])
     logger.info("✅ LLM Health router included")
+# Observability and System Control
+if OBSERVABILITY_AVAILABLE:
+    api_router.include_router(observability_router, prefix="/observability", tags=["Observability"])
+    logger.info("✅ Observability router included")
+else:
+    logger.warning("⚠️ Observability router not available - polling control endpoints disabled")
+
+
+# Observability and System Control
+if OBSERVABILITY_AVAILABLE:
+    api_router.include_router(observability_router, prefix="/observability", tags=["Observability"])
+    logger.info("✅ Observability router included")
+else:
+    logger.warning("⚠️ Observability router not available - polling control endpoints disabled")
 
 # Authentication and Context
 if AUTH_RBAC_AVAILABLE:

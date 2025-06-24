@@ -87,7 +87,7 @@ export const authApi = {
 
   async validateToken(token: string): Promise<User | null> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/me`, {
+      const response = await fetch(`${API_BASE_URL}/api/v1/context/me`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

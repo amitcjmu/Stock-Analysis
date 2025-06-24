@@ -201,10 +201,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         let needsContextEstablishment = false;
         
         try {
-          userInfo = await apiCall('/me', {
-            method: 'GET',
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
+          userInfo = await apiCall('/context/me', {}, false); // Don't include context headers for /context/me endpoint
         } catch (error: any) {
           // Check if this is a context establishment issue (404) vs authentication issue (401)
           if (error.message === 'Not Found' || error.status === 404) {
@@ -222,7 +219,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             navigate('/login');
             return;
           } else {
-            console.error('🔄 Unexpected error from /me endpoint:', error);
+            console.error('🔄 Unexpected error from /context/me endpoint:', error);
             // For other errors, don't clear token but continue with context establishment
             needsContextEstablishment = true;
           }
@@ -231,9 +228,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (userInfo && userInfo.user && userInfo.user.id) {
           setUser(userInfo.user);
           
-          // Check if /me endpoint returned context information
+          // Check if /context/me endpoint returned context information
           if (userInfo.client && userInfo.engagement && userInfo.session) {
-            console.log('🔄 Using context from /me endpoint:', {
+            console.log('🔄 Using context from /context/me endpoint:', {
               client: userInfo.client.name,
               engagement: userInfo.engagement.name,
               session: userInfo.session.id
@@ -477,7 +474,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Always fetch fresh context from backend to ensure consistency
       let actualUserRole = response.user.role; // fallback to login response role
       try {
-        const context = await apiCall('/me', {}, false); // Don't include context headers for /me endpoint
+        const context = await apiCall('/context/me', {}, false); // Don't include context headers for /context/me endpoint
         console.log('🔐 Login Step 2 - Context from /me:', context);
         
         if (context) {

@@ -225,8 +225,10 @@ export const useSixRAnalysis = (options: UseSixRAnalysisOptions = {}): [Analysis
     }
   }, []);
 
-  // Polling mechanism for active analyses
+  // Polling mechanism for active analyses with anti-spam safeguards
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const consecutiveErrors = useRef<number>(0);
+  const lastSuccessfulPoll = useRef<number>(0);
   
   const startPolling = useCallback(() => {
     if (pollingIntervalRef.current) {
@@ -235,23 +237,41 @@ export const useSixRAnalysis = (options: UseSixRAnalysisOptions = {}): [Analysis
     
     pollingIntervalRef.current = setInterval(async () => {
       if (state.currentAnalysisId && (state.analysisStatus === 'pending' || state.analysisStatus === 'in_progress')) {
-        console.log(`Polling analysis ${state.currentAnalysisId} for updates...`);
-        await loadAnalysis(state.currentAnalysisId);
+        // Anti-spam: Stop polling after 3 consecutive errors
+        if (consecutiveErrors.current >= 3) {
+          console.warn(`🚫 Stopping polling for analysis ${state.currentAnalysisId} due to consecutive errors`);
+          stopPolling();
+          return;
+        }
+        
+        try {
+          console.log(`Polling analysis ${state.currentAnalysisId} for updates...`);
+          await loadAnalysis(state.currentAnalysisId);
+          consecutiveErrors.current = 0; // Reset error count on success
+          lastSuccessfulPoll.current = Date.now();
+        } catch (error) {
+          consecutiveErrors.current += 1;
+          console.error(`❌ Analysis polling error (attempt ${consecutiveErrors.current}):`, error);
+        }
+      } else {
+        // Stop polling if analysis is completed or no longer active
+        stopPolling();
       }
-    }, 3000); // Poll every 3 seconds
+    }, 30000); // Increased from 3000 to 30000 (30 seconds) to reduce log spam
   }, [state.currentAnalysisId, state.analysisStatus, loadAnalysis]);
   
   const stopPolling = useCallback(() => {
     if (pollingIntervalRef.current) {
       clearInterval(pollingIntervalRef.current);
       pollingIntervalRef.current = null;
+      consecutiveErrors.current = 0; // Reset error count when stopping
     }
   }, []);
 
-  // Start/stop polling based on analysis status
+  // Start/stop polling based on analysis status with intelligent conditions
   useEffect(() => {
     if (state.currentAnalysisId && (state.analysisStatus === 'pending' || state.analysisStatus === 'in_progress')) {
-      console.log(`Starting polling for analysis ${state.currentAnalysisId}`);
+      console.log(`Starting polling for analysis ${state.currentAnalysisId} (30-second intervals)`);
       startPolling();
     } else {
       console.log('Stopping polling - analysis completed or no active analysis');

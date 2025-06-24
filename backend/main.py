@@ -336,7 +336,8 @@ try:
             "/api/v1/auth/active-users",
             "/api/v1/auth/admin/access-logs",
             # User profile endpoint requires authentication but allows admin access without client context via role-based exemption
-            "/api/v1/me"
+            "/api/v1/me",
+            "/api/v1/context/me"  # Actual location of the /me endpoint
         ]
     )
     

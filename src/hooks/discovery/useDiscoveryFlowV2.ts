@@ -298,19 +298,38 @@ export function useDiscoveryFlowV2(
 ): UseDiscoveryFlowV2Return {
   const {
     enableRealTimeUpdates = false,
-    pollInterval = 5000,
-    autoRefresh = true
+    pollInterval = 30000,
+    autoRefresh = false
   } = options;
 
   const queryClient = useQueryClient();
   const wsRef = useRef<WebSocket | null>(null);
   const [error, setError] = useState<Error | null>(null);
+  const lastSuccessfulFetch = useRef<number>(0);
+  const consecutiveErrors = useRef<number>(0);
 
   // Query keys
   const flowQueryKey = ['discoveryFlowV2', flowId];
   const assetsQueryKey = ['discoveryFlowV2Assets', flowId];
 
-  // Flow query
+  // Anti-polling safeguards
+  const shouldPoll = useCallback(() => {
+    if (!autoRefresh || !flowId) return false;
+    
+    // Stop polling if too many consecutive errors
+    if (consecutiveErrors.current >= 3) {
+      console.warn(`🚫 Stopping polling for flow ${flowId} due to consecutive errors`);
+      return false;
+    }
+    
+    // Exponential backoff after errors
+    const backoffDelay = Math.min(pollInterval * Math.pow(2, consecutiveErrors.current), 300000); // Max 5 minutes
+    const timeSinceLastFetch = Date.now() - lastSuccessfulFetch.current;
+    
+    return timeSinceLastFetch >= backoffDelay;
+  }, [autoRefresh, flowId, pollInterval]);
+
+  // Flow query with intelligent polling
   const {
     data: flow,
     isLoading,
@@ -318,10 +337,55 @@ export function useDiscoveryFlowV2(
     refetch: refetchFlow
   } = useQuery({
     queryKey: flowQueryKey,
-    queryFn: () => flowId ? apiClient.getFlow(flowId) : null,
+    queryFn: async () => {
+      if (!flowId) return null;
+      
+      try {
+        const result = await apiClient.getFlow(flowId);
+        consecutiveErrors.current = 0; // Reset error count on success
+        lastSuccessfulFetch.current = Date.now();
+        return result;
+      } catch (error) {
+        consecutiveErrors.current += 1;
+        console.error(`❌ Flow fetch error (attempt ${consecutiveErrors.current}):`, error);
+        
+        // Stop polling after 3 consecutive errors
+        if (consecutiveErrors.current >= 3) {
+          console.warn(`🚫 Disabling polling for flow ${flowId} after 3 consecutive failures`);
+        }
+        throw error;
+      }
+    },
     enabled: !!flowId,
-    refetchInterval: autoRefresh ? pollInterval : false,
-    staleTime: 30000,
+    refetchInterval: (query) => {
+      // Only poll if explicitly enabled and conditions are met
+      if (!shouldPoll()) return false;
+      
+      // Stop polling if flow is completed or failed
+      const flowData = query.state.data;
+      if (flowData?.status === 'completed' || flowData?.status === 'failed') {
+        return false;
+      }
+      
+      return pollInterval;
+    },
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    retry: (failureCount, error) => {
+      // Limit retries and implement exponential backoff
+      if (failureCount >= 3) return false;
+      
+      // Don't retry 404 errors (flow doesn't exist)
+      if (error && 'status' in error && error.status === 404) {
+        console.warn(`🚫 Flow ${flowId} not found, stopping retries`);
+        return false;
+      }
+      
+      return true;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   // Assets query
