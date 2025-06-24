@@ -34,12 +34,9 @@ from app.api.v1.endpoints import (
 # Import only existing endpoint files
 from app.api.v1.endpoints.context_establishment import router as context_establishment_router
 
-# Import Unified Discovery Flow API
-try:
-    from app.api.v1.unified_discovery import router as unified_discovery_router
-    UNIFIED_DISCOVERY_AVAILABLE = True
-except ImportError:
-    UNIFIED_DISCOVERY_AVAILABLE = False
+# Legacy Unified Discovery Flow API (REMOVED - consolidated into /discovery)
+# from app.api.v1.unified_discovery import router as unified_discovery_router
+UNIFIED_DISCOVERY_AVAILABLE = False  # Disabled - use /discovery instead
 
 # Import the /me endpoint function for root-level access
 from app.api.v1.endpoints.context import get_user_context
@@ -156,12 +153,9 @@ except ImportError:
     logger.warning("⚠️ Unified Discovery API not available, using legacy discovery router")
     UNIFIED_DISCOVERY_API_AVAILABLE = False
 
-# Legacy Unified Discovery Flow endpoints (DEPRECATED - use /discovery instead)
-if UNIFIED_DISCOVERY_AVAILABLE:
-    api_router.include_router(unified_discovery_router, prefix="/unified-discovery", tags=["Unified Discovery Flow - DEPRECATED"])
-    logger.info("⚠️ DEPRECATED: Unified Discovery Flow router included at /unified-discovery - use /discovery instead")
-else:
-    logger.warning("⚠️ Unified Discovery Flow router not available")
+# Legacy Unified Discovery Flow endpoints (REMOVED - redirects to /discovery)
+# Old /unified-discovery endpoints have been consolidated into /discovery
+logger.info("✅ Legacy /unified-discovery endpoints consolidated into /discovery")
 
 # V2 Discovery Flow Management - MOVED TO /api/v2/ for proper versioning
 # if DISCOVERY_FLOW_V2_AVAILABLE:

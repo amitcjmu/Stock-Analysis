@@ -1,5 +1,44 @@
 # AI Force Migration Platform - Change Log
 
+## [0.25.1] - 2025-01-27
+
+### 🎯 **FRONTEND MIGRATION TO UNIFIED DISCOVERY API**
+
+This release completes the discovery API consolidation by migrating all frontend services to use the new unified discovery API, eliminating legacy V2 and unified-discovery endpoint dependencies.
+
+### 🚀 **Frontend Service Migration**
+
+#### **Updated Frontend Services**
+- **`useUnifiedDiscoveryFlow.ts`**: Updated to use `/api/v1/discovery` endpoints instead of `/api/v1/unified-discovery`
+- **`discoveryUnifiedService.ts`**: New unified service wrapper with backward compatibility
+- **`dataImportV2Service.ts`**: Migrated to redirect to unified service with deprecation warnings
+- **`discoveryFlowV2Service.ts`**: Updated to use unified service with legacy format conversion
+- **`useDiscoveryFlowV2.ts`**: Added unified service integration with deprecation notices
+- **`useIncompleteFlowDetectionV2.ts`**: Migrated to use unified service for active flow detection
+
+#### **Legacy Compatibility Layer**
+- **Backward Compatibility**: All legacy functions preserved with deprecation warnings
+- **Automatic Redirection**: V2 calls automatically redirect to unified service
+- **Format Conversion**: Unified responses converted to legacy formats for compatibility
+- **Graceful Migration**: Existing code continues working while encouraging migration
+
+#### **Backend Cleanup**
+- **Removed Legacy Routes**: Disabled `/api/v1/unified-discovery` endpoints in router
+- **Import Cleanup**: Removed unused legacy unified discovery imports
+- **Route Consolidation**: All discovery operations now route through `/api/v1/discovery`
+
+### 📊 **Migration Benefits**
+- **Single Source of Truth**: All frontend services now use unified discovery API
+- **Reduced Complexity**: Eliminated confusion about which service to use
+- **Improved Maintainability**: Centralized service logic easier to maintain and extend
+- **Better Error Handling**: Unified error handling across all discovery operations
+
+### 🎯 **Success Metrics**
+- **Service Consolidation**: 5+ frontend services migrated to unified API
+- **Backward Compatibility**: 100% of existing functionality preserved
+- **Code Clarity**: Eliminated "which service to use" decision fatigue
+- **Developer Experience**: Single import for all discovery operations
+
 ## [0.25.0] - 2025-01-27
 
 ### 🎯 **DISCOVERY API CONSOLIDATION - Single Source of Truth**

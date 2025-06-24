@@ -45,7 +45,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 const unifiedDiscoveryAPI = {
   async getFlowStatus(sessionId: string): Promise<UnifiedDiscoveryFlowState> {
-    const response = await fetch(`${API_BASE}/api/v1/unified-discovery/flow/status/${sessionId}`, {
+    const response = await fetch(`${API_BASE}/api/v1/discovery/flow/status/${sessionId}`, {
       headers: {
         'Content-Type': 'application/json',
         'X-User-ID': localStorage.getItem('user_id') || '',
@@ -62,7 +62,7 @@ const unifiedDiscoveryAPI = {
   },
 
   async initializeFlow(data: any): Promise<any> {
-    const response = await fetch(`${API_BASE}/api/v1/unified-discovery/flow/initialize`, {
+    const response = await fetch(`${API_BASE}/api/v1/discovery/flow/initialize`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -81,7 +81,7 @@ const unifiedDiscoveryAPI = {
   },
 
   async executePhase(phase: string, data: any = {}): Promise<any> {
-    const response = await fetch(`${API_BASE}/api/v1/unified-discovery/flow/execute/${phase}`, {
+    const response = await fetch(`${API_BASE}/api/v1/discovery/flow/execute`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -89,7 +89,7 @@ const unifiedDiscoveryAPI = {
         'X-Client-Account-ID': localStorage.getItem('client_account_id') || '',
         'X-Engagement-ID': localStorage.getItem('engagement_id') || '',
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify({ phase, data }),
     });
     
     if (!response.ok) {
@@ -100,7 +100,7 @@ const unifiedDiscoveryAPI = {
   },
 
   async getHealthStatus(): Promise<any> {
-    const response = await fetch(`${API_BASE}/api/v1/unified-discovery/flow/health`, {
+    const response = await fetch(`${API_BASE}/api/v1/discovery/health`, {
       headers: {
         'Content-Type': 'application/json',
         'X-User-ID': localStorage.getItem('user_id') || '',

@@ -6,6 +6,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { 
+  unifiedDiscoveryService,
+  UnifiedDiscoveryFlowRequest,
+  UnifiedDiscoveryFlowResponse
+} from '../../services/discoveryUnifiedService';
 
 // Types
 interface DiscoveryFlowV2 {

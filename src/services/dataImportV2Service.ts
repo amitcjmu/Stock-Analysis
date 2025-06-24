@@ -1,9 +1,16 @@
 import { apiCall } from '../config/api';
 import { getAuthHeaders } from '../utils/contextUtils';
+import { 
+  unifiedDiscoveryService,
+  UnifiedDiscoveryFlowRequest,
+  UnifiedDiscoveryFlowResponse
+} from './discoveryUnifiedService';
 
 /**
- * Data Import Service v2 - Uses new discovery flow architecture
- * Integrates with /api/v2/discovery-flows endpoints
+ * Data Import Service v2 - MIGRATED TO UNIFIED DISCOVERY API
+ * Now uses consolidated /api/v1/discovery endpoints
+ * 
+ * @deprecated Use unifiedDiscoveryService directly for new code
  */
 
 export interface CreateDiscoveryFlowRequest {
@@ -44,6 +51,7 @@ export interface ValidationResult {
 
 /**
  * Create a new discovery flow with imported data
+ * @deprecated Use unifiedDiscoveryService.initializeFlow() instead
  */
 export const createDiscoveryFlow = async (
   flowId: string,
@@ -52,32 +60,38 @@ export const createDiscoveryFlow = async (
   importSessionId?: string
 ): Promise<DiscoveryFlowResponse> => {
   try {
-    const requestData: CreateDiscoveryFlowRequest = {
-      flow_id: flowId,
+    console.log('🔄 DEPRECATED: Redirecting createDiscoveryFlow to unified service');
+    
+    // Convert to unified format
+    const unifiedRequest: UnifiedDiscoveryFlowRequest = {
       raw_data: rawData,
       metadata: {
         source: 'data_import',
         import_timestamp: new Date().toISOString(),
         ...metadata
       },
-      import_session_id: importSessionId
+      import_session_id: importSessionId,
+      execution_mode: 'hybrid'
     };
 
-    const response = await apiCall('/api/v2/discovery-flows/flows', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...getAuthHeaders()
-      },
-      body: JSON.stringify(requestData)
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || `Failed to create discovery flow: ${response.statusText}`);
-    }
-
-    return await response.json();
+    const result = await unifiedDiscoveryService.initializeFlow(unifiedRequest);
+    
+    // Convert unified response to legacy format
+    return {
+      id: result.flow_id,
+      flow_id: result.flow_id,
+      current_phase: result.current_phase,
+      progress_percentage: result.progress_percentage,
+      status: result.status,
+      raw_data: rawData,
+      field_mappings: {},
+      cleaned_data: [],
+      asset_inventory: {},
+      dependencies: {},
+      tech_debt: {},
+      created_at: result.created_at,
+      updated_at: result.updated_at
+    };
   } catch (error) {
     console.error('Error creating discovery flow:', error);
     throw error;
@@ -86,20 +100,30 @@ export const createDiscoveryFlow = async (
 
 /**
  * Get discovery flow by CrewAI Flow ID
+ * @deprecated Use unifiedDiscoveryService.getFlowStatus() instead
  */
 export const getDiscoveryFlow = async (flowId: string): Promise<DiscoveryFlowResponse> => {
   try {
-    const response = await apiCall(`/api/v2/discovery-flows/flows/${flowId}`, {
-      method: 'GET',
-      headers: getAuthHeaders()
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || `Failed to get discovery flow: ${response.statusText}`);
-    }
-
-    return await response.json();
+    console.log('🔄 DEPRECATED: Redirecting getDiscoveryFlow to unified service');
+    
+    const result = await unifiedDiscoveryService.getFlowStatus(flowId);
+    
+    // Convert unified response to legacy format
+    return {
+      id: result.flow_id,
+      flow_id: result.flow_id,
+      current_phase: result.current_phase,
+      progress_percentage: result.progress_percentage,
+      status: result.status,
+      raw_data: [], // Not available in unified response
+      field_mappings: {},
+      cleaned_data: [],
+      asset_inventory: {},
+      dependencies: {},
+      tech_debt: {},
+      created_at: result.created_at,
+      updated_at: result.updated_at
+    };
   } catch (error) {
     console.error('Error getting discovery flow:', error);
     throw error;

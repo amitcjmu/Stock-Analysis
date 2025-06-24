@@ -107,9 +107,15 @@ export interface HealthStatus {
   api_version: string;
 }
 
-// Configuration
+import { 
+  unifiedDiscoveryService,
+  UnifiedDiscoveryFlowRequest,
+  UnifiedDiscoveryFlowResponse
+} from './discoveryUnifiedService';
+
+// Configuration - DEPRECATED
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-const V2_API_BASE = `${API_BASE_URL}/api/v2/discovery-flows`;
+const V2_API_BASE = `${API_BASE_URL}/api/v2/discovery-flows`; // DEPRECATED - Use unified service
 
 // Error handling utility
 class DiscoveryFlowV2Error extends Error {
@@ -214,9 +220,36 @@ export class DiscoveryFlowV2Service {
   // Flow operations
   async createFlow(data: CreateFlowRequest): Promise<DiscoveryFlowV2> {
     try {
-      const result = await this.http.post<DiscoveryFlowV2>(`${V2_API_BASE}/flows`, data);
+      console.log('🔄 DEPRECATED: Redirecting V2 createFlow to unified service');
+      
+      // Convert to unified format
+      const unifiedRequest: UnifiedDiscoveryFlowRequest = {
+        raw_data: data.raw_data || [],
+        metadata: data.metadata,
+        import_session_id: data.import_session_id,
+        execution_mode: 'hybrid'
+      };
+
+      const result = await unifiedDiscoveryService.initializeFlow(unifiedRequest);
+      
+      // Convert unified response to V2 format
+      const v2Result: DiscoveryFlowV2 = {
+        flow_id: result.flow_id,
+        client_account_id: result.client_account_id,
+        engagement_id: result.engagement_id,
+        user_id: result.user_id,
+        current_phase: result.current_phase,
+        status: result.status,
+        progress_percentage: result.progress_percentage,
+        phases: result.phases,
+        agent_insights: result.agent_insights,
+        crewai_state_data: {},
+        created_at: result.created_at,
+        updated_at: result.updated_at
+      };
+      
       toast.success('Discovery flow created successfully');
-      return result;
+      return v2Result;
     } catch (error) {
       const message = error instanceof DiscoveryFlowV2Error 
         ? error.message 

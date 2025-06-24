@@ -82,7 +82,9 @@ export interface BulkDeleteResultV2 {
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-const V2_API_BASE = `${API_BASE_URL}/api/v2/discovery-flows`;
+import { unifiedDiscoveryService } from '../../services/discoveryUnifiedService';
+
+const V2_API_BASE = `${API_BASE_URL}/api/v2/discovery-flows`; // DEPRECATED - Use unified service
 
 // Default headers for multi-tenant context
 const getDefaultHeaders = () => ({
@@ -101,13 +103,12 @@ export const useIncompleteFlowDetectionV2 = () => {
   return useQuery({
     queryKey: ['incomplete-flows-v2', client?.id, engagement?.id],
     queryFn: async (): Promise<FlowDetectionResultV2> => {
-      // Use the flows/active endpoint that we know works
-      const flows = await apiCall('/api/v2/discovery-flows/flows/active', {
-        method: 'GET'
-      }, true);
+      // DEPRECATED: Redirecting to unified discovery service
+      console.log('🔄 DEPRECATED: Redirecting to unified discovery service');
+      const flows = await unifiedDiscoveryService.getActiveFlows();
       
-      // The flows/active endpoint returns { success: true, flow_details: [...] }
-      const flowList = flows.flow_details || [];
+      // The unified service returns { flows: [...], total_flows: n }
+      const flowList = flows.flows || [];
       
       // Transform to IncompleteFlowV2 format and filter incomplete
       const incompleteFlows: IncompleteFlowV2[] = flowList
