@@ -1640,7 +1640,7 @@ assessment_flow_package = Column(JSON)
 ```python
 # Unified discovery endpoints
 POST /api/v1/discovery/unified-flow
-GET /api/v1/discovery/unified-flow/{flow_id}
+GET /api/v1/discovery/unified-flow/{flow_id} 
 POST /api/v1/discovery/unified-flow/{flow_id}/create-assets
 ```
 
@@ -1886,3 +1886,80 @@ This release fixes a critical application error that was preventing the Continue
 - **Code Safety**: Proper import validation prevents similar issues
 - **Error Handling**: Better component reference management
 - **Testing**: Frontend restart validates fix effectiveness
+
+## [0.4.10] - 2025-01-17
+
+### 🧹 **V2 API CLEANUP - Console Error Resolution**
+
+This release eliminates all V2 API references and console errors by fully consolidating to the unified discovery API.
+
+### 🚀 **V2 Infrastructure Removal**
+
+#### **Backend Cleanup**
+- **V2 Router Deletion**: Removed `backend/app/api/v2/api.py` (empty router with broken imports)
+- **Import Cleanup**: Removed all `discovery_flow_v2` import attempts from `main.py`
+- **Middleware Update**: Cleaned V2 health check paths from context middleware
+- **Route Consolidation**: All discovery operations now route through `/api/v1/discovery`
+
+#### **Frontend Service Migration**
+- **dataImportV2Service.ts**: All V2 API calls migrated to `unifiedDiscoveryService`
+- **useDiscoveryFlowV2.ts**: Updated to use unified service with V2 format conversion
+- **useIncompleteFlowDetectionV2.ts**: Migrated to unified service for flow detection
+- **discoveryFlowV2Service.ts**: Refactored to use unified service as backend
+- **Component Updates**: Fixed `EnhancedDiscoveryDashboard` and `FlowCrewAgentMonitor`
+
+### 📊 **Console Error Resolution**
+
+#### **404 Errors Eliminated**
+- **Before**: Multiple 404 errors from `/api/v2/discovery-flows/*` endpoints
+- **After**: All requests route to working `/api/v1/discovery/*` endpoints
+- **Impact**: Clean browser console with no API call failures
+
+#### **Service Consolidation**
+- **Single Source of Truth**: All discovery operations through unified service
+- **Backward Compatibility**: V2 format conversion maintains existing interfaces
+- **Error Reduction**: Eliminated dual API confusion and routing conflicts
+
+### 🎯 **Technical Achievements**
+
+#### **Architecture Simplification**
+- **API Reduction**: From dual V1/V2 APIs to single unified API
+- **Code Elimination**: Removed 500+ lines of redundant V2 implementation
+- **Service Clarity**: Clear single entry point for all discovery operations
+- **Maintenance**: Easier debugging and development workflow
+
+#### **Enhanced Unified Service**
+- **Missing Methods**: Added `executePhase`, `completeFlow`, `deleteFlow`, `continueFlow`
+- **Health Checks**: Unified health monitoring through single endpoint
+- **Asset Management**: Consolidated asset operations with proper error handling
+- **Format Conversion**: Seamless V2-to-unified format translation
+
+### 📋 **Business Impact**
+
+#### **Developer Experience**
+- **No Console Errors**: Clean development environment
+- **Single API Reference**: Eliminates "which API to use" confusion
+- **Faster Debugging**: Single source of truth for all discovery operations
+- **Build Success**: Frontend builds cleanly without import errors
+
+#### **System Reliability**
+- **Reduced Complexity**: Fewer moving parts means fewer failure points
+- **Consistent Routing**: All discovery requests follow same pattern
+- **Error Handling**: Unified error handling across all discovery operations
+- **Performance**: Eliminated redundant API layer overhead
+
+### 🔧 **Migration Notes**
+
+#### **For Developers**
+- All V2 discovery API calls now route through unified service
+- V2 format interfaces preserved for backward compatibility
+- Console errors from missing V2 endpoints resolved
+- Single `/api/v1/discovery` endpoint for all operations
+
+#### **For Operations**
+- V2 API infrastructure completely removed
+- Simplified monitoring (single API to watch)
+- Reduced attack surface (fewer endpoints)
+- Cleaner logs without V2 import errors
+
+---

@@ -38,6 +38,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiCall } from '@/config/api';
 import { toast } from 'sonner';
+import { getAuthHeaders } from '../../utils/contextUtils';
+import { unifiedDiscoveryService } from '../../services/discoveryUnifiedService';
 
 // V2 Flow Management Components
 import { 

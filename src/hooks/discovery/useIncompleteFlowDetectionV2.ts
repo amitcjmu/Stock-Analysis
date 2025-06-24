@@ -8,7 +8,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { apiCall } from '@/config/api';
 import { useToast } from '@/hooks/use-toast';
 import { unifiedDiscoveryService } from '../../services/discoveryUnifiedService';
-import { useCallback } from 'react';
 
 export interface IncompleteFlowV2 {
   flow_id: string;  // Primary identifier - CrewAI Flow ID
@@ -535,7 +534,7 @@ const continueFlowById = async (flowId: string, force_delete: boolean = false): 
 };
 
 // Health check function - Updated to use unified discovery service
-const checkFlowHealth = useCallback(async (flowId: string): Promise<boolean> => {
+const checkFlowHealth = async (flowId: string): Promise<boolean> => {
   try {
     const response = await unifiedDiscoveryService.getFlowStatus(flowId);
     return response.status !== 'failed';
@@ -543,4 +542,4 @@ const checkFlowHealth = useCallback(async (flowId: string): Promise<boolean> => 
     console.error(`Health check failed for flow ${flowId}:`, error);
     return false;
   }
-}, []); 
+}; 

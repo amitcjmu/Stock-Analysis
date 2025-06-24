@@ -180,14 +180,96 @@ export class UnifiedDiscoveryService {
   /**
    * Get assets for a discovery flow
    */
-  async getFlowAssets(flowId: string): Promise<Array<Record<string, any>>> {
+  async getFlowAssets(flowId: string): Promise<{ assets: Array<Record<string, any>> }> {
     try {
       console.log('📦 Getting flow assets:', flowId);
-      const result = await httpClient.get<Array<Record<string, any>>>(`/assets/${flowId}`);
-      console.log('✅ Flow assets retrieved:', result.length);
+      const result = await httpClient.get<{ assets: Array<Record<string, any>> }>(`/assets/${flowId}`);
+      console.log('✅ Flow assets retrieved:', result.assets?.length || 0);
       return result;
     } catch (error) {
       console.error('❌ Failed to get flow assets:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Execute a specific phase of a discovery flow
+   */
+  async executePhase(flowId: string, phase: string): Promise<UnifiedDiscoveryFlowResponse> {
+    try {
+      console.log('🔄 Executing flow phase:', { flowId, phase });
+      const result = await httpClient.post<UnifiedDiscoveryFlowResponse>('/flow/execute', {
+        flow_id: flowId,
+        phase,
+        execution_mode: 'hybrid'
+      });
+      console.log('✅ Phase execution completed:', result.status);
+      return result;
+    } catch (error) {
+      console.error('❌ Failed to execute phase:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Complete a discovery flow
+   */
+  async completeFlow(flowId: string): Promise<Record<string, any>> {
+    try {
+      console.log('🏁 Completing discovery flow:', flowId);
+      const result = await httpClient.post<Record<string, any>>('/flow/complete', {
+        flow_id: flowId
+      });
+      console.log('✅ Flow completed successfully');
+      return result;
+    } catch (error) {
+      console.error('❌ Failed to complete flow:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a discovery flow
+   */
+  async deleteFlow(flowId: string, forceDelete: boolean = false): Promise<void> {
+    try {
+      console.log('🗑️ Deleting discovery flow:', { flowId, forceDelete });
+      await httpClient.delete(`/flow/${flowId}?force_delete=${forceDelete}`);
+      console.log('✅ Flow deleted successfully');
+    } catch (error) {
+      console.error('❌ Failed to delete flow:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Continue a discovery flow
+   */
+  async continueFlow(flowId: string): Promise<{ success: boolean; message: string }> {
+    try {
+      console.log('▶️ Continuing discovery flow:', flowId);
+      const result = await httpClient.post<{ success: boolean; message: string }>('/flow/continue', {
+        flow_id: flowId
+      });
+      console.log('✅ Flow continuation initiated');
+      return result;
+    } catch (error) {
+      console.error('❌ Failed to continue flow:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check health of unified discovery service
+   */
+  async checkHealth(): Promise<{ status: string; service: string; version?: string }> {
+    try {
+      console.log('🏥 Checking unified discovery health');
+      const result = await httpClient.get<{ status: string; service: string; version?: string }>('/health');
+      console.log('✅ Health check completed:', result.status);
+      return result;
+    } catch (error) {
+      console.error('❌ Health check failed:', error);
       throw error;
     }
   }
