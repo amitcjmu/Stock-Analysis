@@ -73,6 +73,229 @@ graph TD
 
 ---
 
+## 🚀 **HYBRID ARCHITECTURE: UnifiedDiscoveryFlow + V2 Discovery Management**
+
+### **Dual-Layer Architecture Design**
+
+The platform implements a **hybrid architecture** combining CrewAI execution with enterprise management:
+
+```mermaid
+graph TB
+    subgraph "Frontend Layer"
+        UI[Discovery Pages] --> V2API[V2 Discovery API]
+        UI --> MONITOR[HTTP2 Flow Monitoring]
+    end
+    
+    subgraph "V2 Management Layer"
+        V2API --> V2SERVICE[DiscoveryFlowService]
+        V2SERVICE --> PGSQL[(PostgreSQL)]
+        V2SERVICE --> BRIDGE[Flow State Bridge]
+    end
+    
+    subgraph "CrewAI Execution Layer"
+        BRIDGE --> UNIFIED[UnifiedDiscoveryFlow]
+        UNIFIED --> CREWS[CrewAI Crews]
+        CREWS --> AGENTS[Agent Execution]
+    end
+    
+    subgraph "Persistence Layer"
+        PGSQL --> MULTITENANT[Multi-Tenant Isolation]
+        MULTITENANT --> CLIENTDATA[Client Account Data]
+    end
+```
+
+### **1. UnifiedDiscoveryFlow (CrewAI Execution Engine)**
+
+**Primary Role**: AI agent execution and crew coordination
+
+```python
+# UnifiedDiscoveryFlow - CrewAI native execution
+class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
+    @start()
+    def initialize_discovery_flow(self):
+        """CrewAI Flow initialization with agent crews"""
+        return {"status": "initialized", "session_id": self.state.session_id}
+    
+    @listen(initialize_discovery_flow)
+    def execute_field_mapping_crew(self, previous_result):
+        """Execute field mapping crew with AI agents"""
+        crew = FieldMappingCrew(self.crewai_service, self.context)
+        result = crew.kickoff()
+        return self._process_crew_result("field_mapping", result)
+```
+
+**Features**:
+- ✅ Native CrewAI Flow with `@start/@listen` decorators
+- ✅ Specialized crews with manager agents and hierarchical coordination
+- ✅ Agent collaboration within crews using shared memory
+- ✅ CrewAI `@persist()` for flow state persistence
+- ✅ Purple logs and real-time agent execution
+
+### **2. V2 Discovery Flow (Enterprise Management Layer)**
+
+**Primary Role**: Multi-tenant flow management and PostgreSQL persistence
+
+```python
+# V2 Discovery Flow - Enterprise management
+class DiscoveryFlowService:
+    def __init__(self, db: Session, client_account_id: int):
+        self.db = db
+        self.client_account_id = client_account_id  # Multi-tenant isolation
+    
+    async def create_discovery_flow(self, flow_id: str, **kwargs):
+        """Create PostgreSQL record with multi-tenant scoping"""
+        flow_record = DiscoveryFlow(
+            flow_id=flow_id,
+            client_account_id=self.client_account_id,  # Enterprise isolation
+            engagement_id=kwargs.get('engagement_id'),
+            current_phase='initialization',
+            status='active'
+        )
+        self.db.add(flow_record)
+        await self.db.commit()
+        return flow_record
+```
+
+**Features**:
+- ✅ **Multi-Tenant PostgreSQL Persistence**: Client account isolation
+- ✅ **Enterprise Flow Management**: Flow lifecycle, resumption, deletion
+- ✅ **HTTP2 Monitoring**: Production-ready for Vercel + Railway
+- ✅ **V2 API Endpoints**: `/api/v2/discovery-flows/*` for flow management
+- ✅ **Flow State Bridge**: Connects V2 management to UnifiedDiscoveryFlow
+
+### **3. Multi-Tenant PostgreSQL Persistence Strategy**
+
+**Why PostgreSQL Over CrewAI persist()**:
+- CrewAI's `@persist()` **does not support multi-tenancy** or data segregation
+- Enterprise deployments require **client account isolation**
+- Production needs **audit trails** and **compliance tracking**
+- **Vercel + Railway** architecture requires centralized state management
+
+```python
+# Multi-tenant repository pattern
+class ContextAwareRepository:
+    def __init__(self, db: Session, client_account_id: int):
+        self.db = db
+        self.client_account_id = client_account_id
+    
+    async def query_with_context(self, model):
+        """Automatic client account scoping"""
+        return self.db.query(model).filter(
+            model.client_account_id == self.client_account_id
+        )
+```
+
+**Database Schema**:
+```sql
+-- V2 Discovery Flow table with multi-tenancy
+CREATE TABLE discovery_flows (
+    id UUID PRIMARY KEY,
+    flow_id VARCHAR(255) UNIQUE,           -- CrewAI Flow ID
+    client_account_id INT NOT NULL,        -- Multi-tenant isolation
+    engagement_id INT NOT NULL,
+    current_phase VARCHAR(50),
+    status VARCHAR(20),
+    crewai_state_data JSONB,              -- CrewAI flow state bridge
+    agent_insights JSONB,                 -- Agent analysis results
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Automatic client scoping index
+CREATE INDEX idx_discovery_flows_client_account 
+ON discovery_flows(client_account_id, status);
+```
+
+### **4. HTTP2 Monitoring for Production (Vercel + Railway)**
+
+**Why HTTP2 Over WebSocket**:
+- **Vercel Frontend** + **Railway Backend** deployment architecture
+- WebSocket connections have **connection limits** and **timeout issues**
+- HTTP2 polling provides **reliable monitoring** with **automatic reconnection**
+- Better **scaling** and **load balancing** support
+
+```typescript
+// HTTP2 polling for flow monitoring
+const useFlowMonitoring = (flowId: string) => {
+  const { data: flowState, isLoading } = useQuery({
+    queryKey: ['discovery-flow', flowId],
+    queryFn: () => apiCall(`/api/v2/discovery-flows/flows/${flowId}/status`),
+    refetchInterval: 2000,  // HTTP2 polling every 2 seconds
+    refetchIntervalInBackground: true,
+    staleTime: 1000
+  });
+  
+  return { flowState, isLoading };
+};
+```
+
+**Production Monitoring Architecture**:
+```mermaid
+graph LR
+    VERCEL[Vercel Frontend] -->|HTTP2 Polling| RAILWAY[Railway Backend]
+    RAILWAY -->|Query| PGSQL[(PostgreSQL)]
+    RAILWAY -->|Bridge| CREWAI[CrewAI Flow]
+    CREWAI -->|Purple Logs| RAILWAY
+    RAILWAY -->|JSON Response| VERCEL
+```
+
+### **5. Hybrid Persistence Strategy**
+
+**Dual Persistence Approach**:
+1. **CrewAI `@persist()`**: Flow execution state and agent memory
+2. **PostgreSQL V2**: Enterprise management and multi-tenant isolation
+
+```python
+# Hybrid persistence in UnifiedDiscoveryFlow
+class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
+    @persist()  # ✅ CrewAI native persistence for execution state
+    async def _process_crew_result(self, phase: str, result: Any):
+        # Update CrewAI flow state
+        self.state.crew_status[phase] = {"status": "completed", "result": result}
+        
+        # Bridge to PostgreSQL for enterprise management
+        repo = DiscoveryFlowRepository(self.db, self.client_account_id)
+        await repo.update_flow_state(
+            flow_id=self.state.session_id,
+            current_phase=phase,
+            crewai_state_data=self.state.dict(),  # Bridge CrewAI state
+            agent_insights=result.get('agent_insights', {})
+        )
+        
+        return result
+```
+
+### **6. Integration Flow: CMDBImport → UnifiedDiscoveryFlow**
+
+**Complete Integration Path**:
+```mermaid
+sequenceDiagram
+    participant UI as CMDBImport.tsx
+    participant API as Backend API
+    participant V2 as V2 DiscoveryFlow
+    participant UDF as UnifiedDiscoveryFlow
+    participant CREW as CrewAI Crews
+    participant PG as PostgreSQL
+    
+    UI->>API: POST /data-import/store-import
+    API->>V2: Create V2 flow record
+    V2->>PG: Store with client_account_id
+    API->>UDF: Initialize UnifiedDiscoveryFlow
+    UDF->>CREW: Execute field mapping crew
+    CREW->>UDF: Return agent results
+    UDF->>V2: Update flow state via bridge
+    V2->>PG: Persist agent insights
+    API->>UI: Return flow_id for navigation
+```
+
+**Key Integration Points**:
+- ✅ **Data Import**: Triggers both V2 record creation AND UnifiedDiscoveryFlow
+- ✅ **Navigation**: Uses CrewAI `flow_id` for phase-specific routing
+- ✅ **State Sync**: Flow State Bridge keeps V2 and CrewAI in sync
+- ✅ **Monitoring**: HTTP2 polling queries V2 API for real-time updates
+
+---
+
 ## 🧠 **CrewAI Implementation Patterns**
 
 ### **1. Flow Definition Pattern**
@@ -309,6 +532,65 @@ class DiscoveryService:
         # Simple processing without agents
         return processed_data
 ```
+
+### **❌ CRITICAL: Frontend Independent Agents (ARCHITECTURAL VIOLATION)**
+
+**NEVER implement independent agents in frontend components** - this violates the core UnifiedDiscoveryFlow architecture:
+
+```typescript
+// ❌ WRONG: Independent validation agents in frontend (REMOVED 2025-01-27)
+const createValidationAgents = (category: string): DataImportAgent[] => {
+  return [
+    {
+      id: 'format_validator',
+      name: 'Format Validation Agent',        // ❌ COMPETING with UnifiedDiscoveryFlow
+      role: 'Validates file format, structure, and encoding',
+    },
+    {
+      id: 'data_quality_assessor',
+      name: 'Data Quality Agent',             // ❌ COMPETING with UnifiedDiscoveryFlow
+      role: 'Assesses data completeness, accuracy, consistency',
+    }
+  ];
+};
+
+// ❌ WRONG: Fake agent simulation in frontend
+const simulateAgentExecution = async (agents: DataImportAgent[]) => {
+  for (const agent of agents) {
+    // ❌ FAKE PROGRESS - not real agent execution
+    setProgress(agents.indexOf(agent) + 1);
+    await new Promise(resolve => setTimeout(resolve, 1500)); // ❌ FAKE DELAY
+  }
+};
+```
+
+**Why This Violates Architecture**:
+- **Competing Intelligence**: Frontend agents compete with UnifiedDiscoveryFlow crews
+- **Fake Processing**: Simulated delays and results instead of real AI analysis
+- **State Confusion**: Frontend shows "agent results" that aren't from actual CrewAI agents
+- **Error Handling Mismatch**: Frontend success/failure doesn't match actual flow state
+
+**✅ CORRECT: Direct UnifiedDiscoveryFlow Integration**:
+```typescript
+// ✅ Correct: Direct flow integration without competing agents
+const handleFileUpload = async (files: File[], categoryId: string) => {
+  const csvData = await parseCsvData(files[0]);
+  
+  // Store data and trigger UnifiedDiscoveryFlow directly
+  const { flow_id } = await storeImportData(csvData, files[0], sessionId, categoryId);
+  
+  if (flow_id) {
+    // Success - UnifiedDiscoveryFlow was triggered
+    navigate(`/discovery/attribute-mapping/${flow_id}`);
+  }
+};
+```
+
+**Key Principles**:
+- ✅ **No Frontend Agents**: All intelligence comes from UnifiedDiscoveryFlow
+- ✅ **Real Agent Results**: Display actual CrewAI agent insights from flow state
+- ✅ **Unified Error Handling**: Frontend status matches actual flow execution
+- ✅ **Direct Integration**: File upload → store data → trigger flow → navigate
 
 ---
 

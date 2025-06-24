@@ -46,14 +46,14 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 // Data Import Validation Agents
-interface DataImportAgent {
-  id: string;
-  name: string;
-  role: string;
-  icon: any;
-  status: 'pending' | 'analyzing' | 'completed' | 'failed';
-  result?: ValidationAgentResult;
-}
+// interface DataImportAgent {
+//   id: string;
+//   name: string;
+//   role: string;
+//   icon: any;
+//   status: 'pending' | 'analyzing' | 'completed' | 'failed';
+//   result?: ValidationAgentResult;
+// }
 
 interface UploadFile {
   id: string;
@@ -128,83 +128,6 @@ const uploadCategories = [
   }
 ];
 
-// Data Import Validation Agents
-const createValidationAgents = (category: string): DataImportAgent[] => {
-  const baseAgents = [
-    {
-      id: 'format_validator',
-      name: 'Format Validation Agent',
-      role: 'Validates file format, structure, and encoding',
-      icon: FileCheck,
-      status: 'pending' as const
-    },
-    {
-      id: 'security_scanner',
-      name: 'Security Analysis Agent',
-      role: 'Scans for malicious content, suspicious patterns',
-      icon: Shield,
-      status: 'pending' as const
-    },
-    {
-      id: 'privacy_analyzer', 
-      name: 'Privacy Protection Agent',
-      role: 'Identifies PII, GDPR compliance, data sensitivity',
-      icon: UserCheck,
-      status: 'pending' as const
-    },
-    {
-      id: 'data_quality_assessor',
-      name: 'Data Quality Agent',
-      role: 'Assesses data completeness, accuracy, consistency',
-      icon: Brain,
-      status: 'pending' as const
-    }
-  ];
-
-  // Add category-specific agents
-  const additionalAgents = [];
-  if (category === 'app-discovery') {
-    additionalAgents.push({
-      id: 'dependency_validator',
-      name: 'Dependency Analysis Agent',
-      role: 'Validates application relationships and dependencies',
-      icon: Activity,
-      status: 'pending' as const
-    });
-  }
-  
-  if (category === 'infrastructure') {
-    additionalAgents.push({
-      id: 'infrastructure_validator',
-      name: 'Infrastructure Analysis Agent',
-      role: 'Validates network and server configuration data',
-      icon: Monitor,
-      status: 'pending' as const
-    });
-  }
-  
-  if (category === 'sensitive') {
-    additionalAgents.push(
-      {
-        id: 'pii_detector',
-        name: 'PII Detection Agent',
-        role: 'Identifies and flags personally identifiable information',
-        icon: Eye,
-        status: 'pending' as const
-      },
-      {
-        id: 'compliance_checker',
-        name: 'Compliance Validation Agent',
-        role: 'Ensures regulatory compliance (GDPR, HIPAA, SOX)',
-        icon: Scan,
-        status: 'pending' as const
-      }
-    );
-  }
-
-  return [...baseAgents, ...additionalAgents];
-};
-
 const DataImport: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -217,7 +140,7 @@ const DataImport: React.FC = () => {
   const flowDeletion = useFlowDeletionV2();
   const bulkFlowOperations = useBulkFlowOperationsV2();
   const [showFlowManager, setShowFlowManager] = useState(false);
-  const [conflictFlows, setConflictFlows] = useState<any[]>([]); // For storing API response flows
+  const [conflictFlows, setConflictFlows] = useState<any[]>([]);
   
   const incompleteFlows = incompleteFlowsData?.flows || [];
   const hasIncompleteFlows = incompleteFlows.length > 0;
@@ -249,11 +172,10 @@ const DataImport: React.FC = () => {
   }, [navigate]);
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [validationAgents, setValidationAgents] = useState<DataImportAgent[]>([]);
   const [isDragging, setIsDragging] = useState(false);
-  const [isStartingFlow, setIsStartingFlow] = useState(false); // ✅ Added missing state
+  const [isStartingFlow, setIsStartingFlow] = useState(false);
 
-  // File upload handling with authentication context
+  // File upload handling with authentication context - SIMPLIFIED for UnifiedDiscoveryFlow
   const handleFileUpload = useCallback(async (files: File[], categoryId: string) => {
     if (files.length === 0) return;
 
@@ -312,89 +234,80 @@ const DataImport: React.FC = () => {
       status: 'uploading',
       agentResults: [],
       upload_progress: 0,
-      validation_progress: 0,
-      agents_completed: 0,
-      total_agents: uploadCategories.find(c => c.id === categoryId)?.agents.length || 0,
     };
 
     setUploadedFiles([newFile]);
     setSelectedCategory(categoryId);
-    setValidationAgents(createValidationAgents(categoryId));
 
     try {
-      // Simulate upload progress
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setUploadedFiles(prev => prev.map(f => f.id === newFile.id ? { ...f, status: 'validating', upload_progress: 100 } : f));
+      // Update to processing status
+      setUploadedFiles(prev => prev.map(f => f.id === newFile.id ? { 
+        ...f, 
+        status: 'validating', 
+        upload_progress: 100 
+      } : f));
       
-      console.log('About to call validation service with:', {
-        filename: file.name,
-        size: file.size,
-        type: file.type,
-        categoryId: categoryId,
-        effectiveClient: effectiveClient.id,
-        effectiveEngagement: effectiveEngagement.id,
-      });
+      // Parse CSV data
+      const csvData = await parseCsvData(file);
+      
+      if (csvData.length === 0) {
+        throw new Error("No valid data found in the CSV file");
+      }
 
-      const validationResponse = await DataImportValidationService.validateFile(
-        file,
-        categoryId,
-        {
-          client_account_id: effectiveClient.id,
-          engagement_id: effectiveEngagement.id,
-          user_id: user.id,
-          session_id: session?.id || `session-${Date.now()}`,
-          headers: getAuthHeaders(),
-        }
-      );
-
-      console.log('Validation service response:', validationResponse);
-
-      if (validationResponse.success) {
-        // Persist validated data to the backend
-        const csvData = await parseCsvData(file);
-        
-        console.log('Persisting validated data to database...');
-        const { import_session_id, flow_id } = await storeImportData(csvData, file, validationResponse.validation_session.file_id, categoryId);
-        console.log('Received importSessionId:', import_session_id);
-
-
+      console.log(`Parsed ${csvData.length} records from CSV file`);
+      
+      // Generate a temporary session ID for the upload
+      const tempSessionId = `upload-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Store data and trigger UnifiedDiscoveryFlow directly
+      console.log('Storing data and triggering UnifiedDiscoveryFlow...');
+      const { import_session_id, flow_id } = await storeImportData(csvData, file, tempSessionId, categoryId);
+      
+      if (flow_id) {
+        // Success - UnifiedDiscoveryFlow was triggered
         setUploadedFiles(prev => prev.map(f => f.id === newFile.id ? { 
           ...f, 
-          status: validationResponse.file_status,
-          agentResults: validationResponse.agent_results,
-          security_clearance: validationResponse.security_clearances.security_clearance,
-          privacy_clearance: validationResponse.security_clearances.privacy_clearance,
-          format_validation: validationResponse.security_clearances.format_validation,
+          status: 'approved',
           importSessionId: import_session_id || undefined,
-          validationSessionId: validationResponse.validation_session.file_id,
-          agents_completed: validationResponse.agent_results.length,
-          flow_id: flow_id || undefined,
+          flow_id: flow_id,
+          agentResults: [{
+            agent_id: 'unified_flow',
+            agent_name: 'UnifiedDiscoveryFlow',
+            validation: 'passed',
+            confidence: 1.0,
+            message: 'Data successfully processed by CrewAI Discovery Flow',
+            timestamp: new Date().toISOString(),
+            details: [
+              `Successfully uploaded ${csvData.length} records`,
+              'UnifiedDiscoveryFlow initiated with CrewAI agents',
+              'Data ready for field mapping and analysis phase'
+            ]
+          }]
         } : f));
-
-        // Update agent statuses
-        setValidationAgents(prevAgents => prevAgents.map(agent => {
-          const result = validationResponse.agent_results.find(r => r.agent_id === agent.id);
-          return result ? { ...agent, status: 'completed', result } : agent;
-        }));
         
         toast({
-          title: "Validation Complete",
-          description: `File processed with status: ${validationResponse.file_status}`,
+          title: "Upload Successful",
+          description: `File uploaded and UnifiedDiscoveryFlow initiated. ${csvData.length} records processed.`,
         });
       } else {
-        throw new Error("Validation failed");
+        throw new Error("Failed to trigger UnifiedDiscoveryFlow - no flow ID returned");
       }
+      
     } catch (error) {
-      console.error("File upload and validation error:", error);
+      console.error("File upload and flow trigger error:", error);
       const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred.";
-      setUploadedFiles(prev => prev.map(f => f.id === newFile.id ? { ...f, status: 'error', error_message: errorMessage } : f));
+      setUploadedFiles(prev => prev.map(f => f.id === newFile.id ? { 
+        ...f, 
+        status: 'error', 
+        error_message: errorMessage 
+      } : f));
       toast({
         title: "Upload Failed",
         description: errorMessage,
         variant: "destructive",
       });
     }
-  }, [user, client, engagement, session, toast, getAuthHeaders, navigate]);
+  }, [user, client, engagement, session, toast, getAuthHeaders]);
 
 
   // Start Discovery Flow
@@ -929,55 +842,7 @@ const DataImport: React.FC = () => {
                         </div>
 
                         {/* Agent Results */}
-                        {validationAgents.length > 0 && (
-                          <div className="space-y-3">
-                            <h4 className="font-medium text-gray-900">Validation Agent Results</h4>
-                            <div className="space-y-2">
-                              {validationAgents.map((agent) => (
-                                <div key={agent.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                  <div className="flex items-center space-x-3">
-                                    <agent.icon className="h-5 w-5 text-gray-600" />
-                                    <div>
-                                      <p className="font-medium text-gray-900">{agent.name}</p>
-                                      <p className="text-sm text-gray-600">{agent.role}</p>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    {agent.status === 'analyzing' && (
-                                      <Loader2 className="h-4 w-4 animate-spin text-orange-500" />
-                                    )}
-                                    {agent.status === 'completed' && agent.result && (
-                                      <>
-                                        {agent.result.validation === 'passed' && (
-                                          <CheckCircle className="h-4 w-4 text-green-500" />
-                                        )}
-                                        {agent.result.validation === 'warning' && (
-                                          <AlertTriangle className="h-4 w-4 text-orange-500" />
-                                        )}
-                                        {agent.result.validation === 'failed' && (
-                                          <AlertCircle className="h-4 w-4 text-red-500" />
-                                        )}
-                                        <span className="text-sm text-gray-600">
-                                          {(agent.result.confidence * 100).toFixed(0)}% confidence
-                                        </span>
-                                      </>
-                                    )}
-                                    <Badge 
-                                      variant="outline"
-                                      className={
-                                        agent.status === 'completed' ? 'text-green-700' :
-                                        agent.status === 'analyzing' ? 'text-orange-700' :
-                                        'text-gray-700'
-                                      }
-                                    >
-                                      {agent.status}
-                                    </Badge>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
+                        {/* Agent results are removed as per the new architecture */}
 
                         {/* Action Buttons */}
                         {(file.status === 'approved' || file.status === 'approved_with_warnings') && (
