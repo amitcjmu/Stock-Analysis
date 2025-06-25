@@ -17,12 +17,14 @@ class TechDebtAnalysisAgent(BaseDiscoveryAgent):
     
     def __init__(self):
         super().__init__(
-            agent_id="tech_debt_analysis_001",
-            name="Tech Debt Analysis Specialist", 
-            role="Legacy Systems Modernization Expert",
-            goal="Identify technical debt and modernization opportunities with 6R strategy recommendations",
-            backstory="Expert in legacy system analysis and cloud migration strategy assessment"
+            agent_name="Tech Debt Analysis Specialist",
+            agent_id="tech_debt_analysis_001"
         )
+        
+        # Store agent context for CrewAI
+        self.role = "Legacy Systems Modernization Expert"
+        self.goal = "Identify technical debt and modernization opportunities with 6R strategy recommendations"
+        self.backstory = "Expert in legacy system analysis and cloud migration strategy assessment with extensive experience in technical debt remediation and modernization planning"
         
         # Tech debt indicators
         self.tech_debt_patterns = {
@@ -51,6 +53,22 @@ class TechDebtAnalysisAgent(BaseDiscoveryAgent):
         }
         
         self.logger.info(f"🔧 Tech Debt Analysis Agent initialized")
+
+    def get_role(self) -> str:
+        """Return the agent's role description"""
+        return self.role
+    
+    def get_goal(self) -> str:
+        """Return the agent's goal description"""
+        return self.goal
+    
+    def get_backstory(self) -> str:
+        """Return the agent's backstory"""
+        return self.backstory
+
+    async def execute(self, data: Dict[str, Any], context: Dict[str, Any] = None) -> AgentResult:
+        """Execute the agent's main functionality"""
+        return await self.execute_analysis(data, context)
     
     async def execute_analysis(self, data: Dict[str, Any], context: Dict[str, Any] = None) -> AgentResult:
         """Execute tech debt analysis"""
@@ -76,24 +94,38 @@ class TechDebtAnalysisAgent(BaseDiscoveryAgent):
             execution_time = time.time() - start_time
             
             return AgentResult(
-                agent_id=self.agent_id,
-                status='completed',
+                agent_name=self.agent_name,
+                execution_time=execution_time,
                 confidence_score=82.0,
+                status='success',
                 data={
                     'tech_debt_analysis': tech_debt_results,
                     'sixr_recommendations': sixr_recommendations,
                     'risk_assessment': risk_assessment,
                     'modernization_summary': await self._create_modernization_summary(tech_debt_results, sixr_recommendations)
                 },
-                insights=insights,
-                clarifications=[],
-                execution_time=execution_time,
+                insights_generated=insights,
+                clarifications_requested=[],
                 metadata={'assets_analyzed': len(assets)}
             )
             
         except Exception as e:
             execution_time = time.time() - start_time
             return self._create_error_result(f"Tech debt analysis failed: {str(e)}", execution_time)
+
+    def _create_error_result(self, error_message: str, execution_time: float = 0.0) -> AgentResult:
+        """Create an error result"""
+        return AgentResult(
+            agent_name=self.agent_name,
+            execution_time=execution_time,
+            confidence_score=0.0,
+            status='failed',
+            data={},
+            errors=[error_message],
+            clarifications_requested=[],
+            insights_generated=[],
+            metadata={}
+        )
     
     async def _analyze_tech_debt(self, assets: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Analyze technical debt in assets"""

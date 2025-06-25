@@ -21,6 +21,11 @@ class AssetInventoryAgent(BaseDiscoveryAgent):
             agent_id="asset_inventory_001"
         )
         
+        # Store agent context for CrewAI
+        self.role = "Asset Inventory and Classification Expert"
+        self.goal = "Accurately classify and categorize all discovered assets with proper criticality assessment"
+        self.backstory = "Expert asset inventory specialist with deep knowledge of enterprise IT infrastructure"
+        
         # Asset classification models
         self.asset_types = {
             'server': ['server', 'host', 'machine', 'node', 'vm', 'virtual'],
@@ -52,15 +57,15 @@ class AssetInventoryAgent(BaseDiscoveryAgent):
     
     def get_role(self) -> str:
         """Return the agent's role description"""
-        return "Asset Inventory and Classification Expert"
+        return self.role
     
     def get_goal(self) -> str:
         """Return the agent's goal description"""
-        return "Accurately classify and categorize all discovered assets with proper criticality assessment"
+        return self.goal
     
     def get_backstory(self) -> str:
         """Return the agent's backstory"""
-        return "Expert asset inventory specialist with deep knowledge of enterprise IT infrastructure"
+        return self.backstory
     
     async def execute(self, data: Dict[str, Any], context: Dict[str, Any] = None) -> AgentResult:
         """Execute the agent's main functionality"""

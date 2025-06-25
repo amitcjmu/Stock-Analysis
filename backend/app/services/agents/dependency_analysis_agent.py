@@ -17,12 +17,14 @@ class DependencyAnalysisAgent(BaseDiscoveryAgent):
     
     def __init__(self):
         super().__init__(
-            agent_id="dependency_analysis_001",
-            name="Dependency Analysis Specialist",
-            role="Network Architecture and Dependency Expert",
-            goal="Identify and map critical dependencies and network relationships between assets",
-            backstory="Expert in network topology analysis and application integration mapping"
+            agent_name="Dependency Analysis Specialist",
+            agent_id="dependency_analysis_001"
         )
+        
+        # Store agent context for CrewAI
+        self.role = "Network Architecture and Dependency Expert"
+        self.goal = "Identify and map critical dependencies and network relationships between assets"
+        self.backstory = "Expert in network topology analysis and application integration mapping with extensive experience in enterprise dependency analysis and migration planning"
         
         # Dependency indicators
         self.dependency_patterns = {
@@ -39,6 +41,22 @@ class DependencyAnalysisAgent(BaseDiscoveryAgent):
         ]
         
         self.logger.info(f"🔗 Dependency Analysis Agent initialized")
+
+    def get_role(self) -> str:
+        """Return the agent's role description"""
+        return self.role
+    
+    def get_goal(self) -> str:
+        """Return the agent's goal description"""
+        return self.goal
+    
+    def get_backstory(self) -> str:
+        """Return the agent's backstory"""
+        return self.backstory
+
+    async def execute(self, data: Dict[str, Any], context: Dict[str, Any] = None) -> AgentResult:
+        """Execute the agent's main functionality"""
+        return await self.execute_analysis(data, context)
     
     async def execute_analysis(self, data: Dict[str, Any], context: Dict[str, Any] = None) -> AgentResult:
         """Execute dependency analysis"""
@@ -61,23 +79,37 @@ class DependencyAnalysisAgent(BaseDiscoveryAgent):
             execution_time = time.time() - start_time
             
             return AgentResult(
-                agent_id=self.agent_id,
-                status='completed',
+                agent_name=self.agent_name,
+                execution_time=execution_time,
                 confidence_score=78.0,
+                status='success',
                 data={
                     'dependencies': dependency_results,
                     'critical_paths': critical_paths,
                     'dependency_summary': await self._create_dependency_summary(dependency_results)
                 },
-                insights=insights,
-                clarifications=[],
-                execution_time=execution_time,
+                insights_generated=insights,
+                clarifications_requested=[],
                 metadata={'assets_analyzed': len(assets)}
             )
             
         except Exception as e:
             execution_time = time.time() - start_time
             return self._create_error_result(f"Dependency analysis failed: {str(e)}", execution_time)
+
+    def _create_error_result(self, error_message: str, execution_time: float = 0.0) -> AgentResult:
+        """Create an error result"""
+        return AgentResult(
+            agent_name=self.agent_name,
+            execution_time=execution_time,
+            confidence_score=0.0,
+            status='failed',
+            data={},
+            errors=[error_message],
+            clarifications_requested=[],
+            insights_generated=[],
+            metadata={}
+        )
     
     async def _analyze_dependencies(self, assets: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Analyze dependencies between assets"""

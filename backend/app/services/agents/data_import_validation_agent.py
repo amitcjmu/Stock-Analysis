@@ -76,6 +76,19 @@ class DataImportValidationAgent(BaseDiscoveryAgent):
         Returns:
             AgentResult with validation results and security assessment
         """
+        return await self.execute_analysis(data, context)
+    
+    async def execute_analysis(self, data: Dict[str, Any], context: Dict[str, Any] = None) -> AgentResult:
+        """
+        Execute comprehensive data import validation analysis
+        
+        Args:
+            data: Raw imported data
+            context: Flow context with metadata
+            
+        Returns:
+            AgentResult with validation results and security assessment
+        """
         start_time = time.time()
         context = context or {}
         

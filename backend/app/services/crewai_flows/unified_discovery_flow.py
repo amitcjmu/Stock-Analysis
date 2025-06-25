@@ -242,10 +242,10 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             self.state.agent_confidences['data_validation'] = validation_result.confidence_score
             
             # Collect insights and clarifications
-            if validation_result.insights:
-                self.state.agent_insights.extend(validation_result.insights)
-            if validation_result.clarifications:
-                self.state.user_clarifications.extend(validation_result.clarifications)
+            if validation_result.insights_generated:
+                self.state.agent_insights.extend([insight.dict() for insight in validation_result.insights_generated])
+            if validation_result.clarifications_requested:
+                self.state.user_clarifications.extend([req.dict() for req in validation_result.clarifications_requested])
             
             # Update phase completion
             self.state.phase_completion['data_import'] = True
@@ -292,10 +292,10 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             self.state.agent_confidences['attribute_mapping'] = mapping_result.confidence_score
             
             # Collect insights and clarifications
-            if mapping_result.insights:
-                self.state.agent_insights.extend(mapping_result.insights)
-            if mapping_result.clarifications:
-                self.state.user_clarifications.extend(mapping_result.clarifications)
+            if mapping_result.insights_generated:
+                self.state.agent_insights.extend([insight.dict() for insight in mapping_result.insights_generated])
+            if mapping_result.clarifications_requested:
+                self.state.user_clarifications.extend([req.dict() for req in mapping_result.clarifications_requested])
             
             # Update phase completion
             self.state.phase_completion['field_mapping'] = True
@@ -340,10 +340,10 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             self.state.agent_confidences['data_cleansing'] = cleansing_result.confidence_score
             
             # Collect insights and clarifications
-            if cleansing_result.insights:
-                self.state.agent_insights.extend(cleansing_result.insights)
-            if cleansing_result.clarifications:
-                self.state.user_clarifications.extend(cleansing_result.clarifications)
+            if cleansing_result.insights_generated:
+                self.state.agent_insights.extend([insight.dict() for insight in cleansing_result.insights_generated])
+            if cleansing_result.clarifications_requested:
+                self.state.user_clarifications.extend([req.dict() for req in cleansing_result.clarifications_requested])
             
             # Update phase completion
             self.state.phase_completion['data_cleansing'] = True
@@ -396,10 +396,10 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             if not isinstance(asset_result, Exception):
                 self.state.asset_inventory = asset_result.data
                 self.state.agent_confidences['asset_inventory'] = asset_result.confidence_score
-                if asset_result.insights:
-                    self.state.agent_insights.extend(asset_result.insights)
-                if asset_result.clarifications:
-                    self.state.user_clarifications.extend(asset_result.clarifications)
+                if asset_result.insights_generated:
+                    self.state.agent_insights.extend([insight.dict() for insight in asset_result.insights_generated])
+                if asset_result.clarifications_requested:
+                    self.state.user_clarifications.extend([req.dict() for req in asset_result.clarifications_requested])
                 logger.info(f"✅ Asset inventory agent completed (confidence: {asset_result.confidence_score:.1f}%)")
             else:
                 logger.error(f"❌ Asset inventory agent failed: {asset_result}")
@@ -409,10 +409,10 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             if not isinstance(dependency_result, Exception):
                 self.state.dependency_analysis = dependency_result.data
                 self.state.agent_confidences['dependency_analysis'] = dependency_result.confidence_score
-                if dependency_result.insights:
-                    self.state.agent_insights.extend(dependency_result.insights)
-                if dependency_result.clarifications:
-                    self.state.user_clarifications.extend(dependency_result.clarifications)
+                if dependency_result.insights_generated:
+                    self.state.agent_insights.extend([insight.dict() for insight in dependency_result.insights_generated])
+                if dependency_result.clarifications_requested:
+                    self.state.user_clarifications.extend([req.dict() for req in dependency_result.clarifications_requested])
                 logger.info(f"✅ Dependency analysis agent completed (confidence: {dependency_result.confidence_score:.1f}%)")
             else:
                 logger.error(f"❌ Dependency analysis agent failed: {dependency_result}")
@@ -422,10 +422,10 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             if not isinstance(tech_debt_result, Exception):
                 self.state.tech_debt_analysis = tech_debt_result.data
                 self.state.agent_confidences['tech_debt_analysis'] = tech_debt_result.confidence_score
-                if tech_debt_result.insights:
-                    self.state.agent_insights.extend(tech_debt_result.insights)
-                if tech_debt_result.clarifications:
-                    self.state.user_clarifications.extend(tech_debt_result.clarifications)
+                if tech_debt_result.insights_generated:
+                    self.state.agent_insights.extend([insight.dict() for insight in tech_debt_result.insights_generated])
+                if tech_debt_result.clarifications_requested:
+                    self.state.user_clarifications.extend([req.dict() for req in tech_debt_result.clarifications_requested])
                 logger.info(f"✅ Tech debt analysis agent completed (confidence: {tech_debt_result.confidence_score:.1f}%)")
             else:
                 logger.error(f"❌ Tech debt analysis agent failed: {tech_debt_result}")

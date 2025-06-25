@@ -162,6 +162,19 @@ class AttributeMappingAgent(BaseDiscoveryAgent):
         Returns:
             AgentResult with comprehensive field mappings and confidence scores
         """
+        return await self.execute_analysis(data, context)
+    
+    async def execute_analysis(self, data: Dict[str, Any], context: Dict[str, Any] = None) -> AgentResult:
+        """
+        Execute comprehensive attribute mapping analysis
+        
+        Args:
+            data: Data with source columns to map
+            context: Flow context with metadata
+            
+        Returns:
+            AgentResult with comprehensive field mappings and confidence scores
+        """
         start_time = time.time()
         context = context or {}
         

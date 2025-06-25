@@ -132,6 +132,19 @@ class DataCleansingAgent(BaseDiscoveryAgent):
         Returns:
             AgentResult with cleaned data and bulk operation summaries
         """
+        return await self.execute_analysis(data, context)
+    
+    async def execute_analysis(self, data: Dict[str, Any], context: Dict[str, Any] = None) -> AgentResult:
+        """
+        Execute comprehensive data cleansing and bulk operations analysis
+        
+        Args:
+            data: Data with field mappings and raw data
+            context: Flow context with metadata
+            
+        Returns:
+            AgentResult with cleaned data and bulk operation summaries
+        """
         start_time = time.time()
         context = context or {}
         

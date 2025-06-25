@@ -84,9 +84,13 @@ class UnifiedDiscoveryFlowState(BaseModel):
         "agent_insights": {}
     })
     
+    # Data validation results (from DataImportValidationAgent)
+    data_validation_results: Dict[str, Any] = Field(default_factory=dict)
+    
     # Data cleansing results
     cleaned_data: List[Dict[str, Any]] = Field(default_factory=list)
     data_quality_metrics: Dict[str, Any] = Field(default_factory=dict)
+    data_cleansing_results: Dict[str, Any] = Field(default_factory=dict)
     
     # Asset inventory results
     asset_inventory: Dict[str, Any] = Field(default_factory=lambda: {
@@ -113,6 +117,9 @@ class UnifiedDiscoveryFlowState(BaseModel):
         }
     })
     
+    # Dependency analysis results (agent output)
+    dependency_analysis: Dict[str, Any] = Field(default_factory=dict)
+    
     # Technical debt analysis results
     technical_debt: Dict[str, Any] = Field(default_factory=lambda: {
         "debt_scores": {},
@@ -120,6 +127,9 @@ class UnifiedDiscoveryFlowState(BaseModel):
         "risk_assessments": {},
         "six_r_preparation": {}
     })
+    
+    # Tech debt analysis results (agent output)
+    tech_debt_analysis: Dict[str, Any] = Field(default_factory=dict)
     
     # ========================================
     # FLOW CONTROL AND STATUS
@@ -188,6 +198,11 @@ class UnifiedDiscoveryFlowState(BaseModel):
     agent_insights: List[Dict[str, Any]] = Field(default_factory=list)
     clarification_questions: List[Dict[str, Any]] = Field(default_factory=list)
     agent_results: Dict[str, Any] = Field(default_factory=dict)
+    
+    # Agent confidence tracking and coordination
+    agent_confidences: Dict[str, float] = Field(default_factory=dict)
+    user_clarifications: List[Dict[str, Any]] = Field(default_factory=list)
+    crew_escalations: List[Dict[str, Any]] = Field(default_factory=list)
     
     # ========================================
     # TIMESTAMPS
