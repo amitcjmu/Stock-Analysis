@@ -116,17 +116,57 @@ class FlowStateBridge:
             # Determine current phase from state
             current_phase = getattr(state, 'current_phase', 'unknown')
             
-            # Update PostgreSQL state
-            pg_result = await self.pg_persistence.update_workflow_state(state)
-            
-            logger.debug(f"🔄 Flow state updated for CrewAI Flow ID: {state.flow_id}, phase: {current_phase}")
-            
-            return {
-                "status": "success",
-                "postgresql_update": pg_result,
-                "phase": current_phase,
-                "flow_id": state.flow_id
-            }
+            # Handle phase mapping for parallel analysis phases
+            if current_phase == "analysis":
+                # For analysis phase, update individual component phases based on completion status
+                analysis_results = []
+                
+                # Check which analysis components completed and update them individually
+                if state.phase_completion.get('asset_inventory', False):
+                    inventory_result = await self.pg_persistence.update_workflow_state(state)
+                    await self.pg_persistence.persist_phase_completion(state, "inventory", {
+                        "assets": state.asset_inventory,
+                        "confidence": state.agent_confidences.get('asset_inventory', 0.0)
+                    })
+                    analysis_results.append(("inventory", inventory_result))
+                
+                if state.phase_completion.get('dependency_analysis', False):
+                    deps_result = await self.pg_persistence.update_workflow_state(state)
+                    await self.pg_persistence.persist_phase_completion(state, "dependencies", {
+                        "dependencies": state.dependency_analysis,
+                        "confidence": state.agent_confidences.get('dependency_analysis', 0.0)
+                    })
+                    analysis_results.append(("dependencies", deps_result))
+                
+                if state.phase_completion.get('tech_debt_analysis', False):
+                    tech_debt_result = await self.pg_persistence.update_workflow_state(state)
+                    await self.pg_persistence.persist_phase_completion(state, "tech_debt", {
+                        "tech_debt": state.tech_debt_analysis,
+                        "confidence": state.agent_confidences.get('tech_debt_analysis', 0.0)
+                    })
+                    analysis_results.append(("tech_debt", tech_debt_result))
+                
+                logger.debug(f"🔄 Analysis phase components updated for CrewAI Flow ID: {state.flow_id}")
+                
+                return {
+                    "status": "success",
+                    "postgresql_update": analysis_results,
+                    "phase": "analysis (multi-component)",
+                    "flow_id": state.flow_id,
+                    "components_updated": len(analysis_results)
+                }
+            else:
+                # Standard single-phase update
+                pg_result = await self.pg_persistence.update_workflow_state(state)
+                
+                logger.debug(f"🔄 Flow state updated for CrewAI Flow ID: {state.flow_id}, phase: {current_phase}")
+                
+                return {
+                    "status": "success",
+                    "postgresql_update": pg_result,
+                    "phase": current_phase,
+                    "flow_id": state.flow_id
+                }
             
         except Exception as e:
             logger.warning(f"⚠️ Flow state update failed (non-critical): {e}")

@@ -270,7 +270,7 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             logger.warning("⚠️ Proceeding with attribute mapping despite validation issues")
         
         logger.info("🤖 Starting Attribute Mapping with Agent-First Architecture")
-        self.state.current_phase = "field_mapping"
+        self.state.current_phase = "attribute_mapping"
         
         try:
             # Prepare agent data
@@ -298,7 +298,7 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
                 self.state.user_clarifications.extend([req.model_dump() for req in mapping_result.clarifications_requested])
             
             # Update phase completion
-            self.state.phase_completion['field_mapping'] = True
+            self.state.phase_completion['attribute_mapping'] = True
             self.state.progress_percentage = 40.0
             
             # Persist state
@@ -310,8 +310,8 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             
         except Exception as e:
             logger.error(f"❌ Attribute mapping agent failed: {e}")
-            self.state.add_error("field_mapping", f"Agent execution failed: {str(e)}")
-            return "field_mapping_failed"
+            self.state.add_error("attribute_mapping", f"Agent execution failed: {str(e)}")
+            return "attribute_mapping_failed"
 
     @listen(execute_attribute_mapping_agent)
     async def execute_data_cleansing_agent(self, previous_result):
