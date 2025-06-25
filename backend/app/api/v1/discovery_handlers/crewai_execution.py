@@ -112,18 +112,9 @@ class CrewAIExecutionHandler:
         try:
             logger.info("🔍 Getting active CrewAI flows")
             
-            # Mock active flows
-            active_flows = [
-                {
-                    "flow_id": f"crew-{datetime.now().strftime('%Y%m%d-%H%M%S')}",
-                    "status": "running",
-                    "current_phase": "asset_analysis",
-                    "agents_active": 3,
-                    "progress_percentage": 45.0,
-                    "execution_type": "crewai",
-                    "created_at": datetime.now().isoformat()
-                }
-            ]
+            # Return empty list - CrewAI flows are managed through the database
+            # The mock flows were causing confusion with flow IDs
+            active_flows = []
             
             logger.info(f"✅ Retrieved {len(active_flows)} active CrewAI flows")
             return active_flows
@@ -197,18 +188,21 @@ class CrewAIExecutionHandler:
         try:
             logger.info(f"🗑️ Deleting CrewAI flow: {flow_id}, force: {force_delete}")
             
+            # For now, CrewAI flows are managed through the database
+            # Just return success to avoid blocking database deletion
             cleanup_summary = {
-                "agent_sessions_terminated": 7,
-                "memory_patterns_archived": 23,
-                "insights_preserved": 47,
-                "learning_data_backed_up": True,
-                "cleanup_time": datetime.now().isoformat()
+                "agent_sessions_terminated": 0,
+                "memory_patterns_archived": 0,
+                "insights_preserved": 0,
+                "learning_data_backed_up": False,
+                "cleanup_time": datetime.now().isoformat(),
+                "note": "CrewAI flows managed through database"
             }
             
             result = {
                 "flow_id": flow_id,
                 "deleted": True,
-                "agents_terminated": True,
+                "agents_terminated": False,
                 "cleanup_summary": cleanup_summary,
                 "timestamp": datetime.now().isoformat()
             }
