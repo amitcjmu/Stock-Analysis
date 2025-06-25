@@ -107,6 +107,36 @@ class FlowStateBridge:
                 "impact": "PostgreSQL state may be stale, but CrewAI flow continues"
             }
     
+    async def update_flow_state(self, state: UnifiedDiscoveryFlowState) -> Dict[str, Any]:
+        """
+        Update flow state in PostgreSQL persistence layer.
+        This method provides compatibility with the UnifiedDiscoveryFlow expectations.
+        """
+        try:
+            # Determine current phase from state
+            current_phase = getattr(state, 'current_phase', 'unknown')
+            
+            # Update PostgreSQL state
+            pg_result = await self.pg_persistence.update_workflow_state(state)
+            
+            logger.debug(f"🔄 Flow state updated for CrewAI Flow ID: {state.flow_id}, phase: {current_phase}")
+            
+            return {
+                "status": "success",
+                "postgresql_update": pg_result,
+                "phase": current_phase,
+                "flow_id": state.flow_id
+            }
+            
+        except Exception as e:
+            logger.warning(f"⚠️ Flow state update failed (non-critical): {e}")
+            # Don't fail the flow - this is supplementary persistence
+            return {
+                "status": "update_failed",
+                "error": str(e),
+                "impact": "PostgreSQL state may be stale, but CrewAI flow continues"
+            }
+    
     async def recover_flow_state(self, session_id: str) -> Optional[UnifiedDiscoveryFlowState]:
         """
         Recover flow state from PostgreSQL when CrewAI persistence fails.

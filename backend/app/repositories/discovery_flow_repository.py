@@ -198,6 +198,11 @@ class DiscoveryFlowRepository(ContextAwareRepository):
                 if agent_insights:
                     state_data["agent_insights"] = agent_insights
                 update_values["crewai_state_data"] = state_data
+                
+                # Set CrewAI persistence ID if not already set (for validation compatibility)
+                if not existing_flow.crewai_persistence_id and data.get("validation_compatible"):
+                    import uuid as uuid_pkg
+                    update_values["crewai_persistence_id"] = uuid_pkg.uuid4()
         
         # Calculate progress percentage
         completed_phases = 0

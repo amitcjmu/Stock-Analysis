@@ -60,9 +60,12 @@ class PostgreSQLFlowPersistence:
         
         # Convert string UUIDs to UUID objects for database operations
         try:
-            self.client_uuid = uuid.UUID(client_account_id)
-            self.engagement_uuid = uuid.UUID(engagement_id)
-            self.user_uuid = uuid.UUID(user_id) if user_id and user_id != "system" else None
+            # Handle both string and UUID object inputs
+            self.client_uuid = client_account_id if isinstance(client_account_id, uuid.UUID) else uuid.UUID(client_account_id)
+            self.engagement_uuid = engagement_id if isinstance(engagement_id, uuid.UUID) else uuid.UUID(engagement_id)
+            self.user_uuid = None
+            if user_id and user_id != "system":
+                self.user_uuid = user_id if isinstance(user_id, uuid.UUID) else uuid.UUID(user_id)
         except (ValueError, TypeError) as e:
             logger.error(f"Invalid UUID format in persistence layer: {e}")
             raise ValueError(f"Invalid UUID format: {e}")
@@ -94,7 +97,7 @@ class PostgreSQLFlowPersistence:
                     metadata={
                         "legacy_migration": True,
                         "original_session_id": state.session_id,
-                        "crewai_state": state.dict()
+                        "crewai_state": state.model_dump()
                     },
                     user_id=self.user_id
                 )
@@ -142,7 +145,7 @@ class PostgreSQLFlowPersistence:
                             "status": state.status,
                             "progress": state.progress_percentage,
                             "crew_status": state.crew_status,
-                            "legacy_data": state.dict()
+                            "legacy_data": state.model_dump()
                         },
                         crew_status=state.crew_status,
                         agent_insights=state.agent_insights or []
@@ -466,7 +469,7 @@ class PostgreSQLFlowPersistence:
                 
                 # Update flow persistence data
                 flow_persistence_data = extensions.flow_persistence_data or {}
-                flow_persistence_data["last_state_snapshot"] = state.dict()
+                flow_persistence_data["last_state_snapshot"] = state.model_dump()
                 flow_persistence_data["last_updated"] = datetime.utcnow().isoformat()
                 
                 # Update extensions
