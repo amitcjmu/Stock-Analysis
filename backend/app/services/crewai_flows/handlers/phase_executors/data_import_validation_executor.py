@@ -535,4 +535,77 @@ class DataImportValidationExecutor(BasePhaseExecutor):
             else:
                 return datetime.utcnow().isoformat()
         except Exception:
-            return datetime.utcnow().isoformat() 
+            return datetime.utcnow().isoformat()
+
+    def _generate_user_report(self, results: Dict[str, Any], file_analysis: Dict[str, Any], 
+                             pii_check: Dict[str, Any], security_check: Dict[str, Any], 
+                             type_check: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate comprehensive user report for data validation results"""
+        try:
+            total_records = len(self.state.raw_data) if self.state.raw_data else 0
+            field_count = len(self.state.raw_data[0].keys()) if self.state.raw_data else 0
+            
+            report = {
+                "validation_summary": {
+                    "status": "passed" if results["is_valid"] else "failed",
+                    "total_records": total_records,
+                    "total_fields": field_count,
+                    "quality_score": results.get("quality_score", 0.0),
+                    "security_status": results.get("security_status", "unknown"),
+                    "recommended_agent": results.get("recommended_agent", "CMDB_Data_Analyst_Agent")
+                },
+                "file_analysis": {
+                    "detected_type": file_analysis.get("detected_type", "unknown"),
+                    "confidence": file_analysis.get("confidence", 0.0),
+                    "analysis_details": file_analysis.get("analysis_details", "No analysis available")
+                },
+                "security_analysis": {
+                    "pii_detected": pii_check.get("pii_found", False),
+                    "pii_types": pii_check.get("pii_types", []),
+                    "threats_found": security_check.get("threats_found", False),
+                    "threat_types": security_check.get("threat_types", [])
+                },
+                "data_quality": {
+                    "quality_score": type_check.get("quality_score", 0.0),
+                    "total_fields": type_check.get("total_fields", 0),
+                    "valid_fields": type_check.get("valid_fields", 0)
+                },
+                "recommendations": [],
+                "next_steps": []
+            }
+            
+            # Add recommendations based on analysis
+            if results["is_valid"]:
+                report["recommendations"].append("Data validation passed - ready for field mapping")
+                report["next_steps"].append("Proceed to field mapping phase")
+                report["next_steps"].append("Review recommended agent selection")
+            else:
+                report["recommendations"].append(f"Data validation failed: {results.get('reason', 'Unknown error')}")
+                report["next_steps"].append("Fix data issues before proceeding")
+            
+            if pii_check.get("pii_found", False):
+                report["recommendations"].append("PII detected - ensure data handling compliance")
+                report["next_steps"].append("Review PII handling policies")
+            
+            if security_check.get("threats_found", False):
+                report["recommendations"].append("Security threats detected - data requires sanitization")
+                report["next_steps"].append("Clean malicious content before proceeding")
+            
+            if type_check.get("quality_score", 0.0) < 0.8:
+                report["recommendations"].append("Low data quality score - consider data cleansing")
+                report["next_steps"].append("Review data quality issues")
+            
+            return report
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to generate user report: {e}")
+            return {
+                "validation_summary": {
+                    "status": "error",
+                    "total_records": 0,
+                    "total_fields": 0,
+                    "error": str(e)
+                },
+                "recommendations": ["Report generation failed - manual review required"],
+                "next_steps": ["Contact system administrator"]
+            } 

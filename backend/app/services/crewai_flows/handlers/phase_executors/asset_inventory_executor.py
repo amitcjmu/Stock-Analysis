@@ -15,18 +15,45 @@ class AssetInventoryExecutor(BasePhaseExecutor):
         return 50.0  # 3/6 phases
     
     def execute_with_crew(self, crew_input: Dict[str, Any]) -> Dict[str, Any]:
-        crew = self.crew_manager.create_crew_on_demand("asset_inventory", **self._get_crew_context())
+        crew = self.crew_manager.create_crew_on_demand("inventory", **self._get_crew_context())
         crew_result = crew.kickoff(inputs=crew_input)
         return self._process_crew_result(crew_result)
     
     async def execute_fallback(self) -> Dict[str, Any]:
         # 🚀 DATA VALIDATION: Check if we have data to process
-        if not hasattr(self.state, 'processed_assets') or not self.state.processed_assets:
+        data_to_process = getattr(self.state, 'cleaned_data', None) or getattr(self.state, 'raw_data', [])
+        if not data_to_process:
             return {"status": "skipped", "reason": "no_data", "total_assets": 0}
         
-        # Simple fallback processing
-        assets_count = len(self.state.processed_assets)
-        return {"servers": [], "total_assets": assets_count, "classification_metadata": {"fallback_used": True}}
+        # Simple fallback processing - create basic asset inventory from available data
+        assets_count = len(data_to_process)
+        
+        # Basic asset classification based on asset type field
+        servers = []
+        applications = []
+        devices = []
+        
+        for asset in data_to_process:
+            asset_type = asset.get('Asset_Type', '').lower()
+            if 'server' in asset_type:
+                servers.append(asset)
+            elif 'application' in asset_type or 'app' in asset_type:
+                applications.append(asset)
+            else:
+                devices.append(asset)
+        
+        return {
+            "servers": servers,
+            "applications": applications, 
+            "devices": devices,
+            "total_assets": assets_count,
+            "classification_metadata": {
+                "fallback_used": True,
+                "servers_count": len(servers),
+                "applications_count": len(applications),
+                "devices_count": len(devices)
+            }
+        }
     
     def _prepare_crew_input(self) -> Dict[str, Any]:
         return {"cleaned_data": getattr(self.state, 'cleaned_data', [])}

@@ -409,7 +409,6 @@ async def _validate_no_incomplete_discovery_flow(
     rather than incomplete data import sessions.
     """
     try:
-        from app.services.crewai_flows.discovery_flow_state_manager import DiscoveryFlowStateManager
         from app.core.context import RequestContext
         
         # Create proper context for flow state manager
@@ -419,9 +418,14 @@ async def _validate_no_incomplete_discovery_flow(
             user_id="system"  # System validation check
         )
         
-        # Use the proper flow state manager to check for incomplete flows
-        state_manager = DiscoveryFlowStateManager(db, client_account_id, engagement_id)
-        incomplete_flows = await state_manager.get_incomplete_flows_for_context(context)
+        # Use V2 discovery flow service to check for incomplete flows
+        if DISCOVERY_FLOW_AVAILABLE:
+            discovery_service = DiscoveryFlowService()
+            incomplete_flows = await discovery_service.get_incomplete_flows_for_engagement(
+                client_account_id, engagement_id
+            )
+        else:
+            incomplete_flows = []
         
         # Filter out flows that are actually empty or have no real progress
         # Only consider flows with actual phases and meaningful progress

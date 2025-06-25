@@ -15,19 +15,36 @@ class DependencyAnalysisExecutor(BasePhaseExecutor):
         return 66.7  # 4/6 phases
     
     def execute_with_crew(self, crew_input: Dict[str, Any]) -> Dict[str, Any]:
-        crew = self.crew_manager.create_crew_on_demand("dependency_analysis", **self._get_crew_context())
+        crew = self.crew_manager.create_crew_on_demand("dependencies", **self._get_crew_context())
         crew_result = crew.kickoff(inputs=crew_input)
         return self._process_crew_result(crew_result)
     
     async def execute_fallback(self) -> Dict[str, Any]:
         # 🚀 DATA VALIDATION: Check if we have data to process
-        if not hasattr(self.state, 'processed_assets') or not self.state.processed_assets:
+        asset_inventory = getattr(self.state, 'asset_inventory', {})
+        if not asset_inventory or asset_inventory.get('total_assets', 0) == 0:
             return {"status": "skipped", "reason": "no_data", "dependencies": []}
         
-        return {"dependencies": [], "fallback_used": True, "assets_analyzed": len(self.state.processed_assets)}
+        # Basic dependency analysis based on asset inventory
+        total_assets = asset_inventory.get('total_assets', 0)
+        return {
+            "app_server_dependencies": {
+                "hosting_relationships": [],
+                "resource_mappings": [],
+                "topology_insights": {"fallback_used": True}
+            },
+            "app_app_dependencies": {
+                "communication_patterns": [],
+                "api_dependencies": [],
+                "integration_complexity": {"fallback_used": True},
+                "dependency_graph": {"nodes": [], "edges": []}
+            },
+            "fallback_used": True, 
+            "assets_analyzed": total_assets
+        }
     
     def _prepare_crew_input(self) -> Dict[str, Any]:
         return {"asset_inventory": getattr(self.state, 'asset_inventory', {})}
     
     def _store_results(self, results: Dict[str, Any]):
-        self.state.dependency_analysis = results 
+        self.state.dependencies = results 

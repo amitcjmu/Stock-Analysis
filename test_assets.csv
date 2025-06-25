@@ -1,0 +1,6 @@
+hostname,type,environment,owner,ip_address,operating_system,status
+web-server-01,server,production,john.doe@company.com,192.168.1.10,Ubuntu 20.04,active
+db-server-01,database,production,jane.smith@company.com,192.168.1.11,RedHat 8.5,active
+app-server-01,application,staging,bob.wilson@company.com,192.168.1.12,Windows Server 2019,active
+web-server-02,server,development,alice.brown@company.com,192.168.1.13,Ubuntu 22.04,active
+cache-server-01,cache,production,charlie.davis@company.com,192.168.1.14,CentOS 7,maintenance 
