@@ -44,6 +44,17 @@ except ImportError:
     ASSET_MANAGEMENT_AVAILABLE = False
     logger.warning("⚠️ Asset Management Handler not available")
 
+# Real-time Processing Handler
+try:
+    from app.api.v1.endpoints.discovery.real_time_processing import router as real_time_router
+    REAL_TIME_PROCESSING_AVAILABLE = True
+    # Include the real-time processing router
+    router.include_router(real_time_router, prefix="", tags=["Real-Time Processing"])
+    logger.info("✅ Real-time processing router included")
+except ImportError as e:
+    REAL_TIME_PROCESSING_AVAILABLE = False
+    logger.warning(f"⚠️ Real-time Processing Handler not available: {e}")
+
 # === Request/Response Models ===
 
 class InitializeDiscoveryRequest(BaseModel):

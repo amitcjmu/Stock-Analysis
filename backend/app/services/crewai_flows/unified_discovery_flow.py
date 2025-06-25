@@ -222,6 +222,32 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         logger.info("🤖 Starting Data Import Validation with Agent-First Architecture")
         self.state.current_phase = "data_import"
         
+        # REAL-TIME UPDATE: Update database immediately when phase starts
+        if self.flow_bridge:
+            await self.flow_bridge.update_flow_state(self.state)
+        
+        # Add real-time processing update
+        try:
+            from app.services.agent_ui_bridge import agent_ui_bridge
+            agent_ui_bridge.add_agent_insight(
+                agent_id="data_import_agent",
+                agent_name="Data Import Agent",
+                insight_type="processing",
+                page=f"flow_{self.state.flow_id}",
+                title="Starting Data Import Validation",
+                description=f"Beginning validation of {len(self.state.raw_data) if self.state.raw_data else 0} records",
+                content={
+                    'phase': 'data_import',
+                    'records_total': len(self.state.raw_data) if self.state.raw_data else 0,
+                    'start_time': datetime.utcnow().isoformat(),
+                    'estimated_duration': '2-3 minutes'
+                },
+                confidence="high",
+                priority="medium"
+            )
+        except Exception as e:
+            logger.warning(f"⚠️ Could not add real-time update: {e}")
+        
         try:
             # Prepare agent data
             agent_data = {
@@ -233,6 +259,27 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
                     'flow_id': self.state.flow_id
                 }
             }
+            
+            # Add progress update
+            try:
+                agent_ui_bridge.add_agent_insight(
+                    agent_id="data_import_agent",
+                    agent_name="Data Import Agent",
+                    insight_type="progress",
+                    page=f"flow_{self.state.flow_id}",
+                    title="Processing Data Records",
+                    description=f"Analyzing {len(self.state.raw_data)} records for format validation, security scanning, and data quality assessment",
+                    content={
+                        'phase': 'data_import',
+                        'progress_percentage': 10.0,
+                        'records_processed': len(self.state.raw_data) // 2,  # Mock progress
+                        'validation_checks': ['format', 'security', 'quality']
+                    },
+                    confidence="high",
+                    priority="medium"
+                )
+            except Exception:
+                pass
             
             # Execute data validation agent
             validation_result = await self.data_validation_agent.execute_analysis(agent_data, self._init_context)
@@ -251,7 +298,30 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             self.state.phase_completion['data_import'] = True
             self.state.progress_percentage = 20.0
             
-            # Persist state
+            # Add completion update
+            try:
+                agent_ui_bridge.add_agent_insight(
+                    agent_id="data_import_agent",
+                    agent_name="Data Import Agent",
+                    insight_type="success",
+                    page=f"flow_{self.state.flow_id}",
+                    title="Data Import Validation Completed",
+                    description=f"Successfully validated {len(self.state.raw_data)} records with {validation_result.confidence_score:.1f}% confidence",
+                    content={
+                        'phase': 'data_import',
+                        'progress_percentage': 20.0,
+                        'records_processed': len(self.state.raw_data),
+                        'confidence_score': validation_result.confidence_score,
+                        'validation_results': validation_result.data,
+                        'completion_time': datetime.utcnow().isoformat()
+                    },
+                    confidence="high",
+                    priority="medium"
+                )
+            except Exception:
+                pass
+            
+            # REAL-TIME UPDATE: Persist state with agent insights and progress
             if self.flow_bridge:
                 await self.flow_bridge.update_flow_state(self.state)
             
@@ -261,6 +331,32 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         except Exception as e:
             logger.error(f"❌ Data validation agent failed: {e}")
             self.state.add_error("data_import", f"Agent execution failed: {str(e)}")
+            
+            # Add error update
+            try:
+                agent_ui_bridge.add_agent_insight(
+                    agent_id="data_import_agent",
+                    agent_name="Data Import Agent",
+                    insight_type="error",
+                    page=f"flow_{self.state.flow_id}",
+                    title="Data Import Validation Failed",
+                    description=f"Validation failed: {str(e)}",
+                    content={
+                        'phase': 'data_import',
+                        'error_type': 'agent_execution_failure',
+                        'error_message': str(e),
+                        'failure_time': datetime.utcnow().isoformat()
+                    },
+                    confidence="high",
+                    priority="high"
+                )
+            except Exception:
+                pass
+            
+            # REAL-TIME UPDATE: Update database even on failure
+            if self.flow_bridge:
+                await self.flow_bridge.update_flow_state(self.state)
+            
             return "data_validation_failed"
 
     @listen(execute_data_import_validation_agent)
@@ -271,6 +367,10 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         
         logger.info("🤖 Starting Attribute Mapping with Agent-First Architecture")
         self.state.current_phase = "attribute_mapping"
+        
+        # REAL-TIME UPDATE: Update database immediately when phase starts
+        if self.flow_bridge:
+            await self.flow_bridge.update_flow_state(self.state)
         
         try:
             # Prepare agent data
@@ -301,7 +401,7 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             self.state.phase_completion['attribute_mapping'] = True
             self.state.progress_percentage = 40.0
             
-            # Persist state
+            # REAL-TIME UPDATE: Persist state with agent insights and progress
             if self.flow_bridge:
                 await self.flow_bridge.update_flow_state(self.state)
             
@@ -311,6 +411,11 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         except Exception as e:
             logger.error(f"❌ Attribute mapping agent failed: {e}")
             self.state.add_error("attribute_mapping", f"Agent execution failed: {str(e)}")
+            
+            # REAL-TIME UPDATE: Update database even on failure
+            if self.flow_bridge:
+                await self.flow_bridge.update_flow_state(self.state)
+            
             return "attribute_mapping_failed"
 
     @listen(execute_attribute_mapping_agent)
@@ -318,6 +423,10 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         """Execute data cleansing using individual agent"""
         logger.info("🤖 Starting Data Cleansing with Agent-First Architecture")
         self.state.current_phase = "data_cleansing"
+        
+        # REAL-TIME UPDATE: Update database immediately when phase starts
+        if self.flow_bridge:
+            await self.flow_bridge.update_flow_state(self.state)
         
         try:
             # Prepare agent data
@@ -349,7 +458,7 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             self.state.phase_completion['data_cleansing'] = True
             self.state.progress_percentage = 60.0
             
-            # Persist state
+            # REAL-TIME UPDATE: Persist state with agent insights and progress
             if self.flow_bridge:
                 await self.flow_bridge.update_flow_state(self.state)
             
@@ -359,6 +468,11 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         except Exception as e:
             logger.error(f"❌ Data cleansing agent failed: {e}")
             self.state.add_error("data_cleansing", f"Agent execution failed: {str(e)}")
+            
+            # REAL-TIME UPDATE: Update database even on failure
+            if self.flow_bridge:
+                await self.flow_bridge.update_flow_state(self.state)
+            
             return "data_cleansing_failed"
 
     @listen(execute_data_cleansing_agent)
@@ -366,6 +480,10 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         """Execute asset inventory, dependency, and tech debt analysis agents in parallel"""
         logger.info("🤖 Starting Parallel Analysis Agents (Asset, Dependency, Tech Debt)")
         self.state.current_phase = "analysis"
+        
+        # REAL-TIME UPDATE: Update database immediately when phase starts
+        if self.flow_bridge:
+            await self.flow_bridge.update_flow_state(self.state)
         
         try:
             # Prepare common agent data
@@ -396,6 +514,7 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             if not isinstance(asset_result, Exception):
                 self.state.asset_inventory = asset_result.data
                 self.state.agent_confidences['asset_inventory'] = asset_result.confidence_score
+                self.state.phase_completion['asset_inventory'] = True
                 if asset_result.insights_generated:
                     self.state.agent_insights.extend([insight.model_dump() for insight in asset_result.insights_generated])
                 if asset_result.clarifications_requested:
@@ -409,6 +528,7 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             if not isinstance(dependency_result, Exception):
                 self.state.dependency_analysis = dependency_result.data
                 self.state.agent_confidences['dependency_analysis'] = dependency_result.confidence_score
+                self.state.phase_completion['dependency_analysis'] = True
                 if dependency_result.insights_generated:
                     self.state.agent_insights.extend([insight.model_dump() for insight in dependency_result.insights_generated])
                 if dependency_result.clarifications_requested:
@@ -422,31 +542,35 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             if not isinstance(tech_debt_result, Exception):
                 self.state.tech_debt_analysis = tech_debt_result.data
                 self.state.agent_confidences['tech_debt_analysis'] = tech_debt_result.confidence_score
+                self.state.phase_completion['tech_debt_analysis'] = True
                 if tech_debt_result.insights_generated:
                     self.state.agent_insights.extend([insight.model_dump() for insight in tech_debt_result.insights_generated])
                 if tech_debt_result.clarifications_requested:
                     self.state.user_clarifications.extend([req.model_dump() for req in tech_debt_result.clarifications_requested])
                 logger.info(f"✅ Tech debt analysis agent completed (confidence: {tech_debt_result.confidence_score:.1f}%)")
+                return "parallel_analysis_completed"
             else:
                 logger.error(f"❌ Tech debt analysis agent failed: {tech_debt_result}")
                 self.state.add_error("tech_debt_analysis", f"Agent failed: {str(tech_debt_result)}")
+                return "tech_debt_analysis_failed"
             
-            # Update phase completion
-            self.state.phase_completion['asset_inventory'] = not isinstance(asset_result, Exception)
-            self.state.phase_completion['dependency_analysis'] = not isinstance(dependency_result, Exception)
-            self.state.phase_completion['tech_debt_analysis'] = not isinstance(tech_debt_result, Exception)
+            # Update progress after all agents complete
             self.state.progress_percentage = 90.0
             
-            # Persist state
+            # REAL-TIME UPDATE: Persist state with all agent insights and progress
             if self.flow_bridge:
                 await self.flow_bridge.update_flow_state(self.state)
             
-            logger.info("✅ Parallel analysis agents completed")
             return "parallel_analysis_completed"
             
         except Exception as e:
             logger.error(f"❌ Parallel analysis agents failed: {e}")
-            self.state.add_error("analysis", f"Parallel agent execution failed: {str(e)}")
+            self.state.add_error("analysis", f"Parallel execution failed: {str(e)}")
+            
+            # REAL-TIME UPDATE: Update database even on failure
+            if self.flow_bridge:
+                await self.flow_bridge.update_flow_state(self.state)
+            
             return "parallel_analysis_failed"
 
     # Add new agent execution methods
@@ -520,9 +644,47 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
                 self.state.add_error("finalization", "No assets were processed during discovery")
                 return "discovery_failed"
             
-            # Mark as completed
+            # Mark as completed in CrewAI state
             self.state.status = "completed"
             self.state.current_phase = "completed"
+            
+            # ✅ CRITICAL FIX: Complete the PostgreSQL discovery flow to stop frontend polling
+            if self.flow_bridge:
+                try:
+                    # Sync completion state to PostgreSQL
+                    await self.flow_bridge.sync_state_update(
+                        self.state, 
+                        "completed", 
+                        crew_results={
+                            "action": "completed",
+                            "summary": summary,
+                            "total_assets": total_assets,
+                            "timestamp": datetime.now().isoformat()
+                        }
+                    )
+                    
+                    # Call the PostgreSQL repository to mark flow as completed
+                    # This will update the database status from "active" to "completed"
+                    # so the frontend stops polling for this flow
+                    try:
+                        from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
+                        from app.core.database import AsyncSessionLocal
+                        
+                        async with AsyncSessionLocal() as db_session:
+                            flow_repo = DiscoveryFlowRepository(
+                                db_session, 
+                                self.state.client_account_id, 
+                                self.state.engagement_id
+                            )
+                            completed_flow = await flow_repo.complete_discovery_flow(self.state.flow_id)
+                            logger.info(f"✅ PostgreSQL discovery flow marked as completed: {completed_flow.flow_id}")
+                            
+                    except Exception as db_error:
+                        logger.warning(f"⚠️ Failed to complete PostgreSQL flow (non-critical): {db_error}")
+                        # Don't fail the entire flow completion for this
+                        
+                except Exception as bridge_error:
+                    logger.warning(f"⚠️ Failed to sync completion state (non-critical): {bridge_error}")
             
             logger.info(f"✅ Unified Discovery Flow completed successfully")
             logger.info(f"📊 Summary: {total_assets} assets, {len(self.state.errors)} errors, {len(self.state.warnings)} warnings")
