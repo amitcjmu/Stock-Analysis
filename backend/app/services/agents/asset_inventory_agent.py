@@ -36,6 +36,22 @@ class AssetInventoryAgent(BaseDiscoveryAgent):
         
         self.logger.info(f"🏭 Asset Inventory Agent initialized")
     
+    def get_role(self) -> str:
+        """Return the agent's role description"""
+        return "Asset Inventory and Classification Expert"
+    
+    def get_goal(self) -> str:
+        """Return the agent's goal description"""
+        return "Accurately classify and categorize all discovered assets with proper criticality assessment"
+    
+    def get_backstory(self) -> str:
+        """Return the agent's backstory"""
+        return "Expert asset inventory specialist with deep knowledge of enterprise IT infrastructure"
+    
+    async def execute(self, data: Dict[str, Any], context: Dict[str, Any] = None) -> AgentResult:
+        """Execute the agent's main functionality"""
+        return await self.execute_analysis(data, context)
+    
     async def execute_analysis(self, data: Dict[str, Any], context: Dict[str, Any] = None) -> AgentResult:
         """Execute asset inventory analysis"""
         start_time = time.time()
