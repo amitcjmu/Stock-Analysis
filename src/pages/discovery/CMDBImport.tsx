@@ -159,86 +159,11 @@ const DataImport: React.FC = () => {
   const hasIncompleteFlows = incompleteFlows.length > 0;
   
   // NEW: Real-time flow tracking state
-  const [flowPollingIntervals, setFlowPollingIntervals] = useState<Map<string, NodeJS.Timeout>>(new Map());
+  // REMOVED: Legacy polling system - replaced by UniversalProcessingStatus component
+  // Real-time updates are now handled by the UniversalProcessingStatus component with proper polling controls
 
-  // NEW: Real-time flow progress tracking
-  useEffect(() => {
-    const activeFlows = uploadedFiles.filter(f => f.flow_id && f.status === 'processing');
-    
-    // Start polling for active flows
-    activeFlows.forEach(file => {
-      if (file.flow_id && !flowPollingIntervals.has(file.flow_id)) {
-        const interval = setInterval(async () => {
-          try {
-            await pollFlowProgress(file.flow_id!);
-          } catch (error) {
-            console.error('Error polling flow progress:', error);
-          }
-        }, 3000); // Poll every 3 seconds
-        
-        setFlowPollingIntervals(prev => new Map(prev.set(file.flow_id!, interval)));
-      }
-    });
-
-    // Cleanup intervals for completed flows
-    flowPollingIntervals.forEach((interval, flowId) => {
-      const isStillActive = activeFlows.some(f => f.flow_id === flowId);
-      if (!isStillActive) {
-        clearInterval(interval);
-        setFlowPollingIntervals(prev => {
-          const newMap = new Map(prev);
-          newMap.delete(flowId);
-          return newMap;
-        });
-      }
-    });
-
-    // Cleanup on unmount
-    return () => {
-      flowPollingIntervals.forEach(interval => clearInterval(interval));
-    };
-  }, [uploadedFiles]);
-
-  // NEW: Poll flow progress function
-  const pollFlowProgress = async (flowId: string) => {
-    try {
-      const response = await apiCall(`/api/v1/discovery/flows/active`, {
-        method: 'GET',
-        headers: getAuthHeaders()
-      });
-
-      if (response.flows) {
-        const currentFlow = response.flows.find((f: any) => f.flow_id === flowId);
-        
-        if (currentFlow) {
-          setUploadedFiles(prev => prev.map(file => {
-            if (file.flow_id === flowId) {
-              const progress = currentFlow.progress_percentage || 0;
-              const isCompleted = currentFlow.status === 'completed' || progress >= 100;
-              
-              return {
-                ...file,
-                discovery_progress: progress,
-                current_phase: currentFlow.current_phase || file.current_phase,
-                flow_status: currentFlow.status || 'running',
-                status: isCompleted ? 'approved' : 'processing',
-                flow_summary: isCompleted ? {
-                  total_assets: currentFlow.crewai_state_data?.asset_inventory?.total_assets || 0,
-                  errors: currentFlow.crewai_state_data?.errors || 0,
-                  warnings: currentFlow.crewai_state_data?.warnings || 0,
-                  phases_completed: Object.keys(currentFlow.phases || {}).filter(phase => currentFlow.phases[phase]),
-                  agent_insights: currentFlow.crewai_state_data?.agent_insights || []
-                } : file.flow_summary
-              };
-            }
-            return file;
-          }));
-        }
-      }
-    } catch (error) {
-      console.error('Failed to poll flow progress:', error);
-    }
-  };
+  // REMOVED: Legacy polling function - replaced by UniversalProcessingStatus component
+  // Real-time updates are now handled by the UniversalProcessingStatus component
 
   // Flow Management Handlers
   const handleContinueFlow = useCallback((sessionId: string) => {
@@ -388,8 +313,7 @@ const DataImport: React.FC = () => {
           description: `File uploaded successfully. CrewAI agents are now processing ${csvData.length} records.`,
         });
         
-        // Start polling immediately for this flow
-        setTimeout(() => pollFlowProgress(flow_id), 1000);
+        // Real-time updates will be handled by UniversalProcessingStatus component
         
       } else {
         throw new Error("Failed to trigger UnifiedDiscoveryFlow - no flow ID returned");
@@ -1103,7 +1027,12 @@ const DataImport: React.FC = () => {
                   title={`${file.name} - Processing Status`}
                   showAgentInsights={true}
                   showValidationDetails={true}
-                  onProcessingComplete={() => {
+                  onProcessingComplete={useCallback(() => {
+                    // Guard against repeated calls
+                    if (file.status === 'approved' || file.flow_status === 'completed') {
+                      return;
+                    }
+                    
                     console.log(`Processing completed for file: ${file.name}`);
                     toast({
                       title: "Processing Complete",
@@ -1115,8 +1044,13 @@ const DataImport: React.FC = () => {
                         ? { ...f, status: 'approved', flow_status: 'completed' }
                         : f
                     ));
-                  }}
-                  onValidationFailed={(issues) => {
+                  }, [file.id, file.name, file.status, file.flow_status, toast])}
+                  onValidationFailed={useCallback((issues) => {
+                    // Guard against repeated calls
+                    if (file.status === 'rejected' && file.error_message) {
+                      return;
+                    }
+                    
                     console.error(`Validation failed for file: ${file.name}`, issues);
                     toast({
                       title: "Validation Issues Found",
@@ -1129,7 +1063,7 @@ const DataImport: React.FC = () => {
                         ? { ...f, status: 'rejected', error_message: issues.join(', ') }
                         : f
                     ));
-                  }}
+                  }, [file.id, file.name, file.status, file.error_message, toast])}
                 />
               ))}
             </div>

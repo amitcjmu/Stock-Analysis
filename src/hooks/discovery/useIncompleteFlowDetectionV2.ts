@@ -13,7 +13,7 @@ export interface IncompleteFlowV2 {
   flow_id: string;  // Primary identifier - CrewAI Flow ID
   id: string;       // Database ID
   current_phase: string;
-  status: 'active' | 'running' | 'paused' | 'failed' | 'completed';
+  status: 'active' | 'running' | 'paused' | 'failed' | 'completed' | 'error';
   progress_percentage: number;
   phases: Record<string, boolean>;
   flow_name: string;
@@ -508,7 +508,7 @@ const fetchFlowDetails = async (flowId: string): Promise<IncompleteFlowV2 | null
     const response = await unifiedDiscoveryService.getFlowStatus(flowId);
     
     // Convert unified response to IncompleteFlowV2 format
-    const validStatuses = ['active', 'running', 'paused', 'failed', 'completed'] as const;
+    const validStatuses = ['active', 'running', 'paused', 'failed', 'completed', 'error'] as const;
     const status = validStatuses.includes(response.status as any) ? response.status as typeof validStatuses[number] : 'active';
     
     return {
@@ -525,7 +525,7 @@ const fetchFlowDetails = async (flowId: string): Promise<IncompleteFlowV2 | null
       migration_readiness_score: 0,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      can_resume: status !== 'completed' && status !== 'failed',
+      can_resume: status !== 'completed' && status !== 'failed' && status !== 'error',
       agent_insights: []
     };
   } catch (error) {

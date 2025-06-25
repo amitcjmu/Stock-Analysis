@@ -491,13 +491,7 @@ async def get_validation_status(
             security_scan=security_scan,
             format_validation=format_validation,
             data_quality=data_quality,
-            validation_summary={
-                'total_checks': len(flow_events),
-                'passed_checks': len(flow_events) - len(validation_errors),
-                'failed_checks': len(validation_errors),
-                'warnings': len(warnings)
-            },
-            last_updated=datetime.utcnow().isoformat()
+            last_validation=datetime.utcnow().isoformat()
         )
         
         logger.info(f"✅ Validation status retrieved for flow {flow_id} - Errors: {len(validation_errors)}")

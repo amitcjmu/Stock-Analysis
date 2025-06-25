@@ -102,6 +102,7 @@ const UniversalProcessingStatus: React.FC<UniversalProcessingStatusProps> = ({
       case 'completed':
         return <CheckCircle className="w-4 h-4 text-green-500" />;
       case 'failed':
+      case 'error':
         return <XCircle className="w-4 h-4 text-red-500" />;
       case 'initializing':
         return <Clock className="w-4 h-4 text-yellow-500" />;

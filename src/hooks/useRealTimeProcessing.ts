@@ -24,7 +24,7 @@ export interface ProcessingUpdate {
 export interface ProcessingStatus {
   flow_id: string;
   phase: string;
-  status: 'initializing' | 'processing' | 'validating' | 'completed' | 'failed';
+  status: 'initializing' | 'processing' | 'validating' | 'completed' | 'failed' | 'error';
   progress_percentage: number;
   records_processed: number;
   records_total: number;
@@ -96,7 +96,9 @@ export const useRealTimeProcessing = (options: RealTimeProcessingOptions) => {
   // Check if processing is active and adjust polling
   useEffect(() => {
     if (processingStatus) {
-      const isActive = processingStatus.status === 'processing' || processingStatus.status === 'validating';
+      const isActive = processingStatus.status === 'processing' || 
+                      processingStatus.status === 'validating' ||
+                      processingStatus.status === 'initializing';
       setIsProcessingActive(isActive);
       
       // Add new updates to accumulated list
@@ -119,6 +121,19 @@ export const useRealTimeProcessing = (options: RealTimeProcessingOptions) => {
       clearInterval(pollingRef.current);
     }
 
+    // Check if processing is completely finished
+    const isFinished = processingStatus && (
+      processingStatus.status === 'completed' || 
+      processingStatus.status === 'failed' || 
+      processingStatus.status === 'error'
+    );
+
+    if (isFinished) {
+      // Stop polling when processing is finished
+      console.log(`🛑 Stopping polling for flow ${flow_id} - Status: ${processingStatus?.status}`);
+      return;
+    }
+
     if (isProcessingActive) {
       // Fast polling during active processing
       pollingRef.current = setInterval(() => {
@@ -136,7 +151,7 @@ export const useRealTimeProcessing = (options: RealTimeProcessingOptions) => {
         clearInterval(pollingRef.current);
       }
     };
-  }, [enabled, flow_id, isProcessingActive, polling_interval, refetch]);
+  }, [enabled, flow_id, isProcessingActive, polling_interval, refetch, processingStatus]);
 
   // Cleanup on unmount
   useEffect(() => {
