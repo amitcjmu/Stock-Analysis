@@ -17,11 +17,8 @@ class AssetInventoryAgent(BaseDiscoveryAgent):
     
     def __init__(self):
         super().__init__(
-            agent_id="asset_inventory_001",
-            name="Asset Inventory Specialist",
-            role="Asset Inventory and Classification Expert",
-            goal="Accurately classify and categorize all discovered assets with proper criticality assessment",
-            backstory="Expert asset inventory specialist with deep knowledge of enterprise IT infrastructure"
+            agent_name="Asset Inventory Specialist",
+            agent_id="asset_inventory_001"
         )
         
         # Asset classification models
@@ -32,6 +29,23 @@ class AssetInventoryAgent(BaseDiscoveryAgent):
             'network': ['router', 'switch', 'firewall', 'load balancer', 'proxy'],
             'storage': ['storage', 'nas', 'san', 'disk', 'volume'],
             'middleware': ['middleware', 'message queue', 'broker', 'cache']
+        }
+        
+        # Criticality indicators
+        self.criticality_indicators = {
+            'critical': ['prod', 'production', 'critical', 'tier 1', 'tier1'],
+            'high': ['important', 'high', 'tier 2', 'tier2'],
+            'medium': ['medium', 'standard', 'tier 3', 'tier3'],
+            'low': ['dev', 'development', 'test', 'staging', 'low']
+        }
+        
+        # Environment patterns
+        self.environment_patterns = {
+            'production': ['prod', 'production', 'live', 'prd'],
+            'staging': ['stage', 'staging', 'stg', 'uat'],
+            'development': ['dev', 'development', 'develop'],
+            'test': ['test', 'testing', 'qa', 'quality'],
+            'dr': ['dr', 'disaster', 'backup', 'recovery']
         }
         
         self.logger.info(f"🏭 Asset Inventory Agent initialized")
@@ -67,13 +81,13 @@ class AssetInventoryAgent(BaseDiscoveryAgent):
             execution_time = time.time() - start_time
             
             return AgentResult(
-                agent_id=self.agent_id,
-                status='completed',
-                confidence_score=85.0,
-                data=classification_results,
-                insights=[],
-                clarifications=[],
+                agent_name=self.agent_name,
                 execution_time=execution_time,
+                confidence_score=85.0,
+                status='success',
+                data=classification_results,
+                clarifications_requested=[],
+                insights_generated=[],
                 metadata={'assets_processed': len(assets)}
             )
             
@@ -529,4 +543,18 @@ class AssetInventoryAgent(BaseDiscoveryAgent):
                 'Asset naming consistency',
                 'Data completeness'
             ]
-        } 
+        }
+    
+    def _create_error_result(self, error_message: str, execution_time: float = 0.0) -> AgentResult:
+        """Create error result"""
+        return AgentResult(
+            agent_name=self.agent_name,
+            execution_time=execution_time,
+            confidence_score=0.0,
+            status='failed',
+            data={},
+            clarifications_requested=[],
+            insights_generated=[],
+            errors=[error_message],
+            metadata={}
+        ) 
