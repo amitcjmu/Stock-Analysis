@@ -8,7 +8,7 @@ import DependencyProgress from '../../components/discovery/dependencies/Dependen
 import DependencyAnalysisPanel from '../../components/discovery/dependencies/DependencyAnalysisPanel';
 import { DependencyGraph } from '../../components/discovery/dependencies/DependencyGraph';
 import DependencyMappingPanel from '../../components/discovery/dependencies/DependencyMappingPanel';
-import AgentClarificationPanel from '../../components/discovery/AgentClarificationPanel';
+import AgentUIMonitor from '../../components/discovery/dependencies/AgentUIMonitor';
 import DataClassificationDisplay from '../../components/discovery/DataClassificationDisplay';
 import AgentInsightPanel from '../../components/discovery/AgentInsightPanel';
 import Sidebar from '../../components/Sidebar';
@@ -149,13 +149,9 @@ const Dependencies: React.FC = () => {
             </div>
             
             <div className="xl:col-span-1 space-y-6">
-              <AgentClarificationPanel 
-                pageContext="dependency-analysis" 
-                refreshTrigger={0} 
-                onQuestionAnswered={(questionId, response) => {
-                  console.log('Dependency question answered:', questionId, response);
-                  analyzeDependencies();
-                }} 
+              <AgentUIMonitor 
+                pageContext="dependencies" 
+                className="h-fit"
               />
               <DataClassificationDisplay 
                 pageContext="dependency-analysis" 

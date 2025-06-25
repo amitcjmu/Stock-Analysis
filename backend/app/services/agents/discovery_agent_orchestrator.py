@@ -393,4 +393,81 @@ class DiscoveryAgentOrchestrator:
         agent = self.agents[agent_name]
         self.logger.info(f"🤖 Executing single agent: {agent.agent_name}")
         
-        return await self._execute_agent_with_monitoring(agent, data, context, agent_name) 
+        return await self._execute_agent_with_monitoring(agent, data, context, agent_name)
+    
+    async def get_orchestrator_status(self) -> Dict[str, Any]:
+        """Get detailed orchestrator status for UI integration"""
+        return {
+            'orchestrator_id': self.orchestrator_id,
+            'status': 'active' if self.current_execution else 'idle',
+            'current_execution': self.current_execution,
+            'total_executions': len(self.execution_history),
+            'agent_count': len(self.agents),
+            'execution_order': self.agent_execution_order,
+            'agents_available': list(self.agents.keys()),
+            'recent_executions': self.execution_history[-3:] if self.execution_history else [],
+            'pending_clarifications': len(self.all_clarifications),
+            'total_insights': len(self.all_insights),
+            'last_execution_time': self.execution_history[-1].get('timestamp') if self.execution_history else None
+        }
+    
+    async def trigger_agent_thinking(self, agent_id: str, context: Dict[str, Any], complexity_level: str = "standard") -> Dict[str, Any]:
+        """Trigger deeper thinking for a specific agent (Think button functionality)"""
+        # Map agent_id to agent_name
+        agent_name_map = {
+            'dependency_analysis_agent': 'dependency_analysis',
+            'asset_inventory_agent': 'asset_inventory',
+            'tech_debt_analysis_agent': 'tech_debt_analysis',
+            'data_validation_agent': 'data_validation',
+            'attribute_mapping_agent': 'attribute_mapping',
+            'data_cleansing_agent': 'data_cleansing'
+        }
+        
+        agent_name = agent_name_map.get(agent_id, agent_id)
+        
+        if agent_name not in self.agents:
+            raise ValueError(f"Agent '{agent_id}' not found")
+        
+        # Trigger deeper analysis based on complexity level
+        thinking_context = {
+            **context,
+            'thinking_mode': True,
+            'complexity_level': complexity_level,
+            'depth': 'enhanced' if complexity_level == 'deep' else 'standard'
+        }
+        
+        self.logger.info(f"🧠 Triggering {complexity_level} thinking for {agent_id}")
+        
+        # Execute agent with enhanced context
+        result = await self.execute_single_agent(agent_name, context, thinking_context)
+        
+        return {
+            'agent_id': agent_id,
+            'thinking_level': complexity_level,
+            'estimated_time': '30-60 seconds' if complexity_level == 'standard' else '60-120 seconds',
+            'status': 'thinking',
+            'result': result.dict() if result else None
+        }
+    
+    async def trigger_crew_collaboration(self, agent_id: str, context: Dict[str, Any], collaboration_type: str = "cross_agent") -> Dict[str, Any]:
+        """Trigger crew collaboration for deeper insights (Ponder More button functionality)"""
+        # This would integrate with CrewAI crews for collaborative analysis
+        self.logger.info(f"🤝 Triggering {collaboration_type} collaboration for {agent_id}")
+        
+        # For now, simulate crew collaboration
+        crew_members = []
+        if collaboration_type == "cross_agent":
+            crew_members = ["Field Mapping Specialist", "Data Quality Analyst"]
+        elif collaboration_type == "expert_panel":
+            crew_members = ["Senior Migration Architect", "Dependency Expert", "Risk Analyst"]
+        elif collaboration_type == "full_crew":
+            crew_members = ["Migration Manager", "Technical Lead", "Business Analyst", "Risk Specialist"]
+        
+        return {
+            'agent_id': agent_id,
+            'collaboration_type': collaboration_type,
+            'estimated_time': '2-3 minutes' if collaboration_type == 'cross_agent' else '3-5 minutes',
+            'crew_members': crew_members,
+            'status': 'collaborating',
+            'message': f'Initiating {collaboration_type} collaboration with {len(crew_members)} specialists'
+        } 

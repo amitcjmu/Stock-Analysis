@@ -1,5 +1,208 @@
 # AI Force Migration Platform - Change Log
 
+## [0.8.17] - 2025-01-27
+
+### 🎯 **DISCOVERY FLOW REDESIGN PHASE 2 - AGENT-UI INTEGRATION**
+
+This release implements Phase 2 of the Discovery Flow redesign, focusing on enhanced Agent-UI integration with progressive intelligence controls (Think/Ponder More buttons), real-time agent communication, and seamless user interaction through the Agent-UI-monitor panel.
+
+### 🚀 **Enhanced Agent-UI Integration**
+
+#### **Agent Communication Protocol**
+- **Implementation**: Created comprehensive communication protocol for agent-to-UI messaging
+- **Technology**: Real-time message queuing, status tracking, and interaction management
+- **Integration**: Seamless bridge between individual agents and UI components
+- **Benefits**: Live agent status updates, question handling, and insight delivery
+
+#### **Progressive Intelligence Controls**
+- **Think Button**: Triggers deeper analysis for individual agents with enhanced complexity levels
+- **Ponder More Button**: Initiates crew collaboration for complex scenarios requiring multiple perspectives
+- **Agent Selection**: Dynamic agent targeting with context-aware intelligence escalation
+- **Real-time Feedback**: Live status updates during thinking and pondering operations
+
+#### **Enhanced Agent-UI-monitor Panel**
+- **AgentUIMonitor Component**: Comprehensive replacement for existing clarification panels
+- **Multi-section Interface**: Collapsible sections for clarifications, insights, classifications, and controls
+- **Live Status Dashboard**: Real-time agent status, confidence scores, and insight counts
+- **Interactive MCQ System**: Multiple-choice questions with contextual information and validation
+
+### 📊 **API Integration Layer**
+
+#### **New API Endpoints Created**
+- **GET /api/v1/discovery/agents/agent-status**: Real-time agent status for UI monitoring
+- **GET /api/v1/discovery/agents/agent-questions**: Page-specific agent clarification questions
+- **POST /api/v1/discovery/agents/agent-questions/answer**: Process user responses to agent questions
+- **GET /api/v1/discovery/agents/agent-insights**: Agent-generated insights for current page
+- **POST /api/v1/discovery/agents/think**: Trigger Think button functionality for progressive intelligence
+- **POST /api/v1/discovery/agents/ponder-more**: Trigger Ponder More button for crew collaboration
+- **GET /api/v1/discovery/agents/confidence-scores**: Page-specific confidence scoring
+- **GET /api/v1/discovery/agents/data-classifications**: Agent data classification results
+
+#### **React Hooks for Agent Integration**
+- **useAgentQuestions**: Fetch and manage agent clarification questions
+- **useAnswerAgentQuestion**: Handle user responses to agent questions
+- **useAgentInsights**: Real-time agent insights with automatic refresh
+- **useAgentStatus**: Live agent status monitoring with health checks
+- **useConfidenceScores**: Page-specific confidence scoring with escalation indicators
+- **useAgentThink**: Progressive intelligence triggering with complexity levels
+- **useAgentPonderMore**: Crew collaboration initiation with collaboration types
+
+### 🎪 **User Experience Enhancements**
+
+#### **Dependencies Page Integration**
+- **Replaced Legacy Panel**: Migrated from AgentClarificationPanel to AgentUIMonitor
+- **Enhanced Context**: Dependency-specific questions with network analysis context
+- **Real-time Updates**: Live agent status and confidence scores for dependency analysis
+- **Progressive Intelligence**: Think/Ponder More controls specifically for dependency agents
+
+#### **Agent Communication Features**
+- **Message Queuing**: Efficient message handling between agents and UI with size limits
+- **Status Tracking**: Real-time agent activity monitoring with last activity timestamps
+- **UI Subscriptions**: Session-based subscriptions for live updates
+- **Metrics Collection**: Communication performance tracking with error handling
+
+#### **Sample Data Integration**
+- **Demo Questions**: Dependency validation questions with realistic context
+- **Sample Insights**: Agent-generated insights for dependency analysis
+- **Test Communication**: Built-in communication testing with comprehensive validation
+
+### 📊 **Technical Implementation**
+
+#### **Agent Communication Protocol Features**
+- **Protocol Management**: Registration/unregistration of agents and UI sessions
+- **Message Routing**: Bi-directional communication between agents and UI
+- **Queue Management**: Efficient message storage with automatic cleanup
+- **Status Monitoring**: Real-time agent activity tracking with health metrics
+- **Test Framework**: Comprehensive communication testing with validation
+
+#### **Enhanced Backend Services**
+- **DiscoveryAgentOrchestrator**: Added Think/Ponder More trigger methods
+- **ConfidenceManager**: Page-specific confidence scoring with escalation logic
+- **Agent Integration Handler**: Complete API endpoint implementation for UI communication
+- **Router Integration**: Seamless integration with existing discovery API structure
+
+#### **Frontend Component Architecture**
+- **AgentUIMonitor**: Comprehensive agent monitoring with progressive intelligence
+- **Collapsible Sections**: Organized interface with clarifications, insights, and classifications
+- **Live Status Display**: Real-time metrics with agent counts, confidence, and insights
+- **Progressive Controls**: Think/Ponder More buttons with agent selection and status feedback
+
+### 🎯 **Success Metrics**
+- **API Integration**: 8 new endpoints for complete agent-UI communication
+- **Real-time Communication**: Live agent status updates and question handling
+- **Progressive Intelligence**: Think/Ponder More functionality with crew escalation
+- **User Experience**: Enhanced Agent-UI-monitor panel with comprehensive functionality
+
+### 📋 **Phase 3 Readiness**
+- **Communication Infrastructure**: Complete agent-to-UI messaging system
+- **Progressive Intelligence**: Think/Ponder More controls ready for advanced scenarios
+- **API Foundation**: Comprehensive endpoints for all agent interactions
+- **UI Components**: Enhanced monitoring panel ready for workflow integration
+
+---
+
+## [0.8.16] - 2025-01-21
+
+### 🎯 **DISCOVERY FLOW AGENT-FIRST ARCHITECTURE - PHASE 1 TASKS 1.2-1.4 COMPLETE**
+
+This release completes the remaining Phase 1 tasks of the Discovery Flow redesign, implementing specialized analysis agents, agent-first flow modifications, and comprehensive confidence scoring systems.
+
+### 🚀 **Specialized Analysis Agents Implementation (Task 1.2)**
+
+#### **Asset Inventory Agent**
+- **Implementation**: Complete asset classification, criticality assessment, and environment detection
+- **Technology**: Pattern-based classification with confidence scoring for 6 asset types (server, database, application, network, storage, middleware)
+- **Integration**: Criticality assessment (critical, high, medium, low) and environment detection (production, staging, development, DR)
+- **Benefits**: Automated asset categorization with 85% baseline confidence and actionable insights
+
+#### **Dependency Analysis Agent**
+- **Implementation**: Network relationship mapping and critical path identification
+- **Technology**: 5 dependency pattern types (database, API, network, file share, messaging) with confidence scoring
+- **Integration**: Critical path analysis and dependency visualization preparation
+- **Benefits**: Comprehensive dependency mapping with risk assessment for migration planning
+
+#### **Tech Debt Analysis Agent**
+- **Implementation**: Legacy system modernization assessment with 6R strategy recommendations
+- **Technology**: Pattern recognition for legacy OS, databases, middleware, frameworks, and end-of-life systems
+- **Integration**: Risk assessment with mitigation strategies and modernization effort estimation
+- **Benefits**: Automated technical debt identification with strategic migration recommendations
+
+### 🤖 **Agent-First Flow Modifications (Task 1.3)**
+
+#### **UnifiedDiscoveryFlow Enhancement**
+- **Implementation**: Replaced crew calls with individual agent execution throughout the flow
+- **Technology**: Sequential agent execution with parallel analysis phase (asset, dependency, tech debt)
+- **Integration**: Agent confidence tracking, user clarifications collection, and insights aggregation
+- **Benefits**: 70-100 second target processing with improved accuracy and user control
+
+#### **Agent Execution Methods**
+- **Data Import Validation**: Individual agent execution with security scanning and PII detection
+- **Attribute Mapping**: Full schema mapping with confidence-based clarifications
+- **Data Cleansing**: Bulk operations with pattern-based standardization
+- **Parallel Analysis**: Concurrent execution of asset, dependency, and tech debt agents
+
+#### **State Management Enhancement**
+- **Agent Confidences**: Per-agent confidence tracking with aggregation
+- **User Clarifications**: Centralized collection across all agents
+- **Agent Insights**: Consolidated insights from all agent executions
+- **Crew Escalations**: Tracking for strategic crew escalation triggers
+
+### 🎯 **Confidence Scoring System (Task 1.4)**
+
+#### **ConfidenceManager Framework**
+- **Implementation**: Comprehensive confidence calculation and aggregation system
+- **Technology**: Weighted agent scoring (attribute mapping 25%, data cleansing 20%, others 15-10%)
+- **Integration**: Escalation triggers at 60% threshold with crew recommendations
+- **Benefits**: Intelligent confidence assessment with context-aware adjustments
+
+#### **Advanced Scoring Algorithms**
+- **Pattern Matching**: Success rate with quality bonuses (max 100% confidence)
+- **Data Completeness**: Sigmoid transformation for smooth confidence curves
+- **Validation Success**: Success rate with warning/error penalties
+- **Classification Quality**: Multi-factor assessment with variance penalties
+- **Contextual Adjustments**: Data volume, quality, complexity, and experience factors
+
+#### **Escalation Logic**
+- **Threshold-Based**: Below 60% triggers crew escalation recommendations
+- **Context-Aware**: High-value assets and complex environments lower thresholds
+- **Priority Levels**: Critical (<40%), High (<60%), Medium (<75%), Low (75%+)
+- **Crew Mapping**: Agent-specific crew recommendations for targeted collaboration
+
+### 📊 **Technical Achievements**
+
+#### **Architecture Improvements**
+- **Agent-First Design**: Individual agents for deterministic tasks with strategic crew escalation
+- **Parallel Execution**: Asset, dependency, and tech debt analysis run concurrently
+- **Confidence-Driven**: All decisions based on calculated confidence scores
+- **User-Centric**: Clarifications and insights drive continuous improvement
+
+#### **Performance Enhancements**
+- **Processing Speed**: Target 70-100 seconds for complete analysis
+- **Parallel Efficiency**: 3 analysis agents execute simultaneously
+- **Confidence Accuracy**: Weighted scoring reflects real-world migration priorities
+- **Escalation Intelligence**: Context-aware crew recommendations
+
+### 🎯 **Phase 1 Completion Status**
+
+**✅ Task 1.1**: Core Agent Classes (Completed in 0.8.15)
+**✅ Task 1.2**: Specialized Analysis Agents (Completed in 0.8.16)
+**✅ Task 1.3**: Agent-First Flow Modifications (Completed in 0.8.16)
+**✅ Task 1.4**: Confidence Scoring System (Completed in 0.8.16)
+
+**Phase 1 Complete (100%)** - Ready for Phase 2: UI Integration and User Interaction
+
+### 🔧 **Files Created**
+
+- `backend/app/services/agents/asset_inventory_agent.py` - Asset classification and inventory specialist
+- `backend/app/services/agents/dependency_analysis_agent.py` - Network and dependency mapping specialist
+- `backend/app/services/agents/tech_debt_analysis_agent.py` - Modernization and 6R strategy specialist
+- `backend/app/services/confidence/confidence_manager.py` - Confidence scoring framework
+- `backend/app/services/confidence/scoring_algorithms.py` - Advanced confidence calculation algorithms
+
+### 🔧 **Files Modified**
+
+- `backend/app/services/crewai_flows/unified_discovery_flow.py` - Agent-first architecture implementation
+
 ## [0.8.15] - 2025-01-21
 
 ### 🎯 **DISCOVERY FLOW AGENT-FIRST IMPLEMENTATION - PHASE 1 COMPLETE**

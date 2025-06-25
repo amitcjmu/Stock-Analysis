@@ -65,6 +65,24 @@ from .handlers.unified_flow_management import UnifiedFlowManagement
 # Import Flow State Bridge for PostgreSQL persistence
 from .flow_state_bridge import FlowStateBridge, managed_flow_bridge
 
+# 🤖 AGENT-FIRST ARCHITECTURE: Import individual agents
+from app.services.agents.data_import_validation_agent import DataImportValidationAgent
+from app.services.agents.attribute_mapping_agent import AttributeMappingAgent
+from app.services.agents.data_cleansing_agent import DataCleansingAgent
+from app.services.agents.asset_inventory_agent import AssetInventoryAgent
+from app.services.agents.dependency_analysis_agent import DependencyAnalysisAgent
+from app.services.agents.tech_debt_analysis_agent import TechDebtAnalysisAgent
+from app.services.agents.discovery_agent_orchestrator import DiscoveryAgentOrchestrator
+
+# Import individual agents (add after existing imports)
+from app.services.agents.data_import_validation_agent import DataImportValidationAgent
+from app.services.agents.attribute_mapping_agent import AttributeMappingAgent
+from app.services.agents.data_cleansing_agent import DataCleansingAgent
+from app.services.agents.asset_inventory_agent import AssetInventoryAgent
+from app.services.agents.dependency_analysis_agent import DependencyAnalysisAgent
+from app.services.agents.tech_debt_analysis_agent import TechDebtAnalysisAgent
+from app.services.agents.discovery_agent_orchestrator import DiscoveryAgentOrchestrator
+
 @persist()  # Enable CrewAI state persistence
 class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
     """
@@ -88,7 +106,7 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
     """
     
     def __init__(self, crewai_service, context: RequestContext, **kwargs):
-        """Initialize unified discovery flow with hybrid persistence"""
+        """Initialize unified discovery flow with agent-first architecture"""
         
         # Store initialization parameters
         self._init_session_id = kwargs.get('session_id', str(uuid.uuid4()))
@@ -113,19 +131,46 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             self.state = UnifiedDiscoveryFlowState()
         
         # ✅ CRITICAL FIX: Set the flow_id from the CrewAI Flow instance
-        # This ensures the state uses the REAL CrewAI Flow ID
         if hasattr(self, 'flow_id') and self.flow_id:
             self.state.flow_id = str(self.flow_id)
             logger.info(f"🎯 State flow_id set from CrewAI Flow: {self.state.flow_id}")
         else:
             logger.warning("⚠️ CrewAI Flow ID not yet available - will be set after kickoff")
         
-        # Initialize modular handlers with flow bridge
+        # 🤖 AGENT-FIRST ARCHITECTURE: Initialize individual agents
+        self.data_validation_agent = DataImportValidationAgent()
+        self.attribute_mapping_agent = AttributeMappingAgent()
+        self.data_cleansing_agent = DataCleansingAgent()
+        self.asset_inventory_agent = AssetInventoryAgent()
+        self.dependency_analysis_agent = DependencyAnalysisAgent()
+        self.tech_debt_analysis_agent = TechDebtAnalysisAgent()
+        
+        # Initialize agent orchestrator for coordination
+        self.agent_orchestrator = DiscoveryAgentOrchestrator()
+        
+        # 🤖 AGENT-FIRST ARCHITECTURE: Initialize individual agents
+        self.data_validation_agent = DataImportValidationAgent()
+        self.attribute_mapping_agent = AttributeMappingAgent()
+        self.data_cleansing_agent = DataCleansingAgent()
+        self.asset_inventory_agent = AssetInventoryAgent()
+        self.dependency_analysis_agent = DependencyAnalysisAgent()
+        self.tech_debt_analysis_agent = TechDebtAnalysisAgent()
+        
+        # Initialize agent orchestrator for coordination
+        self.agent_orchestrator = DiscoveryAgentOrchestrator()
+        
+        # Initialize agent confidence tracking in state
+        self.state.agent_confidences = {}
+        self.state.user_clarifications = []
+        self.state.agent_insights = []
+        self.state.crew_escalations = []
+        
+        # Initialize modular handlers (keep for legacy compatibility)
         self.crew_manager = UnifiedFlowCrewManager(crewai_service, self.state)
         self.phase_executor = PhaseExecutionManager(self.state, self.crew_manager, self.flow_bridge)
         self.flow_management = UnifiedFlowManagement(self.state)
         
-        logger.info(f"✅ Unified Discovery Flow initialized with hybrid persistence: session={self._init_session_id}")
+        logger.info(f"✅ Unified Discovery Flow initialized with AGENT-FIRST architecture: session={self._init_session_id}")
     
     @start()
     async def initialize_discovery(self):
@@ -186,162 +231,274 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         return "initialized"
     
     @listen(initialize_discovery)
-    async def execute_data_import_validation(self, previous_result):
-        """Execute data import validation: PII detection, malicious payload scanning, data type validation"""
+    async def execute_data_import_validation_agent(self, previous_result):
+        """Execute data import validation using individual agent"""
         if previous_result == "initialization_failed":
             logger.error("❌ Skipping data validation due to initialization failure")
             return "data_validation_skipped"
         
-        logger.info("🔍 Starting Data Import Validation Phase")
+        logger.info("🤖 Starting Data Import Validation with Agent-First Architecture")
         self.state.current_phase = "data_import"
         
         try:
-            # Execute data validation phase
-            validation_result = await self.phase_executor.execute_data_import_validation_phase(previous_result)
+            # Prepare agent data
+            agent_data = {
+                'raw_data': self.state.raw_data,
+                'source_columns': list(self.state.raw_data[0].keys()) if self.state.raw_data else [],
+                'file_info': self.state.metadata.get('file_info', {}),
+                'flow_metadata': {
+                    'session_id': self.state.session_id,
+                    'flow_id': self.state.flow_id
+                }
+            }
             
-            if validation_result in ["data_validation_failed", "data_validation_skipped"]:
-                logger.error("❌ Data validation failed - flow cannot proceed")
-                self.state.status = "validation_failed"
-                self.state.add_error("data_import", "Data validation failed")
-                return "data_validation_failed"
+            # Execute data validation agent
+            validation_result = await self.data_validation_agent.execute_analysis(agent_data, self._init_context)
+            
+            # Store agent results and confidence
+            self.state.data_validation_results = validation_result.data
+            self.state.agent_confidences['data_validation'] = validation_result.confidence_score
+            
+            # Collect insights and clarifications
+            if validation_result.insights:
+                self.state.agent_insights.extend(validation_result.insights)
+            if validation_result.clarifications:
+                self.state.user_clarifications.extend(validation_result.clarifications)
             
             # Update phase completion
-            self.state.phase_completion["data_import"] = True
-            self.state.update_progress()
+            self.state.phase_completion['data_import'] = True
+            self.state.progress_percentage = 20.0
             
-            logger.info("✅ Data Import Validation completed successfully")
+            # Persist state
+            if self.flow_bridge:
+                await self.flow_bridge.update_flow_state(self.state)
             
-            # PAUSE FLOW FOR USER APPROVAL
-            logger.info("⏸️ Flow paused - awaiting user approval to proceed to field mapping")
-            self.state.status = "awaiting_user_approval"
-            self.state.current_phase = "data_validation_complete"
-            
-            # Store validation results for user review
-            validation_data = self.state.phase_data.get("data_import", {})
-            file_analysis = validation_data.get("file_analysis", {})
-            recommended_agent = file_analysis.get("recommended_agent", "CMDB_Data_Analyst_Agent")
-            
-            # Log comprehensive report for user
-            logger.info("📊 DATA IMPORT VALIDATION REPORT:")
-            logger.info(f"   📁 File Type: {file_analysis.get('detected_type', 'unknown')}")
-            logger.info(f"   🎯 Recommended Agent: {recommended_agent}")
-            logger.info(f"   📈 Confidence: {file_analysis.get('confidence', 0):.1%}")
-            logger.info(f"   🔒 Security Status: {validation_data.get('security_status', 'unknown')}")
-            logger.info(f"   📋 Total Records: {validation_data.get('total_records', 0)}")
-            logger.info(f"   🏷️ Total Fields: {len(validation_data.get('detected_fields', []))}")
-            
-            detailed_report = validation_data.get("detailed_report", {})
-            if detailed_report:
-                logger.info("📄 DETAILED ANALYSIS:")
-                content_analysis = detailed_report.get("content_analysis", {})
-                logger.info(f"   🔍 Content Type: {content_analysis.get('detected_type', 'unknown')}")
-                logger.info(f"   🤖 Recommended Agent: {content_analysis.get('recommended_agent', 'unknown')}")
-                
-                security_assessment = detailed_report.get("security_assessment", {})
-                logger.info(f"   🛡️ Security Status: {security_assessment.get('status', 'unknown')}")
-                logger.info(f"   🔐 PII Detected: {security_assessment.get('pii_detected', False)}")
-                
-                data_quality = detailed_report.get("data_quality", {})
-                logger.info(f"   📊 Quality Score: {data_quality.get('overall_score', '0%')}")
-            
-            logger.info("⏳ USER ACTION REQUIRED:")
-            logger.info("   1. Review the file analysis above")
-            logger.info("   2. Confirm the recommended agent selection")
-            logger.info("   3. Approve proceeding to field mapping phase")
-            logger.info("   4. Or request different agent if file type was misidentified")
-            
-            # Return a special status that indicates user approval is needed
-            return "data_validation_complete_awaiting_approval"
+            logger.info(f"✅ Data validation agent completed (confidence: {validation_result.confidence_score:.1f}%)")
+            return "data_validation_completed"
             
         except Exception as e:
-            logger.error(f"❌ Data validation phase failed: {e}")
-            self.state.add_error("data_import", f"Data validation error: {str(e)}")
+            logger.error(f"❌ Data validation agent failed: {e}")
+            self.state.add_error("data_import", f"Agent execution failed: {str(e)}")
             return "data_validation_failed"
-    
-    @listen(execute_data_import_validation)
-    async def execute_field_mapping_crew(self, previous_result):
-        """Execute field mapping using CrewAI crew with PostgreSQL persistence and user approval"""
-        # Only proceed if user has approved the data validation
-        if previous_result == "data_validation_complete_awaiting_approval":
-            logger.info("⏸️ Data validation complete - flow paused for user approval")
-            logger.info("🚫 Field mapping will NOT start until user approval is received")
+
+    @listen(execute_data_import_validation_agent)
+    async def execute_attribute_mapping_agent(self, previous_result):
+        """Execute attribute mapping using individual agent"""
+        if previous_result in ["data_validation_skipped", "data_validation_failed"]:
+            logger.warning("⚠️ Proceeding with attribute mapping despite validation issues")
+        
+        logger.info("🤖 Starting Attribute Mapping with Agent-First Architecture")
+        self.state.current_phase = "field_mapping"
+        
+        try:
+            # Prepare agent data
+            agent_data = {
+                'raw_data': self.state.raw_data,
+                'source_columns': list(self.state.raw_data[0].keys()) if self.state.raw_data else [],
+                'validation_results': self.state.data_validation_results,
+                'flow_metadata': {
+                    'session_id': self.state.session_id,
+                    'flow_id': self.state.flow_id
+                }
+            }
             
-            # Set status to indicate waiting for user input
-            self.state.status = "awaiting_user_approval"
-            self.state.current_phase = "data_validation_complete"
+            # Execute attribute mapping agent
+            mapping_result = await self.attribute_mapping_agent.execute_analysis(agent_data, self._init_context)
             
-            # Return a status that prevents further automatic progression
-            return "field_mapping_pending_user_approval"
-        
-        if previous_result in ["initialization_failed", "data_validation_failed", "data_validation_skipped"]:
-            logger.error("❌ Skipping field mapping due to previous phase failure")
-            return "field_mapping_skipped"
-        
-        # Only proceed if we have explicit user approval (this would be set by a separate approval endpoint)
-        if self.state.status != "user_approved":
-            logger.warning("⚠️ Field mapping attempted without user approval - blocking execution")
-            return "field_mapping_blocked_no_approval"
-        
-        logger.info("🔄 Starting Field Mapping Phase with User Approval")
-        self.state.current_phase = "attribute_mapping"
-        self.state.status = "running"
-        
-        # Get the recommended agent from validation results
-        validation_data = self.state.phase_data.get("data_import", {})
-        file_analysis = validation_data.get("file_analysis", {})
-        recommended_agent = file_analysis.get("recommended_agent", "CMDB_Data_Analyst_Agent")
-        
-        logger.info(f"🤖 Using recommended agent: {recommended_agent}")
-        logger.info(f"📁 Processing {file_analysis.get('detected_type', 'unknown')} data")
-        
-        # The field mapping crew will use the recommended agent
-        return await self.phase_executor.execute_field_mapping_phase(previous_result)
-    
-    @listen(execute_field_mapping_crew)
-    async def execute_data_cleansing_crew(self, previous_result):
-        """Execute data cleansing using CrewAI crew with PostgreSQL persistence"""
-        if previous_result in ["field_mapping_skipped", "field_mapping_failed"]:
-            logger.error("❌ Skipping data cleansing due to field mapping issues")
-            return "data_cleansing_skipped"
-        
-        logger.info("🔄 Starting Data Cleansing Phase")
+            # Store agent results and confidence
+            self.state.field_mappings = mapping_result.data
+            self.state.agent_confidences['attribute_mapping'] = mapping_result.confidence_score
+            
+            # Collect insights and clarifications
+            if mapping_result.insights:
+                self.state.agent_insights.extend(mapping_result.insights)
+            if mapping_result.clarifications:
+                self.state.user_clarifications.extend(mapping_result.clarifications)
+            
+            # Update phase completion
+            self.state.phase_completion['field_mapping'] = True
+            self.state.progress_percentage = 40.0
+            
+            # Persist state
+            if self.flow_bridge:
+                await self.flow_bridge.update_flow_state(self.state)
+            
+            logger.info(f"✅ Attribute mapping agent completed (confidence: {mapping_result.confidence_score:.1f}%)")
+            return "field_mapping_completed"
+            
+        except Exception as e:
+            logger.error(f"❌ Attribute mapping agent failed: {e}")
+            self.state.add_error("field_mapping", f"Agent execution failed: {str(e)}")
+            return "field_mapping_failed"
+
+    @listen(execute_attribute_mapping_agent)
+    async def execute_data_cleansing_agent(self, previous_result):
+        """Execute data cleansing using individual agent"""
+        logger.info("🤖 Starting Data Cleansing with Agent-First Architecture")
         self.state.current_phase = "data_cleansing"
-        return await self.phase_executor.execute_data_cleansing_phase(previous_result)
-    
-    @listen(execute_data_cleansing_crew)
-    async def execute_asset_inventory_crew(self, previous_result):
-        """Execute asset inventory using CrewAI crew with PostgreSQL persistence"""
-        if previous_result in ["data_cleansing_skipped", "data_cleansing_failed"]:
-            logger.error("❌ Skipping asset inventory due to previous phase issues")
-            return "asset_inventory_skipped"
         
-        logger.info("🔄 Starting Asset Inventory Phase")
-        self.state.current_phase = "inventory"
-        return await self.phase_executor.execute_asset_inventory_phase(previous_result)
-    
-    @listen(execute_asset_inventory_crew)
-    async def execute_dependency_analysis_crew(self, previous_result):
-        """Execute dependency analysis using CrewAI crew with PostgreSQL persistence"""
-        if previous_result in ["asset_inventory_skipped", "asset_inventory_failed"]:
-            logger.error("❌ Skipping dependency analysis due to previous phase issues")
-            return "dependency_analysis_skipped"
+        try:
+            # Prepare agent data
+            agent_data = {
+                'raw_data': self.state.raw_data,
+                'field_mappings': self.state.field_mappings,
+                'validation_results': self.state.data_validation_results,
+                'flow_metadata': {
+                    'session_id': self.state.session_id,
+                    'flow_id': self.state.flow_id
+                }
+            }
+            
+            # Execute data cleansing agent
+            cleansing_result = await self.data_cleansing_agent.execute_analysis(agent_data, self._init_context)
+            
+            # Store agent results and confidence
+            self.state.cleaned_data = cleansing_result.data.get('cleaned_data', self.state.raw_data)
+            self.state.data_cleansing_results = cleansing_result.data
+            self.state.agent_confidences['data_cleansing'] = cleansing_result.confidence_score
+            
+            # Collect insights and clarifications
+            if cleansing_result.insights:
+                self.state.agent_insights.extend(cleansing_result.insights)
+            if cleansing_result.clarifications:
+                self.state.user_clarifications.extend(cleansing_result.clarifications)
+            
+            # Update phase completion
+            self.state.phase_completion['data_cleansing'] = True
+            self.state.progress_percentage = 60.0
+            
+            # Persist state
+            if self.flow_bridge:
+                await self.flow_bridge.update_flow_state(self.state)
+            
+            logger.info(f"✅ Data cleansing agent completed (confidence: {cleansing_result.confidence_score:.1f}%)")
+            return "data_cleansing_completed"
+            
+        except Exception as e:
+            logger.error(f"❌ Data cleansing agent failed: {e}")
+            self.state.add_error("data_cleansing", f"Agent execution failed: {str(e)}")
+            return "data_cleansing_failed"
+
+    @listen(execute_data_cleansing_agent)
+    async def execute_parallel_analysis_agents(self, previous_result):
+        """Execute asset inventory, dependency, and tech debt analysis agents in parallel"""
+        logger.info("🤖 Starting Parallel Analysis Agents (Asset, Dependency, Tech Debt)")
+        self.state.current_phase = "analysis"
         
-        logger.info("🔄 Starting Dependency Analysis Phase")
-        self.state.current_phase = "dependencies"
-        return await self.phase_executor.execute_dependency_analysis_phase(previous_result)
+        try:
+            # Prepare common agent data
+            agent_data = {
+                'raw_data': self.state.cleaned_data or self.state.raw_data,
+                'field_mappings': self.state.field_mappings,
+                'validation_results': self.state.data_validation_results,
+                'cleansing_results': self.state.data_cleansing_results,
+                'flow_metadata': {
+                    'session_id': self.state.session_id,
+                    'flow_id': self.state.flow_id
+                }
+            }
+            
+            # Execute agents in parallel
+            logger.info("🔄 Executing 3 analysis agents in parallel...")
+            results = await asyncio.gather(
+                self.asset_inventory_agent.execute_analysis(agent_data, self._init_context),
+                self.dependency_analysis_agent.execute_analysis(agent_data, self._init_context),
+                self.tech_debt_analysis_agent.execute_analysis(agent_data, self._init_context),
+                return_exceptions=True
+            )
+            
+            # Process results
+            asset_result, dependency_result, tech_debt_result = results
+            
+            # Store asset inventory results
+            if not isinstance(asset_result, Exception):
+                self.state.asset_inventory = asset_result.data
+                self.state.agent_confidences['asset_inventory'] = asset_result.confidence_score
+                if asset_result.insights:
+                    self.state.agent_insights.extend(asset_result.insights)
+                if asset_result.clarifications:
+                    self.state.user_clarifications.extend(asset_result.clarifications)
+                logger.info(f"✅ Asset inventory agent completed (confidence: {asset_result.confidence_score:.1f}%)")
+            else:
+                logger.error(f"❌ Asset inventory agent failed: {asset_result}")
+                self.state.add_error("asset_inventory", f"Agent failed: {str(asset_result)}")
+            
+            # Store dependency analysis results
+            if not isinstance(dependency_result, Exception):
+                self.state.dependency_analysis = dependency_result.data
+                self.state.agent_confidences['dependency_analysis'] = dependency_result.confidence_score
+                if dependency_result.insights:
+                    self.state.agent_insights.extend(dependency_result.insights)
+                if dependency_result.clarifications:
+                    self.state.user_clarifications.extend(dependency_result.clarifications)
+                logger.info(f"✅ Dependency analysis agent completed (confidence: {dependency_result.confidence_score:.1f}%)")
+            else:
+                logger.error(f"❌ Dependency analysis agent failed: {dependency_result}")
+                self.state.add_error("dependency_analysis", f"Agent failed: {str(dependency_result)}")
+            
+            # Store tech debt analysis results
+            if not isinstance(tech_debt_result, Exception):
+                self.state.tech_debt_analysis = tech_debt_result.data
+                self.state.agent_confidences['tech_debt_analysis'] = tech_debt_result.confidence_score
+                if tech_debt_result.insights:
+                    self.state.agent_insights.extend(tech_debt_result.insights)
+                if tech_debt_result.clarifications:
+                    self.state.user_clarifications.extend(tech_debt_result.clarifications)
+                logger.info(f"✅ Tech debt analysis agent completed (confidence: {tech_debt_result.confidence_score:.1f}%)")
+            else:
+                logger.error(f"❌ Tech debt analysis agent failed: {tech_debt_result}")
+                self.state.add_error("tech_debt_analysis", f"Agent failed: {str(tech_debt_result)}")
+            
+            # Update phase completion
+            self.state.phase_completion['asset_inventory'] = not isinstance(asset_result, Exception)
+            self.state.phase_completion['dependency_analysis'] = not isinstance(dependency_result, Exception)
+            self.state.phase_completion['tech_debt_analysis'] = not isinstance(tech_debt_result, Exception)
+            self.state.progress_percentage = 90.0
+            
+            # Persist state
+            if self.flow_bridge:
+                await self.flow_bridge.update_flow_state(self.state)
+            
+            logger.info("✅ Parallel analysis agents completed")
+            return "parallel_analysis_completed"
+            
+        except Exception as e:
+            logger.error(f"❌ Parallel analysis agents failed: {e}")
+            self.state.add_error("analysis", f"Parallel agent execution failed: {str(e)}")
+            return "parallel_analysis_failed"
+
+    # Add new agent execution methods
+    async def execute_data_import_validation_agent_method(self, data: Dict[str, Any], context: Dict[str, Any] = None) -> Dict[str, Any]:
+        """Execute data import validation agent"""
+        result = await self.data_validation_agent.execute_analysis(data, context)
+        return result.to_dict()
     
-    @listen(execute_dependency_analysis_crew)
-    async def execute_tech_debt_analysis_crew(self, previous_result):
-        """Execute technical debt analysis using CrewAI crew with PostgreSQL persistence"""
-        if previous_result in ["dependency_analysis_skipped", "dependency_analysis_failed"]:
-            logger.error("❌ Skipping tech debt analysis due to previous phase issues")
-            return "tech_debt_analysis_skipped"
+    async def execute_attribute_mapping_agent_method(self, data: Dict[str, Any], context: Dict[str, Any] = None) -> Dict[str, Any]:
+        """Execute attribute mapping agent"""
+        result = await self.attribute_mapping_agent.execute_analysis(data, context)
+        return result.to_dict()
+    
+    async def execute_data_cleansing_agent_method(self, data: Dict[str, Any], context: Dict[str, Any] = None) -> Dict[str, Any]:
+        """Execute data cleansing agent"""
+        result = await self.data_cleansing_agent.execute_analysis(data, context)
+        return result.to_dict()
+    
+    async def execute_parallel_analysis_agents_method(self, data: Dict[str, Any], context: Dict[str, Any] = None) -> Dict[str, Any]:
+        """Execute asset inventory, dependency, and tech debt analysis agents in parallel"""
+        results = await asyncio.gather(
+            self.asset_inventory_agent.execute_analysis(data, context),
+            self.dependency_analysis_agent.execute_analysis(data, context),
+            self.tech_debt_analysis_agent.execute_analysis(data, context),
+            return_exceptions=True
+        )
         
-        logger.info("🔄 Starting Tech Debt Analysis Phase")
-        self.state.current_phase = "tech_debt"
-        return await self.phase_executor.execute_tech_debt_analysis_phase(previous_result)
-    
-    @listen(execute_tech_debt_analysis_crew)
+        return {
+            'asset_inventory': results[0].to_dict() if not isinstance(results[0], Exception) else {'error': str(results[0])},
+            'dependency_analysis': results[1].to_dict() if not isinstance(results[1], Exception) else {'error': str(results[1])},
+            'tech_debt_analysis': results[2].to_dict() if not isinstance(results[2], Exception) else {'error': str(results[2])}
+        }
+
+    @listen(execute_parallel_analysis_agents)
     async def finalize_discovery(self, previous_result):
         """Finalize the discovery flow and provide comprehensive summary"""
         if previous_result in ["tech_debt_analysis_skipped", "tech_debt_analysis_failed"]:
