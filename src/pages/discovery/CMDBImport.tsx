@@ -34,6 +34,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { DataImportValidationService, ValidationAgentResult } from '@/services/dataImportValidationService';
 import { apiCall } from '@/config/api';
+import UniversalProcessingStatus from '@/components/discovery/UniversalProcessingStatus';
 
 // Flow Management Components
 import { UploadBlocker } from '@/components/discovery/UploadBlocker';
@@ -1086,6 +1087,50 @@ const DataImport: React.FC = () => {
                     )}
                   </CardContent>
                 </Card>
+              ))}
+            </div>
+          )}
+
+          {/* Universal Real-Time Processing Status */}
+          {uploadedFiles.length > 0 && uploadedFiles.some(f => f.flow_id) && (
+            <div className="space-y-6">
+              <h2 className="text-xl font-semibold text-gray-900">Real-Time Processing Monitor</h2>
+              {uploadedFiles.filter(f => f.flow_id).map((file) => (
+                <UniversalProcessingStatus
+                  key={file.flow_id}
+                  flow_id={file.flow_id}
+                  page_context="data_import"
+                  title={`${file.name} - Processing Status`}
+                  showAgentInsights={true}
+                  showValidationDetails={true}
+                  onProcessingComplete={() => {
+                    console.log(`Processing completed for file: ${file.name}`);
+                    toast({
+                      title: "Processing Complete",
+                      description: `${file.name} has been successfully processed.`,
+                    });
+                    // Update the file status
+                    setUploadedFiles(prev => prev.map(f => 
+                      f.id === file.id 
+                        ? { ...f, status: 'approved', flow_status: 'completed' }
+                        : f
+                    ));
+                  }}
+                  onValidationFailed={(issues) => {
+                    console.error(`Validation failed for file: ${file.name}`, issues);
+                    toast({
+                      title: "Validation Issues Found",
+                      description: `${file.name}: ${issues.join(', ')}`,
+                      variant: "destructive",
+                    });
+                    // Update the file status
+                    setUploadedFiles(prev => prev.map(f => 
+                      f.id === file.id 
+                        ? { ...f, status: 'rejected', error_message: issues.join(', ') }
+                        : f
+                    ));
+                  }}
+                />
               ))}
             </div>
           )}

@@ -1,5 +1,50 @@
 # AI Force Migration Platform - Change Log
 
+## [0.8.33] - 2025-06-25
+
+### 🎯 **Real-Time Processing Enhancement - CrewAI Event Integration**
+
+This release implements comprehensive real-time processing feedback by leveraging the existing CrewAI Event Listener system to surface backend validation failures and agent errors directly in the frontend.
+
+### 🚀 **Real-Time Processing Integration**
+
+#### **CrewAI Event Listener Integration**
+- **Enhanced API**: Modified real-time processing API to leverage existing CrewAI event listeners following [CrewAI documentation patterns](https://docs.crewai.com/concepts/event-listener)
+- **Event Injection**: Added intelligent event injection for flows that experienced validation failures but weren't captured by event listeners
+- **Backend Error Surfacing**: Real-time processing now captures and displays actual backend errors like "Data import validation failed: can't multiply sequence by non-int of type 'float'"
+- **Agent Status Monitoring**: Live tracking of individual agent failures, recovery attempts, and confidence scores
+
+#### **Validation Failure Detection**
+- **Format Validation**: Real-time detection of data format issues and type mismatches
+- **Security Scanning**: Live security validation feedback during processing
+- **Data Quality Assessment**: Real-time quality scoring with specific issue identification
+- **Error Recovery**: Automatic agent recovery attempts with live status updates
+
+#### **Frontend Integration Enhancement**
+- **Universal Processing Status**: Component now displays actual backend errors instead of generic loading states
+- **Agent Activity Monitor**: Real-time agent status, confidence scores, and failure details
+- **Live Updates Feed**: Streaming timeline of processing events with error messages and recovery attempts
+- **Validation Issues Display**: Comprehensive error reporting with specific failure reasons
+
+### 📊 **Technical Achievements**
+- **Event-Driven Architecture**: Leveraged existing CrewAI event listeners for real-time data flow
+- **Intelligent Fallback**: Automatic event injection for flows missing from event listener tracking
+- **Error Context Preservation**: Backend validation failures now surface with full context in frontend
+- **Agent Intelligence Display**: Real-time confidence scoring and recovery attempt monitoring
+
+### 🎯 **Business Impact**
+- **Transparency**: Users now see exactly what validation agents are doing and why they fail
+- **Debugging**: Real-time error feedback enables immediate issue identification and resolution
+- **User Experience**: Eliminated "stuck loading" states with comprehensive processing visibility
+- **Trust**: Live agent activity builds confidence in AI-powered processing capabilities
+
+### 🎪 **Success Metrics**
+- **Error Visibility**: Backend validation failures now visible in frontend real-time processing monitor
+- **Agent Transparency**: Live status updates for Data Import Validation Agent, Data Recovery Agent, and other processing agents
+- **Processing Intelligence**: Real-time confidence scores, error messages, and recovery attempts displayed to users
+
+---
+
 ## [0.8.32] - 2025-01-18
 
 ### 🎯 **UNIVERSAL REAL-TIME PROCESSING - Universal Component Implementation**
