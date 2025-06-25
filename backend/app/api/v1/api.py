@@ -206,6 +206,14 @@ try:
     logger.info("✅ Discovery Crew Escalation router included")
 except ImportError as e:
     logger.warning(f"⚠️ Discovery Crew Escalation router not available: {e}")
+
+# Performance Monitoring API (Task 4.3)
+try:
+    from app.api.v1.endpoints.performance.monitoring import router as performance_monitoring_router
+    api_router.include_router(performance_monitoring_router, prefix="/performance", tags=["Performance Monitoring"])
+    logger.info("✅ Performance Monitoring router included")
+except ImportError as e:
+    logger.warning(f"⚠️ Performance Monitoring router not available: {e}")
 api_router.include_router(context_establishment_router, prefix="/context-establishment", tags=["Context Establishment"])
 
 # Data Management

@@ -1,0 +1,129 @@
+asset_classification_task:
+  description: >
+    Analyze and classify the provided asset using advanced pattern recognition and industry knowledge.
+    
+    Your task is to:
+    1. Examine the asset data thoroughly for classification indicators
+    2. Apply pattern recognition algorithms to identify asset type
+    3. Determine primary and secondary classifications with confidence scores
+    4. Identify key characteristics and classification evidence
+    5. Provide detailed reasoning for the classification decision
+    
+    Use the asset_classification_tool to perform comprehensive analysis.
+    
+    Asset Data: {asset_data}
+    Context: {context}
+    
+    Focus on:
+    - Accurate primary asset type identification
+    - Confidence scoring (0-100%) for classification reliability
+    - Secondary classifications where applicable
+    - Key indicators and evidence supporting the classification
+    - Industry-specific categorization patterns
+    
+  expected_output: >
+    Detailed asset classification report including:
+    - Primary asset type with confidence score
+    - Secondary classifications if applicable
+    - Classification evidence and reasoning
+    - Key characteristics identified
+    - Industry-specific categorization
+    - Confidence assessment and reliability indicators
+
+business_context_analysis_task:
+  description: >
+    Analyze the business context and criticality of the classified asset to inform migration decisions.
+    
+    Based on the asset classification results, your task is to:
+    1. Assess business criticality level (critical, high, medium, low)
+    2. Evaluate impact factors across multiple dimensions
+    3. Calculate business value score
+    4. Determine strategic importance for the organization
+    5. Identify business risks and opportunities
+    
+    Use the business_context_tool to perform comprehensive business analysis.
+    
+    Asset Data: {asset_data}
+    Previous Classification: {classification_results}
+    
+    Analyze these dimensions:
+    - Revenue impact assessment
+    - Customer impact evaluation
+    - Operational impact analysis
+    - Compliance and regulatory impact
+    - Strategic business value calculation
+    
+  expected_output: >
+    Comprehensive business context analysis including:
+    - Business criticality level with justification
+    - Impact factor analysis across all dimensions
+    - Business value score with calculation methodology
+    - Strategic importance assessment
+    - Risk factors and mitigation recommendations
+    - Business continuity considerations
+
+environment_analysis_task:
+  description: >
+    Analyze the infrastructure environment and assess migration complexity for optimal planning.
+    
+    Based on the classification and business context, your task is to:
+    1. Identify the primary environment type
+    2. Assess infrastructure characteristics
+    3. Evaluate migration complexity factors
+    4. Estimate resource requirements and effort
+    5. Identify potential migration challenges
+    
+    Use the environment_analysis_tool to perform detailed infrastructure analysis.
+    
+    Asset Data: {asset_data}
+    Previous Analysis: {previous_analysis}
+    
+    Focus on:
+    - Environment type identification (production, staging, development, DR)
+    - Infrastructure characteristics (scalability, availability, security, performance)
+    - Migration complexity assessment
+    - Resource and effort estimation
+    - Risk identification and mitigation strategies
+    
+  expected_output: >
+    Detailed environment analysis including:
+    - Primary environment type with supporting evidence
+    - Infrastructure characteristics assessment
+    - Migration complexity evaluation with scoring
+    - Resource and effort estimates
+    - Timeline projections
+    - Risk factors and mitigation strategies
+    - Technical recommendations for migration approach
+
+asset_intelligence_synthesis_task:
+  description: >
+    Synthesize all analysis results into comprehensive asset intelligence recommendations.
+    
+    Your task is to:
+    1. Integrate classification, business context, and environment analysis
+    2. Generate migration priority recommendations
+    3. Identify key risk factors and mitigation strategies
+    4. Provide actionable insights for migration planning
+    5. Create comprehensive asset intelligence summary
+    
+    Input Sources:
+    - Asset classification results
+    - Business context analysis
+    - Environment analysis findings
+    
+    Synthesis Focus:
+    - Migration priority determination
+    - Risk assessment consolidation
+    - Resource requirement summary
+    - Timeline and effort projections
+    - Strategic recommendations
+    
+  expected_output: >
+    Comprehensive asset intelligence report including:
+    - Executive summary of key findings
+    - Migration priority recommendation with justification
+    - Consolidated risk assessment
+    - Resource and timeline estimates
+    - Strategic migration approach recommendations
+    - Key success factors and potential challenges
+    - Actionable next steps for migration planning 

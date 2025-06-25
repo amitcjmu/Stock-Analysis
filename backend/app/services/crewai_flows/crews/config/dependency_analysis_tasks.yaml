@@ -1,0 +1,129 @@
+network_topology_analysis_task:
+  description: >
+    Analyze network topology and architecture patterns to identify connectivity dependencies.
+    
+    Your task is to:
+    1. Examine network indicators and connectivity patterns
+    2. Identify network architecture tiers and components
+    3. Assess network complexity and connection requirements
+    4. Map critical network paths and dependencies
+    5. Evaluate network migration requirements and challenges
+    
+    Use the network_topology_tool to perform comprehensive network analysis.
+    
+    Asset Data: {asset_data}
+    Context: {context}
+    
+    Focus on:
+    - Network topology identification and mapping
+    - Connectivity pattern analysis
+    - Architecture tier assessment (web, application, database, integration)
+    - Network complexity scoring
+    - Critical path identification
+    
+  expected_output: >
+    Comprehensive network topology analysis including:
+    - Network architecture type and tier identification
+    - Connectivity patterns and dependencies
+    - Network complexity assessment with scoring
+    - Critical network paths and potential bottlenecks
+    - Network migration requirements and recommendations
+    - Risk factors and mitigation strategies for network migration
+
+application_integration_analysis_task:
+  description: >
+    Analyze application integration patterns and dependencies for migration coordination.
+    
+    Based on the network analysis, your task is to:
+    1. Identify application integration patterns and methods
+    2. Assess integration complexity and dependency strength
+    3. Map application-to-application dependencies
+    4. Evaluate integration migration impact
+    5. Provide integration-specific migration recommendations
+    
+    Use the application_integration_tool to perform detailed integration analysis.
+    
+    Asset Data: {asset_data}
+    Network Analysis: {network_analysis}
+    
+    Analyze these integration types:
+    - API and web service integrations
+    - Database connectivity and data flows
+    - Messaging and queue systems
+    - File-based integration workflows
+    - Real-time and batch processing dependencies
+    
+  expected_output: >
+    Detailed application integration analysis including:
+    - Integration pattern identification and classification
+    - Dependency strength assessment
+    - Integration complexity scoring
+    - Migration impact evaluation
+    - Coordination requirements for integration migration
+    - Testing and validation recommendations
+
+infrastructure_dependency_analysis_task:
+  description: >
+    Analyze infrastructure dependencies and relationships for optimal migration sequencing.
+    
+    Based on network and application analysis, your task is to:
+    1. Identify infrastructure component dependencies
+    2. Assess infrastructure maturity and complexity
+    3. Map critical infrastructure relationships
+    4. Determine migration prerequisites and sequencing
+    5. Evaluate infrastructure migration risks
+    
+    Use the infrastructure_dependency_tool to perform comprehensive infrastructure analysis.
+    
+    Asset Data: {asset_data}
+    Previous Analysis: {previous_analysis}
+    
+    Focus on these components:
+    - Compute resources and dependencies
+    - Storage systems and data dependencies
+    - Network infrastructure requirements
+    - Security and compliance dependencies
+    - Monitoring and management systems
+    
+  expected_output: >
+    Comprehensive infrastructure dependency analysis including:
+    - Infrastructure component mapping and relationships
+    - Dependency complexity assessment
+    - Infrastructure maturity evaluation
+    - Migration prerequisites identification
+    - Sequencing recommendations for infrastructure migration
+    - Risk assessment and mitigation strategies
+
+dependency_synthesis_task:
+  description: >
+    Synthesize all dependency analysis results into comprehensive migration recommendations.
+    
+    Your task is to:
+    1. Integrate network, application, and infrastructure dependency analysis
+    2. Create comprehensive dependency maps
+    3. Determine critical migration paths and sequences
+    4. Identify migration blockers and prerequisites
+    5. Generate actionable migration coordination recommendations
+    
+    Input Sources:
+    - Network topology analysis results
+    - Application integration analysis findings
+    - Infrastructure dependency analysis
+    
+    Synthesis Focus:
+    - Critical path identification across all dependency types
+    - Migration sequence optimization
+    - Risk consolidation and mitigation planning
+    - Coordination requirements across teams and systems
+    - Timeline and resource implications
+    
+  expected_output: >
+    Comprehensive dependency analysis synthesis including:
+    - Executive summary of critical dependencies
+    - Integrated dependency map with all relationships
+    - Optimal migration sequence recommendations
+    - Critical path analysis and potential bottlenecks
+    - Migration coordination requirements
+    - Risk assessment with consolidated mitigation strategies
+    - Resource and timeline implications
+    - Success criteria and validation checkpoints 

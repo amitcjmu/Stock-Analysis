@@ -1,0 +1,127 @@
+legacy_system_assessment_task:
+  description: >
+    Analyze legacy systems and assess technical debt for modernization planning.
+    
+    Your task is to:
+    1. Evaluate technology age and obsolescence factors
+    2. Assess architectural patterns and modernization needs
+    3. Quantify maintenance burden and technical debt
+    4. Identify modernization opportunities and priorities
+    5. Recommend modernization approaches and timelines
+    
+    Use the legacy_system_analysis_tool to perform comprehensive legacy assessment.
+    
+    Asset Data: {asset_data}
+    Context: {context}
+    
+    Focus on:
+    - Technology stack age and support status
+    - Architecture pattern assessment (monolithic vs modern)
+    - Maintenance burden and operational costs
+    - Code quality and technical debt indicators
+    - Modernization urgency and opportunity identification
+    
+  expected_output: >
+    Comprehensive legacy system assessment including:
+    - Technology age analysis with modernization urgency
+    - Architecture pattern evaluation and improvement opportunities
+    - Technical debt quantification and impact assessment
+    - Maintenance burden analysis and cost implications
+    - Modernization roadmap with prioritized recommendations
+    - Risk factors and modernization prerequisites
+
+cloud_migration_strategy_task:
+  description: >
+    Develop optimal cloud migration strategy using 6R framework analysis.
+    
+    Based on the legacy assessment, your task is to:
+    1. Analyze suitability for each 6R migration strategy
+    2. Recommend optimal migration approach with confidence scoring
+    3. Evaluate cloud platform requirements and benefits
+    4. Assess migration complexity and resource requirements
+    5. Develop strategic migration recommendations
+    
+    Use the sixr_strategy_tool to perform comprehensive 6R analysis.
+    
+    Asset Data: {asset_data}
+    Legacy Assessment: {legacy_assessment}
+    
+    Evaluate these strategies:
+    - Rehost (lift-and-shift) feasibility and benefits
+    - Replatform opportunities for cloud optimization
+    - Refactor potential for code and architecture improvements
+    - Rearchitect requirements for complete modernization
+    - Retire considerations for end-of-life systems
+    - Retain justification for compliance or stability needs
+    
+  expected_output: >
+    Strategic 6R migration analysis including:
+    - Recommended migration strategy with confidence score
+    - Detailed rationale for strategy selection
+    - Alternative strategy options with trade-off analysis
+    - Cloud platform requirements and optimization opportunities
+    - Migration complexity assessment and resource estimates
+    - Business case foundation for migration investment
+
+risk_assessment_and_mitigation_task:
+  description: >
+    Assess migration risks and develop comprehensive mitigation strategies.
+    
+    Based on legacy assessment and migration strategy, your task is to:
+    1. Identify technical, business, and operational risks
+    2. Quantify risk impact and probability
+    3. Develop risk mitigation strategies and contingency plans
+    4. Assess compliance and security risk factors
+    5. Create risk monitoring and management framework
+    
+    Asset Data: {asset_data}
+    Previous Analysis: {previous_analysis}
+    
+    Analyze these risk categories:
+    - Technical risks (compatibility, performance, integration)
+    - Business risks (downtime, user impact, cost overruns)
+    - Operational risks (skills, processes, support)
+    - Security and compliance risks
+    - Timeline and resource risks
+    
+  expected_output: >
+    Comprehensive risk assessment including:
+    - Risk identification and categorization
+    - Risk impact and probability assessment
+    - Mitigation strategies for each identified risk
+    - Contingency planning and rollback procedures
+    - Risk monitoring framework and success metrics
+    - Compliance and security risk management approach
+
+tech_debt_synthesis_task:
+  description: >
+    Synthesize all analysis into comprehensive tech debt remediation recommendations.
+    
+    Your task is to:
+    1. Integrate legacy assessment, migration strategy, and risk analysis
+    2. Develop comprehensive modernization roadmap
+    3. Create business case with investment and ROI analysis
+    4. Provide strategic recommendations for tech debt remediation
+    5. Establish success metrics and validation criteria
+    
+    Input Sources:
+    - Legacy system assessment results
+    - 6R migration strategy analysis
+    - Risk assessment and mitigation plans
+    
+    Synthesis Focus:
+    - Modernization priority and sequencing
+    - Investment requirements and business case
+    - Risk-adjusted implementation approach
+    - Success metrics and validation framework
+    - Long-term technology strategy alignment
+    
+  expected_output: >
+    Comprehensive tech debt analysis synthesis including:
+    - Executive summary of key findings and recommendations
+    - Detailed modernization roadmap with phases and timelines
+    - Investment analysis with costs, benefits, and ROI projections
+    - Risk-adjusted implementation strategy
+    - Success metrics and validation criteria
+    - Strategic alignment with organizational technology goals
+    - Actionable next steps for tech debt remediation 
