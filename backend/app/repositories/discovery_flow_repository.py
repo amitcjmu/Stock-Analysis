@@ -345,6 +345,32 @@ class DiscoveryFlowRepository(ContextAwareRepository):
         result = await self.db.execute(stmt)
         return result.scalars().all()
     
+    async def get_incomplete_flows(self) -> List[DiscoveryFlow]:
+        """
+        Get all incomplete discovery flows that should block new uploads.
+        This includes flows with status 'active', 'running', 'paused', and 'completed' flows that are not actually complete.
+        """
+        # First get all non-failed flows
+        stmt = select(DiscoveryFlow).where(
+            and_(
+                DiscoveryFlow.client_account_id == uuid.UUID(self.client_account_id),
+                DiscoveryFlow.engagement_id == uuid.UUID(self.engagement_id),
+                DiscoveryFlow.status.in_(["active", "running", "paused", "completed"])
+            )
+        ).options(selectinload(DiscoveryFlow.assets)).order_by(desc(DiscoveryFlow.created_at))
+        
+        result = await self.db.execute(stmt)
+        all_flows = result.scalars().all()
+        
+        # Filter to only truly incomplete flows
+        incomplete_flows = []
+        for flow in all_flows:
+            # Include flows that are not complete OR have non-final status
+            if not flow.is_complete() or flow.status in ["active", "running", "paused"]:
+                incomplete_flows.append(flow)
+        
+        return incomplete_flows
+    
     async def get_completed_flows(self, limit: int = 10) -> List[DiscoveryFlow]:
         """Get completed discovery flows for the client/engagement"""
         stmt = select(DiscoveryFlow).where(

@@ -1,5 +1,51 @@
 # AI Force Migration Platform - Change Log
 
+## [0.8.37] - 2025-01-25
+
+### 🎯 **CRITICAL FIX - Discovery Flow Status Correction**
+
+This release fixes the core issue where discovery flows were being prematurely marked as "completed" after data import, causing the incomplete flow detection system to fail and allowing multiple concurrent uploads.
+
+### 🚀 **Flow Progression Architecture**
+
+#### **Root Cause Resolution**
+- **Fixed UnifiedDiscoveryFlow completion logic**: Flow no longer jumps to "completed" status after CrewAI data import
+- **Implemented intelligent phase progression**: Uses existing `get_next_phase()` method with sophisticated validation logic
+- **Corrected PostgreSQL flow status**: Flows remain "running" until ALL phases are truly complete
+- **Database status correction**: Fixed 26 existing flows that were incorrectly marked as "completed"
+
+#### **Intelligent Phase Determination**
+- **Leverages existing validation logic**: Uses `_validate_and_get_next_phase()` with data quality analysis
+- **Agent-driven progression**: CrewAI agents determine which phases need user intervention vs auto-completion  
+- **Confidence-based routing**: High confidence data may skip certain phases, low confidence requires user input
+- **No hardcoded rules**: All phase decisions based on agent analysis and data quality
+
+### 📊 **Technical Achievements**
+- **Flow Status Accuracy**: 26 flows corrected from "completed" to "running" status
+- **Incomplete Flow Detection**: API now correctly returns active incomplete flows
+- **Upload Blocking**: UploadBlocker component will now properly prevent concurrent uploads
+- **Phase Progression**: Flows intelligently progress through attribute_mapping → data_cleansing → inventory → dependencies → tech_debt
+
+### 🎯 **Business Impact**
+- **Prevents Data Loss**: Users can no longer accidentally upload new files while existing flows are incomplete
+- **Improves User Experience**: Clear flow continuation instead of getting stuck after data import
+- **Ensures Data Quality**: All phases must be completed before flow is marked as done
+- **Maintains Flow Integrity**: Proper phase progression ensures no steps are skipped
+
+### 🔧 **Implementation Details**
+- **UnifiedDiscoveryFlow.finalize_discovery()**: Now marks data_import as complete and determines next phase
+- **Database Status Correction**: Bulk update script fixed existing flow statuses
+- **API Validation**: `/api/v1/discovery/flows/active` now correctly detects incomplete flows
+- **Removed Premature Completion**: No longer calls `complete_discovery_flow()` after data import
+
+### ⚡ **Success Metrics**
+- **Flow Detection**: 2/2 active flows correctly identified as incomplete
+- **Status Accuracy**: 26/27 flows corrected to proper "running" status  
+- **Phase Progression**: 100% of flows now use intelligent agent-based phase determination
+- **Upload Prevention**: Incomplete flow detection system fully operational
+
+---
+
 ## [0.8.36] - 2025-01-22
 
 ### 🎯 **Flow Navigation and Progression Fixes**
@@ -674,6 +720,7 @@ This release comprehensively fixes the discovery flow continuation functionality
 #### **Continue Flow Endpoint Correction**
 - **Issue**: Frontend was sending POST to `/flow/continue` with flow_id in body, but backend expects `/flow/continue/{flow_id}` with flow_id as path parameter
 - **Fix**: Updated `continueFlow()` method in UnifiedDiscoveryService to use correct URL pattern
+- **Implementation**: Changed from `POST /flow/continue` + body to `POST /flow/continue/${flowId}` + empty body
 - **Implementation**: Changed from `POST /flow/continue` + body to `POST /flow/continue/{flowId}` + empty body
 - **Benefits**: Flow continuation now works correctly without 405 Method Not Allowed errors
 

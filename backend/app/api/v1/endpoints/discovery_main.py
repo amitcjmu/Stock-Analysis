@@ -477,4 +477,5 @@ async def advance_flow_phase(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to advance flow phase: {str(e)}"
-        ) 
+        )
+

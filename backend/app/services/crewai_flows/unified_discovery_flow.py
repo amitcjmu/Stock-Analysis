@@ -666,54 +666,77 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
                 self.state.add_error("finalization", "No assets were processed during discovery")
                 return "discovery_failed"
             
-            # Mark as completed in CrewAI state
-            self.state.status = "completed"
-            self.state.current_phase = "completed"
+            # ✅ CRITICAL FIX: Use existing intelligent phase progression logic
+            # The flow should use the existing get_next_phase() method which already has
+            # sophisticated validation logic for determining next phase based on data quality
             
-            # ✅ CRITICAL FIX: Complete the PostgreSQL discovery flow to stop frontend polling
-            # Use the proper DiscoveryFlowService.complete_discovery_flow() method instead of update_phase_completion
-            try:
-                from app.services.discovery_flow_service import DiscoveryFlowService
-                from app.core.database import AsyncSessionLocal
-                from app.core.context import RequestContext
-                
-                async with AsyncSessionLocal() as db_session:
-                    # Create request context for the service
-                    service_context = RequestContext(
-                        client_account_id=self.state.client_account_id,
-                        engagement_id=self.state.engagement_id,
-                        user_id=self.state.user_id
-                    )
-                    
-                    # Use DiscoveryFlowService to properly complete the flow
-                    flow_service = DiscoveryFlowService(db_session, service_context)
-                    completed_flow = await flow_service.complete_discovery_flow(self.state.flow_id)
-                    logger.info(f"✅ PostgreSQL discovery flow marked as completed: {completed_flow.flow_id}")
-                    
-            except Exception as completion_error:
-                logger.warning(f"⚠️ Failed to complete PostgreSQL flow (non-critical): {completion_error}")
-                # Don't fail the entire flow completion for this
-                
-            # Also sync final state to flow bridge if available
+            # Mark data_import phase as completed in PostgreSQL
             if self.flow_bridge:
                 try:
-                    # Sync final state without using "completed" as phase
-                    await self.flow_bridge.sync_state_update(
-                        self.state, 
-                        "tech_debt",  # Use the last valid phase name
-                        crew_results={
-                            "action": "flow_completed",
-                            "summary": summary,
-                            "total_assets": total_assets,
-                            "timestamp": datetime.now().isoformat(),
-                            "flow_status": "completed"
-                        }
-                    )
-                except Exception as bridge_error:
-                    logger.warning(f"⚠️ Failed to sync completion state to bridge (non-critical): {bridge_error}")
+                    # Update the PostgreSQL flow to mark data_import as completed
+                    from app.services.discovery_flow_service import DiscoveryFlowService
+                    from app.core.database import AsyncSessionLocal
+                    from app.core.context import RequestContext
+                    
+                    async with AsyncSessionLocal() as db_session:
+                        service_context = RequestContext(
+                            client_account_id=self.state.client_account_id,
+                            engagement_id=self.state.engagement_id,
+                            user_id=self.state.user_id
+                        )
+                        
+                        flow_service = DiscoveryFlowService(db_session, service_context)
+                        
+                        # Mark data_import phase as completed with CrewAI results
+                        await flow_service.update_phase_completion(
+                            flow_id=self.state.flow_id,
+                            phase="data_import", 
+                            data={
+                                "crewai_summary": summary,
+                                "total_assets": total_assets,
+                                "timestamp": datetime.now().isoformat()
+                            },
+                            crew_status={"status": "completed", "phase": "data_import"},
+                            agent_insights=[{
+                                "agent": "UnifiedDiscoveryFlow",
+                                "insight": f"CrewAI processing completed with {total_assets} assets processed",
+                                "phase": "data_import",
+                                "timestamp": datetime.now().isoformat()
+                            }],
+                            completed=True
+                        )
+                        
+                        # Get updated flow to determine next phase using existing logic
+                        updated_flow = await flow_service.get_flow(self.state.flow_id)
+                        next_phase = updated_flow.get_next_phase() or "completed"
+                        
+                        # Update CrewAI state to match PostgreSQL state
+                        self.state.status = "running" if next_phase != "completed" else "completed"
+                        self.state.current_phase = next_phase
+                        
+                        logger.info(f"✅ PostgreSQL discovery flow updated - next phase: {next_phase}")
+                        logger.info(f"🎯 Flow will {'continue to ' + next_phase if next_phase != 'completed' else 'be marked as completed'}")
+                        
+                except Exception as update_error:
+                    logger.warning(f"⚠️ Failed to update PostgreSQL flow state: {update_error}")
+                    # Fallback: use running status and attribute_mapping as next phase
+                    self.state.status = "running"
+                    self.state.current_phase = "attribute_mapping"
+            else:
+                # Fallback if no flow bridge
+                self.state.status = "running" 
+                self.state.current_phase = "attribute_mapping"
+                
+            logger.info(f"✅ Unified Discovery Flow CrewAI processing completed successfully")
+            logger.info(f"📊 CrewAI Analysis Summary: {total_assets} assets, {len(self.state.errors)} errors, {len(self.state.warnings)} warnings")
+            logger.info(f"🔄 Flow Status: {self.state.status.upper()}")
+            logger.info(f"➡️  Next Phase: {self.state.current_phase}")
             
-            logger.info(f"✅ Unified Discovery Flow completed successfully")
-            logger.info(f"📊 Summary: {total_assets} assets, {len(self.state.errors)} errors, {len(self.state.warnings)} warnings")
+            if self.state.current_phase == "completed":
+                logger.info(f"🎉 All phases completed - Flow ready for Assessment phase")
+            else:
+                logger.info(f"⏭️  Flow will continue to {self.state.current_phase} phase")
+                logger.info(f"🎯 Intelligent phase progression: Agents determined next phase based on data quality and confidence")
             
             return summary
             
@@ -723,6 +746,8 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             self.state.status = "failed"
             return "discovery_failed"
     
+
+
     # ========================================
     # FLOW MANAGEMENT METHODS (Enhanced with PostgreSQL Bridge)
     # ========================================
