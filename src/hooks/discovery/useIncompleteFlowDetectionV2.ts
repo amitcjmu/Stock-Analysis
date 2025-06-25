@@ -85,11 +85,13 @@ export interface BulkDeleteResultV2 {
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 // Default headers for multi-tenant context
-const getDefaultHeaders = () => ({
-  'Content-Type': 'application/json',
-  'X-Client-Account-Id': '11111111-1111-1111-1111-111111111111',
-  'X-Engagement-Id': '22222222-2222-2222-2222-222222222222'
-});
+// Helper function to get headers with current auth context
+const getDefaultHeaders = () => {
+  // This will be overridden by each hook to use their auth context
+  return {
+    'Content-Type': 'application/json'
+  };
+};
 
 /**
  * Hook for detecting incomplete V2 discovery flows
@@ -191,13 +193,18 @@ export const useNewFlowValidationV2 = () => {
  * Hook for getting detailed V2 flow information
  */
 export const useFlowDetailsV2 = (flowId: string | null) => {
+  const { getAuthHeaders } = useAuth();
+  
   return useQuery({
     queryKey: ['flow-details-v2', flowId],
     queryFn: async (): Promise<IncompleteFlowV2> => {
       if (!flowId) throw new Error('Flow ID required');
       
-      const response = await fetch(`${API_BASE_URL}/api/v2/discovery-flows/flows/${flowId}`, {
-        headers: getDefaultHeaders()
+      const response = await fetch(`${API_BASE_URL}/api/v1/discovery-flows/flows/${flowId}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        }
       });
       
       if (!response.ok) {
@@ -249,6 +256,7 @@ export const useFlowDetailsV2 = (flowId: string | null) => {
 export const useFlowResumptionV2 = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { getAuthHeaders } = useAuth();
   
   return useMutation({
     mutationFn: async (flowId: string) => {
@@ -257,8 +265,11 @@ export const useFlowResumptionV2 = () => {
       console.log('🔄 V2 Flow continuation request for:', flowId);
       
       // Get flow details to determine next phase
-      const response = await fetch(`${API_BASE_URL}/api/v2/discovery-flows/flows/${flowId}`, {
-        headers: getDefaultHeaders()
+      const response = await fetch(`${API_BASE_URL}/api/v1/discovery-flows/flows/${flowId}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        }
       });
       
       if (!response.ok) {
@@ -317,6 +328,7 @@ export const useFlowResumptionV2 = () => {
 export const useFlowDeletionV2 = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { getAuthHeaders } = useAuth();
   
   return useMutation({
     mutationFn: async (flowId: string | { flowId: string; forceDelete?: boolean }) => {
@@ -326,9 +338,12 @@ export const useFlowDeletionV2 = () => {
       
       console.log('🗑️ V2 Flow deletion request:', { flowId: actualFlowId, forceDelete });
       
-      const response = await fetch(`${API_BASE_URL}/api/v2/discovery-flows/flows/${actualFlowId}?force_delete=${forceDelete}`, {
+      const response = await fetch(`${API_BASE_URL}/api/v1/discovery/flow/${actualFlowId}?force_delete=${forceDelete}`, {
         method: 'DELETE',
-        headers: getDefaultHeaders()
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        }
       });
       
       if (!response.ok) {
@@ -371,6 +386,7 @@ export const useFlowDeletionV2 = () => {
 export const useBulkFlowOperationsV2 = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { getAuthHeaders } = useAuth();
   
   const bulkDelete = useMutation({
     mutationFn: async (request: BulkDeleteRequestV2 | { session_ids: string[] }): Promise<BulkDeleteResultV2> => {
@@ -387,9 +403,12 @@ export const useBulkFlowOperationsV2 = () => {
       
       for (const flowId of flow_ids) {
         try {
-          const response = await fetch(`${API_BASE_URL}/api/v2/discovery-flows/flows/${flowId}?force_delete=${force_delete}`, {
+          const response = await fetch(`${API_BASE_URL}/api/v1/discovery/flow/${flowId}?force_delete=${force_delete}`, {
             method: 'DELETE',
-            headers: getDefaultHeaders()
+            headers: {
+              'Content-Type': 'application/json',
+              ...getAuthHeaders()
+            }
           });
           
           if (response.ok) {
@@ -460,14 +479,18 @@ export const useBulkFlowOperationsV2 = () => {
  */
 export const useFlowMonitoringV2 = (flowIds: string[]) => {
   const queryClient = useQueryClient();
+  const { getAuthHeaders } = useAuth();
   
   return useQuery({
     queryKey: ['flow-monitoring-v2', flowIds],
     queryFn: async () => {
       // Poll multiple flows for status updates
       const promises = flowIds.map(flowId => 
-        fetch(`${API_BASE_URL}/api/v2/discovery-flows/flows/${flowId}`, {
-          headers: getDefaultHeaders()
+        fetch(`${API_BASE_URL}/api/v1/discovery/flow/status/${flowId}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...getAuthHeaders()
+          }
         }).then(res => res.ok ? res.json() : null).catch(() => null)
       );
       const results = await Promise.all(promises);
@@ -480,19 +503,30 @@ export const useFlowMonitoringV2 = (flowIds: string[]) => {
 };
 
 // API functions - Updated to use unified discovery service
-const fetchFlowDetails = async (flowId: string): Promise<IncompleteFlow | null> => {
+const fetchFlowDetails = async (flowId: string): Promise<IncompleteFlowV2 | null> => {
   try {
     const response = await unifiedDiscoveryService.getFlowStatus(flowId);
     
-    // Convert unified response to IncompleteFlow format
+    // Convert unified response to IncompleteFlowV2 format
+    const validStatuses = ['active', 'running', 'paused', 'failed', 'completed'] as const;
+    const status = validStatuses.includes(response.status as any) ? response.status as typeof validStatuses[number] : 'active';
+    
     return {
       flow_id: flowId,
-      status: response.status,
+      id: flowId, // Use flow_id as id for V2 compatibility
+      status,
       current_phase: response.current_phase || 'unknown',
       progress_percentage: response.progress_percentage || 0,
       phases: response.phases || {},
-      last_activity: new Date().toISOString(),
-      is_resumable: response.status !== 'completed' && response.status !== 'failed'
+      flow_name: `Discovery Flow ${flowId.substring(0, 8)}`,
+      next_phase: 'analysis',
+      is_complete: status === 'completed',
+      assessment_ready: status === 'completed',
+      migration_readiness_score: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      can_resume: status !== 'completed' && status !== 'failed',
+      agent_insights: []
     };
   } catch (error) {
     console.error(`Failed to fetch flow details for ${flowId}:`, error);
@@ -524,7 +558,7 @@ const continueFlowById = async (flowId: string, force_delete: boolean = false): 
     }
     
     // Continue with next phase
-    const nextPhase = flowStatus.next_phase || 'analysis';
+    const nextPhase = 'analysis'; // Default next phase since next_phase is not available
     await unifiedDiscoveryService.executePhase(flowId, nextPhase);
     return true;
   } catch (error) {

@@ -1172,7 +1172,7 @@ async def get_context(
             else:
                 context_data.update({
                     "flow_error": f"Flow not found: {flow_id}",
-                    "suggestion": "Check flow_id or use /api/v2/discovery-flows/ to list available flows"
+                    "suggestion": "Check flow_id or use /api/v1/discovery-flows/ to list available flows"
                 })
         
         # Add flow statistics

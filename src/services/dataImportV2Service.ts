@@ -145,7 +145,7 @@ export const updatePhaseCompletion = async (
       completion_percentage: completionPercentage
     };
 
-    const response = await apiCall(`/api/v2/discovery-flows/flows/${flowId}/phase?phase=${phase}`, {
+    const response = await apiCall(`/api/v1/discovery-flows/flows/${flowId}/phase?phase=${phase}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -266,7 +266,7 @@ export const validateAsset = async (
   validationData: Record<string, any>
 ): Promise<ValidationResult> => {
   try {
-    const response = await apiCall(`/api/v2/discovery-flows/assets/${assetId}/validate`, {
+    const response = await apiCall(`/api/v1/discovery-flows/assets/${assetId}/validate`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
