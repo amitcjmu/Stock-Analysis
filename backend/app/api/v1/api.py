@@ -201,7 +201,7 @@ api_router.include_router(context_router, prefix="/context", tags=["Context Mana
 
 # Discovery Crew Escalation API (Task 2.3)
 try:
-    from app.api.v1.endpoints.discovery.escalation import router as escalation_router
+    from app.api.v1.endpoints.discovery_escalation import router as escalation_router
     api_router.include_router(escalation_router, prefix="/discovery", tags=["Discovery Crew Escalation"])
     logger.info("✅ Discovery Crew Escalation router included")
 except ImportError as e:

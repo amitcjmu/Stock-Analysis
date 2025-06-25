@@ -145,7 +145,7 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
     // Navigate to phase-specific page based on current phase
     const phaseRoutes = {
       'field_mapping': `/discovery/attribute-mapping/${flowId}`,
-      'attribute_mapping': `/discovery/attribute-mapping/${flowId}`, // Add this mapping
+      'attribute_mapping': `/discovery/attribute-mapping/${flowId}`,
       'data_cleansing': `/discovery/data-cleansing/${flowId}`,
       'asset_inventory': `/discovery/asset-inventory/${flowId}`,
       'inventory': `/discovery/asset-inventory/${flowId}`, // Alternative name
@@ -153,12 +153,12 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
       'dependencies': `/discovery/dependencies/${flowId}`, // Alternative name
       'tech_debt_analysis': `/discovery/technical-debt/${flowId}`,
       'tech_debt': `/discovery/technical-debt/${flowId}`, // Alternative name
-      'data_import': `/discovery/attribute-mapping/${flowId}`, // Default to attribute mapping
-      'initialization': `/discovery/attribute-mapping/${flowId}` // Default to attribute mapping
+      'data_import': `/discovery/data-import`, // ✅ Route to data import page
+      'initialization': `/discovery/data-import` // ✅ Route to data import page for initialization
     };
     
-    const route = phaseRoutes[phase as keyof typeof phaseRoutes] || `/discovery/attribute-mapping/${flowId}`;
-    console.log(`Navigating to phase-specific page: ${route} for phase: ${phase}`);
+    const route = phaseRoutes[phase as keyof typeof phaseRoutes] || `/discovery/data-import`; // ✅ Default to data import instead of attribute mapping
+    console.log(`🔄 Backend validation result: phase="${phase}" -> route="${route}"`);
     navigate(route);
   };
 
@@ -1007,7 +1007,7 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
                   <div className="space-y-4">
                     {activeFlows.map((flow) => (
                       <div key={flow.flow_id} className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer"
-                           onClick={() => navigate(`/discovery/attribute-mapping/${flow.session_id || flow.flow_id}`)}>
+                           onClick={() => handleViewDetails(flow.flow_id, flow.current_phase)}>
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-3">
                             {getStatusIcon(flow.status)}
@@ -1081,8 +1081,8 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
           <IncompleteFlowManager 
             flows={incompleteFlows}
             onContinueFlow={(flowId) => {
-              // Navigate to continue flow - V2 uses flow_id
-              navigate(`/discovery/attribute-mapping/${flowId}`);
+              // Use the proper continue flow handler
+              handleContinueFlow(flowId);
             }}
             onDeleteFlow={(flowId) => {
               // Use V2 delete function
@@ -1093,15 +1093,8 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
               flowIds.forEach(id => deleteFlow(id));
             }}
             onViewDetails={(flowId, phase) => {
-              const phaseRoutes = {
-                'field_mapping': `/discovery/attribute-mapping/${flowId}`,
-                'data_cleansing': `/discovery/attribute-mapping/${flowId}`,
-                'asset_inventory': `/discovery/attribute-mapping/${flowId}`,
-                'dependency_analysis': `/discovery/attribute-mapping/${flowId}`,
-                'tech_debt_analysis': `/discovery/attribute-mapping/${flowId}`
-              };
-              const route = phaseRoutes[phase as keyof typeof phaseRoutes] || `/discovery/enhanced-dashboard`;
-              navigate(route);
+              // Use the proper view details handler
+              handleViewDetails(flowId, phase);
             }}
             isLoading={isDeleting}
           />

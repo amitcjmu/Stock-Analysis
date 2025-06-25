@@ -1,5 +1,25 @@
 # AI Force Migration Platform - Change Log
 
+## [0.8.28] - 2025-01-15
+
+### 🎯 **FLOW NAVIGATION FIXES & ESCALATION ROUTER RESOLUTION**
+
+This release fixes critical frontend navigation issues where the system was ignoring backend validation results and routing users to incorrect phases, plus resolves the Discovery Crew Escalation router import issue.
+
+### 🚀 **Navigation & Routing Fixes**
+
+#### **Frontend Respects Backend Validation**
+- **Issue Resolution**: Fixed frontend ignoring backend's `next_phase` validation results
+- **Root Cause**: Hardcoded phase routing that always sent users to attribute mapping regardless of backend validation
+- **Solution**: Updated all phase routing to respect backend validation and direct users to correct phases
+- **Impact**: Users now properly go to data import phase when validation detects incomplete data processing
+
+#### **Discovery Crew Escalation Router Fix**
+- **Issue Resolution**: Fixed "No module named 'app.api.v1.endpoints.discovery.escalation'" import error
+- **Root Cause**: Incorrect import path structure in API router configuration
+- **Solution**: Moved escalation file to correct location and updated import path
+- **Impact**: Discovery Crew Escalation API now loads properly without warnings
+
 ## [0.8.27] - 2025-01-15
 
 ### 🎯 **INTELLIGENT PHASE VALIDATION SYSTEM**

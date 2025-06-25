@@ -450,8 +450,8 @@ const DataImport: React.FC = () => {
           throw new Error("No data found for the import session. The discovery flow cannot start.");
         }
 
-        // ✅ Navigate using CrewAI Flow ID (follows CrewAI best practices)
-        navigate(`/discovery/attribute-mapping/${uploadedFile.flow_id}`);
+        // ✅ Navigate to data import phase (new flows should start with data import)
+        navigate(`/discovery/data-import`);
 
     } catch (error) {
         const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred.";
@@ -632,7 +632,8 @@ const DataImport: React.FC = () => {
                 `Would you like to continue with the existing Discovery Flow (${conflictData.existing_flow.current_phase} phase, ${conflictData.existing_flow.progress_percentage}% complete)?`
               );
               if (shouldNavigate) {
-                navigate(`/discovery/attribute-mapping/${existingSessionId}`);
+                // Navigate to data import phase for incomplete flows
+                navigate(`/discovery/data-import`);
               }
             }, 3000);
           }
