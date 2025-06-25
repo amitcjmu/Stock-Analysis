@@ -9,7 +9,7 @@ from .base_phase_executor import BasePhaseExecutor
 
 class AssetInventoryExecutor(BasePhaseExecutor):
     def get_phase_name(self) -> str:
-        return "asset_inventory"
+        return "inventory"  # FIX: Map to correct DB phase name
     
     def get_progress_percentage(self) -> float:
         return 50.0  # 3/6 phases
@@ -19,8 +19,14 @@ class AssetInventoryExecutor(BasePhaseExecutor):
         crew_result = crew.kickoff(inputs=crew_input)
         return self._process_crew_result(crew_result)
     
-    def execute_fallback(self) -> Dict[str, Any]:
-        return {"servers": [], "total_assets": 0, "classification_metadata": {"fallback_used": True}}
+    async def execute_fallback(self) -> Dict[str, Any]:
+        # 🚀 DATA VALIDATION: Check if we have data to process
+        if not hasattr(self.state, 'processed_assets') or not self.state.processed_assets:
+            return {"status": "skipped", "reason": "no_data", "total_assets": 0}
+        
+        # Simple fallback processing
+        assets_count = len(self.state.processed_assets)
+        return {"servers": [], "total_assets": assets_count, "classification_metadata": {"fallback_used": True}}
     
     def _prepare_crew_input(self) -> Dict[str, Any]:
         return {"cleaned_data": getattr(self.state, 'cleaned_data', [])}

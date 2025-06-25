@@ -9,7 +9,7 @@ from .base_phase_executor import BasePhaseExecutor
 
 class TechDebtExecutor(BasePhaseExecutor):
     def get_phase_name(self) -> str:
-        return "tech_debt_analysis"
+        return "tech_debt"  # FIX: Map to correct DB phase name
     
     def get_progress_percentage(self) -> float:
         return 83.3  # 5/6 phases
@@ -19,8 +19,12 @@ class TechDebtExecutor(BasePhaseExecutor):
         crew_result = crew.kickoff(inputs=crew_input)
         return self._process_crew_result(crew_result)
     
-    def execute_fallback(self) -> Dict[str, Any]:
-        return {"recommendations": [], "fallback_used": True}
+    async def execute_fallback(self) -> Dict[str, Any]:
+        # 🚀 DATA VALIDATION: Check if we have data to process  
+        if not hasattr(self.state, 'processed_assets') or not self.state.processed_assets:
+            return {"status": "skipped", "reason": "no_data", "recommendations": []}
+        
+        return {"recommendations": [], "fallback_used": True, "assets_analyzed": len(self.state.processed_assets)}
     
     def _prepare_crew_input(self) -> Dict[str, Any]:
         return {"asset_inventory": getattr(self.state, 'asset_inventory', {})}

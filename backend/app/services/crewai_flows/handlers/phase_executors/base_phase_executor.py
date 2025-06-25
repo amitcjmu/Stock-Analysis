@@ -159,5 +159,14 @@ class BasePhaseExecutor(ABC):
     
     async def execute_fallback(self) -> Dict[str, Any]:
         """Execute phase using fallback logic - now async"""
+        phase_name = self.get_phase_name()
+        
+        # 🚀 DATA VALIDATION: Check if we have data to process
+        if not hasattr(self.state, 'processed_assets') or not self.state.processed_assets:
+            logger.error(f"❌ No data available for {phase_name} - skipping")
+            return {"status": "skipped", "reason": "no_data", "phase": phase_name}
+        
+        logger.info(f"✅ Processing {len(self.state.processed_assets)} assets in {phase_name}")
+        
         # Default implementation - override in subclasses
-        return {"status": "fallback_executed", "phase": self.get_phase_name()} 
+        return {"status": "fallback_executed", "phase": phase_name, "assets_processed": len(self.state.processed_assets)} 

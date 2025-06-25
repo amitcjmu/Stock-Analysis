@@ -91,133 +91,52 @@ class DataCleansingCrew:
     def create_agents(self):
         """Create agents with hierarchical management"""
         
-        # Manager Agent for hierarchical coordination
+        # 🚀 PERFORMANCE FIX: Single agent, no delegation, memory disabled
         data_quality_manager = Agent(
-            role="Data Quality Manager",
-            goal="Ensure comprehensive data cleansing and quality validation for migration readiness",
-            backstory="""You are a data quality expert with 12+ years managing enterprise data 
-            cleansing projects. You excel at coordinating validation and standardization efforts 
-            while ensuring data integrity for migration projects.""",
+            role="Data Quality Specialist",
+            goal="Process and validate data quality efficiently without delegation",
+            backstory="""You are a data quality expert who processes data directly and efficiently. 
+            You provide comprehensive data cleansing results without requiring additional agents or conversations.""",
             llm=self.llm,
-            memory=self.shared_memory,
-            knowledge=self.knowledge_base,
+            memory=False,  # DISABLE MEMORY - Prevents APIStatusError
             verbose=True,
-            allow_delegation=True,
-            max_delegation=2,
-            planning=True if CREWAI_ADVANCED_AVAILABLE else False
+            allow_delegation=False,  # DISABLE DELEGATION - Prevents agent conversations
+            max_iter=1,  # LIMIT ITERATIONS - Prevents infinite loops
+            max_execution_time=30  # 30 SECOND TIMEOUT
         )
         
-        # Data Validation Expert - specialist agent
-        validation_expert = Agent(
-            role="Data Validation Expert", 
-            goal="Validate data quality using established field mappings and enterprise standards",
-            backstory="""You are an expert in data validation with deep knowledge of IT asset data 
-            requirements. You excel at identifying data quality issues and implementing validation 
-            rules based on field mappings and business requirements.""",
-            llm=self.llm,
-            memory=self.shared_memory,
-            knowledge=self.knowledge_base,
-            verbose=True,
-            collaboration=True if CREWAI_ADVANCED_AVAILABLE else False,
-            tools=self._create_validation_tools()
-        )
-        
-        # Data Standardization Specialist - specialist agent  
-        standardization_specialist = Agent(
-            role="Data Standardization Specialist",
-            goal="Standardize data formats and values for consistent migration processing",
-            backstory="""You are a specialist in data standardization with extensive experience in 
-            normalizing IT asset data. You excel at applying consistent formatting, value 
-            standardization, and data transformation for migration projects.""",
-            llm=self.llm,
-            memory=self.shared_memory, 
-            knowledge=self.knowledge_base,
-            verbose=True,
-            collaboration=True if CREWAI_ADVANCED_AVAILABLE else False,
-            tools=self._create_standardization_tools()
-        )
-        
-        return [data_quality_manager, validation_expert, standardization_specialist]
+        return [data_quality_manager]  # SINGLE AGENT PATTERN
     
     def create_tasks(self, agents, cleaned_data: List[Dict[str, Any]], field_mappings: Dict[str, Any]):
-        """Create hierarchical tasks with manager coordination"""
-        manager, validation_expert, standardization_specialist = agents
+        """Create single task for direct processing"""
+        manager = agents[0]  # SINGLE AGENT PATTERN
         
         data_sample = cleaned_data[:5] if cleaned_data else []
         mapped_fields = field_mappings.get("mappings", {})
         
-        # Planning Task - Manager coordinates data quality approach
-        planning_task = Task(
-            description=f"""Plan comprehensive data cleansing strategy based on field mappings.
+        # 🚀 SINGLE TASK - Direct data processing without delegation
+        data_processing_task = Task(
+            description=f"""Process and validate data quality directly for {len(cleaned_data)} records.
             
-            Data sample size: {len(cleaned_data)} records
-            Mapped fields: {list(mapped_fields.keys())}
-            Field mappings confidence: {field_mappings.get('confidence_scores', {})}
-            
-            Create a data quality plan that:
-            1. Prioritizes validation based on field mapping confidence
-            2. Defines standardization requirements for each field type
-            3. Establishes quality metrics and success criteria
-            4. Plans collaboration between validation and standardization specialists
-            5. Leverages field mapping insights from shared memory
-            
-            Use your planning capabilities to coordinate the data cleansing crew effectively.""",
-            expected_output="Comprehensive data quality execution plan with validation priorities and standardization requirements",
-            agent=manager,
-            tools=[]
-        )
-        
-        # Data Validation Task - Quality assessment using field mappings
-        validation_task = Task(
-            description=f"""Validate data quality using established field mappings and standards.
-            
-            Data to validate: {len(cleaned_data)} records
-            Sample data: {data_sample}
+            Data sample: {data_sample}
             Field mappings: {mapped_fields}
             Confidence scores: {field_mappings.get('confidence_scores', {})}
             
-            Validation Requirements:
-            1. Check data completeness for required fields
-            2. Validate data formats (IP addresses, dates, etc.)
-            3. Verify value ranges and constraints
-            4. Identify data inconsistencies and outliers
-            5. Assess data quality using field mapping confidence
-            6. Generate detailed validation report with quality scores
-            7. Store validation insights in shared memory
+            Complete the following in a single response:
+            1. Validate data completeness and format consistency
+            2. Standardize field values and formats
+            3. Generate quality metrics and scores
+            4. Provide final cleansed dataset
             
-            Collaborate with standardization specialist to share validation findings.""",
-            expected_output="Comprehensive data validation report with quality scores, issues identified, and recommendations",
-            agent=validation_expert,
-            context=[planning_task],
-            tools=self._create_validation_tools()
+            Provide results in JSON format with:
+            - validation_results: quality scores and issues
+            - standardized_data: processed records
+            - quality_metrics: completion, consistency, accuracy scores""",
+            expected_output="JSON with validation results, standardized data, and quality metrics",
+            agent=manager
         )
         
-        # Data Standardization Task - Format and value normalization
-        standardization_task = Task(
-            description=f"""Standardize data formats and values for consistent migration processing.
-            
-            Data to standardize: {len(cleaned_data)} records
-            Field mappings: {mapped_fields}
-            Validation results: Use insights from validation expert
-            
-            Standardization Requirements:
-            1. Normalize text values (trim, case consistency)
-            2. Standardize date and time formats
-            3. Format IP addresses consistently
-            4. Normalize environment values (prod, staging, dev)
-            5. Standardize criticality levels
-            6. Apply field-specific transformations based on mappings
-            7. Generate standardized dataset with transformation log
-            8. Use validation expert insights from shared memory
-            
-            Collaborate with validation expert to ensure standardization quality.""",
-            expected_output="Standardized dataset with transformation log and quality metrics",
-            agent=standardization_specialist,
-            context=[validation_task],
-            tools=self._create_standardization_tools()
-        )
-        
-        return [planning_task, validation_task, standardization_task]
+        return [data_processing_task]  # SINGLE TASK PATTERN
     
     def create_crew(self, cleaned_data: List[Dict[str, Any]], field_mappings: Dict[str, Any]):
         """Create hierarchical crew with manager coordination"""

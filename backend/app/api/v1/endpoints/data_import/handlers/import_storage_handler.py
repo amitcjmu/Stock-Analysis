@@ -409,7 +409,7 @@ async def _validate_no_incomplete_discovery_flow(
     rather than incomplete data import sessions.
     """
     try:
-        from app.services.crewai_flows.flow_state_bridge import DiscoveryFlowStateManager
+        from app.services.crewai_flows.discovery_flow_state_manager import DiscoveryFlowStateManager
         from app.core.context import RequestContext
         
         # Create proper context for flow state manager
