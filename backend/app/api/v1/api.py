@@ -198,6 +198,14 @@ if AUTH_RBAC_AVAILABLE:
     logger.info("✅ Auth RBAC router included")
 
 api_router.include_router(context_router, prefix="/context", tags=["Context Management"])
+
+# Discovery Crew Escalation API (Task 2.3)
+try:
+    from app.api.v1.endpoints.discovery.escalation import router as escalation_router
+    api_router.include_router(escalation_router, prefix="/discovery", tags=["Discovery Crew Escalation"])
+    logger.info("✅ Discovery Crew Escalation router included")
+except ImportError as e:
+    logger.warning(f"⚠️ Discovery Crew Escalation router not available: {e}")
 api_router.include_router(context_establishment_router, prefix="/context-establishment", tags=["Context Establishment"])
 
 # Data Management

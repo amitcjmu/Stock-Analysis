@@ -30,7 +30,8 @@ from .utilities import (
 )
 from app.schemas.discovery_schemas import FieldMappingUpdate, FieldMappingSuggestion, FieldMappingAnalysis, FieldMappingResponse
 from app.services.field_mapper_modular import field_mapper
-from app.services.agents import AgentManager
+# Note: AgentManager is legacy - using individual agents per Discovery Flow Redesign
+# from app.services.agents_legacy import AgentManager
 from app.core.auth import get_current_user_id
 
 router = APIRouter()

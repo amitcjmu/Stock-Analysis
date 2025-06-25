@@ -10,7 +10,7 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException, Depends, Body
 from pydantic import BaseModel
 
-from app.core.context import RequestContext, get_request_context
+from app.core.context import RequestContext, get_request_context_dependency
 from app.services.agents.discovery_agent_orchestrator import DiscoveryAgentOrchestrator
 from app.services.agents.agent_communication_protocol import get_communication_protocol
 from app.services.agent_ui_bridge import agent_ui_bridge
@@ -46,7 +46,7 @@ confidence_manager = ConfidenceManager()
 
 @router.get("/agent-status")
 async def get_agent_status(
-    context: RequestContext = Depends(get_request_context)
+    context: RequestContext = Depends(get_request_context_dependency)
 ):
     """Get current agent status for the UI monitor panel."""
     try:
@@ -89,7 +89,7 @@ async def get_agent_status(
 @router.get("/agent-questions")
 async def get_agent_questions(
     page: str = "dependencies",
-    context: RequestContext = Depends(get_request_context)
+    context: RequestContext = Depends(get_request_context_dependency)
 ):
     """Get pending agent questions for the current page."""
     try:
@@ -139,7 +139,7 @@ async def get_agent_questions(
 @router.post("/agent-questions/answer")
 async def answer_agent_question(
     response_data: AgentQuestionResponse,
-    context: RequestContext = Depends(get_request_context)
+    context: RequestContext = Depends(get_request_context_dependency)
 ):
     """Process user response to an agent question."""
     try:
@@ -173,7 +173,7 @@ async def answer_agent_question(
 @router.get("/agent-insights")
 async def get_agent_insights(
     page: str = "dependencies",
-    context: RequestContext = Depends(get_request_context)
+    context: RequestContext = Depends(get_request_context_dependency)
 ):
     """Get agent insights for the current page."""
     try:
@@ -220,7 +220,7 @@ async def get_agent_insights(
 @router.post("/agent-insights/action")
 async def perform_insight_action(
     action_data: AgentInsightAction,
-    context: RequestContext = Depends(get_request_context)
+    context: RequestContext = Depends(get_request_context_dependency)
 ):
     """Perform an action on an agent insight."""
     try:
@@ -255,7 +255,7 @@ async def perform_insight_action(
 @router.post("/think")
 async def agent_think(
     request: ThinkRequest,
-    context: RequestContext = Depends(get_request_context)
+    context: RequestContext = Depends(get_request_context_dependency)
 ):
     """Trigger 'Think' button functionality for progressive intelligence."""
     try:
@@ -291,7 +291,7 @@ async def agent_think(
 @router.post("/ponder-more")
 async def agent_ponder_more(
     request: PonderRequest,
-    context: RequestContext = Depends(get_request_context)
+    context: RequestContext = Depends(get_request_context_dependency)
 ):
     """Trigger 'Ponder More' button functionality for crew collaboration."""
     try:
@@ -328,7 +328,7 @@ async def agent_ponder_more(
 @router.get("/confidence-scores")
 async def get_confidence_scores(
     page: str = "dependencies",
-    context: RequestContext = Depends(get_request_context)
+    context: RequestContext = Depends(get_request_context_dependency)
 ):
     """Get confidence scores for agents on the current page."""
     try:
@@ -351,7 +351,7 @@ async def get_confidence_scores(
 @router.get("/data-classifications")
 async def get_data_classifications(
     page: str = "dependencies",
-    context: RequestContext = Depends(get_request_context)
+    context: RequestContext = Depends(get_request_context_dependency)
 ):
     """Get data classifications for the current page."""
     try:
@@ -376,7 +376,7 @@ async def get_data_classifications(
 
 @router.get("/communication-status")
 async def get_communication_status(
-    context: RequestContext = Depends(get_request_context)
+    context: RequestContext = Depends(get_request_context_dependency)
 ):
     """Get agent communication protocol status."""
     try:
@@ -399,7 +399,7 @@ async def get_communication_status(
 
 @router.post("/test-communication")
 async def test_agent_communication(
-    context: RequestContext = Depends(get_request_context)
+    context: RequestContext = Depends(get_request_context_dependency)
 ):
     """Test the agent communication system."""
     try:

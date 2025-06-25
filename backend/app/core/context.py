@@ -5,9 +5,10 @@ Provides utilities for extracting and injecting client/engagement/session contex
 
 from typing import Optional, Dict, Any
 from contextvars import ContextVar
-from fastapi import Request, HTTPException
+from fastapi import Request, HTTPException, Depends
 import uuid
 import logging
+from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 
@@ -132,6 +133,36 @@ def extract_context_from_request(request: Request) -> RequestContext:
     return context
 
 
+def get_request_context(request: Request) -> RequestContext:
+    """
+    Extract and return request context from a FastAPI request.
+    
+    Args:
+        request: FastAPI request object
+        
+    Returns:
+        RequestContext extracted from request headers
+    """
+    context = extract_context_from_request(request)
+    set_context(context)
+    return context
+
+
+def get_request_context_dependency(request: Request) -> RequestContext:
+    """
+    FastAPI dependency to extract and return request context.
+    
+    Args:
+        request: FastAPI request object
+        
+    Returns:
+        RequestContext extracted from request headers
+    """
+    context = extract_context_from_request(request)
+    set_context(context)
+    return context
+
+
 def set_context(context: RequestContext) -> None:
     """
     Set context variables for the current request.
@@ -200,17 +231,17 @@ def validate_context(context: RequestContext, require_client: bool = True, requi
     
     if require_engagement and not context.engagement_id:
         raise HTTPException(
-            status_code=400, 
+            status_code=400,
             detail="Engagement context is required. Please provide X-Engagement-Id header."
         )
 
 
 def is_demo_client(client_account_id: Optional[str] = None) -> bool:
     """
-    Check if the current or provided client is the demo client.
+    Check if the given client account ID matches our demo client.
     
     Args:
-        client_account_id: Optional client ID to check (defaults to current context)
+        client_account_id: Client account ID to check, or None to use current context
         
     Returns:
         True if this is the demo client
@@ -218,18 +249,18 @@ def is_demo_client(client_account_id: Optional[str] = None) -> bool:
     if client_account_id is None:
         client_account_id = get_client_account_id()
     
-    return client_account_id == DEMO_CLIENT_CONFIG["client_account_id"] or client_account_id == "pujyam-corp"
+    return client_account_id == DEMO_CLIENT_CONFIG["client_account_id"]
 
 
 def create_context_headers(context: RequestContext) -> Dict[str, str]:
     """
-    Create HTTP headers from context for downstream requests.
+    Create HTTP headers from request context.
     
     Args:
-        context: RequestContext to convert
+        context: RequestContext to convert to headers
         
     Returns:
-        Dictionary of HTTP headers
+        Dictionary of headers
     """
     headers = {}
     
@@ -241,7 +272,7 @@ def create_context_headers(context: RequestContext) -> Dict[str, str]:
         
     if context.user_id:
         headers["X-User-Id"] = context.user_id
-
+        
     if context.session_id:
         headers["X-Session-Id"] = context.session_id
     
@@ -250,43 +281,36 @@ def create_context_headers(context: RequestContext) -> Dict[str, str]:
 
 async def resolve_demo_client_ids(db_session) -> None:
     """
-    Dynamically resolve demo client by finding the client marked with is_mock=true.
-    This should be called during application startup.
-    
-    Args:
-        db_session: Database session for lookup
+    Resolve and update demo client configuration from database.
+    This ensures we're using actual UUIDs from the database.
     """
     try:
-        from app.models.client_account import ClientAccount, Engagement
-        from sqlalchemy import select
+        from app.models.client_account import ClientAccount
+        from app.models.engagement import Engagement
         
-        # Find demo client by is_mock=true flag
-        client_result = await db_session.execute(
-            select(ClientAccount).where(ClientAccount.is_mock == True)
+        # Find the Complete Test Client
+        client = await db_session.execute(
+            select(ClientAccount).where(ClientAccount.name == "Complete Test Client")
         )
-        demo_client = client_result.scalar_one_or_none()
+        client = client.scalar_one_or_none()
         
-        if demo_client:
-            DEMO_CLIENT_CONFIG["client_account_id"] = str(demo_client.id)
-            DEMO_CLIENT_CONFIG["client_name"] = demo_client.name
-            logger.info(f"✅ Resolved demo client ID: {demo_client.id} ({demo_client.name})")
+        if client:
+            DEMO_CLIENT_CONFIG["client_account_id"] = str(client.id)
             
-            # Find first engagement for this demo client
-            engagement_result = await db_session.execute(
+            # Find the Azure Transformation engagement
+            engagement = await db_session.execute(
                 select(Engagement).where(
-                    Engagement.client_account_id == demo_client.id
-                ).limit(1)
+                    Engagement.client_account_id == client.id,
+                    Engagement.name == "Azure Transformation"
+                )
             )
-            demo_engagement = engagement_result.scalar_one_or_none()
+            engagement = engagement.scalar_one_or_none()
             
-            if demo_engagement:
-                DEMO_CLIENT_CONFIG["engagement_id"] = str(demo_engagement.id)
-                DEMO_CLIENT_CONFIG["engagement_name"] = demo_engagement.name
-                logger.info(f"✅ Resolved demo engagement ID: {demo_engagement.id} ({demo_engagement.name})")
-            else:
-                logger.warning(f"⚠️  No engagements found for demo client {demo_client.name}")
-        else:
-            logger.warning("⚠️  No demo client with is_mock=true found in database")
-            
+            if engagement:
+                DEMO_CLIENT_CONFIG["engagement_id"] = str(engagement.id)
+                
+        logger.info(f"✅ Demo client configuration resolved: {DEMO_CLIENT_CONFIG}")
+        
     except Exception as e:
-        logger.error(f"❌ Failed to resolve demo client IDs: {e}") 
+        logger.warning(f"⚠️ Could not resolve demo client IDs from database: {e}")
+        # Keep using the hardcoded UUIDs as fallback 

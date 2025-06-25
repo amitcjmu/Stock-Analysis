@@ -67,32 +67,20 @@ class AgentRegistry:
     def _initialize_all_agents(self):
         """Initialize all agents across all phases."""
         
-        # === DISCOVERY PHASE AGENTS ===
-        self._register_discovery_crew_agents()
+        # 🚨 DISCOVERY FLOW REDESIGN: Disable old agent registry
+        # The Discovery Flow Redesign (Tasks 1.1-2.2 completed) uses individual specialized agents
+        # instead of the old registry system with 17 competing agents
         
-        # === ASSESSMENT PHASE AGENTS ===
-        self._register_assessment_agents()
+        logger.info("🔄 Discovery Flow Redesign: Using individual specialized agents instead of registry")
+        logger.info("📋 Active individual agents: DataImportValidationAgent, AttributeMappingAgent, DataCleansingAgent, etc.")
         
-        # === PLANNING PHASE AGENTS ===
-        self._register_planning_agents()
-        
-        # === MIGRATION PHASE AGENTS ===
-        self._register_migration_agents()
-        
-        # === MODERNIZATION PHASE AGENTS ===
-        self._register_modernization_agents()
-        
-        # === DECOMMISSION PHASE AGENTS ===
-        self._register_decommission_agents()
-        
-        # === FINOPS PHASE AGENTS ===
-        self._register_finops_agents()
-        
-        # === LEARNING & CONTEXT MANAGEMENT AGENTS ===
-        self._register_learning_context_agents()
-        
-        # === OBSERVABILITY PHASE AGENTS ===
+        # Only register essential observability agents for monitoring
         self._register_observability_agents()
+        
+        # NOTE: All other agent registrations disabled per Discovery Flow Redesign
+        # - Discovery phase: Using individual agents in UnifiedDiscoveryFlow
+        # - Assessment/Planning/Migration: Will be redesigned in future phases
+        # - Learning context: Handled by Agent-UI-Bridge system
     
     def _register_discovery_crew_agents(self):
         """Register all Discovery phase crew-based agents."""

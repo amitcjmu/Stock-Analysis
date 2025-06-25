@@ -65,18 +65,10 @@ from .handlers.unified_flow_management import UnifiedFlowManagement
 # Import Flow State Bridge for PostgreSQL persistence
 from .flow_state_bridge import FlowStateBridge, managed_flow_bridge
 
-# 🤖 AGENT-FIRST ARCHITECTURE: Import individual agents
+# 🤖 AGENT-FIRST ARCHITECTURE: Import individual specialized agents (Tasks 1.1-1.2)
+# These are the correct agents for the optimized agentic design per Discovery Flow Redesign
 from app.services.agents.data_import_validation_agent import DataImportValidationAgent
-from app.services.agents.attribute_mapping_agent import AttributeMappingAgent
-from app.services.agents.data_cleansing_agent import DataCleansingAgent
-from app.services.agents.asset_inventory_agent import AssetInventoryAgent
-from app.services.agents.dependency_analysis_agent import DependencyAnalysisAgent
-from app.services.agents.tech_debt_analysis_agent import TechDebtAnalysisAgent
-from app.services.agents.discovery_agent_orchestrator import DiscoveryAgentOrchestrator
-
-# Import individual agents (add after existing imports)
-from app.services.agents.data_import_validation_agent import DataImportValidationAgent
-from app.services.agents.attribute_mapping_agent import AttributeMappingAgent
+from app.services.agents.attribute_mapping_agent import AttributeMappingAgent  
 from app.services.agents.data_cleansing_agent import DataCleansingAgent
 from app.services.agents.asset_inventory_agent import AssetInventoryAgent
 from app.services.agents.dependency_analysis_agent import DependencyAnalysisAgent
@@ -137,18 +129,8 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         else:
             logger.warning("⚠️ CrewAI Flow ID not yet available - will be set after kickoff")
         
-        # 🤖 AGENT-FIRST ARCHITECTURE: Initialize individual agents
-        self.data_validation_agent = DataImportValidationAgent()
-        self.attribute_mapping_agent = AttributeMappingAgent()
-        self.data_cleansing_agent = DataCleansingAgent()
-        self.asset_inventory_agent = AssetInventoryAgent()
-        self.dependency_analysis_agent = DependencyAnalysisAgent()
-        self.tech_debt_analysis_agent = TechDebtAnalysisAgent()
-        
-        # Initialize agent orchestrator for coordination
-        self.agent_orchestrator = DiscoveryAgentOrchestrator()
-        
-        # 🤖 AGENT-FIRST ARCHITECTURE: Initialize individual agents
+        # 🤖 AGENT-FIRST ARCHITECTURE: Initialize individual specialized agents (Tasks 1.1-1.2)
+        # These are the correct agents for the optimized agentic design per Discovery Flow Redesign
         self.data_validation_agent = DataImportValidationAgent()
         self.attribute_mapping_agent = AttributeMappingAgent()
         self.data_cleansing_agent = DataCleansingAgent()
@@ -678,6 +660,58 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
                 "status": "cleanup_error",
                 "error": str(e)
             }
+    
+    # === CREW ESCALATION METHODS (Task 2.3) ===
+    
+    async def get_flow_state(self, flow_id: str) -> Optional[Dict[str, Any]]:
+        """Get flow state for escalation validation"""
+        try:
+            if self.state.session_id == flow_id:
+                return {
+                    "flow_id": flow_id,
+                    "session_id": self.state.session_id,
+                    "status": "active",
+                    "current_phase": getattr(self.state, 'current_phase', 'unknown'),
+                    "client_account_id": self.state.client_account_id,
+                    "engagement_id": self.state.engagement_id,
+                    "user_id": self.state.user_id
+                }
+            return None
+        except Exception as e:
+            logger.error(f"❌ Error getting flow state: {e}")
+            return None
+    
+    async def update_escalation_status(self, flow_id: str, escalation_id: str, 
+                                     status: str, crew_type: str = None, 
+                                     collaboration_crews: List[str] = None) -> bool:
+        """Update flow state with escalation information"""
+        try:
+            if not hasattr(self.state, 'escalations'):
+                self.state.escalations = {}
+            
+            self.state.escalations[escalation_id] = {
+                "escalation_id": escalation_id,
+                "status": status,
+                "crew_type": crew_type,
+                "collaboration_crews": collaboration_crews or [],
+                "updated_at": datetime.utcnow().isoformat(),
+                "flow_id": flow_id
+            }
+            
+            # Persist escalation state if bridge is available
+            if self.flow_bridge:
+                await self.flow_bridge.persist_escalation_state(
+                    self.state.session_id, 
+                    escalation_id, 
+                    self.state.escalations[escalation_id]
+                )
+            
+            logger.info(f"✅ Updated escalation status: {escalation_id} -> {status}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Error updating escalation status: {e}")
+            return False
     
     def plot(self, filename: str = "unified_discovery_flow"):
         """
