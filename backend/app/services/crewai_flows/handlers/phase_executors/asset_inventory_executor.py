@@ -14,9 +14,20 @@ class AssetInventoryExecutor(BasePhaseExecutor):
     def get_progress_percentage(self) -> float:
         return 50.0  # 3/6 phases
     
-    def execute_with_crew(self, crew_input: Dict[str, Any]) -> Dict[str, Any]:
-        crew = self.crew_manager.create_crew_on_demand("inventory", **self._get_crew_context())
-        crew_result = crew.kickoff(inputs=crew_input)
+    async def execute_with_crew(self, crew_input: Dict[str, Any]) -> Dict[str, Any]:
+        # Get required data for inventory crew
+        cleaned_data = getattr(self.state, 'cleaned_data', [])
+        field_mappings = getattr(self.state, 'field_mappings', {})
+        
+        crew = self.crew_manager.create_crew_on_demand(
+            "inventory", 
+            cleaned_data=cleaned_data,
+            field_mappings=field_mappings,
+            **self._get_crew_context()
+        )
+        # Run crew in thread to avoid blocking async execution
+        import asyncio
+        crew_result = await asyncio.to_thread(crew.kickoff, inputs=crew_input)
         return self._process_crew_result(crew_result)
     
     async def execute_fallback(self) -> Dict[str, Any]:

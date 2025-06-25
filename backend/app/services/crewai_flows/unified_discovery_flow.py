@@ -355,10 +355,28 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             # Generate final summary
             summary = self.state.finalize_flow()
             
-            # Validate overall success
-            total_assets = self.state.asset_inventory.get("total_assets", 0)
+            # Validate overall success - check multiple data sources
+            total_assets = 0
+            
+            # Check asset inventory
+            if hasattr(self.state, 'asset_inventory') and self.state.asset_inventory:
+                total_assets = self.state.asset_inventory.get("total_assets", 0)
+            
+            # Fallback: check cleaned_data
+            if total_assets == 0 and hasattr(self.state, 'cleaned_data') and self.state.cleaned_data:
+                total_assets = len(self.state.cleaned_data)
+                logger.info(f"📊 Using cleaned_data count: {total_assets} assets")
+            
+            # Fallback: check raw_data
+            if total_assets == 0 and hasattr(self.state, 'raw_data') and self.state.raw_data:
+                total_assets = len(self.state.raw_data)
+                logger.info(f"📊 Using raw_data count: {total_assets} assets")
+            
             if total_assets == 0:
                 logger.error("❌ Discovery Flow FAILED: No assets were processed")
+                logger.error(f"   State debug: asset_inventory={getattr(self.state, 'asset_inventory', 'None')}")
+                logger.error(f"   State debug: cleaned_data length={len(getattr(self.state, 'cleaned_data', []))}")
+                logger.error(f"   State debug: raw_data length={len(getattr(self.state, 'raw_data', []))}")
                 self.state.status = "failed"
                 self.state.add_error("finalization", "No assets were processed during discovery")
                 return "discovery_failed"

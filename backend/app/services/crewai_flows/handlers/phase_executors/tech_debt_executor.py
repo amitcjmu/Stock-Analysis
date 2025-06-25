@@ -14,9 +14,20 @@ class TechDebtExecutor(BasePhaseExecutor):
     def get_progress_percentage(self) -> float:
         return 83.3  # 5/6 phases
     
-    def execute_with_crew(self, crew_input: Dict[str, Any]) -> Dict[str, Any]:
-        crew = self.crew_manager.create_crew_on_demand("tech_debt", **self._get_crew_context())
-        crew_result = crew.kickoff(inputs=crew_input)
+    async def execute_with_crew(self, crew_input: Dict[str, Any]) -> Dict[str, Any]:
+        # Get required data for tech debt crew
+        asset_inventory = getattr(self.state, 'asset_inventory', {})
+        dependencies = getattr(self.state, 'dependencies', {})
+        
+        crew = self.crew_manager.create_crew_on_demand(
+            "tech_debt", 
+            asset_inventory=asset_inventory,
+            dependencies=dependencies,
+            **self._get_crew_context()
+        )
+        # Run crew in thread to avoid blocking async execution
+        import asyncio
+        crew_result = await asyncio.to_thread(crew.kickoff, inputs=crew_input)
         return self._process_crew_result(crew_result)
     
     async def execute_fallback(self) -> Dict[str, Any]:

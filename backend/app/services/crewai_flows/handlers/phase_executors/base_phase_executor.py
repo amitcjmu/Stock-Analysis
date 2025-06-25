@@ -162,11 +162,13 @@ class BasePhaseExecutor(ABC):
         phase_name = self.get_phase_name()
         
         # 🚀 DATA VALIDATION: Check if we have data to process
-        if not hasattr(self.state, 'processed_assets') or not self.state.processed_assets:
+        # Check for data in order of processing: cleaned_data -> raw_data
+        data_to_process = getattr(self.state, 'cleaned_data', None) or getattr(self.state, 'raw_data', [])
+        if not data_to_process:
             logger.error(f"❌ No data available for {phase_name} - skipping")
             return {"status": "skipped", "reason": "no_data", "phase": phase_name}
         
-        logger.info(f"✅ Processing {len(self.state.processed_assets)} assets in {phase_name}")
+        logger.info(f"✅ Processing {len(data_to_process)} assets in {phase_name}")
         
         # Default implementation - override in subclasses
-        return {"status": "fallback_executed", "phase": phase_name, "assets_processed": len(self.state.processed_assets)} 
+        return {"status": "fallback_executed", "phase": phase_name, "assets_processed": len(data_to_process)} 
