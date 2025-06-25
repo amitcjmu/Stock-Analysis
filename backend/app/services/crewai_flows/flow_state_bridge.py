@@ -47,13 +47,14 @@ class FlowStateBridge:
         """
         try:
             # 1. Let CrewAI handle its own persistence first
-            logger.info(f"🔄 Initializing flow state bridge for session: {state.session_id}")
+            logger.info(f"🔄 Initializing flow state bridge for CrewAI Flow ID: {state.flow_id}")
+            logger.info(f"   📋 Session context: {state.session_id}")
             
             # 2. Mirror to PostgreSQL for enterprise requirements
             pg_result = await self.pg_persistence.persist_flow_initialization(state)
             
             # 3. Log successful initialization
-            logger.info(f"✅ Flow state bridge initialized: session={state.session_id}")
+            logger.info(f"✅ Flow state bridge initialized: CrewAI Flow ID={state.flow_id}")
             
             return {
                 "status": "success",
@@ -88,7 +89,7 @@ class FlowStateBridge:
             if crew_results:
                 await self.pg_persistence.persist_phase_completion(state, phase, crew_results)
             
-            logger.debug(f"🔄 State synced for session: {state.session_id}, phase: {phase}")
+            logger.debug(f"🔄 State synced for CrewAI Flow ID: {state.flow_id}, phase: {phase}")
             
             return {
                 "status": "success",

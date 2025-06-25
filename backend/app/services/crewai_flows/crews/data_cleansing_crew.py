@@ -12,6 +12,9 @@ import json
 from typing import Dict, List, Any, Optional
 from crewai import Agent, Task, Crew, Process
 
+# Import state model for type hints
+from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
+
 # Import advanced CrewAI features with fallbacks
 try:
     from crewai.memory import LongTermMemory

@@ -138,7 +138,18 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             self.state.flow_id = str(self.flow_id)
             logger.info(f"🎯 REAL CrewAI Flow ID set in state: {self.state.flow_id}")
         else:
-            logger.error("❌ CrewAI Flow ID still not available - this is a critical issue")
+            # Try alternative flow_id attributes
+            for attr in ['id', '_id', '_flow_id', 'execution_id']:
+                if hasattr(self, attr):
+                    flow_id_value = getattr(self, attr)
+                    if flow_id_value:
+                        self.state.flow_id = str(flow_id_value)
+                        logger.info(f"🎯 CrewAI Flow ID found via {attr}: {self.state.flow_id}")
+                        break
+            else:
+                logger.error("❌ CrewAI Flow ID still not available - this is a critical issue")
+                # Log all available attributes for debugging
+                logger.error(f"Available attributes: {[attr for attr in dir(self) if not attr.startswith('__')]}")
         
         # Set core state fields
         self.state.session_id = self._init_session_id
