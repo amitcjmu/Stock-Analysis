@@ -396,40 +396,52 @@ class DiscoveryFlowEventListener(BaseEventListener):
         logger.info("✅ Discovery Flow Event Listeners registered successfully")
     
     def _extract_flow_id(self, source, event) -> str:
-        """Extract flow ID from event source using CrewAI Flow Service integration"""
+        """Extract flow ID from event source - PRIORITIZE flow_id over session_id"""
         try:
             # Import CrewAI Flow Service for proper flow ID resolution
             from app.services.crewai_flow_service import CrewAIFlowService
             
-            # Method 1: From source object state (most reliable)
-            if hasattr(source, 'state') and hasattr(source.state, 'session_id'):
-                session_id = source.state.session_id
-                if session_id:
-                    return session_id
-            
-            # Method 2: From event data
-            if hasattr(event, 'flow_id'):
-                flow_id = event.flow_id
-                if flow_id:
-                    return flow_id
-            
-            # Method 3: From source session
-            if hasattr(source, 'session_id'):
-                session_id = source.session_id
-                if session_id:
-                    return session_id
-            
-            # Method 4: From source flow ID directly
+            # Method 1: From source flow ID directly (HIGHEST PRIORITY)
             if hasattr(source, 'flow_id'):
                 flow_id = source.flow_id
                 if flow_id:
-                    return flow_id
-                    
-            # Method 5: From source ID (CrewAI Flow UUID)
+                    logger.info(f"🎯 Flow ID extracted from source.flow_id: {flow_id}")
+                    return str(flow_id)
+            
+            # Method 2: From source ID (CrewAI Flow UUID)
             if hasattr(source, 'id'):
                 source_id = source.id
                 if source_id:
-                    return source_id
+                    logger.info(f"🎯 Flow ID extracted from source.id: {source_id}")
+                    return str(source_id)
+            
+            # Method 3: From event data
+            if hasattr(event, 'flow_id'):
+                flow_id = event.flow_id
+                if flow_id:
+                    logger.info(f"🎯 Flow ID extracted from event.flow_id: {flow_id}")
+                    return str(flow_id)
+            
+            # Method 4: From source object state flow_id (if available)
+            if hasattr(source, 'state') and hasattr(source.state, 'flow_id'):
+                flow_id = source.state.flow_id
+                if flow_id:
+                    logger.info(f"🎯 Flow ID extracted from source.state.flow_id: {flow_id}")
+                    return str(flow_id)
+            
+            # Method 5: FALLBACK to session_id (DEPRECATED - only for backward compatibility)
+            if hasattr(source, 'state') and hasattr(source.state, 'session_id'):
+                session_id = source.state.session_id
+                if session_id:
+                    logger.warning(f"⚠️ Using DEPRECATED session_id as flow_id: {session_id}")
+                    return str(session_id)
+            
+            # Method 6: From source session (DEPRECATED)
+            if hasattr(source, 'session_id'):
+                session_id = source.session_id
+                if session_id:
+                    logger.warning(f"⚠️ Using DEPRECATED source.session_id as flow_id: {session_id}")
+                    return str(session_id)
             
             # Method 6: Query CrewAI Flow Service for active flows
             # Get the current active flow from the flow service

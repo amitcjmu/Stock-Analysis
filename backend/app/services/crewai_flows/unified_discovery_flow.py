@@ -127,7 +127,16 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             self.state.flow_id = str(self.flow_id)
             logger.info(f"🎯 State flow_id set from CrewAI Flow: {self.state.flow_id}")
         else:
-            logger.warning("⚠️ CrewAI Flow ID not yet available - will be set after kickoff")
+            # Check alternative flow ID attributes
+            for attr in ['id', '_id', '_flow_id', 'execution_id']:
+                if hasattr(self, attr):
+                    flow_id_value = getattr(self, attr)
+                    if flow_id_value:
+                        self.state.flow_id = str(flow_id_value)
+                        logger.info(f"🎯 State flow_id set from {attr}: {self.state.flow_id}")
+                        break
+            else:
+                logger.warning("⚠️ CrewAI Flow ID not yet available - will be set after kickoff")
         
         # 🤖 AGENT-FIRST ARCHITECTURE: Initialize individual specialized agents (Tasks 1.1-1.2)
         # These are the correct agents for the optimized agentic design per Discovery Flow Redesign
@@ -161,22 +170,35 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         logger.info(f"📋 Flow Context: session={self._init_session_id}, client={self._init_client_account_id}, engagement={self._init_engagement_id}")
         
         # ✅ CRITICAL FIX: Set the flow_id from CrewAI Flow (now available after @start)
-        if hasattr(self, 'flow_id') and self.flow_id:
-            self.state.flow_id = str(self.flow_id)
-            logger.info(f"🎯 REAL CrewAI Flow ID set in state: {self.state.flow_id}")
-        else:
-            # Try alternative flow_id attributes
-            for attr in ['id', '_id', '_flow_id', 'execution_id']:
-                if hasattr(self, attr):
-                    flow_id_value = getattr(self, attr)
-                    if flow_id_value:
-                        self.state.flow_id = str(flow_id_value)
-                        logger.info(f"🎯 CrewAI Flow ID found via {attr}: {self.state.flow_id}")
-                        break
+        flow_id_found = False
+        
+        # Try all possible flow ID attributes in priority order
+        flow_id_attrs = ['flow_id', 'id', '_id', '_flow_id', 'execution_id', '_execution_id']
+        
+        for attr in flow_id_attrs:
+            if hasattr(self, attr):
+                flow_id_value = getattr(self, attr)
+                if flow_id_value:
+                    self.state.flow_id = str(flow_id_value)
+                    logger.info(f"🎯 REAL CrewAI Flow ID set from {attr}: {self.state.flow_id}")
+                    flow_id_found = True
+                    break
+        
+        if not flow_id_found:
+            logger.error("❌ CrewAI Flow ID still not available - this is a critical issue")
+            # Log all available attributes for debugging
+            available_attrs = [attr for attr in dir(self) if not attr.startswith('__')]
+            logger.error(f"Available attributes: {available_attrs}")
+            
+            # Use session_id as fallback but log warning
+            if self._init_session_id:
+                self.state.flow_id = self._init_session_id
+                logger.warning(f"⚠️ FALLBACK: Using session_id as flow_id: {self.state.flow_id}")
             else:
-                logger.error("❌ CrewAI Flow ID still not available - this is a critical issue")
-                # Log all available attributes for debugging
-                logger.error(f"Available attributes: {[attr for attr in dir(self) if not attr.startswith('__')]}")
+                # Generate a flow ID as last resort
+                import uuid
+                self.state.flow_id = str(uuid.uuid4())
+                logger.error(f"❌ EMERGENCY: Generated new flow_id: {self.state.flow_id}")
         
         # Set core state fields
         self.state.session_id = self._init_session_id

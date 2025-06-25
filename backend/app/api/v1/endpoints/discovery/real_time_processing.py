@@ -607,6 +607,192 @@ async def trigger_validation(
         logger.error(f"❌ Error triggering validation for flow {flow_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to trigger validation: {str(e)}")
 
+@router.post("/{flow_id}/simulate-crewai-execution")
+async def simulate_crewai_execution(
+    flow_id: str,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_request_context)
+) -> Dict[str, Any]:
+    """
+    Simulate real CrewAI flow execution with live event generation.
+    This demonstrates how the event listener captures real CrewAI events.
+    """
+    try:
+        logger.info(f"🚀 Simulating CrewAI execution for flow {flow_id}")
+        
+        # Verify flow exists in database
+        flow_repo = DiscoveryFlowRepository(db, context.client_account_id)
+        flow = await flow_repo.get_by_flow_id(flow_id)
+        
+        if not flow:
+            raise HTTPException(status_code=404, detail="Discovery flow not found")
+        
+        # Clear any existing events for this flow to start fresh
+        if flow_id in discovery_flow_listener.flow_events:
+            discovery_flow_listener.flow_events[flow_id] = []
+        if flow_id in discovery_flow_listener.active_flows:
+            del discovery_flow_listener.active_flows[flow_id]
+        if flow_id in discovery_flow_listener.flow_status:
+            del discovery_flow_listener.flow_status[flow_id]
+        
+        # Simulate real CrewAI flow execution with events
+        current_time = datetime.utcnow()
+        
+        # Event 1: Flow started
+        discovery_flow_listener._add_flow_event(
+            flow_id=flow_id,
+            event_type="flow_started",
+            source="discovery_flow",
+            data={
+                "flow_type": "discovery",
+                "total_phases": 6,
+                "expected_duration_minutes": 15,
+                "real_crewai_simulation": True
+            },
+            status="running",
+            progress=0.0
+        )
+        
+        # Initialize flow tracking
+        discovery_flow_listener.active_flows[flow_id] = {
+            "start_time": current_time,
+            "current_phase": "data_import",
+            "completed_phases": [],
+            "total_crews": 6,
+            "progress": 0.0
+        }
+        discovery_flow_listener.flow_status[flow_id] = "running"
+        
+        # Event 2: Data import crew started
+        discovery_flow_listener._add_flow_event(
+            flow_id=flow_id,
+            event_type="crew_started",
+            source="discovery_flow",
+            crew_name="data_import",
+            data={
+                "method_name": "execute_data_import_crew",
+                "crew_type": "data_import",
+                "estimated_duration_minutes": 2,
+                "agents_deployed": 3
+            },
+            status="running",
+            progress=16.67
+        )
+        
+        # Event 3: Agent started processing
+        discovery_flow_listener._add_flow_event(
+            flow_id=flow_id,
+            event_type="agent_started",
+            source="discovery_flow",
+            agent_name="Data Import Validation Agent",
+            data={
+                "agent_role": "Data Import Validation Agent",
+                "task_description": "Validating CMDB data format and quality",
+                "confidence": 0.9
+            },
+            status="running"
+        )
+        
+        # Simulate processing time delay
+        await asyncio.sleep(1)
+        
+        # Event 4: Task completed
+        discovery_flow_listener._add_flow_event(
+            flow_id=flow_id,
+            event_type="task_completed",
+            source="discovery_flow",
+            task_name="Data Format Validation",
+            agent_name="Data Import Validation Agent",
+            data={
+                "task_description": "Data Format Validation",
+                "output": "Successfully validated 150 CMDB records",
+                "agent": "Data Import Validation Agent",
+                "records_processed": 150,
+                "validation_passed": True
+            },
+            status="completed"
+        )
+        
+        # Event 5: Agent completed
+        discovery_flow_listener._add_flow_event(
+            flow_id=flow_id,
+            event_type="agent_completed",
+            source="discovery_flow",
+            agent_name="Data Import Validation Agent",
+            data={
+                "agent_role": "Data Import Validation Agent",
+                "output": "Data import validation completed successfully. All 150 records passed validation checks.",
+                "execution_time": 2.5,
+                "confidence_score": 0.95
+            },
+            status="completed"
+        )
+        
+        # Event 6: Crew completed
+        discovery_flow_listener._add_flow_event(
+            flow_id=flow_id,
+            event_type="crew_completed",
+            source="discovery_flow",
+            crew_name="data_import",
+            data={
+                "method_name": "execute_data_import_crew",
+                "crew_type": "data_import",
+                "execution_result": {
+                    "status": "success",
+                    "records_processed": 150,
+                    "validation_passed": True,
+                    "quality_score": 0.95
+                },
+                "duration_seconds": 3.2
+            },
+            status="completed",
+            progress=33.33
+        )
+        
+        # Update flow progress
+        discovery_flow_listener.active_flows[flow_id]["completed_phases"].append("data_import")
+        discovery_flow_listener.active_flows[flow_id]["current_phase"] = "attribute_mapping"
+        discovery_flow_listener.active_flows[flow_id]["progress"] = 33.33
+        
+        # Event 7: Next crew started
+        discovery_flow_listener._add_flow_event(
+            flow_id=flow_id,
+            event_type="crew_started",
+            source="discovery_flow",
+            crew_name="attribute_mapping",
+            data={
+                "method_name": "execute_attribute_mapping_crew",
+                "crew_type": "attribute_mapping",
+                "estimated_duration_minutes": 3,
+                "agents_deployed": 4
+            },
+            status="running",
+            progress=33.33
+        )
+        
+        # Get the simulated events
+        events = discovery_flow_listener.get_flow_events(flow_id)
+        
+        response = {
+            "flow_id": flow_id,
+            "simulation_status": "completed",
+            "events_generated": len(events),
+            "message": "CrewAI execution simulation completed - frontend should now show live updates",
+            "flow_status": discovery_flow_listener.flow_status.get(flow_id, "unknown"),
+            "current_phase": discovery_flow_listener.active_flows[flow_id]["current_phase"],
+            "progress": discovery_flow_listener.active_flows[flow_id]["progress"],
+            "recent_events": events[-3:] if events else []  # Return last 3 events
+        }
+        
+        logger.info(f"✅ CrewAI execution simulation completed for flow {flow_id} - Generated {len(events)} events")
+        return response
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error simulating CrewAI execution for flow {flow_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to simulate CrewAI execution: {str(e)}")
+
 @router.post("/{flow_id}/inject-demo-events")
 async def inject_demo_events(
     flow_id: str,
