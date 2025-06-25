@@ -69,55 +69,66 @@ Data Import → Attribute Mapping → Data Cleansing → [Parallel Execution]
 
 ### 2. Attribute Mapping Agent
 
-**Role:** "Critical Migration Attributes Mapping Specialist"
+**Role:** "Enterprise Asset Schema Mapping Specialist"
 
-**Goal:** "Intelligently map source data fields to the 20+ critical migration attributes with high confidence scoring, ensuring accurate field identification for downstream processing"
+**Goal:** "Intelligently map source data fields to the 50-60+ fields in the assets table, with primary focus on the 20+ critical migration attributes, ensuring comprehensive field identification for downstream processing"
 
-**Backstory:** "You are a data migration expert with deep knowledge of enterprise asset inventories. You've mapped thousands of different data sources to standardized migration schemas. You excel at pattern recognition and can identify field relationships even when naming conventions vary significantly across organizations."
+**Backstory:** "You are a data migration expert with deep knowledge of enterprise asset inventories and database schemas. You've mapped thousands of different data sources to standardized migration schemas. You excel at pattern recognition and can identify field relationships even when naming conventions vary significantly across organizations. You understand both the critical migration attributes and the full asset table schema."
 
 **Key Capabilities:**
-- Field pattern recognition
-- Confidence scoring (0-100%)
-- Critical attribute mapping (Identity, Business, Technical, Network, etc.)
-- Learning from user feedback
-- Ambiguity detection and flagging
+- Field pattern recognition across full asset table schema (50-60+ fields)
+- Confidence scoring (0-100%) for all field mappings
+- Critical attribute mapping prioritization (Identity, Business, Technical, Network, etc.)
+- Secondary field mapping for comprehensive data capture
+- Learning from user feedback and mapping corrections
+- Ambiguity detection and flagging for unclear mappings
 
 **Tools:**
-- Field mapping engine
-- Pattern recognition algorithms
-- Confidence scoring models
-- Learning feedback integration
+- Field mapping engine with full asset schema knowledge
+- Pattern recognition algorithms for field similarity
+- Confidence scoring models for mapping accuracy
+- Learning feedback integration for continuous improvement
 
-**Output Format:** Field mapping dictionary with confidence scores
+**Output Format:** Comprehensive field mapping dictionary with confidence scores for all identified fields
 
 **UI Integration:**
-- **Agent Clarifications Panel:** MCQ for ambiguous field mappings
-- **Agent Insights Panel:** Overall mapping confidence and recommendations
+- **Agent Clarifications Panel (Existing):** MCQ for ambiguous field mappings using existing Agent-UI-monitor panel
+- **Agent Insights Panel (Existing):** Overall mapping confidence and recommendations through existing interface
 
 ---
 
 ### 3. Data Cleansing Agent
 
-**Role:** "Enterprise Data Standardization Specialist"
+**Role:** "Enterprise Data Standardization and Bulk Processing Specialist"
 
-**Goal:** "Apply intelligent data cleansing and standardization rules based on confirmed field mappings, ensuring high-quality, consistent data for migration analysis"
+**Goal:** "Apply intelligent data cleansing and standardization rules based on confirmed field mappings, perform bulk data population for missing values, and execute mass data edits based on user clarifications"
 
-**Backstory:** "You are a data quality expert who understands that clean data is the foundation of successful migrations. With the field mappings confirmed, you can apply precise standardization rules. You balance automation with accuracy, flagging edge cases that need human review."
+**Backstory:** "You are a data quality expert who understands that clean data is the foundation of successful migrations. With the field mappings confirmed, you can apply precise standardization rules. You excel at bulk operations, pattern-based data population, and mass corrections. You balance automation with accuracy, using user clarifications to guide bulk transformations across entire datasets."
 
 **Key Capabilities:**
 - Format standardization (dates, currencies, addresses)
 - Data validation and correction
+- **Bulk missing data population** based on patterns and user guidance
+- **Mass data editing** operations from user clarifications
 - Quality metrics calculation
 - Duplicate detection and resolution
-- Completeness assessment
+- Completeness assessment and gap filling
+- Pattern-based data inference for missing values
 
 **Tools:**
 - Data validation engines
 - Format standardization utilities
+- **Bulk data processing engines**
+- **Mass edit transformation utilities**
 - Quality assessment frameworks
 - Deduplication algorithms
+- Pattern recognition for data inference
 
-**Output Format:** Cleaned dataset with quality metrics report
+**Output Format:** Cleaned dataset with quality metrics report and bulk operation summaries
+
+**UI Integration:**
+- **Agent Clarifications Panel (Existing):** User guidance for bulk operations and mass edits through existing Agent-UI-monitor panel
+- **Agent Insights Panel (Existing):** Data quality metrics and bulk operation recommendations
 
 ---
 
@@ -146,7 +157,7 @@ Data Import → Attribute Mapping → Data Cleansing → [Parallel Execution]
 
 **UI Integration:**
 - **Think Button:** Escalate to Asset Intelligence Crew for complex classifications
-- **Agent Insights:** Asset distribution analysis and anomaly detection
+- **Agent Insights (Existing):** Asset distribution analysis and anomaly detection through existing Agent-UI-monitor panel
 
 ---
 
@@ -176,6 +187,7 @@ Data Import → Attribute Mapping → Data Cleansing → [Parallel Execution]
 **UI Integration:**
 - **Think Button:** Escalate to Dependency Analysis Crew for complex enterprise architectures
 - **Ponder More:** Enable crew collaboration for comprehensive dependency analysis
+- **Agent Insights (Existing):** Dependency mapping insights through existing Agent-UI-monitor panel
 
 ---
 
@@ -205,6 +217,7 @@ Data Import → Attribute Mapping → Data Cleansing → [Parallel Execution]
 **UI Integration:**
 - **Think Button:** Escalate to Tech Debt Analysis Crew for complex modernization decisions
 - **Ponder More:** Enable crew collaboration for comprehensive technology strategy
+- **Agent Insights (Existing):** Tech debt analysis and modernization recommendations through existing Agent-UI-monitor panel
 
 ---
 
@@ -266,38 +279,54 @@ Data Import → Attribute Mapping → Data Cleansing → [Parallel Execution]
 
 ## 🔄 User Interaction Design
 
-### Agent Clarifications Panel (Top)
+### Existing Agent-UI-Monitor Panel Integration
 
-**Purpose:** Resolve agent uncertainties through user input
+**Current Status:** Fully functional Agent-UI-monitor panel already exists in codebase
 
-**Format:** Multiple Choice Questions (MCQ)
+**Integration Approach:** Leverage existing panel components instead of rebuilding
+
+#### **Agent Clarifications Panel (Top - Existing)**
+
+**Purpose:** Resolve agent uncertainties through user input using existing interface
+
+**Format:** Multiple Choice Questions (MCQ) through existing Agent-UI-monitor
 
 **Examples:**
-- "Field 'SYS_ENV' appears to contain environment data. Which critical attribute should this map to?"
-  - [ ] Environment Type
-  - [ ] System Category  
-  - [ ] Application Tier
-  - [ ] Other (specify)
+- "Field 'SYS_ENV' appears to contain environment data. Which asset table field should this map to?"
+  - [ ] Environment Type (critical attribute)
+  - [ ] System Category (secondary field)
+  - [ ] Application Tier (secondary field)
+  - [ ] Other asset table field (specify)
+
+**Bulk Operations Examples:**
+- "Found 150 records with missing 'Environment' data. How should we populate these?"
+  - [ ] Infer from hostname patterns
+  - [ ] Set all to 'Production' (most common)
+  - [ ] Leave blank for manual review
+  - [ ] Apply custom rule (specify)
 
 **Behavior:** 
 - Questions appear as agents encounter ambiguities
 - User selections immediately update agent knowledge
 - Progress indicator shows remaining questions
+- **Existing functionality preserved and enhanced**
 
-### Agent Insights Panel (Bottom)
+#### **Agent Insights Panel (Bottom - Existing)**
 
-**Purpose:** Provide analysis-specific insights and actionable items
+**Purpose:** Provide analysis-specific insights and actionable items through existing interface
 
 **Content:**
 - Overall confidence scores
 - Data quality metrics
 - Anomaly detection results
 - Actionable recommendations
+- **Bulk operation summaries**
 
 **User Feedback:**
-- Thumbs up/down on insights
-- Correction suggestions
-- Additional context provision
+- Thumbs up/down on insights (existing functionality)
+- Correction suggestions (existing functionality)
+- Additional context provision (existing functionality)
+- **Mass edit confirmations for bulk operations**
 
 ### Think/Ponder More Buttons
 

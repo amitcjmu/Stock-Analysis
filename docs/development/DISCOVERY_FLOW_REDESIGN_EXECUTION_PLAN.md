@@ -27,15 +27,19 @@
 
 2. Create `AttributeMappingAgent` class
    - Extract from existing `attribute_mapping_crew`
-   - Add field pattern recognition capabilities
-   - Implement confidence scoring (0-100%)
-   - Add ambiguity detection and flagging
+   - **Add field pattern recognition for full asset table schema (50-60+ fields)**
+   - **Prioritize critical migration attributes while mapping all available fields**
+   - Implement confidence scoring (0-100%) for all field mappings
+   - Add ambiguity detection and flagging for unclear mappings
 
 3. Create `DataCleansingAgent` class
    - Extract from existing `data_cleansing_crew`
    - Add format standardization tools
+   - **Implement bulk missing data population capabilities**
+   - **Add mass data editing operations based on user clarifications**
    - Implement quality metrics calculation
    - Add validation and correction mechanisms
+   - **Add pattern-based data inference for missing values**
 
 **Files to Create:**
 - `backend/app/services/agents/data_import_validation_agent.py`
@@ -157,70 +161,71 @@
 
 ### Week 3: Agent Clarifications System
 
-#### Task 2.1: Create Agent Clarifications Panel
-**Duration:** 3 days
-**Assignee:** Frontend Developer
-**Priority:** High
-
-**Subtasks:**
-1. Design and implement clarifications UI component
-   - MCQ question display
-   - Progress indicator
-   - Answer selection interface
-   - Submission and navigation controls
-
-2. Create clarifications API endpoints
-   - GET `/api/v1/discovery/{flow_id}/clarifications`
-   - POST `/api/v1/discovery/{flow_id}/clarifications/{question_id}/answer`
-   - GET `/api/v1/discovery/{flow_id}/clarifications/status`
-
-3. Implement real-time clarifications system
-   - WebSocket for real-time question delivery
-   - Immediate agent knowledge updates
-   - Progress tracking and completion notifications
-
-**Files to Create:**
-- `src/components/discovery/AgentClarificationsPanel.tsx`
-- `src/hooks/discovery/useAgentClarifications.ts`
-- `backend/app/api/v1/endpoints/discovery/clarifications.py`
-
-**Acceptance Criteria:**
-- [ ] MCQ questions display properly
-- [ ] User answers update agent knowledge immediately
-- [ ] Progress indicator shows completion status
-- [ ] Real-time updates work correctly
-
-#### Task 2.2: Create Agent Insights Panel
+#### Task 2.1: Integrate with Existing Agent-UI-Monitor Panel
 **Duration:** 2 days
-**Assignee:** Frontend Developer
+**Assignee:** Backend Developer
 **Priority:** High
 
 **Subtasks:**
-1. Design insights display component
-   - Confidence score visualization
-   - Data quality metrics display
-   - Anomaly detection results
-   - Actionable recommendations list
+1. Integrate agents with existing Agent-UI-monitor panel
+   - Connect agents to existing MCQ question system
+   - Enhance existing progress indicator for agent questions
+   - Utilize existing answer selection interface
+   - Leverage existing submission and navigation controls
 
-2. Create insights API endpoints
-   - GET `/api/v1/discovery/{flow_id}/insights/{page}`
-   - POST `/api/v1/discovery/{flow_id}/insights/feedback`
+2. Extend existing clarifications API endpoints
+   - Enhance existing agent communication endpoints
+   - Add bulk operation confirmation endpoints
+   - Extend existing status tracking for agent questions
 
-3. Implement user feedback system
-   - Thumbs up/down on insights
-   - Correction suggestion interface
-   - Additional context provision
+3. Enhance existing real-time system for agent integration
+   - Utilize existing WebSocket for agent question delivery
+   - Extend existing agent knowledge update mechanisms
+   - Enhance existing progress tracking for agent-specific questions
 
-**Files to Create:**
-- `src/components/discovery/AgentInsightsPanel.tsx`
-- `src/components/discovery/InsightsFeedback.tsx`
-- `backend/app/api/v1/endpoints/discovery/insights.py`
+**Files to Modify (Existing):**
+- Existing Agent-UI-monitor panel components
+- Existing agent communication hooks
+- Existing agent communication API endpoints
 
 **Acceptance Criteria:**
-- [ ] Insights display with proper formatting
-- [ ] Confidence scores visualized clearly
-- [ ] User feedback system functional
-- [ ] Real-time insights updates work
+- [ ] Agents integrate seamlessly with existing Agent-UI-monitor panel
+- [ ] MCQ questions for field mapping and bulk operations work
+- [ ] Existing progress tracking enhanced for agent questions
+- [ ] Real-time agent communication through existing system
+
+#### Task 2.2: Enhance Existing Agent Insights Panel
+**Duration:** 1 day
+**Assignee:** Backend Developer
+**Priority:** High
+
+**Subtasks:**
+1. Enhance existing insights display functionality
+   - Add confidence score visualization to existing panel
+   - Extend data quality metrics display
+   - Add anomaly detection results to existing insights
+   - Enhance actionable recommendations list with agent-specific insights
+
+2. Extend existing insights API endpoints
+   - Add agent-specific insights to existing endpoints
+   - Enhance existing feedback endpoints for agent insights
+   - Add bulk operation summaries to existing insights
+
+3. Leverage existing user feedback system
+   - Utilize existing thumbs up/down functionality
+   - Extend existing correction suggestion interface
+   - Use existing additional context provision features
+
+**Files to Modify (Existing):**
+- Existing Agent-UI-monitor insights components
+- Existing insights feedback components
+- Existing agent insights API endpoints
+
+**Acceptance Criteria:**
+- [ ] Agent insights integrate with existing panel
+- [ ] Confidence scores display in existing visualization
+- [ ] Existing user feedback system works with agent insights
+- [ ] Bulk operation summaries display properly
 
 ### Week 4: Think/Ponder More Button System
 
