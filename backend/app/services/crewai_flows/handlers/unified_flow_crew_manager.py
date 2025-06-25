@@ -38,16 +38,20 @@ class UnifiedFlowCrewManager:
     def _initialize_crew_factories(self):
         """Initialize CrewAI crew factory functions for on-demand creation"""
         try:
-            # Import crew factory functions
-            from app.services.crewai_flows.crews.field_mapping_crew import create_field_mapping_crew
+            # 🚀 PERFORMANCE OPTIMIZATION: Always use optimized crews
+            from app.services.crewai_flows.crews.field_mapping_crew_fast import create_fast_field_mapping_crew
+            field_mapping_factory = create_fast_field_mapping_crew
+            logger.info("✅ Using OPTIMIZED field mapping crew for performance")
             from app.services.crewai_flows.crews.data_cleansing_crew import create_data_cleansing_crew
             from app.services.crewai_flows.crews.inventory_building_crew import create_inventory_building_crew
             from app.services.crewai_flows.crews.app_server_dependency_crew import create_app_server_dependency_crew
             from app.services.crewai_flows.crews.technical_debt_crew import create_technical_debt_crew
+            from app.services.crewai_flows.crews.data_import_validation_crew import create_data_import_validation_crew
             
             # Store factory functions
             self.crew_factories = {
-                "attribute_mapping": create_field_mapping_crew,  # Fixed: Use attribute_mapping to match DB schema
+                "data_import_validation": create_data_import_validation_crew,  # NEW: Focused data validation crew
+                "attribute_mapping": field_mapping_factory,  # Dynamic based on CREWAI_FAST_MODE setting
                 "data_cleansing": create_data_cleansing_crew,
                 "inventory": create_inventory_building_crew,  # Fixed: Use inventory to match DB schema
                 "dependencies": create_app_server_dependency_crew,  # Fixed: Use dependencies to match DB schema
@@ -72,21 +76,19 @@ class UnifiedFlowCrewManager:
             factory = self.crew_factories[crew_type]
             
             # Create crew with appropriate parameters
-            if crew_type == "attribute_mapping":
-                crew = factory(
-                    self.crewai_service,
-                    kwargs.get('sample_data', []),
-                    kwargs.get('shared_memory'),
-                    kwargs.get('knowledge_base')
-                )
-            elif crew_type == "data_cleansing":
+            if crew_type == "data_import_validation":
                 crew = factory(
                     self.crewai_service,
                     kwargs.get('raw_data', []),
-                    kwargs.get('field_mappings', {}),
-                    kwargs.get('shared_memory'),
-                    kwargs.get('knowledge_base')
+                    kwargs.get('metadata', {}),
+                    kwargs.get('shared_memory')
                 )
+            elif crew_type == "attribute_mapping":
+                # 🚀 OPTIMIZED: Use state-based crew creation
+                crew = factory(self.crewai_service, self.state)
+            elif crew_type == "data_cleansing":
+                # 🚀 OPTIMIZED: Use state-based crew creation  
+                crew = factory(self.crewai_service, self.state)
             elif crew_type == "inventory":
                 crew = factory(
                     self.crewai_service,

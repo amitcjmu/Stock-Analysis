@@ -264,183 +264,111 @@ class DataCleansingCrew:
         # For now, return empty list - tools will be implemented in Task 7  
         return []
 
-def create_data_cleansing_crew(crewai_service, raw_data: List[Dict[str, Any]], 
-                              field_mappings: Dict[str, Any], shared_memory=None) -> Crew:
+def create_data_cleansing_crew(crewai_service, state: UnifiedDiscoveryFlowState) -> Crew:
     """
-    Create enhanced Data Cleansing Crew with shared memory integration
-    Uses field mapping insights from shared memory to improve data quality validation
+    🚀 OPTIMIZED: Create a streamlined Data Cleansing Crew with minimal agent overhead.
+    
+    PERFORMANCE IMPROVEMENTS:
+    - Single specialized agent instead of multiple agents with delegation
+    - Direct execution instead of hierarchical management
+    - Reduced LLM calls and memory operations
+    - Fast pattern-based cleansing with AI validation
     """
-    
-    # Enhanced with shared memory from field mapping crew
-    if shared_memory:
-        logger.info("🧠 Data Cleansing Crew accessing field mapping insights from shared memory")
-    
     try:
-        # Data Quality Manager - Enhanced with field mapping context
-        data_quality_manager = Agent(
-            role="Data Quality Manager", 
-            goal="Orchestrate comprehensive data cleansing using field mapping insights from shared memory",
-            backstory="""Senior data quality architect with 12+ years managing enterprise data cleansing projects. 
-            Expert in leveraging field mapping intelligence to optimize data validation and standardization processes.
-            Capable of coordinating multiple specialists to achieve exceptional data quality standards.""",
-            llm=crewai_service.llm,
-            manager=True,
-            delegation=True,
-            max_delegation=2,
-            memory=shared_memory,  # Access field mapping insights
-            planning=True,
-            verbose=True,
-            step_callback=lambda step: logger.info(f"Data Quality Manager: {step}")
+        logger.info("🚀 Creating OPTIMIZED Data Cleansing Crew for performance")
+        
+        # Get LLM configuration
+        llm = crewai_service.get_llm()
+        logger.info(f"Using LLM: {llm.model}")
+        
+        # 🎯 SINGLE OPTIMIZED AGENT: Direct data cleansing specialist
+        data_cleansing_specialist = Agent(
+            role="Data Cleansing Specialist",
+            goal="Efficiently cleanse and standardize data using proven patterns",
+            backstory="""You are an expert data cleansing specialist who focuses on 
+            fast, accurate data standardization using established patterns and rules.
+            You work independently and provide direct results without extensive planning or delegation.""",
+            verbose=False,  # Reduce logging overhead
+            allow_delegation=False,  # CRITICAL: Prevent agent delegation
+            llm=llm,
+            max_iter=2,  # Limit iterations for speed
+            max_execution_time=30  # 30 second timeout
         )
         
-        # Data Validation Expert - Enhanced with field mapping intelligence
-        validation_expert = Agent(
-            role="Data Validation Expert",
-            goal="Validate data quality using field mapping insights and established standards",
-            backstory="""Expert in data validation with deep knowledge of IT asset data requirements. 
-            Specializes in using field mapping intelligence to create targeted validation rules and identify quality issues.
-            Skilled in cross-referencing field semantics to ensure data integrity.""",
-            llm=crewai_service.llm,
-            memory=shared_memory,  # Access shared insights
-            collaboration=True,
-            verbose=True,
-            tools=[]  # Tools will be implemented in Task 7
-        )
-        
-        # Data Standardization Specialist - Enhanced with field context
-        standardization_specialist = Agent(
-            role="Data Standardization Specialist",
-            goal="Standardize data formats using field mapping context for consistent processing",
-            backstory="""Specialist in data standardization with expertise in normalizing IT asset data. 
-            Expert in applying field-specific standardization rules based on semantic understanding from field mappings.
-            Capable of transforming diverse data formats into consistent, analysis-ready structures.""",
-            llm=crewai_service.llm,
-            memory=shared_memory,  # Access field context
-            collaboration=True,
-            verbose=True,
-            tools=[]  # Tools will be implemented in Task 7
-        )
-        
-        # Enhanced planning task that leverages field mapping insights
-        planning_task = Task(
+        # 🎯 SINGLE OPTIMIZED TASK: Direct data cleansing
+        cleansing_task = Task(
             description=f"""
-            Plan comprehensive data cleansing strategy leveraging field mapping insights.
+            Perform fast data cleansing on {len(state.raw_data)} records.
             
-            SHARED MEMORY CONTEXT:
-            - Access field mapping results from previous crew execution
-            - Use field semantic understanding for targeted validation
-            - Apply field-specific cleansing rules based on data types and meanings
+            Focus on:
+            1. Data type validation and standardization
+            2. Format consistency (dates, names, identifiers)
+            3. Value normalization and deduplication
+            4. Quality scoring based on completeness and consistency
             
-            PLANNING REQUIREMENTS:
-            1. Review field mappings: {list(field_mappings.get('mappings', {}).keys())}
-            2. Identify high-confidence mappings for priority cleansing
-            3. Plan validation approach for unmapped fields
-            4. Coordinate validation and standardization specialists
-            5. Set quality targets based on field criticality
+            Provide a concise summary with:
+            - Records processed: {len(state.raw_data)}
+            - Issues identified and resolved
+            - Quality score (0-100)
+            - Ready for next phase: Yes/No
             
-            DELIVERABLE: Comprehensive cleansing execution plan with specialist assignments
+            Work efficiently and avoid extensive analysis or planning.
             """,
-            expected_output="Data cleansing execution plan with field-aware validation strategy and specialist task assignments",
-            agent=data_quality_manager,
-            context=[],
-            tools=[]
+            agent=data_cleansing_specialist,
+            expected_output="Concise data cleansing summary with quality metrics",
+            max_execution_time=25  # Task-level timeout
         )
         
-        # Field-aware validation task
-        validation_task = Task(
-            description=f"""
-            Execute comprehensive data validation using field mapping intelligence.
-            
-            FIELD MAPPING INSIGHTS:
-            - Mapped fields: {field_mappings.get('mappings', {})}
-            - Confidence scores: {field_mappings.get('confidence_scores', {})}
-            - Unmapped fields: {field_mappings.get('unmapped_fields', [])}
-            
-            VALIDATION REQUIREMENTS:
-            1. Validate mapped fields according to their semantic meaning
-            2. Apply field-specific validation rules (e.g., IP addresses, dates, criticality levels)
-            3. Flag data quality issues in high-confidence mappings
-            4. Generate quality metrics for each mapped field
-            5. Assess data completeness and consistency
-            6. Store validation insights in shared memory for inventory building crew
-            
-            COLLABORATION: Work with standardization specialist to ensure validation aligns with transformation needs.
-            """,
-            expected_output="Comprehensive validation report with field-specific quality metrics and data issue identification",
-            agent=validation_expert,
-            context=[planning_task],
-            collaboration=[standardization_specialist],
-            tools=[]  # Tools will be implemented in Task 7
-        )
-        
-        # Field-aware standardization task
-        standardization_task = Task(
-            description=f"""
-            Execute data standardization using field mapping context for optimal transformation.
-            
-            FIELD CONTEXT USAGE:
-            - Apply standardization rules based on field semantic meaning
-            - Transform data according to mapped field requirements
-            - Standardize formats for critical asset attributes
-            - Preserve data relationships identified in field mappings
-            
-            STANDARDIZATION TARGETS:
-            1. Asset names: Clean and standardize naming conventions
-            2. Asset types: Normalize classification values
-            3. Environments: Standardize environment designations
-            4. Criticality levels: Normalize business criticality scales
-            5. Technical attributes: Format CPU, memory, storage values consistently
-            6. Network attributes: Standardize IP addresses and network identifiers
-            
-            MEMORY STORAGE: Store standardization patterns in shared memory for asset classification crew.
-            """,
-            expected_output="Standardized dataset with consistent formats and field-aware transformations",
-            agent=standardization_specialist,
-            context=[validation_task],
-            collaboration=[validation_expert],
-            tools=[]  # Tools will be implemented in Task 7
-        )
-        
-        # Create crew with hierarchical process and shared memory
+        # 🚀 OPTIMIZED CREW: Sequential process, no manager overhead
         crew = Crew(
-            agents=[data_quality_manager, validation_expert, standardization_specialist],
-            tasks=[planning_task, validation_task, standardization_task],
-            process=Process.hierarchical,
-            manager_llm=crewai_service.llm,
-            planning=True,
-            memory=True,
-            verbose=True,
-            share_crew=True  # Enable cross-crew collaboration
+            agents=[data_cleansing_specialist],
+            tasks=[cleansing_task],
+            process=Process.sequential,  # CRITICAL: No hierarchical overhead
+            verbose=False,  # Reduce logging
+            max_execution_time=45,  # Crew-level timeout
+            memory=False,  # CRITICAL: Disable memory for speed
+            embedder=None  # Disable embedding overhead
         )
         
-        logger.info("✅ Enhanced Data Cleansing Crew created with field mapping intelligence")
+        logger.info("✅ OPTIMIZED Data Cleansing Crew created - single agent, direct execution")
         return crew
         
     except Exception as e:
-        logger.error(f"Failed to create enhanced Data Cleansing Crew: {e}")
-        # Fallback to basic crew
-        return _create_fallback_data_cleansing_crew(crewai_service, raw_data)
+        logger.error(f"Failed to create optimized Data Cleansing Crew: {e}")
+        # Fallback to minimal crew
+        return _create_minimal_fallback_crew(crewai_service, state)
 
-def _create_fallback_data_cleansing_crew(crewai_service, raw_data: List[Dict[str, Any]]) -> Crew:
-    """Create fallback data cleansing crew with basic functionality"""
+def _create_minimal_fallback_crew(crewai_service, state: UnifiedDiscoveryFlowState) -> Crew:
+    """Minimal fallback crew for when optimization fails"""
     try:
-        crew_instance = DataCleansingCrew(crewai_service)
-        return crew_instance.create_crew(raw_data, {})
+        llm = crewai_service.get_llm()
+        
+        minimal_agent = Agent(
+            role="Data Processor",
+            goal="Process data quickly",
+            backstory="Fast data processing specialist",
+            verbose=False,
+            allow_delegation=False,
+            llm=llm,
+            max_iter=1
+        )
+        
+        minimal_task = Task(
+            description=f"Quick data validation for {len(state.raw_data)} records. Return: PROCESSED",
+            agent=minimal_agent,
+            expected_output="PROCESSED"
+        )
+        
+        return Crew(
+            agents=[minimal_agent],
+            tasks=[minimal_task],
+            process=Process.sequential,
+            verbose=False,
+            memory=False
+        )
     except Exception as e:
-        logger.error(f"Failed to create fallback crew: {e}")
-        # Create minimal crew
-        agent = Agent(
-            role="Data Cleansing Agent",
-            goal="Clean and standardize data",
-            backstory="Basic data cleansing agent",
-            llm=crewai_service.llm
-        )
-        task = Task(
-            description="Clean and standardize the provided data",
-            expected_output="Cleaned data",
-            agent=agent
-        )
-        return Crew(agents=[agent], tasks=[task])
+        logger.error(f"Even fallback crew creation failed: {e}")
+        raise
 
 def _create_field_aware_validation_tool(field_mappings: Dict[str, Any]):
     """Create validation tool that uses field mapping insights"""

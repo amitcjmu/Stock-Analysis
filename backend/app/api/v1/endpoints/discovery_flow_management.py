@@ -42,6 +42,38 @@ class FlowStateValidationResponse(BaseModel):
     validation_timestamp: str
     recommendations: Optional[List[str]] = None
 
+class UserApprovalRequest(BaseModel):
+    """Request model for user approval of discovery flow phase progression"""
+    session_id: str = Field(..., description="Session ID to approve")
+    approved: bool = Field(..., description="Whether user approves proceeding to next phase")
+    selected_agent: Optional[str] = Field(default=None, description="User-selected agent if different from recommended")
+    comments: Optional[str] = Field(default=None, description="User comments or feedback")
+
+class UserApprovalResponse(BaseModel):
+    """Response model for user approval"""
+    status: str
+    session_id: str
+    approval_recorded: bool
+    next_phase: str
+    selected_agent: str
+    approval_timestamp: str
+    flow_resumed: bool
+
+class DataValidationReportRequest(BaseModel):
+    """Request model for getting data validation report"""
+    session_id: str = Field(..., description="Session ID to get report for")
+
+class DataValidationReportResponse(BaseModel):
+    """Response model for data validation report"""
+    session_id: str
+    validation_status: str
+    file_analysis: Dict[str, Any]
+    security_assessment: Dict[str, Any]
+    data_quality: Dict[str, Any]
+    recommendations: Dict[str, Any]
+    detailed_report: Dict[str, Any]
+    awaiting_approval: bool
+
 class FlowRecoveryRequest(BaseModel):
     """Request model for flow state recovery"""
     session_id: str = Field(..., description="Session ID to recover")
@@ -141,6 +173,301 @@ async def validate_flow_state(
             status_code=500,
             detail={
                 "error": "flow_validation_failed",
+                "message": str(e),
+                "session_id": session_id
+            }
+        )
+
+# ========================================
+# USER APPROVAL ENDPOINTS
+# ========================================
+
+@router.get("/flows/{session_id}/validation-report", response_model=DataValidationReportResponse)
+async def get_data_validation_report(
+    session_id: str,
+    context: RequestContext = Depends(get_current_context_dependency),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get the data validation report for user review and approval.
+    Shows file analysis, security assessment, and recommendations.
+    """
+    try:
+        logger.info(f"📊 Getting validation report: session={session_id}")
+        
+        # Create flow state bridge
+        bridge = create_flow_state_bridge(context)
+        
+        # Get flow state
+        flow_state = await bridge.get_flow_state(session_id)
+        if not flow_state:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Flow session not found: {session_id}"
+            )
+        
+        # Get data validation results
+        validation_data = flow_state.phase_data.get("data_import", {})
+        
+        if not validation_data:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Data validation not completed for session: {session_id}"
+            )
+        
+        file_analysis = validation_data.get("file_analysis", {})
+        detailed_report = validation_data.get("detailed_report", {})
+        
+        # Check if awaiting approval
+        awaiting_approval = (
+            flow_state.status == "awaiting_user_approval" and 
+            flow_state.current_phase == "data_validation_complete"
+        )
+        
+        logger.info(f"✅ Validation report retrieved: session={session_id}, awaiting_approval={awaiting_approval}")
+        
+        return DataValidationReportResponse(
+            session_id=session_id,
+            validation_status=validation_data.get("security_status", "unknown"),
+            file_analysis=file_analysis,
+            security_assessment=detailed_report.get("security_assessment", {}),
+            data_quality=detailed_report.get("data_quality", {}),
+            recommendations=detailed_report.get("recommendations", {}),
+            detailed_report=detailed_report,
+            awaiting_approval=awaiting_approval
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to get validation report: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "validation_report_failed",
+                "message": str(e),
+                "session_id": session_id
+            }
+        )
+
+@router.post("/flows/{session_id}/approve", response_model=UserApprovalResponse)
+async def approve_flow_progression(
+    session_id: str,
+    request: UserApprovalRequest,
+    context: RequestContext = Depends(get_current_context_dependency),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Record user approval to proceed to field mapping phase.
+    Allows user to select different agent if recommended agent is incorrect.
+    """
+    try:
+        logger.info(f"👤 Processing user approval: session={session_id}, approved={request.approved}")
+        
+        # Create flow state bridge
+        bridge = create_flow_state_bridge(context)
+        
+        # Get flow state
+        flow_state = await bridge.get_flow_state(session_id)
+        if not flow_state:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Flow session not found: {session_id}"
+            )
+        
+        # Verify flow is awaiting approval
+        if flow_state.status != "awaiting_user_approval":
+            raise HTTPException(
+                status_code=400,
+                detail=f"Flow is not awaiting approval. Current status: {flow_state.status}"
+            )
+        
+        # Get validation data for agent selection
+        validation_data = flow_state.phase_data.get("data_import", {})
+        file_analysis = validation_data.get("file_analysis", {})
+        recommended_agent = file_analysis.get("recommended_agent", "CMDB_Data_Analyst_Agent")
+        
+        # Use user-selected agent or fall back to recommended
+        selected_agent = request.selected_agent or recommended_agent
+        
+        approval_timestamp = datetime.utcnow().isoformat()
+        flow_resumed = False
+        next_phase = "field_mapping_approved" if request.approved else "field_mapping_rejected"
+        
+        if request.approved:
+            # Update flow state to approved
+            flow_state.status = "user_approved"
+            flow_state.current_phase = "field_mapping_ready"
+            
+            # Store user approval data
+            approval_data = {
+                "approved": True,
+                "selected_agent": selected_agent,
+                "recommended_agent": recommended_agent,
+                "user_comments": request.comments,
+                "approval_timestamp": approval_timestamp
+            }
+            
+            # Store approval in phase data
+            if "user_approvals" not in flow_state.phase_data:
+                flow_state.phase_data["user_approvals"] = {}
+            flow_state.phase_data["user_approvals"]["data_validation"] = approval_data
+            
+            # Update validation data with selected agent
+            if validation_data:
+                validation_data["selected_agent"] = selected_agent
+                validation_data["user_approved"] = True
+            
+            # Sync updated state
+            await bridge.sync_state_update(
+                flow_state, 
+                flow_state.current_phase, 
+                crew_results={"action": "user_approved", "approval_data": approval_data}
+            )
+            
+            logger.info(f"✅ User approval recorded and flow ready to resume: session={session_id}")
+            logger.info(f"🤖 Selected agent: {selected_agent}")
+            
+            flow_resumed = True
+            next_phase = "field_mapping_approved"
+            
+        else:
+            # User rejected - mark flow as rejected
+            flow_state.status = "user_rejected"
+            flow_state.current_phase = "data_validation_rejected"
+            
+            rejection_data = {
+                "approved": False,
+                "user_comments": request.comments,
+                "rejection_timestamp": approval_timestamp
+            }
+            
+            # Store rejection in phase data
+            if "user_approvals" not in flow_state.phase_data:
+                flow_state.phase_data["user_approvals"] = {}
+            flow_state.phase_data["user_approvals"]["data_validation"] = rejection_data
+            
+            # Sync updated state
+            await bridge.sync_state_update(
+                flow_state, 
+                flow_state.current_phase, 
+                crew_results={"action": "user_rejected", "rejection_data": rejection_data}
+            )
+            
+            logger.info(f"❌ User rejected flow progression: session={session_id}")
+            next_phase = "field_mapping_rejected"
+        
+        return UserApprovalResponse(
+            status="success",
+            session_id=session_id,
+            approval_recorded=True,
+            next_phase=next_phase,
+            selected_agent=selected_agent,
+            approval_timestamp=approval_timestamp,
+            flow_resumed=flow_resumed
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to process user approval: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "approval_processing_failed",
+                "message": str(e),
+                "session_id": session_id
+            }
+        )
+
+@router.post("/flows/{session_id}/resume")
+async def resume_flow_execution(
+    session_id: str,
+    context: RequestContext = Depends(get_current_context_dependency),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Resume flow execution after user approval.
+    Triggers the next phase (field mapping) to continue from where it paused.
+    """
+    try:
+        logger.info(f"▶️ Attempting to resume flow execution: session={session_id}")
+        
+        # Create flow state bridge
+        bridge = create_flow_state_bridge(context)
+        
+        # Get flow state
+        flow_state = await bridge.get_flow_state(session_id)
+        if not flow_state:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Flow session not found: {session_id}"
+            )
+        
+        # Verify flow is approved and ready to resume
+        if flow_state.status != "user_approved":
+            raise HTTPException(
+                status_code=400,
+                detail=f"Flow is not approved for resumption. Current status: {flow_state.status}"
+            )
+        
+        if flow_state.current_phase != "field_mapping_ready":
+            raise HTTPException(
+                status_code=400,
+                detail=f"Flow is not in field mapping ready state. Current phase: {flow_state.current_phase}"
+            )
+        
+        # Import the discovery flow service to resume execution
+        from app.services.discovery_flow_service import DiscoveryFlowService
+        
+        # Create service instance
+        discovery_service = DiscoveryFlowService(db, context)
+        
+        # Resume the flow by triggering field mapping phase
+        # This will create a new field mapping execution with the approved agent
+        validation_data = flow_state.phase_data.get("data_import", {})
+        selected_agent = validation_data.get("selected_agent", "CMDB_Data_Analyst_Agent")
+        
+        logger.info(f"🚀 Resuming flow with selected agent: {selected_agent}")
+        
+        # Trigger field mapping phase execution
+        field_mapping_result = await discovery_service.execute_field_mapping_phase(
+            session_id=session_id,
+            previous_phase_result="data_validation_completed",
+            selected_agent=selected_agent
+        )
+        
+        # Update flow state
+        flow_state.status = "running"
+        flow_state.current_phase = "attribute_mapping"
+        
+        # Sync updated state
+        await bridge.sync_state_update(
+            flow_state, 
+            flow_state.current_phase, 
+            crew_results={"action": "flow_resumed", "field_mapping_result": field_mapping_result}
+        )
+        
+        logger.info(f"✅ Flow execution resumed successfully: session={session_id}")
+        
+        return {
+            "status": "success",
+            "session_id": session_id,
+            "flow_resumed": True,
+            "current_phase": "attribute_mapping",
+            "selected_agent": selected_agent,
+            "field_mapping_status": field_mapping_result.get("status", "unknown"),
+            "resume_timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to resume flow execution: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "flow_resumption_failed",
                 "message": str(e),
                 "session_id": session_id
             }

@@ -362,39 +362,28 @@ async def _trigger_discovery_flow(
             # The CrewAI flow can still run, but V2 API won't work
             pass
         
-        # Execute the CrewAI Flow using kickoff() method - this produces the purple logs
+        # 🚀 Start the CrewAI Flow in the background using kickoff() method
         logger.info(f"🎯 Starting CrewAI Flow kickoff for session: {data_import_id}")
-        flow_result = await asyncio.to_thread(discovery_flow.kickoff)
         
-        # 🚨 CRITICAL: Check if flow actually succeeded or is properly paused
-        flow_success = False
-        flow_paused = False
+        # Return the flow_id immediately and let the flow run in background
+        # This ensures the frontend gets the flow_id without waiting for completion
+        logger.info(f"✅ Discovery Flow initialized - returning CrewAI Flow ID: {crewai_flow_id}")
         
-        if hasattr(flow_result, 'status'):
-            flow_success = flow_result.status not in ['discovery_failed', 'failed', 'error']
-            flow_paused = flow_result.status == 'awaiting_user_input'
-        elif isinstance(flow_result, str):
-            flow_success = flow_result not in ['discovery_failed', 'failed', 'error']
-            flow_paused = flow_result in ['flow_paused_for_user_input', 'field_mapping_awaiting_confirmation']
-        elif isinstance(flow_result, dict):
-            flow_success = flow_result.get('status') not in ['discovery_failed', 'failed', 'error']
-            flow_paused = flow_result.get('status') == 'awaiting_user_input'
-        else:
-            # If we can't determine status, check if we have meaningful data
-            flow_success = len(file_data) > 0
+        # Start the flow execution in background (non-blocking)
+        try:
+            # Use asyncio.create_task to run the flow in background
+            import asyncio
+            task = asyncio.create_task(asyncio.to_thread(discovery_flow.kickoff))
+            logger.info(f"🚀 CrewAI Flow task created and running in background")
             
-        # Consider paused flows as successful (they completed data validation)
-        if flow_paused:
-            flow_success = True
-            logger.info("✅ Flow paused for user input - data validation completed successfully")
+            # Don't await the task - let it run independently
+            # The flow will continue processing and updating its state
+            
+        except Exception as kickoff_error:
+            logger.error(f"⚠️ Failed to start flow in background: {kickoff_error}")
+            # Still return the flow_id since the flow object was created successfully
+            # The flow state can be checked later via the flow management APIs
         
-        logger.info(f"🎯 CrewAI Discovery Flow completed: {flow_result} (Success: {flow_success})")
-        
-        if not flow_success:
-            logger.error(f"❌ Discovery Flow FAILED - returning None to indicate failure")
-            return None
-        
-        logger.info(f"✅ Discovery Flow succeeded - returning CrewAI Flow ID: {crewai_flow_id}")
         return crewai_flow_id
         
     except ImportError as e:

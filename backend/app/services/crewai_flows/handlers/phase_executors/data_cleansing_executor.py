@@ -23,12 +23,15 @@ class DataCleansingExecutor(BasePhaseExecutor):
     def get_progress_percentage(self) -> float:
         return 33.3  # 2/6 phases
     
-    def execute_with_crew(self, crew_input: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute_with_crew(self, crew_input: Dict[str, Any]) -> Dict[str, Any]:
         crew = self.crew_manager.create_crew_on_demand("data_cleansing", **self._get_crew_context())
+        if not crew:
+            logger.warning("Data cleansing crew creation failed - using fallback")
+            return await self.execute_fallback()
         crew_result = crew.kickoff(inputs=crew_input)
         return self._process_crew_result(crew_result)
     
-    def execute_fallback(self) -> Dict[str, Any]:
+    async def execute_fallback(self) -> Dict[str, Any]:
         return {
             "cleaned_data": self.state.raw_data,
             "quality_metrics": {"fallback_used": True}

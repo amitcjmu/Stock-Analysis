@@ -25,21 +25,26 @@ class FieldMappingExecutor(BasePhaseExecutor):
         """Get the progress percentage when this phase completes"""
         return 16.7  # 1/6 phases
     
-    def execute_with_crew(self, crew_input: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute field mapping using CrewAI crew"""
+    async def execute_with_crew(self, crew_input: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute field mapping using CrewAI crew - now properly async"""
         crew = self.crew_manager.create_crew_on_demand(
             "attribute_mapping",
             **self._get_crew_context()
         )
         
+        if not crew:
+            logger.warning("Field mapping crew creation failed - using fallback")
+            return await self.execute_fallback()
+        
+        # Execute crew (this is synchronous)
         crew_result = crew.kickoff(inputs=crew_input)
         logger.info(f"Field mapping crew completed: {type(crew_result)}")
         
         # Process crew results
         return self._process_field_mapping_results(crew_result)
     
-    def execute_fallback(self) -> Dict[str, Any]:
-        """Execute field mapping using fallback logic"""
+    async def execute_fallback(self) -> Dict[str, Any]:
+        """Execute field mapping using fallback logic - now properly async"""
         logger.warning("Field mapping crew not available - using fallback")
         return self._fallback_field_mapping()
     

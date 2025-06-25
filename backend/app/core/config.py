@@ -87,6 +87,7 @@ class Settings(BaseSettings):
     
     # CrewAI settings (using DeepInfra)
     CREWAI_ENABLED: bool = True
+    CREWAI_FAST_MODE: bool = Field(default=True, env="CREWAI_FAST_MODE")  # Enable fast mode by default
     CREWAI_MODEL: str = Field(
         default="meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8", 
         env="CREWAI_MODEL"

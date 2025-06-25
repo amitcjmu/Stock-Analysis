@@ -184,14 +184,48 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             self.state.update_progress()
             
             logger.info("✅ Data Import Validation completed successfully")
-            logger.info("🎯 Proceeding to field mapping phase (user approval will be requested by field mapping crew)")
             
-            # Update phase completion and proceed to field mapping
-            self.state.phase_completion["data_import"] = True
-            self.state.update_progress()
-            self.state.log_entry("Data validation completed - proceeding to field mapping")
+            # PAUSE FLOW FOR USER APPROVAL
+            logger.info("⏸️ Flow paused - awaiting user approval to proceed to field mapping")
+            self.state.status = "awaiting_user_approval"
+            self.state.current_phase = "data_validation_complete"
             
-            return "data_validation_completed"
+            # Store validation results for user review
+            validation_data = self.state.phase_data.get("data_import", {})
+            file_analysis = validation_data.get("file_analysis", {})
+            recommended_agent = file_analysis.get("recommended_agent", "CMDB_Data_Analyst_Agent")
+            
+            # Log comprehensive report for user
+            logger.info("📊 DATA IMPORT VALIDATION REPORT:")
+            logger.info(f"   📁 File Type: {file_analysis.get('detected_type', 'unknown')}")
+            logger.info(f"   🎯 Recommended Agent: {recommended_agent}")
+            logger.info(f"   📈 Confidence: {file_analysis.get('confidence', 0):.1%}")
+            logger.info(f"   🔒 Security Status: {validation_data.get('security_status', 'unknown')}")
+            logger.info(f"   📋 Total Records: {validation_data.get('total_records', 0)}")
+            logger.info(f"   🏷️ Total Fields: {len(validation_data.get('detected_fields', []))}")
+            
+            detailed_report = validation_data.get("detailed_report", {})
+            if detailed_report:
+                logger.info("📄 DETAILED ANALYSIS:")
+                content_analysis = detailed_report.get("content_analysis", {})
+                logger.info(f"   🔍 Content Type: {content_analysis.get('detected_type', 'unknown')}")
+                logger.info(f"   🤖 Recommended Agent: {content_analysis.get('recommended_agent', 'unknown')}")
+                
+                security_assessment = detailed_report.get("security_assessment", {})
+                logger.info(f"   🛡️ Security Status: {security_assessment.get('status', 'unknown')}")
+                logger.info(f"   🔐 PII Detected: {security_assessment.get('pii_detected', False)}")
+                
+                data_quality = detailed_report.get("data_quality", {})
+                logger.info(f"   📊 Quality Score: {data_quality.get('overall_score', '0%')}")
+            
+            logger.info("⏳ USER ACTION REQUIRED:")
+            logger.info("   1. Review the file analysis above")
+            logger.info("   2. Confirm the recommended agent selection")
+            logger.info("   3. Approve proceeding to field mapping phase")
+            logger.info("   4. Or request different agent if file type was misidentified")
+            
+            # Return a special status that indicates user approval is needed
+            return "data_validation_complete_awaiting_approval"
             
         except Exception as e:
             logger.error(f"❌ Data validation phase failed: {e}")
@@ -201,15 +235,40 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
     @listen(execute_data_import_validation)
     async def execute_field_mapping_crew(self, previous_result):
         """Execute field mapping using CrewAI crew with PostgreSQL persistence and user approval"""
+        # Only proceed if user has approved the data validation
+        if previous_result == "data_validation_complete_awaiting_approval":
+            logger.info("⏸️ Data validation complete - flow paused for user approval")
+            logger.info("🚫 Field mapping will NOT start until user approval is received")
+            
+            # Set status to indicate waiting for user input
+            self.state.status = "awaiting_user_approval"
+            self.state.current_phase = "data_validation_complete"
+            
+            # Return a status that prevents further automatic progression
+            return "field_mapping_pending_user_approval"
+        
         if previous_result in ["initialization_failed", "data_validation_failed", "data_validation_skipped"]:
             logger.error("❌ Skipping field mapping due to previous phase failure")
             return "field_mapping_skipped"
+        
+        # Only proceed if we have explicit user approval (this would be set by a separate approval endpoint)
+        if self.state.status != "user_approved":
+            logger.warning("⚠️ Field mapping attempted without user approval - blocking execution")
+            return "field_mapping_blocked_no_approval"
         
         logger.info("🔄 Starting Field Mapping Phase with User Approval")
         self.state.current_phase = "attribute_mapping"
         self.state.status = "running"
         
-        # The field mapping crew will handle user approval via human_input=True
+        # Get the recommended agent from validation results
+        validation_data = self.state.phase_data.get("data_import", {})
+        file_analysis = validation_data.get("file_analysis", {})
+        recommended_agent = file_analysis.get("recommended_agent", "CMDB_Data_Analyst_Agent")
+        
+        logger.info(f"🤖 Using recommended agent: {recommended_agent}")
+        logger.info(f"📁 Processing {file_analysis.get('detected_type', 'unknown')} data")
+        
+        # The field mapping crew will use the recommended agent
         return await self.phase_executor.execute_field_mapping_phase(previous_result)
     
     @listen(execute_field_mapping_crew)
