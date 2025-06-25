@@ -77,6 +77,15 @@ def extract_context_from_request(request: Request) -> RequestContext:
     
     # Extract context from headers (primary format)
     # Handle both uppercase and lowercase variations
+    # Clean up comma-separated values that might come from multiple headers
+    def clean_header_value(value: str) -> str:
+        """Clean header value by taking first non-empty value if comma-separated"""
+        if not value:
+            return value
+        # Split by comma and take the first non-empty value
+        parts = [part.strip() for part in value.split(',') if part.strip()]
+        return parts[0] if parts else value
+    
     client_account_id = (
         headers.get("X-Client-Account-ID") or       # Frontend sends this format
         headers.get("x-client-account-id") or 
@@ -86,6 +95,8 @@ def extract_context_from_request(request: Request) -> RequestContext:
         headers.get("X-Client-ID") or              # Frontend uses X-Client-ID
         headers.get("x-client-id")                 # Frontend uses x-client-id
     )
+    if client_account_id:
+        client_account_id = clean_header_value(client_account_id)
     
     engagement_id = (
         headers.get("X-Engagement-ID") or          # Frontend sends this format
@@ -94,6 +105,8 @@ def extract_context_from_request(request: Request) -> RequestContext:
         headers.get("x-context-engagement-id") or  
         headers.get("engagement-id")
     )
+    if engagement_id:
+        engagement_id = clean_header_value(engagement_id)
     
     user_id = (
         headers.get("X-User-ID") or                # Frontend sends this format
@@ -102,6 +115,8 @@ def extract_context_from_request(request: Request) -> RequestContext:
         headers.get("x-context-user-id") or
         headers.get("user-id")
     )
+    if user_id:
+        user_id = clean_header_value(user_id)
 
     session_id = (
         headers.get("X-Session-ID") or             # Frontend sends this format
@@ -110,6 +125,8 @@ def extract_context_from_request(request: Request) -> RequestContext:
         headers.get("x-context-session-id") or
         headers.get("session-id")
     )
+    if session_id:
+        session_id = clean_header_value(session_id)
     
     # Debug logging to see what we extracted
     logger.info(f"🔍 Extracted values - Client: {client_account_id}, Engagement: {engagement_id}, User: {user_id}, Session: {session_id}")

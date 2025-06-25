@@ -79,16 +79,24 @@ class DiscoveryFlowRepository(ContextAwareRepository):
     
     async def get_by_flow_id(self, flow_id: str) -> Optional[DiscoveryFlow]:
         """Get discovery flow by CrewAI Flow ID (single source of truth)"""
-        stmt = select(DiscoveryFlow).where(
-            and_(
-                DiscoveryFlow.flow_id == flow_id,
-                DiscoveryFlow.client_account_id == uuid.UUID(self.client_account_id),
-                DiscoveryFlow.engagement_id == uuid.UUID(self.engagement_id)
-            )
-        ).options(selectinload(DiscoveryFlow.assets))
-        
-        result = await self.db.execute(stmt)
-        return result.scalar_one_or_none()
+        try:
+            # Convert flow_id to UUID for database query
+            flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
+            
+            stmt = select(DiscoveryFlow).where(
+                and_(
+                    DiscoveryFlow.flow_id == flow_uuid,
+                    DiscoveryFlow.client_account_id == uuid.UUID(self.client_account_id),
+                    DiscoveryFlow.engagement_id == uuid.UUID(self.engagement_id)
+                )
+            ).options(selectinload(DiscoveryFlow.assets))
+            
+            result = await self.db.execute(stmt)
+            return result.scalar_one_or_none()
+            
+        except (ValueError, TypeError) as e:
+            logger.error(f"❌ Invalid flow_id format: {flow_id}, error: {e}")
+            return None
     
     async def get_by_flow_id_global(self, flow_id: str) -> Optional[DiscoveryFlow]:
         """Get discovery flow by CrewAI Flow ID without tenant filtering (for duplicate checking)"""

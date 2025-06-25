@@ -2,9 +2,9 @@
 
 ## [0.8.24] - 2025-01-15
 
-### 🎯 **DISCOVERY FLOW CONTINUATION FIX - API ENDPOINT URL CORRECTION**
+### 🎯 **DISCOVERY FLOW CONTINUATION FIX - COMPLETE FLOW STATE LOGIC CORRECTION**
 
-This release fixes the discovery flow continuation functionality that was failing with 405 (Method Not Allowed) errors due to API endpoint URL path mismatches between frontend and backend.
+This release comprehensively fixes the discovery flow continuation functionality, eliminating hardcoded phase logic, fixing UUID handling errors, and ensuring flows continue to the proper next phase based on actual database state instead of jumping ahead incorrectly.
 
 ### 🐛 **API Endpoint URL Path Fix**
 
@@ -20,6 +20,26 @@ This release fixes the discovery flow continuation functionality that was failin
 - **Implementation**: Corrected URL pattern to match backend endpoint specification
 - **Benefits**: Flow completion functionality now operates correctly
 
+#### **Next Phase Logic Correction (CRITICAL)**
+- **Issue**: Backend handlers were returning hardcoded `next_phase` values (`"dependency_analysis"`, `"attribute_mapping"`) instead of determining them from actual flow state
+- **Root Cause**: Flow continuation was jumping to wrong phases because it ignored database completion status
+- **Fix**: Updated both CrewAI and database handlers to query actual flow state and use `DiscoveryFlow.get_next_phase()` method
+- **Implementation**: Replaced hardcoded phases with database-driven logic that checks all phase completion flags
+- **Benefits**: Flow continuation now respects actual phase completion status and doesn't skip ahead inappropriately
+
+#### **UUID Context Handling Fix (CRITICAL)**
+- **Issue**: "Badly formed hexadecimal UUID string" errors and duplicated context values in logs
+- **Root Cause**: Header extraction was getting comma-separated duplicate values from multiple header sources
+- **Fix**: Added `clean_header_value()` function to handle comma-separated header values properly
+- **Implementation**: Split comma-separated values and take first non-empty value for each context field
+- **Benefits**: Eliminated UUID parsing errors and cleaned up context logging
+
+#### **Database Query Enhancement**
+- **Issue**: Repository UUID handling could fail with malformed flow_id values
+- **Fix**: Added proper UUID conversion and error handling in `get_by_flow_id()` method
+- **Implementation**: Wrap UUID conversion in try-catch with detailed error logging
+- **Benefits**: More robust database queries with better error reporting
+
 ### 🔧 **Technical Implementation**
 
 #### **Frontend Service Updates**
@@ -27,6 +47,16 @@ This release fixes the discovery flow continuation functionality that was failin
 - **Method**: `continueFlow(flowId: string)` - Fixed URL from `/flow/continue` to `/flow/continue/${flowId}`
 - **Method**: `completeFlow(flowId: string)` - Fixed URL from `/flow/complete` to `/flow/complete/${flowId}`
 - **Body**: Changed from `{ flow_id: flowId }` to empty object `{}` since flow_id now in URL path
+
+#### **Backend Handler Updates**
+- **File**: `backend/app/api/v1/discovery_handlers/crewai_execution.py`
+- **Method**: `continue_flow()` - Replaced hardcoded phases with database-driven `flow.get_next_phase()` logic
+- **File**: `backend/app/api/v1/discovery_handlers/flow_management.py`
+- **Method**: `continue_flow()` - Replaced hardcoded phases with database-driven `flow.get_next_phase()` logic
+- **File**: `backend/app/core/context.py`
+- **Method**: `extract_context_from_request()` - Added `clean_header_value()` function for proper header parsing
+- **File**: `backend/app/repositories/discovery_flow_repository.py`
+- **Method**: `get_by_flow_id()` - Added UUID conversion error handling with detailed logging
 
 #### **API Endpoint Verification**
 - **Continue Endpoint**: `POST /api/v1/discovery/flow/continue/{flow_id}` - Now working correctly

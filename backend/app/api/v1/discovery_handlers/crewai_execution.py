@@ -128,16 +128,38 @@ class CrewAIExecutionHandler:
         try:
             logger.info(f"▶️ Continuing CrewAI flow: {flow_id}")
             
+            # Get current flow state from database to determine next phase
+            from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
+            
+            flow_repo = DiscoveryFlowRepository(self.db, self.client_account_id, self.engagement_id)
+            flow = await flow_repo.get_by_flow_id(flow_id)
+            
+            if not flow:
+                raise ValueError(f"Flow not found: {flow_id}")
+            
+            # Determine next phase based on current flow state
+            next_phase = flow.get_next_phase()
+            if not next_phase:
+                next_phase = "completed"
+                
+            # Log current phase completion status for debugging
+            logger.info(f"🔍 Flow {flow_id} phase status: data_import={flow.data_import_completed}, "
+                      f"attribute_mapping={flow.attribute_mapping_completed}, "
+                      f"data_cleansing={flow.data_cleansing_completed}, "
+                      f"inventory={flow.inventory_completed}, "
+                      f"dependencies={flow.dependencies_completed}, "
+                      f"tech_debt={flow.tech_debt_completed}")
+            
             result = {
                 "flow_id": flow_id,
                 "status": "resumed",
-                "next_phase": "dependency_analysis",
+                "next_phase": next_phase,
                 "agents_reactivated": 5,
                 "state_restored": True,
                 "continuation_time": datetime.now().isoformat()
             }
             
-            logger.info(f"✅ CrewAI flow continued: {flow_id}")
+            logger.info(f"✅ CrewAI flow continued: {flow_id}, next_phase: {next_phase}")
             return result
             
         except Exception as e:
