@@ -18,7 +18,8 @@ import {
   FileSpreadsheet,
   Lock,
   Scan,
-  UserCheck
+  UserCheck,
+  Cog
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -61,7 +62,7 @@ interface UploadFile {
   size: number;
   type: string;
   uploadedAt: Date;
-  status: 'uploading' | 'validating' | 'approved' | 'approved_with_warnings' | 'rejected' | 'error';
+  status: 'uploading' | 'validating' | 'processing' | 'approved' | 'approved_with_warnings' | 'rejected' | 'error';
   agentResults: ValidationAgentResult[];
   validationSessionId?: string;
   importSessionId?: string;
@@ -69,6 +70,7 @@ interface UploadFile {
   // Additional progress tracking properties
   upload_progress?: number;
   validation_progress?: number;
+  discovery_progress?: number;  // NEW: Track CrewAI flow progress
   agents_completed?: number;
   total_agents?: number;
   // Security clearance properties
@@ -78,6 +80,16 @@ interface UploadFile {
   agent_results?: ValidationAgentResult[];
   // Error handling
   error_message?: string;
+  // NEW: Flow tracking properties
+  current_phase?: string;
+  flow_status?: 'running' | 'completed' | 'failed' | 'paused';
+  flow_summary?: {
+    total_assets: number;
+    errors: number;
+    warnings: number;
+    phases_completed: string[];
+    agent_insights?: any[];
+  };
 }
 
 // Upload categories for proper data handling
@@ -145,6 +157,88 @@ const DataImport: React.FC = () => {
   const incompleteFlows = incompleteFlowsData?.flows || [];
   const hasIncompleteFlows = incompleteFlows.length > 0;
   
+  // NEW: Real-time flow tracking state
+  const [flowPollingIntervals, setFlowPollingIntervals] = useState<Map<string, NodeJS.Timeout>>(new Map());
+
+  // NEW: Real-time flow progress tracking
+  useEffect(() => {
+    const activeFlows = uploadedFiles.filter(f => f.flow_id && f.status === 'processing');
+    
+    // Start polling for active flows
+    activeFlows.forEach(file => {
+      if (file.flow_id && !flowPollingIntervals.has(file.flow_id)) {
+        const interval = setInterval(async () => {
+          try {
+            await pollFlowProgress(file.flow_id!);
+          } catch (error) {
+            console.error('Error polling flow progress:', error);
+          }
+        }, 3000); // Poll every 3 seconds
+        
+        setFlowPollingIntervals(prev => new Map(prev.set(file.flow_id!, interval)));
+      }
+    });
+
+    // Cleanup intervals for completed flows
+    flowPollingIntervals.forEach((interval, flowId) => {
+      const isStillActive = activeFlows.some(f => f.flow_id === flowId);
+      if (!isStillActive) {
+        clearInterval(interval);
+        setFlowPollingIntervals(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(flowId);
+          return newMap;
+        });
+      }
+    });
+
+    // Cleanup on unmount
+    return () => {
+      flowPollingIntervals.forEach(interval => clearInterval(interval));
+    };
+  }, [uploadedFiles]);
+
+  // NEW: Poll flow progress function
+  const pollFlowProgress = async (flowId: string) => {
+    try {
+      const response = await apiCall(`/api/v1/discovery/flows/active`, {
+        method: 'GET',
+        headers: getAuthHeaders()
+      });
+
+      if (response.flows) {
+        const currentFlow = response.flows.find((f: any) => f.flow_id === flowId);
+        
+        if (currentFlow) {
+          setUploadedFiles(prev => prev.map(file => {
+            if (file.flow_id === flowId) {
+              const progress = currentFlow.progress_percentage || 0;
+              const isCompleted = currentFlow.status === 'completed' || progress >= 100;
+              
+              return {
+                ...file,
+                discovery_progress: progress,
+                current_phase: currentFlow.current_phase || file.current_phase,
+                flow_status: currentFlow.status || 'running',
+                status: isCompleted ? 'approved' : 'processing',
+                flow_summary: isCompleted ? {
+                  total_assets: currentFlow.crewai_state_data?.asset_inventory?.total_assets || 0,
+                  errors: currentFlow.crewai_state_data?.errors || 0,
+                  warnings: currentFlow.crewai_state_data?.warnings || 0,
+                  phases_completed: Object.keys(currentFlow.phases || {}).filter(phase => currentFlow.phases[phase]),
+                  agent_insights: currentFlow.crewai_state_data?.agent_insights || []
+                } : file.flow_summary
+              };
+            }
+            return file;
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Failed to poll flow progress:', error);
+    }
+  };
+
   // Flow Management Handlers
   const handleContinueFlow = useCallback((sessionId: string) => {
     flowResumption.mutate(sessionId);
@@ -264,31 +358,38 @@ const DataImport: React.FC = () => {
       const { import_session_id, flow_id } = await storeImportData(csvData, file, tempSessionId, categoryId);
       
       if (flow_id) {
-        // Success - UnifiedDiscoveryFlow was triggered
+        // Success - UnifiedDiscoveryFlow was triggered - START PROCESSING TRACKING
         setUploadedFiles(prev => prev.map(f => f.id === newFile.id ? { 
           ...f, 
-          status: 'approved',
+          status: 'processing',  // Changed from 'approved' to 'processing'
           importSessionId: import_session_id || undefined,
           flow_id: flow_id,
+          discovery_progress: 0,
+          current_phase: 'data_import',
+          flow_status: 'running',
           agentResults: [{
             agent_id: 'unified_flow',
             agent_name: 'UnifiedDiscoveryFlow',
             validation: 'passed',
             confidence: 1.0,
-            message: 'Data successfully processed by CrewAI Discovery Flow',
+            message: 'CrewAI Discovery Flow initiated - processing in progress',
             timestamp: new Date().toISOString(),
             details: [
               `Successfully uploaded ${csvData.length} records`,
-              'UnifiedDiscoveryFlow initiated with CrewAI agents',
-              'Data ready for field mapping and analysis phase'
+              'UnifiedDiscoveryFlow started with CrewAI agents',
+              'Real-time progress tracking enabled'
             ]
           }]
         } : f));
         
         toast({
-          title: "Upload Successful",
-          description: `File uploaded and UnifiedDiscoveryFlow initiated. ${csvData.length} records processed.`,
+          title: "Discovery Flow Started",
+          description: `File uploaded successfully. CrewAI agents are now processing ${csvData.length} records.`,
         });
+        
+        // Start polling immediately for this flow
+        setTimeout(() => pollFlowProgress(flow_id), 1000);
+        
       } else {
         throw new Error("Failed to trigger UnifiedDiscoveryFlow - no flow ID returned");
       }
@@ -564,6 +665,7 @@ const DataImport: React.FC = () => {
     switch (status) {
       case 'uploading': return <Loader2 className="h-5 w-5 animate-spin text-blue-500" />;
       case 'validating': return <Brain className="h-5 w-5 animate-pulse text-orange-500" />;
+      case 'processing': return <Cog className="h-5 w-5 animate-spin text-purple-500" />;
       case 'approved': return <CheckCircle className="h-5 w-5 text-green-500" />;
       case 'approved_with_warnings': return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
       case 'rejected': return <AlertTriangle className="h-5 w-5 text-red-500" />;
@@ -576,6 +678,7 @@ const DataImport: React.FC = () => {
     switch (status) {
       case 'uploading': return 'bg-blue-100 text-blue-800';
       case 'validating': return 'bg-orange-100 text-orange-800';
+      case 'processing': return 'bg-purple-100 text-purple-800';
       case 'approved': return 'bg-green-100 text-green-800';
       case 'approved_with_warnings': return 'bg-yellow-100 text-yellow-800';
       case 'rejected': return 'bg-red-100 text-red-800';
@@ -802,6 +905,32 @@ const DataImport: React.FC = () => {
                       </div>
                     )}
 
+                    {/* CrewAI Discovery Flow Progress */}
+                    {file.status === 'processing' && (
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-sm">
+                            <span>CrewAI Discovery Flow Progress</span>
+                            <span>{file.discovery_progress || 0}%</span>
+                          </div>
+                          <Progress value={file.discovery_progress || 0} className="h-2" />
+                        </div>
+                        
+                        {/* Current Phase */}
+                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                          <div className="flex items-center space-x-2">
+                            <Cog className="h-4 w-4 text-purple-600 animate-spin" />
+                            <span className="text-sm font-medium text-purple-900">
+                              Current Phase: {file.current_phase || 'Initializing...'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-purple-700 mt-1">
+                            CrewAI agents are analyzing your data using advanced AI techniques
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Validation Progress */}
                     {(file.status === 'validating' || file.status === 'approved' || file.status === 'approved_with_warnings' || file.status === 'rejected') && (
                       <div className="space-y-4">
@@ -844,14 +973,63 @@ const DataImport: React.FC = () => {
                         {/* Agent Results */}
                         {/* Agent results are removed as per the new architecture */}
 
+                        {/* Flow Summary - Completed Flow */}
+                        {file.status === 'approved' && file.flow_summary && (
+                          <div className="pt-4 border-t">
+                            <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-3">
+                              <div className="flex items-center space-x-2">
+                                <CheckCircle className="h-5 w-5 text-green-600" />
+                                <h4 className="text-sm font-semibold text-green-900">CrewAI Discovery Flow Complete</h4>
+                              </div>
+                              
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div className="text-center">
+                                  <div className="text-lg font-bold text-green-700">{file.flow_summary.total_assets}</div>
+                                  <div className="text-xs text-green-600">Assets Processed</div>
+                                </div>
+                                <div className="text-center">
+                                  <div className="text-lg font-bold text-green-700">{file.flow_summary.phases_completed.length}</div>
+                                  <div className="text-xs text-green-600">Phases Complete</div>
+                                </div>
+                                <div className="text-center">
+                                  <div className="text-lg font-bold text-yellow-700">{file.flow_summary.warnings}</div>
+                                  <div className="text-xs text-yellow-600">Warnings</div>
+                                </div>
+                                <div className="text-center">
+                                  <div className="text-lg font-bold text-red-700">{file.flow_summary.errors}</div>
+                                  <div className="text-xs text-red-600">Errors</div>
+                                </div>
+                              </div>
+                              
+                              {file.flow_summary.phases_completed.length > 0 && (
+                                <div>
+                                  <p className="text-xs font-medium text-green-800 mb-1">Completed Phases:</p>
+                                  <div className="flex flex-wrap gap-1">
+                                    {file.flow_summary.phases_completed.map(phase => (
+                                      <Badge key={phase} variant="secondary" className="text-xs bg-green-100 text-green-800">
+                                        {phase}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
                         {/* Action Buttons */}
                         {(file.status === 'approved' || file.status === 'approved_with_warnings') && (
                           <div className="pt-4 border-t">
                             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-3 sm:space-y-0">
                               <div>
-                                <p className="text-sm font-medium text-gray-900">Ready for Discovery Flow</p>
+                                <p className="text-sm font-medium text-gray-900">
+                                  {file.flow_summary ? 'Discovery Flow Complete' : 'Ready for Discovery Flow'}
+                                </p>
                                 <p className="text-sm text-gray-600">
-                                  Data validation complete. Proceed to field mapping and AI-powered analysis.
+                                  {file.flow_summary 
+                                    ? 'Data analysis complete. Proceed to field mapping and detailed insights.'
+                                    : 'Data validation complete. Proceed to field mapping and AI-powered analysis.'
+                                  }
                                 </p>
                               </div>
                               <Button
@@ -867,7 +1045,7 @@ const DataImport: React.FC = () => {
                                 ) : (
                                   <>
                                     <Brain className="h-4 w-4" />
-                                    <span>Start Discovery Flow</span>
+                                    <span>{file.flow_summary ? 'View Results' : 'Start Discovery Flow'}</span>
                                     <ArrowRight className="h-4 w-4" />
                                   </>
                                 )}
