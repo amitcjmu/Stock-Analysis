@@ -671,42 +671,46 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             self.state.current_phase = "completed"
             
             # ✅ CRITICAL FIX: Complete the PostgreSQL discovery flow to stop frontend polling
-            if self.flow_bridge:
-                try:
-                    # Sync completion state to PostgreSQL
-                    await self.flow_bridge.sync_state_update(
-                        self.state, 
-                        "completed", 
-                        crew_results={
-                            "action": "completed",
-                            "summary": summary,
-                            "total_assets": total_assets,
-                            "timestamp": datetime.now().isoformat()
-                        }
+            # Use the proper DiscoveryFlowService.complete_discovery_flow() method instead of update_phase_completion
+            try:
+                from app.services.discovery_flow_service import DiscoveryFlowService
+                from app.core.database import AsyncSessionLocal
+                from app.core.context import RequestContext
+                
+                async with AsyncSessionLocal() as db_session:
+                    # Create request context for the service
+                    service_context = RequestContext(
+                        client_account_id=self.state.client_account_id,
+                        engagement_id=self.state.engagement_id,
+                        user_id=self.state.user_id
                     )
                     
-                    # Call the PostgreSQL repository to mark flow as completed
-                    # This will update the database status from "active" to "completed"
-                    # so the frontend stops polling for this flow
-                    try:
-                        from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
-                        from app.core.database import AsyncSessionLocal
-                        
-                        async with AsyncSessionLocal() as db_session:
-                            flow_repo = DiscoveryFlowRepository(
-                                db_session, 
-                                self.state.client_account_id, 
-                                self.state.engagement_id
-                            )
-                            completed_flow = await flow_repo.complete_discovery_flow(self.state.flow_id)
-                            logger.info(f"✅ PostgreSQL discovery flow marked as completed: {completed_flow.flow_id}")
-                            
-                    except Exception as db_error:
-                        logger.warning(f"⚠️ Failed to complete PostgreSQL flow (non-critical): {db_error}")
-                        # Don't fail the entire flow completion for this
-                        
+                    # Use DiscoveryFlowService to properly complete the flow
+                    flow_service = DiscoveryFlowService(db_session, service_context)
+                    completed_flow = await flow_service.complete_discovery_flow(self.state.flow_id)
+                    logger.info(f"✅ PostgreSQL discovery flow marked as completed: {completed_flow.flow_id}")
+                    
+            except Exception as completion_error:
+                logger.warning(f"⚠️ Failed to complete PostgreSQL flow (non-critical): {completion_error}")
+                # Don't fail the entire flow completion for this
+                
+            # Also sync final state to flow bridge if available
+            if self.flow_bridge:
+                try:
+                    # Sync final state without using "completed" as phase
+                    await self.flow_bridge.sync_state_update(
+                        self.state, 
+                        "tech_debt",  # Use the last valid phase name
+                        crew_results={
+                            "action": "flow_completed",
+                            "summary": summary,
+                            "total_assets": total_assets,
+                            "timestamp": datetime.now().isoformat(),
+                            "flow_status": "completed"
+                        }
+                    )
                 except Exception as bridge_error:
-                    logger.warning(f"⚠️ Failed to sync completion state (non-critical): {bridge_error}")
+                    logger.warning(f"⚠️ Failed to sync completion state to bridge (non-critical): {bridge_error}")
             
             logger.info(f"✅ Unified Discovery Flow completed successfully")
             logger.info(f"📊 Summary: {total_assets} assets, {len(self.state.errors)} errors, {len(self.state.warnings)} warnings")

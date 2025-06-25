@@ -244,8 +244,15 @@ export const useProcessingActions = () => {
 /**
  * Hook for enhanced agent insights with real-time streaming
  */
-export const useRealTimeAgentInsights = (flow_id: string, page_context?: string) => {
+export const useRealTimeAgentInsights = (flow_id: string, page_context?: string, processingStatus?: ProcessingStatus) => {
   const [streamingInsights, setStreamingInsights] = useState<any[]>([]);
+
+  // Stop polling if flow is completed
+  const isCompleted = processingStatus && (
+    processingStatus.status === 'completed' || 
+    processingStatus.status === 'failed' || 
+    processingStatus.status === 'error'
+  );
 
   const {
     data: insightsData,
@@ -259,9 +266,9 @@ export const useRealTimeAgentInsights = (flow_id: string, page_context?: string)
       });
       return response;
     },
-    enabled: !!flow_id,
+    enabled: !!flow_id && !isCompleted,
     staleTime: 5000, // 5 seconds
-    refetchInterval: 5000, // Poll every 5 seconds for insights
+    refetchInterval: isCompleted ? false : 5000, // Stop polling when completed
     refetchOnWindowFocus: false,
   });
 
@@ -293,7 +300,14 @@ export const useRealTimeAgentInsights = (flow_id: string, page_context?: string)
 /**
  * Hook for real-time validation feedback
  */
-export const useRealTimeValidation = (flow_id: string) => {
+export const useRealTimeValidation = (flow_id: string, processingStatus?: ProcessingStatus) => {
+  // Stop polling if flow is completed
+  const isCompleted = processingStatus && (
+    processingStatus.status === 'completed' || 
+    processingStatus.status === 'failed' || 
+    processingStatus.status === 'error'
+  );
+
   const {
     data: validationData,
     isLoading,
@@ -304,9 +318,9 @@ export const useRealTimeValidation = (flow_id: string) => {
       const response = await apiCall(`/api/v1/discovery/flow/${flow_id}/validation-status`);
       return response;
     },
-    enabled: !!flow_id,
+    enabled: !!flow_id && !isCompleted,
     staleTime: 3000, // 3 seconds
-    refetchInterval: 3000, // Fast polling for validation
+    refetchInterval: isCompleted ? false : 3000, // Stop polling when completed
     refetchOnWindowFocus: false,
   });
 
@@ -333,8 +347,8 @@ export const useRealTimeValidation = (flow_id: string) => {
  */
 export const useComprehensiveRealTimeMonitoring = (flow_id: string, page_context?: string) => {
   const processing = useRealTimeProcessing({ flow_id, enabled: !!flow_id });
-  const insights = useRealTimeAgentInsights(flow_id, page_context);
-  const validation = useRealTimeValidation(flow_id);
+  const insights = useRealTimeAgentInsights(flow_id, page_context, processing.processingStatus);
+  const validation = useRealTimeValidation(flow_id, processing.processingStatus);
   const actions = useProcessingActions();
 
   return {
