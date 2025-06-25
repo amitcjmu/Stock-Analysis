@@ -5,6 +5,7 @@ Follows the Multi-Flow Architecture Implementation Plan.
 """
 
 import uuid
+import logging
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,6 +15,8 @@ from sqlalchemy.orm import selectinload
 from app.repositories.base_repository import ContextAwareRepository
 from app.models.discovery_flow import DiscoveryFlow
 from app.models.discovery_asset import DiscoveryAsset
+
+logger = logging.getLogger(__name__)
 
 
 class DiscoveryFlowRepository(ContextAwareRepository):
@@ -46,8 +49,19 @@ class DiscoveryFlowRepository(ContextAwareRepository):
         demo_engagement_id = uuid.UUID("22222222-2222-2222-2222-222222222222")
         demo_user_id = uuid.UUID("33333333-3333-3333-3333-333333333333")
         
+        # ✅ CRITICAL FIX: Always use the provided CrewAI Flow ID, never generate a new one
+        try:
+            # Try to parse as UUID (handles both string UUIDs and UUID objects)
+            if isinstance(flow_id, uuid.UUID):
+                parsed_flow_id = flow_id
+            else:
+                parsed_flow_id = uuid.UUID(flow_id)
+        except (ValueError, TypeError) as e:
+            logger.error(f"❌ Invalid CrewAI Flow ID provided: {flow_id}, error: {e}")
+            raise ValueError(f"Invalid CrewAI Flow ID: {flow_id}. Must be a valid UUID.")
+        
         flow = DiscoveryFlow(
-            flow_id=uuid.UUID(flow_id) if len(flow_id) == 36 else uuid.uuid4(),  # Handle both UUID and string flow IDs
+            flow_id=parsed_flow_id,  # Always use the REAL CrewAI Flow ID
             client_account_id=uuid.UUID(self.client_account_id) if self.client_account_id else demo_client_id,
             engagement_id=uuid.UUID(self.engagement_id) if self.engagement_id else demo_engagement_id,
             user_id=str(uuid.UUID(user_id)) if user_id else str(demo_user_id),

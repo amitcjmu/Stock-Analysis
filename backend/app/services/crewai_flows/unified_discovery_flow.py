@@ -112,6 +112,14 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         if not hasattr(self, 'state') or self.state is None:
             self.state = UnifiedDiscoveryFlowState()
         
+        # ✅ CRITICAL FIX: Set the flow_id from the CrewAI Flow instance
+        # This ensures the state uses the REAL CrewAI Flow ID
+        if hasattr(self, 'flow_id') and self.flow_id:
+            self.state.flow_id = str(self.flow_id)
+            logger.info(f"🎯 State flow_id set from CrewAI Flow: {self.state.flow_id}")
+        else:
+            logger.warning("⚠️ CrewAI Flow ID not yet available - will be set after kickoff")
+        
         # Initialize modular handlers with flow bridge
         self.crew_manager = UnifiedFlowCrewManager(crewai_service, self.state)
         self.phase_executor = PhaseExecutionManager(self.state, self.crew_manager, self.flow_bridge)
@@ -124,6 +132,13 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         """Initialize the unified discovery workflow with PostgreSQL persistence"""
         logger.info("🚀 Starting Unified Discovery Flow initialization with hybrid persistence")
         logger.info(f"📋 Flow Context: session={self._init_session_id}, client={self._init_client_account_id}, engagement={self._init_engagement_id}")
+        
+        # ✅ CRITICAL FIX: Set the flow_id from CrewAI Flow (now available after @start)
+        if hasattr(self, 'flow_id') and self.flow_id:
+            self.state.flow_id = str(self.flow_id)
+            logger.info(f"🎯 REAL CrewAI Flow ID set in state: {self.state.flow_id}")
+        else:
+            logger.error("❌ CrewAI Flow ID still not available - this is a critical issue")
         
         # Set core state fields
         self.state.session_id = self._init_session_id

@@ -25,7 +25,7 @@ class UnifiedDiscoveryFlowState(BaseModel):
     # ========================================
     # CORE IDENTIFICATION (Required)
     # ========================================
-    flow_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    flow_id: str = ""  # Will be set by CrewAI Flow - NEVER generate our own
     session_id: str = ""
     client_account_id: str = ""
     engagement_id: str = ""

@@ -322,12 +322,26 @@ async def _trigger_discovery_flow(
         )
         logger.info(f"✅ DEBUG: Discovery flow created: {type(discovery_flow)}")
         
-        # ✅ CRITICAL: Capture the CrewAI-generated flow_id BEFORE kickoff
-        crewai_flow_id = discovery_flow.state.flow_id
-        logger.info(f"🎯 CrewAI Flow ID generated: {crewai_flow_id}")
+        # ✅ CRITICAL FIX: Get the REAL CrewAI Flow ID immediately after creation
+        # The CrewAI Flow generates its ID upon instantiation, not during kickoff
+        actual_crewai_flow_id = getattr(discovery_flow, 'flow_id', None)
         
-        # 🆕 CRITICAL FIX: Create database record using DiscoveryFlowService
-        logger.info(f"🔍 DEBUG: Creating discovery flow database record...")
+        if not actual_crewai_flow_id:
+            # Fallback: try other possible flow ID attributes
+            for attr in ['id', '_id', '_flow_id', 'execution_id']:
+                if hasattr(discovery_flow, attr):
+                    actual_crewai_flow_id = getattr(discovery_flow, attr)
+                    break
+        
+        if not actual_crewai_flow_id:
+            # Last resort: generate a fallback ID
+            actual_crewai_flow_id = f"flow-{data_import_id}"
+            logger.warning(f"⚠️ Could not extract CrewAI Flow ID, using fallback: {actual_crewai_flow_id}")
+        
+        logger.info(f"🎯 REAL CrewAI Flow ID captured: {actual_crewai_flow_id}")
+        
+        # 🆕 CRITICAL FIX: Create database record using DiscoveryFlowService with REAL ID
+        logger.info(f"🔍 DEBUG: Creating discovery flow database record with REAL CrewAI Flow ID...")
         try:
             # Import database session dependency - use proper import
             from app.core.database import AsyncSessionLocal
@@ -337,15 +351,16 @@ async def _trigger_discovery_flow(
                 # Create DiscoveryFlowService with proper context
                 discovery_service = DiscoveryFlowService(db_session, context)
                 
-                # Create discovery flow record in database
+                # Create discovery flow record in database with REAL CrewAI Flow ID
                 flow_record = await discovery_service.create_discovery_flow(
-                    flow_id=crewai_flow_id,
+                    flow_id=actual_crewai_flow_id,
                     raw_data=file_data,
                     metadata={
                         "source": "data_import",
                         "filename": f"import_{data_import_id}",
                         "import_timestamp": datetime.utcnow().isoformat(),
-                        "data_import_id": data_import_id
+                        "data_import_id": data_import_id,
+                        "real_crewai_flow_id": actual_crewai_flow_id
                     },
                     import_session_id=data_import_id,
                     user_id=user_id
@@ -354,7 +369,7 @@ async def _trigger_discovery_flow(
                 # Commit the database transaction
                 await db_session.commit()
                 
-                logger.info(f"✅ Discovery flow database record created: {flow_record.flow_id}")
+                logger.info(f"✅ Discovery flow database record created with REAL CrewAI Flow ID: {flow_record.flow_id}")
                 
         except Exception as db_error:
             logger.error(f"❌ Failed to create discovery flow database record: {db_error}")
@@ -365,9 +380,9 @@ async def _trigger_discovery_flow(
         # 🚀 Start the CrewAI Flow in the background using kickoff() method
         logger.info(f"🎯 Starting CrewAI Flow kickoff for session: {data_import_id}")
         
-        # Return the flow_id immediately and let the flow run in background
-        # This ensures the frontend gets the flow_id without waiting for completion
-        logger.info(f"✅ Discovery Flow initialized - returning CrewAI Flow ID: {crewai_flow_id}")
+        # Return the REAL flow_id immediately and let the flow run in background
+        # This ensures the frontend gets the correct flow_id without waiting for completion
+        logger.info(f"✅ Discovery Flow initialized - returning REAL CrewAI Flow ID: {actual_crewai_flow_id}")
         
         # Start the flow execution in background (non-blocking)
         try:
@@ -384,7 +399,7 @@ async def _trigger_discovery_flow(
             # Still return the flow_id since the flow object was created successfully
             # The flow state can be checked later via the flow management APIs
         
-        return crewai_flow_id
+        return actual_crewai_flow_id
         
     except ImportError as e:
         logger.warning(f"CrewAI Discovery Flow service not available: {e}")
