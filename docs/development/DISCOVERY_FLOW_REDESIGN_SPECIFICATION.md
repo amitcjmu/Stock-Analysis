@@ -1,0 +1,491 @@
+# AI Force Migration Platform - Discovery Flow Redesign Specification
+
+## 🎯 Executive Summary
+
+This document outlines the redesign of the Discovery Flow from a crew-heavy architecture to an **agent-first, crew-when-needed** approach. The new design prioritizes individual agent efficiency for deterministic tasks while strategically deploying crews for complex analysis requiring multiple perspectives.
+
+**Key Design Principles:**
+- **Agent-First**: Individual agents handle specialized, focused tasks
+- **Progressive Intelligence**: "Think" → "Ponder More" escalation for deeper analysis
+- **Human-in-the-Loop**: Agent clarifications and insights through UI panels
+- **Strategic Crew Deployment**: Crews only when collaboration adds value
+
+---
+
+## 🏗️ Architecture Overview
+
+### Current vs. Redesigned Flow
+
+| Phase | Current Approach | Redesigned Approach | Rationale |
+|-------|------------------|-------------------|-----------|
+| Data Import Validation | Crew | **Individual Agent** | Deterministic security/PII scanning |
+| Attribute Mapping | Crew | **Individual Agent** | Focused field mapping with confidence scoring |
+| Data Cleansing | Crew | **Individual Agent** | Rule-based standardization post-mapping |
+| Asset Inventory | Crew | **Individual Agent** | Classification with learned patterns |
+| Dependency Analysis | Crew | **Agent + Optional Crew** | Start with agent, escalate to crew if needed |
+| Tech Debt Analysis | Crew | **Agent + Optional Crew** | Start with agent, escalate to crew if needed |
+
+### Flow Execution Pattern
+
+```
+Data Import → Attribute Mapping → Data Cleansing → [Parallel Execution]
+                                                      ├── Asset Inventory Agent
+                                                      ├── Dependency Analysis Agent
+                                                      └── Tech Debt Analysis Agent
+                                                           ↓
+                                              [User Interaction: "Think" Buttons]
+                                                           ↓
+                                              [Optional Crew Escalation: "Ponder More"]
+```
+
+---
+
+## 🤖 Agent Specifications
+
+### 1. Data Import Validation Agent
+
+**Role:** "Enterprise Data Security and Validation Specialist"
+
+**Goal:** "Perform comprehensive security scanning, PII detection, and data structure validation to ensure enterprise-grade data safety and compliance before processing"
+
+**Backstory:** "You are a cybersecurity expert with 15+ years of experience in enterprise data governance. You specialize in identifying sensitive information, detecting security threats, and validating data structures. You have a methodical approach to data validation that prioritizes security without compromising processing efficiency."
+
+**Key Capabilities:**
+- PII/PHI detection and classification
+- Security threat assessment
+- File format validation
+- Data structure analysis
+- Compliance checking (GDPR, HIPAA, SOX)
+
+**Tools:**
+- File analysis tools
+- Security scanning utilities
+- Pattern recognition engines
+- Compliance validation frameworks
+
+**Output Format:** Structured validation report with security clearance status
+
+---
+
+### 2. Attribute Mapping Agent
+
+**Role:** "Critical Migration Attributes Mapping Specialist"
+
+**Goal:** "Intelligently map source data fields to the 20+ critical migration attributes with high confidence scoring, ensuring accurate field identification for downstream processing"
+
+**Backstory:** "You are a data migration expert with deep knowledge of enterprise asset inventories. You've mapped thousands of different data sources to standardized migration schemas. You excel at pattern recognition and can identify field relationships even when naming conventions vary significantly across organizations."
+
+**Key Capabilities:**
+- Field pattern recognition
+- Confidence scoring (0-100%)
+- Critical attribute mapping (Identity, Business, Technical, Network, etc.)
+- Learning from user feedback
+- Ambiguity detection and flagging
+
+**Tools:**
+- Field mapping engine
+- Pattern recognition algorithms
+- Confidence scoring models
+- Learning feedback integration
+
+**Output Format:** Field mapping dictionary with confidence scores
+
+**UI Integration:**
+- **Agent Clarifications Panel:** MCQ for ambiguous field mappings
+- **Agent Insights Panel:** Overall mapping confidence and recommendations
+
+---
+
+### 3. Data Cleansing Agent
+
+**Role:** "Enterprise Data Standardization Specialist"
+
+**Goal:** "Apply intelligent data cleansing and standardization rules based on confirmed field mappings, ensuring high-quality, consistent data for migration analysis"
+
+**Backstory:** "You are a data quality expert who understands that clean data is the foundation of successful migrations. With the field mappings confirmed, you can apply precise standardization rules. You balance automation with accuracy, flagging edge cases that need human review."
+
+**Key Capabilities:**
+- Format standardization (dates, currencies, addresses)
+- Data validation and correction
+- Quality metrics calculation
+- Duplicate detection and resolution
+- Completeness assessment
+
+**Tools:**
+- Data validation engines
+- Format standardization utilities
+- Quality assessment frameworks
+- Deduplication algorithms
+
+**Output Format:** Cleaned dataset with quality metrics report
+
+---
+
+### 4. Asset Inventory Agent
+
+**Role:** "Enterprise Asset Classification and Inventory Specialist"
+
+**Goal:** "Classify and categorize assets (servers, applications, devices) with high accuracy using AI-powered classification models and learned organizational patterns"
+
+**Backstory:** "You are an IT asset management expert with experience across diverse enterprise environments. You understand how different organizations structure their IT assets and can quickly identify asset types, criticality levels, and business relationships. You learn from each engagement to improve classification accuracy."
+
+**Key Capabilities:**
+- Asset type classification (servers, applications, devices, databases)
+- Criticality assessment
+- Business function mapping
+- Environment classification (prod, dev, test)
+- Asset relationship identification
+
+**Tools:**
+- Asset classification models
+- Pattern learning engines
+- Business function mapping tools
+- Environment detection utilities
+
+**Output Format:** Structured asset inventory with classifications
+
+**UI Integration:**
+- **Think Button:** Escalate to Asset Intelligence Crew for complex classifications
+- **Agent Insights:** Asset distribution analysis and anomaly detection
+
+---
+
+### 5. Dependency Analysis Agent
+
+**Role:** "Application and Infrastructure Dependency Mapping Specialist"
+
+**Goal:** "Identify and map critical dependencies between applications, servers, and infrastructure components to support migration planning and risk assessment"
+
+**Backstory:** "You are a systems architect with deep understanding of enterprise application landscapes. You excel at identifying both obvious and hidden dependencies. You understand that missed dependencies are the leading cause of migration failures, so you approach this task with methodical precision."
+
+**Key Capabilities:**
+- Application dependency mapping
+- Infrastructure dependency identification
+- Network dependency analysis
+- Database relationship mapping
+- Critical path identification
+
+**Tools:**
+- Network analysis tools
+- Application scanning utilities
+- Database relationship analyzers
+- Dependency visualization engines
+
+**Output Format:** Dependency map with criticality ratings
+
+**UI Integration:**
+- **Think Button:** Escalate to Dependency Analysis Crew for complex enterprise architectures
+- **Ponder More:** Enable crew collaboration for comprehensive dependency analysis
+
+---
+
+### 6. Tech Debt Analysis Agent
+
+**Role:** "Technical Debt Assessment and Modernization Opportunity Specialist"
+
+**Goal:** "Assess technical debt levels, identify modernization opportunities, and provide 6R strategy recommendations based on current technology stack analysis"
+
+**Backstory:** "You are a technology modernization consultant who has guided hundreds of legacy system transformations. You can quickly assess technical debt indicators and identify the best modernization approach. You balance technical possibilities with business realities."
+
+**Key Capabilities:**
+- Technical debt scoring
+- Modernization opportunity identification
+- 6R strategy recommendation (Rehost, Replatform, Refactor, etc.)
+- Technology stack analysis
+- Risk and complexity assessment
+
+**Tools:**
+- Technology assessment frameworks
+- Modernization pattern libraries
+- 6R decision engines
+- Risk assessment models
+
+**Output Format:** Tech debt report with modernization recommendations
+
+**UI Integration:**
+- **Think Button:** Escalate to Tech Debt Analysis Crew for complex modernization decisions
+- **Ponder More:** Enable crew collaboration for comprehensive technology strategy
+
+---
+
+## 👥 Strategic Crew Specifications
+
+### 1. Asset Intelligence Crew
+
+**Activation Trigger:** User clicks "Think" on Asset Inventory page
+
+**Composition:**
+- **Asset Classification Expert**: Specialized in complex asset categorization
+- **Business Context Analyst**: Maps assets to business functions and criticality
+- **Environment Specialist**: Identifies production, development, and testing environments
+
+**Collaboration Pattern:** Sequential with feedback loops
+
+**Use Case:** When asset classification confidence is low or when assets don't fit standard categories
+
+**Tools:**
+- MCP knowledge repository search
+- Historical classification patterns
+- Industry-specific asset databases
+
+---
+
+### 2. Dependency Analysis Crew
+
+**Activation Trigger:** User clicks "Think" on Dependencies page
+
+**Composition:**
+- **Network Architecture Specialist**: Focuses on network-level dependencies
+- **Application Integration Expert**: Identifies application-to-application dependencies
+- **Infrastructure Dependencies Analyst**: Maps infrastructure and platform dependencies
+
+**Collaboration Pattern:** Parallel analysis with synthesis
+
+**Use Case:** Complex enterprise architectures with multiple integration patterns
+
+**Escalation:** "Ponder More" enables delegation and creative problem-solving
+
+---
+
+### 3. Tech Debt Analysis Crew
+
+**Activation Trigger:** User clicks "Think" on Tech Debt page
+
+**Composition:**
+- **Legacy Systems Modernization Expert**: Specializes in legacy technology assessment
+- **Cloud Migration Strategist**: Focuses on cloud-native modernization opportunities
+- **Risk Assessment Specialist**: Evaluates modernization risks and business impact
+
+**Collaboration Pattern:** Debate-driven consensus building
+
+**Use Case:** Complex technology stacks requiring multiple expert perspectives
+
+**Escalation:** "Ponder More" enables comprehensive technology strategy development
+
+---
+
+## 🔄 User Interaction Design
+
+### Agent Clarifications Panel (Top)
+
+**Purpose:** Resolve agent uncertainties through user input
+
+**Format:** Multiple Choice Questions (MCQ)
+
+**Examples:**
+- "Field 'SYS_ENV' appears to contain environment data. Which critical attribute should this map to?"
+  - [ ] Environment Type
+  - [ ] System Category  
+  - [ ] Application Tier
+  - [ ] Other (specify)
+
+**Behavior:** 
+- Questions appear as agents encounter ambiguities
+- User selections immediately update agent knowledge
+- Progress indicator shows remaining questions
+
+### Agent Insights Panel (Bottom)
+
+**Purpose:** Provide analysis-specific insights and actionable items
+
+**Content:**
+- Overall confidence scores
+- Data quality metrics
+- Anomaly detection results
+- Actionable recommendations
+
+**User Feedback:**
+- Thumbs up/down on insights
+- Correction suggestions
+- Additional context provision
+
+### Think/Ponder More Buttons
+
+**Think Button:**
+- **Label:** "Think" (initial state)
+- **Action:** Escalate current page data to relevant crew
+- **Processing:** Show crew collaboration progress
+- **Result:** Enhanced analysis with crew insights
+- **New Label:** "Ponder More"
+
+**Ponder More Button:**
+- **Label:** "Ponder More" (after Think is complete)
+- **Action:** Enable delegation and creative collaboration
+- **Processing:** Show extended crew deliberation
+- **Result:** Comprehensive analysis with multiple perspectives
+- **Expectation:** User accepts longer processing time for deeper insights
+
+---
+
+## 📊 Flow State Management
+
+### Enhanced State Schema
+
+```python
+class EnhancedDiscoveryFlowState(BaseModel):
+    # Core identification
+    flow_id: str
+    session_id: str
+    client_account_id: int
+    engagement_id: int
+    user_id: str
+    
+    # Processing data
+    raw_data: List[Dict[str, Any]] = []
+    field_mappings: Dict[str, Any] = {}
+    cleaned_data: List[Dict[str, Any]] = []
+    asset_inventory: Dict[str, Any] = {}
+    dependencies: Dict[str, Any] = {}
+    technical_debt: Dict[str, Any] = {}
+    
+    # Agent confidence and feedback
+    agent_confidences: Dict[str, float] = {}
+    user_clarifications: Dict[str, Any] = {}
+    agent_insights: Dict[str, List[str]] = {}
+    
+    # Crew escalation tracking
+    crew_escalations: Dict[str, bool] = {}
+    crew_results: Dict[str, Any] = {}
+    
+    # User interaction state
+    current_page: str = "data_import"
+    pending_clarifications: List[Dict[str, Any]] = []
+    completed_clarifications: List[Dict[str, Any]] = []
+    
+    # Flow control
+    status: str = "running"
+    current_phase: str = "initialization"
+    errors: List[str] = []
+    warnings: List[str] = []
+```
+
+---
+
+## 🚀 Performance Expectations
+
+### Processing Time Targets
+
+| Phase | Agent Processing | Crew Escalation | Ponder More |
+|-------|------------------|------------------|-------------|
+| Data Import Validation | 5-10 seconds | N/A | N/A |
+| Attribute Mapping | 10-15 seconds | +30 seconds | +60 seconds |
+| Data Cleansing | 5-10 seconds | N/A | N/A |
+| Asset Inventory | 15-20 seconds | +45 seconds | +90 seconds |
+| Dependency Analysis | 20-25 seconds | +60 seconds | +120 seconds |
+| Tech Debt Analysis | 15-20 seconds | +45 seconds | +90 seconds |
+
+**Total Initial Processing:** 70-100 seconds (vs. current 30-45 seconds)
+**With User Engagement:** Variable based on clarifications and escalations
+
+### Quality Improvements Expected
+
+- **Accuracy:** 15-20% improvement through user clarifications
+- **Confidence:** Higher confidence scores through agent specialization
+- **Learning:** Continuous improvement through feedback integration
+- **User Satisfaction:** Better control over depth vs. speed trade-offs
+
+---
+
+## 🔧 Technical Implementation Strategy
+
+### Phase 1: Agent Extraction and Specialization
+
+**Goal:** Convert existing crews to specialized individual agents
+
+**Tasks:**
+1. Extract agent definitions from existing crews
+2. Enhance agent roles, goals, and backstories
+3. Implement confidence scoring for all agents
+4. Add agent clarification mechanisms
+5. Create agent insights generation
+
+**Timeline:** 2 weeks
+
+### Phase 2: UI Integration and User Interaction
+
+**Goal:** Implement agent clarifications and insights panels
+
+**Tasks:**
+1. Create agent clarifications MCQ system
+2. Implement agent insights display
+3. Add Think/Ponder More button functionality
+4. Integrate user feedback loops
+5. Add progress tracking and notifications
+
+**Timeline:** 2 weeks
+
+### Phase 3: Strategic Crew Implementation
+
+**Goal:** Implement crew escalation system
+
+**Tasks:**
+1. Create Asset Intelligence Crew
+2. Create Dependency Analysis Crew  
+3. Create Tech Debt Analysis Crew
+4. Implement crew escalation triggers
+5. Add delegation and collaboration features
+
+**Timeline:** 2 weeks
+
+### Phase 4: Performance Optimization and Learning
+
+**Goal:** Optimize performance and enable learning
+
+**Tasks:**
+1. Implement parallel agent execution where possible
+2. Add intelligent caching for crew results
+3. Enable agent learning from user feedback
+4. Optimize crew collaboration patterns
+5. Add performance monitoring and analytics
+
+**Timeline:** 2 weeks
+
+---
+
+## 📈 Success Metrics
+
+### Primary Metrics
+
+1. **User Engagement:** 
+   - Clarification response rate > 90%
+   - Think button usage > 60%
+   - Ponder More usage > 30%
+
+2. **Accuracy Improvement:**
+   - Field mapping accuracy: +20%
+   - Asset classification accuracy: +15%
+   - Dependency identification completeness: +25%
+
+3. **User Satisfaction:**
+   - Control over process depth: 4.5/5
+   - Clarity of agent insights: 4.5/5
+   - Overall experience improvement: 4.0/5
+
+### Secondary Metrics
+
+1. **Performance Balance:**
+   - Initial processing time: 70-100 seconds
+   - User clarification time: < 30 seconds average
+   - Crew escalation success rate: > 85%
+
+2. **Learning Effectiveness:**
+   - Agent confidence improvement over time
+   - Reduction in clarification frequency
+   - Improvement in crew escalation relevance
+
+---
+
+## 🎯 Conclusion
+
+This redesign transforms the Discovery Flow from a crew-heavy architecture to an intelligent, user-centric system that balances speed with accuracy. By prioritizing individual agent efficiency and providing strategic crew escalation, we create a system that:
+
+- **Respects User Time:** Fast initial processing with optional depth
+- **Maximizes Accuracy:** User clarifications and expert crew analysis
+- **Enables Learning:** Continuous improvement through feedback
+- **Provides Control:** User decides when to invest time for better results
+
+The agent-first approach aligns with CrewAI best practices while the progressive intelligence model ("Think" → "Ponder More") gives users control over the speed vs. accuracy trade-off.
+
+---
+
+**Next Steps:** Review and approve this specification, then proceed with the detailed execution plan for implementation. 

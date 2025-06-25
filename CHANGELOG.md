@@ -1,5 +1,40 @@
 # AI Force Migration Platform - Change Log
 
+## [0.8.14] - 2025-01-21
+
+### 🎯 **DISCOVERY FLOW REDESIGN SPECIFICATION & EXECUTION PLAN**
+
+This release establishes the comprehensive redesign specification for transforming the Discovery Flow from a crew-heavy architecture to an **agent-first, crew-when-needed** approach based on CrewAI best practices and user requirements.
+
+### 🚀 **Architecture Strategy**
+
+#### **Agent-First Design Specification**
+- **Implementation**: Complete redesign specification document created
+- **Technology**: Individual agents for deterministic tasks, strategic crew escalation
+- **Integration**: Progressive intelligence model with "Think" → "Ponder More" escalation
+- **Benefits**: Improved user control, accuracy, and learning capabilities
+
+#### **User Interaction Enhancement**
+- **Implementation**: Agent clarifications panel with MCQ system design
+- **Technology**: Real-time user feedback integration with agent learning
+- **Integration**: Agent insights panel with confidence scoring visualization
+- **Benefits**: Human-in-the-loop optimization with immediate knowledge updates
+
+### 📊 **Technical Achievements**
+
+- **Architecture**: Agent-first approach replacing crew-heavy processing
+- **Performance**: Target 70-100 seconds initial processing with optional depth
+- **Quality**: Expected 15-25% accuracy improvements through user clarifications
+- **Learning**: Continuous improvement through feedback integration and pattern recognition
+
+### 🎯 **Success Metrics**
+
+- **User Engagement**: Think button usage >60%, Ponder More usage >30%
+- **Accuracy**: Field mapping +20%, Asset classification +15%, Dependencies +25%
+- **Performance**: <30 second clarifications, >85% crew escalation success
+
+---
+
 ## [0.8.13] - 2025-06-25
 
 ### 🚨 **CRITICAL FIX - Async/Await, Data Flow & Asset Processing Issues**
