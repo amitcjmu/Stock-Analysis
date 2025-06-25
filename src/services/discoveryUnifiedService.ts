@@ -213,9 +213,7 @@ export class UnifiedDiscoveryService {
   async completeFlow(flowId: string): Promise<Record<string, any>> {
     try {
       console.log('🏁 Completing discovery flow:', flowId);
-      const result = await httpClient.post<Record<string, any>>('/flow/complete', {
-        flow_id: flowId
-      });
+      const result = await httpClient.post<Record<string, any>>(`/flow/complete/${flowId}`, {});
       console.log('✅ Flow completed successfully');
       return result;
     } catch (error) {
@@ -244,9 +242,7 @@ export class UnifiedDiscoveryService {
   async continueFlow(flowId: string): Promise<{ success: boolean; message: string }> {
     try {
       console.log('▶️ Continuing discovery flow:', flowId);
-      const result = await httpClient.post<{ success: boolean; message: string }>('/flow/continue', {
-        flow_id: flowId
-      });
+      const result = await httpClient.post<{ success: boolean; message: string }>(`/flow/continue/${flowId}`, {});
       console.log('✅ Flow continuation initiated');
       return result;
     } catch (error) {
