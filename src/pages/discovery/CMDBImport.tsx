@@ -154,6 +154,7 @@ const DataImport: React.FC = () => {
   const bulkFlowOperations = useBulkFlowOperationsV2();
   const [showFlowManager, setShowFlowManager] = useState(false);
   const [conflictFlows, setConflictFlows] = useState<any[]>([]);
+  const [isLoadingFlowDetails, setIsLoadingFlowDetails] = useState(false);
   
   const incompleteFlows = incompleteFlowsData?.flows || [];
   const hasIncompleteFlows = incompleteFlows.length > 0;
@@ -336,13 +337,77 @@ const DataImport: React.FC = () => {
   }, [user, client, engagement, session, toast, getAuthHeaders]);
 
 
-  // Start Discovery Flow
+  // Fetch flow details for existing flows
+  const fetchFlowDetails = useCallback(async (file: UploadFile) => {
+    if (!file.flow_id || file.flow_summary) {
+      return; // Skip if no flow_id or already has summary
+    }
+    
+    try {
+      const flowResponse = await apiCall(`/api/v1/discovery/flow/${file.flow_id}/processing-status`);
+      
+      const flowSummary = {
+        total_assets: flowResponse.total_records || 0,
+        errors: flowResponse.errors || 0,
+        warnings: flowResponse.warnings || 0,
+        phases_completed: [
+          ...(flowResponse.data_import_completed ? ['data_import'] : []),
+          ...(flowResponse.attribute_mapping_completed ? ['attribute_mapping'] : []),
+          ...(flowResponse.data_cleansing_completed ? ['data_cleansing'] : []),
+          ...(flowResponse.inventory_completed ? ['inventory'] : []),
+          ...(flowResponse.dependencies_completed ? ['dependencies'] : []),
+          ...(flowResponse.tech_debt_completed ? ['tech_debt'] : [])
+        ],
+        agent_insights: flowResponse.agent_insights || []
+      };
+      
+      // Update the file with flow details
+      setUploadedFiles(prev => prev.map(f => 
+        f.id === file.id 
+          ? { 
+              ...f, 
+              flow_status: flowResponse.status,
+              flow_summary: flowSummary,
+              current_phase: flowResponse.current_phase || 'inventory',
+              discovery_progress: flowResponse.progress || 0,
+              status: flowResponse.status === 'completed' ? 'approved' : f.status
+            }
+          : f
+      ));
+      
+    } catch (error) {
+      console.error('Error fetching flow details for file:', file.name, error);
+    }
+  }, []);
+
+  // Initialize flow details for existing uploaded files
+  useEffect(() => {
+    const initializeFlowDetails = async () => {
+      if (uploadedFiles.length > 0 && !isLoadingFlowDetails) {
+        setIsLoadingFlowDetails(true);
+        
+        // Fetch details for all files with flow_id but no flow_summary
+        const filesToUpdate = uploadedFiles.filter(f => f.flow_id && !f.flow_summary);
+        
+        if (filesToUpdate.length > 0) {
+          console.log(`Initializing flow details for ${filesToUpdate.length} files`);
+          await Promise.all(filesToUpdate.map(fetchFlowDetails));
+        }
+        
+        setIsLoadingFlowDetails(false);
+      }
+    };
+    
+    initializeFlowDetails();
+  }, [uploadedFiles.length, fetchFlowDetails, isLoadingFlowDetails]);
+
+  // Start Discovery Flow or Navigate to Results
   const startDiscoveryFlow = useCallback(async () => {
     const uploadedFile = uploadedFiles[0];
-    if (!uploadedFile || !uploadedFile.importSessionId) {
+    if (!uploadedFile) {
         toast({
             title: "Error",
-            description: "No import session found. Please upload a file first.",
+            description: "No uploaded file found. Please upload a file first.",
             variant: "destructive",
         });
         return;
@@ -361,28 +426,76 @@ const DataImport: React.FC = () => {
     setIsStartingFlow(true); // ✅ Set loading state
 
     try {
-        console.log(`Starting Discovery Flow with CrewAI Flow ID: ${uploadedFile.flow_id}`);
-        console.log(`Import Session ID: ${uploadedFile.importSessionId}`);
+        console.log(`Processing Discovery Flow with CrewAI Flow ID: ${uploadedFile.flow_id}`);
+        console.log(`Flow Status: ${uploadedFile.flow_status}, Has Summary: ${!!uploadedFile.flow_summary}`);
         
-        // Retrieve stored data to ensure it's available for the flow
-        const storedData = await getStoredImportData(uploadedFile.importSessionId);
-        console.log('Retrieved stored data for flow:', { 
-          count: storedData.length,
-          hasData: storedData.length > 0
-        });
+        // ✅ SMART NAVIGATION: Handle both new flows and completed flows
+        if (uploadedFile.flow_summary && uploadedFile.flow_status === 'completed') {
+            // Flow is completed - navigate to results/next appropriate phase
+            console.log('Flow is completed, navigating to results phase');
+            
+            // Check current phase from the flow summary or default to inventory
+            const currentPhase = uploadedFile.current_phase || 'inventory';
+            
+            // Navigate to the appropriate discovery phase based on completion status
+            switch (currentPhase) {
+                case 'inventory':
+                    navigate(`/discovery/inventory`);
+                    break;
+                case 'dependencies': 
+                    navigate(`/discovery/dependencies`);
+                    break;
+                case 'tech_debt':
+                    navigate(`/discovery/tech-debt`);
+                    break;
+                case 'attribute_mapping':
+                    navigate(`/discovery/attribute-mapping`);
+                    break;
+                case 'data_cleansing':
+                    navigate(`/discovery/data-cleansing`);
+                    break;
+                default:
+                    // Default to inventory phase for completed flows
+                    navigate(`/discovery/inventory`);
+            }
+            
+            toast({
+                title: "Navigating to Results",
+                description: `Proceeding to ${currentPhase.replace('_', ' ')} phase with your completed flow.`,
+            });
+            
+        } else {
+            // New flow - verify data exists and start discovery process
+            if (!uploadedFile.importSessionId) {
+                throw new Error("No import session found. The discovery flow cannot start.");
+            }
+            
+            // Retrieve stored data to ensure it's available for the flow
+            const storedData = await getStoredImportData(uploadedFile.importSessionId);
+            console.log('Retrieved stored data for flow:', { 
+              count: storedData.length,
+              hasData: storedData.length > 0
+            });
 
-        if (storedData.length === 0) {
-          throw new Error("No data found for the import session. The discovery flow cannot start.");
+            if (storedData.length === 0) {
+              throw new Error("No data found for the import session. The discovery flow cannot start.");
+            }
+
+            // ✅ Navigate to data import phase (new flows should start with data import)
+            console.log('Starting new discovery flow');
+            navigate(`/discovery/data-import`);
+            
+            toast({
+                title: "Starting Discovery Flow",
+                description: "Initiating AI-powered analysis of your uploaded data.",
+            });
         }
-
-        // ✅ Navigate to data import phase (new flows should start with data import)
-        navigate(`/discovery/data-import`);
 
     } catch (error) {
         const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred.";
-        console.error("Failed to start Discovery Flow:", error);
+        console.error("Failed to process Discovery Flow:", error);
         toast({
-            title: "Failed to Start Discovery Flow",
+            title: "Failed to Process Discovery Flow",
             description: errorMessage,
             variant: "destructive",
         });
@@ -1021,23 +1134,65 @@ const DataImport: React.FC = () => {
               <h2 className="text-xl font-semibold text-gray-900">Real-Time Processing Monitor</h2>
               {uploadedFiles.filter(f => f.flow_id).map((file) => {
                 // Create callback functions for this specific file
-                const handleProcessingComplete = () => {
+                const handleProcessingComplete = async () => {
                   // Guard against repeated calls
                   if (file.status === 'approved' || file.flow_status === 'completed') {
                     return;
                   }
                   
                   console.log(`Processing completed for file: ${file.name}`);
-                  toast({
-                    title: "Processing Complete",
-                    description: `${file.name} has been successfully processed.`,
-                  });
-                  // Update the file status
-                  setUploadedFiles(prev => prev.map(f => 
-                    f.id === file.id 
-                      ? { ...f, status: 'approved', flow_status: 'completed' }
-                      : f
-                  ));
+                  
+                  try {
+                    // Fetch the complete flow details to get current phase and summary
+                    const flowResponse = await apiCall(`/api/v1/discovery/flow/${file.flow_id}/processing-status`);
+                    
+                    const flowSummary = {
+                      total_assets: flowResponse.total_records || 0,
+                      errors: flowResponse.errors || 0,
+                      warnings: flowResponse.warnings || 0,
+                      phases_completed: [
+                        ...(flowResponse.data_import_completed ? ['data_import'] : []),
+                        ...(flowResponse.attribute_mapping_completed ? ['attribute_mapping'] : []),
+                        ...(flowResponse.data_cleansing_completed ? ['data_cleansing'] : []),
+                        ...(flowResponse.inventory_completed ? ['inventory'] : []),
+                        ...(flowResponse.dependencies_completed ? ['dependencies'] : []),
+                        ...(flowResponse.tech_debt_completed ? ['tech_debt'] : [])
+                      ],
+                      agent_insights: flowResponse.agent_insights || []
+                    };
+                    
+                    toast({
+                      title: "Processing Complete",
+                      description: `${file.name} has been successfully processed. ${flowSummary.phases_completed.length} phases completed.`,
+                    });
+                    
+                    // Update the file status with complete flow information
+                    setUploadedFiles(prev => prev.map(f => 
+                      f.id === file.id 
+                        ? { 
+                            ...f, 
+                            status: 'approved', 
+                            flow_status: 'completed',
+                            flow_summary: flowSummary,
+                            current_phase: flowResponse.current_phase || 'inventory',
+                            discovery_progress: flowResponse.progress || 0
+                          }
+                        : f
+                    ));
+                    
+                  } catch (error) {
+                    console.error('Error fetching flow details:', error);
+                    // Fallback to basic status update
+                    toast({
+                      title: "Processing Complete",
+                      description: `${file.name} has been successfully processed.`,
+                    });
+                    setUploadedFiles(prev => prev.map(f => 
+                      f.id === file.id 
+                        ? { ...f, status: 'approved', flow_status: 'completed' }
+                        : f
+                    ));
+                  }
                 };
 
                 const handleValidationFailed = (issues: string[]) => {

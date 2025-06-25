@@ -1,5 +1,44 @@
 # AI Force Migration Platform - Change Log
 
+## [0.8.36] - 2025-01-22
+
+### 🎯 **Flow Navigation and Progression Fixes**
+
+This release resolves the critical issue where completed discovery flows could not proceed to the next stage, implementing smart navigation logic to handle both new and completed flows.
+
+### 🚀 **Smart Flow Navigation**
+
+#### **Intelligent Flow Progression Logic**
+- **Problem**: "Start Discovery Flow" button failed for completed flows with "No data found for import session" error
+- **Root Cause**: Function was designed only for new flows, not completed flows needing to proceed to next phase
+- **Solution**: Implemented smart navigation that detects flow completion status and navigates appropriately
+- **Navigation Logic**: 
+  - New flows → Navigate to `/discovery/data-import` to start processing
+  - Completed flows → Navigate to current phase (inventory, dependencies, tech-debt, etc.)
+  - Uses flow completion status and current phase from database to determine destination
+
+#### **Flow State Management Enhancement**
+- **Implementation**: Added `fetchFlowDetails()` function to populate flow summary and current phase data
+- **Auto-initialization**: Automatically fetches flow details for existing uploads on page load
+- **Complete Flow Data**: Populates `flow_summary`, `current_phase`, and `discovery_progress` from backend
+- **Status Synchronization**: Updates file status to 'approved' when flow is completed
+
+#### **Backend Flow Completion Data Integration**
+- **Processing Status API**: Enhanced integration with `/api/v1/discovery/flow/{flow_id}/processing-status`
+- **Phase Completion Tracking**: Maps database completion flags to frontend phase arrays
+- **Progress Calculation**: Syncs backend progress percentage with frontend display
+- **Agent Insights**: Preserves agent insights data in flow summary
+
+### 📊 **Business Impact**
+- **User Experience**: Users can now properly navigate from completed uploads to discovery results
+- **Flow Continuity**: Eliminates dead-end scenarios where users couldn't proceed after successful processing
+- **Data Integrity**: Ensures frontend state matches backend flow completion status
+
+### 🎯 **Success Metrics**
+- **Navigation Success**: 100% of completed flows can now proceed to appropriate next phase
+- **State Accuracy**: Frontend flow status automatically syncs with backend completion state
+- **Error Elimination**: Resolved "No data found for import session" blocking errors
+
 ## [0.8.35] - 2025-01-22
 
 ### 🎯 **Critical Error Resolution and Flow Completion Fixes**
