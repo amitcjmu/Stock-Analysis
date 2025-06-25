@@ -162,7 +162,8 @@ class DiscoveryFlowRepository(ContextAwareRepository):
         phase: str, 
         data: Dict[str, Any],
         crew_status: Dict[str, Any] = None,
-        agent_insights: List[Dict[str, Any]] = None
+        agent_insights: List[Dict[str, Any]] = None,
+        completed: bool = True
     ) -> DiscoveryFlow:
         """Update phase completion and store results"""
         
@@ -183,7 +184,7 @@ class DiscoveryFlowRepository(ContextAwareRepository):
         }
         
         if phase in phase_completion_map:
-            update_values[phase_completion_map[phase]] = True
+            update_values[phase_completion_map[phase]] = completed
         
         # Store phase-specific data in crewai_state_data
         if data:
@@ -201,19 +202,40 @@ class DiscoveryFlowRepository(ContextAwareRepository):
         # Calculate progress percentage
         completed_phases = 0
         total_phases = 6
-        for phase_field in phase_completion_map.values():
-            if update_values.get(phase_field, False):
-                completed_phases += 1
         
-        # Check existing completion status
+        # Check existing completion status and account for current update
         existing_flow = await self.get_by_flow_id(flow_id)
         if existing_flow:
-            if existing_flow.data_import_completed: completed_phases += 1
-            if existing_flow.attribute_mapping_completed and phase != "attribute_mapping": completed_phases += 1
-            if existing_flow.data_cleansing_completed and phase != "data_cleansing": completed_phases += 1
-            if existing_flow.inventory_completed and phase != "inventory": completed_phases += 1
-            if existing_flow.dependencies_completed and phase != "dependencies": completed_phases += 1
-            if existing_flow.tech_debt_completed and phase != "tech_debt": completed_phases += 1
+            # Count existing completed phases, but override with current update if applicable
+            if phase == "data_import":
+                if completed: completed_phases += 1
+            elif existing_flow.data_import_completed:
+                completed_phases += 1
+                
+            if phase == "attribute_mapping" or phase == "field_mapping":
+                if completed: completed_phases += 1
+            elif existing_flow.attribute_mapping_completed:
+                completed_phases += 1
+                
+            if phase == "data_cleansing":
+                if completed: completed_phases += 1
+            elif existing_flow.data_cleansing_completed:
+                completed_phases += 1
+                
+            if phase == "inventory":
+                if completed: completed_phases += 1
+            elif existing_flow.inventory_completed:
+                completed_phases += 1
+                
+            if phase == "dependencies":
+                if completed: completed_phases += 1
+            elif existing_flow.dependencies_completed:
+                completed_phases += 1
+                
+            if phase == "tech_debt":
+                if completed: completed_phases += 1
+            elif existing_flow.tech_debt_completed:
+                completed_phases += 1
         
         progress_percentage = (completed_phases / total_phases) * 100
         update_values["progress_percentage"] = min(progress_percentage, 100.0)

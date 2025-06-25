@@ -151,7 +151,7 @@ class FlowManagementHandler:
             raise
     
     async def continue_flow(self, flow_id: str) -> Dict[str, Any]:
-        """Continue a paused flow"""
+        """Continue a paused flow with proper phase validation"""
         try:
             logger.info(f"▶️ Continuing PostgreSQL flow: {flow_id}")
             
@@ -161,10 +161,8 @@ class FlowManagementHandler:
             if not flow:
                 raise ValueError(f"Flow not found: {flow_id}")
             
-            # Determine next phase based on current flow state
-            next_phase = flow.get_next_phase()
-            if not next_phase:
-                next_phase = "completed"
+            # Validate current phase completion before determining next phase
+            validated_next_phase = await self._validate_and_get_next_phase(flow)
                 
             # Log current phase completion status for debugging
             logger.info(f"🔍 Database flow {flow_id} phase status: data_import={flow.data_import_completed}, "
@@ -177,16 +175,221 @@ class FlowManagementHandler:
             result = {
                 "flow_id": flow_id,
                 "status": "continued",
-                "next_phase": next_phase,
+                "next_phase": validated_next_phase,
+                "validation_performed": True,
                 "timestamp": datetime.now().isoformat()
             }
             
-            logger.info(f"✅ PostgreSQL flow continued: {flow_id}, next_phase: {next_phase}")
+            logger.info(f"✅ PostgreSQL flow continued: {flow_id}, next_phase: {validated_next_phase}")
             return result
             
         except Exception as e:
             logger.error(f"❌ Failed to continue PostgreSQL flow: {e}")
             raise
+
+    async def _validate_and_get_next_phase(self, flow) -> str:
+        """Validate phase completion and determine the actual next phase based on meaningful results"""
+        try:
+            # Check data_import phase validation
+            if not flow.data_import_completed:
+                logger.info("🔍 Data import phase not completed - staying in data_import")
+                return "data_import"
+            
+            # Validate data_import phase actually produced meaningful results
+            data_import_valid = await self._validate_data_import_completion(flow)
+            if not data_import_valid:
+                logger.warning("⚠️ Data import marked complete but no meaningful results found - resetting to data_import")
+                # Reset the completion flag since the phase didn't actually complete properly
+                await self.flow_repo.update_phase_completion(
+                    flow_id=str(flow.flow_id),
+                    phase="data_import",
+                    data={"reset_reason": "No meaningful results found"},
+                    crew_status={"status": "reset", "reason": "validation_failed"},
+                    agent_insights=[{
+                        "agent": "Flow Validation System",
+                        "insight": "Data import phase reset due to lack of meaningful results",
+                        "action_required": "Re-process data import with proper agent analysis",
+                        "timestamp": datetime.now().isoformat()
+                    }],
+                    completed=False  # Reset completion flag
+                )
+                return "data_import"
+            
+            # Check attribute_mapping phase validation
+            if not flow.attribute_mapping_completed:
+                logger.info("🔍 Data import validated - proceeding to attribute_mapping")
+                return "attribute_mapping"
+            
+            # Validate attribute_mapping phase actually produced field mappings
+            mapping_valid = await self._validate_attribute_mapping_completion(flow)
+            if not mapping_valid:
+                logger.warning("⚠️ Attribute mapping marked complete but no field mappings found - resetting to attribute_mapping")
+                await self.flow_repo.update_phase_completion(
+                    flow_id=str(flow.flow_id),
+                    phase="attribute_mapping",
+                    data={"reset_reason": "No field mappings found"},
+                    crew_status={"status": "reset", "reason": "validation_failed"},
+                    agent_insights=[{
+                        "agent": "Flow Validation System", 
+                        "insight": "Attribute mapping phase reset due to lack of field mappings",
+                        "action_required": "Re-process attribute mapping with proper field analysis",
+                        "timestamp": datetime.now().isoformat()
+                    }],
+                    completed=False
+                )
+                return "attribute_mapping"
+            
+            # Continue with remaining phases using the original logic
+            if not flow.data_cleansing_completed:
+                return "data_cleansing"
+            if not flow.inventory_completed:
+                return "inventory"
+            if not flow.dependencies_completed:
+                return "dependencies"
+            if not flow.tech_debt_completed:
+                return "tech_debt"
+            
+            return "completed"
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to validate phase completion: {e}")
+            # Fallback to original logic if validation fails
+            return flow.get_next_phase() or "completed"
+
+    async def _validate_data_import_completion(self, flow) -> bool:
+        """Validate that data import phase actually produced meaningful results"""
+        try:
+            # Check 1: Are there agent insights from data import?
+            has_agent_insights = False
+            if flow.crewai_state_data:
+                state_data = flow.crewai_state_data
+                if isinstance(state_data, dict):
+                    agent_insights = state_data.get("agent_insights", [])
+                    # Look for data import specific insights
+                    data_import_insights = [
+                        insight for insight in agent_insights 
+                        if isinstance(insight, dict) and 
+                        insight.get("phase") == "data_import" or
+                        "data_import" in insight.get("insight", "").lower() or
+                        "validation" in insight.get("insight", "").lower()
+                    ]
+                    has_agent_insights = len(data_import_insights) > 0
+            
+            # Check 2: Are there raw import records that were processed?
+            has_processed_records = False
+            if flow.import_session_id:
+                try:
+                    from sqlalchemy import select, func
+                    from app.models.data_import import RawImportRecord
+                    
+                    # Check if there are processed raw records
+                    records_query = await self.db.execute(
+                        select(func.count(RawImportRecord.id)).where(
+                            RawImportRecord.session_id == flow.import_session_id,
+                            RawImportRecord.is_processed == True
+                        )
+                    )
+                    processed_count = records_query.scalar() or 0
+                    has_processed_records = processed_count > 0
+                    
+                    logger.info(f"🔍 Found {processed_count} processed records for flow {flow.flow_id}")
+                    
+                except Exception as e:
+                    logger.warning(f"⚠️ Could not check processed records: {e}")
+            
+            # Check 3: Is there any meaningful data in the flow state?
+            has_meaningful_data = False
+            if flow.crewai_state_data:
+                state_data = flow.crewai_state_data
+                if isinstance(state_data, dict):
+                    # Check for various data indicators
+                    meaningful_keys = [
+                        "raw_data", "cleaned_data", "validation_results", 
+                        "data_analysis", "field_analysis", "quality_assessment"
+                    ]
+                    has_meaningful_data = any(
+                        key in state_data and state_data[key] 
+                        for key in meaningful_keys
+                    )
+            
+            # Data import is valid if at least one validation check passes
+            is_valid = has_agent_insights or has_processed_records or has_meaningful_data
+            
+            logger.info(f"🔍 Data import validation for flow {flow.flow_id}: "
+                       f"agent_insights={has_agent_insights}, "
+                       f"processed_records={has_processed_records}, "
+                       f"meaningful_data={has_meaningful_data}, "
+                       f"overall_valid={is_valid}")
+            
+            return is_valid
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to validate data import completion: {e}")
+            return False  # Fail safe - require re-processing if validation fails
+
+    async def _validate_attribute_mapping_completion(self, flow) -> bool:
+        """Validate that attribute mapping phase actually produced field mappings"""
+        try:
+            # Check 1: Are there field mappings in the database?
+            has_db_mappings = False
+            if flow.import_session_id:
+                try:
+                    from sqlalchemy import select, func
+                    from app.models.data_import.mapping import ImportFieldMapping
+                    
+                    mappings_query = await self.db.execute(
+                        select(func.count(ImportFieldMapping.id)).where(
+                            ImportFieldMapping.data_import_id == flow.import_session_id,
+                            ImportFieldMapping.status.in_(["approved", "validated"])
+                        )
+                    )
+                    mappings_count = mappings_query.scalar() or 0
+                    has_db_mappings = mappings_count > 0
+                    
+                    logger.info(f"🔍 Found {mappings_count} field mappings for flow {flow.flow_id}")
+                    
+                except Exception as e:
+                    logger.warning(f"⚠️ Could not check field mappings: {e}")
+            
+            # Check 2: Are there field mappings in the flow state?
+            has_state_mappings = False
+            if flow.crewai_state_data:
+                state_data = flow.crewai_state_data
+                if isinstance(state_data, dict):
+                    field_mappings = state_data.get("field_mappings", {})
+                    if isinstance(field_mappings, dict):
+                        mappings = field_mappings.get("mappings", {})
+                        has_state_mappings = len(mappings) > 0
+            
+            # Check 3: Are there agent insights about field mapping?
+            has_mapping_insights = False
+            if flow.crewai_state_data:
+                state_data = flow.crewai_state_data
+                if isinstance(state_data, dict):
+                    agent_insights = state_data.get("agent_insights", [])
+                    mapping_insights = [
+                        insight for insight in agent_insights 
+                        if isinstance(insight, dict) and (
+                            insight.get("phase") == "attribute_mapping" or
+                            "field_mapping" in insight.get("insight", "").lower() or
+                            "attribute_mapping" in insight.get("insight", "").lower()
+                        )
+                    ]
+                    has_mapping_insights = len(mapping_insights) > 0
+            
+            is_valid = has_db_mappings or has_state_mappings or has_mapping_insights
+            
+            logger.info(f"🔍 Attribute mapping validation for flow {flow.flow_id}: "
+                       f"db_mappings={has_db_mappings}, "
+                       f"state_mappings={has_state_mappings}, "
+                       f"mapping_insights={has_mapping_insights}, "
+                       f"overall_valid={is_valid}")
+            
+            return is_valid
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to validate attribute mapping completion: {e}")
+            return False
     
     async def get_flow_status(self, flow_id: str) -> Dict[str, Any]:
         """Get detailed status of a discovery flow from PostgreSQL"""
