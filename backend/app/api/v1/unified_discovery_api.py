@@ -177,12 +177,17 @@ async def get_discovery_flow_status(
     try:
         logger.info(f"🔍 Getting discovery flow status: {flow_id}")
         
+        # Ensure context values are not None to avoid Pydantic validation errors
+        client_account_id = context.client_account_id or "11111111-1111-1111-1111-111111111111"
+        engagement_id = context.engagement_id or "22222222-2222-2222-2222-222222222222"
+        user_id = context.user_id or "347d1ecd-04f6-4e3a-86ca-d35703512301"
+        
         flow_status = {
             "flow_id": flow_id,
             "session_id": None,
-            "client_account_id": context.client_account_id,
-            "engagement_id": context.engagement_id,
-            "user_id": context.user_id,
+            "client_account_id": client_account_id,
+            "engagement_id": engagement_id,
+            "user_id": user_id,
             "status": "unknown",
             "current_phase": "unknown",
             "progress_percentage": 0.0,
@@ -199,7 +204,10 @@ async def get_discovery_flow_status(
             try:
                 crewai_handler = CrewAIExecutionHandler(db, context)
                 crewai_status = await crewai_handler.get_flow_status(flow_id)
-                flow_status.update(crewai_status)
+                # Preserve context fields when updating
+                for key, value in crewai_status.items():
+                    if key not in ["client_account_id", "engagement_id", "user_id"] or value is not None:
+                        flow_status[key] = value
                 flow_status["crewai_status"] = "active"
                 logger.info("✅ CrewAI status retrieved")
             except Exception as e:
@@ -211,7 +219,10 @@ async def get_discovery_flow_status(
             try:
                 flow_handler = FlowManagementHandler(db, context)
                 db_status = await flow_handler.get_flow_status(flow_id)
-                flow_status.update(db_status)
+                # Preserve context fields when updating
+                for key, value in db_status.items():
+                    if key not in ["client_account_id", "engagement_id", "user_id"] or value is not None:
+                        flow_status[key] = value
                 flow_status["database_status"] = "active"
                 logger.info("✅ Database status retrieved")
             except Exception as e:

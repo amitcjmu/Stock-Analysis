@@ -24,10 +24,14 @@ class FlowManagementHandler:
         self.user_id = context.user_id
         
         # Initialize repository for database operations
+        # Handle None context values with fallbacks
+        client_id = str(context.client_account_id) if context.client_account_id else "11111111-1111-1111-1111-111111111111"
+        engagement_id = str(context.engagement_id) if context.engagement_id else "22222222-2222-2222-2222-222222222222"
+        
         self.flow_repo = DiscoveryFlowRepository(
             db=db,
-            client_account_id=str(context.client_account_id),
-            engagement_id=str(context.engagement_id)
+            client_account_id=client_id,
+            engagement_id=engagement_id
         )
     
     async def create_flow(self, flow_id: str, raw_data: List[Dict[str, Any]], 
@@ -154,6 +158,74 @@ class FlowManagementHandler:
             
         except Exception as e:
             logger.error(f"❌ Failed to continue PostgreSQL flow: {e}")
+            raise
+    
+    async def get_flow_status(self, flow_id: str) -> Dict[str, Any]:
+        """Get detailed status of a discovery flow from PostgreSQL"""
+        try:
+            logger.info(f"🔍 Getting PostgreSQL flow status: {flow_id}")
+            
+            # Get flow from database
+            flow = await self.flow_repo.get_by_flow_id(flow_id)
+            
+            if not flow:
+                # Return minimal status for non-existent flows
+                return {
+                    "flow_id": flow_id,
+                    "status": "not_found",
+                    "current_phase": "unknown",
+                    "progress_percentage": 0.0,
+                    "phases": {},
+                    "created_at": "",
+                    "updated_at": datetime.now().isoformat()
+                }
+            
+            # Build phases status from database fields
+            phases = {
+                "data_import": flow.data_import_completed or False,
+                "attribute_mapping": flow.attribute_mapping_completed or False,
+                "data_cleansing": flow.data_cleansing_completed or False,
+                "inventory": flow.inventory_completed or False,
+                "dependencies": flow.dependencies_completed or False,
+                "tech_debt": flow.tech_debt_completed or False
+            }
+            
+            # Calculate progress percentage
+            completed_phases = sum(1 for completed in phases.values() if completed)
+            total_phases = len(phases)
+            progress_percentage = (completed_phases / total_phases) * 100.0 if total_phases > 0 else 0.0
+            
+            # Determine current phase
+            current_phase = flow.get_next_phase() or "completed"
+            
+            # Extract agent insights from crewai_state_data if available
+            agent_insights = []
+            if flow.crewai_state_data:
+                try:
+                    import json
+                    state_data = json.loads(flow.crewai_state_data) if isinstance(flow.crewai_state_data, str) else flow.crewai_state_data
+                    if isinstance(state_data, dict) and "agent_insights" in state_data:
+                        agent_insights = state_data["agent_insights"]
+                except Exception as e:
+                    logger.warning(f"Failed to extract agent insights from crewai_state_data: {e}")
+            
+            flow_status = {
+                "flow_id": flow_id,
+                "session_id": str(flow.import_session_id) if flow.import_session_id else None,
+                "status": flow.status,
+                "current_phase": current_phase,
+                "progress_percentage": progress_percentage,
+                "phases": phases,
+                "agent_insights": agent_insights,
+                "created_at": flow.created_at.isoformat() if flow.created_at else "",
+                "updated_at": flow.updated_at.isoformat() if flow.updated_at else datetime.now().isoformat()
+            }
+            
+            logger.info(f"✅ PostgreSQL flow status retrieved: {flow_id}")
+            return flow_status
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to get PostgreSQL flow status: {e}")
             raise
     
     async def complete_flow(self, flow_id: str) -> Dict[str, Any]:

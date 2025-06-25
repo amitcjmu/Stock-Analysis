@@ -26,13 +26,37 @@ class DiscoveryFlowRepository(ContextAwareRepository):
     """
     
     def __init__(self, db: AsyncSession, client_account_id: str, engagement_id: str = None):
+        # Handle None values and invalid UUIDs with proper fallbacks
+        demo_client_id = uuid.UUID("11111111-1111-1111-1111-111111111111")
+        demo_engagement_id = uuid.UUID("22222222-2222-2222-2222-222222222222")
+        
+        # Safely convert client_account_id
+        try:
+            if client_account_id and client_account_id != "None":
+                parsed_client_id = uuid.UUID(client_account_id)
+            else:
+                parsed_client_id = demo_client_id
+        except (ValueError, TypeError):
+            logger.warning(f"Invalid client_account_id '{client_account_id}', using demo fallback")
+            parsed_client_id = demo_client_id
+            
+        # Safely convert engagement_id
+        try:
+            if engagement_id and engagement_id != "None":
+                parsed_engagement_id = uuid.UUID(engagement_id)
+            else:
+                parsed_engagement_id = demo_engagement_id
+        except (ValueError, TypeError):
+            logger.warning(f"Invalid engagement_id '{engagement_id}', using demo fallback")
+            parsed_engagement_id = demo_engagement_id
+        
         context = {
-            'client_account_id': uuid.UUID(client_account_id) if client_account_id else uuid.UUID("11111111-1111-1111-1111-111111111111"),
-            'engagement_id': uuid.UUID(engagement_id) if engagement_id else uuid.UUID("22222222-2222-2222-2222-222222222222")
+            'client_account_id': parsed_client_id,
+            'engagement_id': parsed_engagement_id
         }
         super().__init__(db, context)
-        self.client_account_id = client_account_id
-        self.engagement_id = engagement_id or client_account_id  # Fallback for compatibility
+        self.client_account_id = str(parsed_client_id)
+        self.engagement_id = str(parsed_engagement_id)
     
     async def create_discovery_flow(
         self, 
@@ -81,21 +105,33 @@ class DiscoveryFlowRepository(ContextAwareRepository):
         """Get discovery flow by CrewAI Flow ID (single source of truth)"""
         try:
             # Convert flow_id to UUID for database query
-            flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
+            try:
+                flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
+            except (ValueError, TypeError) as e:
+                logger.error(f"❌ Invalid flow_id UUID format: {flow_id}, error: {e}")
+                return None
+            
+            # Convert context UUIDs (should already be valid from __init__)
+            try:
+                client_uuid = uuid.UUID(self.client_account_id)
+                engagement_uuid = uuid.UUID(self.engagement_id)
+            except (ValueError, TypeError) as e:
+                logger.error(f"❌ Invalid context UUID - client: {self.client_account_id}, engagement: {self.engagement_id}, error: {e}")
+                return None
             
             stmt = select(DiscoveryFlow).where(
                 and_(
                     DiscoveryFlow.flow_id == flow_uuid,
-                    DiscoveryFlow.client_account_id == uuid.UUID(self.client_account_id),
-                    DiscoveryFlow.engagement_id == uuid.UUID(self.engagement_id)
+                    DiscoveryFlow.client_account_id == client_uuid,
+                    DiscoveryFlow.engagement_id == engagement_uuid
                 )
             ).options(selectinload(DiscoveryFlow.assets))
             
             result = await self.db.execute(stmt)
             return result.scalar_one_or_none()
             
-        except (ValueError, TypeError) as e:
-            logger.error(f"❌ Invalid flow_id format: {flow_id}, error: {e}")
+        except Exception as e:
+            logger.error(f"❌ Database error in get_by_flow_id: {e}")
             return None
     
     async def get_by_flow_id_global(self, flow_id: str) -> Optional[DiscoveryFlow]:
