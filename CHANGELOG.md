@@ -1,5 +1,76 @@
 # AI Force Migration Platform - Change Log
 
+## [0.8.20] - 2025-01-27
+
+### 🎯 **DISCOVERY FLOW DELETION FIX - AUTHENTICATION AND URL PATH CORRECTIONS**
+
+This release fixes critical issues with discovery flow deletion functionality, resolving authentication context problems and URL path mismatches that were preventing flows from being deleted successfully.
+
+### 🐛 **Flow Deletion Authentication Fix**
+
+#### **Dynamic Authentication Context Integration**
+- **Implementation**: Replaced hardcoded client/engagement/user IDs with dynamic `getAuthHeaders()` from AuthContext
+- **Technology**: React hook integration with real-time auth context retrieval
+- **Integration**: All V2 flow hooks now use proper authentication context from logged-in user
+- **Benefits**: Flow deletion requests now include correct user context for multi-tenant isolation
+
+#### **URL Path Correction**
+- **Issue**: Frontend was calling `/api/v1/discovery-flows/flows/{flow_id}` but backend expects `/api/v1/discovery/flow/{flow_id}`
+- **Fix**: Updated all frontend hooks to use correct unified discovery API endpoint paths
+- **Impact**: Flow deletion requests now reach the correct backend endpoint instead of returning 404
+
+#### **Missing X-User-ID Header Resolution**
+- **Issue**: Discovery Flow V2 integration was failing due to missing X-User-ID header in API requests
+- **Fix**: Added proper `getAuthHeaders()` integration to include all required authentication headers
+- **Result**: Backend now receives valid UUID user_id instead of None, enabling proper CrewAI flow processing
+
+### 🔧 **Technical Fixes Applied**
+
+#### **Updated Hooks with Dynamic Context**
+- **useFlowDeletionV2**: Now uses `getAuthHeaders()` for proper authentication context
+- **useBulkFlowOperationsV2**: Updated to include dynamic user/client/engagement headers
+- **useFlowDetailsV2**: Fixed to use current user context instead of hardcoded values
+- **useFlowResumptionV2**: Updated authentication header handling
+- **useFlowMonitoringV2**: Corrected to use dynamic context headers
+
+#### **URL Path Standardization**
+- **Frontend Calls**: Updated from `/discovery-flows/flows/` to `/discovery/flow/` pattern
+- **Backend Endpoints**: Confirmed unified discovery API mounting at `/api/v1/discovery/`
+- **Monitoring Endpoints**: Fixed status polling to use correct `/discovery/flow/status/` path
+
+#### **Authentication Header Improvements**
+- **X-User-ID**: Now dynamically retrieved from current user context
+- **X-Client-Account-ID**: Uses current client selection from AuthContext
+- **X-Engagement-ID**: Includes current engagement context
+- **X-Session-ID**: Properly includes session context for multi-tenant isolation
+
+### 📊 **Issue Resolution**
+
+#### **Before Fix**
+- Flow deletion returned 404 errors due to URL path mismatch
+- Backend received `User: None` causing UUID validation failures
+- Hardcoded demo context prevented proper multi-tenant operation
+- CrewAI flow processing failed due to missing authentication context
+
+#### **After Fix**
+- Flow deletion requests reach correct backend endpoint successfully
+- Backend receives valid user context with proper UUID format
+- Multi-tenant isolation works correctly with dynamic context
+- CrewAI flow processing operates with full authentication context
+
+### 🎯 **Success Metrics**
+- **Flow Deletion**: Now successfully deletes flows with proper cleanup
+- **Authentication**: Dynamic context prevents hardcoded demo limitations
+- **Multi-tenancy**: Proper client/engagement scoping for enterprise deployment
+- **API Integration**: Correct endpoint routing for unified discovery API
+
+### 📋 **Related Memory Updates**
+- Updated memory regarding Discovery Flow V2 integration authentication requirements
+- Documented proper use of dynamic authentication context in frontend hooks
+- Confirmed successful resolution of X-User-ID header requirements for CrewAI flows
+
+---
+
 ## [0.8.19] - 2025-01-27
 
 ### 🎯 **DISCOVERY FLOW REDESIGN PHASE 4 - PERFORMANCE OPTIMIZATION AND LEARNING INTEGRATION**
