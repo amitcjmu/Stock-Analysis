@@ -12,6 +12,9 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional, Tuple
 from fastapi import BackgroundTasks
 
+# Setup logger first
+logger = logging.getLogger(__name__)
+
 # Import strategic crews from Phase 3
 try:
     from ..crewai_flows.crews.asset_intelligence_crew import create_asset_intelligence_crew
@@ -21,8 +24,6 @@ try:
 except ImportError:
     logger.warning("Strategic crews not available - using fallback functionality")
     STRATEGIC_CREWS_AVAILABLE = False
-
-logger = logging.getLogger(__name__)
 
 class CrewEscalationManager:
     """
