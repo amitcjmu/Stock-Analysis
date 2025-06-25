@@ -180,13 +180,14 @@ const DataImport: React.FC = () => {
   }, [bulkFlowOperations]);
 
   const handleViewFlowDetails = useCallback((sessionId: string, phase: string) => {
-    // Navigate to phase-specific page
+    // Navigate to phase-specific page using correct phase names
     const phaseRoutes = {
-      'field_mapping': `/discovery/attribute-mapping/${sessionId}`,
+      'data_import': `/discovery/import`,
+      'attribute_mapping': `/discovery/attribute-mapping/${sessionId}`,
       'data_cleansing': `/discovery/data-cleansing/${sessionId}`,
-      'asset_inventory': `/discovery/asset-inventory/${sessionId}`,
-      'dependency_analysis': `/discovery/dependencies/${sessionId}`,
-      'tech_debt_analysis': `/discovery/technical-debt/${sessionId}`
+      'inventory': `/discovery/inventory/${sessionId}`,
+      'dependencies': `/discovery/dependencies/${sessionId}`,
+      'tech_debt': `/discovery/tech-debt/${sessionId}`
     };
     const route = phaseRoutes[phase as keyof typeof phaseRoutes] || `/discovery/enhanced-dashboard`;
     navigate(route);

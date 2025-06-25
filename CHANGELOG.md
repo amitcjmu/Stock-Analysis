@@ -1,5 +1,43 @@
 # AI Force Migration Platform - Change Log
 
+## [0.8.38] - 2025-01-25
+
+### 🎯 **FLOW NAVIGATION & UPLOAD BLOCKER FIXES**
+
+This release fixes the frontend flow navigation and upload blocker functionality that was preventing users from continuing flows and properly blocking new uploads.
+
+### 🚀 **Frontend Flow Management**
+
+#### **Upload Blocker Resolution**
+- **Fixed API response parsing**: Changed from `flows` to `flow_details` property in hook
+- **Corrected flow filtering logic**: Uses status-based filtering (`running`, `active`, `paused`) instead of missing `is_complete` field
+- **Verified API integration**: 24 active flows now properly detected and displayed in upload blocker
+
+#### **Navigation Route Corrections**
+- **Fixed phase route mapping**: Corrected `/discovery/data-import` → `/discovery/import`
+- **Updated inventory routes**: Changed `/discovery/asset-inventory` → `/discovery/inventory`  
+- **Fixed tech debt routes**: Updated `/discovery/technical-debt` → `/discovery/tech-debt`
+- **Enhanced React Router integration**: Replaced `window.location.href` with proper `navigate()` calls
+
+#### **Flow Resumption Improvements**
+- **Added React Router navigation**: Imported and integrated `useNavigate` hook in flow resumption logic
+- **Fixed continuation success**: Flow continuation now shows success toast and navigates correctly
+- **Maintained 2-second delay**: Preserved user experience with delayed navigation after success message
+
+### 📊 **Technical Achievements**
+- **Upload blocker detection**: Now correctly identifies 24 incomplete flows and blocks new uploads
+- **Flow continuation success**: "Continue Flow" buttons work without 404 errors
+- **Proper route handling**: All discovery phase routes now navigate correctly
+- **Multi-tenant compatibility**: Works with correct client account ID context (`11111111-1111-1111-1111-111111111111`)
+
+### 🎯 **Success Metrics**
+- **Upload blocking**: ✅ 24 flows detected, upload interface disabled
+- **Flow navigation**: ✅ Continue buttons navigate to correct phases  
+- **Route resolution**: ✅ No more 404 errors on flow continuation
+- **API integration**: ✅ Frontend correctly parses backend API responses
+
+---
+
 ## [0.8.37] - 2025-01-25
 
 ### 🎯 **CRITICAL FIX - Discovery Flow Status Correction**

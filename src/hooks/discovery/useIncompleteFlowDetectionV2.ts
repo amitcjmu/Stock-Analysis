@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiCall } from '@/config/api';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 import { unifiedDiscoveryService } from '../../services/discoveryUnifiedService';
 
 export interface IncompleteFlowV2 {
@@ -107,12 +108,13 @@ export const useIncompleteFlowDetectionV2 = () => {
       console.log('🔄 DEPRECATED: Redirecting to unified discovery service');
       const flows = await unifiedDiscoveryService.getActiveFlows();
       
-      // The unified service returns { flows: [...], total_flows: n }
-      const flowList = flows.flows || [];
+      // The unified service returns { flow_details: [...], total_flows: n }
+      const flowList = flows.flow_details || [];
       
       // Transform to IncompleteFlowV2 format and filter incomplete
+      // Since API doesn't include is_complete field, we filter by status only
       const incompleteFlows: IncompleteFlowV2[] = flowList
-        .filter((flow: any) => !flow.is_complete && flow.status !== 'completed')
+        .filter((flow: any) => flow.status === 'running' || flow.status === 'active' || flow.status === 'paused')
         .map((flow: any) => ({
           flow_id: flow.flow_id,
           id: flow.client_id, // V2 API uses client_id in flow_details
@@ -257,6 +259,7 @@ export const useFlowResumptionV2 = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { getAuthHeaders } = useAuth();
+  const navigate = useNavigate();
   
   return useMutation({
     mutationFn: async (flowId: string) => {
@@ -287,14 +290,14 @@ export const useFlowResumptionV2 = () => {
       // Determine next phase and navigate appropriately
       const nextPhase = data?.next_phase || 'data_import';
       
-      // V2 phase routes using flow_id
+      // Phase routes using correct phase names and flow_id
       const phaseRoutes = {
-        'data_import': `/discovery/v2/${flowId}`,
-        'attribute_mapping': `/discovery/v2/${flowId}/attribute-mapping`,
-        'data_cleansing': `/discovery/v2/${flowId}/data-cleansing`,
-        'inventory': `/discovery/v2/${flowId}/inventory`,
-        'dependencies': `/discovery/v2/${flowId}/dependencies`,
-        'tech_debt': `/discovery/v2/${flowId}/tech-debt`
+        'data_import': `/discovery/import`,
+        'attribute_mapping': `/discovery/attribute-mapping/${flowId}`,
+        'data_cleansing': `/discovery/data-cleansing/${flowId}`,
+        'inventory': `/discovery/inventory/${flowId}`,
+        'dependencies': `/discovery/dependencies/${flowId}`,
+        'tech_debt': `/discovery/tech-debt/${flowId}`
       };
       
       const nextRoute = phaseRoutes[nextPhase as keyof typeof phaseRoutes] || `/discovery/v2/${flowId}`;
@@ -307,7 +310,7 @@ export const useFlowResumptionV2 = () => {
       
       // Navigate to the appropriate phase after a short delay
       setTimeout(() => {
-        window.location.href = nextRoute;
+        navigate(nextRoute);
       }, 2000);
     },
     onError: (error: any, flowId) => {
