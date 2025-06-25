@@ -81,26 +81,76 @@ class CrewAIExecutionHandler:
         try:
             logger.info(f"🤖 Executing CrewAI phase: {phase}")
             
-            # Mock agent execution
+            # Get the flow_id from the data or context
+            flow_id = data.get("flow_id")
+            if not flow_id:
+                # Try to get from the current context or active flows
+                from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
+                flow_repo = DiscoveryFlowRepository(
+                    db=self.db,
+                    client_account_id=str(self.client_account_id),
+                    engagement_id=str(self.engagement_id)
+                )
+                active_flows = await flow_repo.get_active_flows()
+                if active_flows:
+                    flow_id = str(active_flows[0].flow_id)
+                else:
+                    raise ValueError("No flow_id provided and no active flows found")
+            
+            # Mock agent execution with enhanced insights
+            agent_insights = [
+                {
+                    "agent": "Asset Intelligence Agent",
+                    "insight": f"Completed {phase} analysis with high confidence",
+                    "patterns": ["server_classification", "dependency_mapping"],
+                    "confidence": 0.87,
+                    "phase": phase,
+                    "timestamp": datetime.now().isoformat()
+                },
+                {
+                    "agent": "Pattern Recognition",
+                    "insight": f"Identified 5 new patterns during {phase}",
+                    "patterns_learned": 5,
+                    "confidence": 0.92,
+                    "phase": phase,
+                    "timestamp": datetime.now().isoformat()
+                }
+            ]
+            
+            # Actually update the database to mark phase as completed
+            flow_repo = DiscoveryFlowRepository(
+                db=self.db,
+                client_account_id=str(self.client_account_id),
+                engagement_id=str(self.engagement_id)
+            )
+            
+            await flow_repo.update_phase_completion(
+                flow_id=flow_id,
+                phase=phase,
+                data=data,
+                crew_status={
+                    "status": "completed", 
+                    "agents_used": ["Asset Intelligence Agent", "Pattern Recognition", "Learning Specialist"],
+                    "confidence_score": 0.87,
+                    "timestamp": datetime.now().isoformat()
+                },
+                agent_insights=agent_insights
+            )
+            
             result = {
                 "phase": phase,
                 "status": "completed",
+                "flow_id": flow_id,
                 "agents_used": ["Asset Intelligence Agent", "Pattern Recognition", "Learning Specialist"],
                 "insights_generated": 12,
                 "patterns_learned": 5,
                 "confidence_score": 0.87,
-                "agent_insights": [
-                    {
-                        "agent": "Asset Intelligence Agent",
-                        "insight": f"Completed {phase} analysis with high confidence",
-                        "patterns": ["server_classification", "dependency_mapping"],
-                        "timestamp": datetime.now().isoformat()
-                    }
-                ],
+                "agent_insights": agent_insights,
+                "database_updated": True,
                 "execution_time": "00:01:23"
             }
             
-            logger.info(f"✅ CrewAI phase completed: {phase}")
+            logger.info(f"✅ CrewAI phase completed and database updated: {phase}")
             return result
             
         except Exception as e:

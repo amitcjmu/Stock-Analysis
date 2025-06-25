@@ -108,14 +108,42 @@ class FlowManagementHandler:
         try:
             logger.info(f"⚡ Executing PostgreSQL phase: {phase}")
             
+            # Get the flow_id from the data or context
+            flow_id = data.get("flow_id")
+            if not flow_id:
+                # Try to get from the current context or active flows
+                active_flows = await self.get_active_flows()
+                if active_flows:
+                    flow_id = active_flows[0]["flow_id"]
+                else:
+                    raise ValueError("No flow_id provided and no active flows found")
+            
+            # Actually update the database to mark phase as completed
+            await self.flow_repo.update_phase_completion(
+                flow_id=flow_id,
+                phase=phase,
+                data=data,
+                crew_status={"status": "completed", "timestamp": datetime.now().isoformat()},
+                agent_insights=[
+                    {
+                        "agent": "PostgreSQL Flow Manager",
+                        "insight": f"Completed {phase} phase execution",
+                        "phase": phase,
+                        "timestamp": datetime.now().isoformat()
+                    }
+                ]
+            )
+            
             result = {
                 "phase": phase,
                 "status": "completed",
+                "flow_id": flow_id,
                 "data_processed": len(data.get("assets", [])),
+                "database_updated": True,
                 "timestamp": datetime.now().isoformat()
             }
             
-            logger.info(f"✅ PostgreSQL phase completed: {phase}")
+            logger.info(f"✅ PostgreSQL phase completed and database updated: {phase}")
             return result
             
         except Exception as e:

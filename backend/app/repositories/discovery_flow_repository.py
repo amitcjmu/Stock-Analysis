@@ -175,6 +175,7 @@ class DiscoveryFlowRepository(ContextAwareRepository):
         phase_completion_map = {
             "data_import": "data_import_completed",
             "attribute_mapping": "attribute_mapping_completed",
+            "field_mapping": "attribute_mapping_completed",  # Alias for frontend compatibility
             "data_cleansing": "data_cleansing_completed",
             "inventory": "inventory_completed",
             "dependencies": "dependencies_completed",
