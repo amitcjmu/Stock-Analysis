@@ -58,7 +58,7 @@ const Inventory = () => {
           <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
             <div className="xl:col-span-3 space-y-6">
               {/* Main Inventory Content - now self-contained */}
-              <InventoryContent className="" />
+              <InventoryContent className="" flowId={effectiveFlowId} />
             </div>
 
             <div className="xl:col-span-1 space-y-6">

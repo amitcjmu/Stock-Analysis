@@ -26,6 +26,7 @@ import { apiCall } from '../../../config/api';
 
 interface InventoryContentProps {
   className?: string;
+  flowId?: string;
 }
 
 interface Asset {
@@ -52,7 +53,7 @@ interface ClassificationCard {
   bgColor: string;
 }
 
-const InventoryContent: React.FC<InventoryContentProps> = ({ className = "" }) => {
+const InventoryContent: React.FC<InventoryContentProps> = ({ className = "", flowId }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedColumns, setSelectedColumns] = useState<string[]>([
     'asset_name', 'asset_type', 'environment', 'operating_system', 
@@ -68,22 +69,22 @@ const InventoryContent: React.FC<InventoryContentProps> = ({ className = "" }) =
   
   const { toast } = useToast();
   const { client, engagement, getAuthHeaders } = useAuth();
-  const { getAssets, getFlow } = useDiscoveryFlowV2();
+  const { getAssets, getFlow } = useDiscoveryFlowV2(flowId);
   
   // Get assets and flow data
   const { data: assetsData, isLoading: assetsLoading, error: assetsError, refetch: refetchAssets } = useQuery({
-    queryKey: ['discovery-assets', client?.id, engagement?.id],
+    queryKey: ['discovery-assets', flowId, client?.id, engagement?.id],
     queryFn: () => getAssets(),
-    enabled: !!client && !!engagement,
+    enabled: !!client && !!engagement && !!flowId,
     staleTime: 30000,
     refetchOnWindowFocus: false
   });
 
   // Get flow insights
   const { data: flowData, isLoading: flowLoading } = useQuery({
-    queryKey: ['discovery-flow-insights', client?.id, engagement?.id],
+    queryKey: ['discovery-flow-insights', flowId, client?.id, engagement?.id],
     queryFn: () => getFlow(),
-    enabled: !!client && !!engagement,
+    enabled: !!client && !!engagement && !!flowId,
     staleTime: 30000,
     refetchOnWindowFocus: false
   });
