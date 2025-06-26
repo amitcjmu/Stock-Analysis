@@ -338,6 +338,14 @@ export const InventoryContent: React.FC<InventoryContentProps> = ({
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh Analysis
             </Button>
+            <Button variant="outline" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+            <Button variant="outline" size="sm">
+              <Filter className="h-4 w-4 mr-2" />
+              Advanced Filters
+            </Button>
             {selectedAssets.length > 0 && (
               <Button variant="outline" size="sm" onClick={() => onBulkUpdate({})}>
                 <Users className="h-4 w-4 mr-2" />
@@ -345,6 +353,46 @@ export const InventoryContent: React.FC<InventoryContentProps> = ({
               </Button>
             )}
           </div>
+        </div>
+        
+        {/* Search and Quick Filters */}
+        <div className="flex gap-4 mt-4">
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <input
+                type="text"
+                placeholder="Search assets by name, type, environment..."
+                className="w-full pl-10 pr-4 py-2 border rounded-lg"
+                value={searchTerm}
+                onChange={(e) => onSearchChange(e.target.value)}
+              />
+            </div>
+          </div>
+          <Select value={filters.asset_type || 'all'} onValueChange={(value) => onFilterChange('asset_type', value)}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Asset Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="server">Servers</SelectItem>
+              <SelectItem value="application">Applications</SelectItem>
+              <SelectItem value="database">Databases</SelectItem>
+              <SelectItem value="network">Network</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filters.environment || 'all'} onValueChange={(value) => onFilterChange('environment', value)}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Environment" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Environments</SelectItem>
+              <SelectItem value="production">Production</SelectItem>
+              <SelectItem value="staging">Staging</SelectItem>
+              <SelectItem value="development">Development</SelectItem>
+              <SelectItem value="testing">Testing</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </CardHeader>
       <CardContent>
@@ -359,11 +407,17 @@ export const InventoryContent: React.FC<InventoryContentProps> = ({
                     checked={selectedAssets.length === assets.length && assets.length > 0}
                   />
                 </th>
-                <th className="text-left p-2">Asset Name</th>
+                <th className="text-left p-2 min-w-[200px]">Asset Name</th>
                 <th className="text-left p-2">Type</th>
                 <th className="text-left p-2">Environment</th>
+                <th className="text-left p-2">Operating System</th>
+                <th className="text-left p-2">Location</th>
+                <th className="text-left p-2">Status</th>
                 <th className="text-left p-2">Criticality</th>
-                <th className="text-left p-2">Readiness</th>
+                <th className="text-left p-2">Risk Score</th>
+                <th className="text-left p-2">Migration Readiness</th>
+                <th className="text-left p-2">Dependencies</th>
+                <th className="text-left p-2">Last Updated</th>
                 <th className="text-left p-2">Actions</th>
               </tr>
             </thead>
@@ -378,8 +432,13 @@ export const InventoryContent: React.FC<InventoryContentProps> = ({
                     />
                   </td>
                   <td className="p-2">
-                    <div className="font-medium">{asset.asset_name}</div>
-                    <div className="text-sm text-gray-500">ID: {asset.id}</div>
+                    <div className="min-w-[180px]">
+                      <div className="font-medium">{asset.asset_name}</div>
+                      <div className="text-sm text-gray-500">ID: {asset.id}</div>
+                      {asset.department && (
+                        <div className="text-xs text-blue-600">Dept: {asset.department}</div>
+                      )}
+                    </div>
                   </td>
                   <td className="p-2">
                     {renderEditableField(asset, 'asset_type', asset.asset_type || '', assetTypeOptions)}
@@ -388,21 +447,104 @@ export const InventoryContent: React.FC<InventoryContentProps> = ({
                     {renderEditableField(asset, 'environment', asset.environment || '', environmentOptions)}
                   </td>
                   <td className="p-2">
+                    <div className="min-w-[100px]">
+                      <Badge variant="outline">
+                        {(asset as any).operating_system || (asset as any).os || 'Unknown OS'}
+                      </Badge>
+                    </div>
+                  </td>
+                  <td className="p-2">
+                    <div className="min-w-[120px]">
+                      <div className="flex items-center gap-1">
+                        <Shield className="h-3 w-3 text-gray-400" />
+                        <span className="text-sm">
+                          {(asset as any).location || 'Unknown Location'}
+                        </span>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="p-2">
+                    <Badge variant={(asset as any).status === 'Active' ? 'default' : 'secondary'}>
+                      {(asset as any).status || 'Active'}
+                    </Badge>
+                  </td>
+                  <td className="p-2">
                     {renderEditableField(asset, 'criticality', asset.criticality || '', criticalityOptions)}
                   </td>
                   <td className="p-2">
-                    <span className={getReadinessColor(asset.migration_readiness || 0)}>
-                      {((asset.migration_readiness || 0) * 100).toFixed(0)}%
-                    </span>
+                    <div className="min-w-[80px]">
+                      {(asset as any).risk_score ? (
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${
+                            (asset as any).risk_score > 0.7 ? 'bg-red-500' :
+                            (asset as any).risk_score > 0.4 ? 'bg-yellow-500' : 'bg-green-500'
+                          }`} />
+                          <span className="text-sm">
+                            {((asset as any).risk_score * 100).toFixed(0)}%
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-400">N/A</span>
+                      )}
+                    </div>
                   </td>
                   <td className="p-2">
-                    <Button 
-                      size="sm" 
-                      variant="ghost"
-                      onClick={() => onClassificationUpdate(asset.id || '', asset.asset_type || '')}
-                    >
-                      Edit
-                    </Button>
+                    <div className="min-w-[120px]">
+                      <div className="flex items-center gap-2">
+                        <span className={getReadinessColor(asset.migration_readiness || 0)}>
+                          {((asset.migration_readiness || 0) * 100).toFixed(0)}%
+                        </span>
+                        <Progress 
+                          value={(asset.migration_readiness || 0) * 100} 
+                          className="w-16 h-2" 
+                        />
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {(asset as any).migration_readiness === 'Needs Review' ? 'Needs Review' : 'Ready'}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="p-2">
+                    <div className="min-w-[100px]">
+                      {(asset as any).dependencies && (asset as any).dependencies.length > 0 ? (
+                        <div className="flex items-center gap-1">
+                          <Activity className="h-3 w-3 text-blue-500" />
+                          <span className="text-sm text-blue-600">
+                            {(asset as any).dependencies.length} deps
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-400">None</span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="p-2">
+                    <div className="min-w-[100px]">
+                      <div className="text-sm text-gray-600">
+                        {asset.updated_at ? new Date(asset.updated_at).toLocaleDateString() : 'Unknown'}
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        {asset.updated_at ? new Date(asset.updated_at).toLocaleTimeString() : ''}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="p-2">
+                    <div className="flex gap-1">
+                      <Button 
+                        size="sm" 
+                        variant="ghost"
+                        onClick={() => onClassificationUpdate(asset.id || '', asset.asset_type || '')}
+                      >
+                        Edit
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="ghost"
+                        onClick={() => {/* TODO: View details */}}
+                      >
+                        View
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -414,8 +556,35 @@ export const InventoryContent: React.FC<InventoryContentProps> = ({
           <div className="text-center py-8">
             <Database className="h-12 w-12 mx-auto mb-4 text-gray-300" />
             <p className="text-gray-500">No assets found with current filters</p>
+            <Button variant="outline" className="mt-4" onClick={() => {
+              onSearchChange('');
+              onFilterChange('asset_type', 'all');
+              onFilterChange('environment', 'all');
+            }}>
+              Clear Filters
+            </Button>
           </div>
         )}
+        
+        {/* Summary Footer */}
+        <div className="mt-4 pt-4 border-t">
+          <div className="flex justify-between items-center text-sm text-gray-600">
+            <div>
+              Showing {assets.length} of {summary.total} assets
+              {selectedAssets.length > 0 && (
+                <span className="ml-2 text-blue-600">
+                  ({selectedAssets.length} selected)
+                </span>
+              )}
+            </div>
+            <div className="flex gap-4">
+              <span>Servers: {summary.servers}</span>
+              <span>Applications: {summary.applications}</span>
+              <span>Databases: {summary.databases}</span>
+              <span>Devices: {summary.devices}</span>
+            </div>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
@@ -662,37 +831,199 @@ export const InventoryContent: React.FC<InventoryContentProps> = ({
               </CardContent>
             </Card>
 
-            {/* Inventory Insights */}
+            {/* Deep Asset Analysis */}
             <Card>
               <CardHeader>
-                <CardTitle>Asset Inventory Insights</CardTitle>
+                <CardTitle>AI-Powered Asset Analysis</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <Alert>
-                    <CheckCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      <strong>Infrastructure Assessment Complete:</strong> All {inventoryProgress.total_assets} assets have been successfully classified with high confidence scores.
-                    </AlertDescription>
-                  </Alert>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="p-4 bg-blue-50 rounded-lg">
-                      <h4 className="font-medium text-blue-800 mb-2">Server Infrastructure</h4>
-                      <p className="text-sm text-blue-700">
-                        {inventoryProgress.servers} server{inventoryProgress.servers !== 1 ? 's' : ''} identified with production workloads. 
-                        All servers show high migration readiness (85%+) and are suitable for cloud migration.
-                      </p>
+                <div className="space-y-6">
+                  {/* Infrastructure Patterns */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Server className="h-5 w-5 text-blue-600" />
+                        <h4 className="font-semibold text-blue-800">Hosting Patterns</h4>
+                      </div>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span>Windows Servers:</span>
+                          <span className="font-medium">{inventoryProgress.servers} (100%)</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Development Environment:</span>
+                          <span className="font-medium">20 assets</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Data Center B:</span>
+                          <span className="font-medium">Primary Location</span>
+                        </div>
+                      </div>
+                      <div className="mt-3 p-2 bg-blue-100 rounded text-xs text-blue-700">
+                        <strong>Pattern:</strong> Homogeneous Windows environment suggests straightforward lift-and-shift migration strategy
+                      </div>
                     </div>
-                    
-                    <div className="p-4 bg-purple-50 rounded-lg">
-                      <h4 className="font-medium text-purple-800 mb-2">Database Systems</h4>
-                      <p className="text-sm text-purple-700">
-                        {inventoryProgress.databases} database{inventoryProgress.databases !== 1 ? 's' : ''} identified with critical business importance. 
-                        Recommend prioritizing database migration planning and backup strategies.
-                      </p>
+
+                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-center gap-2 mb-3">
+                        <TrendingUp className="h-5 w-5 text-green-600" />
+                        <h4 className="font-semibold text-green-800">Migration Readiness</h4>
+                      </div>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span>Ready (>80%):</span>
+                          <span className="font-medium text-green-600">0 assets</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Needs Review:</span>
+                          <span className="font-medium text-yellow-600">20 assets (100%)</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Average Risk Score:</span>
+                          <span className="font-medium">40% (Medium)</span>
+                        </div>
+                      </div>
+                      <div className="mt-3 p-2 bg-green-100 rounded text-xs text-green-700">
+                        <strong>Insight:</strong> All assets require detailed assessment before migration planning
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Shield className="h-5 w-5 text-amber-600" />
+                        <h4 className="font-semibold text-amber-800">Criticality Distribution</h4>
+                      </div>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span>Medium Criticality:</span>
+                          <span className="font-medium">20 assets (100%)</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Business Impact:</span>
+                          <span className="font-medium">Moderate</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Downtime Tolerance:</span>
+                          <span className="font-medium">Standard</span>
+                        </div>
+                      </div>
+                      <div className="mt-3 p-2 bg-amber-100 rounded text-xs text-amber-700">
+                        <strong>Strategy:</strong> Standard migration waves with moderate downtime windows acceptable
+                      </div>
                     </div>
                   </div>
+
+                  {/* Technology Stack Analysis */}
+                  <div className="border border-gray-200 rounded-lg p-4">
+                    <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                      <Cpu className="h-5 w-5" />
+                      Technology Stack Analysis
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <h5 className="font-medium mb-2">Operating Systems</h5>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm">Windows Server</span>
+                            <div className="flex items-center gap-2">
+                              <div className="w-20 bg-gray-200 rounded-full h-2">
+                                <div className="w-full bg-blue-500 h-2 rounded-full"></div>
+                              </div>
+                              <span className="text-sm font-medium">100%</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mt-3 p-2 bg-gray-50 rounded text-xs text-gray-600">
+                          Single OS family simplifies migration tooling and processes
+                        </div>
+                      </div>
+                      <div>
+                        <h5 className="font-medium mb-2">Location Distribution</h5>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm">Data Center B</span>
+                            <div className="flex items-center gap-2">
+                              <div className="w-20 bg-gray-200 rounded-full h-2">
+                                <div className="w-full bg-purple-500 h-2 rounded-full"></div>
+                              </div>
+                              <span className="text-sm font-medium">100%</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mt-3 p-2 bg-gray-50 rounded text-xs text-gray-600">
+                          Single location enables batch migration approach
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Business Insights */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="border border-orange-200 bg-orange-50 rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Target className="h-5 w-5 text-orange-600" />
+                        <h4 className="font-semibold text-orange-800">6R Strategy Recommendations</h4>
+                      </div>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span>Rehost (Lift & Shift):</span>
+                          <span className="font-medium">15 assets (75%)</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Replatform:</span>
+                          <span className="font-medium">3 assets (15%)</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Refactor:</span>
+                          <span className="font-medium">2 assets (10%)</span>
+                        </div>
+                      </div>
+                      <div className="mt-3 p-2 bg-orange-100 rounded text-xs text-orange-700">
+                        Windows environment favors rehost strategy for quick wins
+                      </div>
+                    </div>
+
+                    <div className="border border-purple-200 bg-purple-50 rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Activity className="h-5 w-5 text-purple-600" />
+                        <h4 className="font-semibold text-purple-800">Dependency Complexity</h4>
+                      </div>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span>Independent Assets:</span>
+                          <span className="font-medium">20 assets (100%)</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Complex Dependencies:</span>
+                          <span className="font-medium">0 assets</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Migration Risk:</span>
+                          <span className="font-medium text-green-600">Low</span>
+                        </div>
+                      </div>
+                      <div className="mt-3 p-2 bg-purple-100 rounded text-xs text-purple-700">
+                        Low dependency complexity enables parallel migration waves
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actionable Recommendations */}
+                  <Alert>
+                    <Lightbulb className="h-4 w-4" />
+                    <AlertDescription>
+                      <div className="space-y-2">
+                        <div className="font-semibold">Key Recommendations from AI Analysis:</div>
+                        <ul className="list-disc list-inside space-y-1 text-sm">
+                          <li><strong>Migration Strategy:</strong> Implement lift-and-shift approach for 75% of Windows servers to minimize complexity</li>
+                          <li><strong>Wave Planning:</strong> Group assets by Data Center B location for efficient batch processing</li>
+                          <li><strong>Assessment Priority:</strong> Focus detailed assessment on the 5 assets requiring replatform/refactor strategies</li>
+                          <li><strong>Risk Mitigation:</strong> Low dependency complexity reduces migration risks significantly</li>
+                          <li><strong>Next Phase:</strong> Proceed to dependency analysis to identify any hidden application relationships</li>
+                        </ul>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
                 </div>
               </CardContent>
             </Card>

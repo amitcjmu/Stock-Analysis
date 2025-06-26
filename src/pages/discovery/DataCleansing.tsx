@@ -14,6 +14,8 @@ import QualityIssuesPanel from '../../components/discovery/data-cleansing/Qualit
 import CleansingRecommendationsPanel from '../../components/discovery/data-cleansing/CleansingRecommendationsPanel';
 import DataCleansingNavigationButtons from '../../components/discovery/data-cleansing/DataCleansingNavigationButtons';
 import AgentClarificationPanel from '../../components/discovery/AgentClarificationPanel';
+import AgentInsightsSection from '../../components/discovery/AgentInsightsSection';
+import AgentPlanningDashboard from '../../components/discovery/AgentPlanningDashboard';
 import EnhancedAgentOrchestrationPanel from '../../components/discovery/EnhancedAgentOrchestrationPanel';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -56,7 +58,7 @@ const DataCleansing: React.FC = () => {
   } = useLatestImport();
 
   // Extract data cleansing results from flow state - fix data path
-  const flowDataCleansing = (flow as any)?.data_cleansing || (flow as any)?.results?.data_cleansing || {};
+  const flowDataCleansing = (flow as any)?.data_cleansing_results || (flow as any)?.data_cleansing || (flow as any)?.results?.data_cleansing || {};
   const qualityIssues = flowDataCleansing?.quality_issues || [];
   const agentRecommendations = flowDataCleansing?.recommendations || [];
   const cleansingProgress = {
@@ -307,12 +309,20 @@ const DataCleansing: React.FC = () => {
                   }}
                 />
 
-                {flow?.flow_id && (
-                  <EnhancedAgentOrchestrationPanel
-                    sessionId={flow.flow_id}
-                    flowState={flow}
-                  />
-                )}
+                {/* Agent Insights */}
+                <AgentInsightsSection 
+                  pageContext="data-cleansing"
+                  refreshTrigger={0}
+                  onInsightAction={(insightId, action) => {
+                    console.log('Data cleansing insight action:', insightId, action);
+                    if (action === 'apply_insight') {
+                      refresh();
+                    }
+                  }}
+                />
+
+                {/* Agent Planning Dashboard */}
+                <AgentPlanningDashboard pageContext="data-cleansing" />
               </div>
             </div>
 

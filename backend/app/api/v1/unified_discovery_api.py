@@ -924,7 +924,7 @@ async def fix_asset_promotion_for_completed_flow(
         
         # Check main assets count for this flow
         main_assets_query = select(func.count(Asset.id)).where(
-            Asset.custom_attributes.contains({'discovery_flow_id': str(flow.id)}),
+            Asset.custom_attributes.op('->>')('discovery_flow_id') == str(flow.id),
             Asset.client_account_id == context.client_account_id
         )
         main_count_result = await db.execute(main_assets_query)

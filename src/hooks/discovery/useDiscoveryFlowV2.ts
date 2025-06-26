@@ -38,6 +38,12 @@ interface DiscoveryFlowV2 {
   next_phase?: string;
   is_complete: boolean;
   field_mapping?: any;
+  data_cleansing_results?: any;
+  results?: any;
+  raw_data?: any;
+  cleaned_data?: any;
+  agent_insights?: any;
+  current_phase?: string;
 }
 
 interface DiscoveryAssetV2 {
@@ -192,13 +198,13 @@ const apiClient = {
     try {
       const response = await unifiedDiscoveryService.getFlowStatus(flowId);
       
-      // Convert unified response to V2 format
+      // Convert unified response to V2 format - PRESERVE ALL DATA FROM RESPONSE
       return {
         id: flowId,
         flow_id: flowId,
-        client_account_id: '11111111-1111-1111-1111-111111111111',
-        engagement_id: '22222222-2222-2222-2222-222222222222',
-        user_id: 'default-user',
+        client_account_id: response.client_account_id || '11111111-1111-1111-1111-111111111111',
+        engagement_id: response.engagement_id || '22222222-2222-2222-2222-222222222222',
+        user_id: response.user_id || 'default-user',
         flow_name: `Flow ${flowId}`,
         status: response.status,
         progress_percentage: response.progress_percentage || 0,
@@ -209,7 +215,17 @@ const apiClient = {
         is_mock: false,
         migration_readiness_score: response.migration_readiness_score || 0,
         is_complete: response.status === 'completed',
-        field_mapping: response.field_mapping
+        field_mapping: response.field_mapping,
+        // CRITICAL: Preserve all actual flow data that was being lost
+        data_cleansing_results: response.data_cleansing_results,
+        results: response.results,
+        raw_data: response.raw_data,
+        cleaned_data: response.cleaned_data,
+        agent_insights: response.agent_insights,
+        current_phase: response.current_phase,
+        next_phase: response.next_phase,
+        created_at: response.created_at,
+        updated_at: response.updated_at
       } as DiscoveryFlowV2;
     } catch (error) {
       console.error('Failed to get flow:', error);
@@ -297,7 +313,22 @@ const apiClient = {
   async getAssets(flowId: string): Promise<DiscoveryAssetV2[]> {
     try {
       const response = await unifiedDiscoveryService.getFlowAssets(flowId);
-      return response.assets || [];
+      
+      // Handle different response formats
+      let assets = [];
+      if (Array.isArray(response)) {
+        // Direct array response
+        assets = response;
+      } else if (response && response.assets) {
+        // Wrapped response with assets property
+        assets = response.assets;
+      } else if (response && Array.isArray(response.data)) {
+        // Response with data property containing array
+        assets = response.data;
+      }
+      
+      console.log(`✅ Flow assets retrieved: ${assets.length}`);
+      return assets;
     } catch (error) {
       console.error('Failed to get assets:', error);
       throw error;
