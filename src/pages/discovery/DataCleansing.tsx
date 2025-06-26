@@ -1,22 +1,20 @@
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDiscoveryFlowV2 } from '../../hooks/discovery/useDiscoveryFlowV2';
-import { useDataCleansingFlowDetection } from '../../hooks/discovery/useDataCleansingFlowDetection';
-import { useDataCleansingAnalysis } from '../../hooks/discovery/useDataCleansingAnalysis';
+import { useDiscoveryFlowAutoDetection } from '../../hooks/discovery/useDiscoveryFlowAutoDetection';
+import { useLatestImport, useAssets } from '../../hooks/discovery/useDataCleansingQueries';
 
 // Components
-import { Sidebar } from '../../components/layout/Sidebar';
+import Sidebar from '../../components/Sidebar';
 import { ContextBreadcrumbs } from '../../components/context/ContextBreadcrumbs';
-import { DataCleansingStateProvider } from '../../components/discovery/data-cleansing/DataCleansingStateProvider';
-import { DataCleansingHeader } from '../../components/discovery/data-cleansing/DataCleansingHeader';
-import { DataCleansingProgressDashboard } from '../../components/discovery/data-cleansing/DataCleansingProgressDashboard';
-import { QualityIssuesPanel } from '../../components/discovery/data-cleansing/QualityIssuesPanel';
-import { CleansingRecommendationsPanel } from '../../components/discovery/data-cleansing/CleansingRecommendationsPanel';
-import { DataCleansingNavigationButtons } from '../../components/discovery/data-cleansing/DataCleansingNavigationButtons';
-import { AgentClarificationPanel } from '../../components/discovery/agent-ui-bridge/AgentClarificationPanel';
-import { DataClassificationDisplay } from '../../components/discovery/agent-ui-bridge/DataClassificationDisplay';
-import { AgentInsightsSection } from '../../components/discovery/agent-ui-bridge/AgentInsightsSection';
-import { EnhancedAgentOrchestrationPanel } from '../../components/discovery/EnhancedAgentOrchestrationPanel';
+import DataCleansingStateProvider from '../../components/discovery/data-cleansing/DataCleansingStateProvider';
+import DataCleansingHeader from '../../components/discovery/data-cleansing/DataCleansingHeader';
+import DataCleansingProgressDashboard from '../../components/discovery/data-cleansing/DataCleansingProgressDashboard';
+import QualityIssuesPanel from '../../components/discovery/data-cleansing/QualityIssuesPanel';
+import CleansingRecommendationsPanel from '../../components/discovery/data-cleansing/CleansingRecommendationsPanel';
+import DataCleansingNavigationButtons from '../../components/discovery/data-cleansing/DataCleansingNavigationButtons';
+import AgentClarificationPanel from '../../components/discovery/AgentClarificationPanel';
+import EnhancedAgentOrchestrationPanel from '../../components/discovery/EnhancedAgentOrchestrationPanel';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -26,7 +24,7 @@ import { Download, FileText, CheckCircle, AlertTriangle } from 'lucide-react';
 const DataCleansing: React.FC = () => {
   const { user } = useAuth();
   
-  // Use the new auto-detection hook for consistent flow detection
+  // Use the auto-detection hook for consistent flow detection
   const {
     urlFlowId,
     autoDetectedFlowId,
@@ -34,7 +32,7 @@ const DataCleansing: React.FC = () => {
     flowList,
     isFlowListLoading,
     hasEffectiveFlow
-  } = useDataCleansingFlowDetection();
+  } = useDiscoveryFlowAutoDetection();
   
   // V2 Discovery flow hook with auto-detected flow ID
   const {
@@ -50,24 +48,24 @@ const DataCleansing: React.FC = () => {
     refresh
   } = useDiscoveryFlowV2(effectiveFlowId);
 
-  // Use real data cleansing analysis hook with auto-detected flow ID
+  // Use data cleansing hooks - fallback to simple approach since complex hooks aren't working
   const {
-    data: cleansingAnalysis,
-    isLoading: isCleansingLoading,
-    error: cleansingError,
-    refetch: refetchCleansing
-  } = useDataCleansingAnalysis(effectiveFlowId);
+    data: latestImportData,
+    isLoading: isLatestImportLoading,
+    error: latestImportError
+  } = useLatestImport();
 
-  // Combine flow data with real cleansing analysis
-  const qualityIssues = cleansingAnalysis?.quality_issues || [];
-  const agentRecommendations = cleansingAnalysis?.recommendations || [];
+  // Extract data cleansing results from flow state
+  const flowDataCleansing = flow?.results?.data_cleansing || flow?.data_cleansing_results || {};
+  const qualityIssues = flowDataCleansing?.quality_issues || [];
+  const agentRecommendations = flowDataCleansing?.recommendations || [];
   const cleansingProgress = {
-    total_records: cleansingAnalysis?.metrics?.total_records || 0,
-    quality_score: cleansingAnalysis?.metrics?.quality_score || 0,
-    completion_percentage: cleansingAnalysis?.metrics?.completion_percentage || 0,
-    cleaned_records: cleansingAnalysis?.metrics?.cleaned_records || 0,
-    issues_resolved: cleansingAnalysis?.metrics?.quality_issues_resolved || 0,
-    crew_completion_status: cleansingAnalysis?.processing_status?.phase || 'pending'
+    total_records: flowDataCleansing?.metrics?.total_records || 0,
+    quality_score: flowDataCleansing?.metrics?.quality_score || 0,
+    completion_percentage: flowDataCleansing?.metrics?.completion_percentage || 0,
+    cleaned_records: flowDataCleansing?.metrics?.cleaned_records || 0,
+    issues_resolved: flowDataCleansing?.metrics?.quality_issues_resolved || 0,
+    crew_completion_status: flowDataCleansing?.processing_status?.phase || 'pending'
   };
 
   // Handle data cleansing execution
@@ -77,7 +75,7 @@ const DataCleansing: React.FC = () => {
       await updatePhase('data_cleansing', { action: 'start_cleansing' });
       // Refresh the data after triggering
       setTimeout(() => {
-        refetchCleansing();
+        refresh();
       }, 2000);
     } catch (error) {
       console.error('Failed to execute data cleansing phase:', error);
@@ -96,19 +94,19 @@ const DataCleansing: React.FC = () => {
   };
 
   // Determine state conditions - use real data cleansing analysis
-  const hasError = !!(error || cleansingError);
-  const errorMessage = error?.message || cleansingError?.message;
+  const hasError = !!(error || latestImportError);
+  const errorMessage = error?.message || latestImportError?.message;
   const hasData = !!(qualityIssues.length > 0 || agentRecommendations.length > 0 || cleansingProgress.total_records > 0);
   const isAnalyzing = isUpdating;
-  const isLoadingData = isLoading || isCleansingLoading || isFlowListLoading;
+  const isLoadingData = isLoading || isLatestImportLoading || isFlowListLoading;
 
   // Get data cleansing specific data from V2 flow (keep for compatibility)
   const isDataCleansingComplete = completedPhases.includes('data_cleansing');
   const canContinueToInventory = completedPhases.includes('data_cleansing') || cleansingProgress.completion_percentage >= 80;
 
-  // Enhanced data samples for display
-  const rawDataSample = cleansingAnalysis?.raw_data?.slice(0, 3) || [];
-  const cleanedDataSample = cleansingAnalysis?.cleaned_data?.slice(0, 3) || [];
+  // Enhanced data samples for display - extract from flow state
+  const rawDataSample = flowDataCleansing?.raw_data?.slice(0, 3) || [];
+  const cleanedDataSample = flowDataCleansing?.cleaned_data?.slice(0, 3) || [];
 
   // Debug info for flow detection
   console.log('🔍 DataCleansing flow detection:', {
@@ -148,7 +146,7 @@ const DataCleansing: React.FC = () => {
               recommendationsCount={agentRecommendations.length}
               isAnalyzing={isAnalyzing}
               isLoading={isLoadingData}
-              onRefresh={refetchCleansing}
+              onRefresh={refresh}
               onTriggerAnalysis={handleTriggerDataCleansingCrew}
             />
 
@@ -284,28 +282,13 @@ const DataCleansing: React.FC = () => {
                   refreshTrigger={0}
                   onQuestionAnswered={(questionId, response) => {
                     console.log('Data cleansing question answered:', questionId, response);
-                    refetchCleansing();
+                    refresh();
                   }}
                 />
 
-                <DataClassificationDisplay 
-                  pageContext="data-cleansing"
-                  refreshTrigger={0}
-                  onClassificationUpdate={(itemId, newClassification) => {
-                    console.log('Data cleansing classification updated:', itemId, newClassification);
-                    refetchCleansing();
-                  }}
-                />
-
-                <AgentInsightsSection 
-                  pageContext="data-cleansing"
-                  refreshTrigger={0}
-                  onInsightAction={(insightId, action) => {
-                    console.log('Data cleansing insight action:', insightId, action);
-                    if (action === 'apply_insight') {
-                      refetchCleansing();
-                    }
-                  }}
+                <EnhancedAgentOrchestrationPanel
+                  sessionId={flow.flow_id}
+                  flowState={flow}
                 />
               </div>
             </div>
