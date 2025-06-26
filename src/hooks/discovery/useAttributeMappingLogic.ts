@@ -259,6 +259,47 @@ export const useAttributeMappingLogic = () => {
     }
   }, [refresh, getAuthHeaders]);
 
+  const handleMappingChange = useCallback(async (mappingId: string, newTarget: string) => {
+    try {
+      console.log(`🔄 Changing mapping: ${mappingId} -> ${newTarget}`);
+      
+      // Find the mapping in the current data
+      const mapping = fieldMappings.find(m => m.id === mappingId);
+      if (!mapping) {
+        console.error('❌ Mapping not found:', mappingId);
+        return;
+      }
+      
+      // Call the backend to update the mapping
+      const response = await fetch(`${API_CONFIG.BASE_URL}/data-import/field-mapping/mappings/${mappingId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify({
+          target_field: newTarget,
+          is_user_defined: true,
+          status: 'pending' // Reset to pending after user change
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to update mapping');
+      }
+      
+      const result = await response.json();
+      console.log('✅ Mapping updated successfully:', result);
+      
+      // Refresh the data to show updated mapping
+      await refresh();
+      
+    } catch (error) {
+      console.error('❌ Failed to update mapping:', error);
+    }
+  }, [fieldMappings, refresh, getAuthHeaders]);
+
   const handleAttributeUpdate = useCallback(async (attributeId: string, updates: any) => {
     try {
       console.log(`🔄 Updating attribute: ${attributeId}`, updates);
@@ -345,6 +386,7 @@ export const useAttributeMappingLogic = () => {
     handleTriggerFieldMappingCrew,
     handleApproveMapping,
     handleRejectMapping,
+    handleMappingChange,
     handleAttributeUpdate,
     handleDataImportSelection,
     refetchAgentic,

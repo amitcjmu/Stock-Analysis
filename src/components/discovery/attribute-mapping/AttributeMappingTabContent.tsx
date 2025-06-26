@@ -10,6 +10,7 @@ interface AttributeMappingTabContentProps {
   agenticData: any;
   onApproveMapping: (mappingId: string) => void;
   onRejectMapping: (mappingId: string, rejectionReason?: string) => void;
+  onMappingChange?: (mappingId: string, newTarget: string) => void;
   refetchAgentic: () => void;
   onAttributeUpdate?: (attributeName: string, updates: Partial<any>) => void;
   sessionInfo?: {
@@ -28,6 +29,7 @@ const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
   agenticData,
   onApproveMapping,
   onRejectMapping,
+  onMappingChange,
   refetchAgentic,
   onAttributeUpdate,
   sessionInfo
@@ -46,6 +48,7 @@ const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
                 onRejectMapping(mappingId, rejectionReason);
               }
             }}
+            onMappingChange={onMappingChange}
           />
         );
       case 'critical':

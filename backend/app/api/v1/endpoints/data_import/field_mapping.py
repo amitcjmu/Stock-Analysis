@@ -1057,6 +1057,48 @@ async def reject_field_mapping(
         logger.error(f"Failed to reject field mapping: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to reject mapping: {str(e)}")
 
+@router.patch("/mappings/{mapping_id}")
+async def update_field_mapping(
+    mapping_id: str,
+    mapping_update: dict,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+):
+    """Update a field mapping."""
+    try:
+        # Get the mapping
+        mapping_query = select(ImportFieldMapping).where(ImportFieldMapping.id == mapping_id)
+        result = await db.execute(mapping_query)
+        mapping = result.scalar_one_or_none()
+        
+        if not mapping:
+            raise HTTPException(status_code=404, detail="Field mapping not found")
+        
+        # Update the mapping
+        if "target_field" in mapping_update:
+            mapping.target_field = mapping_update["target_field"]
+        if "status" in mapping_update:
+            mapping.status = mapping_update["status"]
+        if "is_user_defined" in mapping_update:
+            mapping.is_user_defined = mapping_update["is_user_defined"]
+        if "confidence_score" in mapping_update:
+            mapping.confidence_score = mapping_update["confidence_score"]
+        if "user_feedback" in mapping_update:
+            mapping.user_feedback = mapping_update["user_feedback"]
+        
+        await db.commit()
+        
+        return {
+            "status": "success",
+            "message": f"Field mapping updated: {mapping.source_field} -> {mapping.target_field}",
+            "mapping_id": mapping_id
+        }
+        
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Failed to update field mapping: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to update mapping: {str(e)}")
+
 @router.get("/mappings/approval-status/{data_import_id}")
 async def get_mapping_approval_status(
     data_import_id: str,

@@ -46,6 +46,7 @@ const AttributeMapping: React.FC = () => {
     handleTriggerFieldMappingCrew,
     handleApproveMapping,
     handleRejectMapping,
+    handleMappingChange,
     handleAttributeUpdate,
     handleDataImportSelection,
     refetchAgentic,
@@ -326,6 +327,7 @@ const AttributeMapping: React.FC = () => {
                         agenticData={agenticData}
                         onApproveMapping={handleApproveMapping}
                         onRejectMapping={handleRejectMapping}
+                        onMappingChange={handleMappingChange}
                         refetchAgentic={() => refetchAgentic()}
                         onAttributeUpdate={handleAttributeUpdate}
                         sessionInfo={sessionInfo}

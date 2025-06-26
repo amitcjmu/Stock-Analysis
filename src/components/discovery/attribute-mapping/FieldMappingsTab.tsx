@@ -264,6 +264,7 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
       const fallbackFields = [
         { name: 'name', type: 'string', required: true, description: 'Asset name or identifier', category: 'identification' },
         { name: 'hostname', type: 'string', required: true, description: 'Asset hostname', category: 'identification' },
+        { name: 'owner', type: 'string', required: false, description: 'Asset owner', category: 'business' },
         { name: 'asset_name', type: 'string', required: false, description: 'Asset name', category: 'identification' },
         { name: 'asset_type', type: 'enum', required: true, description: 'Asset type', category: 'technical' },
         { name: 'ip_address', type: 'string', required: false, description: 'IP address', category: 'network' },
@@ -433,12 +434,25 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
                           className={`flex items-center space-x-2 px-3 py-1 rounded-lg border ${
                             mapping.status === 'pending' 
                               ? 'bg-white border-gray-300 hover:border-blue-500 cursor-pointer' 
-                              : 'bg-gray-100 border-gray-200 cursor-not-allowed'
+                              : mapping.status === 'approved'
+                              ? 'bg-green-50 border-green-200 cursor-not-allowed'
+                              : 'bg-red-50 border-red-200 cursor-not-allowed'
                           }`}
                         >
-                          <span className="font-medium text-blue-600">{mapping.targetAttribute}</span>
+                          <span className={`font-medium ${
+                            mapping.status === 'pending' ? 'text-blue-600' :
+                            mapping.status === 'approved' ? 'text-green-700' : 'text-red-700'
+                          }`}>
+                            {mapping.targetAttribute}
+                          </span>
                           {mapping.status === 'pending' && (
                             <ChevronDown className="h-4 w-4 text-gray-400" />
+                          )}
+                          {mapping.status === 'approved' && (
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                          )}
+                          {mapping.status === 'rejected' && (
+                            <X className="h-4 w-4 text-red-600" />
                           )}
                         </button>
                         
