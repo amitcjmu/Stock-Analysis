@@ -66,17 +66,78 @@ interface DataCleansingResponse {
   };
 }
 
-export const useDataCleansingAnalysis = () => {
+export const useDataCleansingAnalysis = (flowId?: string) => {
   const { client, engagement, user } = useAuth();
 
   return useQuery({
-    queryKey: ['data-cleansing-analysis', client?.id, engagement?.id],
+    queryKey: ['data-cleansing-analysis', client?.id, engagement?.id, flowId],
     queryFn: async (): Promise<DataCleansingResponse> => {
       if (!client?.id || !engagement?.id) {
         throw new Error('Authentication context required');
       }
 
-      // First, try to get the data cleansing results from the active discovery flow
+      // If a specific flow ID is provided, get data cleansing results from that flow
+      if (flowId) {
+        try {
+          const flowStatusResponse = await apiCall(`/discovery/flow/status/${flowId}`, {
+            method: 'GET',
+            headers: {
+              'X-Client-Account-Id': client.id.toString(),
+              'X-Engagement-Id': engagement.id.toString(),
+              'X-User-Id': user.id.toString()
+            }
+          });
+
+          if (flowStatusResponse && flowStatusResponse.flow_id) {
+            const cleansingResults = flowStatusResponse.data_cleansing_results || flowStatusResponse.results?.data_cleansing;
+            
+            if (cleansingResults) {
+              console.log('✅ Found data cleansing results for flow:', flowId);
+              // Transform the real flow data to match the expected interface
+              return {
+                quality_issues: cleansingResults.quality_issues || [],
+                recommendations: cleansingResults.recommendations || [],
+                metrics: {
+                  total_records: cleansingResults.metadata?.original_records || flowStatusResponse.raw_data?.length || 0,
+                  cleaned_records: cleansingResults.metadata?.cleaned_records || 0,
+                  quality_issues_found: cleansingResults.quality_issues?.length || 0,
+                  quality_issues_resolved: 0,
+                  data_quality_score: cleansingResults.data_quality_metrics?.overall_improvement?.quality_score || 0,
+                  quality_score: cleansingResults.data_quality_metrics?.overall_improvement?.quality_score || 0,
+                  completeness_percentage: cleansingResults.data_quality_metrics?.overall_improvement?.completeness_improvement || 0,
+                  completion_percentage: cleansingResults.data_quality_metrics?.overall_improvement?.completeness_improvement || 0,
+                  consistency_score: 0,
+                  standardization_score: 0,
+                  assessment_ready: true
+                },
+                cleaned_data: cleansingResults.cleaned_data || [],
+                processing_status: {
+                  phase: 'data_cleansing',
+                  completion_percentage: cleansingResults.data_quality_metrics?.overall_improvement?.completeness_improvement || 0,
+                  crew_agents_used: ['Data Cleansing Agent'],
+                  last_updated: flowStatusResponse.updated_at || new Date().toISOString()
+                },
+                agent_insights: {
+                  data_quality_summary: 'Real data cleansing analysis from CrewAI Flow',
+                  primary_concerns: [],
+                  next_priority: 'Review cleansing results'
+                },
+                statistics: {
+                  total_records: cleansingResults.metadata?.original_records || flowStatusResponse.raw_data?.length || 0,
+                  quality_score: cleansingResults.data_quality_metrics?.overall_improvement?.quality_score || 0,
+                  completion_percentage: cleansingResults.data_quality_metrics?.overall_improvement?.completeness_improvement || 0,
+                  issues_count: cleansingResults.quality_issues?.length || 0,
+                  recommendations_count: cleansingResults.recommendations?.length || 0
+                }
+              };
+            }
+          }
+        } catch (error) {
+          console.error(`Failed to fetch data cleansing results for flow ${flowId}:`, error);
+        }
+      }
+
+      // Fallback: try to get the data cleansing results from the active discovery flows
       try {
         const flowResponse = await apiCall('/discovery/flows/active', {
           method: 'GET',

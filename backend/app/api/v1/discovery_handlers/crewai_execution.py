@@ -304,9 +304,31 @@ class CrewAIExecutionHandler:
                 )
                 return "attribute_mapping"
             
-            # Continue with remaining phases using the original logic
+            # Check data_cleansing phase validation
             if not flow.data_cleansing_completed:
+                logger.info("🔍 Attribute mapping validated - proceeding to data_cleansing")
                 return "data_cleansing"
+            
+            # Validate data_cleansing phase actually produced meaningful results
+            cleansing_valid = await self._validate_data_cleansing_completion(flow)
+            if not cleansing_valid:
+                logger.warning("⚠️ CrewAI: Data cleansing marked complete but no meaningful results found - resetting to data_cleansing")
+                await flow_repo.update_phase_completion(
+                    flow_id=str(flow.flow_id),
+                    phase="data_cleansing",
+                    data={"reset_reason": "No meaningful CrewAI cleansing results found"},
+                    crew_status={"status": "reset", "reason": "crewai_validation_failed"},
+                    agent_insights=[{
+                        "agent": "CrewAI Validation System", 
+                        "insight": "Data cleansing phase reset due to lack of meaningful CrewAI results",
+                        "action_required": "Re-process data cleansing with proper CrewAI agent analysis",
+                        "timestamp": datetime.now().isoformat()
+                    }],
+                    completed=False
+                )
+                return "data_cleansing"
+            
+            # Continue with remaining phases
             if not flow.inventory_completed:
                 return "inventory"
             if not flow.dependencies_completed:
@@ -436,7 +458,76 @@ class CrewAIExecutionHandler:
         except Exception as e:
             logger.error(f"❌ Failed to validate CrewAI attribute mapping completion: {e}")
             return False
-    
+
+    async def _validate_data_cleansing_completion(self, flow) -> bool:
+        """Validate that data cleansing phase actually produced meaningful CrewAI results"""
+        try:
+            # Check 1: Are there data cleansing results in the flow state?
+            has_cleansing_results = False
+            if flow.crewai_state_data:
+                state_data = flow.crewai_state_data
+                if isinstance(state_data, dict):
+                    # Check for data cleansing results in various locations
+                    data_cleansing = state_data.get("data_cleansing", {})
+                    cleaned_data = state_data.get("cleaned_data", [])
+                    quality_metrics = state_data.get("data_quality_metrics", {})
+                    
+                    # Look for meaningful cleansing results
+                    has_cleansing_results = (
+                        bool(data_cleansing) or 
+                        bool(cleaned_data) or 
+                        bool(quality_metrics)
+                    )
+            
+            # Check 2: Are there CrewAI agent insights specifically for data cleansing?
+            has_cleansing_insights = False
+            if flow.crewai_state_data:
+                state_data = flow.crewai_state_data
+                if isinstance(state_data, dict):
+                    agent_insights = state_data.get("agent_insights", [])
+                    # Look for data cleansing specific insights
+                    cleansing_insights = [
+                        insight for insight in agent_insights 
+                        if isinstance(insight, dict) and (
+                            insight.get("phase") == "data_cleansing" or
+                            "cleansing" in insight.get("insight", "").lower() or
+                            "quality" in insight.get("agent", "").lower() or
+                            "validation" in insight.get("agent", "").lower()
+                        )
+                    ]
+                    has_cleansing_insights = len(cleansing_insights) > 0
+            
+            # Check 3: Are there CrewAI execution results for data cleansing?
+            has_crewai_execution = False
+            if flow.crewai_state_data:
+                state_data = flow.crewai_state_data
+                if isinstance(state_data, dict):
+                    # Check for CrewAI execution markers
+                    agent_results = state_data.get("agent_results", {})
+                    crewai_analysis = state_data.get("crewai_analysis", {})
+                    
+                    # Look for data cleansing execution indicators
+                    has_crewai_execution = (
+                        bool(agent_results) or
+                        (isinstance(crewai_analysis, dict) and crewai_analysis.get("phase") == "data_cleansing") or
+                        state_data.get("crew_execution") is True
+                    )
+            
+            # Data cleansing is valid if at least one validation check passes
+            is_valid = has_cleansing_results or has_cleansing_insights or has_crewai_execution
+            
+            logger.info(f"🔍 CrewAI data cleansing validation for flow {flow.flow_id}: "
+                       f"cleansing_results={has_cleansing_results}, "
+                       f"cleansing_insights={has_cleansing_insights}, "
+                       f"crewai_execution={has_crewai_execution}, "
+                       f"overall_valid={is_valid}")
+            
+            return is_valid
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to validate CrewAI data cleansing completion: {e}")
+            return False  # Fail safe - require re-processing if validation fails
+
     async def complete_flow(self, flow_id: str) -> Dict[str, Any]:
         """Complete CrewAI flow execution"""
         try:

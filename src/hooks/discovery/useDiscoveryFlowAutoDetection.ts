@@ -10,7 +10,7 @@ interface FlowAutoDetectionOptions {
 
 export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions = {}) => {
   const { flowId: urlFlowId } = useParams<{ flowId?: string }>();
-  const { flows: flowList, isLoading: isFlowListLoading, error: flowListError } = useDiscoveryFlowList();
+  const { data: flowList, isLoading: isFlowListLoading, error: flowListError } = useDiscoveryFlowList();
   
   const {
     currentPhase,

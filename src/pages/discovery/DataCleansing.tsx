@@ -48,13 +48,13 @@ const DataCleansing: React.FC = () => {
     refresh
   } = useDiscoveryFlowV2(effectiveFlowId);
 
-  // Use real data cleansing analysis hook
+  // Use real data cleansing analysis hook with auto-detected flow ID
   const {
     data: cleansingAnalysis,
     isLoading: isCleansingLoading,
     error: cleansingError,
     refetch: refetchCleansing
-  } = useDataCleansingAnalysis();
+  } = useDataCleansingAnalysis(effectiveFlowId);
 
   // Combine flow data with real cleansing analysis
   const qualityIssues = cleansingAnalysis?.quality_issues || [];
