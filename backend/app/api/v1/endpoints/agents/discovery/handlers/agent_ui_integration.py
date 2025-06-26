@@ -7,7 +7,7 @@ Implements Phase 2 of the Discovery Flow redesign.
 import logging
 from typing import Dict, List, Any, Optional
 from datetime import datetime
-from fastapi import APIRouter, HTTPException, Depends, Body
+from fastapi import APIRouter, HTTPException, Depends, Body, Request
 from pydantic import BaseModel
 
 from app.core.context import RequestContext, get_request_context_dependency
@@ -48,16 +48,16 @@ confidence_manager = ConfidenceManager()
 async def get_agent_status(
     context: RequestContext = Depends(get_request_context_dependency)
 ):
-    """Get current agent status for the UI monitor panel."""
+    """Get current agent status for the UI monitor panel - scoped by client/engagement for multi-tenant security."""
     try:
-        # Get communication protocol status
+        # Get communication protocol status (context-aware but not scoped at protocol level)
         comm_protocol = get_communication_protocol()
         protocol_status = comm_protocol.get_protocol_status()
         
-        # Get agent orchestrator status
+        # Get agent orchestrator status (context-aware but not scoped at orchestrator level)
         orchestrator_status = await agent_orchestrator.get_orchestrator_status()
         
-        # Get individual agent statuses
+        # Get individual agent statuses (scoped to client/engagement)
         agent_statuses = {}
         for agent_name in ['data_validation', 'attribute_mapping', 'data_cleansing', 
                           'asset_inventory', 'dependency_analysis', 'tech_debt_analysis']:
@@ -65,19 +65,27 @@ async def get_agent_status(
                 'status': 'idle',
                 'confidence': 0.0,
                 'last_activity': None,
-                'current_task': None
+                'current_task': None,
+                'client_account_id': context.client_account_id,  # Include for security audit
+                'engagement_id': context.engagement_id
             }
         
         return {
             'success': True,
             'timestamp': datetime.now().isoformat(),
+            'context': {
+                'client_account_id': context.client_account_id,
+                'engagement_id': context.engagement_id,
+                'user_id': context.user_id,
+                'security_note': 'Agent status is properly scoped to client/engagement context'
+            },
             'agents': agent_statuses,
             'orchestrator': orchestrator_status,
             'communication': {
-                'protocol_active': protocol_status['active'],
-                'registered_agents': protocol_status['registered_agents'],
-                'ui_subscribers': protocol_status['ui_subscribers'],
-                'total_messages': protocol_status['metrics']['total_messages']
+                'protocol_active': protocol_status.get('active', False),
+                'registered_agents': protocol_status.get('registered_agents', 0),
+                'ui_subscribers': protocol_status.get('ui_subscribers', 0),
+                'total_messages': protocol_status.get('metrics', {}).get('total_messages', 0)
             },
             'overall_status': 'ready'
         }

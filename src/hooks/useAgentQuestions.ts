@@ -101,7 +101,7 @@ export const useAgentStatus = () => {
     queryKey: ['agent-status'],
     queryFn: async () => {
       try {
-        const response = await apiCall('/api/v1/discovery/agents/agent-status');
+        const response = await apiCall('/api/v1/agents/discovery/agent-status');
         return response;
       } catch (err: any) {
         // Handle 404 errors gracefully - these endpoints may not exist yet

@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import desc, select, and_
+from sqlalchemy import desc, select, and_, func
 import uuid
 import asyncio
 import json
@@ -585,14 +585,20 @@ async def get_latest_import(
                     logger.warning(f"Invalid UUID format - client: {context.client_account_id}, engagement: {context.engagement_id}")
                     return None
                 
+                # First, let's get imports that actually have raw records available
+                # by joining with raw_import_records and counting them
+                from sqlalchemy import exists
+                
                 latest_import_query = select(DataImport).where(
                     and_(
                         DataImport.client_account_id == client_uuid,
-                        DataImport.engagement_id == engagement_uuid
+                        DataImport.engagement_id == engagement_uuid,
+                        # Only select imports that have raw records
+                        exists().where(RawImportRecord.data_import_id == DataImport.id)
                     )
                 ).order_by(
-                    # First priority: imports with more records (likely real data)
-                    DataImport.total_records.desc(),
+                    # First priority: imports with actual total_records (not NULL)
+                    DataImport.total_records.desc().nulls_last(),
                     # Second priority: most recent among those with same record count  
                     DataImport.completed_at.desc()
                 ).limit(1)

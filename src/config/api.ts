@@ -91,7 +91,7 @@ export const API_CONFIG = {
       INFRASTRUCTURE_LANDSCAPE: '/discovery/assets/infrastructure-landscape',
       // Agent endpoints
       AGENT_CLARIFICATION: '/discovery/agents/agent-clarification',
-      AGENT_STATUS: '/discovery/agents/agent-status',
+      AGENT_STATUS: '/agents/discovery/agent-status',
       AGENTIC_ANALYSIS_STATUS: '/discovery/flow/agent/crew/analysis/status',
       AGENT_LEARNING: '/agents/discovery/learning/agent-learning',
       APPLICATION_PORTFOLIO: '/discovery/agents/application-portfolio',

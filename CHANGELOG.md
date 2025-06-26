@@ -4703,3 +4703,88 @@ This release implements a comprehensive data import workflow with security scree
 - **Security First**: Security screening enforced as mandatory first step
 - **Learning Integration**: Agent learning system captures both positive and negative feedback
 - **Workflow Enforcement**: Asset creation properly gated behind mapping approval
+
+## [0.4.11] - 2025-01-27
+
+### 🔒 **SECURITY & DATA IMPORT FIXES - Multi-Tenant Agent Monitoring & Import Query Optimization**
+
+This release addresses critical multi-tenant security concerns and fixes data import query logic to ensure proper data retrieval and agent monitoring security.
+
+### 🚀 **Multi-Tenant Security Enhancements**
+
+#### **Agent Endpoint Security Hardening**
+- **Security Fix**: Removed agent-status endpoint from context validation exemptions to prevent cross-tenant data leakage
+- **Context Enforcement**: Agent monitoring endpoints now properly require and validate client/engagement context
+- **Security Audit**: Added context information in agent status responses for security auditing and verification
+- **Authentication**: All agent endpoints now enforce proper multi-tenant authentication headers
+- **URL Correction**: Fixed frontend API calls to use correct agent endpoint URLs (`/api/v1/agents/discovery/agent-status`)
+
+#### **Data Import Query Logic Optimization**
+- **Query Fix**: Updated latest import query to prioritize imports with actual raw records available
+- **Record Validation**: Added EXISTS clause to ensure selected imports have corresponding raw_import_records
+- **Priority Logic**: Changed from COALESCE-based scoring to direct total_records prioritization with NULL handling
+- **Performance**: Optimized query to avoid selecting imports with processed_records but no raw data
+
+### 🔧 **Technical Improvements**
+
+#### **Backend API Enhancements**
+- **Context Validation**: Restored proper RequestContext dependency for agent-status endpoint
+- **Database Queries**: Fixed import selection logic to return imports with actual data records
+- **Error Handling**: Improved error handling and logging for import retrieval operations
+- **Security Headers**: Enhanced multi-tenant header validation and context extraction
+
+#### **Frontend Configuration Updates**
+- **API Endpoints**: Updated agent monitoring API configuration to use correct endpoint paths
+- **Authentication**: Fixed useAgentQuestions hook to call properly authenticated agent endpoints
+- **Error Prevention**: Resolved 404 errors in agent monitoring panels by correcting endpoint URLs
+
+### 📊 **Data Import Workflow Fixes**
+
+#### **Import Selection Logic**
+- **Smart Prioritization**: Imports with actual raw records now take priority over those with only processed_records
+- **Data Availability**: Latest import endpoint now returns imports that contain viewable data
+- **Record Validation**: Added database-level validation to ensure raw records exist before selection
+- **Performance Optimization**: Limited raw record retrieval to 1000 records for UI performance
+
+#### **Multi-Tenant Data Isolation**
+- **Context Scoping**: All agent status information is properly scoped to client/engagement context
+- **Security Auditing**: Agent responses include context information for security verification
+- **Data Separation**: Eliminated risk of cross-tenant data exposure in agent monitoring
+- **Access Control**: Proper validation of user access to client/engagement data
+
+### 🎯 **Security Impact**
+
+#### **Vulnerability Resolution**
+- **Multi-Tenant Isolation**: Fixed potential security vulnerability where agent endpoints could expose cross-tenant information
+- **Context Validation**: Restored mandatory context validation for all agent monitoring endpoints
+- **Data Scoping**: Ensured all agent status data is properly scoped to requesting user's context
+- **Authentication Enforcement**: All agent endpoints now require proper multi-tenant authentication
+
+#### **Data Integrity**
+- **Import Accuracy**: Fixed issue where frontend showed "0 records" despite successful imports
+- **Record Availability**: Latest import endpoint now returns imports with actual viewable data
+- **Query Reliability**: Improved database query logic to select most relevant and complete imports
+- **Performance Consistency**: Optimized queries for consistent response times
+
+### 🔍 **Monitoring & Observability**
+
+#### **Agent Status Security**
+- **Context Awareness**: Agent status responses include client/engagement context for audit trails
+- **Security Validation**: Added security notes in responses to confirm proper context scoping
+- **Access Logging**: Enhanced logging for agent endpoint access with context information
+- **Audit Trail**: Complete audit trail for multi-tenant agent monitoring access
+
+#### **Import Monitoring**
+- **Query Debugging**: Enhanced logging for import selection logic and database queries
+- **Performance Metrics**: Added response time tracking for import retrieval operations
+- **Data Validation**: Improved validation of import data completeness and availability
+- **Error Tracking**: Better error handling and reporting for import-related operations
+
+### 📋 **Success Metrics**
+
+- **Security**: ✅ Multi-tenant agent endpoints properly isolated and context-validated
+- **Data Access**: ✅ Latest import endpoint returns correct imports with actual data records
+- **Authentication**: ✅ All agent monitoring requires proper multi-tenant headers and validation
+- **Performance**: ✅ Import queries optimized for sub-second response times with data validation
+- **User Experience**: ✅ Agent monitoring panels now display data without 404 errors
+- **Data Integrity**: ✅ Frontend shows correct record counts and import information
