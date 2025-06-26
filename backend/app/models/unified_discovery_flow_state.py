@@ -39,6 +39,7 @@ class UnifiedDiscoveryFlowState(BaseModel):
         "data_import": False,
         "field_mapping": False,
         "data_cleansing": False,
+        "asset_creation": False,
         "asset_inventory": False,
         "dependency_analysis": False,
         "tech_debt_analysis": False
@@ -91,6 +92,9 @@ class UnifiedDiscoveryFlowState(BaseModel):
     cleaned_data: List[Dict[str, Any]] = Field(default_factory=list)
     data_quality_metrics: Dict[str, Any] = Field(default_factory=dict)
     data_cleansing_results: Dict[str, Any] = Field(default_factory=dict)
+    
+    # Asset creation results
+    asset_creation_results: Dict[str, Any] = Field(default_factory=dict)
     
     # Asset inventory results
     asset_inventory: Dict[str, Any] = Field(default_factory=lambda: {

@@ -498,6 +498,310 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             return "data_cleansing_failed"
 
     @listen(execute_data_cleansing_agent)
+    async def create_discovery_assets_from_cleaned_data(self, previous_result):
+        """Create discovery assets from cleaned data after data cleansing (proper relational approach)"""
+        logger.info("🏗️ Creating Discovery Assets from Cleaned Data")
+        self.state.current_phase = "discovery_asset_creation"
+        
+        # REAL-TIME UPDATE: Update database immediately when phase starts
+        if self.flow_bridge:
+            await self.flow_bridge.update_flow_state(self.state)
+        
+        try:
+            # Check if we have cleaned data to process
+            if not self.state.cleaned_data:
+                logger.warning("⚠️ No cleaned data available for asset creation")
+                return "asset_creation_skipped"
+            
+            logger.info(f"📊 Creating assets from {len(self.state.cleaned_data)} cleaned records")
+            
+            # Import required modules
+            from app.core.database import AsyncSessionLocal
+            from app.models.discovery_asset import DiscoveryAsset
+            from app.models.discovery_flow import DiscoveryFlow
+            from app.models.data_import import RawImportRecord
+            from sqlalchemy import select, update
+            import uuid as uuid_pkg
+            from datetime import datetime
+            
+            discovery_assets_created = 0
+            records_processed = 0
+            
+            async with AsyncSessionLocal() as db_session:
+                try:
+                    # Get the discovery flow record
+                    flow_query = select(DiscoveryFlow).where(
+                        DiscoveryFlow.flow_id == uuid_pkg.UUID(self.state.flow_id)
+                    )
+                    flow_result = await db_session.execute(flow_query)
+                    discovery_flow = flow_result.scalar_one_or_none()
+                    
+                    if not discovery_flow:
+                        logger.error(f"❌ Discovery flow not found: {self.state.flow_id}")
+                        return "discovery_flow_not_found"
+                    
+                    # Get approved field mappings for intelligent mapping
+                    field_mappings = self.state.field_mappings.get("mappings", {})
+                    
+                    # Process each cleaned record into a discovery asset
+                    for index, cleaned_record in enumerate(self.state.cleaned_data):
+                        try:
+                            # Apply intelligent field mapping
+                            mapped_data = self._apply_field_mappings_to_record(cleaned_record, field_mappings)
+                            
+                            # Create discovery asset with proper relational structure
+                            discovery_asset = DiscoveryAsset(
+                                # Foreign key relationship
+                                discovery_flow_id=discovery_flow.id,
+                                
+                                # Multi-tenant isolation
+                                client_account_id=uuid_pkg.UUID(self.state.client_account_id) if self.state.client_account_id else None,
+                                engagement_id=uuid_pkg.UUID(self.state.engagement_id) if self.state.engagement_id else None,
+                                
+                                # Core identification
+                                asset_name=self._extract_asset_name(mapped_data, cleaned_record, index),
+                                asset_type=self._determine_asset_type_from_data(mapped_data, cleaned_record),
+                                asset_subtype=mapped_data.get("asset_subtype") or cleaned_record.get("asset_subtype"),
+                                
+                                # Data storage (proper JSONB structure)
+                                raw_data=cleaned_record,
+                                normalized_data={
+                                    **mapped_data,
+                                    "hostname": mapped_data.get("hostname") or cleaned_record.get("hostname"),
+                                    "ip_address": mapped_data.get("ip_address") or cleaned_record.get("ip_address"),
+                                    "operating_system": mapped_data.get("operating_system") or cleaned_record.get("operating_system"),
+                                    "environment": mapped_data.get("environment") or cleaned_record.get("environment", "Unknown"),
+                                    "business_owner": mapped_data.get("business_owner") or cleaned_record.get("business_owner"),
+                                    "department": mapped_data.get("department") or cleaned_record.get("department"),
+                                    "criticality": mapped_data.get("criticality") or cleaned_record.get("criticality", "Medium")
+                                },
+                                
+                                # Discovery metadata
+                                discovered_in_phase="data_cleansing",
+                                discovery_method="unified_discovery_flow",
+                                confidence_score=self.state.agent_confidences.get('data_cleansing', 0.85),
+                                
+                                # Migration assessment
+                                migration_ready=False,  # Will be determined in later phases
+                                migration_complexity="Medium",  # Default until analyzed
+                                migration_priority=3,  # Default priority
+                                
+                                # Status tracking
+                                asset_status="discovered",
+                                validation_status="pending",
+                                
+                                # Mock flag
+                                is_mock=False
+                            )
+                            
+                            db_session.add(discovery_asset)
+                            await db_session.flush()
+                            discovery_assets_created += 1
+                            
+                            logger.info(f"✅ Created discovery asset {discovery_asset.id}: {discovery_asset.asset_name} ({discovery_asset.asset_type})")
+                            
+                        except Exception as e:
+                            logger.error(f"❌ Failed to create discovery asset from record {index}: {e}")
+                            continue
+                    
+                    # Find and update corresponding raw import records
+                    if self.state.session_id:
+                        # Update raw import records to mark them as processed
+                        update_query = (
+                            update(RawImportRecord)
+                            .where(RawImportRecord.session_id == uuid_pkg.UUID(self.state.session_id))
+                            .where(RawImportRecord.is_processed == False)
+                            .values(
+                                is_processed=True,
+                                processed_at=datetime.utcnow(),
+                                processing_notes=f"Processed by CrewAI Discovery Flow - {discovery_assets_created} discovery assets created"
+                            )
+                        )
+                        result = await db_session.execute(update_query)
+                        records_processed = result.rowcount
+                        
+                        logger.info(f"📝 Updated {records_processed} raw import records as processed")
+                    
+                    # Commit all changes
+                    await db_session.commit()
+                    
+                    # Update flow state
+                    self.state.asset_creation_results = {
+                        "discovery_assets_created": discovery_assets_created,
+                        "records_processed": records_processed,
+                        "total_records": len(self.state.cleaned_data),
+                        "success_rate": discovery_assets_created / len(self.state.cleaned_data) if self.state.cleaned_data else 0,
+                        "timestamp": datetime.utcnow().isoformat()
+                    }
+                    
+                    self.state.phase_completion['asset_creation'] = True
+                    self.state.progress_percentage = 70.0
+                    
+                    # REAL-TIME UPDATE: Persist state with asset creation results
+                    if self.flow_bridge:
+                        await self.flow_bridge.update_flow_state(self.state)
+                    
+                    logger.info(f"✅ Discovery asset creation completed: {discovery_assets_created} discovery assets created from {len(self.state.cleaned_data)} records")
+                    return "discovery_asset_creation_completed"
+                    
+                except Exception as e:
+                    await db_session.rollback()
+                    logger.error(f"❌ Database error during asset creation: {e}")
+                    raise
+                    
+        except Exception as e:
+            logger.error(f"❌ Asset creation failed: {e}")
+            self.state.add_error("asset_creation", f"Asset creation failed: {str(e)}")
+            
+            # REAL-TIME UPDATE: Update database even on failure
+            if self.flow_bridge:
+                await self.flow_bridge.update_flow_state(self.state)
+            
+            return "asset_creation_failed"
+
+    def _apply_field_mappings_to_record(self, record: Dict[str, Any], field_mappings: Dict[str, str]) -> Dict[str, Any]:
+        """Apply field mappings to transform a record"""
+        mapped_data = {}
+        
+        for source_field, target_field in field_mappings.items():
+            if source_field in record:
+                # Normalize target field name
+                normalized_target = target_field.lower().replace(" ", "_").replace("-", "_")
+                mapped_data[normalized_target] = record[source_field]
+        
+        return mapped_data
+    
+    def _extract_asset_name(self, mapped_data: Dict[str, Any], original_data: Dict[str, Any], index: int) -> str:
+        """Extract the best asset name from available data"""
+        # Try mapped data first
+        if mapped_data.get("asset_name"):
+            return str(mapped_data["asset_name"])
+        if mapped_data.get("hostname"):
+            return str(mapped_data["hostname"])
+        if mapped_data.get("name"):
+            return str(mapped_data["name"])
+        
+        # Fallback to original data
+        if original_data.get("asset_name"):
+            return str(original_data["asset_name"])
+        if original_data.get("hostname"):
+            return str(original_data["hostname"])
+        if original_data.get("name"):
+            return str(original_data["name"])
+        if original_data.get("NAME"):
+            return str(original_data["NAME"])
+        
+        # Final fallback
+        return f"Asset_{index + 1}"
+    
+    def _determine_asset_type_from_data(self, mapped_data: Dict[str, Any], original_data: Dict[str, Any]) -> str:
+        """Determine asset type from available data"""
+        # Check mapped data first
+        asset_type = mapped_data.get("asset_type") or original_data.get("asset_type") or original_data.get("TYPE")
+        
+        if asset_type:
+            asset_type_str = str(asset_type).upper()
+            # Map common types
+            if "SERVER" in asset_type_str or "SRV" in asset_type_str:
+                return "SERVER"
+            elif "DATABASE" in asset_type_str or "DB" in asset_type_str:
+                return "DATABASE"
+            elif "NETWORK" in asset_type_str or "NET" in asset_type_str:
+                return "NETWORK"
+            elif "STORAGE" in asset_type_str:
+                return "STORAGE"
+            elif "APPLICATION" in asset_type_str or "APP" in asset_type_str:
+                return "APPLICATION"
+            elif "VIRTUAL" in asset_type_str or "VM" in asset_type_str:
+                return "VIRTUAL_MACHINE"
+        
+        # Default fallback
+        return "SERVER"
+    
+    def _safe_int(self, value) -> Optional[int]:
+        """Safely convert value to integer"""
+        if value is None:
+            return None
+        try:
+            return int(float(str(value)))
+        except (ValueError, TypeError):
+            return None
+    
+    def _safe_float(self, value) -> Optional[float]:
+        """Safely convert value to float"""
+        if value is None:
+            return None
+        try:
+            return float(str(value))
+        except (ValueError, TypeError):
+            return None
+
+    @listen(create_discovery_assets_from_cleaned_data)
+    async def promote_discovery_assets_to_assets(self, previous_result):
+        """Promote discovery assets to final assets table for migration planning"""
+        logger.info("🚀 Promoting Discovery Assets to Final Assets Table")
+        self.state.current_phase = "asset_promotion"
+        
+        # REAL-TIME UPDATE: Update database immediately when phase starts
+        if self.flow_bridge:
+            await self.flow_bridge.update_flow_state(self.state)
+        
+        try:
+            # Import required modules
+            from app.services.asset_creation_bridge_service import AssetCreationBridgeService
+            from app.core.database import AsyncSessionLocal
+            import uuid as uuid_pkg
+            from datetime import datetime
+            
+            async with AsyncSessionLocal() as db_session:
+                try:
+                    # Initialize asset creation bridge service
+                    bridge_service = AssetCreationBridgeService(db_session, self._init_context)
+                    
+                    # Create assets from discovery flow
+                    creation_result = await bridge_service.create_assets_from_discovery(
+                        discovery_flow_id=uuid_pkg.UUID(self.state.flow_id),
+                        user_id=uuid_pkg.UUID(self.state.user_id) if self.state.user_id and self.state.user_id != "anonymous" else None
+                    )
+                    
+                    # Store results in flow state
+                    self.state.asset_inventory = {
+                        "assets_promoted": creation_result.get("created_count", 0),
+                        "assets_skipped": creation_result.get("skipped_count", 0),
+                        "assets_errored": creation_result.get("error_count", 0),
+                        "success": creation_result.get("success", False),
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "phase": "asset_promotion",
+                        "details": creation_result
+                    }
+                    
+                    # Mark phase as completed
+                    self.state.phase_completion["asset_inventory"] = True
+                    self.state.progress_percentage = 80.0
+                    
+                    # REAL-TIME UPDATE: Persist state with asset promotion results
+                    if self.flow_bridge:
+                        await self.flow_bridge.update_flow_state(self.state)
+                    
+                    logger.info(f"✅ Asset promotion completed: {creation_result.get('created_count', 0)} assets created")
+                    return f"asset_promotion_completed_{creation_result.get('created_count', 0)}_assets"
+                    
+                except Exception as e:
+                    await db_session.rollback()
+                    logger.error(f"❌ Database error during asset promotion: {e}")
+                    raise
+                    
+        except Exception as e:
+            logger.error(f"❌ Asset promotion failed: {e}")
+            self.state.add_error("asset_promotion", f"Asset promotion failed: {str(e)}")
+            
+            # REAL-TIME UPDATE: Update database even on failure
+            if self.flow_bridge:
+                await self.flow_bridge.update_flow_state(self.state)
+            
+            return "asset_promotion_failed"
+
+    @listen(promote_discovery_assets_to_assets)
     async def execute_parallel_analysis_agents(self, previous_result):
         """Execute asset inventory, dependency, and tech debt analysis agents in parallel"""
         logger.info("🤖 Starting Parallel Analysis Agents (Asset, Dependency, Tech Debt)")

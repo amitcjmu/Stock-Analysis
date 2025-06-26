@@ -145,10 +145,24 @@ class CrewAIExecutionHandler:
                 "validation_compatible": True
             }
             
+            # Execute discovery asset creation if this is the inventory phase
+            discovery_assets_created = 0
+            if phase == "inventory":
+                try:
+                    logger.info("🏗️ Creating Discovery Assets from Cleaned Data")
+                    discovery_assets_created = await self._create_discovery_assets_from_cleaned_data(flow_repo, flow_id)
+                    logger.info(f"✅ Created {discovery_assets_created} discovery assets")
+                except Exception as e:
+                    logger.error(f"❌ Failed to create discovery assets: {e}")
+                    # Don't fail the entire phase if asset creation fails
+            
             await flow_repo.update_phase_completion(
                 flow_id=flow_id,
                 phase=phase,
-                data=phase_data,
+                data={
+                    **phase_data,
+                    "discovery_assets_created": discovery_assets_created
+                },
                 crew_status={
                     "status": "completed", 
                     "agents_used": ["Asset Intelligence Agent", "Pattern Recognition", "Learning Specialist"],
@@ -169,6 +183,7 @@ class CrewAIExecutionHandler:
                 "confidence_score": 0.87,
                 "agent_insights": agent_insights,
                 "database_updated": True,
+                "discovery_assets_created": discovery_assets_created,
                 "execution_time": "00:01:23"
             }
             
@@ -490,4 +505,155 @@ class CrewAIExecutionHandler:
             
         except Exception as e:
             logger.error(f"❌ Failed to delete CrewAI flow: {e}")
-            raise 
+            raise
+    
+    async def _create_discovery_assets_from_cleaned_data(self, flow_repo, flow_id: str) -> int:
+        """Create discovery assets from cleaned data after inventory phase"""
+        try:
+            # Get the flow to access cleaned data
+            flow = await flow_repo.get_by_flow_id(flow_id)
+            if not flow:
+                logger.error(f"❌ Flow not found: {flow_id}")
+                return 0
+                
+            # Get cleaned data from flow state
+            cleaned_data = []
+            if hasattr(flow, 'crewai_state_data') and flow.crewai_state_data:
+                cleaned_data = flow.crewai_state_data.get('cleaned_data', [])
+            
+            # If no cleaned data, try to get from raw import records
+            if not cleaned_data:
+                logger.info("🔍 No cleaned data found, processing raw import records")
+                from app.models.data_import import RawImportRecord
+                from sqlalchemy import select
+                
+                # Get raw import records for this flow
+                raw_query = select(RawImportRecord).where(
+                    RawImportRecord.client_account_id == flow.client_account_id,
+                    RawImportRecord.is_processed == False
+                )
+                raw_result = await self.db.execute(raw_query)
+                raw_records = raw_result.scalars().all()
+                
+                # Convert raw records to cleaned data format
+                for record in raw_records:
+                    if record.raw_data:
+                        cleaned_data.append(record.raw_data)
+                        
+            if not cleaned_data:
+                logger.warning("⚠️ No data available for discovery asset creation")
+                return 0
+                
+            logger.info(f"📊 Processing {len(cleaned_data)} records for discovery asset creation")
+            
+            # Import required modules
+            from app.models.discovery_asset import DiscoveryAsset
+            from app.models.data_import.mapping import ImportFieldMapping
+            from sqlalchemy import select
+            import uuid as uuid_pkg
+            from datetime import datetime
+            
+            # Get approved field mappings
+            from app.models.data_import import DataImport
+            mapping_query = select(ImportFieldMapping).join(
+                DataImport, ImportFieldMapping.data_import_id == DataImport.id
+            ).where(
+                DataImport.client_account_id == flow.client_account_id,
+                ImportFieldMapping.status == 'approved'
+            )
+            mapping_result = await self.db.execute(mapping_query)
+            field_mappings = mapping_result.scalars().all()
+            
+            # Create mapping dictionary
+            mapping_dict = {}
+            for mapping in field_mappings:
+                mapping_dict[mapping.source_field] = mapping.target_field
+                
+            discovery_assets_created = 0
+            
+            # Process each cleaned record into a discovery asset
+            for index, record in enumerate(cleaned_data):
+                try:
+                    # Apply field mappings to get standardized data
+                    mapped_data = self._apply_field_mappings_to_record(record, mapping_dict)
+                    
+                    # Create discovery asset
+                    discovery_asset = DiscoveryAsset(
+                        # Multi-tenant isolation
+                        client_account_id=flow.client_account_id,
+                        engagement_id=flow.engagement_id,
+                        discovery_flow_id=flow.id,
+                        
+                        # Asset identification
+                        asset_name=mapped_data.get('asset_name') or mapped_data.get('Asset_Name') or f"Asset_{index + 1}",
+                        asset_type=self._determine_asset_type_from_data(mapped_data, record),
+                        
+                        # Discovery metadata
+                        discovered_in_phase='inventory',
+                        discovery_method='crewai_agent_analysis',
+                        confidence_score=0.87,
+                        
+                        # Asset data
+                        raw_data=record,
+                        normalized_data=mapped_data,
+                        
+                        # Migration readiness
+                        migration_ready=True,
+                        
+                        # Timestamps
+                        created_at=datetime.utcnow(),
+                        updated_at=datetime.utcnow()
+                    )
+                    
+                    self.db.add(discovery_asset)
+                    discovery_assets_created += 1
+                    
+                except Exception as e:
+                    logger.error(f"❌ Failed to create discovery asset {index}: {e}")
+                    continue
+                    
+            # Commit all discovery assets
+            await self.db.commit()
+            
+            logger.info(f"✅ Created {discovery_assets_created} discovery assets")
+            return discovery_assets_created
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to create discovery assets: {e}")
+            await self.db.rollback()
+            return 0
+    
+    def _apply_field_mappings_to_record(self, record: dict, mapping_dict: dict) -> dict:
+        """Apply field mappings to transform record data"""
+        mapped_data = {}
+        
+        for source_field, value in record.items():
+            # Get target field from mapping, or use original field name
+            target_field = mapping_dict.get(source_field, source_field)
+            mapped_data[target_field] = value
+            
+        return mapped_data
+    
+    def _determine_asset_type_from_data(self, mapped_data: dict, original_data: dict) -> str:
+        """Determine asset type from available data"""
+        # Check mapped data first
+        asset_type = mapped_data.get("asset_type") or original_data.get("asset_type") or original_data.get("TYPE")
+        
+        if asset_type:
+            asset_type_str = str(asset_type).upper()
+            # Map common types
+            if "SERVER" in asset_type_str or "SRV" in asset_type_str:
+                return "SERVER"
+            elif "DATABASE" in asset_type_str or "DB" in asset_type_str:
+                return "DATABASE"
+            elif "NETWORK" in asset_type_str or "NET" in asset_type_str:
+                return "NETWORK"
+            elif "STORAGE" in asset_type_str:
+                return "STORAGE"
+            elif "APPLICATION" in asset_type_str or "APP" in asset_type_str:
+                return "APPLICATION"
+            elif "VIRTUAL" in asset_type_str or "VM" in asset_type_str:
+                return "VIRTUAL_MACHINE"
+                
+        # Default fallback
+        return "SERVER" 
