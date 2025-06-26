@@ -1,5 +1,65 @@
 # AI Force Migration Platform - Change Log
 
+## [0.8.40] - 2025-01-25
+
+### 🎯 **CREWAI FLOW PAUSE/RESUME COMPLETION**
+
+This release completes the CrewAI Flow pause/resume implementation that enables true human-in-the-loop workflows where users can pause flows, provide input, and resume processing with that context preserved.
+
+### 🚀 **Frontend Service Integration**
+
+#### **Discovery Service Enhancement**
+- **Fixed pause/resume methods**: Corrected `httpClient.post` usage instead of non-existent `this.apiCall`
+- **Enhanced error handling**: Comprehensive try-catch blocks with detailed logging
+- **Proper type annotations**: Added proper TypeScript types for all pause/resume responses
+- **Service exports**: Added `pauseFlow`, `resumeFlow`, and `resumeFlowAtPhase` to exported functions
+
+#### **Interface Type Updates**
+- **Removed session_id references**: Updated `UnifiedDiscoveryFlowRequest` and `UnifiedDiscoveryFlowResponse` interfaces
+- **Standardized parameters**: Changed `import_session_id` to `data_import_id` in request interface
+- **Clean API contracts**: Removed deprecated `session_id` field from response interface
+
+### 📊 **Complete Integration Status**
+
+#### **Backend Implementation** ✅
+- **API Endpoints**: All three pause/resume endpoints fully functional
+- **CrewAI Flow Service**: Comprehensive pause/resume methods with fallback mechanisms
+- **Database Integration**: PostgreSQL state management for flow control
+- **Context Preservation**: Proper user context handling across pause/resume cycles
+
+#### **Frontend Integration** ✅
+- **Service Methods**: All pause/resume service methods working correctly
+- **UI Components**: Pause/resume buttons in FlowCrewAgentMonitor and CrewStatusCard
+- **Attribute Mapping**: `handleTriggerFieldMappingCrew` uses `resumeFlowAtPhase` correctly
+- **Type Safety**: All TypeScript interfaces updated and consistent
+
+#### **Human-in-the-Loop Architecture** ✅
+- **Flow Node Pattern**: Each discovery phase is a CrewAI Flow node (Python method)
+- **Pause Points**: Flows can be paused at any node for human input
+- **Resume Context**: Human input passed to resumed nodes for intelligent processing
+- **State Persistence**: Flow state preserved across pause/resume cycles using `@persist()` decorator
+
+### 🔧 **Technical Achievements**
+- **API Consistency**: All endpoints use `flow_id` as primary identifier with no session_id confusion
+- **Service Integration**: Frontend service methods properly integrated with backend endpoints
+- **Error Handling**: Comprehensive error handling and logging throughout the stack
+- **Type Safety**: Complete TypeScript type consistency between frontend and backend
+
+### 🎯 **Business Impact**
+- **True CrewAI Integration**: Leverages actual CrewAI Flow pause/resume capabilities instead of simple phase marking
+- **Human-AI Collaboration**: Seamless integration of human input with AI processing
+- **Workflow Flexibility**: Users can control flow progression based on their needs and approval points
+- **Data Integrity**: No data loss during pause/resume cycles with proper state preservation
+
+### ⚡ **Success Metrics**
+- **Flow Control**: ✅ Proper pause/resume functionality replacing old trigger system
+- **State Persistence**: ✅ CrewAI Flow state preserved across operations  
+- **Human Input**: ✅ User context successfully passed to resumed flow nodes
+- **API Integration**: ✅ Unified service pattern across all discovery pages
+- **Type Consistency**: ✅ Frontend/backend interface alignment complete
+
+---
+
 ## [0.8.39] - 2025-01-25
 
 ### 🎯 **SESSION_ID CLEANUP - FLOW_ID STANDARDIZATION**

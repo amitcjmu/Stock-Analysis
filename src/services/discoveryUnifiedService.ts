@@ -13,13 +13,12 @@ import { getAuthHeaders } from '../utils/contextUtils';
 export interface UnifiedDiscoveryFlowRequest {
   raw_data: Array<Record<string, any>>;
   metadata?: Record<string, any>;
-  import_session_id?: string;
+  data_import_id?: string;
   execution_mode?: 'crewai' | 'database' | 'hybrid';
 }
 
 export interface UnifiedDiscoveryFlowResponse {
   flow_id: string;
-  session_id?: string;
   client_account_id: string;
   engagement_id: string;
   user_id: string;
@@ -311,37 +310,56 @@ export class UnifiedDiscoveryService {
     }
   }
 
-  // Flow execution methods
-  async executeFlow(data: any): Promise<any> {
-    return this.apiCall('/flow/execute', {
-      method: 'POST',
-      body: JSON.stringify(data)
-    });
+  // === CrewAI Flow Control Methods ===
+
+  /**
+   * Pause a running CrewAI discovery flow at the current node
+   */
+  async pauseFlow(flowId: string, reason: string = 'user_requested'): Promise<Record<string, any>> {
+    try {
+      console.log('⏸️ Pausing discovery flow:', { flowId, reason });
+      const result = await httpClient.post<Record<string, any>>(`/flow/pause/${flowId}`, { reason });
+      console.log('✅ Flow paused successfully:', result.action);
+      return result;
+    } catch (error) {
+      console.error('❌ Failed to pause flow:', error);
+      throw error;
+    }
   }
 
-  // New CrewAI Flow control methods
-  async pauseFlow(flowId: string, reason: string = 'user_requested'): Promise<any> {
-    return this.apiCall(`/flow/pause/${flowId}`, {
-      method: 'POST',
-      body: JSON.stringify({ reason })
-    });
+  /**
+   * Resume a paused CrewAI discovery flow from the last saved state
+   */
+  async resumeFlow(flowId: string, resumeContext?: Record<string, any>): Promise<Record<string, any>> {
+    try {
+      console.log('▶️ Resuming discovery flow:', { flowId, resumeContext });
+      const result = await httpClient.post<Record<string, any>>(`/flow/resume/${flowId}`, { 
+        resume_context: resumeContext || { trigger: 'user_requested' } 
+      });
+      console.log('✅ Flow resumed successfully:', result.action);
+      return result;
+    } catch (error) {
+      console.error('❌ Failed to resume flow:', error);
+      throw error;
+    }
   }
 
-  async resumeFlow(flowId: string, resumeContext?: any): Promise<any> {
-    return this.apiCall(`/flow/resume/${flowId}`, {
-      method: 'POST',
-      body: JSON.stringify({ resume_context: resumeContext || { trigger: 'user_requested' } })
-    });
-  }
-
-  async resumeFlowAtPhase(flowId: string, phase: string, humanInput?: any): Promise<any> {
-    return this.apiCall(`/flow/resume-at-phase/${flowId}`, {
-      method: 'POST',
-      body: JSON.stringify({ 
+  /**
+   * Resume a CrewAI discovery flow at a specific phase with optional human input
+   */
+  async resumeFlowAtPhase(flowId: string, phase: string, humanInput?: Record<string, any>): Promise<Record<string, any>> {
+    try {
+      console.log('▶️ Resuming discovery flow at phase:', { flowId, phase, humanInput });
+      const result = await httpClient.post<Record<string, any>>(`/flow/resume-at-phase/${flowId}`, { 
         phase, 
         human_input: humanInput 
-      })
-    });
+      });
+      console.log('✅ Flow resumed at phase successfully:', result.action);
+      return result;
+    } catch (error) {
+      console.error('❌ Failed to resume flow at phase:', error);
+      throw error;
+    }
   }
 }
 
@@ -366,6 +384,16 @@ export const getDiscoveryFlowAssets = (flowId: string) =>
 
 export const getDiscoveryHealthStatus = () => 
   unifiedDiscoveryService.getHealthStatus();
+
+// CrewAI Flow Control exports
+export const pauseFlow = (flowId: string, reason?: string) => 
+  unifiedDiscoveryService.pauseFlow(flowId, reason);
+
+export const resumeFlow = (flowId: string, resumeContext?: Record<string, any>) => 
+  unifiedDiscoveryService.resumeFlow(flowId, resumeContext);
+
+export const resumeFlowAtPhase = (flowId: string, phase: string, humanInput?: Record<string, any>) => 
+  unifiedDiscoveryService.resumeFlowAtPhase(flowId, phase, humanInput);
 
 // Legacy compatibility exports
 export const runDiscoveryFlow = (request: Record<string, any>) => 
