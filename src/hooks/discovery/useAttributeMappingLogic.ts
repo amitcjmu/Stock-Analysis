@@ -67,19 +67,39 @@ export const useAttributeMappingLogic = () => {
     : { attributes: [] };
   
   const fieldMappings = (fieldMappingData && !Array.isArray(fieldMappingData) && fieldMappingData.mappings) 
-    ? fieldMappingData.mappings 
+    ? Object.entries(fieldMappingData.mappings).map(([targetField, mapping]: [string, any]) => ({
+        sourceField: mapping.source_column,
+        targetAttribute: mapping.asset_field,
+        confidence: mapping.confidence,
+        matchType: mapping.match_type,
+        patternMatched: mapping.pattern_matched
+      }))
     : [];
   
   const crewAnalysis = (fieldMappingData && !Array.isArray(fieldMappingData) && fieldMappingData.analysis) 
-    ? fieldMappingData.analysis 
-    : {};
+    ? [] // For now, return empty array since analysis is an object, not array of crew analysis
+    : [];
   
   const mappingProgress = (fieldMappingData && !Array.isArray(fieldMappingData) && fieldMappingData.progress) 
     ? fieldMappingData.progress 
     : { total: 0, mapped: 0, critical_mapped: 0 };
   
   const criticalAttributes = (fieldMappingData && !Array.isArray(fieldMappingData) && fieldMappingData.critical_attributes) 
-    ? fieldMappingData.critical_attributes 
+    ? Object.entries(fieldMappingData.critical_attributes).map(([name, mapping]: [string, any]) => ({
+        name,
+        description: `${mapping.asset_field} mapped from ${mapping.source_column}`,
+        category: 'technical', // Default category
+        required: true,
+        status: mapping.confidence > 60 ? 'mapped' : 'partially_mapped',
+        mapped_to: mapping.source_column,
+        source_field: mapping.source_column,
+        confidence: mapping.confidence / 100, // Convert to 0-1 range
+        quality_score: mapping.confidence,
+        completeness_percentage: 100,
+        mapping_type: 'direct',
+        business_impact: mapping.confidence > 60 ? 'low' : 'medium',
+        migration_critical: true
+      }))
     : [];
 
   // Session and flow information
