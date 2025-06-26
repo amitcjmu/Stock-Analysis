@@ -83,7 +83,12 @@ const DataCleansing: React.FC = () => {
   // Handle data cleansing execution
   const handleTriggerDataCleansingCrew = async () => {
     try {
+      console.log('🧹 Triggering data cleansing phase...');
       await updatePhase('data_cleansing', { action: 'start_cleansing' });
+      // Refresh the data after triggering
+      setTimeout(() => {
+        refetchCleansing();
+      }, 2000);
     } catch (error) {
       console.error('Failed to execute data cleansing phase:', error);
     }

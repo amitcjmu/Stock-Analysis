@@ -76,124 +76,80 @@ export const useDataCleansingAnalysis = () => {
         throw new Error('Authentication context required');
       }
 
+      // First, try to get the data cleansing results from the active discovery flow
       try {
-        // Use the proper multi-tenant discovery endpoint
-        const headers = {
-          'X-Client-Account-Id': client.id.toString(),
-          'X-Engagement-Id': engagement.id.toString(),
-          'X-User-Id': user.id.toString()
-        };
-        const response = await apiCall('/api/v1/discovery/agents/analysis/analyze', {
+        const flowResponse = await apiCall('/discovery/flows/active', {
           method: 'GET',
-          headers: headers,
+          headers: {
+            'X-Client-Account-Id': client.id.toString(),
+            'X-Engagement-Id': engagement.id.toString(),
+            'X-User-Id': user.id.toString()
+          }
         });
 
-        // Transform the response to match expected format
-        return {
-          quality_issues: response.quality_issues || [],
-          recommendations: response.recommendations || [],
-          metrics: {
-            total_records: response.metrics?.total_records || 0,
-            cleaned_records: response.metrics?.cleaned_records || 0,
-            quality_issues_found: response.metrics?.quality_issues_found || 0,
-            quality_issues_resolved: response.metrics?.quality_issues_resolved || 0,
-            data_quality_score: response.metrics?.data_quality_score || 0,
-            quality_score: response.metrics?.quality_score || response.metrics?.data_quality_score || 0,
-            completeness_percentage: response.metrics?.completeness_percentage || 0,
-            completion_percentage: response.metrics?.completion_percentage || response.metrics?.completeness_percentage || 0,
-            consistency_score: response.metrics?.consistency_score || 0,
-            standardization_score: response.metrics?.standardization_score || 0,
-            assessment_ready: response.metrics?.assessment_ready || false
-          },
-          cleaned_data: response.cleaned_data || [],
-          processing_status: response.processing_status || {
-            phase: 'data_cleansing',
-            completion_percentage: 0,
-            crew_agents_used: [],
-            last_updated: new Date().toISOString()
-          },
-          agent_insights: response.agent_insights || {
-            data_quality_summary: 'No analysis available yet',
-            primary_concerns: [],
-            next_priority: 'Run data cleansing analysis'
-          },
-          statistics: {
-            total_records: response.statistics?.total_records || 0,
-            quality_score: response.statistics?.quality_score || 0,
-            completion_percentage: response.statistics?.completion_percentage || 0,
-            issues_count: response.statistics?.issues_count || 0,
-            recommendations_count: response.statistics?.recommendations_count || 0
+        if (flowResponse.success && flowResponse.flow_details && flowResponse.flow_details.length > 0) {
+          // Find the most recent flow with data cleansing results
+          const flowsWithCleansing = flowResponse.flow_details.filter(flow => 
+            flow.phase_completion?.data_cleansing === true || 
+            flow.results?.data_cleansing ||
+            flow.data_cleansing_results
+          );
+
+          if (flowsWithCleansing.length > 0) {
+            // Sort by updated_at and get the most recent
+            const latestFlow = flowsWithCleansing.sort((a, b) => 
+              new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+            )[0];
+
+            const cleansingResults = latestFlow.data_cleansing_results || latestFlow.results?.data_cleansing;
+            
+            if (cleansingResults) {
+              // Transform the real flow data to match the expected interface
+              return {
+                quality_issues: cleansingResults.quality_issues || [],
+                recommendations: cleansingResults.recommendations || [],
+                metrics: {
+                  total_records: cleansingResults.metadata?.original_records || latestFlow.raw_data?.length || 0,
+                  cleaned_records: cleansingResults.metadata?.cleaned_records || 0,
+                  quality_issues_found: cleansingResults.quality_issues?.length || 0,
+                  quality_issues_resolved: 0,
+                  data_quality_score: cleansingResults.data_quality_metrics?.overall_improvement?.quality_score || 0,
+                  quality_score: cleansingResults.data_quality_metrics?.overall_improvement?.quality_score || 0,
+                  completeness_percentage: cleansingResults.data_quality_metrics?.overall_improvement?.completeness_improvement || 0,
+                  completion_percentage: cleansingResults.data_quality_metrics?.overall_improvement?.completeness_improvement || 0,
+                  consistency_score: 0,
+                  standardization_score: 0,
+                  assessment_ready: true
+                },
+                cleaned_data: cleansingResults.cleaned_data || [],
+                processing_status: {
+                  phase: 'data_cleansing',
+                  completion_percentage: cleansingResults.data_quality_metrics?.overall_improvement?.completeness_improvement || 0,
+                  crew_agents_used: ['Data Cleansing Agent'],
+                  last_updated: latestFlow.updated_at || new Date().toISOString()
+                },
+                agent_insights: {
+                  data_quality_summary: 'Real data cleansing analysis from CrewAI Flow',
+                  primary_concerns: [],
+                  next_priority: 'Review cleansing results'
+                },
+                statistics: {
+                  total_records: cleansingResults.metadata?.original_records || latestFlow.raw_data?.length || 0,
+                  quality_score: cleansingResults.data_quality_metrics?.overall_improvement?.quality_score || 0,
+                  completion_percentage: cleansingResults.data_quality_metrics?.overall_improvement?.completeness_improvement || 0,
+                  issues_count: cleansingResults.quality_issues?.length || 0,
+                  recommendations_count: cleansingResults.recommendations?.length || 0
+                }
+              };
+            }
           }
-        };
+        }
       } catch (error) {
-        console.warn('Data cleansing analysis endpoint not available, using fallback:', error);
-        
-        // Create minimal mock data with proper multi-tenant scoping
-        return {
-          quality_issues: [
-            {
-              id: 'issue-1',
-              field: 'server_name',
-              issue_type: 'missing_values',
-              severity: 'high' as const,
-              description: 'Server naming standardization needed',
-              affected_records: 2,
-              recommendation: 'Implement consistent naming convention',
-              agent_source: 'Data Quality Manager',
-              status: 'pending' as const
-            }
-          ],
-          recommendations: [
-            {
-              id: 'rec-1',
-              type: 'standardization',
-              title: 'Standardize Environment Values',
-              description: 'Convert all environment indicators to standard values',
-              confidence: 0.92,
-              priority: 'high' as const,
-              fields: ['environment', 'asset_type'],
-              agent_source: 'Data Standardization Specialist',
-              implementation_steps: [
-                'Map "prod", "PROD" → "production"',
-                'Map "dev", "DEV" → "development"'
-              ],
-              status: 'pending' as const
-            }
-          ],
-          metrics: {
-            total_records: 2, // Match the actual asset count for this client
-            cleaned_records: 2,
-            quality_issues_found: 1,
-            quality_issues_resolved: 0,
-            data_quality_score: 78,
-            quality_score: 78,
-            completeness_percentage: 85,
-            completion_percentage: 65,
-            consistency_score: 72,
-            standardization_score: 68,
-            assessment_ready: true
-          },
-          cleaned_data: [],
-          processing_status: {
-            phase: 'data_cleansing',
-            completion_percentage: 65,
-            crew_agents_used: ['Data Quality Manager', 'Data Standardization Specialist'],
-            last_updated: new Date().toISOString()
-          },
-          agent_insights: {
-            data_quality_summary: 'Data quality is good overall with some standardization needs',
-            primary_concerns: ['Environment naming consistency'],
-            next_priority: 'Focus on environment standardization'
-          },
-          statistics: {
-            total_records: 2, // Match the actual asset count for this client
-            quality_score: 78,
-            completion_percentage: 65,
-            issues_count: 1,
-            recommendations_count: 1
-          }
-        };
+        console.error('Failed to fetch data cleansing results from flow:', error);
       }
+
+      // If no data cleansing results are found, return empty structure instead of mock data
+      throw new Error('No data cleansing results available. Please run data cleansing analysis first.');
     },
     enabled: !!client?.id && !!engagement?.id,
     staleTime: 30000, // 30 seconds
