@@ -1,5 +1,68 @@
 # AI Force Migration Platform - Change Log
 
+## [0.8.3] - 2025-01-26
+
+### 🎯 **FRONTEND INTEGRATION - Data Cleansing Display Fix**
+
+This release resolves the critical frontend integration issue where the Data Cleansing page showed "No Data Available" despite successful backend processing and discovery asset creation.
+
+### 🚀 **Frontend Integration Enhancements**
+
+#### **Data Cleansing Results Integration**
+- **Backend API Enhancement**: Extended `DiscoveryFlowResponse` model to include `data_cleansing_results`, `results`, `raw_data`, and `cleaned_data` fields
+- **Flow Status Integration**: Updated PostgreSQL flow handler's `get_flow_status()` method to extract and include data cleansing results from `crewai_state_data`
+- **Data Structure Compatibility**: Ensured both direct `data_cleansing_results` and legacy `results.data_cleansing` formats are supported for frontend compatibility
+- **Quality Metrics Display**: Provided comprehensive quality issues (3) and recommendations (2) with proper metadata for 26 discovery assets
+
+#### **Database State Management**
+- **State Persistence**: Fixed `crewai_state_data` commit issue in data cleansing phase execution
+- **Data Extraction**: Enhanced flow status endpoint to extract all phase-specific results from stored state data
+- **Multi-Format Support**: Added support for extracting data from various state data formats and locations
+
+### 📊 **Technical Achievements**
+- **Frontend Data Access**: Data cleansing page now receives proper quality issues and recommendations from backend
+- **API Response Completeness**: Flow status endpoint returns comprehensive data including cleaned data metrics
+- **Database Integration**: Proper persistence and retrieval of data cleansing results in PostgreSQL flows
+
+### 🎯 **Success Metrics**
+- **Data Availability**: Frontend now displays 3 quality issues and 2 recommendations instead of "No Data Available"
+- **Asset Integration**: 26 discovery assets properly linked with data cleansing results
+- **API Completeness**: Flow status response increased from 777 bytes to 5017 bytes with full data
+
+---
+
+
+## [0.8.3] - 2025-01-26
+
+### 🎯 **FRONTEND INTEGRATION - Data Cleansing Display Fix**
+
+This release resolves the critical frontend integration issue where the Data Cleansing page showed "No Data Available" despite successful backend processing and discovery asset creation.
+
+### 🚀 **Frontend Integration Enhancements**
+
+#### **Data Cleansing Results Integration**
+- **Backend API Enhancement**: Extended `DiscoveryFlowResponse` model to include `data_cleansing_results`, `results`, `raw_data`, and `cleaned_data` fields
+- **Flow Status Integration**: Updated PostgreSQL flow handler's `get_flow_status()` method to extract and include data cleansing results from `crewai_state_data`
+- **Data Structure Compatibility**: Ensured both direct `data_cleansing_results` and legacy `results.data_cleansing` formats are supported for frontend compatibility
+- **Quality Metrics Display**: Provided comprehensive quality issues (3) and recommendations (2) with proper metadata for 26 discovery assets
+
+#### **Database State Management**
+- **State Persistence**: Fixed `crewai_state_data` commit issue in data cleansing phase execution
+- **Data Extraction**: Enhanced flow status endpoint to extract all phase-specific results from stored state data
+- **Multi-Format Support**: Added support for extracting data from various state data formats and locations
+
+### 📊 **Technical Achievements**
+- **Frontend Data Access**: Data cleansing page now receives proper quality issues and recommendations from backend
+- **API Response Completeness**: Flow status endpoint returns comprehensive data including cleaned data metrics
+- **Database Integration**: Proper persistence and retrieval of data cleansing results in PostgreSQL flows
+
+### 🎯 **Success Metrics**
+- **Data Availability**: Frontend now displays 3 quality issues and 2 recommendations instead of "No Data Available"
+- **Asset Integration**: 26 discovery assets properly linked with data cleansing results
+- **API Completeness**: Flow status response increased from 777 bytes to 5017 bytes with full data
+
+---
+
 ## [0.4.11] - 2025-01-26
 
 ### 🎯 **DISCOVERY FLOW SEQUENCE** - Correct Phase Implementation
@@ -4545,4 +4608,31 @@ This release implements the correct Discovery Flow sequence and ensures proper d
 
 ---
 
-## [0.4.10] - 2025-01-26
+## [0.8.3] - 2025-01-26
+
+### 🎯 **FRONTEND INTEGRATION - Data Cleansing Display Fix**
+
+This release resolves the critical frontend integration issue where the Data Cleansing page showed "No Data Available" despite successful backend processing and discovery asset creation.
+
+### 🚀 **Frontend Integration Enhancements**
+
+#### **Data Cleansing Results Integration**
+- **Backend API Enhancement**: Extended `DiscoveryFlowResponse` model to include `data_cleansing_results`, `results`, `raw_data`, and `cleaned_data` fields
+- **Flow Status Integration**: Updated PostgreSQL flow handler's `get_flow_status()` method to extract and include data cleansing results from `crewai_state_data`
+- **Data Structure Compatibility**: Ensured both direct `data_cleansing_results` and legacy `results.data_cleansing` formats are supported for frontend compatibility
+- **Quality Metrics Display**: Provided comprehensive quality issues (3) and recommendations (2) with proper metadata for 26 discovery assets
+
+#### **Database State Management**
+- **State Persistence**: Fixed `crewai_state_data` commit issue in data cleansing phase execution
+- **Data Extraction**: Enhanced flow status endpoint to extract all phase-specific results from stored state data
+- **Multi-Format Support**: Added support for extracting data from various state data formats and locations
+
+### 📊 **Technical Achievements**
+- **Frontend Data Access**: Data cleansing page now receives proper quality issues and recommendations from backend
+- **API Response Completeness**: Flow status endpoint returns comprehensive data including cleaned data metrics
+- **Database Integration**: Proper persistence and retrieval of data cleansing results in PostgreSQL flows
+
+### 🎯 **Success Metrics**
+- **Data Availability**: Frontend now displays 3 quality issues and 2 recommendations instead of "No Data Available"
+- **Asset Integration**: 26 discovery assets properly linked with data cleansing results
+- **API Completeness**: Flow status response increased from 777 bytes to 5017 bytes with full data

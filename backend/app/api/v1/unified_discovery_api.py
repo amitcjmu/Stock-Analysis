@@ -78,6 +78,10 @@ class DiscoveryFlowResponse(BaseModel):
     database_status: Optional[str]
     agent_insights: List[Dict[str, Any]]
     field_mapping: Optional[Dict[str, Any]] = None
+    data_cleansing_results: Optional[Dict[str, Any]] = None
+    results: Optional[Dict[str, Any]] = None
+    raw_data: Optional[List[Dict[str, Any]]] = None
+    cleaned_data: Optional[List[Dict[str, Any]]] = None
     created_at: str
     updated_at: str
 
