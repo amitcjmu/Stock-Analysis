@@ -77,6 +77,7 @@ class DiscoveryFlowResponse(BaseModel):
     crewai_status: Optional[str]
     database_status: Optional[str]
     agent_insights: List[Dict[str, Any]]
+    field_mapping: Optional[Dict[str, Any]] = None
     created_at: str
     updated_at: str
 

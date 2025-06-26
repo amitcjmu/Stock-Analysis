@@ -446,8 +446,14 @@ class FlowManagementHandler:
                         # Extract field mapping data from different possible locations
                         legacy_data = None
                         
-                        # Check if data is in attribute_mapping.legacy_data (newer format)
-                        if "attribute_mapping" in state_data and isinstance(state_data["attribute_mapping"], dict):
+                        # Check if data is in data_cleansing.legacy_data (current format)
+                        if "data_cleansing" in state_data and isinstance(state_data["data_cleansing"], dict):
+                            data_cleansing = state_data["data_cleansing"]
+                            if "legacy_data" in data_cleansing and isinstance(data_cleansing["legacy_data"], dict):
+                                legacy_data = data_cleansing["legacy_data"]
+                        
+                        # Fallback: Check if data is in attribute_mapping.legacy_data (older format)
+                        elif "attribute_mapping" in state_data and isinstance(state_data["attribute_mapping"], dict):
                             attr_mapping = state_data["attribute_mapping"]
                             if "legacy_data" in attr_mapping and isinstance(attr_mapping["legacy_data"], dict):
                                 legacy_data = attr_mapping["legacy_data"]
@@ -470,6 +476,7 @@ class FlowManagementHandler:
                                     "confidence_scores": field_mappings_raw.get("mapping_confidence", {}),
                                     "unmapped_fields": field_mappings_raw.get("unmapped_columns", []),
                                     "validation_results": {"valid": True, "score": 0.8},
+                                    "user_clarifications": legacy_data.get("user_clarifications", []),  # Include clarification questions
                                     "analysis": {
                                         "status": "completed",
                                         "message": "Field mapping analysis completed by CrewAI agents",

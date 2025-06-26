@@ -1,5 +1,61 @@
 # AI Force Migration Platform - Change Log
 
+## [0.8.41] - 2025-01-25
+
+### 🎯 **FIELD MAPPING DATA EXPOSURE FIX**
+
+This release fixes the critical issue where field mapping data was not being displayed in the frontend due to backend data extraction and API response model issues.
+
+### 🚀 **Backend Data Extraction Fix**
+
+#### **PostgreSQL Handler Enhancement**
+- **Fixed data location**: Updated field mapping extraction to look in `data_cleansing.legacy_data` instead of `attribute_mapping.legacy_data`
+- **Added user clarifications**: Exposed user clarification questions in field mapping response for human-in-the-loop workflows
+- **Fallback mechanisms**: Added multiple fallback locations for field mapping data extraction
+- **Raw data inclusion**: Ensured raw import data is included in the field mapping response for data tab display
+
+#### **API Response Model Update**
+- **Added field_mapping field**: Added `field_mapping: Optional[Dict[str, Any]]` to `DiscoveryFlowResponse` model
+- **Pydantic validation fix**: Resolved issue where field mapping data was filtered out by response model validation
+- **Complete data structure**: Field mapping response now includes mappings, attributes, clarifications, and analysis
+
+### 📊 **Data Structure Resolved**
+
+#### **Field Mapping Response Structure** ✅
+- **mappings**: 5 critical field mappings with confidence scores
+- **attributes**: 3 raw data records for data tab display
+- **critical_attributes**: Same as mappings for backward compatibility
+- **user_clarifications**: 2 clarification questions for ambiguous mappings
+- **analysis**: Complete analysis summary with coverage statistics
+- **progress**: Mapping progress tracking (total: 3, mapped: 5, critical_mapped: 5)
+
+#### **Human-in-the-Loop Integration** ✅
+- **Clarification questions**: 2 questions about "Asset Name" field ambiguous mapping
+- **Multiple options**: Each question provides multiple mapping options with confidence scores
+- **Priority levels**: Questions marked with appropriate priority for user attention
+- **Context preservation**: Full context provided for each clarification decision
+
+### 🔧 **Technical Resolution**
+- **Data Path**: `crewai_state_data.data_cleansing.legacy_data.field_mappings` → API response
+- **API Endpoint**: `GET /api/v1/discovery/flow/status/{flow_id}` now returns complete field mapping data
+- **Frontend Ready**: All data structures match frontend expectations for immediate display
+- **Pause/Resume Ready**: Field mapping data includes clarification questions for human input workflows
+
+### 🎯 **Business Impact**
+- **User Experience**: No more "No Field Mapping Available" message - users can see actual mapping data
+- **Human Decisions**: Users can now see and respond to clarification questions about ambiguous mappings
+- **Data Transparency**: Complete field mapping analysis visible with confidence scores and coverage statistics
+- **Workflow Continuity**: Field mapping data properly exposed for pause/resume workflow integration
+
+### ⚡ **Success Metrics**
+- **Data Exposure**: ✅ Field mapping data now visible in API response
+- **Clarification Questions**: ✅ 2 user clarification questions properly exposed
+- **Mapping Coverage**: ✅ 5 critical mappings with 26.3% coverage displayed
+- **Raw Data Access**: ✅ 3 raw data records available for data tab
+- **API Integration**: ✅ Complete data structure ready for frontend consumption
+
+---
+
 ## [0.8.40] - 2025-01-25
 
 ### 🎯 **CREWAI FLOW PAUSE/RESUME COMPLETION**
