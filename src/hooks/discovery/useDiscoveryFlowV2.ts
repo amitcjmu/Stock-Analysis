@@ -292,6 +292,84 @@ const apiClient = {
       console.error('Failed to validate completion:', error);
       throw error;
     }
+  },
+
+  async getAssets(flowId: string): Promise<DiscoveryAssetV2[]> {
+    try {
+      const response = await unifiedDiscoveryService.getFlowAssets(flowId);
+      return response.assets || [];
+    } catch (error) {
+      console.error('Failed to get assets:', error);
+      throw error;
+    }
+  },
+
+  async createAssetsFromDiscovery(flowId: string): Promise<any> {
+    try {
+      const response = await unifiedDiscoveryService.executePhase(flowId, 'asset_creation');
+      return response;
+    } catch (error) {
+      console.error('Failed to create assets from discovery:', error);
+      throw error;
+    }
+  },
+
+  async getAssessmentReadyAssets(flowId: string, filters?: any): Promise<DiscoveryAssetV2[]> {
+    try {
+      const response = await unifiedDiscoveryService.getFlowAssets(flowId);
+      let assets = response.assets || [];
+      
+      // Apply filters if provided
+      if (filters?.asset_type) {
+        assets = assets.filter(asset => asset.asset_type === filters.asset_type);
+      }
+      if (filters?.min_quality_score) {
+        assets = assets.filter(asset => (asset.confidence_score || 0) >= filters.min_quality_score);
+      }
+      
+      return assets;
+    } catch (error) {
+      console.error('Failed to get assessment ready assets:', error);
+      throw error;
+    }
+  },
+
+  async generateAssessmentPackage(flowId: string, selectedAssetIds?: string[]): Promise<AssessmentPackage> {
+    try {
+      const response = await unifiedDiscoveryService.completeFlow(flowId);
+      return {
+        package_id: `pkg_${flowId}`,
+        generated_at: new Date().toISOString(),
+        discovery_flow: response,
+        assets: response.assets || [],
+        summary: response.summary || {},
+        migration_waves: [],
+        risk_assessment: {},
+        recommendations: response.recommendations || {}
+      };
+    } catch (error) {
+      console.error('Failed to generate assessment package:', error);
+      throw error;
+    }
+  },
+
+  async completeWithAssessment(flowId: string, selectedAssetIds?: string[]): Promise<any> {
+    try {
+      const response = await unifiedDiscoveryService.completeFlow(flowId);
+      return {
+        success: true,
+        flow: response,
+        assessment_package: {
+          package_id: `pkg_${flowId}`,
+          generated_at: new Date().toISOString(),
+          assets: response.assets || [],
+          summary: response.summary || {}
+        }
+      };
+    } catch (error) {
+      console.error('Failed to complete with assessment:', error);
+      throw error;
+    }
   }
 };
 

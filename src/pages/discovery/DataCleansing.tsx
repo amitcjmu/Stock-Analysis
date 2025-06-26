@@ -1,25 +1,27 @@
 import React from 'react';
-import { useParams } from 'react-router-dom';
-import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
-import EnhancedAgentOrchestrationPanel from '../../components/discovery/EnhancedAgentOrchestrationPanel';
-import AgentClarificationPanel from '../../components/discovery/AgentClarificationPanel';
-import DataClassificationDisplay from '../../components/discovery/DataClassificationDisplay';
-import AgentInsightsSection from '../../components/discovery/AgentInsightsSection';
-import Sidebar from '../../components/Sidebar';
-
-// Data Cleansing Components
-import DataCleansingHeader from '../../components/discovery/data-cleansing/DataCleansingHeader';
-import DataCleansingProgressDashboard from '../../components/discovery/data-cleansing/DataCleansingProgressDashboard';
-import QualityIssuesPanel from '../../components/discovery/data-cleansing/QualityIssuesPanel';
-import CleansingRecommendationsPanel from '../../components/discovery/data-cleansing/CleansingRecommendationsPanel';
-import DataCleansingNavigationButtons from '../../components/discovery/data-cleansing/DataCleansingNavigationButtons';
-import DataCleansingStateProvider from '../../components/discovery/data-cleansing/DataCleansingStateProvider';
-
-// Hooks
-import { useDiscoveryFlowV2 } from '../../hooks/discovery/useDiscoveryFlowV2';
-import { useDataCleansingFlowDetection } from '../../hooks/discovery/useDiscoveryFlowAutoDetection';
 import { useAuth } from '../../contexts/AuthContext';
-import { useDataCleansingAnalysis } from '../../hooks/useDataCleansingAnalysis';
+import { useDiscoveryFlowV2 } from '../../hooks/discovery/useDiscoveryFlowV2';
+import { useDataCleansingFlowDetection } from '../../hooks/discovery/useDataCleansingFlowDetection';
+import { useDataCleansingAnalysis } from '../../hooks/discovery/useDataCleansingAnalysis';
+
+// Components
+import { Sidebar } from '../../components/layout/Sidebar';
+import { ContextBreadcrumbs } from '../../components/context/ContextBreadcrumbs';
+import { DataCleansingStateProvider } from '../../components/discovery/data-cleansing/DataCleansingStateProvider';
+import { DataCleansingHeader } from '../../components/discovery/data-cleansing/DataCleansingHeader';
+import { DataCleansingProgressDashboard } from '../../components/discovery/data-cleansing/DataCleansingProgressDashboard';
+import { QualityIssuesPanel } from '../../components/discovery/data-cleansing/QualityIssuesPanel';
+import { CleansingRecommendationsPanel } from '../../components/discovery/data-cleansing/CleansingRecommendationsPanel';
+import { DataCleansingNavigationButtons } from '../../components/discovery/data-cleansing/DataCleansingNavigationButtons';
+import { AgentClarificationPanel } from '../../components/discovery/agent-ui-bridge/AgentClarificationPanel';
+import { DataClassificationDisplay } from '../../components/discovery/agent-ui-bridge/DataClassificationDisplay';
+import { AgentInsightsSection } from '../../components/discovery/agent-ui-bridge/AgentInsightsSection';
+import { EnhancedAgentOrchestrationPanel } from '../../components/discovery/EnhancedAgentOrchestrationPanel';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
+import { Download, FileText, CheckCircle, AlertTriangle } from 'lucide-react';
 
 const DataCleansing: React.FC = () => {
   const { user } = useAuth();
@@ -104,6 +106,10 @@ const DataCleansing: React.FC = () => {
   const isDataCleansingComplete = completedPhases.includes('data_cleansing');
   const canContinueToInventory = completedPhases.includes('data_cleansing') || cleansingProgress.completion_percentage >= 80;
 
+  // Enhanced data samples for display
+  const rawDataSample = cleansingAnalysis?.raw_data?.slice(0, 3) || [];
+  const cleanedDataSample = cleansingAnalysis?.cleaned_data?.slice(0, 3) || [];
+
   // Debug info for flow detection
   console.log('🔍 DataCleansing flow detection:', {
     urlFlowId,
@@ -154,15 +160,6 @@ const DataCleansing: React.FC = () => {
               isLoading={isLoadingData}
             />
 
-            {flow?.flow_id && (
-              <div className="mb-6">
-                <EnhancedAgentOrchestrationPanel
-                  sessionId={flow.flow_id}
-                  flowState={flow}
-                />
-              </div>
-            )}
-
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
               <div className="xl:col-span-3 space-y-6">
                 <QualityIssuesPanel 
@@ -182,6 +179,97 @@ const DataCleansing: React.FC = () => {
                   }}
                   isLoading={isLoadingData}
                 />
+
+                {/* Enhanced Data Samples Section */}
+                {(rawDataSample.length > 0 || cleanedDataSample.length > 0) && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <FileText className="h-5 w-5" />
+                        Data Processing Samples
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Raw Data Sample */}
+                        {rawDataSample.length > 0 && (
+                          <div>
+                            <div className="flex items-center gap-2 mb-3">
+                              <Badge variant="outline">Raw Data</Badge>
+                              <span className="text-sm text-gray-600">Before Processing</span>
+                            </div>
+                            <div className="bg-gray-50 rounded-lg p-3 max-h-64 overflow-auto">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    {Object.keys(rawDataSample[0] || {}).slice(0, 4).map((key) => (
+                                      <TableHead key={key} className="text-xs">{key}</TableHead>
+                                    ))}
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {rawDataSample.map((record, index) => (
+                                    <TableRow key={index}>
+                                      {Object.values(record).slice(0, 4).map((value, i) => (
+                                        <TableCell key={i} className="text-xs">
+                                          {String(value).length > 20 ? `${String(value).substring(0, 20)}...` : String(value)}
+                                        </TableCell>
+                                      ))}
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Cleaned Data Sample */}
+                        {cleanedDataSample.length > 0 && (
+                          <div>
+                            <div className="flex items-center gap-2 mb-3">
+                              <Badge variant="default">Cleaned Data</Badge>
+                              <span className="text-sm text-gray-600">After Processing</span>
+                            </div>
+                            <div className="bg-green-50 rounded-lg p-3 max-h-64 overflow-auto">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    {Object.keys(cleanedDataSample[0] || {}).slice(0, 4).map((key) => (
+                                      <TableHead key={key} className="text-xs">{key}</TableHead>
+                                    ))}
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {cleanedDataSample.map((record, index) => (
+                                    <TableRow key={index}>
+                                      {Object.values(record).slice(0, 4).map((value, i) => (
+                                        <TableCell key={i} className="text-xs">
+                                          {String(value).length > 20 ? `${String(value).substring(0, 20)}...` : String(value)}
+                                        </TableCell>
+                                      ))}
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Download Actions */}
+                      <div className="flex gap-2 mt-4">
+                        <Button variant="outline" size="sm">
+                          <Download className="h-4 w-4 mr-2" />
+                          Download Raw Data
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          <Download className="h-4 w-4 mr-2" />
+                          Download Cleaned Data
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
                 <DataCleansingNavigationButtons 
                   canContinue={canContinueToInventory}
@@ -221,6 +309,23 @@ const DataCleansing: React.FC = () => {
                 />
               </div>
             </div>
+
+            {/* Move crew progress to bottom of page */}
+            {flow?.flow_id && (
+              <div className="mt-8">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Discovery Flow Crew Progress</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <EnhancedAgentOrchestrationPanel
+                      sessionId={flow.flow_id}
+                      flowState={flow}
+                    />
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </div>
         </div>
       </div>

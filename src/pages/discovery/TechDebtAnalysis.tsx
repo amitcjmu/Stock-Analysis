@@ -77,34 +77,45 @@ const TechDebtAnalysis = () => {
     totalFlowsAvailable: flowList?.length || 0
   });
 
-  // Get tech debt specific data from V2 flow
-  const techDebtData = flow?.phases?.tech_debt ? { items: [], support_timelines: [], summary: {} } : null;
-  const isTechDebtComplete = completedPhases.includes('tech_debt');
+  // Get tech debt specific data from V2 flow - extract from flow state
+  const techDebtResults = flow?.results?.tech_debt || flow?.tech_debt_analysis || flow?.results?.tech_debt_analysis || {};
+  const isTechDebtComplete = completedPhases.includes('tech_debt') || completedPhases.includes('tech_debt_completed');
   
   // Local state for UI
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedRisk, setSelectedRisk] = useState('all');
   const [agentRefreshTrigger, setAgentRefreshTrigger] = useState(0);
 
-  // Derived state from flow data
-  const techDebtItems = (techDebtData && !Array.isArray(techDebtData)) ? (techDebtData.items || []) : [];
-  const supportTimelines = (techDebtData && !Array.isArray(techDebtData)) ? (techDebtData.support_timelines || []) : [];
-  const summary = (techDebtData && !Array.isArray(techDebtData)) ? (techDebtData.summary || {
-    totalItems: 0,
-    critical: 0,
-    high: 0,
-    medium: 0,
-    low: 0,
-    endOfLife: 0,
-    deprecated: 0
-  }) : {
-    totalItems: 0,
-    critical: 0,
-    high: 0,
-    medium: 0,
-    low: 0,
-    endOfLife: 0,
-    deprecated: 0
+  // Extract tech debt data from flow results
+  const techDebtItems = techDebtResults?.items || techDebtResults?.debt_items || techDebtResults?.debt_scores ? 
+    Object.entries(techDebtResults.debt_scores || {}).map(([key, value]: [string, any], index) => ({
+      id: `debt_${index}`,
+      assetId: key,
+      assetName: value?.asset_name || key,
+      component: value?.component || 'app',
+      technology: value?.technology || 'Unknown',
+      currentVersion: value?.current_version || 'Unknown',
+      latestVersion: value?.latest_version || 'Unknown',
+      supportStatus: value?.support_status || 'unknown',
+      endOfLifeDate: value?.end_of_life_date,
+      securityRisk: value?.security_risk || 'medium',
+      migrationEffort: value?.migration_effort || 'medium',
+      businessImpact: value?.business_impact || 'medium',
+      recommendedAction: value?.recommended_action || 'Review and assess',
+      dependencies: value?.dependencies || []
+    })) : [];
+
+  const supportTimelines = techDebtResults?.support_timelines || [];
+  
+  // Generate summary from tech debt items
+  const summary = {
+    totalItems: techDebtItems.length,
+    critical: techDebtItems.filter(item => item.securityRisk === 'critical').length,
+    high: techDebtItems.filter(item => item.securityRisk === 'high').length,
+    medium: techDebtItems.filter(item => item.securityRisk === 'medium').length,
+    low: techDebtItems.filter(item => item.securityRisk === 'low').length,
+    endOfLife: techDebtItems.filter(item => item.supportStatus === 'end_of_life').length,
+    deprecated: techDebtItems.filter(item => item.supportStatus === 'deprecated').length
   };
 
   // Handle tech debt analysis execution
@@ -153,179 +164,12 @@ const TechDebtAnalysis = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  const fetchTechDebtAnalysis = async () => {
-    if (!client_account_id || !engagement_id) {
-      console.warn("Client or engagement not selected, skipping tech debt analysis fetch.");
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.TECH_DEBT_ANALYSIS, {
-        method: 'POST',
-        body: JSON.stringify({
-          client_account_id: client_account_id,
-          engagement_id: engagement_id,
-        })
-      });
-      
-      // Filter out items with unknown/invalid data
-      const validItems = (response.items || []).filter((item: TechDebtItem) => {
-        // Only include items with valid technology names and versions
-        const hasValidTechnology = item.technology && 
-          item.technology !== 'unknown' && 
-          item.technology !== 'Unknown' &&
-          !item.technology.toLowerCase().includes('unknown');
-          
-        const hasValidVersion = item.currentVersion && 
-          item.currentVersion !== 'unknown' && 
-          item.currentVersion !== 'Unknown' &&
-          !item.currentVersion.toLowerCase().includes('unknown');
-          
-        const hasValidEOLDate = !item.endOfLifeDate || 
-          (item.endOfLifeDate && 
-           item.endOfLifeDate !== 'unknown' && 
-           !isNaN(Date.parse(item.endOfLifeDate)));
-           
-        return hasValidTechnology && hasValidVersion && hasValidEOLDate;
-      });
-      
-      setTechDebtItems(validItems);
-      
-      // Update summary to reflect filtered items
-      const filteredSummary = {
-        totalItems: validItems.length,
-        critical: validItems.filter(item => item.securityRisk === 'critical').length,
-        high: validItems.filter(item => item.securityRisk === 'high').length,
-        medium: validItems.filter(item => item.securityRisk === 'medium').length,
-        low: validItems.filter(item => item.securityRisk === 'low').length,
-        endOfLife: validItems.filter(item => item.supportStatus === 'end_of_life').length,
-        deprecated: validItems.filter(item => item.supportStatus === 'deprecated').length
-      };
-      
-      setSummary(filteredSummary);
-      
-      // Trigger agent analysis for tech debt context
-      if (validItems.length > 0) {
-        await triggerAgentAnalysis(validItems);
-      }
-    } catch (error) {
-      console.error('Failed to fetch tech debt analysis:', error);
-      // Set demo data with valid items only
-      const demoItems: TechDebtItem[] = [
-        {
-          id: 'tech-debt-1',
-          assetId: 'asset-001',
-          assetName: 'web-server-01',
-          component: 'os',
-          technology: 'Windows Server',
-          currentVersion: '2016',
-          latestVersion: '2022',
-          supportStatus: 'deprecated',
-          endOfLifeDate: '2025-12-31',
-          securityRisk: 'high',
-          migrationEffort: 'medium',
-          businessImpact: 'high',
-          recommendedAction: 'Upgrade to Windows Server 2022 before end of support',
-          dependencies: ['IIS', 'SQL Server']
-        },
-        {
-          id: 'tech-debt-2',
-          assetId: 'asset-002',
-          assetName: 'app-server-01',
-          component: 'framework',
-          technology: 'Node.js',
-          currentVersion: '14.x',
-          latestVersion: '20.x',
-          supportStatus: 'deprecated',
-          endOfLifeDate: '2025-04-30',
-          securityRisk: 'medium',
-          migrationEffort: 'low',
-          businessImpact: 'medium',
-          recommendedAction: 'Upgrade to Node.js 20.x for continued security updates',
-          dependencies: ['Express.js', 'MongoDB']
-        }
-      ];
-      
-      setTechDebtItems(demoItems);
-      setSummary({
-        totalItems: 2,
-        critical: 0,
-        high: 1,
-        medium: 1,
-        low: 0,
-        endOfLife: 0,
-        deprecated: 2
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Trigger agent analysis for tech debt context
-  const triggerAgentAnalysis = async (techDebtData: TechDebtItem[]) => {
-    try {
-      console.log('Triggering agent analysis for tech-debt context');
-      
-      // Prepare data for agent analysis
-      const agentAnalysisRequest = {
-        data_source: {
-          file_data: techDebtData.slice(0, 20), // Send sample of tech debt items
-          columns: techDebtData.length > 0 ? Object.keys(techDebtData[0]) : [],
-          sample_data: techDebtData.slice(0, 10),
-          metadata: {
-            source: "tech-debt-analysis-page",
-            file_name: "tech_debt_analysis.csv",
-            total_records: techDebtData.length,
-            context: "tech_debt_analysis",
-            mapping_context: "tech-debt"
-          }
-        },
-        analysis_type: "data_source_analysis",
-        page_context: "tech-debt"
-      };
-
-      // Trigger agent analysis
-      const agentResponse = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_ANALYSIS, {
-        method: 'POST',
-        body: JSON.stringify(agentAnalysisRequest)
-      });
-
-      if (agentResponse) {
-        console.log('✅ Agent analysis completed for tech-debt context');
-        setAgentRefreshTrigger(prev => prev + 1);
-      }
-      
-    } catch (error) {
-      console.error('Failed to trigger agent analysis for tech debt:', error);
-    }
-  };
-
-  const fetchSupportTimelines = async () => {
-    try {
-      // For now, use demo data since support-timelines endpoint doesn't exist yet
-      const demoTimelines: SupportTimeline[] = [
-        {
-          technology: 'Windows Server 2016',
-          currentVersion: '2016',
-          supportEnd: '2025-12-31',
-          extendedSupportEnd: '2027-12-31',
-          replacementOptions: ['Windows Server 2022', 'Azure Virtual Machines']
-        },
-        {
-          technology: 'Node.js 14.x',
-          currentVersion: '14.21.3',
-          supportEnd: '2025-04-30',
-          replacementOptions: ['Node.js 20.x', 'Node.js 18.x']
-        }
-      ];
-      
-      setSupportTimelines(demoTimelines);
-    } catch (error) {
-      console.error('Failed to fetch support timelines:', error);
-      setSupportTimelines([]);
-    }
-  };
+  // Filter tech debt items based on selected filters
+  const filteredTechDebtItems = techDebtItems.filter(item => {
+    const matchesCategory = selectedCategory === 'all' || item.component === selectedCategory;
+    const matchesRisk = selectedRisk === 'all' || item.securityRisk === selectedRisk;
+    return matchesCategory && matchesRisk;
+  });
 
   const getComponentIcon = (component: string) => {
     switch (component) {
@@ -375,12 +219,6 @@ const TechDebtAnalysis = () => {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
   };
-
-  const filteredItems = techDebtItems.filter(item => {
-    const categoryMatch = selectedCategory === 'all' || item.component === selectedCategory;
-    const riskMatch = selectedRisk === 'all' || item.securityRisk === selectedRisk;
-    return categoryMatch && riskMatch;
-  });
 
   if (isLoading) {
     return (
@@ -496,7 +334,7 @@ const TechDebtAnalysis = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    {filteredItems.map(item => {
+                    {filteredTechDebtItems.map(item => {
                       const daysUntilEOL = calculateDaysUntilEOL(item.endOfLifeDate);
                       return (
                         <tr key={item.id}>
