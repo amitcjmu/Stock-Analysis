@@ -1,4 +1,5 @@
 import React from 'react';
+import { useParams } from 'react-router-dom';
 import Sidebar from '../../components/Sidebar';
 import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
 import AgentClarificationPanel from '../../components/discovery/AgentClarificationPanel';
@@ -12,8 +13,9 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const Inventory = () => {
   const { client, engagement } = useAuth();
+  const { flowId: urlFlowId } = useParams<{ flowId?: string }>();
   
-  // Use inventory logic hook
+  // Use inventory logic hook - pass flowId if available from URL
   const {
     // Data
     assets,
@@ -53,7 +55,7 @@ const Inventory = () => {
     clearSelection,
     fetchAssets,
     canContinueToAppServerDependencies,
-  } = useInventoryLogic();
+  } = useInventoryLogic(urlFlowId);
 
   // Use navigation hook
   const {

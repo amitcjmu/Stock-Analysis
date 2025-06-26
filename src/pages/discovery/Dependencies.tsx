@@ -1,4 +1,5 @@
 import React from 'react';
+import { useParams } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { RefreshCw, Zap, Building2 } from 'lucide-react';
 
@@ -20,8 +21,9 @@ import { useAuth } from '../../contexts/AuthContext';
 
 const Dependencies: React.FC = () => {
   const { client, engagement } = useAuth();
+  const { flowId: urlFlowId } = useParams<{ flowId?: string }>();
 
-  // Use dependency logic hook - following the established pattern
+  // Use dependency logic hook - pass flowId if available from URL
   const {
     dependencyData,
     isLoading,
@@ -31,7 +33,7 @@ const Dependencies: React.FC = () => {
     activeView,
     setActiveView,
     canContinueToNextPhase
-  } = useDependencyLogic();
+  } = useDependencyLogic(urlFlowId);
 
   // Use navigation hook - following the established pattern  
   const { handleContinueToNextPhase } = useDependencyNavigation(null, dependencyData);

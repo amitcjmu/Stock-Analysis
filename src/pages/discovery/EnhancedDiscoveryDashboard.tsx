@@ -147,17 +147,17 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
       'field_mapping': `/discovery/attribute-mapping/${flowId}`,
       'attribute_mapping': `/discovery/attribute-mapping/${flowId}`,
       'data_cleansing': `/discovery/data-cleansing/${flowId}`,
-      'asset_inventory': `/discovery/asset-inventory/${flowId}`,
-      'inventory': `/discovery/asset-inventory/${flowId}`, // Alternative name
+      'asset_inventory': `/discovery/inventory/${flowId}`,
+      'inventory': `/discovery/inventory/${flowId}`, // Correct route
       'dependency_analysis': `/discovery/dependencies/${flowId}`,
-      'dependencies': `/discovery/dependencies/${flowId}`, // Alternative name
-      'tech_debt_analysis': `/discovery/technical-debt/${flowId}`,
-      'tech_debt': `/discovery/technical-debt/${flowId}`, // Alternative name
-      'data_import': `/discovery/data-import`, // ✅ Route to data import page
-      'initialization': `/discovery/data-import` // ✅ Route to data import page for initialization
+      'dependencies': `/discovery/dependencies/${flowId}`, // Correct route
+      'tech_debt_analysis': `/discovery/tech-debt/${flowId}`,
+      'tech_debt': `/discovery/tech-debt/${flowId}`, // Correct route
+      'data_import': `/discovery/import`, // ✅ FIXED: Correct route to data import page
+      'initialization': `/discovery/import` // ✅ FIXED: Correct route for initialization
     };
     
-    const route = phaseRoutes[phase as keyof typeof phaseRoutes] || `/discovery/data-import`; // ✅ Default to data import instead of attribute mapping
+    const route = phaseRoutes[phase as keyof typeof phaseRoutes] || `/discovery/import`; // ✅ FIXED: Default to correct import route
     console.log(`🔄 Backend validation result: phase="${phase}" -> route="${route}"`);
     navigate(route);
   };

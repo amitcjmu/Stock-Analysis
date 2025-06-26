@@ -86,7 +86,7 @@ class FlowManagementHandler:
                     "flow_id": str(flow.flow_id),
                     "id": str(flow.id),
                     "status": flow.status,
-                    "current_phase": "data_import",  # Default phase
+                    "current_phase": flow.get_next_phase() or "completed",  # Use actual next phase
                     "progress_percentage": flow.progress_percentage,
                     "flow_name": flow.flow_name,
                     "flow_description": flow.flow_description,

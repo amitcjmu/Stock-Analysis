@@ -1,25 +1,62 @@
 import { useCallback, useEffect, useMemo } from 'react';
-import { useDiscoveryFlowV2 } from './useDiscoveryFlowV2';
+import { useDiscoveryFlowV2, useDiscoveryFlowList } from './useDiscoveryFlowV2';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 export const useAttributeMappingLogic = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   
-  // Extract flow ID from URL path
+  // Extract flow ID from URL path if provided
   const urlFlowId = useMemo(() => {
     const match = pathname.match(/\/discovery\/attribute-mapping\/([^\/]+)/);
     return match ? match[1] : null;
   }, [pathname]);
 
-  // Use V2 discovery flow with URL flow ID
+  // Get list of active flows for context-based auto-detection
+  const { data: flowList, isLoading: isFlowListLoading, error: flowListError } = useDiscoveryFlowList();
+
+  // Auto-detect the most relevant flow for attribute mapping
+  const autoDetectedFlowId = useMemo(() => {
+    if (!flowList || flowList.length === 0) return null;
+    
+    // Priority 1: Flow currently in attribute_mapping phase
+    const attributeMappingFlow = flowList.find((flow: any) => 
+      flow.current_phase === 'attribute_mapping' || 
+      flow.next_phase === 'attribute_mapping'
+    );
+    if (attributeMappingFlow) return attributeMappingFlow.flow_id;
+    
+    // Priority 2: Flow with attribute_mapping completed but has field mapping data
+    const completedAttributeMappingFlow = flowList.find((flow: any) => 
+      flow.phases?.attribute_mapping === true && 
+      flow.status === 'running'
+    );
+    if (completedAttributeMappingFlow) return completedAttributeMappingFlow.flow_id;
+    
+    // Priority 3: Any running flow (might have processed data)
+    const runningFlow = flowList.find((flow: any) => 
+      flow.status === 'running' || flow.status === 'active'
+    );
+    if (runningFlow) return runningFlow.flow_id;
+    
+    // Priority 4: Most recent flow (even if completed)
+    const sortedFlows = [...flowList].sort((a: any, b: any) => 
+      new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime()
+    );
+    return sortedFlows[0]?.flow_id || null;
+  }, [flowList]);
+
+  // Use URL flow ID if provided, otherwise use auto-detected flow ID
+  const effectiveFlowId = urlFlowId || autoDetectedFlowId;
+
+  // Use V2 discovery flow with effective flow ID
   const {
     flow,
     isLoading: isFlowLoading,
     error: flowError,
     updatePhase,
     refresh
-  } = useDiscoveryFlowV2(urlFlowId);
+  } = useDiscoveryFlowV2(effectiveFlowId);
 
   // Get field mapping data from unified flow
   const fieldMappingData = flow?.field_mapping;
@@ -46,18 +83,18 @@ export const useAttributeMappingLogic = () => {
     : [];
 
   // Session and flow information
-  const sessionId = urlFlowId;
-  const availableDataImports: any[] = []; // TODO: Implement data import management
-  const selectedDataImportId = null;
+  const sessionId = effectiveFlowId;
+  const availableDataImports = flowList || [];
+  const selectedDataImportId = effectiveFlowId;
 
-  // Loading states
-  const isAgenticLoading = isFlowLoading;
-  const isFlowStateLoading = isFlowLoading;
+  // Loading states - include flow list loading
+  const isAgenticLoading = isFlowLoading || isFlowListLoading;
+  const isFlowStateLoading = isFlowLoading || isFlowListLoading;
   const isAnalyzing = isFlowLoading;
 
-  // Error states
-  const agenticError = flowError;
-  const flowStateError = flowError;
+  // Error states - combine flow and flow list errors
+  const agenticError = flowError || flowListError;
+  const flowStateError = flowError || flowListError;
 
   // Action handlers
   const handleTriggerFieldMappingCrew = useCallback(async () => {
@@ -101,11 +138,12 @@ export const useAttributeMappingLogic = () => {
   const handleDataImportSelection = useCallback(async (importId: string) => {
     try {
       console.log(`🔄 Selecting data import: ${importId}`);
-      // TODO: Implement data import selection logic
+      // Navigate to the selected flow
+      navigate(`/discovery/attribute-mapping/${importId}`);
     } catch (error) {
       console.error('❌ Failed to select data import:', error);
     }
-  }, []);
+  }, [navigate]);
 
   const refetchAgentic = useCallback(() => {
     console.log('🔄 Refreshing agentic data');
@@ -113,7 +151,7 @@ export const useAttributeMappingLogic = () => {
   }, [refresh]);
 
   const canContinueToDataCleansing = useCallback(() => {
-    return flow?.phases?.field_mapping === true;
+    return flow?.phases?.attribute_mapping === true;
   }, [flow]);
 
   return {
@@ -125,11 +163,18 @@ export const useAttributeMappingLogic = () => {
     criticalAttributes,
     
     // Flow state
+    flowState: flow, // Keep backward compatibility
     flow,
     sessionId,
     flowId: flow?.flow_id,
     availableDataImports,
     selectedDataImportId,
+    
+    // Auto-detection info
+    urlFlowId,
+    autoDetectedFlowId,
+    effectiveFlowId,
+    flowList,
     
     // Loading states
     isAgenticLoading,

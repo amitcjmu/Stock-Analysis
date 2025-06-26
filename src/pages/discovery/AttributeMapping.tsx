@@ -50,7 +50,11 @@ const AttributeMapping: React.FC = () => {
     handleDataImportSelection,
     refetchAgentic,
     canContinueToDataCleansing,
-  } = useAttributeMappingLogic(urlFlowId);
+    // Auto-detection info for debugging
+    autoDetectedFlowId,
+    effectiveFlowId,
+    flowList,
+  } = useAttributeMappingLogic();
 
   // Navigation logic
   const { handleContinueToDataCleansing } = useAttributeMappingNavigation(
@@ -143,25 +147,97 @@ const AttributeMapping: React.FC = () => {
               </Alert>
             )}
 
+            {/* Flow Detection Debug Info (development only) */}
+            {process.env.NODE_ENV === 'development' && (
+              <Alert className="mb-6 border-blue-200 bg-blue-50">
+                <AlertDescription className="text-blue-800">
+                  <p className="font-medium mb-2">🔍 Flow Detection Debug Info</p>
+                  <div className="text-sm space-y-1">
+                    <p><strong>URL Flow ID:</strong> {urlFlowId || 'None'}</p>
+                    <p><strong>Auto-detected Flow ID:</strong> {autoDetectedFlowId || 'None'}</p>
+                    <p><strong>Effective Flow ID:</strong> {effectiveFlowId || 'None'}</p>
+                    <p><strong>Available Flows:</strong> {flowList?.length || 0}</p>
+                    {flowList && flowList.length > 0 && (
+                      <div>
+                        <p><strong>Flow Details:</strong></p>
+                        <ul className="list-disc list-inside ml-4">
+                          {flowList.map((flow: any, index: number) => (
+                            <li key={index}>
+                              {flow.flow_id?.substring(0, 8)}... - Status: {flow.status}, Phase: {flow.current_phase || flow.next_phase}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    <p><strong>Has Field Mapping Data:</strong> {hasData ? 'Yes' : 'No'}</p>
+                    <p><strong>Attributes Count:</strong> {agenticData?.attributes?.length || 0}</p>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Show message when no flows are available */}
+            {!isLoading && !hasData && !isFlowNotFound && (
+              <Alert className="mb-6 border-yellow-200 bg-yellow-50">
+                <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                <AlertDescription className="text-yellow-800">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="font-medium mb-2">No Field Mapping Available</p>
+                      <p className="text-sm mb-3">
+                        {flowList && flowList.length > 0 
+                          ? `Found ${flowList.length} flow(s) but none contain field mapping data ready for attribute mapping.`
+                          : 'No discovery flows found for your current context.'
+                        }
+                      </p>
+                      <p className="text-sm">
+                        Please import data or trigger field mapping analysis to continue.
+                      </p>
+                    </div>
+                    <div className="ml-4 flex flex-col space-y-2">
+                      <Button 
+                        onClick={() => navigate('/discovery/cmdb-import')}
+                        className="bg-yellow-600 hover:bg-yellow-700 flex items-center space-x-2"
+                      >
+                        <Upload className="h-4 w-4" />
+                        <span>Import Data</span>
+                      </Button>
+                      {effectiveFlowId && (
+                        <Button 
+                          onClick={handleTriggerFieldMappingCrew}
+                          disabled={isAnalyzing}
+                          variant="outline"
+                          className="flex items-center space-x-2"
+                        >
+                          <Zap className="h-4 w-4" />
+                          <span>Trigger Field Mapping</span>
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* Show redirect message if showing old data */}
-            {!sessionId && !isFlowNotFound && (
+            {!sessionId && !isFlowNotFound && hasData && (
               <Alert className="mb-6 border-blue-200 bg-blue-50">
                 <Upload className="h-5 w-5 text-blue-600" />
                 <AlertDescription className="text-blue-800">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="font-medium mb-2">No Current Data Upload Session</p>
+                      <p className="font-medium mb-2">Viewing Previous Discovery Data</p>
                       <p className="text-sm">
-                        To start the discovery flow with new data, please begin by uploading your CMDB file on the Data Import page. 
-                        The data shown below is from a previous upload session.
+                        You're viewing field mapping data from a previous discovery flow. 
+                        To start a new discovery with fresh data, upload a new CMDB file.
                       </p>
                     </div>
                     <Button 
                       onClick={() => navigate('/discovery/cmdb-import')}
                       className="ml-4 bg-blue-600 hover:bg-blue-700 flex items-center space-x-2"
                     >
-                      <ArrowLeft className="h-4 w-4" />
-                      <span>Start Data Upload</span>
+                      <Upload className="h-4 w-4" />
+                      <span>Start New Import</span>
                     </Button>
                   </div>
                 </AlertDescription>

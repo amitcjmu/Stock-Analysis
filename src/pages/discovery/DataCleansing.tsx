@@ -1,4 +1,5 @@
 import React from 'react';
+import { useParams } from 'react-router-dom';
 import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
 import EnhancedAgentOrchestrationPanel from '../../components/discovery/EnhancedAgentOrchestrationPanel';
 import AgentClarificationPanel from '../../components/discovery/AgentClarificationPanel';
@@ -18,7 +19,9 @@ import DataCleansingStateProvider from '../../components/discovery/data-cleansin
 import { useDiscoveryFlowV2 } from '../../hooks/discovery/useDiscoveryFlowV2';
 
 const DataCleansing: React.FC = () => {
-  // V2 Discovery flow hook
+  const { flowId: urlFlowId } = useParams<{ flowId?: string }>();
+  
+  // V2 Discovery flow hook - pass flowId if available from URL
   const {
     flow,
     isLoading,
@@ -29,7 +32,7 @@ const DataCleansing: React.FC = () => {
     currentPhase,
     completedPhases,
     nextPhase
-  } = useDiscoveryFlowV2();
+  } = useDiscoveryFlowV2(urlFlowId);
 
   // Get data cleansing specific data from V2 flow
   const cleansingData = flow?.phases?.data_cleansing ? { quality_issues: [], recommendations: [] } : null;

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import Sidebar from '../../components/Sidebar';
 import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
 import AgentClarificationPanel from '../../components/discovery/AgentClarificationPanel';
@@ -42,23 +43,24 @@ interface SupportTimeline {
 const TechDebtAnalysis = () => {
   const { client, engagement } = useAuth();
   const { toast } = useToast();
+  const { flowId: urlFlowId } = useParams<{ flowId?: string }>();
   
-  // Unified discovery flow hook
+  // V2 Discovery flow hook - pass flowId if available from URL
   const {
-    flowState,
+    flow,
     isLoading,
     error,
-    getPhaseData,
-    isPhaseComplete,
-    canProceedToPhase,
-    executeFlowPhase,
-    isExecutingPhase,
-    refreshFlow
-  } = useUnifiedDiscoveryFlow();
+    updatePhase,
+    isUpdating,
+    progressPercentage,
+    currentPhase,
+    completedPhases,
+    nextPhase
+  } = useDiscoveryFlowV2(urlFlowId);
 
-  // Get tech debt specific data
-  const techDebtData = getPhaseData('tech_debt_analysis');
-  const isTechDebtComplete = isPhaseComplete('tech_debt_analysis');
+  // Get tech debt specific data from V2 flow
+  const techDebtData = flow?.phases?.tech_debt ? { items: [], support_timelines: [], summary: {} } : null;
+  const isTechDebtComplete = completedPhases.includes('tech_debt');
   
   // Local state for UI
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -89,7 +91,7 @@ const TechDebtAnalysis = () => {
   // Handle tech debt analysis execution
   const handleExecuteTechDebtAnalysis = async () => {
     try {
-      await executeFlowPhase('tech_debt_analysis');
+      await updatePhase('tech_debt', { action: 'start_analysis' });
       toast({
         title: 'Success',
         description: 'Tech debt analysis started.',
@@ -107,7 +109,8 @@ const TechDebtAnalysis = () => {
   // Handle refresh
   const handleRefresh = async () => {
     try {
-      await refreshFlow();
+      // Refresh by re-fetching flow data
+      await updatePhase(currentPhase, { action: 'refresh' });
       toast({
         title: 'Success',
         description: 'Tech debt analysis data refreshed.',
