@@ -55,8 +55,8 @@ const DataCleansing: React.FC = () => {
     error: latestImportError
   } = useLatestImport();
 
-  // Extract data cleansing results from flow state
-  const flowDataCleansing = flow?.results?.data_cleansing || flow?.data_cleansing_results || {};
+  // Extract data cleansing results from flow state - fix TypeScript errors
+  const flowDataCleansing = (flow as any)?.results?.data_cleansing || (flow as any)?.data_cleansing_results || {};
   const qualityIssues = flowDataCleansing?.quality_issues || [];
   const agentRecommendations = flowDataCleansing?.recommendations || [];
   const cleansingProgress = {
@@ -104,7 +104,7 @@ const DataCleansing: React.FC = () => {
   const isDataCleansingComplete = completedPhases.includes('data_cleansing');
   const canContinueToInventory = completedPhases.includes('data_cleansing') || cleansingProgress.completion_percentage >= 80;
 
-  // Enhanced data samples for display - extract from flow state
+  // Enhanced data samples for display - extract from flow state with proper type casting
   const rawDataSample = flowDataCleansing?.raw_data?.slice(0, 3) || [];
   const cleanedDataSample = flowDataCleansing?.cleaned_data?.slice(0, 3) || [];
 
@@ -286,10 +286,12 @@ const DataCleansing: React.FC = () => {
                   }}
                 />
 
-                <EnhancedAgentOrchestrationPanel
-                  sessionId={flow.flow_id}
-                  flowState={flow}
-                />
+                {flow?.flow_id && (
+                  <EnhancedAgentOrchestrationPanel
+                    sessionId={flow.flow_id}
+                    flowState={flow}
+                  />
+                )}
               </div>
             </div>
 
