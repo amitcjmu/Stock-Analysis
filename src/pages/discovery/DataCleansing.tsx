@@ -65,7 +65,7 @@ const DataCleansing: React.FC = () => {
     completion_percentage: flowDataCleansing?.data_quality_metrics?.overall_improvement?.completeness_improvement || 0,
     cleaned_records: flowDataCleansing?.metadata?.cleaned_records || 0,
     issues_resolved: qualityIssues.filter(issue => issue.status === 'resolved').length,
-    crew_completion_status: 'completed' // Based on having data
+    crew_completion_status: flowDataCleansing?.crew_status?.status || 'unknown'
   };
 
   // Debug logging to see what data is available

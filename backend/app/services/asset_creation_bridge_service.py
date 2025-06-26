@@ -227,7 +227,7 @@ class AssetCreationBridgeService:
             
             # Technical specifications
             operating_system=normalized_data.get('operating_system'),
-            os_version=normalized_data.get('os_version'),
+            os_version=str(normalized_data.get('os_version')) if normalized_data.get('os_version') is not None else None,
             cpu_cores=self._safe_int(normalized_data.get('cpu_cores')),
             memory_gb=self._safe_float(normalized_data.get('memory_gb')),
             storage_gb=self._safe_float(normalized_data.get('storage_gb')),
@@ -324,6 +324,15 @@ class AssetCreationBridgeService:
             return None
         try:
             return float(value)
+        except (ValueError, TypeError):
+            return None
+    
+    def _safe_string(self, value: Any) -> Optional[str]:
+        """Safely convert value to string."""
+        if value is None:
+            return None
+        try:
+            return str(value)
         except (ValueError, TypeError):
             return None
     
