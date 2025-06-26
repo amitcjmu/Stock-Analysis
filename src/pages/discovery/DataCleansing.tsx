@@ -16,12 +16,37 @@ import DataCleansingNavigationButtons from '../../components/discovery/data-clea
 import DataCleansingStateProvider from '../../components/discovery/data-cleansing/DataCleansingStateProvider';
 
 // Hooks
-import { useDiscoveryFlowV2 } from '../../hooks/discovery/useDiscoveryFlowV2';
+import { useDiscoveryFlowV2, useDiscoveryFlowList } from '../../hooks/discovery/useDiscoveryFlowV2';
+import { useAuth } from '../../contexts/AuthContext';
+import { useDataCleansingAnalysis } from '../../hooks/useDataCleansingAnalysis';
 
 const DataCleansing: React.FC = () => {
   const { flowId: urlFlowId } = useParams<{ flowId?: string }>();
+  const { user } = useAuth();
   
-  // V2 Discovery flow hook - pass flowId if available from URL
+  // Auto-detect active flow if no flowId in URL
+  const { flows: flowList, isLoading: isFlowListLoading } = useDiscoveryFlowList();
+  
+  // Determine effective flow ID using the same logic as attribute mapping
+  const autoDetectedFlowId = React.useMemo(() => {
+    if (!flowList || flowList.length === 0) return null;
+    
+    // Find the most recent active flow
+    const activeFlows = flowList.filter(f => f.status === 'active' || f.status === 'in_progress');
+    if (activeFlows.length === 0) return null;
+    
+    // Sort by created_at descending and take the first one
+    const sortedFlows = activeFlows.sort((a, b) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+    
+    console.log(`🔍 Auto-detected flow for data cleansing: ${sortedFlows[0].flow_id}`);
+    return sortedFlows[0].flow_id;
+  }, [flowList]);
+  
+  const effectiveFlowId = urlFlowId || autoDetectedFlowId;
+  
+  // V2 Discovery flow hook with auto-detected flow ID
   const {
     flow,
     isLoading,
@@ -31,13 +56,29 @@ const DataCleansing: React.FC = () => {
     progressPercentage,
     currentPhase,
     completedPhases,
-    nextPhase
-  } = useDiscoveryFlowV2(urlFlowId);
+    nextPhase,
+    refresh
+  } = useDiscoveryFlowV2(effectiveFlowId);
 
-  // Get data cleansing specific data from V2 flow
-  const cleansingData = flow?.phases?.data_cleansing ? { quality_issues: [], recommendations: [] } : null;
-  const isDataCleansingComplete = completedPhases.includes('data_cleansing');
-  const canContinueToInventory = completedPhases.includes('data_cleansing');
+  // Use real data cleansing analysis hook
+  const {
+    data: cleansingAnalysis,
+    isLoading: isCleansingLoading,
+    error: cleansingError,
+    refetch: refetchCleansing
+  } = useDataCleansingAnalysis();
+
+  // Combine flow data with real cleansing analysis
+  const qualityIssues = cleansingAnalysis?.quality_issues || [];
+  const agentRecommendations = cleansingAnalysis?.recommendations || [];
+  const cleansingProgress = {
+    total_records: cleansingAnalysis?.metrics?.total_records || 0,
+    quality_score: cleansingAnalysis?.metrics?.quality_score || 0,
+    completion_percentage: cleansingAnalysis?.metrics?.completion_percentage || 0,
+    cleaned_records: cleansingAnalysis?.metrics?.cleaned_records || 0,
+    issues_resolved: cleansingAnalysis?.metrics?.quality_issues_resolved || 0,
+    crew_completion_status: cleansingAnalysis?.processing_status?.phase || 'pending'
+  };
 
   // Handle data cleansing execution
   const handleTriggerDataCleansingCrew = async () => {
@@ -59,45 +100,20 @@ const DataCleansing: React.FC = () => {
     window.location.href = '/discovery/inventory';
   };
 
-  // Derived state for compatibility with existing components
-  const qualityIssues = (cleansingData && !Array.isArray(cleansingData)) ? (cleansingData.quality_issues || []) : [];
-  const agentRecommendations = (cleansingData && !Array.isArray(cleansingData)) ? (cleansingData.recommendations || []) : [];
-  const cleansingProgress = {
-    total_records: (cleansingData && !Array.isArray(cleansingData)) ? (cleansingData.total_records || 0) : 0,
-    quality_score: (cleansingData && !Array.isArray(cleansingData)) ? (cleansingData.quality_score || 0) : 0,
-    completion_percentage: isDataCleansingComplete ? 100 : 0,
-    cleaned_records: 0,
-    issues_resolved: 0,
-    crew_completion_status: 'pending'
-  };
-
-  // Handle issue resolution
-  const handleResolveIssue = async (issueId: string) => {
-    console.log('Resolving issue:', issueId);
-    // Implementation for resolving issues
-  };
-
-  // Handle recommendation application
-  const handleApplyRecommendation = async (recommendationId: string) => {
-    console.log('Applying recommendation:', recommendationId);
-    // Implementation for applying recommendations
-  };
-
-  // Refresh function
-  const refetchCleansing = () => {
-    // Refresh flow state
-    return Promise.resolve();
-  };
-
-  // Determine state conditions
-  const hasError = !!error;
-  const errorMessage = error?.message;
-  const hasData = !!(Array.isArray(cleansingData) ? cleansingData.length : cleansingData?.quality_issues?.length);
+  // Determine state conditions - use real data cleansing analysis
+  const hasError = !!(error || cleansingError);
+  const errorMessage = error?.message || cleansingError?.message;
+  const hasData = !!(qualityIssues.length > 0 || agentRecommendations.length > 0 || cleansingProgress.total_records > 0);
   const isAnalyzing = isUpdating;
+  const isLoadingData = isLoading || isCleansingLoading;
+
+  // Get data cleansing specific data from V2 flow (keep for compatibility)
+  const isDataCleansingComplete = completedPhases.includes('data_cleansing');
+  const canContinueToInventory = completedPhases.includes('data_cleansing') || cleansingProgress.completion_percentage >= 80;
 
   return (
     <DataCleansingStateProvider
-      isLoading={isLoading}
+      isLoading={isLoadingData}
       hasError={hasError}
       errorMessage={errorMessage}
       hasData={hasData}
@@ -123,7 +139,7 @@ const DataCleansing: React.FC = () => {
               issuesCount={qualityIssues.length}
               recommendationsCount={agentRecommendations.length}
               isAnalyzing={isAnalyzing}
-              isLoading={isLoading}
+              isLoading={isLoadingData}
               onRefresh={refetchCleansing}
               onTriggerAnalysis={handleTriggerDataCleansingCrew}
             />
@@ -133,7 +149,7 @@ const DataCleansing: React.FC = () => {
                 ...cleansingProgress,
                 crew_completion_status: {}
               }}
-              isLoading={isLoading}
+              isLoading={isLoadingData}
             />
 
             {flow?.flow_id && (
@@ -149,14 +165,20 @@ const DataCleansing: React.FC = () => {
               <div className="xl:col-span-3 space-y-6">
                 <QualityIssuesPanel 
                   qualityIssues={qualityIssues}
-                  onResolveIssue={handleResolveIssue}
-                  isLoading={isLoading}
+                  onResolveIssue={(issueId) => {
+                    console.log('Resolving issue:', issueId);
+                    // Implementation for resolving issues
+                  }}
+                  isLoading={isLoadingData}
                 />
 
                 <CleansingRecommendationsPanel 
                   recommendations={agentRecommendations}
-                  onApplyRecommendation={handleApplyRecommendation}
-                  isLoading={isLoading}
+                  onApplyRecommendation={(recommendationId) => {
+                    console.log('Applying recommendation:', recommendationId);
+                    // Implementation for applying recommendations
+                  }}
+                  isLoading={isLoadingData}
                 />
 
                 <DataCleansingNavigationButtons 

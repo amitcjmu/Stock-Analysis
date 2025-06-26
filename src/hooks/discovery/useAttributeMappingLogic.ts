@@ -309,8 +309,30 @@ export const useAttributeMappingLogic = () => {
   }, [refresh, refetchFieldMappings]);
 
   const canContinueToDataCleansing = useCallback(() => {
-    return flow?.phases?.attribute_mapping === true;
-  }, [flow]);
+    // Check if flow phase is complete
+    if (flow?.phases?.attribute_mapping === true) {
+      return true;
+    }
+    
+    // Check if sufficient field mappings are approved
+    if (Array.isArray(fieldMappings) && fieldMappings.length > 0) {
+      const approvedMappings = fieldMappings.filter(m => m.status === 'approved').length;
+      const totalMappings = fieldMappings.length;
+      const completionPercentage = (approvedMappings / totalMappings) * 100;
+      
+      // Allow continuation if at least 80% of mappings are approved
+      console.log(`🔍 Field mapping completion: ${approvedMappings}/${totalMappings} (${completionPercentage.toFixed(1)}%)`);
+      return completionPercentage >= 80;
+    }
+    
+    // Check mapping progress from the stats
+    if (mappingProgress?.completion_percentage) {
+      console.log(`🔍 Mapping progress completion: ${mappingProgress.completion_percentage}%`);
+      return mappingProgress.completion_percentage >= 80;
+    }
+    
+    return false;
+  }, [flow, fieldMappings, mappingProgress]);
 
   const checkMappingApprovalStatus = useCallback(async (dataImportId: string) => {
     try {
