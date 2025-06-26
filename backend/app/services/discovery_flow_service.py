@@ -46,7 +46,7 @@ class DiscoveryFlowService:
         flow_id: str,  # CrewAI generated flow ID - single source of truth
         raw_data: List[Dict[str, Any]],
         metadata: Dict[str, Any] = None,
-        import_session_id: str = None,
+        data_import_id: str = None,
         user_id: str = None
     ) -> DiscoveryFlow:
         """
@@ -73,7 +73,7 @@ class DiscoveryFlowService:
             # Create discovery flow
             flow = await self.flow_repo.create_discovery_flow(
                 flow_id=flow_id,
-                import_session_id=import_session_id,
+                import_session_id=data_import_id,
                 user_id=user_id or str(self.context.user_id),
                 raw_data=raw_data,
                 metadata=metadata or {}
@@ -91,7 +91,7 @@ class DiscoveryFlowService:
         flow_id: str,
         raw_data: List[Dict[str, Any]],
         metadata: Dict[str, Any] = None,
-        import_session_id: str = None,
+        data_import_id: str = None,
         user_id: str = None
     ) -> DiscoveryFlow:
         """
@@ -102,7 +102,7 @@ class DiscoveryFlowService:
             flow_id=flow_id,
             raw_data=raw_data,
             metadata=metadata,
-            import_session_id=import_session_id,
+            data_import_id=data_import_id,
             user_id=user_id
         )
     
@@ -414,19 +414,23 @@ class DiscoveryFlowIntegrationService:
         try:
             logger.info(f"🔗 Creating discovery flow from CrewAI: {crewai_flow_id}")
             
-            # Extract import session ID if available (for backward compatibility)
-            import_session_id = None
-            if metadata and "import_session_id" in metadata:
-                import_session_id = metadata["import_session_id"]
+            # Extract data import ID if available (for linking to import session)
+            data_import_id = None
+            if metadata and "data_import_id" in metadata:
+                data_import_id = metadata["data_import_id"]
+            elif metadata and "import_session_id" in metadata:
+                # Backward compatibility - use import_session_id as data_import_id
+                data_import_id = metadata["import_session_id"]
             elif crewai_state and "session_id" in crewai_state:
-                import_session_id = crewai_state["session_id"]
+                # Backward compatibility - use session_id as data_import_id
+                data_import_id = crewai_state["session_id"]
             
             # Create discovery flow using CrewAI Flow ID as single source of truth
             flow = await self.discovery_service.create_discovery_flow(
                 flow_id=crewai_flow_id,
                 raw_data=raw_data,
                 metadata=metadata,
-                import_session_id=import_session_id,
+                data_import_id=data_import_id,
                 user_id=str(self.context.user_id)
             )
             

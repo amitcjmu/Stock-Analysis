@@ -61,13 +61,12 @@ class InitializeDiscoveryRequest(BaseModel):
     """Unified request for initializing discovery flow"""
     raw_data: List[Dict[str, Any]] = Field(..., description="Raw CMDB data")
     metadata: Optional[Dict[str, Any]] = Field(default={}, description="Additional metadata")
-    import_session_id: Optional[str] = Field(default=None, description="Import session ID for backward compatibility")
+    data_import_id: Optional[str] = Field(default=None, description="Data import ID for linking to import session")
     execution_mode: str = Field(default="hybrid", description="Execution mode: 'crewai', 'database', or 'hybrid'")
 
 class DiscoveryFlowResponse(BaseModel):
     """Unified response for discovery flow operations"""
     flow_id: str
-    session_id: Optional[str]
     client_account_id: str
     engagement_id: str
     user_id: str
@@ -104,7 +103,6 @@ async def initialize_discovery_flow(
         
         flow_result = {
             "flow_id": f"flow-{datetime.now().strftime('%Y%m%d-%H%M%S')}",
-            "session_id": request.import_session_id,
             "client_account_id": context.client_account_id,
             "engagement_id": context.engagement_id,
             "user_id": context.user_id,
@@ -150,7 +148,7 @@ async def initialize_discovery_flow(
                     flow_id=flow_result["flow_id"],
                     raw_data=request.raw_data,
                     metadata=request.metadata,
-                    import_session_id=request.import_session_id
+                    data_import_id=request.data_import_id
                 )
                 flow_result["database_status"] = "initialized"
                 flow_result.update(db_result)
@@ -195,7 +193,6 @@ async def get_discovery_flow_status(
         
         flow_status = {
             "flow_id": flow_id,
-            "session_id": None,
             "client_account_id": client_account_id,
             "engagement_id": engagement_id,
             "user_id": user_id,
@@ -206,7 +203,7 @@ async def get_discovery_flow_status(
             "crewai_status": "unknown",
             "database_status": "unknown",
             "agent_insights": [],
-            "created_at": "",
+            "created_at": datetime.now().isoformat(),
             "updated_at": datetime.now().isoformat()
         }
         
@@ -215,46 +212,39 @@ async def get_discovery_flow_status(
             try:
                 crewai_handler = CrewAIExecutionHandler(db, context)
                 crewai_status = await crewai_handler.get_flow_status(flow_id)
-                # Preserve context fields when updating
-                for key, value in crewai_status.items():
-                    if key not in ["client_account_id", "engagement_id", "user_id"] or value is not None:
-                        flow_status[key] = value
+                flow_status.update(crewai_status)
                 flow_status["crewai_status"] = "active"
                 logger.info("✅ CrewAI status retrieved")
             except Exception as e:
                 logger.warning(f"⚠️ CrewAI status retrieval failed: {e}")
-                flow_status["crewai_status"] = "unavailable"
+                flow_status["crewai_status"] = "failed"
         
         # Get PostgreSQL status if available
         if FLOW_MANAGEMENT_AVAILABLE:
             try:
                 flow_handler = FlowManagementHandler(db, context)
                 db_status = await flow_handler.get_flow_status(flow_id)
-                # Preserve context fields when updating
-                for key, value in db_status.items():
-                    if key not in ["client_account_id", "engagement_id", "user_id"] or value is not None:
-                        flow_status[key] = value
+                flow_status.update(db_status)
                 flow_status["database_status"] = "active"
-                logger.info("✅ Database status retrieved")
+                logger.info("✅ PostgreSQL status retrieved")
             except Exception as e:
                 logger.warning(f"⚠️ Database status retrieval failed: {e}")
-                flow_status["database_status"] = "unavailable"
+                flow_status["database_status"] = "failed"
         
         # Determine overall status
         if flow_status["crewai_status"] == "active" or flow_status["database_status"] == "active":
-            if flow_status["status"] == "unknown":
-                flow_status["status"] = "active"
+            flow_status["status"] = "active"
         else:
-            flow_status["status"] = "not_found"
+            flow_status["status"] = "failed"
         
-        logger.info(f"✅ Flow status retrieved: {flow_id}")
+        logger.info(f"✅ Discovery flow status retrieved: {flow_id}")
         return DiscoveryFlowResponse(**flow_status)
         
     except Exception as e:
-        logger.error(f"❌ Failed to get flow status: {e}")
+        logger.error(f"❌ Failed to get discovery flow status: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get flow status: {str(e)}"
+            detail=f"Failed to get discovery flow status: {str(e)}"
         )
 
 @router.post("/flow/execute", response_model=Dict[str, Any])
@@ -301,9 +291,9 @@ async def execute_discovery_flow(
                     data=request.data
                 )
                 execution_result["database_execution"] = "completed"
-                logger.info("✅ Database phase execution completed")
+                logger.info("✅ PostgreSQL phase execution completed")
             except Exception as e:
-                logger.warning(f"⚠️ Database execution failed: {e}")
+                logger.warning(f"⚠️ PostgreSQL execution failed: {e}")
                 execution_result["database_execution"] = "failed"
         
         # Update overall status
@@ -482,9 +472,9 @@ async def continue_discovery_flow(
                 db_result = await flow_handler.continue_flow(flow_id)
                 result["database_status"] = "continued"
                 result.update(db_result)
-                logger.info("✅ Database flow continued")
+                logger.info("✅ PostgreSQL flow continued")
             except Exception as e:
-                logger.warning(f"⚠️ Database continuation failed: {e}")
+                logger.warning(f"⚠️ PostgreSQL continuation failed: {e}")
                 result["database_status"] = "failed"
         
         logger.info(f"✅ Discovery flow continued: {flow_id}")
@@ -537,9 +527,9 @@ async def complete_discovery_flow(
                 db_result = await flow_handler.complete_flow(flow_id)
                 result["database_status"] = "completed"
                 result.update(db_result)
-                logger.info("✅ Database flow completed")
+                logger.info("✅ PostgreSQL flow completed")
             except Exception as e:
-                logger.warning(f"⚠️ Database completion failed: {e}")
+                logger.warning(f"⚠️ PostgreSQL completion failed: {e}")
                 result["database_status"] = "failed"
         
         logger.info(f"✅ Discovery flow completed: {flow_id}")
@@ -593,9 +583,9 @@ async def delete_discovery_flow(
                 db_result = await flow_handler.delete_flow(flow_id, force_delete)
                 result["database_cleanup"] = db_result.get("cleanup_summary", {})
                 result["cleanup_summary"] = db_result.get("cleanup_summary", {})
-                logger.info("✅ Database flow deleted")
+                logger.info("✅ PostgreSQL flow deleted")
             except Exception as e:
-                logger.warning(f"⚠️ Database deletion failed: {e}")
+                logger.warning(f"⚠️ PostgreSQL deletion failed: {e}")
                 result["database_cleanup"] = {"error": str(e)}
         
         logger.info(f"✅ Discovery flow deleted: {flow_id}")
@@ -629,19 +619,210 @@ async def run_discovery_flow_legacy(
     
     return await execute_discovery_flow(unified_request, db, context)
 
-@router.get("/flow/status", response_model=DiscoveryFlowResponse)
-async def get_flow_status_legacy(
-    session_id: str = Query(..., description="Session ID for backward compatibility"),
+# Legacy session_id endpoint removed - use flow_id endpoints only
+
+@router.post("/flow/pause/{flow_id}", response_model=Dict[str, Any])
+async def pause_discovery_flow(
+    flow_id: str,
+    reason: str = "user_requested",
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context)
 ):
     """
-    Legacy endpoint for backward compatibility.
-    Converts session_id to flow_id lookup.
+    Pause a running CrewAI discovery flow at the current node.
+    This preserves the flow state and allows resumption from the same point.
     """
-    logger.info(f"🔄 Legacy status endpoint called with session_id: {session_id}")
-    
-    # Try to find flow by session_id
-    flow_id = f"flow-{session_id}"  # Simple conversion for now
-    
-    return await get_discovery_flow_status(flow_id, db, context) 
+    try:
+        logger.info(f"⏸️ Pausing discovery flow: {flow_id}, reason: {reason}")
+        
+        result = {
+            "success": True,
+            "flow_id": flow_id,
+            "action": "paused",
+            "reason": reason,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        # Pause CrewAI flow if available
+        if CREWAI_EXECUTION_AVAILABLE:
+            try:
+                crewai_handler = CrewAIExecutionHandler(db, context)
+                # Get the actual CrewAI Flow instance and pause it
+                from app.services.crewai_flow_service import CrewAIFlowService
+                crewai_flow_service = CrewAIFlowService(db)
+                
+                # Call the UnifiedDiscoveryFlow pause method
+                pause_result = await crewai_flow_service.pause_flow(flow_id, reason)
+                result["crewai_status"] = "paused"
+                result["flow_state"] = pause_result
+                logger.info("✅ CrewAI flow paused successfully")
+            except Exception as e:
+                logger.warning(f"⚠️ CrewAI pause failed: {e}")
+                result["crewai_status"] = "pause_failed"
+                result["error"] = str(e)
+        
+        # Update PostgreSQL status
+        if FLOW_MANAGEMENT_AVAILABLE:
+            try:
+                flow_handler = FlowManagementHandler(db, context)
+                await flow_handler.update_flow_status(flow_id, "paused", reason)
+                result["database_status"] = "paused"
+                logger.info("✅ PostgreSQL flow status updated to paused")
+            except Exception as e:
+                logger.warning(f"⚠️ PostgreSQL pause update failed: {e}")
+                result["database_status"] = "update_failed"
+        
+        logger.info(f"✅ Discovery flow paused: {flow_id}")
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to pause discovery flow: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to pause discovery flow: {str(e)}"
+        )
+
+@router.post("/flow/resume/{flow_id}", response_model=Dict[str, Any])
+async def resume_discovery_flow(
+    flow_id: str,
+    resume_context: Optional[Dict[str, Any]] = None,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+):
+    """
+    Resume a paused CrewAI discovery flow from the last saved state.
+    This continues execution from the exact node where it was paused.
+    """
+    try:
+        logger.info(f"▶️ Resuming discovery flow: {flow_id}")
+        
+        if resume_context is None:
+            resume_context = {"trigger": "user_requested"}
+        
+        result = {
+            "success": True,
+            "flow_id": flow_id,
+            "action": "resumed",
+            "resume_context": resume_context,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        # Resume CrewAI flow if available
+        if CREWAI_EXECUTION_AVAILABLE:
+            try:
+                crewai_handler = CrewAIExecutionHandler(db, context)
+                # Get the actual CrewAI Flow instance and resume it
+                from app.services.crewai_flow_service import CrewAIFlowService
+                crewai_flow_service = CrewAIFlowService(db)
+                
+                # Call the UnifiedDiscoveryFlow resume method
+                resume_result = await crewai_flow_service.resume_flow(flow_id, resume_context)
+                result["crewai_status"] = "resumed"
+                result["flow_state"] = resume_result
+                result["next_phase"] = resume_result.get("next_phase", "unknown")
+                logger.info("✅ CrewAI flow resumed successfully")
+            except Exception as e:
+                logger.warning(f"⚠️ CrewAI resume failed: {e}")
+                result["crewai_status"] = "resume_failed"
+                result["error"] = str(e)
+        
+        # Update PostgreSQL status
+        if FLOW_MANAGEMENT_AVAILABLE:
+            try:
+                flow_handler = FlowManagementHandler(db, context)
+                await flow_handler.update_flow_status(flow_id, "running", "resumed")
+                result["database_status"] = "running"
+                logger.info("✅ PostgreSQL flow status updated to running")
+            except Exception as e:
+                logger.warning(f"⚠️ PostgreSQL resume update failed: {e}")
+                result["database_status"] = "update_failed"
+        
+        logger.info(f"✅ Discovery flow resumed: {flow_id}")
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to resume discovery flow: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to resume discovery flow: {str(e)}"
+        )
+
+@router.post("/flow/resume-at-phase/{flow_id}", response_model=Dict[str, Any])
+async def resume_discovery_flow_at_phase(
+    flow_id: str,
+    phase: str,
+    human_input: Optional[Dict[str, Any]] = None,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+):
+    """
+    Resume a CrewAI discovery flow at a specific phase with optional human input.
+    This is for human-in-the-loop scenarios where user provides input to continue.
+    """
+    try:
+        logger.info(f"▶️ Resuming discovery flow at phase: {flow_id} -> {phase}")
+        
+        result = {
+            "success": True,
+            "flow_id": flow_id,
+            "action": "resumed_at_phase",
+            "target_phase": phase,
+            "human_input_provided": human_input is not None,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        # Resume CrewAI flow at specific phase
+        if CREWAI_EXECUTION_AVAILABLE:
+            try:
+                from app.services.crewai_flow_service import CrewAIFlowService
+                crewai_flow_service = CrewAIFlowService(db)
+                
+                # Resume with specific phase and human input
+                resume_context = {
+                    "target_phase": phase,
+                    "human_input": human_input,
+                    "trigger": "user_phase_selection"
+                }
+                
+                # Convert context to dictionary for the service call
+                context_dict = {
+                    "client_account_id": context.client_account_id,
+                    "engagement_id": context.engagement_id,
+                    "user_id": context.user_id
+                }
+                resume_context.update(context_dict)
+                
+                resume_result = await crewai_flow_service.resume_flow_at_phase(
+                    flow_id, phase, resume_context
+                )
+                result["crewai_status"] = "resumed"
+                result["flow_state"] = resume_result
+                result["next_phase"] = resume_result.get("next_phase", phase)
+                logger.info(f"✅ CrewAI flow resumed at phase: {phase}")
+            except Exception as e:
+                logger.warning(f"⚠️ CrewAI phase resume failed: {e}")
+                result["crewai_status"] = "resume_failed"
+                result["error"] = str(e)
+        
+        # Update PostgreSQL status
+        if FLOW_MANAGEMENT_AVAILABLE:
+            try:
+                flow_handler = FlowManagementHandler(db, context)
+                await flow_handler.update_flow_status(flow_id, "running", f"resumed_at_{phase}")
+                result["database_status"] = "running"
+                logger.info("✅ PostgreSQL flow status updated")
+            except Exception as e:
+                logger.warning(f"⚠️ PostgreSQL update failed: {e}")
+                result["database_status"] = "update_failed"
+        
+        logger.info(f"✅ Discovery flow resumed at phase: {flow_id} -> {phase}")
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to resume discovery flow at phase: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to resume discovery flow at phase: {str(e)}"
+        )
+
+# === Continue Discovery Flow Endpoints === 

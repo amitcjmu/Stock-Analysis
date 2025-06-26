@@ -37,6 +37,7 @@ interface DiscoveryFlowV2 {
   migration_readiness_score: number;
   next_phase?: string;
   is_complete: boolean;
+  field_mapping?: any;
 }
 
 interface DiscoveryAssetV2 {
@@ -178,7 +179,8 @@ const apiClient = {
         assessment_ready: false,
         is_mock: false,
         migration_readiness_score: 0,
-        is_complete: response.status === 'completed'
+        is_complete: response.status === 'completed',
+        field_mapping: response.field_mapping
       } as DiscoveryFlowV2;
     } catch (error) {
       console.error('Failed to create flow:', error);
@@ -206,7 +208,8 @@ const apiClient = {
         assessment_ready: response.assessment_ready || false,
         is_mock: false,
         migration_readiness_score: response.migration_readiness_score || 0,
-        is_complete: response.status === 'completed'
+        is_complete: response.status === 'completed',
+        field_mapping: response.field_mapping
       } as DiscoveryFlowV2;
     } catch (error) {
       console.error('Failed to get flow:', error);
@@ -235,7 +238,8 @@ const apiClient = {
         is_mock: false,
         migration_readiness_score: response.migration_readiness_score || 0,
         is_complete: response.status === 'completed',
-        next_phase: response.next_phase
+        next_phase: response.next_phase,
+        field_mapping: response.field_mapping
       } as DiscoveryFlowV2;
     } catch (error) {
       console.error('Failed to update flow phase:', error);
@@ -264,7 +268,8 @@ const apiClient = {
         is_mock: false,
         migration_readiness_score: response.migration_readiness_score || 0,
         is_complete: true,
-        completed_at: new Date().toISOString()
+        completed_at: new Date().toISOString(),
+        field_mapping: response.field_mapping
       } as DiscoveryFlowV2;
     } catch (error) {
       console.error('Failed to complete flow:', error);

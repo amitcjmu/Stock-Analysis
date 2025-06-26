@@ -35,7 +35,7 @@ class FlowManagementHandler:
         )
     
     async def create_flow(self, flow_id: str, raw_data: List[Dict[str, Any]], 
-                         metadata: Dict[str, Any], import_session_id: Optional[str] = None) -> Dict[str, Any]:
+                         metadata: Dict[str, Any], data_import_id: Optional[str] = None) -> Dict[str, Any]:
         """Create a new discovery flow in PostgreSQL"""
         try:
             logger.info(f"📊 Creating PostgreSQL flow: {flow_id}")
@@ -43,7 +43,7 @@ class FlowManagementHandler:
             # Basic flow creation logic
             flow_data = {
                 "flow_id": flow_id,
-                "session_id": import_session_id,
+                "data_import_id": data_import_id,
                 "client_account_id": self.client_account_id,
                 "engagement_id": self.engagement_id,
                 "user_id": self.user_id,
@@ -556,7 +556,7 @@ class FlowManagementHandler:
             
             flow_status = {
                 "flow_id": flow_id,
-                "session_id": str(flow.import_session_id) if flow.import_session_id else None,
+                "data_import_id": str(flow.import_session_id) if flow.import_session_id else None,
                 "status": flow.status,
                 "current_phase": current_phase,
                 "progress_percentage": progress_percentage,

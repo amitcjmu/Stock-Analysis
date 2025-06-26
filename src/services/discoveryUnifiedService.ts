@@ -310,6 +310,39 @@ export class UnifiedDiscoveryService {
       throw error;
     }
   }
+
+  // Flow execution methods
+  async executeFlow(data: any): Promise<any> {
+    return this.apiCall('/flow/execute', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  // New CrewAI Flow control methods
+  async pauseFlow(flowId: string, reason: string = 'user_requested'): Promise<any> {
+    return this.apiCall(`/flow/pause/${flowId}`, {
+      method: 'POST',
+      body: JSON.stringify({ reason })
+    });
+  }
+
+  async resumeFlow(flowId: string, resumeContext?: any): Promise<any> {
+    return this.apiCall(`/flow/resume/${flowId}`, {
+      method: 'POST',
+      body: JSON.stringify({ resume_context: resumeContext || { trigger: 'user_requested' } })
+    });
+  }
+
+  async resumeFlowAtPhase(flowId: string, phase: string, humanInput?: any): Promise<any> {
+    return this.apiCall(`/flow/resume-at-phase/${flowId}`, {
+      method: 'POST',
+      body: JSON.stringify({ 
+        phase, 
+        human_input: humanInput 
+      })
+    });
+  }
 }
 
 // Export singleton instance
