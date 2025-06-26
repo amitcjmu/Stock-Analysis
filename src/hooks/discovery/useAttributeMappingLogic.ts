@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDiscoveryFlowV2, useDiscoveryFlowList } from './useDiscoveryFlowV2';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { API_CONFIG } from '../../config/api';
+import { API_CONFIG, apiCall } from '../../config/api';
 
 export const useAttributeMappingLogic = () => {
   const { pathname } = useLocation();
@@ -61,7 +61,23 @@ export const useAttributeMappingLogic = () => {
     refresh
   } = useDiscoveryFlowV2(effectiveFlowId);
 
-  // Get field mapping data from unified flow
+  // Get real field mappings from database instead of flow state
+  const {
+    fieldMappings: realFieldMappings,
+    isLoading: isFieldMappingsLoading,
+    error: fieldMappingsError,
+    refetch: refetchFieldMappings
+  } = useRealFieldMappings();
+
+  // Get agent clarifications from database
+  const {
+    clarifications: agentClarifications,
+    isLoading: isClarificationsLoading,
+    error: clarificationsError,
+    refetch: refetchClarifications
+  } = useAgentClarifications();
+
+  // Get field mapping data from unified flow (for legacy compatibility)
   const fieldMappingData = flow?.field_mapping;
   
   // Extract data with proper type checking and safe access
@@ -77,26 +93,8 @@ export const useAttributeMappingLogic = () => {
     }
   })();
   
-  const fieldMappings = (() => {
-    try {
-      if (fieldMappingData && !Array.isArray(fieldMappingData) && fieldMappingData.mappings && typeof fieldMappingData.mappings === 'object') {
-        return Object.entries(fieldMappingData.mappings).map(([targetField, mapping]: [string, any], index: number) => ({
-          id: `mapping_${index}`, // Add required id field
-          sourceField: mapping?.source_column || targetField,
-          targetAttribute: mapping?.asset_field || targetField,
-          confidence: Math.min(1, Math.max(0, (mapping?.confidence || 0) / 100)), // Normalize to 0-1 range
-          mapping_type: mapping?.match_type || 'direct',
-          sample_values: mapping?.sample_values || [], // Ensure it's always an array
-          status: 'pending',
-          ai_reasoning: mapping?.reasoning || `AI suggested mapping based on field similarity`
-        }));
-      }
-      return [];
-    } catch (error) {
-      console.error('Error extracting fieldMappings:', error);
-      return [];
-    }
-  })();
+  // Use real field mappings from database instead of flow state
+  const fieldMappings = realFieldMappings;
   
   const crewAnalysis = (() => {
     try {
@@ -110,17 +108,21 @@ export const useAttributeMappingLogic = () => {
   
   const mappingProgress = (() => {
     try {
-      if (fieldMappingData && !Array.isArray(fieldMappingData) && fieldMappingData.progress && typeof fieldMappingData.progress === 'object') {
-        return {
-          total: fieldMappingData.progress.total || 0,
-          mapped: fieldMappingData.progress.mapped || 0,
-          critical_mapped: fieldMappingData.progress.critical_mapped || 0
-        };
-      }
-      return { total: 0, mapped: 0, critical_mapped: 0 };
+      // Calculate progress from real field mappings
+      const total = realFieldMappings.length;
+      const approved = realFieldMappings.filter((m: any) => m.status === 'approved').length;
+      const suggested = realFieldMappings.filter((m: any) => m.status === 'suggested').length;
+      const pending = realFieldMappings.filter((m: any) => m.status === 'pending').length;
+      
+      return {
+        total: total,
+        mapped: approved,
+        critical_mapped: approved, // Assume all approved mappings are critical for now
+        pending: suggested + pending
+      };
     } catch (error) {
-      console.error('Error extracting mappingProgress:', error);
-      return { total: 0, mapped: 0, critical_mapped: 0 };
+      console.error('Error calculating mappingProgress:', error);
+      return { total: 0, mapped: 0, critical_mapped: 0, pending: 0 };
     }
   })();
   
@@ -155,13 +157,13 @@ export const useAttributeMappingLogic = () => {
   const availableDataImports = flowList || [];
   const selectedDataImportId = effectiveFlowId;
 
-  // Loading states - include flow list loading
-  const isAgenticLoading = isFlowLoading || isFlowListLoading;
+  // Loading states - include flow list loading and field mappings loading
+  const isAgenticLoading = isFlowLoading || isFlowListLoading || isFieldMappingsLoading;
   const isFlowStateLoading = isFlowLoading || isFlowListLoading;
-  const isAnalyzing = isFlowLoading;
+  const isAnalyzing = isFlowLoading || isFieldMappingsLoading;
 
-  // Error states - combine flow and flow list errors
-  const agenticError = flowError || flowListError;
+  // Error states - combine flow, flow list, and field mappings errors
+  const agenticError = flowError || flowListError || fieldMappingsError;
   const flowStateError = flowError || flowListError;
 
   // Action handlers
@@ -190,7 +192,7 @@ export const useAttributeMappingLogic = () => {
     try {
       console.log(`✅ Approving mapping: ${mappingId}`);
       
-      const response = await fetch(`${API_CONFIG.BASE_URL}/data-import/field-mapping/mappings/${mappingId}/approve`, {
+      const result = await apiCall(`/data-import/mappings/${mappingId}/approve`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -198,16 +200,10 @@ export const useAttributeMappingLogic = () => {
         }
       });
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to approve mapping');
-      }
-      
-      const result = await response.json();
       console.log('✅ Mapping approved successfully:', result);
       
-      // Refresh the data to show updated status
-      await refresh();
+      // Refresh both flow data and field mappings
+      await Promise.all([refresh(), refetchFieldMappings()]);
       
       // Show success message
       if (typeof window !== 'undefined') {
@@ -219,13 +215,13 @@ export const useAttributeMappingLogic = () => {
       console.error('❌ Failed to approve mapping:', error);
       // Could add error toast notification here
     }
-  }, [refresh, getAuthHeaders]);
+  }, [refresh, refetchFieldMappings, getAuthHeaders]);
 
   const handleRejectMapping = useCallback(async (mappingId: string, rejectionReason?: string) => {
     try {
       console.log(`❌ Rejecting mapping: ${mappingId}`);
       
-      const response = await fetch(`${API_CONFIG.BASE_URL}/data-import/field-mapping/mappings/${mappingId}/reject`, {
+      const result = await apiCall(`/data-import/mappings/${mappingId}/reject`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -236,16 +232,10 @@ export const useAttributeMappingLogic = () => {
         })
       });
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to reject mapping');
-      }
-      
-      const result = await response.json();
       console.log('✅ Mapping rejected successfully:', result);
       
-      // Refresh the data to show updated status
-      await refresh();
+      // Refresh both flow data and field mappings
+      await Promise.all([refresh(), refetchFieldMappings()]);
       
       // Show success message
       if (typeof window !== 'undefined') {
@@ -257,21 +247,21 @@ export const useAttributeMappingLogic = () => {
       console.error('❌ Failed to reject mapping:', error);
       // Could add error toast notification here
     }
-  }, [refresh, getAuthHeaders]);
+  }, [refresh, refetchFieldMappings, getAuthHeaders]);
 
   const handleMappingChange = useCallback(async (mappingId: string, newTarget: string) => {
     try {
       console.log(`🔄 Changing mapping: ${mappingId} -> ${newTarget}`);
       
       // Find the mapping in the current data
-      const mapping = fieldMappings.find(m => m.id === mappingId);
+      const mapping = fieldMappings.find((m: any) => m.id === mappingId);
       if (!mapping) {
         console.error('❌ Mapping not found:', mappingId);
         return;
       }
       
       // Call the backend to update the mapping
-      const response = await fetch(`${API_CONFIG.BASE_URL}/data-import/field-mapping/mappings/${mappingId}`, {
+      const result = await apiCall(`/data-import/mappings/${mappingId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -280,25 +270,19 @@ export const useAttributeMappingLogic = () => {
         body: JSON.stringify({
           target_field: newTarget,
           is_user_defined: true,
-          status: 'pending' // Reset to pending after user change
+          status: 'suggested' // Reset to suggested after user change
         })
       });
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to update mapping');
-      }
-      
-      const result = await response.json();
       console.log('✅ Mapping updated successfully:', result);
       
-      // Refresh the data to show updated mapping
-      await refresh();
+      // Refresh both flow data and field mappings
+      await Promise.all([refresh(), refetchFieldMappings()]);
       
     } catch (error) {
       console.error('❌ Failed to update mapping:', error);
     }
-  }, [fieldMappings, refresh, getAuthHeaders]);
+  }, [fieldMappings, refresh, refetchFieldMappings, getAuthHeaders]);
 
   const handleAttributeUpdate = useCallback(async (attributeId: string, updates: any) => {
     try {
@@ -320,9 +304,9 @@ export const useAttributeMappingLogic = () => {
   }, [navigate]);
 
   const refetchAgentic = useCallback(() => {
-    console.log('🔄 Refreshing agentic data');
-    return refresh();
-  }, [refresh]);
+    console.log('🔄 Refreshing agentic data and field mappings');
+    return Promise.all([refresh(), refetchFieldMappings()]);
+  }, [refresh, refetchFieldMappings]);
 
   const canContinueToDataCleansing = useCallback(() => {
     return flow?.phases?.attribute_mapping === true;
@@ -330,7 +314,7 @@ export const useAttributeMappingLogic = () => {
 
   const checkMappingApprovalStatus = useCallback(async (dataImportId: string) => {
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/data-import/field-mapping/mappings/approval-status/${dataImportId}`, {
+      const result = await apiCall(`/data-import/mappings/approval-status/${dataImportId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -338,11 +322,6 @@ export const useAttributeMappingLogic = () => {
         }
       });
       
-      if (!response.ok) {
-        throw new Error('Failed to check approval status');
-      }
-      
-      const result = await response.json();
       return result;
       
     } catch (error) {
@@ -396,6 +375,129 @@ export const useAttributeMappingLogic = () => {
     // Flow status
     hasActiveFlow: !!flow,
     currentPhase: flow?.next_phase,
-    flowProgress: flow?.progress_percentage || 0
+    flowProgress: flow?.progress_percentage || 0,
+    
+    // Agent clarifications
+    agentClarifications,
+    isClarificationsLoading,
+    clarificationsError,
+    refetchClarifications
+  };
+};
+
+// New hook to fetch real field mappings from database
+const useRealFieldMappings = () => {
+  const { getAuthHeaders } = useAuth();
+  const [fieldMappings, setFieldMappings] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const fetchFieldMappings = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const result = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.CONTEXT_FIELD_MAPPINGS, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        }
+      });
+      
+      if (result.success && result.mappings) {
+        // Transform the database mappings to match frontend interface
+        const transformedMappings = result.mappings.map((mapping: any) => ({
+          id: mapping.id,
+          sourceField: mapping.sourceField,
+          targetAttribute: mapping.targetAttribute,
+          confidence: mapping.confidence,
+          mapping_type: mapping.mapping_type || 'direct',
+          sample_values: mapping.sample_values || [],
+          status: mapping.status || 'suggested',
+          ai_reasoning: mapping.ai_reasoning || `AI suggested mapping based on field similarity`,
+          is_user_defined: mapping.is_user_defined || false,
+          user_feedback: mapping.user_feedback,
+          created_at: mapping.created_at,
+          validation_method: mapping.validation_method,
+          is_validated: mapping.is_validated || false
+        }));
+        
+        setFieldMappings(transformedMappings);
+        console.log(`✅ Loaded ${transformedMappings.length} real field mappings from database`);
+      } else {
+        console.warn('No field mappings returned from API');
+        setFieldMappings([]);
+      }
+      
+    } catch (err: any) {
+      console.error('❌ Failed to fetch field mappings:', err);
+      setError(err.message);
+      setFieldMappings([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [getAuthHeaders]);
+
+  // Auto-fetch on mount
+  useEffect(() => {
+    fetchFieldMappings();
+  }, [fetchFieldMappings]);
+
+  return {
+    fieldMappings,
+    isLoading,
+    error,
+    refetch: fetchFieldMappings
+  };
+};
+
+// New hook to fetch agent clarifications from database
+const useAgentClarifications = () => {
+  const { getAuthHeaders } = useAuth();
+  const [clarifications, setClarifications] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const fetchClarifications = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const result = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_CLARIFICATIONS, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        }
+      });
+      
+      if (result.status === 'success' && result.page_data && result.page_data.pending_questions) {
+        setClarifications(result.page_data.pending_questions);
+        console.log(`✅ Loaded ${result.page_data.pending_questions.length} agent clarifications`);
+      } else {
+        console.warn('No agent clarifications returned from API');
+        setClarifications([]);
+      }
+      
+    } catch (err: any) {
+      console.error('❌ Failed to fetch agent clarifications:', err);
+      setError(err.message);
+      setClarifications([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [getAuthHeaders]);
+
+  // Auto-fetch on mount
+  useEffect(() => {
+    fetchClarifications();
+  }, [fetchClarifications]);
+
+  return {
+    clarifications,
+    isLoading,
+    error,
+    refetch: fetchClarifications
   };
 }; 

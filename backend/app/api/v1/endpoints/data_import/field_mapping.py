@@ -64,36 +64,127 @@ async def get_field_mappings(
     }
 
 @router.post("/imports/{import_id}/field-mappings")
-async def create_field_mapping(
+async def create_or_generate_field_mappings(
     import_id: str,
-    mapping_data: dict,
-    db: AsyncSession = Depends(get_db)
+    mapping_data: dict = None,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
 ):
-    """Create a new field mapping."""
-    mapping = ImportFieldMapping(
-        data_import_id=import_id,
-        source_field=mapping_data["source_field"],
-        target_field=mapping_data["target_field"],
-        mapping_type=mapping_data.get("mapping_type", "direct"),
-        confidence_score=mapping_data.get("confidence_score", 1.0),
-        is_user_defined=mapping_data.get("is_user_defined", True),
-        validation_rules=mapping_data.get("validation_rules"),
-        transformation_logic=mapping_data.get("transformation_logic"),
-        status=mapping_data.get("status", "approved"),
-        user_feedback=mapping_data.get("user_feedback"),
-        original_ai_suggestion=mapping_data.get("original_ai_suggestion")
-    )
-    
-    db.add(mapping)
-    await db.commit()
-    await db.refresh(mapping)
-    
-    return {
-        "id": str(mapping.id),
-        "source_field": mapping.source_field,
-        "target_field": mapping.target_field,
-        "status": "created"
-    }
+    """Create a new field mapping or generate all mappings for an import if none exist."""
+    try:
+        # Check if this is a request to generate all mappings (no mapping_data provided)
+        if not mapping_data:
+            # Check if mappings already exist
+            existing_query = select(ImportFieldMapping).where(ImportFieldMapping.data_import_id == import_id)
+            existing_result = await db.execute(existing_query)
+            existing_mappings = existing_result.scalars().all()
+            
+            if existing_mappings:
+                return {
+                    "status": "success",
+                    "message": f"Field mappings already exist ({len(existing_mappings)} mappings)",
+                    "mappings_created": 0,
+                    "existing_mappings": len(existing_mappings)
+                }
+            
+            # Get the import data to extract fields
+            from app.models.data_import import DataImport, RawImportRecord
+            
+            import_query = select(DataImport).where(DataImport.id == import_id)
+            import_result = await db.execute(import_query)
+            data_import = import_result.scalar_one_or_none()
+            
+            if not data_import:
+                raise HTTPException(status_code=404, detail="Data import not found")
+            
+            # Get sample raw record to extract field names
+            sample_query = select(RawImportRecord).where(
+                RawImportRecord.data_import_id == import_id
+            ).limit(1)
+            sample_result = await db.execute(sample_query)
+            sample_record = sample_result.scalar_one_or_none()
+            
+            if not sample_record or not sample_record.raw_data:
+                raise HTTPException(status_code=404, detail="No raw data found for this import")
+            
+            # Extract field names from the raw data
+            field_names = list(sample_record.raw_data.keys())
+            field_names = [field for field in field_names if field.strip()]  # Remove empty fields
+            
+            logger.info(f"🔍 Found {len(field_names)} fields to map: {field_names}")
+            
+            # Generate intelligent field mappings
+            mappings_created = []
+            
+            for source_field in field_names:
+                # Intelligent mapping based on field name similarity
+                target_field = _intelligent_field_mapping(source_field)
+                confidence = _calculate_mapping_confidence(source_field, target_field)
+                
+                # Create the mapping
+                mapping = ImportFieldMapping(
+                    data_import_id=import_id,
+                    source_field=source_field,
+                    target_field=target_field,
+                    mapping_type="ai_suggested",
+                    confidence_score=confidence,
+                    status="suggested",  # Requires user approval
+                    is_user_defined=False,
+                    is_validated=False,
+                    original_ai_suggestion=target_field,
+                    user_feedback=None
+                )
+                
+                db.add(mapping)
+                mappings_created.append({
+                    "source_field": source_field,
+                    "target_field": target_field,
+                    "confidence": confidence
+                })
+            
+            await db.commit()
+            
+            logger.info(f"✅ Created {len(mappings_created)} field mappings for import {import_id}")
+            
+            return {
+                "status": "success",
+                "message": f"Generated {len(mappings_created)} field mappings",
+                "mappings_created": len(mappings_created),
+                "import_id": import_id,
+                "mappings": mappings_created
+            }
+        
+        else:
+            # Original single mapping creation logic
+            mapping = ImportFieldMapping(
+                data_import_id=import_id,
+                source_field=mapping_data["source_field"],
+                target_field=mapping_data["target_field"],
+                mapping_type=mapping_data.get("mapping_type", "direct"),
+                confidence_score=mapping_data.get("confidence_score", 1.0),
+                is_user_defined=mapping_data.get("is_user_defined", True),
+                validation_rules=mapping_data.get("validation_rules"),
+                transformation_logic=mapping_data.get("transformation_logic"),
+                status=mapping_data.get("status", "approved"),
+                user_feedback=mapping_data.get("user_feedback"),
+                original_ai_suggestion=mapping_data.get("original_ai_suggestion")
+            )
+            
+            db.add(mapping)
+            await db.commit()
+            await db.refresh(mapping)
+            
+            return {
+                "id": str(mapping.id),
+                "source_field": mapping.source_field,
+                "target_field": mapping.target_field,
+                "status": "created"
+            }
+        
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Failed to create/generate field mappings: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create/generate mappings: {str(e)}")
 
 @router.post("/imports/latest/field-mappings")
 async def create_field_mapping_latest(
@@ -723,7 +814,7 @@ async def get_context_field_mappings(
         # Get the latest import for this context
         latest_query = select(DataImport).where(
             and_(
-                DataImport.status == ImportStatus.PROCESSED,
+                DataImport.status.in_(['processed', 'completed']),  # Include both statuses
                 DataImport.client_account_id == context.client_account_id,
                 DataImport.engagement_id == context.engagement_id
             )
@@ -749,6 +840,53 @@ async def get_context_field_mappings(
         )
         mappings_result = await db.execute(mappings_query)
         mappings = mappings_result.scalars().all()
+        
+        # If no mappings exist, auto-generate them from the raw data
+        if not mappings:
+            logger.info(f"🔄 No field mappings found for import {latest_import.id}, auto-generating...")
+            
+            # Get sample raw record to extract field names
+            from app.models.data_import import RawImportRecord
+            sample_query = select(RawImportRecord).where(
+                RawImportRecord.data_import_id == latest_import.id
+            ).limit(1)
+            sample_result = await db.execute(sample_query)
+            sample_record = sample_result.scalar_one_or_none()
+            
+            if sample_record and sample_record.raw_data:
+                field_names = list(sample_record.raw_data.keys())
+                field_names = [field for field in field_names if field.strip()]  # Remove empty fields
+                
+                logger.info(f"🔍 Auto-generating mappings for {len(field_names)} fields")
+                
+                # Generate intelligent field mappings
+                for source_field in field_names:
+                    target_field = _intelligent_field_mapping(source_field)
+                    confidence = _calculate_mapping_confidence(source_field, target_field)
+                    
+                    # Create the mapping
+                    mapping = ImportFieldMapping(
+                        data_import_id=latest_import.id,
+                        source_field=source_field,
+                        target_field=target_field,
+                        mapping_type="ai_suggested",
+                        confidence_score=confidence,
+                        status="suggested",  # Requires user approval
+                        is_user_defined=False,
+                        is_validated=False,
+                        original_ai_suggestion=target_field,
+                        user_feedback=None
+                    )
+                    
+                    db.add(mapping)
+                
+                await db.commit()
+                
+                # Re-fetch the newly created mappings
+                mappings_result = await db.execute(mappings_query)
+                mappings = mappings_result.scalars().all()
+                
+                logger.info(f"✅ Auto-generated {len(mappings)} field mappings")
         
         # Transform mappings to include agent confidence and reasoning
         transformed_mappings = []
@@ -1157,3 +1295,196 @@ async def get_mapping_approval_status(
     except Exception as e:
         logger.error(f"Failed to get mapping approval status: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get approval status: {str(e)}")
+
+@router.post("/generate-mappings-for-import/{import_id}")
+async def generate_field_mappings_for_import(
+    import_id: str,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+):
+    """Generate field mappings for all fields in an import when none exist."""
+    try:
+        # Check if mappings already exist
+        existing_query = select(ImportFieldMapping).where(ImportFieldMapping.data_import_id == import_id)
+        existing_result = await db.execute(existing_query)
+        existing_mappings = existing_result.scalars().all()
+        
+        if existing_mappings:
+            return {
+                "status": "success",
+                "message": f"Field mappings already exist ({len(existing_mappings)} mappings)",
+                "mappings_created": 0,
+                "existing_mappings": len(existing_mappings)
+            }
+        
+        # Get the import data to extract fields
+        from app.models.data_import import DataImport, RawImportRecord
+        
+        import_query = select(DataImport).where(DataImport.id == import_id)
+        import_result = await db.execute(import_query)
+        data_import = import_result.scalar_one_or_none()
+        
+        if not data_import:
+            raise HTTPException(status_code=404, detail="Data import not found")
+        
+        # Get sample raw record to extract field names
+        sample_query = select(RawImportRecord).where(
+            RawImportRecord.data_import_id == import_id
+        ).limit(1)
+        sample_result = await db.execute(sample_query)
+        sample_record = sample_result.scalar_one_or_none()
+        
+        if not sample_record or not sample_record.raw_data:
+            raise HTTPException(status_code=404, detail="No raw data found for this import")
+        
+        # Extract field names from the raw data
+        field_names = list(sample_record.raw_data.keys())
+        field_names = [field for field in field_names if field.strip()]  # Remove empty fields
+        
+        logger.info(f"🔍 Found {len(field_names)} fields to map: {field_names}")
+        
+        # Generate intelligent field mappings
+        mappings_created = []
+        
+        for source_field in field_names:
+            # Intelligent mapping based on field name similarity
+            target_field = _intelligent_field_mapping(source_field)
+            confidence = _calculate_mapping_confidence(source_field, target_field)
+            
+            # Create the mapping
+            mapping = ImportFieldMapping(
+                data_import_id=import_id,
+                source_field=source_field,
+                target_field=target_field,
+                mapping_type="ai_suggested",
+                confidence_score=confidence,
+                status="suggested",  # Requires user approval
+                is_user_defined=False,
+                is_validated=False,
+                original_ai_suggestion=target_field,
+                user_feedback=None
+            )
+            
+            db.add(mapping)
+            mappings_created.append({
+                "source_field": source_field,
+                "target_field": target_field,
+                "confidence": confidence
+            })
+        
+        await db.commit()
+        
+        logger.info(f"✅ Created {len(mappings_created)} field mappings for import {import_id}")
+        
+        return {
+            "status": "success",
+            "message": f"Generated {len(mappings_created)} field mappings",
+            "mappings_created": len(mappings_created),
+            "import_id": import_id,
+            "mappings": mappings_created
+        }
+        
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Failed to generate field mappings: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate mappings: {str(e)}")
+
+def _intelligent_field_mapping(source_field: str) -> str:
+    """Map source field to target field using intelligent pattern matching."""
+    source_lower = source_field.lower().replace('_', ' ').replace('-', ' ')
+    
+    # Direct name mappings
+    direct_mappings = {
+        'asset id': 'asset_id',
+        'asset name': 'name',
+        'asset type': 'asset_type',
+        'hostname': 'hostname',
+        'ip address': 'ip_address',
+        'mac address': 'mac_address',
+        'operating system': 'operating_system',
+        'os version': 'os_version',
+        'cpu cores': 'cpu_cores',
+        'ram gb': 'memory_gb',
+        'storage gb': 'storage_gb',
+        'manufacturer': 'manufacturer',
+        'model': 'hardware_model',
+        'serial number': 'serial_number',
+        'location rack': 'rack_location',
+        'location datacenter': 'datacenter',
+        'location u': 'rack_position',
+        'application service': 'application_name',
+        'application owner': 'business_owner',
+        'virtualization host id': 'virtualization_host',
+        'last discovery date': 'last_scanned',
+        'support contract end date': 'warranty_end_date',
+        'maintenance window': 'maintenance_window',
+        'dr tier': 'disaster_recovery_tier',
+        'cloud migration readiness score': 'migration_readiness_score',
+        'migration notes': 'migration_notes'
+    }
+    
+    # Check for direct mappings first
+    if source_lower in direct_mappings:
+        return direct_mappings[source_lower]
+    
+    # Pattern-based mappings
+    if 'name' in source_lower and 'asset' in source_lower:
+        return 'name'
+    elif 'id' in source_lower and 'asset' in source_lower:
+        return 'asset_id'
+    elif 'type' in source_lower:
+        return 'asset_type'
+    elif 'ip' in source_lower:
+        return 'ip_address'
+    elif 'mac' in source_lower:
+        return 'mac_address'
+    elif 'cpu' in source_lower or 'core' in source_lower:
+        return 'cpu_cores'
+    elif 'ram' in source_lower or 'memory' in source_lower:
+        return 'memory_gb'
+    elif 'storage' in source_lower or 'disk' in source_lower:
+        return 'storage_gb'
+    elif 'owner' in source_lower:
+        return 'business_owner'
+    elif 'location' in source_lower:
+        return 'physical_location'
+    elif 'environment' in source_lower:
+        return 'environment'
+    elif 'status' in source_lower:
+        return 'status'
+    else:
+        # Default to custom field name
+        return source_field.lower().replace(' ', '_')
+
+def _calculate_mapping_confidence(source_field: str, target_field: str) -> float:
+    """Calculate confidence score for field mapping."""
+    source_lower = source_field.lower().replace('_', ' ').replace('-', ' ')
+    target_lower = target_field.lower().replace('_', ' ')
+    
+    # High confidence for exact matches
+    if source_lower == target_lower:
+        return 0.95
+    
+    # High confidence for known good mappings
+    high_confidence_patterns = [
+        ('asset id', 'asset_id'),
+        ('asset name', 'name'),
+        ('ip address', 'ip_address'),
+        ('mac address', 'mac_address'),
+        ('operating system', 'operating_system')
+    ]
+    
+    for source_pattern, target_pattern in high_confidence_patterns:
+        if source_pattern in source_lower and target_pattern in target_field:
+            return 0.90
+    
+    # Medium confidence for partial matches
+    source_words = set(source_lower.split())
+    target_words = set(target_lower.split())
+    overlap = len(source_words.intersection(target_words))
+    
+    if overlap > 0:
+        return min(0.85, 0.5 + (overlap * 0.2))
+    
+    # Low confidence for new/unknown fields
+    return 0.40
