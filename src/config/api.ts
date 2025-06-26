@@ -231,26 +231,34 @@ export const apiCall = async (
       Object.assign(headers, options.headers);
       
       // Add auth token if available
-      const token = localStorage.getItem('auth_token');
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      } else {
-        console.warn('No auth token found in localStorage');
+      try {
+        const token = localStorage.getItem('auth_token');
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        } else {
+          console.warn('No auth token found in localStorage');
+        }
+      } catch (storageError) {
+        console.warn('Failed to access localStorage for auth token:', storageError);
       }
       
       // Add context headers if needed
       if (includeContext) {
-        if (currentContext.user?.id) {
-          headers['X-User-ID'] = currentContext.user.id;
-        }
-        if (currentContext.client?.id) {
-          headers['X-Client-Account-ID'] = currentContext.client.id;
-        }
-        if (currentContext.engagement?.id) {
-          headers['X-Engagement-ID'] = currentContext.engagement.id;
-        }
-        if (currentContext.session?.id) {
-          headers['X-Session-ID'] = currentContext.session.id;
+        try {
+          if (currentContext?.user?.id) {
+            headers['X-User-ID'] = currentContext.user.id;
+          }
+          if (currentContext?.client?.id) {
+            headers['X-Client-Account-ID'] = currentContext.client.id;
+          }
+          if (currentContext?.engagement?.id) {
+            headers['X-Engagement-ID'] = currentContext.engagement.id;
+          }
+          if (currentContext?.session?.id) {
+            headers['X-Session-ID'] = currentContext.session.id;
+          }
+        } catch (contextError) {
+          console.warn('Failed to add context headers:', contextError);
         }
       }
       

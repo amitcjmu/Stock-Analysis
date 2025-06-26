@@ -56,24 +56,40 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
   } = useQuery({
     queryKey: ['imported-data', client?.id, engagement?.id],
     queryFn: async () => {
-      const headers = getAuthHeaders();
-      if (client?.id) {
-        headers['X-Client-Account-ID'] = client.id;
+      try {
+        const headers = getAuthHeaders();
+        if (client?.id) {
+          headers['X-Client-Account-ID'] = client.id;
+        }
+        if (engagement?.id) {
+          headers['X-Engagement-ID'] = engagement.id;
+        }
+        
+        return await apiCall('/api/v1/data-import/latest-import', {
+          method: 'GET',
+          headers
+        });
+      } catch (error: any) {
+        // Handle 404 errors gracefully - endpoint may not exist yet
+        if (error.status === 404 || error.response?.status === 404) {
+          console.log('Latest import endpoint not available yet');
+          return { success: false, data: [], import_metadata: null, message: 'No data imports found' };
+        }
+        throw error;
       }
-      if (engagement?.id) {
-        headers['X-Engagement-ID'] = engagement.id;
-      }
-      
-      return await apiCall('/api/v1/data-import/latest-import', {
-        method: 'GET',
-        headers
-      });
     },
     enabled: !!client && !!engagement,
     staleTime: 30000,
     refetchOnWindowFocus: false,
     refetchOnMount: true,
-    refetchOnReconnect: false
+    refetchOnReconnect: false,
+    retry: (failureCount, error: any) => {
+      // Don't retry on 404 errors
+      if (error?.status === 404 || error?.response?.status === 404) {
+        return false;
+      }
+      return failureCount < 3;
+    }
   });
 
   // 🔄 Refresh function that clears both React Query and SQLAlchemy caches
@@ -250,6 +266,39 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
           >
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             <span>{isRefreshing ? 'Refreshing...' : 'Retry'}</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show better message when no data is available
+  if (importData.length === 0) {
+    return (
+      <div className={`bg-white rounded-lg border shadow-sm p-6 ${className}`}>
+        <div className="flex flex-col items-center justify-center py-8">
+          <div className="flex items-center text-gray-600 mb-4">
+            <Database className="w-8 h-8 mr-3 text-gray-400" />
+            <div className="text-center">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No Data Imported Yet</h3>
+              <p className="text-sm text-gray-500 mb-4">
+                {importMetadata?.filename 
+                  ? `Import file "${importMetadata.filename}" was found but contains no records.`
+                  : "No data has been imported for this engagement yet."
+                }
+              </p>
+              <p className="text-xs text-gray-400">
+                To see imported data here, please upload a CSV file through the Data Import section first.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span>{isRefreshing ? 'Checking for Data...' : 'Check for Data'}</span>
           </button>
         </div>
       </div>

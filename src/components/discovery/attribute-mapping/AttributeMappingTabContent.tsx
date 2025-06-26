@@ -9,7 +9,7 @@ interface AttributeMappingTabContentProps {
   criticalAttributes: any[];
   agenticData: any;
   onApproveMapping: (mappingId: string) => void;
-  onRejectMapping: (mappingId: string) => void;
+  onRejectMapping: (mappingId: string, rejectionReason?: string) => void;
   refetchAgentic: () => void;
   onAttributeUpdate?: (attributeName: string, updates: Partial<any>) => void;
   sessionInfo?: {
@@ -38,10 +38,14 @@ const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
         return (
           <FieldMappingsTab
             fieldMappings={fieldMappings}
-            onApproveMapping={onApproveMapping}
-            onRejectMapping={onRejectMapping}
-            isLoading={false}
-            sessionInfo={sessionInfo}
+            isAnalyzing={false}
+            onMappingAction={(mappingId: string, action: 'approve' | 'reject', rejectionReason?: string) => {
+              if (action === 'approve') {
+                onApproveMapping(mappingId);
+              } else {
+                onRejectMapping(mappingId, rejectionReason);
+              }
+            }}
           />
         );
       case 'critical':
@@ -57,11 +61,7 @@ const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
         );
       case 'data':
         return (
-          <ImportedDataTab
-            rawData={agenticData?.raw_data || []}
-            isLoading={false}
-            sessionInfo={sessionInfo}
-          />
+          <ImportedDataTab />
         );
       default:
         return (

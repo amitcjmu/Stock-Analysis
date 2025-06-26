@@ -88,9 +88,16 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
         setInsights(result.page_data.agent_insights);
       }
       setError(null);
-    } catch (err) {
-      console.error('Error fetching agent insights:', err);
-      setError('Failed to load agent insights');
+    } catch (err: any) {
+      // Handle 404 errors gracefully - these endpoints may not exist yet
+      if (err.status === 404 || err.response?.status === 404) {
+        console.log('Agent insights endpoint not available yet');
+        setInsights([]);
+        setError(null);
+      } else {
+        console.error('Error fetching agent insights:', err);
+        setError('Failed to load agent insights');
+      }
     } finally {
       setIsLoading(false);
     }

@@ -956,3 +956,162 @@ async def get_simple_field_mappings(
             "message": f"Failed to retrieve field mappings: {str(e)}",
             "mappings": []
         }
+
+@router.post("/mappings/{mapping_id}/approve")
+async def approve_field_mapping(
+    mapping_id: str,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+):
+    """Approve a field mapping and enable agent learning."""
+    try:
+        # Get the mapping
+        mapping_query = select(ImportFieldMapping).where(ImportFieldMapping.id == mapping_id)
+        result = await db.execute(mapping_query)
+        mapping = result.scalar_one_or_none()
+        
+        if not mapping:
+            raise HTTPException(status_code=404, detail="Field mapping not found")
+        
+        # Update mapping status
+        mapping.status = "approved"
+        mapping.is_validated = True
+        mapping.validation_method = "user_approved"
+        mapping.user_feedback = "User approved mapping"
+        
+        # Enable agent learning - teach the field mapping agents
+        try:
+            from app.services.field_mapper_modular import field_mapper
+            learning_result = field_mapper.learn_field_mapping(
+                mapping.target_field, 
+                [mapping.source_field], 
+                "user_approval"
+            )
+            logger.info(f"✅ Agent learning applied for approved mapping: {mapping.source_field} -> {mapping.target_field}")
+        except Exception as e:
+            logger.warning(f"⚠️ Agent learning failed but mapping approved: {e}")
+        
+        await db.commit()
+        
+        return {
+            "status": "success",
+            "message": f"Field mapping approved: {mapping.source_field} -> {mapping.target_field}",
+            "mapping_id": mapping_id,
+            "learning_applied": True
+        }
+        
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Failed to approve field mapping: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to approve mapping: {str(e)}")
+
+@router.post("/mappings/{mapping_id}/reject")
+async def reject_field_mapping(
+    mapping_id: str,
+    rejection_reason: str = None,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+):
+    """Reject a field mapping and enable agent learning from the rejection."""
+    try:
+        # Get the mapping
+        mapping_query = select(ImportFieldMapping).where(ImportFieldMapping.id == mapping_id)
+        result = await db.execute(mapping_query)
+        mapping = result.scalar_one_or_none()
+        
+        if not mapping:
+            raise HTTPException(status_code=404, detail="Field mapping not found")
+        
+        # Update mapping status
+        mapping.status = "rejected"
+        mapping.is_validated = True
+        mapping.validation_method = "user_rejected"
+        mapping.user_feedback = rejection_reason or "User rejected mapping"
+        mapping.correction_reason = rejection_reason
+        
+        # Enable agent learning - teach the agents what NOT to map
+        try:
+            from app.services.field_mapper_modular import field_mapper
+            # Learn from rejection - this is negative feedback
+            learning_result = field_mapper.learn_field_mapping_rejection(
+                mapping.source_field,
+                mapping.target_field,
+                rejection_reason or "User rejected this mapping"
+            )
+            logger.info(f"✅ Agent learning applied for rejected mapping: {mapping.source_field} -> {mapping.target_field}")
+        except Exception as e:
+            logger.warning(f"⚠️ Agent learning failed but mapping rejected: {e}")
+        
+        await db.commit()
+        
+        return {
+            "status": "success", 
+            "message": f"Field mapping rejected: {mapping.source_field} -> {mapping.target_field}",
+            "mapping_id": mapping_id,
+            "learning_applied": True,
+            "reason": rejection_reason
+        }
+        
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Failed to reject field mapping: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to reject mapping: {str(e)}")
+
+@router.get("/mappings/approval-status/{data_import_id}")
+async def get_mapping_approval_status(
+    data_import_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get the approval status of all mappings for a data import."""
+    try:
+        # Get all mappings for this import
+        mappings_query = select(ImportFieldMapping).where(
+            ImportFieldMapping.data_import_id == data_import_id
+        )
+        result = await db.execute(mappings_query)
+        mappings = result.scalars().all()
+        
+        if not mappings:
+            return {
+                "data_import_id": data_import_id,
+                "total_mappings": 0,
+                "approved_mappings": 0,
+                "rejected_mappings": 0,
+                "pending_mappings": 0,
+                "approval_complete": False,
+                "can_proceed_to_asset_creation": False
+            }
+        
+        # Calculate approval statistics
+        approved_count = len([m for m in mappings if m.status == "approved"])
+        rejected_count = len([m for m in mappings if m.status == "rejected"])
+        pending_count = len([m for m in mappings if m.status in ["suggested", "pending"]])
+        
+        # Determine if we can proceed to asset creation
+        # At least some mappings must be approved, and no mappings should be pending
+        can_proceed = approved_count > 0 and pending_count == 0
+        
+        return {
+            "data_import_id": data_import_id,
+            "total_mappings": len(mappings),
+            "approved_mappings": approved_count,
+            "rejected_mappings": rejected_count,
+            "pending_mappings": pending_count,
+            "approval_complete": pending_count == 0,
+            "can_proceed_to_asset_creation": can_proceed,
+            "mappings": [
+                {
+                    "id": str(m.id),
+                    "source_field": m.source_field,
+                    "target_field": m.target_field,
+                    "status": m.status,
+                    "confidence_score": m.confidence_score,
+                    "user_feedback": m.user_feedback
+                }
+                for m in mappings
+            ]
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get mapping approval status: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get approval status: {str(e)}")

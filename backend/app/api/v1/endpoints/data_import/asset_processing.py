@@ -15,6 +15,7 @@ from app.core.database import get_db
 from app.core.context import get_current_context, RequestContext
 from app.models.data_import import RawImportRecord
 from app.models.asset import Asset
+from app.models.data_import.mapping import ImportFieldMapping
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -30,12 +31,45 @@ async def process_raw_to_assets(
     
     This endpoint uses the consolidated CrewAI Flow Service with modular handler architecture
     for intelligent asset classification and workflow integration.
+    
+    IMPORTANT: This endpoint now enforces field mapping approval before asset creation.
     """
     
     if not import_session_id:
         raise HTTPException(status_code=400, detail="import_session_id is required")
     
     try:
+        # SECURITY CHECK: Verify field mappings are approved before asset creation
+        mappings_query = select(ImportFieldMapping).where(
+            ImportFieldMapping.data_import_id == import_session_id
+        )
+        mappings_result = await db.execute(mappings_query)
+        mappings = mappings_result.scalars().all()
+        
+        if not mappings:
+            raise HTTPException(
+                status_code=400, 
+                detail="No field mappings found. Please complete field mapping first."
+            )
+        
+        # Check approval status
+        approved_mappings = [m for m in mappings if m.status == "approved"]
+        pending_mappings = [m for m in mappings if m.status in ["suggested", "pending"]]
+        
+        if not approved_mappings:
+            raise HTTPException(
+                status_code=400,
+                detail="No field mappings have been approved. Please review and approve field mappings before creating assets."
+            )
+        
+        if pending_mappings:
+            raise HTTPException(
+                status_code=400,
+                detail=f"{len(pending_mappings)} field mappings are still pending approval. Please approve or reject all mappings before proceeding."
+            )
+        
+        logger.info(f"✅ Field mapping approval verified: {len(approved_mappings)} approved mappings found")
+        
         # Check if we have raw records to process
         raw_count_query = await db.execute(
             select(func.count(RawImportRecord.id)).where(

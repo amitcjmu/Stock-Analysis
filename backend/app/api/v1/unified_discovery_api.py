@@ -748,11 +748,15 @@ async def resume_discovery_flow(
             detail=f"Failed to resume discovery flow: {str(e)}"
         )
 
+class ResumeAtPhaseRequest(BaseModel):
+    """Request for resuming flow at specific phase"""
+    phase: str = Field(..., description="Target phase to resume at")
+    human_input: Optional[Dict[str, Any]] = Field(default=None, description="Optional human input for the phase")
+
 @router.post("/flow/resume-at-phase/{flow_id}", response_model=Dict[str, Any])
 async def resume_discovery_flow_at_phase(
     flow_id: str,
-    phase: str,
-    human_input: Optional[Dict[str, Any]] = None,
+    request: ResumeAtPhaseRequest,
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context)
 ):
@@ -761,6 +765,9 @@ async def resume_discovery_flow_at_phase(
     This is for human-in-the-loop scenarios where user provides input to continue.
     """
     try:
+        phase = request.phase
+        human_input = request.human_input
+        
         logger.info(f"▶️ Resuming discovery flow at phase: {flow_id} -> {phase}")
         
         result = {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowRight, CheckCircle, X, RefreshCw, ChevronDown, ChevronLeft, ChevronRight, Tag } from 'lucide-react';
 import { apiCall, API_CONFIG } from '../../../config/api';
 import { useAuth } from '../../../contexts/AuthContext';
+
 interface FieldMapping {
   id: string;
   sourceField: string;
@@ -26,9 +27,118 @@ interface TargetField {
 interface FieldMappingsTabProps {
   fieldMappings: FieldMapping[];
   isAnalyzing: boolean;
-  onMappingAction: (mappingId: string, action: 'approve' | 'reject') => void;
+  onMappingAction: (mappingId: string, action: 'approve' | 'reject', rejectionReason?: string) => void;
   onMappingChange?: (mappingId: string, newTarget: string) => void;
 }
+
+interface RejectionDialogProps {
+  isOpen: boolean;
+  mappingId: string;
+  sourceField: string;
+  targetField: string;
+  onConfirm: (reason: string) => void;
+  onCancel: () => void;
+}
+
+const RejectionDialog: React.FC<RejectionDialogProps> = ({
+  isOpen,
+  mappingId,
+  sourceField,
+  targetField,
+  onConfirm,
+  onCancel
+}) => {
+  const [reason, setReason] = useState('');
+  const [selectedReason, setSelectedReason] = useState('');
+
+  const commonReasons = [
+    'Incorrect field mapping',
+    'Wrong data type',
+    'Field not relevant for migration',
+    'Better alternative available',
+    'Data quality concerns',
+    'Security/privacy concerns',
+    'Custom field needed'
+  ];
+
+  const handleConfirm = () => {
+    const finalReason = selectedReason || reason || 'User rejected this mapping';
+    onConfirm(finalReason);
+    setReason('');
+    setSelectedReason('');
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <h3 className="text-lg font-semibold mb-4">Reject Field Mapping</h3>
+        <p className="text-gray-600 mb-4">
+          Why are you rejecting the mapping of <strong>{sourceField}</strong> to <strong>{targetField}</strong>?
+        </p>
+        
+        <div className="space-y-3 mb-4">
+          <label className="block text-sm font-medium text-gray-700">Common reasons:</label>
+          {commonReasons.map((commonReason) => (
+            <label key={commonReason} className="flex items-center">
+              <input
+                type="radio"
+                name="rejectionReason"
+                value={commonReason}
+                checked={selectedReason === commonReason}
+                onChange={(e) => setSelectedReason(e.target.value)}
+                className="mr-2"
+              />
+              <span className="text-sm">{commonReason}</span>
+            </label>
+          ))}
+          <label className="flex items-center">
+            <input
+              type="radio"
+              name="rejectionReason"
+              value="custom"
+              checked={selectedReason === 'custom'}
+              onChange={(e) => setSelectedReason(e.target.value)}
+              className="mr-2"
+            />
+            <span className="text-sm">Other (specify below)</span>
+          </label>
+        </div>
+
+        {selectedReason === 'custom' && (
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Custom reason:
+            </label>
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Please explain why this mapping is incorrect..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              rows={3}
+            />
+          </div>
+        )}
+
+        <div className="flex justify-end space-x-3">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleConfirm}
+            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+          >
+            Reject Mapping
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const ITEMS_PER_PAGE = 6;
 
@@ -62,20 +172,33 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
   const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
-
-  // Handle case where fieldMappings is not yet available
-  if (!fieldMappings) {
-    return (
-      <div className="bg-white rounded-lg shadow-md p-6 mb-8 text-center">
-        <p className="text-gray-500">Loading field mappings...</p>
-      </div>
-    );
-  }
+  const [rejectionDialog, setRejectionDialog] = useState<{
+    isOpen: boolean;
+    mappingId: string;
+    sourceField: string;
+    targetField: string;
+  }>({
+    isOpen: false,
+    mappingId: '',
+    sourceField: '',
+    targetField: ''
+  });
 
   // Load available target fields on component mount
   useEffect(() => {
     fetchAvailableFields();
   }, []);
+
+  // Handle case where fieldMappings is not yet available or not an array
+  if (!Array.isArray(fieldMappings) || fieldMappings.length === 0) {
+    return (
+      <div className="bg-white rounded-lg shadow-md p-6 mb-8 text-center">
+        <p className="text-gray-500">
+          {!Array.isArray(fieldMappings) ? 'Loading field mappings...' : 'No field mappings available yet.'}
+        </p>
+      </div>
+    );
+  }
 
   const fetchAvailableFields = async () => {
     try {
@@ -169,12 +292,19 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
 
   // Get unique categories from available fields
   const getCategories = () => {
+    if (!Array.isArray(availableFields) || availableFields.length === 0) {
+      return ['all'];
+    }
     const categories = Array.from(new Set(availableFields.map(field => field.category))).sort();
     return ['all', ...categories];
   };
 
   // Filter fields by category and search term
   const getFilteredFields = () => {
+    if (!Array.isArray(availableFields) || availableFields.length === 0) {
+      return [];
+    }
+    
     let filtered = availableFields;
     
     if (selectedCategory !== 'all') {
@@ -241,13 +371,32 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
     return CATEGORY_COLORS[category] || 'bg-gray-100 text-gray-700';
   };
 
+  const handleRejectionConfirm = (reason: string) => {
+    onMappingAction(rejectionDialog.mappingId, 'reject', reason);
+    setRejectionDialog({
+      isOpen: false,
+      mappingId: '',
+      sourceField: '',
+      targetField: ''
+    });
+  };
+
+  const handleRejectionCancel = () => {
+    setRejectionDialog({
+      isOpen: false,
+      mappingId: '',
+      sourceField: '',
+      targetField: ''
+    });
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-8">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Field Mapping Suggestions</h2>
           <p className="text-sm text-gray-600 mt-1">
-            {availableFields.length} available target fields across {getCategories().length - 1} categories
+            {Array.isArray(availableFields) ? availableFields.length : 0} available target fields across {getCategories().length - 1} categories
           </p>
         </div>
         {isAnalyzing && (
@@ -367,7 +516,7 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
                       </div>
                       
                       {/* Show current field category if mapped */}
-                      {mapping.targetAttribute !== 'unmapped' && (
+                      {mapping.targetAttribute !== 'unmapped' && Array.isArray(availableFields) && (
                         <span className={`text-xs px-2 py-1 rounded ${getCategoryColor(availableFields.find(f => f.name === mapping.targetAttribute)?.category || 'unknown')}`}>
                           {availableFields.find(f => f.name === mapping.targetAttribute)?.category?.replace('_', ' ') || 'Unknown'}
                         </span>
@@ -379,7 +528,7 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
                       <span className={`px-2 py-1 text-xs rounded-full ${getConfidenceColor(mapping.confidence)}`}>
                         {Math.round(mapping.confidence * 100)}% confidence
                       </span>
-                      {mapping.sample_values.length > 0 && (
+                      {Array.isArray(mapping.sample_values) && mapping.sample_values.length > 0 && (
                         <div className="text-xs text-gray-500">
                           Sample: {mapping.sample_values.slice(0, 3).join(', ')}
                           {mapping.sample_values.length > 3 && '...'}
@@ -407,7 +556,12 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
                         <span>Approve</span>
                       </button>
                       <button
-                        onClick={() => onMappingAction(mapping.id, 'reject')}
+                        onClick={() => setRejectionDialog({
+                          isOpen: true,
+                          mappingId: mapping.id,
+                          sourceField: mapping.sourceField,
+                          targetField: mapping.targetAttribute
+                        })}
                         className="flex items-center space-x-1 px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 disabled:opacity-50"
                         title="Reject mapping"
                       >
@@ -456,6 +610,16 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
           )}
         </>
       )}
+      
+      {/* Rejection Dialog */}
+      <RejectionDialog
+        isOpen={rejectionDialog.isOpen}
+        mappingId={rejectionDialog.mappingId}
+        sourceField={rejectionDialog.sourceField}
+        targetField={rejectionDialog.targetField}
+        onConfirm={handleRejectionConfirm}
+        onCancel={handleRejectionCancel}
+      />
     </div>
   );
 };

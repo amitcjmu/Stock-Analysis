@@ -34,8 +34,17 @@ export const useAgentQuestions = (page: string = "dependencies") => {
   return useQuery<AgentQuestionsResponse>({
     queryKey: ['agent-questions', page],
     queryFn: async () => {
-      const response = await apiCall(`/api/v1/discovery/agents/agent-questions?page=${page}`);
-      return response;
+      try {
+        const response = await apiCall(`/api/v1/discovery/agents/agent-questions?page=${page}`);
+        return response;
+      } catch (err: any) {
+        // Handle 404 errors gracefully - these endpoints may not exist yet
+        if (err.status === 404 || err.response?.status === 404) {
+          console.log('Agent questions endpoint not available yet');
+          return { questions: [], total: 0 };
+        }
+        throw err;
+      }
     },
     staleTime: 30 * 1000, // 30 seconds
     refetchInterval: 30 * 1000, // Refresh every 30 seconds
@@ -68,8 +77,17 @@ export const useAgentInsights = (page: string = "dependencies") => {
   return useQuery({
     queryKey: ['agent-insights', page],
     queryFn: async () => {
-      const response = await apiCall(`/api/v1/discovery/agents/agent-insights?page=${page}`);
-      return response;
+      try {
+        const response = await apiCall(`/api/v1/discovery/agents/agent-insights?page=${page}`);
+        return response;
+      } catch (err: any) {
+        // Handle 404 errors gracefully - these endpoints may not exist yet
+        if (err.status === 404 || err.response?.status === 404) {
+          console.log('Agent insights endpoint not available yet');
+          return { insights: [], total: 0 };
+        }
+        throw err;
+      }
     },
     staleTime: 60 * 1000, // 1 minute
     refetchInterval: 60 * 1000, // Refresh every minute
@@ -82,8 +100,17 @@ export const useAgentStatus = () => {
   return useQuery({
     queryKey: ['agent-status'],
     queryFn: async () => {
-      const response = await apiCall('/api/v1/discovery/agents/agent-status');
-      return response;
+      try {
+        const response = await apiCall('/api/v1/discovery/agents/agent-status');
+        return response;
+      } catch (err: any) {
+        // Handle 404 errors gracefully - these endpoints may not exist yet
+        if (err.status === 404 || err.response?.status === 404) {
+          console.log('Agent status endpoint not available yet');
+          return { agents: [], status: 'unknown' };
+        }
+        throw err;
+      }
     },
     staleTime: 30 * 1000, // 30 seconds
     refetchInterval: 30 * 1000, // Refresh every 30 seconds

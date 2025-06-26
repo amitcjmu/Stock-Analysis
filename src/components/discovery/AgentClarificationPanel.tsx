@@ -129,9 +129,16 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
         await fetchAssetDetailsForQuestions(questions);
       }
       setError(null);
-    } catch (err) {
-      console.error('Error fetching agent questions:', err);
-      setError('Failed to load agent questions');
+    } catch (err: any) {
+      // Handle 404 errors gracefully - these endpoints may not exist yet
+      if (err.status === 404 || err.response?.status === 404) {
+        console.log('Agent questions endpoint not available yet');
+        setQuestions([]);
+        setError(null);
+      } else {
+        console.error('Error fetching agent questions:', err);
+        setError('Failed to load agent questions');
+      }
     } finally {
       setIsLoading(false);
     }

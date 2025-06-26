@@ -261,15 +261,31 @@ export const useRealTimeAgentInsights = (flow_id: string, page_context?: string,
   } = useQuery({
     queryKey: ['real-time-agent-insights', flow_id, page_context],
     queryFn: async () => {
-      const response = await apiCall(`/api/v1/discovery/flow/${flow_id}/agent-insights`, {
-        params: page_context ? { page_context } : undefined
-      });
-      return response;
+      try {
+        const response = await apiCall(`/api/v1/discovery/flow/${flow_id}/agent-insights`, {
+          params: page_context ? { page_context } : undefined
+        });
+        return response;
+      } catch (err: any) {
+        // Handle 404 errors gracefully - these endpoints may not exist yet
+        if (err.status === 404 || err.response?.status === 404) {
+          console.log('Agent insights endpoint not available yet');
+          return { insights: [] };
+        }
+        throw err;
+      }
     },
     enabled: !!flow_id && !isCompleted,
     staleTime: 5000, // 5 seconds
     refetchInterval: isCompleted ? false : 5000, // Stop polling when completed
     refetchOnWindowFocus: false,
+    retry: (failureCount, error: any) => {
+      // Don't retry on 404 errors
+      if (error?.status === 404 || error?.response?.status === 404) {
+        return false;
+      }
+      return failureCount < 3;
+    },
   });
 
   // Update streaming insights when new data arrives
@@ -315,13 +331,29 @@ export const useRealTimeValidation = (flow_id: string, processingStatus?: Proces
   } = useQuery({
     queryKey: ['real-time-validation', flow_id],
     queryFn: async () => {
-      const response = await apiCall(`/api/v1/discovery/flow/${flow_id}/validation-status`);
-      return response;
+      try {
+        const response = await apiCall(`/api/v1/discovery/flow/${flow_id}/validation-status`);
+        return response;
+      } catch (err: any) {
+        // Handle 404 errors gracefully - these endpoints may not exist yet
+        if (err.status === 404 || err.response?.status === 404) {
+          console.log('Validation status endpoint not available yet');
+          return { security_scan: { issues: [] }, format_validation: { errors: [] }, data_quality: { score: 1.0 } };
+        }
+        throw err;
+      }
     },
     enabled: !!flow_id && !isCompleted,
     staleTime: 3000, // 3 seconds
     refetchInterval: isCompleted ? false : 3000, // Stop polling when completed
     refetchOnWindowFocus: false,
+    retry: (failureCount, error: any) => {
+      // Don't retry on 404 errors
+      if (error?.status === 404 || error?.response?.status === 404) {
+        return false;
+      }
+      return failureCount < 3;
+    },
   });
 
   const hasSecurityIssues = validationData?.security_scan?.issues?.length > 0;

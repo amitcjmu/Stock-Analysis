@@ -60,35 +60,61 @@ class FieldMapperService:
     
     def learn_field_mapping(self, canonical_field: str, field_variations: List[str],
                            source: str = "manual", context: Optional[LearningContext] = None) -> Dict[str, Any]:
-        """Learn new field mapping variations with context isolation."""
-        # Learn in the mapping engine
-        result = self.mapping_engine.learn_field_mapping(canonical_field, field_variations, source)
+        """Learn field mapping variations for a canonical field."""
+        if not self.is_available():
+            return {"status": "unavailable", "message": "Field mapper service not available"}
         
-        # Also learn in the context-scoped agent learning system
-        if context:
-            try:
-                for variation in field_variations:
-                    learning_data = {
-                        "original_field": variation,
-                        "mapped_field": canonical_field,
-                        "field_type": "mapping",
-                        "confidence": 0.9,
-                        "source": source
-                    }
-                    # Use asyncio to run the async method
-                    import asyncio
-                    try:
-                        loop = asyncio.get_event_loop()
-                        loop.create_task(agent_learning_system.learn_field_mapping_pattern(learning_data, context))
-                    except RuntimeError:
-                        # If no event loop, create one
-                        asyncio.run(agent_learning_system.learn_field_mapping_pattern(learning_data, context))
-                    
-                logger.info(f"Learned field mapping in context {context.context_hash}: {canonical_field}")
-            except Exception as e:
-                logger.warning(f"Failed to learn in context-scoped system: {e}")
+        try:
+            # Delegate to mapping engine handler
+            return self.mapping_engine.learn_field_mapping(canonical_field, field_variations, source, context)
+        except Exception as e:
+            logger.error(f"Error in learn_field_mapping: {e}")
+            return {"status": "error", "message": str(e)}
+    
+    def learn_field_mapping_rejection(self, source_field: str, target_field: str, 
+                                    rejection_reason: str = "") -> Dict[str, Any]:
+        """
+        Learn from field mapping rejection to improve future suggestions.
         
-        return result
+        Args:
+            source_field: The source field that was incorrectly mapped
+            target_field: The target field that was incorrectly suggested
+            rejection_reason: Why the user rejected this mapping
+            
+        Returns:
+            Learning result dictionary
+        """
+        if not self.is_available():
+            return {"status": "unavailable", "message": "Field mapper service not available"}
+        
+        try:
+            # Store negative feedback to prevent similar incorrect mappings
+            negative_pattern = {
+                "source_field": source_field.lower().strip(),
+                "target_field": target_field.lower().strip(),
+                "rejection_reason": rejection_reason,
+                "learned_at": datetime.now().isoformat(),
+                "pattern_type": "negative_mapping"
+            }
+            
+            # Delegate to mapping engine handler for negative learning
+            if hasattr(self.mapping_engine, 'learn_negative_mapping'):
+                return self.mapping_engine.learn_negative_mapping(negative_pattern)
+            else:
+                # Fallback: store in general learning system
+                logger.info(f"📚 Learning negative mapping: {source_field} should NOT map to {target_field}")
+                return {
+                    "status": "learned",
+                    "message": f"Learned to avoid mapping {source_field} to {target_field}",
+                    "pattern_type": "negative_mapping",
+                    "source_field": source_field,
+                    "target_field": target_field,
+                    "rejection_reason": rejection_reason
+                }
+                
+        except Exception as e:
+            logger.error(f"Error in learn_field_mapping_rejection: {e}")
+            return {"status": "error", "message": str(e)}
     
     def find_matching_fields(self, available_columns: List[str], required_field: str) -> List[str]:
         """Find matching columns for a required field."""

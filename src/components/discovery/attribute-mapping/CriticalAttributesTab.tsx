@@ -56,8 +56,8 @@ const CriticalAttributesTab: React.FC<CriticalAttributesTabProps> = ({
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // 🔧 FIX: Use external critical attributes data instead of internal state
-  const criticalAttributes = externalCriticalAttributes;
+  // 🔧 FIX: Use external critical attributes data instead of internal state with safety check
+  const criticalAttributes = Array.isArray(externalCriticalAttributes) ? externalCriticalAttributes : [];
 
   // Watch for field mapping changes and update critical attributes
   useEffect(() => {
@@ -68,7 +68,9 @@ const CriticalAttributesTab: React.FC<CriticalAttributesTabProps> = ({
 
   // Update critical attributes based on approved/rejected mappings
   const updateCriticalAttributesFromMappings = () => {
-    if (!fieldMappings.length || !criticalAttributes.length || !onAttributeUpdate) return;
+    if (!Array.isArray(fieldMappings) || !fieldMappings.length || 
+        !Array.isArray(criticalAttributes) || !criticalAttributes.length || 
+        !onAttributeUpdate) return;
     
     fieldMappings.forEach(mapping => {
       const matchingAttribute = criticalAttributes.find(attr => 
@@ -125,7 +127,10 @@ const CriticalAttributesTab: React.FC<CriticalAttributesTabProps> = ({
 
   // Get unique categories
   const getCategories = () => {
-    const categories = Array.from(new Set(criticalAttributes.map(attr => attr.category))).sort();
+    if (!Array.isArray(criticalAttributes) || criticalAttributes.length === 0) {
+      return ['all'];
+    }
+    const categories = Array.from(new Set(criticalAttributes.map(attr => attr?.category || 'unknown'))).sort();
     return ['all', ...categories];
   };
 

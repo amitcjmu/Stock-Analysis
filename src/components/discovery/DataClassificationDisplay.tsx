@@ -85,9 +85,20 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
           unusable: result.data.unusable || []
         });
       }
-    } catch (err) {
-      console.error('Error fetching data classifications:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch data classifications');
+    } catch (err: any) {
+      // Handle 404 errors gracefully - these endpoints may not exist yet
+      if (err.status === 404 || err.response?.status === 404) {
+        console.log('Data classifications endpoint not available yet');
+        setClassifications({
+          good_data: [],
+          needs_clarification: [],
+          unusable: []
+        });
+        setError(null);
+      } else {
+        console.error('Error fetching data classifications:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch data classifications');
+      }
     } finally {
       setIsLoading(false);
     }
