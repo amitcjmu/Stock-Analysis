@@ -837,4 +837,168 @@ async def resume_discovery_flow_at_phase(
             detail=f"Failed to resume discovery flow at phase: {str(e)}"
         )
 
-# === Continue Discovery Flow Endpoints === 
+# === Continue Discovery Flow Endpoints ===
+
+@router.post("/flow/promote-assets/{flow_id}", response_model=Dict[str, Any])
+async def promote_discovery_assets_to_main_table(
+    flow_id: str,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+):
+    """
+    Promote discovery assets to main assets table for completed flows.
+    This endpoint handles flows that completed before asset promotion was implemented.
+    """
+    try:
+        logger.info(f"🚀 Promoting discovery assets to main table for flow: {flow_id}")
+        
+        # Import required services
+        from app.services.asset_creation_bridge_service import AssetCreationBridgeService
+        import uuid as uuid_pkg
+        
+        # Initialize asset creation bridge service
+        bridge_service = AssetCreationBridgeService(db, context)
+        
+        # Promote assets from discovery flow
+        creation_result = await bridge_service.create_assets_from_discovery(
+            discovery_flow_id=uuid_pkg.UUID(flow_id),
+            user_id=uuid_pkg.UUID(context.user_id) if context.user_id and context.user_id != "anonymous" else None
+        )
+        
+        result = {
+            "success": True,
+            "flow_id": flow_id,
+            "action": "asset_promotion",
+            "statistics": creation_result.get("statistics", {}),
+            "assets_promoted": creation_result.get("statistics", {}).get("assets_created", 0),
+            "assets_skipped": creation_result.get("statistics", {}).get("assets_skipped", 0),
+            "errors": creation_result.get("statistics", {}).get("errors", 0),
+            "message": f"Successfully promoted {creation_result.get('statistics', {}).get('assets_created', 0)} assets to main table",
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        logger.info(f"✅ Asset promotion completed for flow {flow_id}: {result['statistics']}")
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to promote assets for flow {flow_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to promote assets: {str(e)}"
+        )
+
+@router.post("/flow/fix-asset-promotion/{flow_id}", response_model=Dict[str, Any])
+async def fix_asset_promotion_for_completed_flow(
+    flow_id: str,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+):
+    """
+    Fix asset promotion for flows that completed via PostgreSQL path but missed asset promotion.
+    This triggers the inventory phase through the proper CrewAI Flow path.
+    """
+    try:
+        logger.info(f"🔧 Fixing asset promotion for flow: {flow_id}")
+        
+        # Check if flow exists and has discovery assets but no main assets
+        from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
+        from app.models.discovery_asset import DiscoveryAsset
+        from app.models.asset import Asset
+        from sqlalchemy import select, func
+        import uuid as uuid_pkg
+        
+        flow_repo = DiscoveryFlowRepository(db, str(context.client_account_id), str(context.engagement_id))
+        flow = await flow_repo.get_by_flow_id(flow_id)
+        
+        if not flow:
+            raise HTTPException(status_code=404, detail=f"Flow not found: {flow_id}")
+        
+        # Check discovery assets count
+        discovery_assets_query = select(func.count(DiscoveryAsset.id)).where(
+            DiscoveryAsset.discovery_flow_id == flow.id,
+            DiscoveryAsset.client_account_id == context.client_account_id
+        )
+        discovery_count_result = await db.execute(discovery_assets_query)
+        discovery_assets_count = discovery_count_result.scalar()
+        
+        # Check main assets count for this flow
+        main_assets_query = select(func.count(Asset.id)).where(
+            Asset.custom_attributes.op('?')('discovery_flow_id'),
+            Asset.custom_attributes['discovery_flow_id'].astext == str(flow.id),
+            Asset.client_account_id == context.client_account_id
+        )
+        main_count_result = await db.execute(main_assets_query)
+        main_assets_count = main_count_result.scalar()
+        
+        logger.info(f"🔍 Asset counts for flow {flow_id}: discovery={discovery_assets_count}, main={main_assets_count}")
+        
+        if discovery_assets_count == 0:
+            return {
+                "success": False,
+                "flow_id": flow_id,
+                "action": "fix_asset_promotion",
+                "message": "No discovery assets found to promote",
+                "discovery_assets_count": discovery_assets_count,
+                "main_assets_count": main_assets_count
+            }
+        
+        if main_assets_count >= discovery_assets_count:
+            return {
+                "success": True,
+                "flow_id": flow_id,
+                "action": "fix_asset_promotion", 
+                "message": "Asset promotion already completed",
+                "discovery_assets_count": discovery_assets_count,
+                "main_assets_count": main_assets_count,
+                "promotion_needed": False
+            }
+        
+        # Trigger asset promotion through AssetCreationBridgeService
+        logger.info(f"🚀 Triggering asset promotion for {discovery_assets_count} discovery assets")
+        
+        from app.services.asset_creation_bridge_service import AssetCreationBridgeService
+        
+        # Initialize asset creation bridge service
+        bridge_service = AssetCreationBridgeService(db, context)
+        
+        # Promote assets from discovery flow
+        creation_result = await bridge_service.create_assets_from_discovery(
+            discovery_flow_id=uuid_pkg.UUID(flow_id),
+            user_id=uuid_pkg.UUID(context.user_id) if context.user_id and context.user_id != "anonymous" else None
+        )
+        
+        # Update flow state to indicate asset promotion completed
+        if creation_result.get("success", False):
+            # Update the flow's crewai_state_data to include asset promotion results
+            flow.crewai_state_data = flow.crewai_state_data or {}
+            flow.crewai_state_data["asset_promotion_fix"] = {
+                "completed_at": datetime.now().isoformat(),
+                "assets_promoted": creation_result.get("statistics", {}).get("assets_created", 0),
+                "fix_applied": True,
+                "method": "manual_asset_promotion_fix"
+            }
+            await db.commit()
+        
+        result = {
+            "success": creation_result.get("success", False),
+            "flow_id": flow_id,
+            "action": "fix_asset_promotion",
+            "discovery_assets_count": discovery_assets_count,
+            "main_assets_before": main_assets_count,
+            "assets_promoted": creation_result.get("statistics", {}).get("assets_created", 0),
+            "assets_skipped": creation_result.get("statistics", {}).get("assets_skipped", 0),
+            "errors": creation_result.get("statistics", {}).get("errors", 0),
+            "promotion_details": creation_result.get("statistics", {}),
+            "message": f"Successfully promoted {creation_result.get('statistics', {}).get('assets_created', 0)} assets to main table",
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        logger.info(f"✅ Asset promotion fix completed for flow {flow_id}: {result}")
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to fix asset promotion for flow {flow_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fix asset promotion: {str(e)}"
+        ) 

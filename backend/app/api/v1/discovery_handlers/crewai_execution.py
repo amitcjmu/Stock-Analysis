@@ -147,11 +147,53 @@ class CrewAIExecutionHandler:
             
             # Execute discovery asset creation if this is the inventory phase
             discovery_assets_created = 0
+            assets_promoted = 0
             if phase == "inventory":
                 try:
                     logger.info("🏗️ Creating Discovery Assets from Cleaned Data")
                     discovery_assets_created = await self._create_discovery_assets_from_cleaned_data(flow_repo, flow_id)
                     logger.info(f"✅ Created {discovery_assets_created} discovery assets")
+                    
+                    # CRITICAL FIX: Promote discovery assets to main assets table
+                    if discovery_assets_created > 0:
+                        logger.info("🚀 Promoting Discovery Assets to Main Assets Table")
+                        try:
+                            from app.services.asset_creation_bridge_service import AssetCreationBridgeService
+                            import uuid as uuid_pkg
+                            
+                            # Initialize asset creation bridge service
+                            bridge_service = AssetCreationBridgeService(self.db, self.context)
+                            
+                            # Create assets from discovery flow
+                            creation_result = await bridge_service.create_assets_from_discovery(
+                                discovery_flow_id=uuid_pkg.UUID(flow_id)
+                            )
+                            
+                            assets_promoted = creation_result.get("statistics", {}).get("assets_created", 0)
+                            logger.info(f"✅ Asset promotion completed: {assets_promoted} assets promoted to main table")
+                            
+                            # Update phase data with promotion results
+                            phase_data.update({
+                                "asset_promotion": {
+                                    "assets_promoted": assets_promoted,
+                                    "promotion_success": creation_result.get("success", False),
+                                    "promotion_details": creation_result.get("statistics", {}),
+                                    "completed_at": datetime.now().isoformat()
+                                }
+                            })
+                            
+                        except Exception as promotion_error:
+                            logger.error(f"❌ Asset promotion failed: {promotion_error}")
+                            # Don't fail the entire phase if promotion fails, but log it
+                            phase_data.update({
+                                "asset_promotion": {
+                                    "assets_promoted": 0,
+                                    "promotion_success": False,
+                                    "promotion_error": str(promotion_error),
+                                    "completed_at": datetime.now().isoformat()
+                                }
+                            })
+                    
                 except Exception as e:
                     logger.error(f"❌ Failed to create discovery assets: {e}")
                     # Don't fail the entire phase if asset creation fails
@@ -161,7 +203,8 @@ class CrewAIExecutionHandler:
                 phase=phase,
                 data={
                     **phase_data,
-                    "discovery_assets_created": discovery_assets_created
+                    "discovery_assets_created": discovery_assets_created,
+                    "assets_promoted": assets_promoted
                 },
                 crew_status={
                     "status": "completed", 
@@ -184,6 +227,7 @@ class CrewAIExecutionHandler:
                 "agent_insights": agent_insights,
                 "database_updated": True,
                 "discovery_assets_created": discovery_assets_created,
+                "assets_promoted": assets_promoted,
                 "execution_time": "00:01:23"
             }
             

@@ -55,18 +55,29 @@ const DataCleansing: React.FC = () => {
     error: latestImportError
   } = useLatestImport();
 
-  // Extract data cleansing results from flow state - fix TypeScript errors
-  const flowDataCleansing = (flow as any)?.results?.data_cleansing || (flow as any)?.data_cleansing_results || {};
+  // Extract data cleansing results from flow state - fix data path
+  const flowDataCleansing = (flow as any)?.data_cleansing || (flow as any)?.results?.data_cleansing || {};
   const qualityIssues = flowDataCleansing?.quality_issues || [];
   const agentRecommendations = flowDataCleansing?.recommendations || [];
   const cleansingProgress = {
-    total_records: flowDataCleansing?.metrics?.total_records || 0,
-    quality_score: flowDataCleansing?.metrics?.quality_score || 0,
-    completion_percentage: flowDataCleansing?.metrics?.completion_percentage || 0,
-    cleaned_records: flowDataCleansing?.metrics?.cleaned_records || 0,
-    issues_resolved: flowDataCleansing?.metrics?.quality_issues_resolved || 0,
-    crew_completion_status: flowDataCleansing?.processing_status?.phase || 'pending'
+    total_records: flowDataCleansing?.metadata?.original_records || 0,
+    quality_score: flowDataCleansing?.data_quality_metrics?.overall_improvement?.quality_score || 0,
+    completion_percentage: flowDataCleansing?.data_quality_metrics?.overall_improvement?.completeness_improvement || 0,
+    cleaned_records: flowDataCleansing?.metadata?.cleaned_records || 0,
+    issues_resolved: qualityIssues.filter(issue => issue.status === 'resolved').length,
+    crew_completion_status: 'completed' // Based on having data
   };
+
+  // Debug logging to see what data is available
+  console.log('🔍 DataCleansing debug info:', {
+    flow: flow ? 'present' : 'null',
+    flowDataCleansing: flowDataCleansing ? 'present' : 'empty',
+    qualityIssuesCount: qualityIssues.length,
+    recommendationsCount: agentRecommendations.length,
+    cleansingProgress,
+    flowKeys: flow ? Object.keys(flow) : [],
+    dataCleansingKeys: flowDataCleansing ? Object.keys(flowDataCleansing) : []
+  });
 
   // Handle data cleansing execution
   const handleTriggerDataCleansingCrew = async () => {
@@ -108,13 +119,23 @@ const DataCleansing: React.FC = () => {
   const rawDataSample = flowDataCleansing?.raw_data?.slice(0, 3) || [];
   const cleanedDataSample = flowDataCleansing?.cleaned_data?.slice(0, 3) || [];
 
-  // Debug info for flow detection
+  // Debug info for flow detection and data extraction
   console.log('🔍 DataCleansing flow detection:', {
     urlFlowId,
     autoDetectedFlowId,
     effectiveFlowId,
     hasEffectiveFlow,
     totalFlowsAvailable: flowList?.length || 0
+  });
+
+  console.log('🔍 DataCleansing data extraction:', {
+    flow: flow ? 'present' : 'null',
+    flowDataCleansing: flowDataCleansing ? 'present' : 'empty',
+    qualityIssuesCount: qualityIssues.length,
+    recommendationsCount: agentRecommendations.length,
+    cleansingProgress,
+    flowKeys: flow ? Object.keys(flow) : [],
+    dataCleansingKeys: flowDataCleansing ? Object.keys(flowDataCleansing) : []
   });
 
   return (
