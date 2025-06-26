@@ -148,8 +148,44 @@ export const useDataCleansingAnalysis = () => {
         console.error('Failed to fetch data cleansing results from flow:', error);
       }
 
-      // If no data cleansing results are found, return empty structure instead of mock data
-      throw new Error('No data cleansing results available. Please run data cleansing analysis first.');
+      // If no data cleansing results are found, return initial empty state instead of throwing error
+      console.log('No data cleansing results found, returning initial state');
+      return {
+        quality_issues: [],
+        recommendations: [],
+        metrics: {
+          total_records: 0,
+          cleaned_records: 0,
+          quality_issues_found: 0,
+          quality_issues_resolved: 0,
+          data_quality_score: 0,
+          quality_score: 0,
+          completeness_percentage: 0,
+          completion_percentage: 0,
+          consistency_score: 0,
+          standardization_score: 0,
+          assessment_ready: false
+        },
+        cleaned_data: [],
+        processing_status: {
+          phase: 'pending',
+          completion_percentage: 0,
+          crew_agents_used: [],
+          last_updated: new Date().toISOString()
+        },
+        agent_insights: {
+          data_quality_summary: 'Data cleansing analysis not yet started',
+          primary_concerns: [],
+          next_priority: 'Start data cleansing analysis'
+        },
+        statistics: {
+          total_records: 0,
+          quality_score: 0,
+          completion_percentage: 0,
+          issues_count: 0,
+          recommendations_count: 0
+        }
+      };
     },
     enabled: !!client?.id && !!engagement?.id,
     staleTime: 30000, // 30 seconds

@@ -47,7 +47,7 @@ class SixRDecisionEngine:
             self.technical_debt_crew_class = None
             self.crewai_service = None
             self.ai_strategy_available = False
-            logger.warning("CrewAI Technical Debt Crew not available - using fallback mode")
+            logger.debug("CrewAI Technical Debt Crew not available - using fallback mode")
         
         # Initialize remaining handlers (for cost, risk, recommendations)
         self.risk_assessor = RiskAssessor()

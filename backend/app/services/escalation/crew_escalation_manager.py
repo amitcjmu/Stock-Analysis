@@ -22,7 +22,7 @@ try:
     from ..crewai_flows.crews.tech_debt_analysis_crew import create_tech_debt_analysis_crew
     STRATEGIC_CREWS_AVAILABLE = True
 except ImportError:
-    logger.warning("Strategic crews not available - using fallback functionality")
+    logger.debug("Strategic crews not available - using fallback functionality")
     STRATEGIC_CREWS_AVAILABLE = False
 
 class CrewEscalationManager:

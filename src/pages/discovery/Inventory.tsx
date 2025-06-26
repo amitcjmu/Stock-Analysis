@@ -9,13 +9,23 @@ import { InventoryStateProvider } from '../../components/discovery/inventory/Inv
 import { InventoryContent } from '../../components/discovery/inventory/InventoryContent';
 import { useInventoryLogic } from '../../hooks/discovery/useInventoryLogic';
 import { useInventoryNavigation } from '../../hooks/discovery/useInventoryNavigation';
+import { useInventoryFlowDetection } from '../../hooks/discovery/useDiscoveryFlowAutoDetection';
 import { useAuth } from '@/contexts/AuthContext';
 
 const Inventory = () => {
   const { client, engagement } = useAuth();
-  const { flowId: urlFlowId } = useParams<{ flowId?: string }>();
   
-  // Use inventory logic hook - pass flowId if available from URL
+  // Use the new auto-detection hook for consistent flow detection
+  const {
+    urlFlowId,
+    autoDetectedFlowId,
+    effectiveFlowId,
+    flowList,
+    isFlowListLoading,
+    hasEffectiveFlow
+  } = useInventoryFlowDetection();
+  
+  // Use inventory logic hook - pass effectiveFlowId instead of urlFlowId
   const {
     // Data
     assets,
@@ -55,7 +65,7 @@ const Inventory = () => {
     clearSelection,
     fetchAssets,
     canContinueToAppServerDependencies,
-  } = useInventoryLogic(urlFlowId);
+  } = useInventoryLogic(effectiveFlowId);
 
   // Use navigation hook
   const {
@@ -75,6 +85,15 @@ const Inventory = () => {
       engagement_id: typeof engagement.id === 'string' ? parseInt(engagement.id) : engagement.id,
     });
   };
+
+  // Debug info for flow detection
+  console.log('🔍 Inventory flow detection:', {
+    urlFlowId,
+    autoDetectedFlowId,
+    effectiveFlowId,
+    hasEffectiveFlow,
+    totalFlowsAvailable: flowList?.length || 0
+  });
 
   return (
     <div className="flex min-h-screen bg-gray-50">

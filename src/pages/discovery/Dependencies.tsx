@@ -17,13 +17,23 @@ import Sidebar from '../../components/Sidebar';
 // Hooks - Follow the established pattern
 import { useDependencyLogic } from '../../hooks/discovery/useDependencyLogic';
 import { useDependencyNavigation } from '../../hooks/discovery/useDependencyNavigation';
+import { useDependenciesFlowDetection } from '../../hooks/discovery/useDiscoveryFlowAutoDetection';
 import { useAuth } from '../../contexts/AuthContext';
 
 const Dependencies: React.FC = () => {
   const { client, engagement } = useAuth();
-  const { flowId: urlFlowId } = useParams<{ flowId?: string }>();
+  
+  // Use the new auto-detection hook for consistent flow detection
+  const {
+    urlFlowId,
+    autoDetectedFlowId,
+    effectiveFlowId,
+    flowList,
+    isFlowListLoading,
+    hasEffectiveFlow
+  } = useDependenciesFlowDetection();
 
-  // Use dependency logic hook - pass flowId if available from URL
+  // Use dependency logic hook - pass effectiveFlowId instead of urlFlowId
   const {
     dependencyData,
     isLoading,
@@ -33,10 +43,19 @@ const Dependencies: React.FC = () => {
     activeView,
     setActiveView,
     canContinueToNextPhase
-  } = useDependencyLogic(urlFlowId);
+  } = useDependencyLogic(effectiveFlowId);
 
   // Use navigation hook - following the established pattern  
   const { handleContinueToNextPhase } = useDependencyNavigation(null, dependencyData);
+
+  // Debug info for flow detection
+  console.log('🔍 Dependencies flow detection:', {
+    urlFlowId,
+    autoDetectedFlowId,
+    effectiveFlowId,
+    hasEffectiveFlow,
+    totalFlowsAvailable: flowList?.length || 0
+  });
 
   if (isLoading) {
     return (

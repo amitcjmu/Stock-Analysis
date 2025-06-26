@@ -16,35 +16,23 @@ import DataCleansingNavigationButtons from '../../components/discovery/data-clea
 import DataCleansingStateProvider from '../../components/discovery/data-cleansing/DataCleansingStateProvider';
 
 // Hooks
-import { useDiscoveryFlowV2, useDiscoveryFlowList } from '../../hooks/discovery/useDiscoveryFlowV2';
+import { useDiscoveryFlowV2 } from '../../hooks/discovery/useDiscoveryFlowV2';
+import { useDataCleansingFlowDetection } from '../../hooks/discovery/useDiscoveryFlowAutoDetection';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDataCleansingAnalysis } from '../../hooks/useDataCleansingAnalysis';
 
 const DataCleansing: React.FC = () => {
-  const { flowId: urlFlowId } = useParams<{ flowId?: string }>();
   const { user } = useAuth();
   
-  // Auto-detect active flow if no flowId in URL
-  const { flows: flowList, isLoading: isFlowListLoading } = useDiscoveryFlowList();
-  
-  // Determine effective flow ID using the same logic as attribute mapping
-  const autoDetectedFlowId = React.useMemo(() => {
-    if (!flowList || flowList.length === 0) return null;
-    
-    // Find the most recent active flow
-    const activeFlows = flowList.filter(f => f.status === 'active' || f.status === 'in_progress');
-    if (activeFlows.length === 0) return null;
-    
-    // Sort by created_at descending and take the first one
-    const sortedFlows = activeFlows.sort((a, b) => 
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
-    
-    console.log(`🔍 Auto-detected flow for data cleansing: ${sortedFlows[0].flow_id}`);
-    return sortedFlows[0].flow_id;
-  }, [flowList]);
-  
-  const effectiveFlowId = urlFlowId || autoDetectedFlowId;
+  // Use the new auto-detection hook for consistent flow detection
+  const {
+    urlFlowId,
+    autoDetectedFlowId,
+    effectiveFlowId,
+    flowList,
+    isFlowListLoading,
+    hasEffectiveFlow
+  } = useDataCleansingFlowDetection();
   
   // V2 Discovery flow hook with auto-detected flow ID
   const {
@@ -110,11 +98,20 @@ const DataCleansing: React.FC = () => {
   const errorMessage = error?.message || cleansingError?.message;
   const hasData = !!(qualityIssues.length > 0 || agentRecommendations.length > 0 || cleansingProgress.total_records > 0);
   const isAnalyzing = isUpdating;
-  const isLoadingData = isLoading || isCleansingLoading;
+  const isLoadingData = isLoading || isCleansingLoading || isFlowListLoading;
 
   // Get data cleansing specific data from V2 flow (keep for compatibility)
   const isDataCleansingComplete = completedPhases.includes('data_cleansing');
   const canContinueToInventory = completedPhases.includes('data_cleansing') || cleansingProgress.completion_percentage >= 80;
+
+  // Debug info for flow detection
+  console.log('🔍 DataCleansing flow detection:', {
+    urlFlowId,
+    autoDetectedFlowId,
+    effectiveFlowId,
+    hasEffectiveFlow,
+    totalFlowsAvailable: flowList?.length || 0
+  });
 
   return (
     <DataCleansingStateProvider

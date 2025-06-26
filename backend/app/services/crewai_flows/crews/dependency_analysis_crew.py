@@ -9,7 +9,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 
 from crewai import Agent, Task, Crew
-from crewai_tools import BaseTool
+from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -137,7 +137,7 @@ class DependencyAnalysisCrew:
             agents=[self.network_architecture_specialist],
             tasks=[],  # Tasks will be created dynamically
             verbose=True,
-            process="parallel"  # Parallel analysis with synthesis pattern
+            process="sequential"  # Sequential process (parallel is not valid)
         )
         
         logger.info("🎯 Dependency Analysis Crew initialized with parallel analysis pattern")

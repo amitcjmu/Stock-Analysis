@@ -82,18 +82,40 @@ class FlowManagementHandler:
             # Convert to API format
             active_flows = []
             for flow in flows:
+                # Include phase completion information for auto-detection
+                phases = {
+                    "data_import_completed": flow.data_import_completed,
+                    "attribute_mapping_completed": flow.attribute_mapping_completed,
+                    "data_cleansing_completed": flow.data_cleansing_completed,
+                    "inventory_completed": flow.inventory_completed,
+                    "dependencies_completed": flow.dependencies_completed,
+                    "tech_debt_completed": flow.tech_debt_completed
+                }
+                
+                # Also include next_phase for auto-detection logic
+                next_phase = flow.get_next_phase()
+                
                 active_flows.append({
                     "flow_id": str(flow.flow_id),
                     "id": str(flow.id),
                     "status": flow.status,
-                    "current_phase": flow.get_next_phase() or "completed",  # Use actual next phase
+                    "current_phase": next_phase or "completed",  # Use actual next phase
+                    "next_phase": next_phase,  # Include for auto-detection
                     "progress_percentage": flow.progress_percentage,
                     "flow_name": flow.flow_name,
                     "flow_description": flow.flow_description,
+                    "phases": phases,  # Include phase completion for auto-detection
                     "created_at": flow.created_at.isoformat() if flow.created_at else None,
                     "updated_at": flow.updated_at.isoformat() if flow.updated_at else None,
                     "client_account_id": str(flow.client_account_id),
-                    "engagement_id": str(flow.engagement_id)
+                    "engagement_id": str(flow.engagement_id),
+                    # Also include direct completion fields for backward compatibility
+                    "data_import_completed": flow.data_import_completed,
+                    "attribute_mapping_completed": flow.attribute_mapping_completed,
+                    "data_cleansing_completed": flow.data_cleansing_completed,
+                    "inventory_completed": flow.inventory_completed,
+                    "dependencies_completed": flow.dependencies_completed,
+                    "tech_debt_completed": flow.tech_debt_completed
                 })
             
             logger.info(f"✅ Retrieved {len(active_flows)} active flows from PostgreSQL")

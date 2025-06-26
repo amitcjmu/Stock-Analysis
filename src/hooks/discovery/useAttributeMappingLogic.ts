@@ -3,54 +3,23 @@ import { useDiscoveryFlowV2, useDiscoveryFlowList } from './useDiscoveryFlowV2';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { API_CONFIG, apiCall } from '../../config/api';
+import { useAttributeMappingFlowDetection } from './useDiscoveryFlowAutoDetection';
 
 export const useAttributeMappingLogic = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { getAuthHeaders } = useAuth();
+  const { user, getAuthHeaders } = useAuth();
   
-  // Extract flow ID from URL path if provided
-  const urlFlowId = useMemo(() => {
-    const match = pathname.match(/\/discovery\/attribute-mapping\/([^\/]+)/);
-    return match ? match[1] : null;
-  }, [pathname]);
-
-  // Get list of active flows for context-based auto-detection
-  const { data: flowList, isLoading: isFlowListLoading, error: flowListError } = useDiscoveryFlowList();
-
-  // Auto-detect the most relevant flow for attribute mapping
-  const autoDetectedFlowId = useMemo(() => {
-    if (!flowList || flowList.length === 0) return null;
-    
-    // Priority 1: Flow currently in attribute_mapping phase
-    const attributeMappingFlow = flowList.find((flow: any) => 
-      flow.current_phase === 'attribute_mapping' || 
-      flow.next_phase === 'attribute_mapping'
-    );
-    if (attributeMappingFlow) return attributeMappingFlow.flow_id;
-    
-    // Priority 2: Flow with attribute_mapping completed but has field mapping data
-    const completedAttributeMappingFlow = flowList.find((flow: any) => 
-      flow.phases?.attribute_mapping === true && 
-      flow.status === 'running'
-    );
-    if (completedAttributeMappingFlow) return completedAttributeMappingFlow.flow_id;
-    
-    // Priority 3: Any running flow (might have processed data)
-    const runningFlow = flowList.find((flow: any) => 
-      flow.status === 'running' || flow.status === 'active'
-    );
-    if (runningFlow) return runningFlow.flow_id;
-    
-    // Priority 4: Most recent flow (even if completed)
-    const sortedFlows = [...flowList].sort((a: any, b: any) => 
-      new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime()
-    );
-    return sortedFlows[0]?.flow_id || null;
-  }, [flowList]);
-
-  // Use URL flow ID if provided, otherwise use auto-detected flow ID
-  const effectiveFlowId = urlFlowId || autoDetectedFlowId;
+  // Use the new auto-detection hook for consistent flow detection
+  const {
+    urlFlowId,
+    autoDetectedFlowId,
+    effectiveFlowId,
+    flowList,
+    isFlowListLoading,
+    flowListError,
+    hasEffectiveFlow
+  } = useAttributeMappingFlowDetection();
 
   // Use V2 discovery flow with effective flow ID
   const {

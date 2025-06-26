@@ -11,6 +11,7 @@ import {
   CheckCircle, X, Info, GraduationCap, RotateCcw, Play, RefreshCw
 } from 'lucide-react';
 import { useDiscoveryFlowV2 } from '../../hooks/discovery/useDiscoveryFlowV2';
+import { useTechDebtFlowDetection } from '../../hooks/discovery/useDiscoveryFlowAutoDetection';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '../../components/ui/button';
 import { useToast } from '../../components/ui/use-toast';
@@ -43,9 +44,18 @@ interface SupportTimeline {
 const TechDebtAnalysis = () => {
   const { client, engagement } = useAuth();
   const { toast } = useToast();
-  const { flowId: urlFlowId } = useParams<{ flowId?: string }>();
   
-  // V2 Discovery flow hook - pass flowId if available from URL
+  // Use the new auto-detection hook for consistent flow detection
+  const {
+    urlFlowId,
+    autoDetectedFlowId,
+    effectiveFlowId,
+    flowList,
+    isFlowListLoading,
+    hasEffectiveFlow
+  } = useTechDebtFlowDetection();
+  
+  // V2 Discovery flow hook - pass effectiveFlowId instead of urlFlowId
   const {
     flow,
     isLoading,
@@ -56,7 +66,16 @@ const TechDebtAnalysis = () => {
     currentPhase,
     completedPhases,
     nextPhase
-  } = useDiscoveryFlowV2(urlFlowId);
+  } = useDiscoveryFlowV2(effectiveFlowId);
+
+  // Debug info for flow detection
+  console.log('🔍 TechDebt flow detection:', {
+    urlFlowId,
+    autoDetectedFlowId,
+    effectiveFlowId,
+    hasEffectiveFlow,
+    totalFlowsAvailable: flowList?.length || 0
+  });
 
   // Get tech debt specific data from V2 flow
   const techDebtData = flow?.phases?.tech_debt ? { items: [], support_timelines: [], summary: {} } : null;
