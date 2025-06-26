@@ -242,7 +242,7 @@ class InventoryBuildingCrew:
         return [inventory_manager, server_expert, app_expert, device_expert]
     
     def create_tasks(self, agents, cleaned_data: List[Dict[str, Any]], field_mappings: Dict[str, Any]):
-        """Create hierarchical tasks with cross-domain collaboration"""
+        """Create hierarchical tasks with cross-domain collaboration and insight generation"""
         manager, server_expert, app_expert, device_expert = agents
         
         data_sample = cleaned_data[:5] if cleaned_data else []
@@ -263,19 +263,46 @@ class InventoryBuildingCrew:
             4. Plans relationship mapping between domains
             5. Leverages field mappings and data quality insights
             
-            Use your planning capabilities to coordinate multi-domain asset classification.""",
-            expected_output="Comprehensive asset classification plan with domain assignments and collaboration strategy",
+            CRITICAL: Generate comprehensive STRATEGIC INSIGHTS for the inventory management:
+            - Infrastructure standardization opportunities
+            - Technology stack consolidation recommendations
+            - Migration complexity assessment patterns
+            - Asset portfolio optimization insights
+            - Risk factors and mitigation strategies
+            
+            Store strategic insights in shared memory for domain experts to enhance.""",
+            expected_output="""Comprehensive asset classification plan with domain assignments and collaboration strategy.
+            
+            PLUS: Strategic Insights JSON containing:
+            {
+                "infrastructure_patterns": {
+                    "standardization_level": "high/medium/low",
+                    "consolidation_opportunities": [],
+                    "complexity_factors": []
+                },
+                "migration_strategy": {
+                    "recommended_approach": "lift_shift/replatform/refactor",
+                    "readiness_assessment": "ready/needs_prep/complex",
+                    "sequencing_recommendations": []
+                },
+                "portfolio_insights": {
+                    "technology_diversity": "homogeneous/mixed/heterogeneous",
+                    "business_criticality_distribution": {},
+                    "modernization_priorities": []
+                }
+            }""",
             agent=manager,
             tools=[]
         )
         
-        # Server Classification Task - Infrastructure assets
+        # Server Classification Task - Infrastructure assets with deep insights
         server_classification_task = Task(
-            description=f"""Classify server and infrastructure assets with detailed specifications.
+            description=f"""Classify server and infrastructure assets with detailed specifications AND generate comprehensive infrastructure insights.
             
             Data to analyze: {len(cleaned_data)} records
             Sample data: {data_sample}
             Relevant field mappings: {self._filter_infrastructure_mappings(mapped_fields)}
+            Strategic insights: Use manager's strategic insights from shared memory
             
             Classification Requirements:
             1. Identify servers, virtual machines, and infrastructure components
@@ -284,22 +311,58 @@ class InventoryBuildingCrew:
             4. Assess migration complexity and hosting requirements
             5. Generate server inventory with technical details
             6. Collaborate with application expert for hosting relationships
-            7. Store infrastructure insights in shared memory
             
-            Collaborate with application and device experts for complete topology.""",
-            expected_output="Comprehensive server inventory with technical specifications and hosting relationships",
+            CRITICAL: Generate INFRASTRUCTURE INSIGHTS by analyzing patterns:
+            - Operating system distribution and standardization
+            - Hardware specification patterns and capacity trends
+            - Virtualization adoption and cloud readiness
+            - Infrastructure age and modernization needs
+            - Geographic/location distribution patterns
+            - Security and compliance posture assessment
+            - Performance and scalability bottlenecks
+            - Cost optimization opportunities
+            
+            Store infrastructure insights in shared memory for cross-domain analysis.""",
+            expected_output="""Comprehensive server inventory with technical specifications and hosting relationships.
+            
+            PLUS: Infrastructure Insights JSON containing:
+            {
+                "hosting_patterns": {
+                    "os_distribution": {},
+                    "virtualization_level": "percentage",
+                    "cloud_readiness_score": "0-100",
+                    "standardization_assessment": "high/medium/low"
+                },
+                "capacity_analysis": {
+                    "resource_utilization": {},
+                    "scaling_opportunities": [],
+                    "consolidation_potential": []
+                },
+                "migration_readiness": {
+                    "lift_shift_candidates": "count",
+                    "replatform_candidates": "count",
+                    "modernization_required": "count",
+                    "risk_factors": []
+                },
+                "recommendations": {
+                    "immediate_actions": [],
+                    "strategic_initiatives": [],
+                    "cost_optimizations": []
+                }
+            }""",
             agent=server_expert,
             context=[planning_task],
             tools=self._create_server_classification_tools()
         )
         
-        # Application Classification Task - Application assets
+        # Application Classification Task - Application assets with business insights
         app_classification_task = Task(
-            description=f"""Identify and categorize application assets with business context.
+            description=f"""Identify and categorize application assets with business context AND generate comprehensive application portfolio insights.
             
             Data to analyze: {len(cleaned_data)} records
             Field mappings: {self._filter_application_mappings(mapped_fields)}
             Server insights: Use server expert insights from shared memory
+            Strategic insights: Use manager's strategic insights from shared memory
             
             Classification Requirements:
             1. Identify applications, services, and software components
@@ -309,22 +372,58 @@ class InventoryBuildingCrew:
             5. Identify application dependencies and integrations
             6. Generate application portfolio with business context
             7. Collaborate with server expert for hosting validation
-            8. Store application insights in shared memory
             
-            Collaborate with server and device experts for dependency mapping.""",
-            expected_output="Comprehensive application inventory with business context and hosting relationships",
+            CRITICAL: Generate APPLICATION PORTFOLIO INSIGHTS by analyzing:
+            - Technology stack diversity and standardization opportunities
+            - Application architecture patterns (monolith/microservices/hybrid)
+            - Business criticality distribution and risk assessment
+            - Integration complexity and API modernization needs
+            - License optimization and vendor consolidation opportunities
+            - Technical debt assessment and modernization priorities
+            - Performance and user experience optimization potential
+            - Security and compliance gaps and recommendations
+            
+            Store application insights in shared memory for complete portfolio analysis.""",
+            expected_output="""Comprehensive application inventory with business context and hosting relationships.
+            
+            PLUS: Application Portfolio Insights JSON containing:
+            {
+                "technology_analysis": {
+                    "stack_diversity": "homogeneous/mixed/heterogeneous",
+                    "modernization_score": "0-100",
+                    "architecture_patterns": {},
+                    "integration_complexity": "low/medium/high"
+                },
+                "business_analysis": {
+                    "criticality_distribution": {},
+                    "user_impact_assessment": {},
+                    "business_value_score": "0-100"
+                },
+                "migration_strategy": {
+                    "containerization_candidates": [],
+                    "cloud_native_opportunities": [],
+                    "legacy_modernization_priorities": [],
+                    "6r_recommendations": {}
+                },
+                "optimization_opportunities": {
+                    "license_consolidation": [],
+                    "performance_improvements": [],
+                    "security_enhancements": []
+                }
+            }""",
             agent=app_expert,
             context=[server_classification_task],
             tools=self._create_app_classification_tools()
         )
         
-        # Device Classification Task - Network and device assets
+        # Device Classification Task - Network and device assets with topology insights
         device_classification_task = Task(
-            description=f"""Classify network devices and infrastructure components.
+            description=f"""Classify network devices and infrastructure components AND generate comprehensive network topology insights.
             
             Data to analyze: {len(cleaned_data)} records
             Field mappings: {self._filter_device_mappings(mapped_fields)}
             Infrastructure context: Use server and app insights from shared memory
+            Strategic insights: Use all previous insights from shared memory
             
             Classification Requirements:
             1. Identify network devices, security appliances, and infrastructure
@@ -333,10 +432,58 @@ class InventoryBuildingCrew:
             4. Assess migration impact on network infrastructure
             5. Generate device inventory with network context
             6. Validate topology with server and application insights
-            7. Store device insights in shared memory
             
-            Collaborate with all experts for complete infrastructure topology.""",
-            expected_output="Comprehensive device inventory with network topology and relationships",
+            CRITICAL: Generate COMPREHENSIVE DISCOVERY INSIGHTS by synthesizing ALL crew analysis:
+            - Network topology assessment and cloud migration readiness
+            - Security infrastructure evaluation and modernization needs
+            - Device consolidation and SDN transformation opportunities
+            - Complete infrastructure dependency mapping
+            - Migration wave planning and sequencing recommendations
+            - Risk assessment across all infrastructure domains
+            - Cost optimization through infrastructure rationalization
+            - Business continuity and disaster recovery assessment
+            
+            FINAL TASK: Create UNIFIED DISCOVERY INSIGHTS that consolidate insights from:
+            - Manager's strategic planning insights
+            - Server expert's infrastructure insights  
+            - Application expert's portfolio insights
+            - Device expert's network topology insights
+            
+            Store consolidated discovery insights in shared memory for UI retrieval.""",
+            expected_output="""Comprehensive device inventory with network topology and relationships.
+            
+            PLUS: Consolidated Discovery Insights JSON containing:
+            {
+                "executive_summary": {
+                    "total_assets_analyzed": "count",
+                    "infrastructure_readiness_score": "0-100",
+                    "migration_complexity": "low/medium/high",
+                    "recommended_strategy": "detailed_recommendation"
+                },
+                "infrastructure_analysis": {
+                    "hosting_patterns": "from_server_expert",
+                    "application_portfolio": "from_app_expert", 
+                    "network_topology": "from_device_expert",
+                    "integration_points": []
+                },
+                "migration_recommendations": {
+                    "6r_strategy_distribution": {},
+                    "wave_planning": [],
+                    "risk_mitigation": [],
+                    "quick_wins": []
+                },
+                "business_impact": {
+                    "cost_optimization_potential": "percentage",
+                    "performance_improvement_areas": [],
+                    "compliance_and_security_gaps": [],
+                    "modernization_roi_estimate": "high/medium/low"
+                },
+                "next_steps": {
+                    "immediate_actions": [],
+                    "phase_2_initiatives": [],
+                    "long_term_strategy": []
+                }
+            }""",
             agent=device_expert,
             context=[app_classification_task],
             tools=self._create_device_classification_tools()
