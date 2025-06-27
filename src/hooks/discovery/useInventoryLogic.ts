@@ -51,6 +51,16 @@ export const useInventoryLogic = (flowId?: string) => {
     }
   }, [flow, updatePhase]);
 
+  const handleCompleteInventoryAndTriggerParallelAnalysis = useCallback(async () => {
+    if (flow?.flow_id) {
+      // Complete inventory and automatically trigger parallel dependencies + tech debt analysis
+      await updatePhase('inventory_completed', { 
+        trigger_parallel_analysis: true,
+        execute_dependencies_and_tech_debt: true 
+      });
+    }
+  }, [flow, updatePhase]);
+
   const fetchAssets = useCallback(async () => {
     refresh();
   }, [refresh]);
@@ -129,6 +139,7 @@ export const useInventoryLogic = (flowId?: string) => {
     
     // Actions
     handleTriggerInventoryBuildingCrew,
+    handleCompleteInventoryAndTriggerParallelAnalysis,
     handleBulkUpdate,
     handleAssetClassificationUpdate,
     handleFilterChange,

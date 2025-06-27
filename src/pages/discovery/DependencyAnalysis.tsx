@@ -2,6 +2,8 @@ import React from 'react';
 import Sidebar from '../../components/Sidebar';
 import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
 import { useDiscoveryFlowV2 } from '../../hooks/discovery/useDiscoveryFlowV2';
+import { useDependencyFlowDetection } from '../../hooks/discovery/useDiscoveryFlowAutoDetection';
+import { useDependencyLogic } from '../../hooks/discovery/useDependencyLogic';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
@@ -18,27 +20,56 @@ import {
 } from 'lucide-react';
 
 const DependencyAnalysisPage = () => {
+  // Use the new auto-detection hook for consistent flow detection
   const {
-    flowState,
+    urlFlowId,
+    autoDetectedFlowId,
+    effectiveFlowId,
+    flowList,
+    isFlowListLoading,
+    hasEffectiveFlow
+  } = useDependencyFlowDetection();
+  
+  // V2 Discovery flow hook - pass effectiveFlowId instead of urlFlowId
+  const {
+    flow,
     isLoading,
     error,
-    getPhaseData,
-    isPhaseComplete,
-    canProceedToPhase,
-    executeFlowPhase,
-    isExecutingPhase,
-    refreshFlow
-  } = useUnifiedDiscoveryFlow();
+    updatePhase,
+    isUpdating,
+    progressPercentage,
+    currentPhase,
+    completedPhases,
+    nextPhase,
+    refresh
+  } = useDiscoveryFlowV2(effectiveFlowId);
 
-  // Get dependency analysis specific data
-  const dependencyData = getPhaseData('dependency_analysis');
-  const isDependencyAnalysisComplete = isPhaseComplete('dependency_analysis');
-  const canProceedToTechDebt = canProceedToPhase('tech_debt_analysis');
+  // Use dependency logic hook for dependency-specific functionality
+  const {
+    dependencyData,
+    isAnalyzing,
+    analyzeDependencies,
+    activeView,
+    setActiveView,
+    canContinueToNextPhase
+  } = useDependencyLogic(effectiveFlowId);
 
+  // Debug info for flow detection
+  console.log('🔍 Dependency flow detection:', {
+    urlFlowId,
+    autoDetectedFlowId,
+    effectiveFlowId,
+    hasEffectiveFlow,
+    totalFlowsAvailable: flowList?.length || 0
+  });
+
+  // Get dependency analysis specific data from V2 flow - extract from flow state
+  const isDependencyAnalysisComplete = completedPhases.includes('dependency_analysis') || completedPhases.includes('dependencies_completed');
+  
   // Handle dependency analysis execution
   const handleExecuteDependencyAnalysis = async () => {
     try {
-      await executeFlowPhase('dependency_analysis');
+      await analyzeDependencies();
     } catch (error) {
       console.error('Failed to execute dependency analysis phase:', error);
     }
@@ -53,12 +84,11 @@ const DependencyAnalysisPage = () => {
     window.location.href = '/discovery/tech-debt';
   };
 
-  // Extract dependency information
-  const appServerDependencies = (dependencyData && !Array.isArray(dependencyData)) ? (dependencyData.app_server_dependencies || {}) : {};
-  const appAppDependencies = (dependencyData && !Array.isArray(dependencyData)) ? (dependencyData.app_app_dependencies || {}) : {};
-  const hostingRelationships = appServerDependencies.hosting_relationships || [];
-  const communicationPatterns = appAppDependencies.communication_patterns || [];
-  const dependencyGraph = appAppDependencies.dependency_graph || { nodes: [], edges: [] };
+  // Extract dependency information from dependencyData
+  const appServerDependencies = dependencyData?.app_server_mapping || [];
+  const appAppDependencies = dependencyData?.cross_application_mapping || [];
+  const dependencyRelationships = dependencyData?.dependency_relationships || [];
+  const criticalDependencies = dependencyData?.critical_dependencies || [];
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -84,7 +114,7 @@ const DependencyAnalysisPage = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={refreshFlow}
+                onClick={refresh}
                 disabled={isLoading}
               >
                 <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -93,10 +123,10 @@ const DependencyAnalysisPage = () => {
               {!isDependencyAnalysisComplete && (
                 <Button
                   onClick={handleExecuteDependencyAnalysis}
-                  disabled={isExecutingPhase}
+                  disabled={isAnalyzing}
                 >
                   <Play className="mr-2 h-4 w-4" />
-                  {isExecutingPhase ? 'Analyzing...' : 'Start Analysis'}
+                  {isAnalyzing ? 'Analyzing...' : 'Start Analysis'}
                 </Button>
               )}
             </div>
@@ -118,7 +148,7 @@ const DependencyAnalysisPage = () => {
                     <span className="text-green-700">Dependency analysis completed</span>
                     <Badge variant="secondary">Complete</Badge>
                   </>
-                ) : isExecutingPhase ? (
+                ) : isAnalyzing ? (
                   <>
                     <Clock className="h-5 w-5 text-yellow-500 animate-pulse" />
                     <span className="text-yellow-700">Analysis in progress...</span>
@@ -162,9 +192,9 @@ const DependencyAnalysisPage = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {hostingRelationships.length > 0 ? (
+                  {appServerDependencies.length > 0 ? (
                     <div className="space-y-3">
-                      {hostingRelationships.slice(0, 5).map((relationship: any, index: number) => (
+                      {appServerDependencies.slice(0, 5).map((relationship: any, index: number) => (
                         <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                           <div>
                             <p className="font-medium">{relationship.application || `App ${index + 1}`}</p>
@@ -173,9 +203,9 @@ const DependencyAnalysisPage = () => {
                           <ArrowRight className="h-4 w-4 text-gray-400" />
                         </div>
                       ))}
-                      {hostingRelationships.length > 5 && (
+                      {appServerDependencies.length > 5 && (
                         <p className="text-sm text-gray-600">
-                          +{hostingRelationships.length - 5} more relationships
+                          +{appServerDependencies.length - 5} more relationships
                         </p>
                       )}
                     </div>
@@ -197,9 +227,9 @@ const DependencyAnalysisPage = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {communicationPatterns.length > 0 ? (
+                  {appAppDependencies.length > 0 ? (
                     <div className="space-y-3">
-                      {communicationPatterns.slice(0, 5).map((pattern: any, index: number) => (
+                      {appAppDependencies.slice(0, 5).map((pattern: any, index: number) => (
                         <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                           <div>
                             <p className="font-medium">{pattern.source || `Source ${index + 1}`}</p>
@@ -208,9 +238,9 @@ const DependencyAnalysisPage = () => {
                           <Badge variant="outline">{pattern.type || 'API'}</Badge>
                         </div>
                       ))}
-                      {communicationPatterns.length > 5 && (
+                      {appAppDependencies.length > 5 && (
                         <p className="text-sm text-gray-600">
-                          +{communicationPatterns.length - 5} more patterns
+                          +{appAppDependencies.length - 5} more patterns
                         </p>
                       )}
                     </div>
@@ -234,7 +264,7 @@ const DependencyAnalysisPage = () => {
             {isDependencyAnalysisComplete && (
               <Button
                 onClick={handleContinueToTechDebt}
-                disabled={!canProceedToTechDebt}
+                disabled={!canContinueToNextPhase()}
               >
                 Continue to Tech Debt Analysis
                 <ArrowRight className="ml-2 h-4 w-4" />

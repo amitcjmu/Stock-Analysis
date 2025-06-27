@@ -44,8 +44,8 @@ interface UseUnifiedDiscoveryFlowReturn {
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 const unifiedDiscoveryAPI = {
-  async getFlowStatus(sessionId: string): Promise<UnifiedDiscoveryFlowState> {
-    const response = await fetch(`${API_BASE}/api/v1/discovery/flow/status/${sessionId}`, {
+  async getFlowStatus(flowId: string): Promise<UnifiedDiscoveryFlowState> {
+    const response = await fetch(`${API_BASE}/api/v1/unified-discovery/flow/status/${flowId}`, {
       headers: {
         'Content-Type': 'application/json',
         'X-User-ID': '44444444-4444-4444-4444-444444444444',
@@ -62,7 +62,7 @@ const unifiedDiscoveryAPI = {
   },
 
   async initializeFlow(data: any): Promise<any> {
-    const response = await fetch(`${API_BASE}/api/v1/discovery/flow/initialize`, {
+    const response = await fetch(`${API_BASE}/api/v1/unified-discovery/flow/initialize`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -81,7 +81,7 @@ const unifiedDiscoveryAPI = {
   },
 
   async executePhase(phase: string, data: any = {}): Promise<any> {
-    const response = await fetch(`${API_BASE}/api/v1/discovery/flow/execute`, {
+    const response = await fetch(`${API_BASE}/api/v1/unified-discovery/flow/execute`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -100,7 +100,7 @@ const unifiedDiscoveryAPI = {
   },
 
   async getHealthStatus(): Promise<any> {
-    const response = await fetch(`${API_BASE}/api/v1/discovery/health`, {
+    const response = await fetch(`${API_BASE}/api/v1/unified-discovery/health`, {
       headers: {
         'Content-Type': 'application/json',
         'X-User-ID': '44444444-4444-4444-4444-444444444444',

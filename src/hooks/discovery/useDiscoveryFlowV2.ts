@@ -235,6 +235,47 @@ const apiClient = {
 
   async updateFlowPhase(flowId: string, phase: string): Promise<DiscoveryFlowV2> {
     try {
+      // Handle inventory completion → automatic parallel analysis trigger
+      if (phase === 'inventory_completed' || phase === 'asset_inventory') {
+        console.log('🔄 Inventory completed - triggering parallel Dependencies + Tech Debt analysis...');
+        
+        // First complete inventory phase
+        const inventoryResult = await unifiedDiscoveryService.executePhase(flowId, 'asset_inventory');
+        
+        // Then trigger parallel analysis automatically using the correct backend phase name
+        const parallelResult = await unifiedDiscoveryService.executePhase(flowId, 'execute_parallel_analysis_agents');
+        
+        return {
+          id: flowId,
+          flow_id: flowId,
+          client_account_id: '11111111-1111-1111-1111-111111111111',
+          engagement_id: '22222222-2222-2222-2222-222222222222',
+          user_id: 'default-user',
+          flow_name: `Flow ${flowId}`,
+          status: parallelResult.status,
+          progress_percentage: parallelResult.progress_percentage || 90,
+          phases: parallelResult.phases || {},
+          learning_scope: 'client',
+          memory_isolation_level: 'engagement',
+          assessment_ready: parallelResult.assessment_ready || false,
+          is_mock: false,
+          migration_readiness_score: parallelResult.migration_readiness_score || 0,
+          is_complete: parallelResult.status === 'completed',
+          next_phase: parallelResult.next_phase || 'completed',
+          field_mapping: parallelResult.field_mapping,
+          // Preserve all flow data
+          data_cleansing_results: parallelResult.data_cleansing_results,
+          results: parallelResult.results,
+          raw_data: parallelResult.raw_data,
+          cleaned_data: parallelResult.cleaned_data,
+          agent_insights: parallelResult.agent_insights,
+          current_phase: parallelResult.current_phase,
+          created_at: parallelResult.created_at,
+          updated_at: parallelResult.updated_at
+        } as DiscoveryFlowV2;
+      }
+      
+      // For all other phases, use standard execution
       const response = await unifiedDiscoveryService.executePhase(flowId, phase);
       
       // Convert unified response to V2 format
@@ -255,7 +296,16 @@ const apiClient = {
         migration_readiness_score: response.migration_readiness_score || 0,
         is_complete: response.status === 'completed',
         next_phase: response.next_phase,
-        field_mapping: response.field_mapping
+        field_mapping: response.field_mapping,
+        // Preserve all flow data
+        data_cleansing_results: response.data_cleansing_results,
+        results: response.results,
+        raw_data: response.raw_data,
+        cleaned_data: response.cleaned_data,
+        agent_insights: response.agent_insights,
+        current_phase: response.current_phase,
+        created_at: response.created_at,
+        updated_at: response.updated_at
       } as DiscoveryFlowV2;
     } catch (error) {
       console.error('Failed to update flow phase:', error);
