@@ -143,32 +143,19 @@ class AdminOperationsService:
             except Exception as db_error:
                 logger.warning(f"Database query failed, returning demo users: {db_error}")
                 
-                # Fallback to demo users
+                # SECURITY: No admin demo users as fallback - only legitimate demo user
                 demo_active_users = [
                     {
-                        "user_id": "2a0de3df-7484-4fab-98b9-2ca126e2ab21",
-                        "email": "admin@aiforce.com",
-                        "full_name": "Platform Administrator",
-                        "username": "admin",
-                        "organization": "AI Force Platform",
-                        "role_description": "System Administrator",
-                        "access_level": "admin",
-                        "role_name": "Administrator",
-                        "is_active": True,
-                        "approved_at": "2025-01-01T00:00:00Z",
-                        "last_login": "2025-01-28T10:30:00Z"
-                    },
-                    {
-                        "user_id": "demo-user-12345678-1234-5678-9012-123456789012",
-                        "email": "user@demo.com",
+                        "user_id": "44444444-4444-4444-4444-444444444444",
+                        "email": "demo@democorp.com",
                         "full_name": "Demo User",
-                        "username": "demo_user",
-                        "organization": "Demo Organization",
+                        "username": "demo",
+                        "organization": "Demo Corporation",
                         "role_description": "Demo Analyst",
                         "access_level": "read_write",
                         "role_name": "Analyst",
                         "is_active": True,
-                        "approved_at": "2025-01-27T10:00:00Z",
+                        "approved_at": "2025-01-01T00:00:00Z",
                         "last_login": "2025-01-28T09:15:00Z"
                     },
                     {

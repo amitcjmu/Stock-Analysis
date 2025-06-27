@@ -121,6 +121,20 @@ try:
 except ImportError:
     MASTER_FLOWS_AVAILABLE = False
 
+try:
+    from app.api.v1.endpoints.simple_admin import simple_admin_router
+    SIMPLE_ADMIN_AVAILABLE = True
+except ImportError:
+    SIMPLE_ADMIN_AVAILABLE = False
+
+try:
+    from app.api.v1.auth.handlers.admin_handlers import admin_router
+    ADMIN_HANDLERS_AVAILABLE = True
+except ImportError:
+    ADMIN_HANDLERS_AVAILABLE = False
+
+
+
 # Setup logger
 logger = logging.getLogger(__name__)
 
@@ -198,6 +212,7 @@ if OBSERVABILITY_AVAILABLE:
 else:
     logger.warning("⚠️ Observability router not available - polling control endpoints disabled")
 
+
 # Authentication and Context
 if AUTH_RBAC_AVAILABLE:
     api_router.include_router(auth_router, prefix="/auth", tags=["Authentication"])
@@ -260,6 +275,15 @@ if PLATFORM_ADMIN_AVAILABLE:
 if USER_APPROVALS_AVAILABLE:
     api_router.include_router(user_approvals_router, prefix="/admin/approvals", tags=["Admin - User Approvals"])
     logger.info("✅ User approvals router included")
+
+# Admin handlers are already included through the auth router (rbac.py)
+# No need to include admin_router separately - it would create duplicate routes
+
+if SIMPLE_ADMIN_AVAILABLE:
+    api_router.include_router(simple_admin_router, prefix="/api/v1", tags=["Simple Admin"])
+    logger.info("✅ Simple admin router included")
+else:
+    logger.warning("⚠️ Simple admin router not available")
 
 # Testing and Debug
 api_router.include_router(test_discovery_router, prefix="/test-discovery", tags=["Test Discovery"])

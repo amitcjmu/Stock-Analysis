@@ -75,29 +75,20 @@ class AdminOperationsHandler(BaseRBACHandler):
             first_name = name_parts[0] if name_parts else user_data.get("first_name", "")
             last_name = name_parts[1] if len(name_parts) > 1 else user_data.get("last_name", "")
             
-            # Handle admin user identification - avoid UUID constraint issues
+            # Handle admin user identification - use actual authenticated user ID
             admin_user_uuid = None
-            if created_by and created_by not in ["admin_user", "demo_user", "system"]:
+            if created_by and created_by not in ["admin_user", "demo_user", "system", "system_setup"]:
                 try:
                     admin_user_uuid = uuid.UUID(created_by)
                 except ValueError:
                     # If created_by is not a valid UUID, set to None
                     admin_user_uuid = None
             
-            # Fallback to existing user UUID if admin_user_uuid is None (for NOT NULL constraint)
+            # SECURITY: Allow NULL for admin_user_uuid if no created_by provided
+            # This allows platform admins to create users without foreign key dependency
             if admin_user_uuid is None:
-                # Get the first available user from the database to satisfy foreign key constraint
-                try:
-                    from sqlalchemy import select
-                    from app.models.client_account import User
-                    result = await self.db.execute(select(User.id).limit(1))
-                    first_user = result.scalar()
-                    if first_user:
-                        admin_user_uuid = first_user
-                    else:
-                        admin_user_uuid = uuid.UUID("eef6ea50-6550-4f14-be2c-081d4eb23038")  # Fallback to known ID
-                except Exception:
-                    admin_user_uuid = uuid.UUID("eef6ea50-6550-4f14-be2c-081d4eb23038")  # Fallback to known ID
+                logger.info("No created_by user provided - using NULL for assigned_by (allowed for platform admin operations)")
+                admin_user_uuid = None  # Allow NULL assigned_by
             
             # Map access level to proper enum value
             access_level = self._map_access_level(user_data.get("access_level", "analyst"))
@@ -138,7 +129,7 @@ class AdminOperationsHandler(BaseRBACHandler):
                     "learning_updates": False,
                     "weekly_reports": True
                 }),
-                approved_by=admin_user_uuid,  # Use UUID or None
+                approved_by=admin_user_uuid,  # Use UUID or None (NULL allowed for first admin)
                 approved_at=datetime.utcnow() if user_data.get("is_active") else None
             )
             
@@ -152,7 +143,7 @@ class AdminOperationsHandler(BaseRBACHandler):
                 role_name=user_data.get("role_name", "Analyst"),
                 description=user_data.get("role_description", f"Admin created user with {access_level} access"),
                 permissions=self._get_default_role_permissions(access_level),
-                assigned_by=admin_user_uuid,  # Use UUID or None
+                assigned_by=admin_user_uuid,  # Use UUID or None (NULL allowed for first admin)
                 is_active=True
             )
             

@@ -26,84 +26,73 @@ def upgrade():
     # SECURITY AUDIT SYSTEM
     # =============================================================================
     
-    # Create security_audit_logs table
+    # Create security_audit_logs table (matching SecurityAuditLog model exactly)
     op.create_table('security_audit_logs',
         sa.Column('id', postgresql.UUID(as_uuid=True), server_default=sa.text('gen_random_uuid()'), nullable=False),
         sa.Column('event_type', sa.String(100), nullable=False),
         sa.Column('event_category', sa.String(50), nullable=False),
-        sa.Column('severity', sa.String(20), nullable=False),
-        sa.Column('actor_user_id', postgresql.UUID(as_uuid=True), nullable=True),
-        sa.Column('actor_user_email', sa.String(255), nullable=True),
-        sa.Column('target_resource_id', postgresql.UUID(as_uuid=True), nullable=True),
-        sa.Column('target_resource_type', sa.String(100), nullable=True),
-        sa.Column('client_account_id', postgresql.UUID(as_uuid=True), nullable=True),
-        sa.Column('engagement_id', postgresql.UUID(as_uuid=True), nullable=True),
+        sa.Column('severity', sa.String(20), server_default=sa.text("'INFO'"), nullable=False),
+        sa.Column('actor_user_id', sa.String(36), nullable=False),  # String 36, not UUID
+        sa.Column('actor_email', sa.String(255), nullable=True),    # actor_email, not actor_user_email
+        sa.Column('actor_role', sa.String(50), nullable=True),      # Missing column added
+        sa.Column('target_user_id', sa.String(36), nullable=True),  # String 36, not UUID
+        sa.Column('target_email', sa.String(255), nullable=True),   # Missing column added
         sa.Column('ip_address', sa.String(45), nullable=True),
         sa.Column('user_agent', sa.Text(), nullable=True),
-        sa.Column('details', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::jsonb"), nullable=True),
         sa.Column('request_path', sa.String(500), nullable=True),
         sa.Column('request_method', sa.String(10), nullable=True),
-        sa.Column('response_status', sa.Integer(), nullable=True),
-        sa.Column('session_id', sa.String(255), nullable=True),
-        sa.Column('correlation_id', sa.String(255), nullable=True),
+        sa.Column('description', sa.Text(), nullable=False),        # Missing column added
+        sa.Column('details', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.Column('is_suspicious', sa.Boolean(), server_default=sa.text('false'), nullable=False),
         sa.Column('requires_review', sa.Boolean(), server_default=sa.text('false'), nullable=False),
         sa.Column('is_blocked', sa.Boolean(), server_default=sa.text('false'), nullable=False),
-        sa.Column('risk_score', sa.Float(), nullable=True),
-        sa.Column('geolocation', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
         sa.Column('reviewed_at', sa.DateTime(timezone=True), nullable=True),
-        sa.Column('reviewed_by', postgresql.UUID(as_uuid=True), nullable=True),
-        sa.ForeignKeyConstraint(['client_account_id'], ['client_accounts.id'], ),
-        sa.ForeignKeyConstraint(['engagement_id'], ['engagements.id'], ),
+        sa.Column('reviewed_by', sa.String(36), nullable=True),     # String 36, not UUID
         sa.PrimaryKeyConstraint('id')
     )
     
     # Create indexes for security_audit_logs
     op.create_index('ix_security_audit_logs_event_type', 'security_audit_logs', ['event_type'])
     op.create_index('ix_security_audit_logs_actor_user_id', 'security_audit_logs', ['actor_user_id'])
+    op.create_index('ix_security_audit_logs_target_user_id', 'security_audit_logs', ['target_user_id'])
     op.create_index('ix_security_audit_logs_created_at', 'security_audit_logs', ['created_at'])
-    op.create_index('ix_security_audit_logs_client_account_id', 'security_audit_logs', ['client_account_id'])
     op.create_index('ix_security_audit_logs_is_suspicious', 'security_audit_logs', ['is_suspicious'])
     op.create_index('ix_security_audit_logs_requires_review', 'security_audit_logs', ['requires_review'])
-    op.create_index('ix_security_audit_logs_severity', 'security_audit_logs', ['severity'])
 
     # =============================================================================
     # ACCESS AUDIT SYSTEM 
     # =============================================================================
     
-    # Create access_audit_log table (enhanced version)
+    # Create access_audit_log table (matching AccessAuditLog model exactly)
     op.create_table('access_audit_log',
         sa.Column('id', postgresql.UUID(as_uuid=True), server_default=sa.text('gen_random_uuid()'), nullable=False),
-        sa.Column('user_id', postgresql.UUID(as_uuid=True), nullable=True),
-        sa.Column('user_email', sa.String(255), nullable=True),
-        sa.Column('action', sa.String(100), nullable=False),
-        sa.Column('resource', sa.String(200), nullable=False),
-        sa.Column('resource_id', postgresql.UUID(as_uuid=True), nullable=True),
+        sa.Column('user_id', postgresql.UUID(as_uuid=True), nullable=True),  # Allow null for anonymous/system users
+        sa.Column('action_type', sa.String(50), nullable=False),  # action_type, not action
+        sa.Column('resource_type', sa.String(50), nullable=True),  # resource_type, not resource
+        sa.Column('resource_id', sa.String(255), nullable=True),   # String, not UUID
         sa.Column('client_account_id', postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column('engagement_id', postgresql.UUID(as_uuid=True), nullable=True),
-        sa.Column('master_flow_id', postgresql.UUID(as_uuid=True), nullable=True),
+        sa.Column('session_id', postgresql.UUID(as_uuid=True), nullable=True),
+        sa.Column('result', sa.String(20), nullable=False),       # result field added
+        sa.Column('reason', sa.Text(), nullable=True),            # reason field added
         sa.Column('ip_address', sa.String(45), nullable=True),
         sa.Column('user_agent', sa.Text(), nullable=True),
         sa.Column('details', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::jsonb"), nullable=True),
-        sa.Column('success', sa.Boolean(), nullable=False),
-        sa.Column('error_message', sa.Text(), nullable=True),
-        sa.Column('permission_granted', sa.Boolean(), nullable=True),
-        sa.Column('role_at_time', sa.String(100), nullable=True),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
         sa.ForeignKeyConstraint(['client_account_id'], ['client_accounts.id'], ),
         sa.ForeignKeyConstraint(['engagement_id'], ['engagements.id'], ),
-        sa.ForeignKeyConstraint(['master_flow_id'], ['crewai_flow_state_extensions.flow_id'], ),
+        # Remove foreign key constraints to avoid dependency issues
         sa.PrimaryKeyConstraint('id')
     )
     
     # Create indexes for access_audit_log
     op.create_index('ix_access_audit_log_user_id', 'access_audit_log', ['user_id'])
-    op.create_index('ix_access_audit_log_action', 'access_audit_log', ['action'])
-    op.create_index('ix_access_audit_log_resource', 'access_audit_log', ['resource'])
+    op.create_index('ix_access_audit_log_action_type', 'access_audit_log', ['action_type'])
+    op.create_index('ix_access_audit_log_resource_type', 'access_audit_log', ['resource_type'])
     op.create_index('ix_access_audit_log_client_account_id', 'access_audit_log', ['client_account_id'])
     op.create_index('ix_access_audit_log_created_at', 'access_audit_log', ['created_at'])
-    op.create_index('ix_access_audit_log_success', 'access_audit_log', ['success'])
+    op.create_index('ix_access_audit_log_result', 'access_audit_log', ['result'])
 
     # =============================================================================
     # ENHANCED ACCESS AUDIT (RBAC-specific)

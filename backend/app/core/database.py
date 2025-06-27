@@ -203,6 +203,8 @@ async def get_db() -> AsyncSession:
 # Alias for backward compatibility - all operations use the same database now
 get_vector_db = get_db
 
+
+
 async def get_db_with_timeout(timeout_seconds: int = 5) -> AsyncSession:
     """
     ⚡ FAST DB: Get database session with custom timeout for performance-critical operations.

@@ -225,16 +225,22 @@ class User(Base):
     is_active = Column(Boolean, default=True, index=True)
     is_verified = Column(Boolean, default=False)
     
+    # Default Context (for faster context establishment)
+    default_client_id = Column(PostgresUUID(as_uuid=True), ForeignKey('client_accounts.id'), nullable=True)
+    default_engagement_id = Column(PostgresUUID(as_uuid=True), ForeignKey('engagements.id'), nullable=True)
+    
     # Mock data flag
     is_mock = Column(Boolean, default=False, nullable=False, index=True)
     
     # Audit
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     last_login = Column(DateTime(timezone=True))
     
     # Relationships
     user_associations = relationship("UserAccountAssociation", foreign_keys="[UserAccountAssociation.user_id]", back_populates="user", cascade="all, delete-orphan")
+    default_client = relationship("ClientAccount", foreign_keys=[default_client_id])
+    default_engagement = relationship("Engagement", foreign_keys=[default_engagement_id])
     client_accounts = association_proxy(
         "user_associations", "client_account",
         creator=lambda client_account: UserAccountAssociation(client_account=client_account)
@@ -261,7 +267,7 @@ class UserAccountAssociation(Base):
     
     # Audit
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     created_by = Column(PostgresUUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
     
     # Relationships

@@ -96,7 +96,7 @@ class UserProfile(Base):
     
     # Audit
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
     # Relationships
     user = relationship("User", foreign_keys=[user_id])
@@ -187,12 +187,12 @@ class UserRole(Base):
     # Role lifecycle
     is_active = Column(Boolean, default=True, index=True)
     assigned_at = Column(DateTime(timezone=True), server_default=func.now())
-    assigned_by = Column(PostgresUUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
+    assigned_by = Column(PostgresUUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
     expires_at = Column(DateTime(timezone=True))  # Optional expiration
     
     # Audit
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
     # Relationships
     user = relationship("User", foreign_keys=[user_id])
@@ -255,7 +255,7 @@ class ClientAccess(Base):
     
     # Audit
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
     # Relationships
     user_profile = relationship("UserProfile", back_populates="client_access")
@@ -323,7 +323,7 @@ class EngagementAccess(Base):
     
     # Audit
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
     # Relationships
     user_profile = relationship("UserProfile", back_populates="engagement_access")

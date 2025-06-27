@@ -13,6 +13,8 @@ from app.core.context import get_current_context
 from app.schemas.auth_schemas import UserRegistrationResponse
 from app.services.auth_services.admin_operations_service import AdminOperationsService
 from app.services.auth_services.rbac_core_service import RBACCoreService
+from app.api.v1.auth.auth_utils import get_current_user
+from app.models.client_account import User
 
 logger = logging.getLogger(__name__)
 
@@ -25,14 +27,13 @@ admin_router = APIRouter()
 
 @admin_router.get("/admin/dashboard-stats")
 async def get_admin_dashboard_stats(
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """Get admin dashboard statistics."""
     try:
-        context = get_current_context()
-        
-        # Use demo admin UUID as fallback
-        user_id_str = context.user_id or DEMO_ADMIN_USER_ID
+        # Use authenticated user from dependency injection
+        user_id_str = str(current_user.id)
         
         admin_service = AdminOperationsService(db)
         return await admin_service.get_admin_dashboard_stats(user_id_str)
@@ -48,14 +49,13 @@ async def get_admin_dashboard_stats(
 async def get_active_users(
     page: int = Query(1, ge=1),
     page_size: int = Query(100, ge=1, le=500),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """Get active users for admin management."""
     try:
-        context = get_current_context()
-        
-        # Use demo admin UUID as fallback
-        user_id_str = context.user_id or DEMO_ADMIN_USER_ID
+        # Use authenticated user from dependency injection
+        user_id_str = str(current_user.id)
         
         admin_service = AdminOperationsService(db)
         return await admin_service.get_active_users(user_id_str, page, page_size)
@@ -73,14 +73,13 @@ async def get_access_logs(
     page_size: int = Query(50, ge=1, le=100),
     user_id: Optional[str] = Query(None),
     action_type: Optional[str] = Query(None),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """Get access audit logs."""
     try:
-        context = get_current_context()
-        
-        # Use demo admin UUID as fallback
-        user_id_str = context.user_id or DEMO_ADMIN_USER_ID
+        # Use authenticated user from dependency injection
+        user_id_str = str(current_user.id)
         
         admin_service = AdminOperationsService(db)
         return await admin_service.get_access_logs(user_id_str, page, page_size, user_id, action_type)
@@ -96,17 +95,16 @@ async def get_access_logs(
 async def admin_create_user(
     user_data: Dict[str, Any],
     request: Request,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     Admin endpoint to create users directly.
     Bypasses normal registration flow with instant approval.
     """
     try:
-        context = get_current_context()
-        
-        # Use demo admin UUID as fallback
-        created_by = context.user_id or DEMO_ADMIN_USER_ID
+        # Use authenticated user from dependency injection
+        created_by = str(current_user.id)
         
         request_data = {
             "ip_address": request.client.host if request.client else None,
@@ -143,13 +141,13 @@ async def rbac_health_check(
 
 @admin_router.get("/admin/role-statistics")
 async def get_role_statistics(
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """Get role distribution statistics."""
     try:
-        context = get_current_context()
-        # Use demo admin UUID as fallback
-        user_id_str = context.user_id or DEMO_ADMIN_USER_ID
+        # Use authenticated user from dependency injection
+        user_id_str = str(current_user.id)
         
         # Check admin access first
         admin_service = AdminOperationsService(db)
@@ -170,13 +168,13 @@ async def get_role_statistics(
 
 @admin_router.post("/admin/ensure-roles")
 async def ensure_basic_roles(
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """Ensure basic system roles exist."""
     try:
-        context = get_current_context()
-        # Use demo admin UUID as fallback
-        user_id_str = context.user_id or DEMO_ADMIN_USER_ID
+        # Use authenticated user from dependency injection  
+        user_id_str = str(current_user.id)
         
         # Check admin access first
         admin_service = AdminOperationsService(db)
@@ -203,13 +201,13 @@ async def ensure_basic_roles(
 @admin_router.get("/user-type")
 async def get_user_type(
     request: Request,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """Get user type information for access control."""
     try:
-        context = get_current_context()
-        # Use demo admin UUID as fallback
-        user_id_str = context.user_id or DEMO_ADMIN_USER_ID
+        # Use authenticated user from dependency injection
+        user_id_str = str(current_user.id)
         
         # Check if user is demo admin
         is_demo_admin = user_id_str in [DEMO_ADMIN_USER_ID, "demo_user"]

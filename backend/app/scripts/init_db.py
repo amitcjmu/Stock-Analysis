@@ -67,8 +67,9 @@ MOCK_DATA = {
             "first_name": "Demo",
             "last_name": "User",
             "is_verified": True
-        },
-        # SECURITY: admin@democorp.com account removed - no demo accounts with admin privileges
+        }
+        # SECURITY: ALL ADMIN DEMO ACCOUNTS REMOVED - no demo accounts with admin privileges
+        # Platform admin (chocka@gmail.com) will be set up manually, not via scripts
     ],
     
     "engagements": [
@@ -324,9 +325,9 @@ async def create_mock_users(session: AsyncSession, client_account_id: uuid.UUID)
             # Hash password
             hashed_password = bcrypt.hashpw(user_data["password"].encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
             
-            # Create user
+            # Create user (only demo user, no admin accounts)
             user = User(
-                id=ADMIN_USER_ID if "admin" in user_data["email"] else DEMO_USER_ID,
+                id=DEMO_USER_ID,  # Only demo user, no admin constant needed
                 email=user_data["email"],
                 password_hash=hashed_password,
                 first_name=user_data["first_name"],
@@ -341,11 +342,11 @@ async def create_mock_users(session: AsyncSession, client_account_id: uuid.UUID)
             user_ids[user_data["email"]] = user_id
             logger.info(f"Created user: {user.email} with ID: {user_id}")
 
-            # Associate user with client account
+            # Associate user with client account (demo user only - no admin)
             user_account_association = UserAccountAssociation(
                 user_id=user.id,
                 client_account_id=client_account_id,
-                role="Admin" if "admin" in user_data["email"] else "User"
+                role="User"  # Demo user gets standard user role, not admin
             )
             session.add(user_account_association)
             logger.info(f"Associated {user.email} with client account {client_account_id}")
@@ -365,13 +366,13 @@ async def create_mock_users(session: AsyncSession, client_account_id: uuid.UUID)
         if existing_profile_result.scalars().first():
             logger.info(f"User profile for {email} already exists.")
         else:
-            is_admin = "admin" in email
+            # Only demo user profile creation (no admin profiles)
             user_profile = UserProfile(
                 user_id=user_id,
                 status=UserStatus.ACTIVE,
                 organization="Demo Corporation",
-                role_description="Platform Administrator" if is_admin else "Platform User",
-                requested_access_level=AccessLevel.ADMIN if is_admin else AccessLevel.READ_WRITE,
+                role_description="Demo User",  # Demo user only, no admin
+                requested_access_level=AccessLevel.READ_WRITE,  # Standard access, no admin
                 approved_at=datetime.utcnow(),
                 approved_by=user_ids.get("demo@democorp.com", DEMO_USER_ID), # Self-approved by demo user
             )
@@ -383,8 +384,8 @@ async def create_mock_users(session: AsyncSession, client_account_id: uuid.UUID)
         if existing_role_result.scalars().first():
             logger.info(f"User role for {email} already exists.")
         else:
-            is_admin = "admin" in email
-            role_type = RoleType.CLIENT_ADMIN if is_admin else RoleType.ANALYST
+            # Only demo user role creation (analyst level, no admin)
+            role_type = RoleType.ANALYST  # Demo user gets analyst role only
             user_role = UserRole(
                 user_id=user_id,
                 role_type=role_type.value,
@@ -408,11 +409,11 @@ async def create_mock_users(session: AsyncSession, client_account_id: uuid.UUID)
         if existing_access_result.scalars().first():
             logger.info(f"Client access for {email} already exists.")
         else:
-            is_admin = "admin" in email
+            # Only demo user client access (standard level, no admin)
             client_access = ClientAccess(
                 user_profile_id=user_id,
                 client_account_id=client_account_id,
-                access_level=AccessLevel.ADMIN if is_admin else AccessLevel.READ_WRITE,
+                access_level=AccessLevel.READ_WRITE,  # Standard access only, no admin
                 granted_by=user_ids.get("demo@democorp.com", DEMO_USER_ID)
             )
             session.add(client_access)
@@ -481,12 +482,12 @@ async def create_mock_engagement(session: AsyncSession, client_account_id: uuid.
             logger.info(f"Engagement access for {email} already exists.")
             continue
 
-        is_admin = "admin" in email
+        # Only demo user engagement access (analyst level, no admin)
         engagement_access = EngagementAccess(
             user_profile_id=user_id,
             engagement_id=engagement_id,
-            access_level=AccessLevel.ADMIN if is_admin else AccessLevel.READ_WRITE,
-            engagement_role="Engagement Lead" if is_admin else "Analyst",
+            access_level=AccessLevel.READ_WRITE,  # Standard access only, no admin
+            engagement_role="Analyst",  # Demo user gets analyst role only
             granted_by=user_ids["demo@democorp.com"]
         )
         session.add(engagement_access)

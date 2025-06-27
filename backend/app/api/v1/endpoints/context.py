@@ -887,247 +887,303 @@ async def get_user_context(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ) -> UserContext:
+    """
+    Get complete context for the current user.
+    
+    Platform admins: Get access to all clients/engagements, with preference for defaults
+    Regular users: Get access based on their client associations
+    """
     try:
-        # First, determine the user's role from UserRole table
-        from app.models.rbac import UserRole
+        from app.models.client_account import ClientAccount, Engagement
+        from app.models.rbac import UserRole, ClientAccess
         from sqlalchemy import select, and_
+        from datetime import datetime
         
-        user_role = "user"  # Default role
-        actual_role_type = None  # Track the actual role type
-        try:
-            roles_query = select(UserRole).where(
-                and_(UserRole.user_id == current_user.id, UserRole.is_active == True)
+        now = datetime.utcnow()
+        
+        # 🔍 Step 1: Determine user role and admin status
+        role_query = select(UserRole).where(
+            and_(
+                UserRole.user_id == str(current_user.id),
+                UserRole.is_active == True
             )
-            roles_result = await db.execute(roles_query)
-            user_roles = roles_result.scalars().all()
+        ).limit(1)
+        
+        role_result = await db.execute(role_query)
+        user_role_obj = role_result.scalar_one_or_none()
+        
+        is_platform_admin = (
+            user_role_obj and 
+            user_role_obj.role_type == 'platform_admin'
+        )
+        
+        user_role = "admin" if is_platform_admin else (
+            user_role_obj.role_type if user_role_obj else "analyst"
+        )
+        
+        print(f"🔍 Context for user {current_user.id}: admin={is_platform_admin}, role={user_role}")
+        
+        # 🔧 Step 2: Handle platform admin access (access to ALL clients/engagements)
+        if is_platform_admin:
+            print(f"🔑 Platform admin detected - providing access to all clients/engagements")
             
-            # Use the actual role type instead of simplified mapping
-            if user_roles:
-                # Get the highest privilege role
-                role_hierarchy = {
-                    "platform_admin": 5,
-                    "client_admin": 4,
-                    "engagement_manager": 3,
-                    "analyst": 2,
-                    "viewer": 1
-                }
+            target_client = None
+            target_engagement = None
+            
+            # Try to use user's default client if set
+            if current_user.default_client_id:
+                default_client_query = select(ClientAccount).where(
+                    and_(
+                        ClientAccount.id == current_user.default_client_id,
+                        ClientAccount.is_active == True
+                    )
+                )
+                default_client_result = await db.execute(default_client_query)
+                target_client = default_client_result.scalar_one_or_none()
+                print(f"🎯 Using user's default client: {target_client.name if target_client else 'Not found'}")
+            
+            # If no default client or default not found, use first available
+            if not target_client:
+                first_client_query = select(ClientAccount).where(
+                    ClientAccount.is_active == True
+                ).order_by(ClientAccount.name).limit(1)
                 
-                highest_role = max(user_roles, key=lambda r: role_hierarchy.get(r.role_type, 0))
-                actual_role_type = highest_role.role_type
-                user_role = actual_role_type  # Use actual role type for security transparency
-        except Exception as role_error:
-            print(f"Error determining user role: {role_error}")
-            # Continue with default role
-        
-        # Only fallback to demo context for actual demo user
-        if str(current_user.id) == "44444444-4444-4444-4444-444444444444":
-            # Demo user gets demo context
-            now = datetime.utcnow()
-            demo_client = ClientBase(
-                id=DEMO_CLIENT_ID,
-                name="Democorp",
-                description="Demonstration Client",
-                created_at=now,
-                updated_at=now
-            )
-            demo_engagement = EngagementBase(
-                id=DEMO_ENGAGEMENT_ID,
-                name="Cloud Migration 2024",
-                description="Demonstration Engagement",
-                client_id=DEMO_CLIENT_ID,
-                created_at=now,
-                updated_at=now
-            )
-            demo_session = SessionBase(
-                id=DEMO_SESSION_ID,
-                name="Demo Session",
-                description="Demonstration Session",
-                engagement_id=DEMO_ENGAGEMENT_ID,
-                is_default=True,
-                created_by=DEMO_USER_ID,
-                created_at=now,
-                updated_at=now
-            )
+                first_client_result = await db.execute(first_client_query)
+                target_client = first_client_result.scalar_one_or_none()
+                print(f"🎯 Using first available client: {target_client.name if target_client else 'None found'}")
             
+            if target_client:
+                # Try to use user's default engagement if set and belongs to target client
+                if current_user.default_engagement_id:
+                    default_engagement_query = select(Engagement).where(
+                        and_(
+                            Engagement.id == current_user.default_engagement_id,
+                            Engagement.client_account_id == target_client.id,
+                            Engagement.is_active == True
+                        )
+                    )
+                    default_engagement_result = await db.execute(default_engagement_query)
+                    target_engagement = default_engagement_result.scalar_one_or_none()
+                    print(f"🎯 Using user's default engagement: {target_engagement.name if target_engagement else 'Not found or wrong client'}")
+                
+                # If no default engagement or default not found, use first available for client
+                if not target_engagement:
+                    first_engagement_query = select(Engagement).where(
+                        and_(
+                            Engagement.client_account_id == target_client.id,
+                            Engagement.is_active == True
+                        )
+                    ).order_by(Engagement.name).limit(1)
+                    
+                    first_engagement_result = await db.execute(first_engagement_query)
+                    target_engagement = first_engagement_result.scalar_one_or_none()
+                    print(f"🎯 Using first available engagement: {target_engagement.name if target_engagement else 'None found'}")
+                
+                if target_engagement:
+                    # Create admin context with found client/engagement
+                    client_base = ClientBase(
+                        id=str(target_client.id),
+                        name=target_client.name,
+                        description=target_client.description or f"Client: {target_client.name}",
+                        created_at=target_client.created_at or now,
+                        updated_at=target_client.updated_at or now
+                    )
+                    
+                    engagement_base = EngagementBase(
+                        id=str(target_engagement.id),
+                        name=target_engagement.name,
+                        description=target_engagement.description or f"Engagement: {target_engagement.name}",
+                        client_id=str(target_client.id),
+                        created_at=target_engagement.created_at or now,
+                        updated_at=target_engagement.updated_at or now
+                    )
+                    
+                    # Create a default session for this engagement
+                    session_base = SessionBase(
+                        id=str(target_engagement.id),  # Use engagement ID as session ID for now
+                        name=f"Admin Session - {target_engagement.name}",
+                        description=f"Admin session for {target_engagement.name}",
+                        engagement_id=str(target_engagement.id),
+                        is_default=True,
+                        created_by=str(current_user.id),
+                        created_at=now,
+                        updated_at=now
+                    )
+                    
+                    print(f"✅ Platform admin context created: {target_client.name} / {target_engagement.name}")
+                    return UserContext(
+                        user={"id": str(current_user.id), "email": current_user.email, "role": user_role},
+                        client=client_base,
+                        engagement=engagement_base,
+                        session=session_base,
+                        available_sessions=[session_base]
+                    )
+            
+            # If no clients/engagements exist, create minimal admin-only context
+            print(f"⚠️ No clients/engagements found - creating minimal admin context")
             return UserContext(
                 user={"id": str(current_user.id), "email": current_user.email, "role": user_role},
-                client=demo_client,
-                engagement=demo_engagement,
-                session=demo_session,
-                available_sessions=[demo_session]
+                client=None,
+                engagement=None,
+                session=None,
+                available_sessions=[]
             )
+        
+        # 🔧 Step 3: Handle regular user access (based on client associations)
         else:
-            # Real users: Create context from their client access
-            try:
-                from app.models.client_account import ClientAccount, Engagement
-                from app.models.rbac import ClientAccess
-                from sqlalchemy import select, and_
+            print(f"👤 Regular user - checking client associations")
+            
+            # Get user's first accessible client
+            access_query = select(ClientAccess, ClientAccount).join(
+                ClientAccount, ClientAccess.client_account_id == ClientAccount.id
+            ).where(
+                and_(
+                    ClientAccess.user_profile_id == str(current_user.id),
+                    ClientAccess.is_active == True,
+                    ClientAccount.is_active == True
+                )
+            ).limit(1)
+            
+            access_result = await db.execute(access_query)
+            client_access_data = access_result.first()
+            
+            if client_access_data:
+                client_access_obj, client = client_access_data
+                print(f"👤 Found client access: {client.name}")
                 
-                # Get user's first accessible client
-                access_query = select(ClientAccess, ClientAccount).join(
-                    ClientAccount, ClientAccess.client_account_id == ClientAccount.id
-                ).where(
+                # Get first engagement for this client
+                engagement_query = select(Engagement).where(
                     and_(
-                        ClientAccess.user_profile_id == str(current_user.id),
-                        ClientAccess.is_active == True,
-                        ClientAccount.is_active == True
+                        Engagement.client_account_id == client.id,
+                        Engagement.is_active == True
                     )
                 ).limit(1)
                 
-                access_result = await db.execute(access_query)
-                client_access = access_result.first()
+                engagement_result = await db.execute(engagement_query)
+                engagement = engagement_result.scalar_one_or_none()
                 
-                if client_access:
-                    client_access_obj, client = client_access
+                if engagement:
+                    # Create context from real data
+                    client_base = ClientBase(
+                        id=str(client.id),
+                        name=client.name,
+                        description=client.description or f"Client: {client.name}",
+                        created_at=client.created_at or now,
+                        updated_at=client.updated_at or now
+                    )
                     
-                    # Get first engagement for this client
-                    engagement_query = select(Engagement).where(
-                        and_(
-                            Engagement.client_account_id == client.id,
-                            Engagement.is_active == True
-                        )
-                    ).limit(1)
+                    engagement_base = EngagementBase(
+                        id=str(engagement.id),
+                        name=engagement.name,
+                        description=engagement.description or f"Engagement: {engagement.name}",
+                        client_id=str(client.id),
+                        created_at=engagement.created_at or now,
+                        updated_at=engagement.updated_at or now
+                    )
                     
-                    engagement_result = await db.execute(engagement_query)
-                    engagement = engagement_result.scalar_one_or_none()
+                    # Create a default session for this engagement
+                    session_base = SessionBase(
+                        id=str(engagement.id),  # Use engagement ID as session ID for now
+                        name=f"Default Session - {engagement.name}",
+                        description=f"Default session for {engagement.name}",
+                        engagement_id=str(engagement.id),
+                        is_default=True,
+                        created_by=str(current_user.id),
+                        created_at=now,
+                        updated_at=now
+                    )
                     
-                    if engagement:
-                        now = datetime.utcnow()
-                        
-                        # Create context from real data
-                        client_base = ClientBase(
-                            id=str(client.id),
-                            name=client.name,
-                            description=client.description or f"Client: {client.name}",
-                            created_at=client.created_at or now,
-                            updated_at=client.updated_at or now
-                        )
-                        
-                        engagement_base = EngagementBase(
-                            id=str(engagement.id),
-                            name=engagement.name,
-                            description=engagement.description or f"Engagement: {engagement.name}",
-                            client_id=str(client.id),
-                            created_at=engagement.created_at or now,
-                            updated_at=engagement.updated_at or now
-                        )
-                        
-                        # Create a default session for this engagement
-                        session_base = SessionBase(
-                            id=str(engagement.id),  # Use engagement ID as session ID for now
-                            name=f"Default Session - {engagement.name}",
-                            description=f"Default session for {engagement.name}",
-                            engagement_id=str(engagement.id),
-                            is_default=True,
-                            created_by=str(current_user.id),
-                            created_at=now,
-                            updated_at=now
-                        )
-                        
-                        return UserContext(
-                            user={"id": str(current_user.id), "email": current_user.email, "role": user_role},
-                            client=client_base,
-                            engagement=engagement_base,
-                            session=session_base,
-                            available_sessions=[session_base]
-                        )
-                        
-            except Exception as fallback_error:
-                print(f"Error creating real user context: {fallback_error}")
+                    print(f"✅ Regular user context created: {client.name} / {engagement.name}")
+                    return UserContext(
+                        user={"id": str(current_user.id), "email": current_user.email, "role": user_role},
+                        client=client_base,
+                        engagement=engagement_base,
+                        session=session_base,
+                        available_sessions=[session_base]
+                    )
             
-            # 🔧 PLATFORM ADMIN FIX: If user is platform admin, create a minimal context
-            if user_role == "admin":
-                # Platform admins get a minimal context that allows them to access admin functions
-                now = datetime.utcnow()
+            # Regular users with no client access - check for demo user special case
+            if str(current_user.id) == "44444444-4444-4444-4444-444444444444":
+                print(f"🎭 Demo user detected - providing demo context")
+                # Demo user gets demo context
+                demo_client = ClientBase(
+                    id=DEMO_CLIENT_ID,
+                    name="Democorp",
+                    description="Demonstration Client",
+                    created_at=now,
+                    updated_at=now
+                )
+                demo_engagement = EngagementBase(
+                    id=DEMO_ENGAGEMENT_ID,
+                    name="Cloud Migration 2024",
+                    description="Demonstration Engagement",
+                    client_id=DEMO_CLIENT_ID,
+                    created_at=now,
+                    updated_at=now
+                )
+                demo_session = SessionBase(
+                    id=DEMO_SESSION_ID,
+                    name="Demo Session",
+                    description="Demonstration Session",
+                    engagement_id=DEMO_ENGAGEMENT_ID,
+                    is_default=True,
+                    created_by=DEMO_USER_ID,
+                    created_at=now,
+                    updated_at=now
+                )
                 
-                # Use first available client for admin context
-                try:
-                    from app.models.client_account import ClientAccount, Engagement
-                    
-                    # Get first client for admin context
-                    client_query = select(ClientAccount).where(
-                        ClientAccount.is_active == True
-                    ).limit(1)
-                    
-                    client_result = await db.execute(client_query)
-                    first_client = client_result.scalar_one_or_none()
-                    
-                    if first_client:
-                        # Get first engagement for this client
-                        engagement_query = select(Engagement).where(
-                            and_(
-                                Engagement.client_account_id == first_client.id,
-                                Engagement.is_active == True
-                            )
-                        ).limit(1)
-                        
-                        engagement_result = await db.execute(engagement_query)
-                        first_engagement = engagement_result.scalar_one_or_none()
-                        
-                        if first_engagement:
-                            # Create admin context from first available client/engagement
-                            client_base = ClientBase(
-                                id=str(first_client.id),
-                                name=first_client.name,
-                                description=first_client.description or f"Client: {first_client.name}",
-                                created_at=first_client.created_at or now,
-                                updated_at=first_client.updated_at or now
-                            )
-                            
-                            engagement_base = EngagementBase(
-                                id=str(first_engagement.id),
-                                name=first_engagement.name,
-                                description=first_engagement.description or f"Engagement: {first_engagement.name}",
-                                client_id=str(first_client.id),
-                                created_at=first_engagement.created_at or now,
-                                updated_at=first_engagement.updated_at or now
-                            )
-                            
-                            # Create a default session for this engagement
-                            session_base = SessionBase(
-                                id=str(first_engagement.id),  # Use engagement ID as session ID for now
-                                name=f"Admin Session - {first_engagement.name}",
-                                description=f"Admin session for {first_engagement.name}",
-                                engagement_id=str(first_engagement.id),
-                                is_default=True,
-                                created_by=str(current_user.id),
-                                created_at=now,
-                                updated_at=now
-                            )
-                            
-                            return UserContext(
-                                user={"id": str(current_user.id), "email": current_user.email, "role": user_role},
-                                client=client_base,
-                                engagement=engagement_base,
-                                session=session_base,
-                                available_sessions=[session_base]
-                            )
-                            
-                except Exception as admin_context_error:
-                    print(f"Error creating admin context: {admin_context_error}")
-                
-                # If no clients/engagements exist, create minimal admin-only context
                 return UserContext(
                     user={"id": str(current_user.id), "email": current_user.email, "role": user_role},
-                    client=None,
-                    engagement=None,
-                    session=None,
-                    available_sessions=[]
+                    client=demo_client,
+                    engagement=demo_engagement,
+                    session=demo_session,
+                    available_sessions=[demo_session]
                 )
             
             # If all else fails for regular users, raise an error
+            print(f"❌ No accessible clients or engagements found for regular user")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="No accessible clients or engagements found for user. Please contact administrator."
             )
+            
     except Exception as e:
         print(f"Context error: {e}")
-        # Fallback to demo client
-        return {
-            "id": str(DEMO_CLIENT_ID),
-            "name": "Democorp",
-            "is_demo": True
-        }
+        # Fallback to demo client - return proper UserContext
+        now = datetime.utcnow()
+        demo_client = ClientBase(
+            id=DEMO_CLIENT_ID,
+            name="Democorp",
+            description="Demonstration Client",
+            created_at=now,
+            updated_at=now
+        )
+        demo_engagement = EngagementBase(
+            id=DEMO_ENGAGEMENT_ID,
+            name="Cloud Migration 2024",
+            description="Demonstration Engagement",
+            client_id=DEMO_CLIENT_ID,
+            created_at=now,
+            updated_at=now
+        )
+        demo_session = SessionBase(
+            id=DEMO_SESSION_ID,
+            name="Demo Session",
+            description="Demonstration Session",
+            engagement_id=DEMO_ENGAGEMENT_ID,
+            is_default=True,
+            created_by=str(current_user.id),
+            created_at=now,
+            updated_at=now
+        )
+        
+        return UserContext(
+            user={"id": str(current_user.id), "email": current_user.email, "role": "analyst"},
+            client=demo_client,
+            engagement=demo_engagement,
+            session=demo_session,
+            available_sessions=[demo_session]
+        )
 
 @router.get("/context")
 async def get_context(

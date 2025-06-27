@@ -220,44 +220,83 @@ class ContextMiddleware(BaseHTTPMiddleware):
     def _is_admin_endpoint(self, path: str) -> bool:
         """Check if endpoint is admin-only and should allow context exemption for platform admins."""
         admin_paths = [
-            "/api/v1/admin/",                    # All admin CRUD operations
-            "/api/v1/auth/admin/",               # Admin dashboard and management
-            "/api/v1/auth/user-profile/",        # User profile management
-            "/api/v1/auth/pending-approvals",    # User approval management
-            "/api/v1/auth/approve-user",         # User approval actions
-            "/api/v1/auth/reject-user",          # User rejection actions
-            "/api/v1/auth/active-users",         # Active user management
-            "/api/v1/auth/admin/create-user",    # Admin user creation
-            "/api/v1/auth/admin/access-logs",    # Access log viewing
-            "/api/v1/auth/admin/dashboard-stats" # Admin dashboard statistics
+            "/api/v1/admin/",                    # All admin CRUD operations (admin_handlers)
+            "/api/v1/auth/admin/",               # Admin dashboard and management (auth router) - FIXED PREFIX
+            "/api/v1/auth/user-profile/",        # User profile management - FIXED PREFIX
+            "/api/v1/auth/pending-approvals",   # User approval management - FIXED PREFIX
+            "/api/v1/auth/approve-user",         # User approval actions - FIXED PREFIX
+            "/api/v1/auth/reject-user",          # User rejection actions - FIXED PREFIX
+            "/api/v1/active-users",              # Active user management (admin_handlers)
+            "/admin/",                           # All other admin routes (client/engagement management)
         ]
         return any(path.startswith(admin_path) for admin_path in admin_paths)
     
     def _extract_user_id(self, request: Request) -> str:
-        """Extract user ID from request headers."""
-        return (
+        """Extract user ID from request headers or token."""
+        # First check for explicit user ID headers
+        user_id = (
             request.headers.get("X-User-ID") or
             request.headers.get("x-user-id") or
             request.headers.get("X-User-Id")
         )
+        
+        if user_id:
+            return user_id
+            
+        # Extract from Authorization token if no explicit header
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ", 1)[1]
+            
+            # Handle db-token format: db-token-{user_id}-{suffix}
+            if token.startswith("db-token-"):
+                try:
+                    # Remove the "db-token-" prefix
+                    token_without_prefix = token[9:]  # len("db-token-") = 9
+                    
+                    # Find the last hyphen to separate the suffix
+                    last_hyphen = token_without_prefix.rfind("-")
+                    if last_hyphen > 0:
+                        # Extract UUID part (everything before the last hyphen)
+                        user_uuid = token_without_prefix[:last_hyphen]
+                        return user_uuid
+                except Exception:
+                    pass
+        
+        return None
     
     async def _check_platform_admin(self, user_id: str) -> bool:
         """Check if user is a platform administrator."""
         try:
+            import uuid
             from app.core.database import AsyncSessionLocal
             from app.models.rbac import UserRole
             from sqlalchemy import select, and_
             
+            # Convert string to UUID if needed
+            try:
+                user_uuid = uuid.UUID(user_id) if isinstance(user_id, str) else user_id
+            except ValueError:
+                logger.error(f"Invalid UUID format for user_id: {user_id}")
+                return False
+            
             async with AsyncSessionLocal() as db:
                 query = select(UserRole).where(
                     and_(
-                        UserRole.user_id == user_id,
+                        UserRole.user_id == user_uuid,
                         UserRole.role_type == 'platform_admin',
                         UserRole.is_active == True
                     )
                 )
                 result = await db.execute(query)
-                return result.scalar_one_or_none() is not None
+                role = result.scalar_one_or_none()
+                
+                if role:
+                    logger.info(f"Platform admin role confirmed for user {user_id}")
+                    return True
+                else:
+                    logger.warning(f"No platform admin role found for user {user_id}")
+                    return False
                 
         except Exception as e:
             logger.error(f"Error checking platform admin status for {user_id}: {e}")
