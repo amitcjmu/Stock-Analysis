@@ -274,6 +274,10 @@ try:
             # Context establishment endpoints - these are needed to establish context
             "/api/v1/context/clients",  # New dedicated context establishment endpoint
             "/api/v1/context/engagements",  # New dedicated context establishment endpoint
+            "/api/v1/context-establishment/clients",  # Correct context establishment endpoint
+            "/api/v1/context-establishment/engagements",  # Correct context establishment endpoint
+            "/api/v1/context-establishment/clients",  # Correct context establishment endpoint
+            "/api/v1/context-establishment/engagements",  # Correct context establishment endpoint
             # Data import endpoints that need to work before context is established
             "/api/v1/data-import/latest-import",  # Allow checking for existing data
             "/api/v1/data-import/status",  # Allow checking import status

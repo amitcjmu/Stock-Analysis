@@ -62,6 +62,7 @@ export const UserAccessManagement: React.FC = () => {
   // Form state for granting access
   const [selectedUser, setSelectedUser] = useState('');
   const [selectedResourceType, setSelectedResourceType] = useState<'client' | 'engagement'>('client');
+  const [selectedClient, setSelectedClient] = useState('');
   const [selectedResource, setSelectedResource] = useState('');
   const [selectedAccessLevel, setSelectedAccessLevel] = useState<'read_only' | 'read_write' | 'admin'>('read_only');
 
@@ -297,7 +298,20 @@ export const UserAccessManagement: React.FC = () => {
     user.organization.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const availableResources = selectedResourceType === 'client' ? clients : engagements;
+  // Filter resources based on type and selected client
+  const getAvailableResources = () => {
+    if (selectedResourceType === 'client') {
+      return clients;
+    } else {
+      // For engagements, filter by selected client if one is chosen
+      if (selectedClient) {
+        return engagements.filter(engagement => engagement.client_account_id === selectedClient);
+      }
+      return engagements;
+    }
+  };
+
+  const availableResources = getAvailableResources();
 
   return (
     <div className="space-y-6">
@@ -337,6 +351,7 @@ export const UserAccessManagement: React.FC = () => {
               <Label htmlFor="resource-type-select">Resource Type</Label>
               <Select value={selectedResourceType} onValueChange={(value: 'client' | 'engagement') => {
                 setSelectedResourceType(value);
+                setSelectedClient(''); // Reset client selection
                 setSelectedResource(''); // Reset resource selection
               }}>
                 <SelectTrigger>
@@ -359,13 +374,42 @@ export const UserAccessManagement: React.FC = () => {
               </Select>
             </div>
 
+            {selectedResourceType === 'engagement' && (
+              <div className="space-y-2">
+                <Label htmlFor="client-select">Select Client First</Label>
+                <Select value={selectedClient} onValueChange={(value) => {
+                  setSelectedClient(value);
+                  setSelectedResource(''); // Reset engagement selection when client changes
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose client..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients.map(client => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client.account_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="resource-select">
                 {selectedResourceType === 'client' ? 'Select Client' : 'Select Engagement'}
               </Label>
-              <Select value={selectedResource} onValueChange={setSelectedResource}>
+              <Select 
+                value={selectedResource} 
+                onValueChange={setSelectedResource}
+                disabled={selectedResourceType === 'engagement' && !selectedClient}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder={`Choose ${selectedResourceType}...`} />
+                  <SelectValue placeholder={
+                    selectedResourceType === 'engagement' && !selectedClient 
+                      ? 'Select client first...' 
+                      : `Choose ${selectedResourceType}...`
+                  } />
                 </SelectTrigger>
                 <SelectContent>
                   {availableResources.map(resource => (

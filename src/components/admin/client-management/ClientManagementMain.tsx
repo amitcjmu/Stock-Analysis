@@ -541,10 +541,18 @@ const ClientManagementMain: React.FC = () => {
     try {
       setActionLoading('create');
       
+      // Clean up form data - convert empty strings to null for optional fields
+      const cleanedFormData = {
+        ...formData,
+        primary_contact_phone: formData.primary_contact_phone?.trim() || null,
+        billing_contact_email: formData.billing_contact_email?.trim() || null,
+        description: formData.description?.trim() || null,
+      };
+      
       // Make API call to create client
       const response = await apiCall('/admin/clients/', {
         method: 'POST',
-        body: JSON.stringify(formData)
+        body: JSON.stringify(cleanedFormData)
       });
 
       if (response.status === 'success') {
@@ -571,9 +579,28 @@ const ClientManagementMain: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Error creating client:', error);
+      
+      // Enhanced error handling for validation errors
+      let errorMessage = error.message || "Failed to create client. Please try again.";
+      if (error.response && error.response.detail) {
+        if (Array.isArray(error.response.detail)) {
+          // Format validation errors nicely
+          const validationErrors = error.response.detail.map((d: any) => {
+            if (d.loc && d.msg) {
+              const field = d.loc[d.loc.length - 1]; // Get the field name
+              return `${field}: ${d.msg}`;
+            }
+            return d.msg || d.message || JSON.stringify(d);
+          });
+          errorMessage = validationErrors.join(', ');
+        } else {
+          errorMessage = error.response.detail;
+        }
+      }
+      
       toast({
         title: "Error",
-        description: error.message || "Failed to create client. Please try again.",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -591,10 +618,18 @@ const ClientManagementMain: React.FC = () => {
       console.log('🔍 Updating client with data:', formData);
       console.log('🔍 Client ID:', editingClient.id);
       
+      // Clean up form data - convert empty strings to null for optional fields
+      const cleanedFormData = {
+        ...formData,
+        primary_contact_phone: formData.primary_contact_phone?.trim() || null,
+        billing_contact_email: formData.billing_contact_email?.trim() || null,
+        description: formData.description?.trim() || null,
+      };
+      
       // Make API call to update client
       const response = await apiCall(`/admin/clients/${editingClient.id}`, {
         method: 'PUT',
-        body: JSON.stringify(formData)
+        body: JSON.stringify(cleanedFormData)
       });
 
       if (response.status === 'success') {

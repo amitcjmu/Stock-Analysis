@@ -12,4 +12,7 @@ export { ApprovalActions } from './ApprovalActions';
 export { UserDetailsModal } from './UserDetailsModal';
 export { UserList } from './UserList';
 export { UserFilters } from './UserFilters';
-export { UserApprovalsMain } from './UserApprovalsMain'; 
+export { UserApprovalsMain } from './UserApprovalsMain';
+export { UserAccessManagement } from './UserAccessManagement';
+export { UserSearchAndEdit } from './UserSearchAndEdit';
+export { UserManagementTabs } from './UserManagementTabs';

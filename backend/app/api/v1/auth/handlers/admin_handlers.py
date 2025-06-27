@@ -13,6 +13,8 @@ from app.core.context import get_current_context
 from app.schemas.auth_schemas import UserRegistrationResponse
 from app.services.auth_services.admin_operations_service import AdminOperationsService
 from app.services.auth_services.rbac_core_service import RBACCoreService
+from app.services.auth_services.user_management_service import UserManagementService
+from app.services.auth_services.user_management_service import UserManagementService
 from app.api.v1.auth.auth_utils import get_current_user
 from app.models.client_account import User
 
@@ -64,6 +66,44 @@ async def get_active_users(
     except Exception as e:
         logger.error(f"Error in get_active_users: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get active users: {str(e)}")
+
+
+@admin_router.put("/admin/users/{user_id}")
+async def admin_update_user(
+    user_id: str,
+    user_updates: Dict[str, Any],
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Admin endpoint to update user details including default client and engagement assignments.
+    Requires admin privileges.
+    """
+    try:
+        # Use authenticated user from dependency injection
+        updated_by = str(current_user.id)
+        
+        # Check admin access first
+        admin_service = AdminOperationsService(db)
+        stats_check = await admin_service.get_admin_dashboard_stats(updated_by)
+        
+        if stats_check.get("status") != "success":
+            raise HTTPException(status_code=403, detail="Access denied: Admin privileges required")
+        
+        # Use user management service to update the user
+        user_service = UserManagementService(db)
+        result = await user_service.update_user_profile(user_id, user_updates)
+        
+        logger.info(f"User {user_id} updated by admin {updated_by}")
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in admin_update_user: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to update user: {str(e)}")
 
 
 @admin_router.get("/admin/access-logs")

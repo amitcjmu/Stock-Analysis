@@ -13,7 +13,7 @@ import { UserFilters } from './UserFilters';
 import { UserList } from './UserList';
 import { UserDetailsModal } from './UserDetailsModal';
 import { ApprovalActions } from './ApprovalActions';
-import { UserAccessManagement } from './UserAccessManagement';
+import { UserManagementTabs } from './UserManagementTabs';
 import { PendingUser, ActiveUser, ApprovalData, RejectionData } from './types';
 
 export const UserApprovalsMain: React.FC = () => {
@@ -445,7 +445,7 @@ export const UserApprovalsMain: React.FC = () => {
       )}
 
       {activeTab === 'access' ? (
-        <UserAccessManagement />
+        <UserManagementTabs />
       ) : (
         <UserList
           activeTab={activeTab}
