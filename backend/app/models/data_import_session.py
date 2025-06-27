@@ -140,7 +140,7 @@ class DataImportSession(Base):
         foreign_keys=[engagement_id]
     )
     created_by_user = relationship("User")
-    data_imports = relationship("DataImport", back_populates="session", cascade="all, delete-orphan")
+    # Note: data_imports relationship removed as session_id was replaced with master_flow_id during database consolidation
     
     def __repr__(self):
         return f"<DataImportSession(id={self.id}, name='{self.session_name}', status='{self.status}', is_mock={self.is_mock})>"

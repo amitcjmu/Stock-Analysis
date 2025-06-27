@@ -35,7 +35,7 @@ export const useAgentQuestions = (page: string = "dependencies") => {
     queryKey: ['agent-questions', page],
     queryFn: async () => {
       try {
-        const response = await apiCall(`/api/v1/discovery/agents/agent-questions?page=${page}`);
+        const response = await apiCall(`/api/v1/agents/discovery/agent-questions?page=${page}`);
         return response;
       } catch (err: any) {
         // Handle 404 errors gracefully - these endpoints may not exist yet
@@ -57,7 +57,7 @@ export const useAnswerAgentQuestion = () => {
   
   return useMutation({
     mutationFn: async (data: AgentQuestionResponse) => {
-      return await apiCall('/api/v1/discovery/agents/agent-questions/answer', {
+      return await apiCall('/api/v1/agents/discovery/agent-questions/answer', {
         method: 'POST',
         body: JSON.stringify(data),
       });
@@ -78,7 +78,7 @@ export const useAgentInsights = (page: string = "dependencies") => {
     queryKey: ['agent-insights', page],
     queryFn: async () => {
       try {
-        const response = await apiCall(`/api/v1/discovery/agents/agent-insights?page=${page}`);
+        const response = await apiCall(`/api/v1/agents/discovery/agent-insights?page=${page}`);
         return response;
       } catch (err: any) {
         // Handle 404 errors gracefully - these endpoints may not exist yet
@@ -123,7 +123,7 @@ export const useConfidenceScores = (page: string = "dependencies") => {
   return useQuery({
     queryKey: ['confidence-scores', page],
     queryFn: async () => {
-      const response = await apiCall(`/api/v1/discovery/agents/confidence-scores?page=${page}`);
+      const response = await apiCall(`/api/v1/agents/discovery/confidence-scores?page=${page}`);
       return response;
     },
     staleTime: 45 * 1000, // 45 seconds
@@ -138,7 +138,7 @@ export const useAgentThink = () => {
   
   return useMutation({
     mutationFn: async (data: { agent_id: string; context: Record<string, any>; complexity_level?: string }) => {
-      return await apiCall('/api/v1/discovery/agents/think', {
+      return await apiCall('/api/v1/agents/discovery/think', {
         method: 'POST',
         body: JSON.stringify(data),
       });
@@ -158,7 +158,7 @@ export const useAgentPonderMore = () => {
   
   return useMutation({
     mutationFn: async (data: { agent_id: string; context: Record<string, any>; collaboration_type?: string }) => {
-      return await apiCall('/api/v1/discovery/agents/ponder-more', {
+      return await apiCall('/api/v1/agents/discovery/ponder-more', {
         method: 'POST',
         body: JSON.stringify(data),
       });

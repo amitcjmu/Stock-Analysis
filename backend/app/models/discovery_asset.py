@@ -59,7 +59,8 @@ class DiscoveryAsset(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
     
     # Relationships
-    discovery_flow = relationship("DiscoveryFlow", back_populates="assets")
+    # Note: discovery_assets table was consolidated into main assets table
+    # This model exists for backward compatibility only
 
     def __repr__(self):
         return f"<DiscoveryAsset(name='{self.asset_name}', type='{self.asset_type}', status='{self.asset_status}')>"

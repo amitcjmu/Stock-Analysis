@@ -2234,5 +2234,32 @@
     "answered_at": null,
     "user_response": null,
     "is_resolved": false
+  },
+  "fbc24442-bc4b-4a59-9b06-6c8c2aab0814": {
+    "id": "fbc24442-bc4b-4a59-9b06-6c8c2aab0814",
+    "agent_id": "dependency_analysis_agent",
+    "agent_name": "Dependency Analysis Agent",
+    "question_type": "dependency_validation",
+    "page": "dependencies",
+    "title": "Verify Application Dependency",
+    "question": "Should 'WebApp-01' depend on 'Database-01' based on the network traffic patterns?",
+    "context": {
+      "source_app": "WebApp-01",
+      "target_app": "Database-01",
+      "confidence": 0.75,
+      "evidence": "Network traffic analysis shows regular connections"
+    },
+    "options": [
+      "Yes, confirm this dependency",
+      "No, this is incorrect",
+      "Need more analysis",
+      "Mark as optional dependency"
+    ],
+    "confidence": "medium",
+    "priority": "normal",
+    "created_at": "2025-06-27T07:26:45.231640",
+    "answered_at": null,
+    "user_response": null,
+    "is_resolved": false
   }
 }

@@ -14,10 +14,12 @@
     },
     "page": "attribute-mapping",
     "actionable": false,
+    "client_account_id": null,
+    "engagement_id": null,
+    "session_id": null,
     "created_at": "2025-06-02T04:41:11.538783",
     "user_feedback": null,
-    "is_validated": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_validated": false
   },
   "ac5ecd74-c162-4e56-b0fd-94c1a642e943": {
     "id": "ac5ecd74-c162-4e56-b0fd-94c1a642e943",
@@ -39,10 +41,12 @@
     },
     "page": "attribute-mapping",
     "actionable": false,
+    "client_account_id": null,
+    "engagement_id": null,
+    "session_id": null,
     "created_at": "2025-06-02T04:41:11.539792",
     "user_feedback": null,
-    "is_validated": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_validated": false
   },
   "1cc01184-d2b3-427e-ac90-94a4b8a57f9a": {
     "id": "1cc01184-d2b3-427e-ac90-94a4b8a57f9a",
@@ -58,10 +62,12 @@
     },
     "page": "attribute-mapping",
     "actionable": false,
+    "client_account_id": null,
+    "engagement_id": null,
+    "session_id": null,
     "created_at": "2025-06-02T04:41:11.540425",
     "user_feedback": null,
-    "is_validated": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_validated": false
   },
   "684c5de1-536c-4c91-bb96-0382d134c367": {
     "id": "684c5de1-536c-4c91-bb96-0382d134c367",
@@ -80,10 +86,12 @@
     },
     "page": "attribute-mapping",
     "actionable": false,
+    "client_account_id": null,
+    "engagement_id": null,
+    "session_id": null,
     "created_at": "2025-06-02T04:41:11.541203",
     "user_feedback": null,
-    "is_validated": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_validated": false
   },
   "9cbca4d2-34e3-4eed-b1a1-4bb50b894e2a": {
     "id": "9cbca4d2-34e3-4eed-b1a1-4bb50b894e2a",
@@ -103,10 +111,12 @@
     },
     "page": "attribute-mapping",
     "actionable": false,
+    "client_account_id": null,
+    "engagement_id": null,
+    "session_id": null,
     "created_at": "2025-06-02T04:41:11.541946",
     "user_feedback": null,
-    "is_validated": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_validated": false
   },
   "d86b4c31-14ec-4169-97dd-6ac58822f848": {
     "id": "d86b4c31-14ec-4169-97dd-6ac58822f848",
@@ -123,10 +133,12 @@
     },
     "page": "attribute-mapping",
     "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "session_id": null,
     "created_at": "2025-06-02T04:41:11.542947",
     "user_feedback": null,
-    "is_validated": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_validated": false
   },
   "1378e594-4ab2-429e-8ee6-6122d0c0633c": {
     "id": "1378e594-4ab2-429e-8ee6-6122d0c0633c",
@@ -141,10 +153,12 @@
     },
     "page": "data-cleansing",
     "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "session_id": null,
     "created_at": "2025-06-02T04:47:11.462369",
     "user_feedback": null,
-    "is_validated": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_validated": false
   },
   "afbae130-68d3-481c-a3a4-11271d0e2e33": {
     "id": "afbae130-68d3-481c-a3a4-11271d0e2e33",
@@ -161,10 +175,12 @@
     },
     "page": "data-cleansing",
     "actionable": false,
+    "client_account_id": null,
+    "engagement_id": null,
+    "session_id": null,
     "created_at": "2025-06-02T04:59:10.372211",
     "user_feedback": null,
-    "is_validated": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_validated": false
   },
   "47499704-994e-4be6-a44a-d264b6bde626": {
     "id": "47499704-994e-4be6-a44a-d264b6bde626",
@@ -185,10 +201,12 @@
     },
     "page": "data-cleansing",
     "actionable": false,
+    "client_account_id": null,
+    "engagement_id": null,
+    "session_id": null,
     "created_at": "2025-06-02T04:59:10.377365",
     "user_feedback": null,
-    "is_validated": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_validated": false
   },
   "60a4576a-7aa2-4d0c-b72e-cc48beebda8b": {
     "id": "60a4576a-7aa2-4d0c-b72e-cc48beebda8b",
@@ -204,10 +222,12 @@
     },
     "page": "data-cleansing",
     "actionable": false,
+    "client_account_id": null,
+    "engagement_id": null,
+    "session_id": null,
     "created_at": "2025-06-02T04:59:10.379332",
     "user_feedback": null,
-    "is_validated": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_validated": false
   },
   "e56b4dab-12a5-4c30-8459-41527de2799c": {
     "id": "e56b4dab-12a5-4c30-8459-41527de2799c",
@@ -226,10 +246,12 @@
     },
     "page": "data-cleansing",
     "actionable": false,
+    "client_account_id": null,
+    "engagement_id": null,
+    "session_id": null,
     "created_at": "2025-06-02T04:59:10.380612",
     "user_feedback": null,
-    "is_validated": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_validated": false
   },
   "51b04b4a-974e-4f13-8360-91a2784a1fbf": {
     "id": "51b04b4a-974e-4f13-8360-91a2784a1fbf",
@@ -248,10 +270,12 @@
     },
     "page": "data-cleansing",
     "actionable": false,
+    "client_account_id": null,
+    "engagement_id": null,
+    "session_id": null,
     "created_at": "2025-06-02T05:00:10.521752",
     "user_feedback": null,
-    "is_validated": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_validated": false
   },
   "886b0c63-85f4-4fa1-b438-9d8457b9952b": {
     "id": "886b0c63-85f4-4fa1-b438-9d8457b9952b",
@@ -268,10 +292,12 @@
     },
     "page": "asset-inventory",
     "actionable": false,
+    "client_account_id": null,
+    "engagement_id": null,
+    "session_id": null,
     "created_at": "2025-06-02T05:10:27.774845",
     "user_feedback": null,
-    "is_validated": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_validated": false
   },
   "de6b0570-7b13-48d3-8ba2-a5d178cabd78": {
     "id": "de6b0570-7b13-48d3-8ba2-a5d178cabd78",
@@ -295,10 +321,12 @@
     },
     "page": "asset-inventory",
     "actionable": false,
+    "client_account_id": null,
+    "engagement_id": null,
+    "session_id": null,
     "created_at": "2025-06-02T05:10:27.778515",
     "user_feedback": null,
-    "is_validated": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_validated": false
   },
   "01d4486c-cdeb-4bb1-917a-16563f4f2048": {
     "id": "01d4486c-cdeb-4bb1-917a-16563f4f2048",
@@ -314,10 +342,12 @@
     },
     "page": "asset-inventory",
     "actionable": false,
+    "client_account_id": null,
+    "engagement_id": null,
+    "session_id": null,
     "created_at": "2025-06-02T05:10:27.780653",
     "user_feedback": null,
-    "is_validated": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_validated": false
   },
   "671b3300-22d9-41b2-8849-1e4864f42eea": {
     "id": "671b3300-22d9-41b2-8849-1e4864f42eea",
@@ -334,10 +364,12 @@
     },
     "page": "tech-debt",
     "actionable": false,
+    "client_account_id": null,
+    "engagement_id": null,
+    "session_id": null,
     "created_at": "2025-06-02T05:36:55.894674",
     "user_feedback": null,
-    "is_validated": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_validated": false
   },
   "1499ca12-0b25-485c-bbe0-a42f8d868b2b": {
     "id": "1499ca12-0b25-485c-bbe0-a42f8d868b2b",
@@ -353,10 +385,12 @@
     },
     "page": "tech-debt",
     "actionable": false,
+    "client_account_id": null,
+    "engagement_id": null,
+    "session_id": null,
     "created_at": "2025-06-02T05:36:55.897894",
     "user_feedback": null,
-    "is_validated": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_validated": false
   },
   "41e5d8bd-ccdb-4932-bfab-e0f043695f49": {
     "id": "41e5d8bd-ccdb-4932-bfab-e0f043695f49",
@@ -377,10 +411,12 @@
     },
     "page": "asset-inventory",
     "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "session_id": null,
     "created_at": "2025-06-02T05:41:48.432628",
     "user_feedback": null,
-    "is_validated": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_validated": false
   },
   "7433a5be-70bc-464f-9035-586c64ac3c6f": {
     "id": "7433a5be-70bc-464f-9035-586c64ac3c6f",
@@ -397,10 +433,12 @@
     },
     "page": "asset-inventory",
     "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "session_id": null,
     "created_at": "2025-06-02T05:41:48.433909",
     "user_feedback": null,
-    "is_validated": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_validated": false
   },
   "a05ae594-8a37-4ad6-8c42-413fa3b020c0": {
     "id": "a05ae594-8a37-4ad6-8c42-413fa3b020c0",
@@ -417,10 +455,12 @@
     ],
     "page": "asset-inventory",
     "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "session_id": null,
     "created_at": "2025-06-02T05:41:48.435260",
     "user_feedback": null,
-    "is_validated": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_validated": false
   },
   "f1323a18-9e5c-4b66-ad77-cf34479e8b2d": {
     "id": "f1323a18-9e5c-4b66-ad77-cf34479e8b2d",
@@ -437,10 +477,12 @@
     },
     "page": "data-import",
     "actionable": false,
+    "client_account_id": null,
+    "engagement_id": null,
+    "session_id": null,
     "created_at": "2025-06-02T14:11:31.907247",
     "user_feedback": null,
-    "is_validated": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_validated": false
   },
   "2d9de57b-83ab-4838-84cd-e69e72c6eb41": {
     "id": "2d9de57b-83ab-4838-84cd-e69e72c6eb41",
@@ -462,10 +504,12 @@
     },
     "page": "data-import",
     "actionable": false,
+    "client_account_id": null,
+    "engagement_id": null,
+    "session_id": null,
     "created_at": "2025-06-02T14:11:31.912912",
     "user_feedback": null,
-    "is_validated": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_validated": false
   },
   "5001e0ee-1a30-483f-8c1a-ee420a8f680d": {
     "id": "5001e0ee-1a30-483f-8c1a-ee420a8f680d",
@@ -481,10 +525,12 @@
     },
     "page": "data-import",
     "actionable": false,
+    "client_account_id": null,
+    "engagement_id": null,
+    "session_id": null,
     "created_at": "2025-06-02T14:11:31.919999",
     "user_feedback": null,
-    "is_validated": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_validated": false
   },
   "15754f86-088c-40be-b658-f7556a66d604": {
     "id": "15754f86-088c-40be-b658-f7556a66d604",
@@ -503,10 +549,12 @@
     },
     "page": "data-import",
     "actionable": false,
+    "client_account_id": null,
+    "engagement_id": null,
+    "session_id": null,
     "created_at": "2025-06-02T14:11:31.930124",
     "user_feedback": null,
-    "is_validated": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_validated": false
   },
   "6abd5a4e-0575-4eae-bda1-0f019e9f0e72": {
     "id": "6abd5a4e-0575-4eae-bda1-0f019e9f0e72",
@@ -523,10 +571,12 @@
     },
     "page": "data-import",
     "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "session_id": null,
     "created_at": "2025-06-02T20:19:23.479527",
     "user_feedback": null,
-    "is_validated": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_validated": false
   },
   "b80a4518-f0f0-41ef-92da-003e700dff5d": {
     "id": "b80a4518-f0f0-41ef-92da-003e700dff5d",
@@ -545,10 +595,12 @@
     },
     "page": "asset-inventory",
     "actionable": false,
+    "client_account_id": null,
+    "engagement_id": null,
+    "session_id": null,
     "created_at": "2025-06-03T13:07:57.164164",
     "user_feedback": null,
-    "is_validated": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_validated": false
   },
   "0e6c31ed-fd14-432e-96d5-6edfa7fa5f27": {
     "id": "0e6c31ed-fd14-432e-96d5-6edfa7fa5f27",
@@ -569,10 +621,12 @@
     },
     "page": "asset-inventory",
     "actionable": false,
+    "client_account_id": null,
+    "engagement_id": null,
+    "session_id": null,
     "created_at": "2025-06-03T13:07:57.170634",
     "user_feedback": null,
-    "is_validated": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_validated": false
   },
   "274d63d2-c339-4b83-ada0-99a26c44b0a5": {
     "id": "274d63d2-c339-4b83-ada0-99a26c44b0a5",
@@ -589,9 +643,34 @@
     },
     "page": "data-cleansing",
     "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "session_id": null,
     "created_at": "2025-06-06T03:43:20.815752",
     "user_feedback": null,
-    "is_validated": false,
-    "client_account_id": "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990"
+    "is_validated": false
+  },
+  "5b419a6a-963f-4580-a32d-6c83557b70ac": {
+    "id": "5b419a6a-963f-4580-a32d-6c83557b70ac",
+    "agent_id": "dependency_analysis_agent",
+    "agent_name": "Dependency Analysis Agent",
+    "insight_type": "dependency_analysis",
+    "title": "Dependency Analysis Complete",
+    "description": "Analyzed application dependencies and identified 3 critical paths that require attention during migration planning.",
+    "confidence": "high",
+    "supporting_data": {
+      "total_dependencies": 12,
+      "critical_paths": 3,
+      "confidence_score": 0.87,
+      "analysis_method": "network_traffic_analysis"
+    },
+    "page": "dependencies",
+    "actionable": true,
+    "client_account_id": "11111111-1111-1111-1111-111111111111",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",
+    "session_id": "33333333-3333-3333-3333-333333333333",
+    "created_at": "2025-06-27T07:30:37.980426",
+    "user_feedback": null,
+    "is_validated": false
   }
 }

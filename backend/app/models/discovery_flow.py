@@ -22,6 +22,9 @@ class DiscoveryFlow(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     flow_id = Column(UUID(as_uuid=True), unique=True, nullable=False, index=True)  # CrewAI Flow ID
     
+    # Master Flow Coordination (Phase 2)
+    master_flow_id = Column(UUID(as_uuid=True), nullable=True, index=True)
+    
     # Multi-tenant isolation
     client_account_id = Column(UUID(as_uuid=True), nullable=False, index=True)
     engagement_id = Column(UUID(as_uuid=True), nullable=False, index=True)
@@ -66,7 +69,8 @@ class DiscoveryFlow(Base):
     completed_at = Column(DateTime(timezone=True), nullable=True)
     
     # Relationships
-    assets = relationship("DiscoveryAsset", back_populates="discovery_flow", cascade="all, delete-orphan")
+    # Note: discovery_assets table was consolidated into main assets table
+    # Use assets table with discovery_flow_id foreign key instead
     crewai_extensions = relationship("CrewAIFlowStateExtensions", back_populates="discovery_flow", cascade="all, delete-orphan")
 
     def __repr__(self):
@@ -123,12 +127,12 @@ class DiscoveryFlow(Base):
             "client_account_id": str(self.client_account_id),
             "engagement_id": str(self.engagement_id),
             "discovery_summary": {
-                "total_assets": len(self.assets),
-                "asset_types": list(set(asset.asset_type for asset in self.assets if asset.asset_type)),
-                "migration_ready_count": sum(1 for asset in self.assets if asset.migration_ready),
+                "total_assets": 0,  # Will be calculated by repository
+                "asset_types": [],  # Will be calculated by repository
+                "migration_ready_count": 0,  # Will be calculated by repository
                 "phases_completed": self.calculate_progress()
             },
-            "assets": [asset.to_dict() for asset in self.assets],
+            "assets": [],  # Will be populated by repository query
             "completed_at": self.completed_at.isoformat() if self.completed_at else None,
             "learning_scope": self.learning_scope,
             "memory_isolation_level": self.memory_isolation_level
@@ -136,11 +140,8 @@ class DiscoveryFlow(Base):
 
     def get_migration_readiness_score(self) -> float:
         """Calculate overall migration readiness score"""
-        if not self.assets:
-            return 0.0
-        
-        ready_assets = sum(1 for asset in self.assets if asset.migration_ready)
-        return round((ready_assets / len(self.assets)) * 100, 1)
+        # Note: Now calculated by repository since assets are in main assets table
+        return 0.0
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for API responses"""

@@ -183,6 +183,150 @@ class AssetRepository(ContextAwareRepository[Asset]):
         
         return readiness
 
+    # Master Flow Support Methods - Task 5.1.1
+    
+    async def get_by_master_flow(self, master_flow_id: str) -> List[Asset]:
+        """Get assets by master flow ID with context filtering."""
+        return await self.get_by_filters(master_flow_id=master_flow_id)
+    
+    async def get_by_discovery_flow(self, discovery_flow_id: str) -> List[Asset]:
+        """Get assets by discovery flow ID with context filtering."""
+        return await self.get_by_filters(discovery_flow_id=discovery_flow_id)
+    
+    async def get_by_source_phase(self, source_phase: str) -> List[Asset]:
+        """Get assets by source phase with context filtering."""
+        return await self.get_by_filters(source_phase=source_phase)
+    
+    async def get_by_current_phase(self, current_phase: str) -> List[Asset]:
+        """Get assets by current phase with context filtering."""
+        return await self.get_by_filters(current_phase=current_phase)
+    
+    async def get_multi_phase_assets(self) -> List[Asset]:
+        """Get assets that have progressed through multiple phases."""
+        query = select(Asset).where(
+            and_(
+                Asset.source_phase.isnot(None),
+                Asset.current_phase.isnot(None),
+                Asset.source_phase != Asset.current_phase
+            )
+        )
+        return await self.query_with_context(query)
+    
+    async def get_master_flow_summary(self, master_flow_id: str) -> Dict[str, Any]:
+        """Get comprehensive summary for a master flow."""
+        assets = await self.get_by_master_flow(master_flow_id)
+        
+        summary = {
+            'master_flow_id': master_flow_id,
+            'total_assets': len(assets),
+            'phases': {},
+            'asset_types': {},
+            'strategies': {},
+            'status_distribution': {}
+        }
+        
+        for asset in assets:
+            # Phase distribution
+            phase = asset.current_phase or 'unknown'
+            summary['phases'][phase] = summary['phases'].get(phase, 0) + 1
+            
+            # Asset type distribution
+            asset_type = asset.asset_type or 'unknown'
+            summary['asset_types'][asset_type] = summary['asset_types'].get(asset_type, 0) + 1
+            
+            # 6R strategy distribution
+            strategy = asset.six_r_strategy or 'unknown'
+            summary['strategies'][strategy] = summary['strategies'].get(strategy, 0) + 1
+            
+            # Status distribution
+            status = asset.status or 'unknown'
+            summary['status_distribution'][status] = summary['status_distribution'].get(status, 0) + 1
+        
+        return summary
+    
+    async def update_phase_progression(self, asset_id: int, new_phase: str, notes: str = None) -> bool:
+        """Update asset phase progression with tracking."""
+        asset = await self.get_by_id(asset_id)
+        if not asset:
+            return False
+        
+        # Update current phase and add to phase history
+        updates = {'current_phase': new_phase}
+        
+        # Track phase progression in phase_context
+        if asset.phase_context:
+            phase_context = asset.phase_context.copy()
+        else:
+            phase_context = {}
+        
+        if 'phase_history' not in phase_context:
+            phase_context['phase_history'] = []
+        
+        phase_context['phase_history'].append({
+            'from_phase': asset.current_phase,
+            'to_phase': new_phase,
+            'timestamp': func.now(),
+            'notes': notes
+        })
+        
+        updates['phase_context'] = phase_context
+        
+        updated = await self.update(asset_id, **updates)
+        return updated is not None
+    
+    async def get_cross_phase_analytics(self) -> Dict[str, Any]:
+        """Get analytics across all phases and master flows."""
+        query = select(
+            Asset.master_flow_id,
+            Asset.source_phase,
+            Asset.current_phase,
+            func.count(Asset.id).label('asset_count'),
+            func.avg(Asset.quality_score).label('avg_quality'),
+            func.avg(Asset.completeness_score).label('avg_completeness')
+        ).group_by(
+            Asset.master_flow_id,
+            Asset.source_phase,
+            Asset.current_phase
+        )
+        
+        query = self._apply_context_filter(query)
+        result = await self.db.execute(query)
+        
+        analytics = {
+            'master_flows': {},
+            'phase_transitions': {},
+            'quality_by_phase': {}
+        }
+        
+        for row in result:
+            # Master flow summary
+            if row.master_flow_id not in analytics['master_flows']:
+                analytics['master_flows'][row.master_flow_id] = {
+                    'total_assets': 0,
+                    'phases': {}
+                }
+            
+            analytics['master_flows'][row.master_flow_id]['total_assets'] += row.asset_count
+            analytics['master_flows'][row.master_flow_id]['phases'][row.current_phase] = row.asset_count
+            
+            # Phase transition tracking
+            transition = f"{row.source_phase} → {row.current_phase}"
+            analytics['phase_transitions'][transition] = analytics['phase_transitions'].get(transition, 0) + row.asset_count
+            
+            # Quality by phase
+            if row.current_phase not in analytics['quality_by_phase']:
+                analytics['quality_by_phase'][row.current_phase] = {
+                    'avg_quality': 0,
+                    'avg_completeness': 0,
+                    'asset_count': 0
+                }
+            
+            analytics['quality_by_phase'][row.current_phase]['avg_quality'] = float(row.avg_quality or 0)
+            analytics['quality_by_phase'][row.current_phase]['avg_completeness'] = float(row.avg_completeness or 0)
+            analytics['quality_by_phase'][row.current_phase]['asset_count'] += row.asset_count
+        
+        return analytics
+
 
 class AssetDependencyRepository(ContextAwareRepository[AssetDependency]):
     """Asset dependency repository with context-aware operations."""

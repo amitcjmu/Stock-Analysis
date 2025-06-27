@@ -115,6 +115,12 @@ try:
 except ImportError:
     AUTH_RBAC_AVAILABLE = False
 
+try:
+    from app.api.v1.master_flows import router as master_flows_router
+    MASTER_FLOWS_AVAILABLE = True
+except ImportError:
+    MASTER_FLOWS_AVAILABLE = False
+
 # Setup logger
 logger = logging.getLogger(__name__)
 
@@ -196,6 +202,13 @@ else:
 if AUTH_RBAC_AVAILABLE:
     api_router.include_router(auth_router, prefix="/auth", tags=["Authentication"])
     logger.info("✅ Auth RBAC router included")
+
+# Master Flow Coordination
+if MASTER_FLOWS_AVAILABLE:
+    api_router.include_router(master_flows_router, prefix="/master-flows", tags=["Master Flow Coordination"])
+    logger.info("✅ Master Flows router included")
+else:
+    logger.warning("⚠️ Master Flows router not available")
 
 api_router.include_router(context_router, prefix="/context", tags=["Context Management"])
 

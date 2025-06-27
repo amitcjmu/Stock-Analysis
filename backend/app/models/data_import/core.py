@@ -35,7 +35,7 @@ class DataImport(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid_pkg.uuid4)
     client_account_id = Column(UUID(as_uuid=True), ForeignKey("client_accounts.id", ondelete="CASCADE"), nullable=True)
     engagement_id = Column(UUID(as_uuid=True), ForeignKey("engagements.id", ondelete="CASCADE"), nullable=True)
-    session_id = Column(UUID(as_uuid=True), ForeignKey("data_import_sessions.id", ondelete="CASCADE"), nullable=True)
+    master_flow_id = Column(UUID(as_uuid=True), ForeignKey("crewai_flow_state_extensions.id", ondelete="CASCADE"), nullable=True)
 
     import_name = Column(String(255), nullable=False)
     import_type = Column(String(50), nullable=False)  # e.g., 'cmdb', 'asset_inventory'
@@ -69,7 +69,6 @@ class DataImport(Base):
     
     # Relationships
     raw_records = relationship("RawImportRecord", back_populates="data_import", cascade="all, delete-orphan")
-    session = relationship("DataImportSession", back_populates="data_imports")
     
     user = relationship("User")
     client_account = relationship("ClientAccount")
@@ -91,7 +90,7 @@ class RawImportRecord(Base):
     # Context IDs for direct querying
     client_account_id = Column(UUID(as_uuid=True), ForeignKey("client_accounts.id"), nullable=True)
     engagement_id = Column(UUID(as_uuid=True), ForeignKey("engagements.id"), nullable=True)
-    session_id = Column(UUID(as_uuid=True), ForeignKey("data_import_sessions.id"), nullable=True)
+    master_flow_id = Column(UUID(as_uuid=True), ForeignKey("crewai_flow_state_extensions.id"), nullable=True)
 
     row_number = Column(Integer, nullable=False)
     record_id = Column(String(255), nullable=True)  # Optional unique ID from source system

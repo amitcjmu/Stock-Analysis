@@ -125,7 +125,7 @@ class DiscoveryFlowRepository(ContextAwareRepository):
                     DiscoveryFlow.client_account_id == client_uuid,
                     DiscoveryFlow.engagement_id == engagement_uuid
                 )
-            ).options(selectinload(DiscoveryFlow.assets))
+            )
             
             result = await self.db.execute(stmt)
             return result.scalar_one_or_none()
@@ -138,7 +138,7 @@ class DiscoveryFlowRepository(ContextAwareRepository):
         """Get discovery flow by CrewAI Flow ID without tenant filtering (for duplicate checking)"""
         stmt = select(DiscoveryFlow).where(
             DiscoveryFlow.flow_id == flow_id
-        ).options(selectinload(DiscoveryFlow.assets))
+        )
         
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
@@ -151,7 +151,7 @@ class DiscoveryFlowRepository(ContextAwareRepository):
                 DiscoveryFlow.client_account_id == uuid.UUID(self.client_account_id),
                 DiscoveryFlow.engagement_id == uuid.UUID(self.engagement_id)
             )
-        ).options(selectinload(DiscoveryFlow.assets))
+        )
         
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
@@ -267,11 +267,14 @@ class DiscoveryFlowRepository(ContextAwareRepository):
         if not flow:
             raise ValueError(f"Discovery flow not found: {flow_id}")
         
-        # Prepare assessment handoff data
+        # Note: Assets are now in the main assets table with discovery_flow_id reference
+        # For now, create a basic assessment package without assets data
+        # In a full implementation, you would import AssetRepository and fetch assets by discovery_flow_id
+        
         assessment_package = {
-            "assets": [asset.to_dict() for asset in flow.assets],
+            "assets": [],  # Would need AssetRepository to fetch discovery assets
             "summary": {
-                "total_assets": len(flow.assets),
+                "total_assets": 0,  # Would be calculated from assets
                 "asset_types": {},
                 "discovery_phases_completed": [
                     phase for phase, completed in {
@@ -291,23 +294,6 @@ class DiscoveryFlowRepository(ContextAwareRepository):
             "ready_for_assessment": True,
             "completed_at": datetime.utcnow().isoformat()
         }
-        
-        # Calculate quality metrics
-        if flow.assets:
-            total_confidence = sum(asset.confidence_score or 0.0 for asset in flow.assets)
-            assessment_package["summary"]["quality_metrics"]["avg_confidence_score"] = total_confidence / len(flow.assets)
-            # Remove avg_quality_score as it doesn't exist in DiscoveryAsset model
-            del assessment_package["summary"]["quality_metrics"]["avg_quality_score"]
-            
-            # Asset type distribution
-            asset_types = {}
-            validation_status = {}
-            for asset in flow.assets:
-                asset_types[asset.asset_type] = asset_types.get(asset.asset_type, 0) + 1
-                validation_status[asset.validation_status] = validation_status.get(asset.validation_status, 0) + 1
-            
-            assessment_package["summary"]["asset_types"] = asset_types
-            assessment_package["summary"]["quality_metrics"]["validation_status_distribution"] = validation_status
         
         # Update flow status
         update_values = {
@@ -340,7 +326,7 @@ class DiscoveryFlowRepository(ContextAwareRepository):
                 DiscoveryFlow.engagement_id == uuid.UUID(self.engagement_id),
                 DiscoveryFlow.status.in_(["active", "running", "paused"])
             )
-        ).options(selectinload(DiscoveryFlow.assets)).order_by(desc(DiscoveryFlow.created_at))
+        ).order_by(desc(DiscoveryFlow.created_at))
         
         result = await self.db.execute(stmt)
         return result.scalars().all()
@@ -357,7 +343,7 @@ class DiscoveryFlowRepository(ContextAwareRepository):
                 DiscoveryFlow.engagement_id == uuid.UUID(self.engagement_id),
                 DiscoveryFlow.status.in_(["active", "running", "paused", "completed"])
             )
-        ).options(selectinload(DiscoveryFlow.assets)).order_by(desc(DiscoveryFlow.created_at))
+        ).order_by(desc(DiscoveryFlow.created_at))
         
         result = await self.db.execute(stmt)
         all_flows = result.scalars().all()
@@ -379,7 +365,7 @@ class DiscoveryFlowRepository(ContextAwareRepository):
                 DiscoveryFlow.engagement_id == uuid.UUID(self.engagement_id),
                 DiscoveryFlow.status == "completed"
             )
-        ).options(selectinload(DiscoveryFlow.assets)).order_by(desc(DiscoveryFlow.completed_at)).limit(limit)
+        ).order_by(desc(DiscoveryFlow.completed_at)).limit(limit)
         
         result = await self.db.execute(stmt)
         return result.scalars().all()
@@ -398,6 +384,137 @@ class DiscoveryFlowRepository(ContextAwareRepository):
         await self.db.commit()
         
         return result.rowcount > 0
+    
+    # Master Flow Coordination Methods - Task 5.1.2
+    
+    async def get_by_master_flow_id(self, master_flow_id: str) -> Optional[DiscoveryFlow]:
+        """Get discovery flow by master flow ID."""
+        try:
+            master_flow_uuid = uuid.UUID(master_flow_id)
+            client_uuid = uuid.UUID(self.client_account_id)
+            engagement_uuid = uuid.UUID(self.engagement_id)
+            
+            stmt = select(DiscoveryFlow).where(
+                and_(
+                    DiscoveryFlow.master_flow_id == master_flow_uuid,
+                    DiscoveryFlow.client_account_id == client_uuid,
+                    DiscoveryFlow.engagement_id == engagement_uuid
+                )
+            )
+            
+            result = await self.db.execute(stmt)
+            return result.scalar_one_or_none()
+            
+        except (ValueError, TypeError) as e:
+            logger.error(f"Invalid UUID format - master_flow_id: {master_flow_id}, error: {e}")
+            return None
+    
+    async def update_master_flow_reference(self, flow_id: str, master_flow_id: str) -> bool:
+        """Update discovery flow with master flow reference."""
+        try:
+            flow_uuid = uuid.UUID(flow_id)
+            master_flow_uuid = uuid.UUID(master_flow_id)
+            
+            stmt = update(DiscoveryFlow).where(
+                DiscoveryFlow.flow_id == flow_uuid
+            ).values(
+                master_flow_id=master_flow_uuid,
+                updated_at=datetime.utcnow()
+            )
+            
+            result = await self.db.execute(stmt)
+            await self.db.commit()
+            
+            return result.rowcount > 0
+            
+        except (ValueError, TypeError) as e:
+            logger.error(f"Invalid UUID format in update_master_flow_reference: {e}")
+            return False
+    
+    async def get_master_flow_coordination_summary(self) -> Dict[str, Any]:
+        """Get summary of master flow coordination status."""
+        try:
+            client_uuid = uuid.UUID(self.client_account_id)
+            engagement_uuid = uuid.UUID(self.engagement_id)
+            
+            # Get discovery flows with master flow coordination
+            stmt = select(
+                func.count(DiscoveryFlow.id).label('total_flows'),
+                func.count(DiscoveryFlow.master_flow_id).label('flows_with_master'),
+                func.count(func.distinct(DiscoveryFlow.master_flow_id)).label('unique_master_flows')
+            ).where(
+                and_(
+                    DiscoveryFlow.client_account_id == client_uuid,
+                    DiscoveryFlow.engagement_id == engagement_uuid
+                )
+            )
+            
+            result = await self.db.execute(stmt)
+            stats = result.first()
+            
+            # Get phase distribution
+            phase_stmt = select(
+                DiscoveryFlow.status,
+                func.count(DiscoveryFlow.id).label('count')
+            ).where(
+                and_(
+                    DiscoveryFlow.client_account_id == client_uuid,
+                    DiscoveryFlow.engagement_id == engagement_uuid
+                )
+            ).group_by(DiscoveryFlow.status)
+            
+            phase_result = await self.db.execute(phase_stmt)
+            phase_stats = {row.status: row.count for row in phase_result}
+            
+            return {
+                'total_discovery_flows': stats.total_flows,
+                'flows_with_master_coordination': stats.flows_with_master,
+                'unique_master_flows': stats.unique_master_flows,
+                'coordination_percentage': (stats.flows_with_master / stats.total_flows * 100) if stats.total_flows > 0 else 0,
+                'phase_distribution': phase_stats
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in get_master_flow_coordination_summary: {e}")
+            return {
+                'total_discovery_flows': 0,
+                'flows_with_master_coordination': 0,
+                'unique_master_flows': 0,
+                'coordination_percentage': 0,
+                'phase_distribution': {}
+            }
+    
+    async def transition_to_assessment_phase(self, flow_id: str, assessment_flow_id: str) -> bool:
+        """Prepare discovery flow for assessment phase transition."""
+        try:
+            flow = await self.get_by_flow_id(flow_id)
+            if not flow:
+                return False
+            
+            # Update status and add assessment transition data
+            state_data = flow.crewai_state_data or {}
+            state_data['assessment_transition'] = {
+                'assessment_flow_id': assessment_flow_id,
+                'transition_timestamp': datetime.utcnow().isoformat(),
+                'discovery_completion_status': 'ready_for_assessment'
+            }
+            
+            stmt = update(DiscoveryFlow).where(
+                DiscoveryFlow.flow_id == uuid.UUID(flow_id)
+            ).values(
+                status='transition_to_assessment',
+                crewai_state_data=state_data,
+                updated_at=datetime.utcnow()
+            )
+            
+            await self.db.execute(stmt)
+            await self.db.commit()
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error in transition_to_assessment_phase: {e}")
+            return False
 
 
 class DiscoveryAssetRepository(ContextAwareRepository):

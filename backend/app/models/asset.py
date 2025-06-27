@@ -91,6 +91,18 @@ class Asset(Base):
     session_id = Column(PostgresUUID(as_uuid=True), ForeignKey('data_import_sessions.id', ondelete='CASCADE'), nullable=True, index=True)
     migration_id = Column(PostgresUUID(as_uuid=True), ForeignKey('migrations.id'), nullable=True)
     
+    # Master Flow Coordination (Phase 2)
+    master_flow_id = Column(PostgresUUID(as_uuid=True), nullable=True, index=True)
+    discovery_flow_id = Column(PostgresUUID(as_uuid=True), nullable=True, index=True)
+    assessment_flow_id = Column(PostgresUUID(as_uuid=True), nullable=True, index=True)
+    planning_flow_id = Column(PostgresUUID(as_uuid=True), nullable=True, index=True)
+    execution_flow_id = Column(PostgresUUID(as_uuid=True), nullable=True, index=True)
+    
+    # Multi-Phase Tracking (Phase 2)
+    source_phase = Column(String(50), default='discovery', index=True)
+    current_phase = Column(String(50), default='discovery', index=True)
+    phase_context = Column(JSON, default=dict)
+    
     # Basic asset information (based on Azure Migrate metadata)
     name = Column(String(255), nullable=False, index=True)
     asset_name = Column(String(255), nullable=True)
