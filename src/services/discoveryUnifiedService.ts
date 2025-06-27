@@ -188,6 +188,64 @@ export class UnifiedDiscoveryService {
   }
 
   /**
+   * Get asset classification summary for classification cards
+   */
+  async getAssetClassificationSummary(flowId: string): Promise<{
+    total_assets: number;
+    by_type: Record<string, number>;
+    classification_accuracy: number;
+    total_mapped: number;
+    total_unmapped: number;
+  }> {
+    try {
+      console.log('📊 Getting asset classification summary:', flowId);
+      const result = await httpClient.get<{
+        total_assets: number;
+        by_type: Record<string, number>;
+        classification_accuracy: number;
+        total_mapped: number;
+        total_unmapped: number;
+      }>(`/assets/${flowId}/classification-summary`);
+      console.log('✅ Classification summary retrieved:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ Failed to get classification summary:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get CrewAI-generated insights for asset inventory
+   */
+  async getCrewAIInsights(flowId: string): Promise<Array<{
+    id: string;
+    title: string;
+    category: string;
+    description: string;
+    recommendations: Record<string, any>;
+    confidence_score: number;
+    generated_at: string;
+  }>> {
+    try {
+      console.log('🧠 Getting CrewAI insights:', flowId);
+      const result = await httpClient.get<Array<{
+        id: string;
+        title: string;
+        category: string;
+        description: string;
+        recommendations: Record<string, any>;
+        confidence_score: number;
+        generated_at: string;
+      }>>(`/assets/${flowId}/crewai-insights`);
+      console.log('✅ CrewAI insights retrieved:', result.length);
+      return result;
+    } catch (error) {
+      console.error('❌ Failed to get CrewAI insights:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Execute a specific phase of a discovery flow
    */
   async executePhase(flowId: string, phase: string): Promise<UnifiedDiscoveryFlowResponse> {

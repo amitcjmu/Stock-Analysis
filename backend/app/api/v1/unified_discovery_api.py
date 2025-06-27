@@ -416,6 +416,74 @@ async def get_flow_assets(
             detail=f"Failed to get flow assets: {str(e)}"
         )
 
+@router.get("/assets/{flow_id}/classification-summary", response_model=Dict[str, Any])
+async def get_asset_classification_summary(
+    flow_id: str,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+):
+    """
+    Get asset classification summary for classification cards.
+    """
+    try:
+        logger.info(f"📊 Getting classification summary for flow: {flow_id}")
+        
+        classification_summary = {}
+        
+        if ASSET_MANAGEMENT_AVAILABLE:
+            try:
+                asset_handler = AssetManagementHandler(db, context)
+                classification_summary = await asset_handler.get_asset_classification_summary()
+                logger.info(f"✅ Retrieved classification summary: {classification_summary}")
+            except Exception as e:
+                logger.warning(f"⚠️ Classification summary failed: {e}")
+                classification_summary = {
+                    "total_assets": 0,
+                    "by_type": {},
+                    "classification_accuracy": 0.0
+                }
+        
+        return classification_summary
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to get classification summary: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get classification summary: {str(e)}"
+        )
+
+@router.get("/assets/{flow_id}/crewai-insights", response_model=List[Dict[str, Any]])
+async def get_asset_crewai_insights(
+    flow_id: str,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+):
+    """
+    Get CrewAI-generated insights for asset inventory.
+    """
+    try:
+        logger.info(f"🧠 Getting CrewAI insights for flow: {flow_id}")
+        
+        insights = []
+        
+        if ASSET_MANAGEMENT_AVAILABLE:
+            try:
+                asset_handler = AssetManagementHandler(db, context)
+                insights = await asset_handler.get_crewai_insights(flow_id)
+                logger.info(f"✅ Retrieved {len(insights)} CrewAI insights")
+            except Exception as e:
+                logger.warning(f"⚠️ CrewAI insights failed: {e}")
+                insights = []
+        
+        return insights
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to get CrewAI insights: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get CrewAI insights: {str(e)}"
+        )
+
 # === Health Check ===
 
 @router.get("/health", response_model=Dict[str, Any])
@@ -1001,4 +1069,172 @@ async def fix_asset_promotion_for_completed_flow(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to fix asset promotion: {str(e)}"
+        )
+
+@router.post("/flow/create-assets-from-field-mapping/{flow_id}", response_model=Dict[str, Any])
+async def create_assets_from_field_mapping_data(
+    flow_id: str,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+):
+    """
+    Create assets directly from the flow's field mapping attributes data.
+    This fixes flows that have field mapping data but no discovery_assets.
+    """
+    try:
+        logger.info(f"🏗️ Creating assets from field mapping data for flow: {flow_id}")
+        
+        # Get flow status to access field mapping data
+        if FLOW_MANAGEMENT_AVAILABLE:
+            flow_handler = FlowManagementHandler(db, context)
+            flow_status = await flow_handler.get_flow_status(flow_id)
+            
+            # Extract field mapping attributes
+            field_mapping = flow_status.get('field_mapping', {})
+            attributes = field_mapping.get('attributes', [])
+            mappings = field_mapping.get('mappings', {})
+            
+            if not attributes:
+                return {
+                    "success": False,
+                    "flow_id": flow_id,
+                    "message": "No field mapping attributes found",
+                    "assets_created": 0
+                }
+            
+            logger.info(f"📊 Processing {len(attributes)} attributes from field mapping")
+            
+            # Import required modules
+            from app.models.discovery_asset import DiscoveryAsset
+            import uuid as uuid_pkg
+            from datetime import datetime
+            
+            # Get the actual flow record
+            from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
+            flow_repo = DiscoveryFlowRepository(db, str(context.client_account_id), str(context.engagement_id))
+            flow = await flow_repo.get_by_flow_id(flow_id)
+            
+            if not flow:
+                raise ValueError(f"Flow not found: {flow_id}")
+            
+            discovery_assets_created = 0
+            
+            # Process each attribute record into a discovery asset
+            for index, record in enumerate(attributes):
+                try:
+                    # Extract asset information using the field mappings
+                    asset_name = record.get('Asset_Name') or f"Asset_{index + 1}"
+                    asset_type = record.get('Asset_Type', 'Server').lower()
+                    
+                    # Create discovery asset with real data
+                    discovery_asset = DiscoveryAsset(
+                        # Multi-tenant isolation
+                        client_account_id=flow.client_account_id,
+                        engagement_id=flow.engagement_id,
+                        discovery_flow_id=flow.id,
+                        
+                        # Asset identification from real data
+                        asset_name=asset_name,
+                        asset_type=asset_type,
+                        
+                        # Discovery metadata
+                        discovered_in_phase='inventory',
+                        discovery_method='field_mapping_processing',
+                        confidence_score=0.95,  # High confidence since this is real data
+                        
+                        # Asset data
+                        raw_data=record,
+                        normalized_data={
+                            'asset_name': asset_name,
+                            'asset_type': asset_type,
+                            'ip_address': record.get('IP_Address'),
+                            'operating_system': record.get('Operating_System'),
+                            'environment': record.get('DR_Tier'),
+                            'location': record.get('Location_DataCenter'),
+                            'business_owner': record.get('Application_Owner'),
+                            'cpu_cores': record.get('CPU_Cores'),
+                            'memory_gb': record.get('RAM_GB'),
+                            'storage_gb': record.get('Storage_GB'),
+                            'manufacturer': record.get('Manufacturer'),
+                            'model': record.get('Model'),
+                            'serial_number': record.get('Serial_Number'),
+                            'mac_address': record.get('MAC_Address'),
+                            'os_version': record.get('OS_Version'),
+                            'service_name': record.get('Application_Service'),
+                            'migration_notes': record.get('Migration_Notes'),
+                            'migration_readiness_score': record.get('Cloud_Migration_Readiness_Score')
+                        },
+                        
+                        # Migration assessment
+                        migration_ready=True,  # Real data is migration ready
+                        migration_complexity="Medium",
+                        migration_priority=int(record.get('Cloud_Migration_Readiness_Score', '3')),
+                        
+                        # Status
+                        asset_status='discovered',
+                        validation_status='validated',
+                        is_mock=False,  # This is real data!
+                        
+                        # Timestamps
+                        created_at=datetime.utcnow(),
+                        updated_at=datetime.utcnow()
+                    )
+                    
+                    db.add(discovery_asset)
+                    discovery_assets_created += 1
+                    
+                except Exception as e:
+                    logger.error(f"❌ Failed to create discovery asset {index}: {e}")
+                    continue
+            
+            # Commit all discovery assets
+            await db.commit()
+            
+            # Now promote discovery assets to main assets table
+            assets_promoted = 0
+            if discovery_assets_created > 0:
+                try:
+                    from app.services.asset_creation_bridge_service import AssetCreationBridgeService
+                    
+                    # Initialize asset creation bridge service
+                    bridge_service = AssetCreationBridgeService(db, context)
+                    
+                    # Create assets from discovery flow
+                    creation_result = await bridge_service.create_assets_from_discovery(
+                        discovery_flow_id=uuid_pkg.UUID(flow_id)
+                    )
+                    
+                    assets_promoted = creation_result.get("statistics", {}).get("assets_created", 0)
+                    logger.info(f"✅ Asset promotion completed: {assets_promoted} assets promoted to main table")
+                    
+                except Exception as promotion_error:
+                    logger.error(f"❌ Asset promotion failed: {promotion_error}")
+            
+            result = {
+                "success": True,
+                "flow_id": flow_id,
+                "action": "create_assets_from_field_mapping",
+                "discovery_assets_created": discovery_assets_created,
+                "assets_promoted": assets_promoted,
+                "total_attributes_processed": len(attributes),
+                "message": f"Successfully created {discovery_assets_created} discovery assets and promoted {assets_promoted} to main table",
+                "timestamp": datetime.now().isoformat()
+            }
+            
+            logger.info(f"✅ Asset creation from field mapping completed for flow {flow_id}: {result}")
+            return result
+        
+        else:
+            return {
+                "success": False,
+                "flow_id": flow_id,
+                "message": "Flow management not available",
+                "assets_created": 0
+            }
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to create assets from field mapping for flow {flow_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create assets from field mapping: {str(e)}"
         ) 
