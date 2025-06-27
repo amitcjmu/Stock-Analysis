@@ -40,8 +40,13 @@ export interface EngagementFormData {
   technical_lead: string;
   start_date: string;
   end_date: string;
+  actual_start_date?: string;
+  actual_end_date?: string;
   budget: number;
   budget_currency: string;
+  actual_budget?: number;
+  estimated_asset_count?: number;
+  completion_percentage?: number;
   team_preferences: Record<string, any>;
   stakeholder_preferences: Record<string, any>;
 }

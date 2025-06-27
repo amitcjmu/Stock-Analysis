@@ -118,7 +118,7 @@ class EngagementCRUDHandler:
             page = pagination.get('page', 1)
             page_size = pagination.get('page_size', 20)
 
-            query = select(Engagement)
+            query = select(Engagement).where(Engagement.is_active == True)  # Filter out soft-deleted
             # Only filter by client_account_id if it's provided (not None)
             if client_account_id:
                  query = query.where(Engagement.client_account_id == client_account_id)
@@ -155,41 +155,45 @@ class EngagementCRUDHandler:
     async def get_dashboard_stats(db: AsyncSession) -> Dict[str, Any]:
         """Get dashboard statistics for engagements."""
         try:
-            # Total engagements
-            total_query = select(func.count()).select_from(Engagement)
+            # Total engagements (only active ones)
+            total_query = select(func.count()).where(Engagement.is_active == True)
             total_engagements = (await db.execute(total_query)).scalar_one()
 
-            # Active engagements
+            # Active engagements (redundant now since we only count active ones)
             active_query = select(func.count()).where(Engagement.is_active == True)
             active_engagements = (await db.execute(active_query)).scalar_one()
 
-            # Engagements by type
-            type_query = select(Engagement.engagement_type, func.count()).group_by(Engagement.engagement_type)
+            # Engagements by type (only active ones)
+            type_query = select(Engagement.engagement_type, func.count()).where(Engagement.is_active == True).group_by(Engagement.engagement_type)
             engagements_by_type = {
                 row[0]: row[1] for row in (await db.execute(type_query)).all() if row[0]
             }
 
-            # Engagements by status
-            status_query = select(Engagement.status, func.count()).group_by(Engagement.status)
+            # Engagements by status (only active ones)
+            status_query = select(Engagement.status, func.count()).where(Engagement.is_active == True).group_by(Engagement.status)
             engagements_by_status = {
                 row[0]: row[1] for row in (await db.execute(status_query)).all() if row[0]
             }
             
-            # Average engagement duration
+            # Average engagement duration (only active ones)
             duration_query = select(
                 func.avg(
                     func.extract('epoch', Engagement.actual_completion_date - Engagement.start_date) / (60*60*24)
                 )
             ).where(
+                Engagement.is_active == True,
                 Engagement.actual_completion_date.isnot(None),
                 Engagement.start_date.isnot(None)
             )
             avg_duration_result = (await db.execute(duration_query)).scalar_one_or_none()
             avg_engagement_duration_days = round(avg_duration_result, 2) if avg_duration_result else 0.0
 
-            # Recent engagements (last 30 days)
+            # Recent engagements (last 30 days, only active ones)
             thirty_days_ago = datetime.utcnow() - timedelta(days=30)
-            recent_query = select(Engagement).where(Engagement.created_at >= thirty_days_ago).order_by(Engagement.created_at.desc()).limit(5)
+            recent_query = select(Engagement).where(
+                Engagement.is_active == True,
+                Engagement.created_at >= thirty_days_ago
+            ).order_by(Engagement.created_at.desc()).limit(5)
             recent_engagements = (await db.execute(recent_query)).scalars().all()
             
             # Convert recent engagements to response format
@@ -213,7 +217,10 @@ class EngagementCRUDHandler:
     async def get_engagement(engagement_id: str, db: AsyncSession) -> EngagementResponse:
         """Get engagement by ID."""
         try:
-            query = select(Engagement).where(Engagement.id == engagement_id)
+            query = select(Engagement).where(
+                Engagement.id == engagement_id,
+                Engagement.is_active == True  # Only return active engagements
+            )
             result = await db.execute(query)
             engagement = result.scalar_one_or_none()
             
@@ -238,12 +245,15 @@ class EngagementCRUDHandler:
         """Update engagement."""
         try:
             
-            query = select(Engagement).where(Engagement.id == engagement_id)
+            query = select(Engagement).where(
+                Engagement.id == engagement_id,
+                Engagement.is_active == True  # Only allow updating active engagements
+            )
             result = await db.execute(query)
             engagement = result.scalar_one_or_none()
             
             if not engagement:
-                raise HTTPException(status_code=404, detail="Engagement not found")
+                raise HTTPException(status_code=404, detail="Engagement not found or has been deleted")
             
             # Update fields from the update_data
             update_dict = update_data.dict(exclude_unset=True) if hasattr(update_data, 'dict') else update_data
@@ -356,25 +366,74 @@ class EngagementCRUDHandler:
             
             # Handle cascade deletion of related records to avoid foreign key constraints
             try:
-                # Delete workflow_states that reference data_import_sessions for this engagement
+                # Delete records in proper order based on actual foreign key relationships
+                
+                # 1. Delete records that reference data_import_sessions
                 await db.execute(text("""
-                    DELETE FROM workflow_states 
+                    DELETE FROM raw_import_records 
                     WHERE session_id IN (
                         SELECT id FROM data_import_sessions 
                         WHERE engagement_id = :engagement_id
                     )
                 """), {"engagement_id": engagement_id})
                 
-                # Delete data_import_sessions for this engagement
+                await db.execute(text("""
+                    DELETE FROM import_field_mappings 
+                    WHERE session_id IN (
+                        SELECT id FROM data_import_sessions 
+                        WHERE engagement_id = :engagement_id
+                    )
+                """), {"engagement_id": engagement_id})
+                
+                # 2. Delete data_import_sessions for this engagement
                 await db.execute(text("""
                     DELETE FROM data_import_sessions 
                     WHERE engagement_id = :engagement_id
                 """), {"engagement_id": engagement_id})
                 
-                # Delete any other related records that might reference this engagement
-                # Add more cascade deletions as needed based on your schema
+                # 3. Delete other records that directly reference the engagement
+                tables_to_clean = [
+                    'access_audit_log',
+                    'assessments', 
+                    'asset_embeddings',
+                    'assets',
+                    'cmdb_sixr_analyses',
+                    'data_imports',
+                    'engagement_access',
+                    'feedback',
+                    'feedback_summaries',
+                    'llm_usage_logs',
+                    'llm_usage_summary',
+                    'mapping_learning_patterns',
+                    'migration_waves',
+                    'sixr_analyses',
+                    'wave_plans'
+                ]
                 
-                # Finally delete the engagement itself
+                for table in tables_to_clean:
+                    try:
+                        await db.execute(text(f"""
+                            DELETE FROM {table} 
+                            WHERE engagement_id = :engagement_id
+                        """), {"engagement_id": engagement_id})
+                    except Exception as table_error:
+                        logger.warning(f"Could not delete from {table}: {table_error}")
+                        # Continue with other tables
+                
+                # 4. Handle user-related references (set to NULL instead of delete)
+                await db.execute(text("""
+                    UPDATE users 
+                    SET default_engagement_id = NULL 
+                    WHERE default_engagement_id = :engagement_id
+                """), {"engagement_id": engagement_id})
+                
+                await db.execute(text("""
+                    UPDATE user_roles 
+                    SET scope_engagement_id = NULL 
+                    WHERE scope_engagement_id = :engagement_id
+                """), {"engagement_id": engagement_id})
+                
+                # 5. Finally delete the engagement itself
                 await db.delete(engagement)
                 await db.commit()
                 

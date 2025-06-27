@@ -205,8 +205,13 @@ const EngagementManagementMain: React.FC = () => {
       technical_lead: '',
       start_date: '',
       end_date: '',
+      actual_start_date: '',
+      actual_end_date: '',
       budget: 0,
       budget_currency: 'USD',
+      actual_budget: 0,
+      estimated_asset_count: 0,
+      completion_percentage: 0,
       team_preferences: {},
       stakeholder_preferences: {}
     });
