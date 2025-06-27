@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import React, { useState, useEffect } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, AlertCircle, User, Mail, Building2 } from 'lucide-react';
+import { ArrowLeft, Save, AlertCircle, User, Mail, Building2, Users } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,12 +27,76 @@ interface CreateUserData {
   role_name: string;
   notes: string;
   is_active: boolean;
+  default_client_id: string;
+  default_engagement_id: string;
+}
+
+interface Client {
+  id: string;
+  account_name: string;
+  industry: string;
+}
+
+interface Engagement {
+  id: string;
+  engagement_name: string;
+  client_account_id: string;
+  client_account_name?: string;
 }
 
 const CreateUser: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { getAuthHeaders } = useAuth();
+  
+  // Fetch clients
+  const clientsQuery = useQuery<Client[]>({
+    queryKey: ['admin-clients'],
+    queryFn: async () => {
+      try {
+        const result = await apiCall('/admin/clients/');
+        return result.items || [];
+      } catch (error) {
+        console.error('Error fetching clients:', error);
+        return [];
+      }
+    },
+    initialData: [],
+  });
+
+  // Fetch engagements
+  const engagementsQuery = useQuery<Engagement[]>({
+    queryKey: ['admin-engagements'],
+    queryFn: async () => {
+      try {
+        const result = await apiCall('/admin/engagements/');
+        return result.items || [];
+      } catch (error) {
+        console.error('Error fetching engagements:', error);
+        return [];
+      }
+    },
+    initialData: [],
+  });
+
+  // Filter engagements by selected client
+  const [filteredEngagements, setFilteredEngagements] = useState<Engagement[]>([]);
+  
+  useEffect(() => {
+    if (formData.default_client_id) {
+      const clientEngagements = engagementsQuery.data?.filter(
+        eng => eng.client_account_id === formData.default_client_id
+      ) || [];
+      setFilteredEngagements(clientEngagements);
+      
+      // Clear engagement selection if not valid for selected client
+      if (formData.default_engagement_id && !clientEngagements.find(e => e.id === formData.default_engagement_id)) {
+        setFormData(prev => ({ ...prev, default_engagement_id: '' }));
+      }
+    } else {
+      setFilteredEngagements(engagementsQuery.data || []);
+    }
+  }, [formData.default_client_id, engagementsQuery.data]);
   
   // Server state: useMutation for API interaction
   const createUserMutation = useMutation({
@@ -75,7 +139,9 @@ const CreateUser: React.FC = () => {
     access_level: 'read_only',
     role_name: 'Analyst',
     notes: '',
-    is_active: true
+    is_active: true,
+    default_client_id: '',
+    default_engagement_id: ''
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -336,6 +402,46 @@ const CreateUser: React.FC = () => {
 
                 <Separator />
 
+                <div className="space-y-2">
+                  <Label htmlFor="default_client_id">Default Client Account</Label>
+                  <Select value={formData.default_client_id} onValueChange={(value) => handleFormChange('default_client_id', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select default client" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">No default client</SelectItem>
+                      {clientsQuery.data?.map(client => (
+                        <SelectItem key={client.id} value={client.id}>
+                          {client.account_name} ({client.industry})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="default_engagement_id">Default Engagement</Label>
+                  <Select 
+                    value={formData.default_engagement_id} 
+                    onValueChange={(value) => handleFormChange('default_engagement_id', value)}
+                    disabled={!formData.default_client_id}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={formData.default_client_id ? "Select default engagement" : "Select client first"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">No default engagement</SelectItem>
+                      {filteredEngagements.map(engagement => (
+                        <SelectItem key={engagement.id} value={engagement.id}>
+                          {engagement.engagement_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Separator />
+
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="is_active"
@@ -366,6 +472,22 @@ const CreateUser: React.FC = () => {
                   <Mail className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm">{formData.email || 'No email provided'}</span>
                 </div>
+                {formData.default_client_id && (
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm">
+                      {clientsQuery.data?.find(c => c.id === formData.default_client_id)?.account_name || 'Client'}
+                    </span>
+                  </div>
+                )}
+                {formData.default_engagement_id && (
+                  <div className="flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm">
+                      {filteredEngagements.find(e => e.id === formData.default_engagement_id)?.engagement_name || 'Engagement'}
+                    </span>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

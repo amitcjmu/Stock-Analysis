@@ -7,11 +7,15 @@ export interface Engagement {
   migration_scope: string;
   target_cloud_provider: string;
   migration_phase: string;
+  current_phase?: string;
   engagement_manager: string;
   technical_lead: string;
   start_date: string;
   end_date: string;
+  planned_start_date?: string;
+  planned_end_date?: string;
   budget: number;
+  estimated_budget?: number;
   budget_currency: string;
   completion_percentage: number;
   created_at: string;
@@ -19,6 +23,10 @@ export interface Engagement {
   is_active: boolean;
   total_sessions: number;
   active_sessions: number;
+  team_preferences?: Record<string, any>;
+  agent_configuration?: Record<string, any>;
+  discovery_preferences?: Record<string, any>;
+  assessment_criteria?: Record<string, any>;
 }
 
 export interface EngagementFormData {

@@ -92,6 +92,7 @@ class UserRegistrationRequest(BaseModel):
     """Schema for user registration request."""
     email: str = Field(..., description="User's business email address", pattern=r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
     full_name: str = Field(..., min_length=2, max_length=100)
+    username: Optional[str] = Field(None, min_length=2, max_length=50, description="Optional username for the user")
     organization: str = Field(..., min_length=2, max_length=255)
     role_description: str = Field(..., min_length=5, max_length=255)
     registration_reason: str = Field(..., min_length=10, max_length=1000)
@@ -105,6 +106,15 @@ class UserRegistrationRequest(BaseModel):
         "learning_updates": False,
         "weekly_reports": True
     }
+    
+    # Admin user creation fields
+    password: Optional[str] = Field(None, min_length=8, description="Password for admin-created users")
+    access_level: Optional[AccessLevelEnum] = None
+    role_name: Optional[str] = Field(None, max_length=100, description="Role name for admin-created users")
+    is_active: Optional[bool] = Field(None, description="Whether user should be immediately active")
+    notes: Optional[str] = Field(None, max_length=1000, description="Admin notes about the user")
+    default_client_id: Optional[str] = Field(None, description="Default client account for the user")
+    default_engagement_id: Optional[str] = Field(None, description="Default engagement for the user")
     
     @field_validator('registration_reason')
     @classmethod

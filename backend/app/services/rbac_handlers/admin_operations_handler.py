@@ -107,7 +107,9 @@ class AdminOperationsHandler(BaseRBACHandler):
                 last_name=last_name,
                 is_active=user_data.get("is_active", True),
                 is_verified=True,
-                is_mock=False
+                is_mock=False,
+                default_client_id=user_data.get("default_client_id"),
+                default_engagement_id=user_data.get("default_engagement_id")
             )
             
             self.db.add(user)

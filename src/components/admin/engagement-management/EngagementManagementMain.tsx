@@ -103,12 +103,33 @@ const EngagementManagementMain: React.FC = () => {
     if (!editingEngagement) return;
     
     try {
+      // Map frontend fields to backend field names
+      const submissionData = {
+        engagement_name: formData.engagement_name,
+        engagement_description: formData.engagement_description,
+        client_account_id: formData.client_account_id,
+        migration_scope: formData.migration_scope,
+        target_cloud_provider: formData.target_cloud_provider,
+        current_phase: formData.migration_phase, // Map migration_phase to current_phase
+        engagement_manager: formData.engagement_manager,
+        technical_lead: formData.technical_lead,
+        planned_start_date: formData.start_date ? new Date(formData.start_date).toISOString() : null,
+        planned_end_date: formData.end_date ? new Date(formData.end_date).toISOString() : null,
+        estimated_budget: formData.budget || null,
+        team_preferences: formData.team_preferences || {},
+        agent_configuration: {},
+        discovery_preferences: {},
+        assessment_criteria: {}
+      };
+      
+      console.log('Updating engagement with data:', JSON.stringify(submissionData, null, 2));
+      
       const result = await apiCall(`/admin/engagements/${editingEngagement.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(submissionData)
       });
       
       if (result && result.message) {
@@ -193,20 +214,25 @@ const EngagementManagementMain: React.FC = () => {
 
   // Start editing an engagement
   const startEdit = useCallback((engagement: Engagement) => {
+    // Map backend fields to frontend form fields
+    const plannedStartDate = engagement.planned_start_date || engagement.start_date;
+    const plannedEndDate = engagement.planned_end_date || engagement.end_date;
+    const currentPhase = engagement.current_phase || engagement.migration_phase;
+    
     setFormData({
       engagement_name: engagement.engagement_name || '',
       engagement_description: engagement.engagement_description || '',
       client_account_id: engagement.client_account_id || '',
       migration_scope: engagement.migration_scope || '',
       target_cloud_provider: engagement.target_cloud_provider || '',
-      migration_phase: engagement.migration_phase || '',
+      migration_phase: currentPhase || '',
       engagement_manager: engagement.engagement_manager || '',
       technical_lead: engagement.technical_lead || '',
-      start_date: engagement.start_date || '',
-      end_date: engagement.end_date || '',
-      budget: engagement.budget || 0,
+      start_date: plannedStartDate ? new Date(plannedStartDate).toISOString().split('T')[0] : '',
+      end_date: plannedEndDate ? new Date(plannedEndDate).toISOString().split('T')[0] : '',
+      budget: engagement.estimated_budget || engagement.budget || 0,
       budget_currency: engagement.budget_currency || 'USD',
-      team_preferences: {},
+      team_preferences: engagement.team_preferences || {},
       stakeholder_preferences: {}
     });
     setEditingEngagement(engagement);
