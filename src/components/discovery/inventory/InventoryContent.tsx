@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useDiscoveryFlowV2 } from '../../../hooks/discovery/useDiscoveryFlowV2';
-import { EnhancedInventoryInsights } from './EnhancedInventoryInsights';
+import EnhancedInventoryInsights from './EnhancedInventoryInsights';
 
 interface AssetInventory {
   id: string;
@@ -37,7 +37,8 @@ interface AssetInventory {
 }
 
 interface InventoryProgress {
-  total: number;
+  total_assets: number;
+  classified_assets: number;
   servers: number;
   applications: number;
   databases: number;
@@ -124,7 +125,8 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
     ).length;
     
     return {
-      total,
+      total_assets: total,
+      classified_assets: total,
       servers,
       applications,
       databases,
@@ -302,7 +304,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Total Assets</p>
-              <p className="text-2xl font-bold text-gray-900">{inventoryProgress.total}</p>
+              <p className="text-2xl font-bold text-gray-900">{inventoryProgress.total_assets}</p>
             </div>
             <Shield className="h-8 w-8 text-blue-500" />
           </div>
@@ -352,7 +354,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
           Asset Classification Summary
         </CardTitle>
         <p className="text-sm text-gray-600">
-          {inventoryProgress.total} assets analyzed with {inventoryProgress.servers} servers, {inventoryProgress.applications} applications, {inventoryProgress.databases} databases, and {inventoryProgress.devices} devices identified.
+          {inventoryProgress.total_assets} assets analyzed with {inventoryProgress.servers} servers, {inventoryProgress.applications} applications, {inventoryProgress.databases} databases, and {inventoryProgress.devices} devices identified.
         </p>
       </CardHeader>
       <CardContent>
@@ -489,8 +491,8 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {paginatedAssets.map((asset) => (
-                <tr key={asset.id} className="hover:bg-gray-50">
+              {paginatedAssets.map((asset, index) => (
+                <tr key={asset.id || `asset-${index}`} className="hover:bg-gray-50">
                   <td className="px-4 py-3">
                     <input
                       type="checkbox"
@@ -663,8 +665,8 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredAssets.slice(0, 10).map((asset) => (
-                    <tr key={asset.id} className="hover:bg-gray-50">
+                  {filteredAssets.slice(0, 10).map((asset, index) => (
+                    <tr key={asset.id || `filtered-asset-${index}`} className="hover:bg-gray-50">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           {getTypeIcon(asset.asset_type || '')}
@@ -799,10 +801,10 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
             <div className="text-sm text-blue-800">
               <div className="font-medium mb-2">🔍 Assessment Phase - App Selection:</div>
               <ul className="space-y-1">
-                <li>• Select applications from the inventory for detailed migration assessment</li>
-                <li>• Analyze 6R migration strategies per selected application</li>
-                <li>• Assess business criticality and technical complexity</li>
-                <li>• Generate migration readiness scores and recommendations</li>
+                <li key="select-apps">• Select applications from the inventory for detailed migration assessment</li>
+                <li key="analyze-6r">• Analyze 6R migration strategies per selected application</li>
+                <li key="assess-criticality">• Assess business criticality and technical complexity</li>
+                <li key="generate-scores">• Generate migration readiness scores and recommendations</li>
               </ul>
             </div>
           </div>
