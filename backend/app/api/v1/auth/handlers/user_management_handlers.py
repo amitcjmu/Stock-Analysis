@@ -19,11 +19,10 @@ from app.schemas.auth_schemas import (
     PaginationParams, FilterParams
 )
 from app.services.auth_services.user_management_service import UserManagementService
+from app.api.v1.auth.auth_utils import get_current_user
+from app.models.client_account import User
 
 logger = logging.getLogger(__name__)
-
-# Demo admin user UUID for fallback
-DEMO_ADMIN_USER_ID = "55555555-5555-5555-5555-555555555555"
 
 # Create user management router
 user_management_router = APIRouter()
@@ -77,17 +76,16 @@ async def get_registration_status(
 async def get_pending_approvals(
     pagination: PaginationParams = Depends(),
     filters: FilterParams = Depends(),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     Get list of users pending approval.
     Requires admin privileges.
     """
     try:
-        context = get_current_context()
-        
-        # Get user ID from context, with fallback to demo admin UUID
-        user_id_str = context.user_id or DEMO_ADMIN_USER_ID
+        # Use authenticated user from dependency injection
+        user_id_str = str(current_user.id)
         
         user_service = UserManagementService(db)
         return await user_service.get_pending_approvals(user_id_str, pagination, filters)
@@ -103,17 +101,16 @@ async def get_pending_approvals(
 async def approve_user(
     approval_request: UserApprovalRequest,
     request: Request,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     Approve a pending user registration.
     Requires admin privileges.
     """
     try:
-        context = get_current_context()
-        
-        # Use demo admin UUID as fallback
-        approved_by = context.user_id or DEMO_ADMIN_USER_ID
+        # Use authenticated user from dependency injection
+        approved_by = str(current_user.id)
         
         approval_data = approval_request.dict()
         approval_data.update({
@@ -135,17 +132,16 @@ async def approve_user(
 async def reject_user(
     rejection_request: UserRejectionRequest,
     request: Request,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     Reject a pending user registration.
     Requires admin privileges.
     """
     try:
-        context = get_current_context()
-        
-        # Use demo admin UUID as fallback
-        rejected_by = context.user_id or DEMO_ADMIN_USER_ID
+        # Use authenticated user from dependency injection
+        rejected_by = str(current_user.id)
         
         user_service = UserManagementService(db)
         return await user_service.reject_user(rejection_request, rejected_by)
@@ -180,17 +176,16 @@ async def validate_user_access(
 async def grant_client_access(
     access_grant: ClientAccessGrant,
     request: Request,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     Grant client access to a user.
     Requires admin privileges.
     """
     try:
-        context = get_current_context()
-        
-        # Use demo admin UUID as fallback
-        granted_by = context.user_id or DEMO_ADMIN_USER_ID
+        # Use authenticated user from dependency injection
+        granted_by = str(current_user.id)
         
         request_data = {
             "ip_address": request.client.host if request.client else None,
@@ -246,14 +241,13 @@ async def update_user_profile(
 async def deactivate_user(
     request_data: Dict[str, Any],
     request: Request,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """Deactivate a user account."""
     try:
-        context = get_current_context()
-        
-        # Use demo admin UUID as fallback
-        deactivated_by = context.user_id or DEMO_ADMIN_USER_ID
+        # Use authenticated user from dependency injection
+        deactivated_by = str(current_user.id)
         
         user_service = UserManagementService(db)
         return await user_service.deactivate_user(request_data, deactivated_by)
@@ -269,14 +263,13 @@ async def deactivate_user(
 async def activate_user(
     request_data: Dict[str, Any],
     request: Request,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """Activate a user account."""
     try:
-        context = get_current_context()
-        
-        # Use demo admin UUID as fallback
-        activated_by = context.user_id or DEMO_ADMIN_USER_ID
+        # Use authenticated user from dependency injection
+        activated_by = str(current_user.id)
         
         user_service = UserManagementService(db)
         return await user_service.activate_user(request_data, activated_by)

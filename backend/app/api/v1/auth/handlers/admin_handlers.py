@@ -18,8 +18,7 @@ from app.models.client_account import User
 
 logger = logging.getLogger(__name__)
 
-# Demo admin user UUID for fallback
-DEMO_ADMIN_USER_ID = "55555555-5555-5555-5555-555555555555"
+# Removed hardcoded demo admin UUID for security
 
 # Create admin router
 admin_router = APIRouter()
@@ -209,47 +208,40 @@ async def get_user_type(
         # Use authenticated user from dependency injection
         user_id_str = str(current_user.id)
         
-        # Check if user is demo admin
-        is_demo_admin = user_id_str in [DEMO_ADMIN_USER_ID, "demo_user"]
-        
-        # For real users, check if they have demo/mock flag
-        is_mock_user = False
-        if not is_demo_admin and user_id_str:
-            try:
-                from sqlalchemy import select
-                from app.models.rbac import User
-                
-                # Check if user has is_mock flag
-                query = select(User).where(User.id == user_id_str)
-                result = await db.execute(query)
-                user = result.scalar_one_or_none()
-                
-                if user:
-                    is_mock_user = getattr(user, 'is_mock', False)
+        # Check if user has platform admin role (no more hardcoded demo admin)
+        is_platform_admin = False
+        try:
+            from sqlalchemy import select
+            from app.models.rbac import UserRole, RoleType
+            
+            # Check if user has platform admin role
+            query = (
+                select(UserRole)
+                .where(UserRole.user_id == current_user.id)
+                .where(UserRole.role_type == RoleType.PLATFORM_ADMIN)
+            )
+            result = await db.execute(query)
+            platform_admin_role = result.scalar_one_or_none()
+            
+            is_platform_admin = platform_admin_role is not None
                     
-            except Exception as e:
-                logger.warning(f"Could not check user mock status: {e}")
+        except Exception as e:
+            logger.warning(f"Could not check user platform admin status: {e}")
         
         return {
             "status": "success",
             "user_type": {
                 "user_id": user_id_str,
-                "is_demo_admin": is_demo_admin,
-                "is_mock_user": is_mock_user,
-                "should_see_mock_data_only": is_demo_admin or is_mock_user,
-                "access_level": "demo" if (is_demo_admin or is_mock_user) else "production"
+                "is_platform_admin": is_platform_admin,
+                "is_mock_user": False,  # No more mock users needed
+                "should_see_mock_data_only": False,  # Platform admin sees real data
+                "access_level": "platform_admin" if is_platform_admin else "user"
             }
         }
         
     except Exception as e:
         logger.error(f"Error in get_user_type: {e}")
         return {
-            "status": "success",
-            "user_type": {
-                "user_id": "unknown",
-                "is_demo_admin": True,  # Default to demo for safety
-                "is_mock_user": False,
-                "should_see_mock_data_only": True,
-                "access_level": "demo"
-            }
+            "status": "error",
+            "message": f"Failed to get user type: {str(e)}"
         } 

@@ -131,10 +131,13 @@ class ClientCRUDHandler:
         db: AsyncSession,
         admin_user: str
     ) -> AdminSuccessResponse:
-        """Update client account with proper field mapping."""
+        """Update client account with enhanced business context support"""
         try:
             if not CLIENT_MODELS_AVAILABLE:
                 raise HTTPException(status_code=503, detail="Client models not available")
+            
+            # Debug logging to see what data is being received
+            logger.info(f"🔍 Updating client {client_id} with data: {update_data.dict(exclude_unset=True)}")
             
             query = select(ClientAccount).where(ClientAccount.id == client_id)
             result = await db.execute(query)
@@ -143,8 +146,9 @@ class ClientCRUDHandler:
             if not client:
                 raise HTTPException(status_code=404, detail="Client account not found")
             
-            # Get update data as dictionary for field mapping
+            # Convert update data to dict for easier handling
             update_dict = update_data.dict(exclude_unset=True)
+            logger.info(f"🔍 Update dict: {update_dict}")
             
             # Field mapping from frontend to database model
             field_mapping = {
