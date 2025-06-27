@@ -476,7 +476,9 @@ class UserManagementHandler(BaseRBACHandler):
                 'full_name': None,  # Special handling needed - split into first_name and last_name
                 'first_name': 'first_name',
                 'last_name': 'last_name',
-                'email': 'email'
+                'email': 'email',
+                'default_client_id': 'default_client_id',  # Add support for default client
+                'default_engagement_id': 'default_engagement_id'  # Add support for default engagement
             }
             
             profile_field_mapping = {
@@ -499,6 +501,20 @@ class UserManagementHandler(BaseRBACHandler):
                             name_parts = value.strip().split(' ', 1)
                             user_profile.user.first_name = name_parts[0] if len(name_parts) > 0 else ""
                             user_profile.user.last_name = name_parts[1] if len(name_parts) > 1 else ""
+                        elif frontend_field in ['default_client_id', 'default_engagement_id']:
+                            # Special handling for UUID fields - convert 'none' to None
+                            if value == 'none' or value == '':
+                                setattr(user_profile.user, db_field, None)
+                            else:
+                                # Validate UUID format
+                                try:
+                                    import uuid
+                                    uuid_value = uuid.UUID(value)
+                                    setattr(user_profile.user, db_field, uuid_value)
+                                except ValueError:
+                                    logger.warning(f"Invalid UUID format for {frontend_field}: {value}")
+                                    # Skip invalid UUIDs but don't fail the entire update
+                                    continue
                         elif db_field and hasattr(user_profile.user, db_field):
                             setattr(user_profile.user, db_field, value)
             

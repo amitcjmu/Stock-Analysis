@@ -1,5 +1,39 @@
 # 🚀 AI Force Migration Platform - Changelog
 
+## [0.6.4] - 2025-01-28
+
+### 🐛 **ENGAGEMENT DROPDOWN FILTERING FIX**
+
+This release fixes a critical UI issue where engagement dropdowns were showing all engagements instead of filtering by selected client.
+
+### 🚀 **User Interface Fixes**
+
+#### **Engagement Dropdown Client Filtering**
+- **Fix**: Resolved engagement dropdown showing all engagements regardless of selected client
+- **UserSearchAndEdit**: Added `getFilteredEngagements()` function with client-based filtering
+- **UserAccessManagement**: Added client selection step with disabled engagement dropdown until client selected
+- **Behavior**: Engagement dropdowns now only show engagements belonging to the selected client
+- **UX**: Added proper form state management with automatic reset when client changes
+
+### 📊 **Technical Improvements**
+- **State Management**: Added `selectedClient` state and filtering logic
+- **Form Validation**: Engagement selection properly resets when client changes
+- **User Flow**: Intuitive client-first selection for engagement assignment
+- **Data Integrity**: Prevents invalid client-engagement combinations
+
+### 🎯 **Business Impact**
+- **Data Accuracy**: Users can only assign engagements that actually belong to selected clients
+- **User Experience**: Clear, logical workflow for client and engagement selection
+- **Admin Efficiency**: Streamlined user management with proper data relationships
+
+### 🔧 **Technical Details**
+- **Components**: UserSearchAndEdit, UserAccessManagement
+- **Filtering**: Client-based engagement filtering using `client_account_id`
+- **State**: Reactive form state with automatic cleanup on client changes
+- **Validation**: Disabled engagement dropdown until client selection
+
+---
+
 ## [0.6.3] - 2025-01-28
 
 ### 🎯 **ADMIN DASHBOARD FRONTEND TESTING & USER MANAGEMENT ENHANCEMENT**
