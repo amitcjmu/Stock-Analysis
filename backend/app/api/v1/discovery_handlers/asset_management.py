@@ -101,7 +101,7 @@ class AssetManagementHandler:
             
             # If no real assets found, fall back to mock data for development
             logger.warning(f"⚠️ No real assets found for flow {flow_id}, generating mock data")
-            return self._generate_mock_assets(flow_id)
+            return self._get_fallback_assets(flow_id)
             
         except Exception as e:
             logger.error(f"❌ Failed to get flow assets: {e}")
