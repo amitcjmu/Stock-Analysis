@@ -229,6 +229,40 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             except Exception as fallback_error:
                 logger.error(f"❌ Even fallback UUID conversion failed: {fallback_error}")
     
+    def _ensure_uuid_serialization_safety_for_dict(self, data_dict: Dict[str, Any]) -> Dict[str, Any]:
+        """Ensure UUID serialization safety for a specific dictionary"""
+        try:
+            def convert_nested_uuids(obj):
+                if isinstance(obj, dict):
+                    return {k: convert_nested_uuids(v) for k, v in obj.items()}
+                elif isinstance(obj, list):
+                    return [convert_nested_uuids(item) for item in obj]
+                elif isinstance(obj, uuid.UUID):
+                    return str(obj)
+                elif hasattr(obj, '__dict__'):
+                    # Handle objects with attributes that might contain UUIDs
+                    result = {}
+                    for attr_name in dir(obj):
+                        if not attr_name.startswith('_'):
+                            try:
+                                attr_value = getattr(obj, attr_name)
+                                if isinstance(attr_value, uuid.UUID):
+                                    result[attr_name] = str(attr_value)
+                                elif not callable(attr_value):
+                                    result[attr_name] = convert_nested_uuids(attr_value)
+                            except (AttributeError, TypeError):
+                                continue
+                    return result
+                else:
+                    return obj
+            
+            return convert_nested_uuids(data_dict)
+            
+        except Exception as e:
+            logger.warning(f"⚠️ UUID serialization safety for dict failed: {e}")
+            # Return original dict as fallback
+            return data_dict
+    
     async def _safe_update_flow_state(self):
         """Safely update flow state with UUID serialization safety"""
         if self.flow_bridge:
@@ -833,27 +867,33 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
                         user_id=uuid_pkg.UUID(self.state.user_id) if self.state.user_id and self.state.user_id != "anonymous" else None
                     )
                     
+                    # Ensure UUID serialization safety for creation_result
+                    safe_creation_result = self._ensure_uuid_serialization_safety_for_dict(creation_result)
+                    
                     # Store results in flow state
                     self.state.asset_inventory = {
-                        "assets_promoted": creation_result.get("created_count", 0),
-                        "assets_skipped": creation_result.get("skipped_count", 0),
-                        "assets_errored": creation_result.get("error_count", 0),
-                        "success": creation_result.get("success", False),
+                        "assets_promoted": safe_creation_result.get("statistics", {}).get("assets_created", 0),
+                        "assets_skipped": safe_creation_result.get("statistics", {}).get("assets_skipped", 0),
+                        "assets_errored": safe_creation_result.get("statistics", {}).get("errors", 0),
+                        "success": safe_creation_result.get("success", False),
                         "timestamp": datetime.utcnow().isoformat(),
                         "phase": "dependencies",
-                        "details": creation_result
+                        "details": safe_creation_result
                     }
                     
                     # Mark phase as completed
                     self.state.phase_completion["asset_inventory"] = True
                     self.state.progress_percentage = 80.0
                     
+                    # Ensure full state UUID safety before persistence
+                    self._ensure_uuid_serialization_safety()
+                    
                     # REAL-TIME UPDATE: Persist state with asset promotion results
                     if self.flow_bridge:
                         await self.flow_bridge.update_flow_state(self.state)
                     
-                    logger.info(f"✅ Asset promotion completed: {creation_result.get('created_count', 0)} assets created")
-                    return f"dependencies_completed_{creation_result.get('created_count', 0)}_assets"
+                    logger.info(f"✅ Asset promotion completed: {safe_creation_result.get('statistics', {}).get('assets_created', 0)} assets created")
+                    return f"dependencies_completed_{safe_creation_result.get('statistics', {}).get('assets_created', 0)}_assets"
                     
                 except Exception as e:
                     await db_session.rollback()
@@ -863,6 +903,9 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         except Exception as e:
             logger.error(f"❌ Asset promotion failed: {e}")
             self.state.add_error("dependencies", f"Asset promotion failed: {str(e)}")
+            
+            # Ensure UUID safety even on error
+            self._ensure_uuid_serialization_safety()
             
             # REAL-TIME UPDATE: Update database even on failure
             if self.flow_bridge:
@@ -907,13 +950,17 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             
             # Store asset inventory results
             if not isinstance(asset_result, Exception):
-                self.state.asset_inventory = asset_result.data
+                # Ensure UUID safety for agent result data
+                safe_asset_data = self._ensure_uuid_serialization_safety_for_dict(asset_result.data) if hasattr(asset_result, 'data') else {}
+                self.state.asset_inventory = safe_asset_data
                 self.state.agent_confidences['asset_inventory'] = asset_result.confidence_score
                 self.state.phase_completion['asset_inventory'] = True
                 if asset_result.insights_generated:
-                    self.state.agent_insights.extend([insight.model_dump() for insight in asset_result.insights_generated])
+                    safe_insights = [self._ensure_uuid_serialization_safety_for_dict(insight.model_dump()) for insight in asset_result.insights_generated]
+                    self.state.agent_insights.extend(safe_insights)
                 if asset_result.clarifications_requested:
-                    self.state.user_clarifications.extend([req.model_dump() for req in asset_result.clarifications_requested])
+                    safe_clarifications = [self._ensure_uuid_serialization_safety_for_dict(req.model_dump()) for req in asset_result.clarifications_requested]
+                    self.state.user_clarifications.extend(safe_clarifications)
                 logger.info(f"✅ Asset inventory agent completed (confidence: {asset_result.confidence_score:.1f}%)")
             else:
                 logger.error(f"❌ Asset inventory agent failed: {asset_result}")
@@ -921,13 +968,17 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             
             # Store dependency analysis results
             if not isinstance(dependency_result, Exception):
-                self.state.dependency_analysis = dependency_result.data
+                # Ensure UUID safety for agent result data
+                safe_dependency_data = self._ensure_uuid_serialization_safety_for_dict(dependency_result.data) if hasattr(dependency_result, 'data') else {}
+                self.state.dependency_analysis = safe_dependency_data
                 self.state.agent_confidences['dependency_analysis'] = dependency_result.confidence_score
                 self.state.phase_completion['dependency_analysis'] = True
                 if dependency_result.insights_generated:
-                    self.state.agent_insights.extend([insight.model_dump() for insight in dependency_result.insights_generated])
+                    safe_insights = [self._ensure_uuid_serialization_safety_for_dict(insight.model_dump()) for insight in dependency_result.insights_generated]
+                    self.state.agent_insights.extend(safe_insights)
                 if dependency_result.clarifications_requested:
-                    self.state.user_clarifications.extend([req.model_dump() for req in dependency_result.clarifications_requested])
+                    safe_clarifications = [self._ensure_uuid_serialization_safety_for_dict(req.model_dump()) for req in dependency_result.clarifications_requested]
+                    self.state.user_clarifications.extend(safe_clarifications)
                 logger.info(f"✅ Dependency analysis agent completed (confidence: {dependency_result.confidence_score:.1f}%)")
             else:
                 logger.error(f"❌ Dependency analysis agent failed: {dependency_result}")
@@ -935,13 +986,17 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             
             # Store tech debt analysis results
             if not isinstance(tech_debt_result, Exception):
-                self.state.tech_debt_analysis = tech_debt_result.data
+                # Ensure UUID safety for agent result data
+                safe_tech_debt_data = self._ensure_uuid_serialization_safety_for_dict(tech_debt_result.data) if hasattr(tech_debt_result, 'data') else {}
+                self.state.tech_debt_analysis = safe_tech_debt_data
                 self.state.agent_confidences['tech_debt_analysis'] = tech_debt_result.confidence_score
                 self.state.phase_completion['tech_debt_analysis'] = True
                 if tech_debt_result.insights_generated:
-                    self.state.agent_insights.extend([insight.model_dump() for insight in tech_debt_result.insights_generated])
+                    safe_insights = [self._ensure_uuid_serialization_safety_for_dict(insight.model_dump()) for insight in tech_debt_result.insights_generated]
+                    self.state.agent_insights.extend(safe_insights)
                 if tech_debt_result.clarifications_requested:
-                    self.state.user_clarifications.extend([req.model_dump() for req in tech_debt_result.clarifications_requested])
+                    safe_clarifications = [self._ensure_uuid_serialization_safety_for_dict(req.model_dump()) for req in tech_debt_result.clarifications_requested]
+                    self.state.user_clarifications.extend(safe_clarifications)
                 logger.info(f"✅ Tech debt analysis agent completed (confidence: {tech_debt_result.confidence_score:.1f}%)")
                 return "parallel_analysis_completed"
             else:
@@ -952,6 +1007,9 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             # Update progress after all agents complete
             self.state.progress_percentage = 90.0
             
+            # Ensure UUID safety before persistence
+            self._ensure_uuid_serialization_safety()
+            
             # REAL-TIME UPDATE: Persist state with all agent insights and progress
             if self.flow_bridge:
                 await self.flow_bridge.update_flow_state(self.state)
@@ -961,6 +1019,9 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         except Exception as e:
             logger.error(f"❌ Parallel analysis agents failed: {e}")
             self.state.add_error("analysis", f"Parallel execution failed: {str(e)}")
+            
+            # Ensure UUID safety even on error
+            self._ensure_uuid_serialization_safety()
             
             # REAL-TIME UPDATE: Update database even on failure
             if self.flow_bridge:
@@ -1012,6 +1073,9 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         try:
             # Generate final summary
             summary = self.state.finalize_flow()
+            
+            # Ensure UUID safety before any persistence
+            self._ensure_uuid_serialization_safety()
             
             # Validate overall success - check multiple data sources
             total_assets = 0
