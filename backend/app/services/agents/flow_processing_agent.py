@@ -134,26 +134,32 @@ class FlowStateAnalysisTool(BaseTool):
             return f"Error analyzing flow {flow_id}: {str(e)}"
     
     def _get_flow_status_via_api(self, flow_id: str) -> dict:
-        """Get flow status using direct service calls instead of API calls to avoid circular dependencies"""
+        """Get flow status using real service calls to provide actionable insights"""
         try:
-            # Simplified approach - avoid async calls entirely to prevent event loop conflicts
-            # Just return basic status for now, agents can work with this
-            logger.info(f"Getting flow status for {flow_id} using simplified approach")
+            # Call the actual flow management service to get real status
+            from app.api.v1.discovery_handlers.flow_management import FlowManagementHandler
+            from app.core.context import RequestContext
+            from app.core.database import AsyncSessionLocal
+            import asyncio
             
-            # Return basic status that agents can use
-            return {
-                "flow_type": "discovery",
-                "current_phase": "data_import",
-                "status": "active",
-                "progress_percentage": 0,
-                "phases_data": {},
-                "agent_insights": [],
-                "validation_results": {},
-                "message": "Flow analysis using simplified approach to avoid async conflicts"
-            }
+            # Create context for service calls
+            context = RequestContext(
+                client_account_id="dfea7406-1575-4348-a0b2-2770cbe2d9f9",
+                engagement_id="ce27e7b1-2ac6-4b74-8dd5-b52d542a1669",
+                user_id=None,
+                session_id=None
+            )
             
+            # Use a thread to run async call safely
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(asyncio.run, self._get_real_flow_status(flow_id, context))
+                result = future.result(timeout=30)
+                return result
+                
         except Exception as e:
-            logger.error(f"Failed to get flow status for {flow_id}: {e}")
+            logger.error(f"Failed to get real flow status for {flow_id}: {e}")
+            # Return error status with actionable guidance
             return {
                 "flow_type": "discovery",
                 "current_phase": "data_import",
@@ -161,8 +167,65 @@ class FlowStateAnalysisTool(BaseTool):
                 "progress_percentage": 0,
                 "phases_data": {},
                 "agent_insights": [],
-                "validation_results": {}
+                "validation_results": {},
+                "error_message": f"Failed to get flow status: {str(e)}",
+                "actionable_guidance": "Please check system logs and retry the flow processing"
             }
+    
+    async def _get_real_flow_status(self, flow_id: str, context: "RequestContext") -> dict:
+        """Get real flow status with detailed analysis"""
+        try:
+            from app.api.v1.discovery_handlers.flow_management import FlowManagementHandler
+            from app.core.database import AsyncSessionLocal
+            
+            async with AsyncSessionLocal() as session:
+                handler = FlowManagementHandler(session, context)
+                flow_response = await handler.get_flow_status(flow_id)
+                
+                # Analyze the real status to provide actionable insights
+                current_phase = flow_response.get("current_phase", "data_import")
+                progress = flow_response.get("progress_percentage", 0)
+                phases = flow_response.get("phases", {})
+                
+                # Determine what specifically failed or needs attention
+                actionable_insights = []
+                specific_issues = []
+                
+                if current_phase == "data_import" and progress == 0:
+                    # Check if there's actual data
+                    raw_data = flow_response.get("raw_data", [])
+                    field_mapping = flow_response.get("field_mapping", {})
+                    
+                    if not raw_data:
+                        specific_issues.append("No data has been imported yet")
+                        actionable_insights.append("User needs to upload a data file first")
+                    elif len(raw_data) < 5:
+                        specific_issues.append(f"Only {len(raw_data)} records imported - insufficient for analysis")
+                        actionable_insights.append("User should upload a file with more data records")
+                    else:
+                        specific_issues.append("Data imported but not processed through validation")
+                        actionable_insights.append("System should trigger data validation and processing")
+                
+                # Convert to format expected by agent
+                return {
+                    "flow_type": "discovery",
+                    "current_phase": current_phase,
+                    "status": flow_response.get("status", "active"),
+                    "progress_percentage": progress,
+                    "phases_data": phases,
+                    "agent_insights": flow_response.get("agent_insights", []),
+                    "validation_results": flow_response.get("validation_results", {}),
+                    "raw_data_count": len(flow_response.get("raw_data", [])),
+                    "field_mapping_status": "configured" if flow_response.get("field_mapping") else "pending",
+                    "specific_issues": specific_issues,
+                    "actionable_insights": actionable_insights,
+                    "data_import_id": flow_response.get("data_import_id"),
+                    "created_at": flow_response.get("created_at"),
+                    "updated_at": flow_response.get("updated_at")
+                }
+        except Exception as e:
+            logger.error(f"Real flow status failed for {flow_id}: {e}")
+            raise
     
     def _determine_flow_type_via_api(self, flow_id: str) -> str:
         """Determine flow type using API calls instead of database queries"""
@@ -239,30 +302,93 @@ class PhaseValidationTool(BaseTool):
             return f"Phase {phase} validation ERROR: {str(e)}"
     
     def _sync_validate_phase(self, flow_id: str, phase: str) -> str:
-        """Synchronous validation using simplified logic to avoid circular dependencies"""
+        """Validate phase using real validation services to provide actionable guidance"""
         try:
-            # Simplified phase validation - avoid async calls to prevent event loop conflicts
-            logger.info(f"Validating phase {phase} for flow {flow_id} using simplified approach")
+            # Call the actual phase validation endpoint
+            from app.api.v1.endpoints.flow_processing import validate_phase_data
+            from app.core.context import RequestContext
+            from app.core.database import AsyncSessionLocal
+            import asyncio
             
-            # Return basic phase validation result that agents can work with
-            if phase == "data_import":
-                status = "INCOMPLETE"
-                message = "Data import phase needs completion"
-                complete = False
-                validation_data = {"records": 0, "progress": 0}
-            else:
-                status = "NOT_STARTED"
-                message = f"{phase} phase not yet started"
-                complete = False
-                validation_data = {"records": 0, "progress": 0}
+            # Create context for service calls
+            context = RequestContext(
+                client_account_id="dfea7406-1575-4348-a0b2-2770cbe2d9f9",
+                engagement_id="ce27e7b1-2ac6-4b74-8dd5-b52d542a1669",
+                user_id=None,
+                session_id=None
+            )
             
-            # Return detailed validation result
-            result = f"Phase {phase} is {status}: {message} (Complete: {complete})"
-            result += f" | Data: {validation_data}"
-            return result
+            # Use a thread to run async call safely
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(asyncio.run, self._validate_phase_real(flow_id, phase, context))
+                result = future.result(timeout=30)
+                return result
                 
         except Exception as e:
-            return f"Phase {phase} validation ERROR: {str(e)}"
+            logger.error(f"Phase validation failed for {flow_id}/{phase}: {e}")
+            return f"Phase {phase} validation ERROR: {str(e)} - Please check system status and retry"
+    
+    async def _validate_phase_real(self, flow_id: str, phase: str, context: "RequestContext") -> str:
+        """Use real validation service to check phase completion"""
+        try:
+            from app.api.v1.endpoints.flow_processing import validate_phase_data
+            from app.core.database import AsyncSessionLocal
+            
+            async with AsyncSessionLocal() as session:
+                # Call the actual validation function
+                validation_result = await validate_phase_data(flow_id, phase, session, context)
+                
+                status = validation_result.get("status", "UNKNOWN")
+                message = validation_result.get("message", "No details available")
+                complete = validation_result.get("complete", False)
+                data = validation_result.get("data", {})
+                
+                # Provide specific actionable guidance based on phase and validation results
+                actionable_guidance = []
+                
+                if phase == "data_import" and not complete:
+                    import_sessions = data.get("import_sessions", 0)
+                    raw_records = data.get("raw_records", 0)
+                    threshold_met = data.get("threshold_met", False)
+                    
+                    if import_sessions == 0:
+                        actionable_guidance.append("No data files have been uploaded yet")
+                        actionable_guidance.append("ACTION: User needs to upload a data file using the Data Import page")
+                        actionable_guidance.append("ROUTE: /discovery/data-import")
+                    elif raw_records < 5:
+                        actionable_guidance.append(f"Only {raw_records} records imported - insufficient for analysis")
+                        actionable_guidance.append("ACTION: User needs to upload a larger data file with more records")
+                        actionable_guidance.append("ROUTE: /discovery/data-import")
+                    else:
+                        actionable_guidance.append(f"Data imported ({raw_records} records) but processing incomplete")
+                        actionable_guidance.append("ACTION: System should trigger background processing of imported data")
+                        actionable_guidance.append("INTERNAL: Re-trigger data import processing workflow")
+                
+                elif phase == "attribute_mapping" and not complete:
+                    approved_mappings = data.get("approved_mappings", 0)
+                    high_confidence = data.get("high_confidence_mappings", 0)
+                    
+                    if approved_mappings == 0:
+                        actionable_guidance.append("No field mappings have been configured")
+                        actionable_guidance.append("ACTION: User needs to configure field mappings")
+                        actionable_guidance.append("ROUTE: /discovery/attribute-mapping")
+                    else:
+                        actionable_guidance.append(f"Only {approved_mappings} mappings approved - need more for completion")
+                        actionable_guidance.append("ACTION: User needs to review and approve more field mappings")
+                        actionable_guidance.append("ROUTE: /discovery/attribute-mapping")
+                
+                # Format comprehensive result with actionable guidance
+                result = f"Phase {phase} is {status}: {message} (Complete: {complete})"
+                result += f" | Data: {data}"
+                if actionable_guidance:
+                    result += f" | ACTIONABLE_GUIDANCE: {'; '.join(actionable_guidance)}"
+                
+                return result
+                
+        except Exception as e:
+            logger.error(f"Real phase validation failed for {flow_id}/{phase}: {e}")
+            return f"Phase {phase} validation ERROR: {str(e)} - System unable to validate phase completion"
 
 class FlowValidationTool(BaseTool):
     """Tool for fast fail-first flow validation to find the current incomplete phase"""
@@ -289,23 +415,82 @@ class FlowValidationTool(BaseTool):
             return f"Flow {flow_id} validation ERROR: {str(e)}"
     
     def _sync_validate_flow(self, flow_id: str) -> str:
-        """Synchronous flow validation using simplified logic to avoid circular dependencies"""
+        """Flow validation using real validation services with actionable guidance"""
         try:
-            # Simplified validation - avoid async calls to prevent event loop conflicts
-            logger.info(f"Validating flow {flow_id} using simplified approach")
+            # Call the actual flow validation endpoint
+            from app.api.v1.endpoints.flow_processing import validate_flow_phases
+            from app.core.context import RequestContext
+            from app.core.database import AsyncSessionLocal
+            import asyncio
             
-            # Return basic validation result that agents can work with
-            current_phase = "data_import"
-            status = "INCOMPLETE"
-            next_action = "Complete data import phase"
-            route_to = f"/discovery/data-import?flow_id={flow_id}"
+            # Create context for service calls
+            context = RequestContext(
+                client_account_id="dfea7406-1575-4348-a0b2-2770cbe2d9f9",
+                engagement_id="ce27e7b1-2ac6-4b74-8dd5-b52d542a1669",
+                user_id=None,
+                session_id=None
+            )
             
-            result = f"Flow {flow_id}: CurrentPhase={current_phase}, Status={status}, NextAction={next_action}, Route={route_to}"
-            result += " | FailFast=True (stopped at first incomplete phase)"
-            return result
+            # Use a thread to run async call safely
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(asyncio.run, self._validate_flow_real(flow_id, context))
+                result = future.result(timeout=30)
+                return result
                 
         except Exception as e:
-            return f"Flow {flow_id} validation ERROR: {str(e)}"
+            logger.error(f"Flow validation failed for {flow_id}: {e}")
+            return f"Flow {flow_id} validation ERROR: {str(e)} - Please check system status and retry"
+    
+    async def _validate_flow_real(self, flow_id: str, context: "RequestContext") -> str:
+        """Use real validation service to check flow completion with actionable guidance"""
+        try:
+            from app.api.v1.endpoints.flow_processing import validate_flow_phases
+            from app.core.database import AsyncSessionLocal
+            
+            async with AsyncSessionLocal() as session:
+                # Call the actual validation function
+                validation_result = await validate_flow_phases(flow_id, session, context)
+                
+                current_phase = validation_result.get("current_phase", "unknown")
+                status = validation_result.get("status", "UNKNOWN")
+                next_action = validation_result.get("next_action", "Unknown action required")
+                route_to = validation_result.get("route_to", "/discovery/enhanced-dashboard")
+                validation_details = validation_result.get("validation_details", {})
+                
+                # Build actionable guidance based on validation details
+                actionable_guidance = []
+                
+                if current_phase == "data_import" and status == "INCOMPLETE":
+                    data = validation_details.get("data", {})
+                    import_sessions = data.get("import_sessions", 0)
+                    raw_records = data.get("raw_records", 0)
+                    
+                    if import_sessions == 0:
+                        actionable_guidance.append("ISSUE: No data has been uploaded")
+                        actionable_guidance.append("USER_ACTION: Upload a data file via Data Import page")
+                        actionable_guidance.append("SYSTEM_ACTION: Navigate user to data import")
+                    elif raw_records < 5:
+                        actionable_guidance.append(f"ISSUE: Insufficient data ({raw_records} records)")
+                        actionable_guidance.append("USER_ACTION: Upload a larger data file with more records")
+                        actionable_guidance.append("SYSTEM_ACTION: Guide user to upload better data")
+                    else:
+                        actionable_guidance.append(f"ISSUE: Data uploaded ({raw_records} records) but processing incomplete")
+                        actionable_guidance.append("USER_ACTION: No user action required")
+                        actionable_guidance.append("SYSTEM_ACTION: Trigger background data processing")
+                
+                # Format comprehensive result with fail-fast approach
+                result = f"Flow {flow_id}: CurrentPhase={current_phase}, Status={status}, NextAction={next_action}, Route={route_to}"
+                result += " | FailFast=True (stopped at first incomplete phase)"
+                
+                if actionable_guidance:
+                    result += f" | ACTIONABLE_GUIDANCE: {'; '.join(actionable_guidance)}"
+                
+                return result
+                
+        except Exception as e:
+            logger.error(f"Real flow validation failed for {flow_id}: {e}")
+            return f"Flow {flow_id} validation ERROR: {str(e)} - System unable to validate flow completion"
 
 class RouteDecisionTool(BaseTool):
     """Tool for making intelligent routing decisions"""
@@ -367,35 +552,92 @@ class RouteDecisionTool(BaseTool):
     }
     
     def _run(self, flow_analysis: str, validation_result: str) -> str:
-        """Make routing decision based on analysis"""
+        """Make intelligent routing decision based on actionable guidance"""
         try:
-            # Parse inputs (in real implementation, these would be structured)
+            # Parse inputs to extract actionable guidance
             flow_type = self._extract_flow_type(flow_analysis)
             current_phase = self._extract_current_phase(flow_analysis)
-            is_complete = "COMPLETE" in validation_result
+            flow_id = self._extract_flow_id(flow_analysis)
             
-            routes = self.ROUTE_MAPPING.get(flow_type, {})
+            # Extract actionable guidance from validation results
+            actionable_guidance = self._extract_actionable_guidance(validation_result)
             
-            if is_complete:
-                # Move to next phase or completion
-                next_phase = self._get_next_phase(flow_type, current_phase)
-                target_page = routes.get(next_phase, routes.get("completed", "/"))
+            # Determine if this requires user action or system action
+            user_actions = [g for g in actionable_guidance if "USER_ACTION:" in g]
+            system_actions = [g for g in actionable_guidance if "SYSTEM_ACTION:" in g]
+            issues = [g for g in actionable_guidance if "ISSUE:" in g]
+            
+            # Make intelligent routing decision
+            if user_actions:
+                # User action required - route to appropriate page
+                target_page = self._determine_user_action_route(current_phase, user_actions, flow_id)
+                reasoning = f"User action required: {'; '.join(user_actions)}"
+                confidence = 0.9
+            elif system_actions:
+                # System action required - trigger internal processing
+                target_page = self._determine_system_action_route(current_phase, system_actions, flow_id)
+                reasoning = f"System action required: {'; '.join(system_actions)}"
+                confidence = 0.8
             else:
-                # Stay in current phase
-                target_page = routes.get(current_phase, "/")
+                # Default routing based on phase completion
+                is_complete = "COMPLETE" in validation_result
+                routes = self.ROUTE_MAPPING.get(flow_type, {})
+                
+                if is_complete:
+                    next_phase = self._get_next_phase(flow_type, current_phase)
+                    target_page = routes.get(next_phase, routes.get("completed", "/"))
+                    reasoning = f"Phase {current_phase} complete - advancing to {next_phase}"
+                else:
+                    target_page = routes.get(current_phase, "/")
+                    reasoning = f"Phase {current_phase} incomplete - staying in current phase"
+                
+                confidence = 0.7
             
-            # Add flow_id to route if not the import page
-            if not target_page.endswith("/import"):
-                flow_id = self._extract_flow_id(flow_analysis)
-                if flow_id:
-                    target_page = f"{target_page}/{flow_id}"
+            # Include specific issues in reasoning
+            if issues:
+                reasoning += f" | Issues: {'; '.join(issues)}"
             
-            reasoning = f"Flow {flow_type} in phase {current_phase} - {'advancing' if is_complete else 'continuing'}"
-            
-            return f"ROUTE: {target_page} | REASONING: {reasoning} | CONFIDENCE: 0.9"
+            return f"ROUTE: {target_page} | REASONING: {reasoning} | CONFIDENCE: {confidence}"
             
         except Exception as e:
             return f"Error making routing decision: {str(e)}"
+    
+    def _extract_actionable_guidance(self, validation_result: str) -> List[str]:
+        """Extract actionable guidance from validation result"""
+        if "ACTIONABLE_GUIDANCE:" in validation_result:
+            guidance_part = validation_result.split("ACTIONABLE_GUIDANCE:")[1]
+            return [g.strip() for g in guidance_part.split(";") if g.strip()]
+        return []
+    
+    def _determine_user_action_route(self, current_phase: str, user_actions: List[str], flow_id: str) -> str:
+        """Determine route based on required user actions"""
+        # Check if user needs to upload data
+        if any("upload" in action.lower() for action in user_actions):
+            return "/discovery/data-import"
+        
+        # Check if user needs to configure mappings
+        if any("mapping" in action.lower() for action in user_actions):
+            return f"/discovery/attribute-mapping?flow_id={flow_id}"
+        
+        # Check if user needs to review something
+        if any("review" in action.lower() for action in user_actions):
+            return f"/discovery/{current_phase.replace('_', '-')}?flow_id={flow_id}"
+        
+        # Default to current phase page
+        return f"/discovery/{current_phase.replace('_', '-')}?flow_id={flow_id}"
+    
+    def _determine_system_action_route(self, current_phase: str, system_actions: List[str], flow_id: str) -> str:
+        """Determine route for system actions (usually stay on current page while processing)"""
+        # For system actions, usually stay on enhanced dashboard to show processing
+        if any("trigger" in action.lower() or "process" in action.lower() for action in system_actions):
+            return f"/discovery/enhanced-dashboard?flow_id={flow_id}&action=processing"
+        
+        # For navigation actions, go to the specified page
+        if any("navigate" in action.lower() for action in system_actions):
+            return f"/discovery/{current_phase.replace('_', '-')}?flow_id={flow_id}"
+        
+        # Default to enhanced dashboard
+        return f"/discovery/enhanced-dashboard?flow_id={flow_id}"
     
     def _extract_flow_type(self, analysis: str) -> str:
         """Extract flow type from analysis"""
@@ -607,44 +849,62 @@ class UniversalFlowProcessingCrew:
         
         # Task 2: Phase Validation
         validation_task = Task(
-            description=f"""Use the flow_validator tool to perform fast fail-first validation on flow {flow_id}.
+            description=f"""Use the flow_validator tool to perform comprehensive validation on flow {flow_id}.
             
             The flow validator will:
             1. Check all phases sequentially (data_import, attribute_mapping, data_cleansing, inventory, dependencies, tech_debt)
             2. Stop at the FIRST incomplete phase (fail-fast approach)
-            3. Return the current phase that needs attention
-            4. Provide specific validation criteria and data counts
+            3. Return detailed validation with specific data counts and issues
+            4. Provide ACTIONABLE GUIDANCE distinguishing between:
+               - USER_ACTION: What the user needs to do (upload data, configure mappings, etc.)
+               - SYSTEM_ACTION: What the system needs to do internally (trigger processing, etc.)
+               - ISSUE: Specific problems identified
             
-            Then use the phase_validator tool to get detailed validation information for the identified phase.
+            Then use the phase_validator tool to get detailed validation for the identified incomplete phase.
             
-            Determine:
-            - Which phase is the current bottleneck
-            - What specific criteria are not met
-            - What data is missing or incomplete
-            - Whether the phase can be considered complete
+            Your job is to:
+            - Identify exactly what failed or is incomplete
+            - Determine if this requires user action or system action
+            - Provide specific, actionable guidance about what needs to be done
+            - Distinguish between things the user can control vs. system-level issues
             
-            Provide a clear assessment of what needs to be completed before advancing.
+            DO NOT tell users to "ensure something is completed" - instead identify:
+            - If they need to upload data → route them to data import
+            - If they need to configure mappings → route them to attribute mapping  
+            - If system processing failed → trigger system actions internally
             """,
             agent=self.phase_validator_agent,
-            expected_output="Detailed validation result with current incomplete phase, specific criteria not met, and required actions",
+            expected_output="Detailed validation with specific actionable guidance distinguishing user actions from system actions",
             context=[analysis_task]
         )
         
         # Task 3: Route Decision
         routing_task = Task(
-            description="""Based on the flow analysis and phase validation, make an intelligent routing decision.
+            description="""Based on the flow analysis and phase validation, make an intelligent routing decision that provides ACTIONABLE USER GUIDANCE.
             
-            Determine:
-            1. Where the user should be directed next
-            2. What specific page or section they need
-            3. What actions they should take
-            4. How to provide clear guidance
-            5. What context should be passed along
+            Your routing decision must:
+            1. Parse the actionable guidance from validation results
+            2. Distinguish between user actions and system actions
+            3. Route users to pages where they can actually take action
+            4. Trigger system processes when needed (not user responsibility)
+            5. Provide clear, specific guidance about what the user should do
             
-            Make the optimal routing decision that will help the user make progress efficiently.
+            ROUTING LOGIC:
+            - If user needs to upload data → route to /discovery/data-import
+            - If user needs to configure mappings → route to /discovery/attribute-mapping
+            - If system needs to process data → stay on enhanced dashboard with processing indicator
+            - If phase is truly complete → advance to next phase
+            
+            USER GUIDANCE PRINCIPLES:
+            - Never tell users to "ensure completion" of something they can't control
+            - Always provide specific, actionable steps
+            - Route them to pages where they can actually take the required action
+            - For system issues, explain that background processing is needed
+            
+            Provide clear reasoning about why this route was chosen and what the user should expect.
             """,
             agent=self.route_strategist,
-            expected_output="Routing decision with target page, reasoning, confidence level, and user guidance",
+            expected_output="Routing decision with specific user guidance and clear distinction between user vs system responsibilities",
             context=[analysis_task, validation_task]
         )
         

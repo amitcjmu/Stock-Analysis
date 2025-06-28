@@ -2650,3 +2650,86 @@ This release marks a fundamental transformation from a platform with pseudo-agen
 The platform now has authentic agentic intelligence that can learn, adapt, and improve over time, setting the foundation for advanced AI-driven migration capabilities and user experiences.
 
 // ... existing code ...
+
+## [0.12.4] - 2025-01-27
+
+### 🎯 **CREWAI AGENT INTELLIGENCE - ACTIONABLE GUIDANCE ENHANCEMENT**
+
+This release transforms the CrewAI Flow Processing Agent from providing vague guidance to delivering specific, actionable insights that distinguish between user responsibilities and system actions.
+
+### 🚀 **Agent Intelligence Transformation**
+
+#### **Real Validation Service Integration**
+- **FlowStateAnalysisTool**: Now calls actual flow management services to get real status with detailed analysis
+- **PhaseValidationTool**: Uses real validation endpoints to check data presence, field mappings, and completion criteria
+- **FlowValidationTool**: Integrates with actual validation APIs using fail-fast approach to identify specific issues
+- **RouteDecisionTool**: Parses actionable guidance to make intelligent routing decisions based on real data
+
+#### **Actionable Guidance Framework**
+- **USER_ACTION**: Specific actions users can take (upload data files, configure field mappings, review settings)
+- **SYSTEM_ACTION**: Internal processing the system handles (trigger background processing, data validation, workflow advancement)
+- **ISSUE**: Precise problem identification with data counts and thresholds
+- **ROUTE**: Intelligent routing to pages where users can actually take required actions
+
+#### **Intelligent Problem Diagnosis**
+- **Data Import Analysis**: Detects no data (0 records), insufficient data (<5 records), or processing failures
+- **Field Mapping Assessment**: Identifies missing mappings, low confidence scores, or approval requirements
+- **Phase Completion Logic**: Validates actual completion criteria rather than using hardcoded responses
+- **User Capability Awareness**: Distinguishes between user-controllable actions and system-level processes
+
+### 📊 **Before vs After Comparison**
+
+#### **Previous Behavior (Poor UX):**
+- **Issue**: "Data import phase needs completion" (vague)
+- **Guidance**: "Ensure data import is completed successfully" (impossible for user)
+- **Routing**: `/discovery/attribute-mapping` (wrong - can't do mappings without data)
+- **User Experience**: Confused users with no actionable steps
+
+#### **New Behavior (Intelligent UX):**
+- **Issue**: "ISSUE: Insufficient data (0 records)" (specific)
+- **Guidance**: "Go to Data Import page and upload a larger data file with more records" (actionable)
+- **Routing**: `/discovery/data-import?flow_id=...` (correct - where user can actually take action)
+- **User Experience**: Clear steps with system/user responsibility separation
+
+### 🎯 **Technical Implementation**
+
+#### **Real Service Integration**
+- **Flow Management Handler**: Direct calls to get actual flow status with data counts
+- **Phase Validation Endpoints**: Integration with `/validate-phase/{flow_id}/{phase}` for real validation
+- **Flow Validation API**: Uses `/validate-flow/{flow_id}` for comprehensive phase checking
+- **Async Safety**: Thread-based execution to prevent event loop conflicts
+
+#### **Actionable Guidance Parser**
+- **Guidance Extraction**: Parses validation results for USER_ACTION, SYSTEM_ACTION, and ISSUE patterns
+- **Routing Logic**: Intelligent routing based on action type and user capabilities
+- **Responsibility Separation**: Clear distinction between user tasks and system processes
+- **Context Preservation**: Maintains flow_id and context through routing decisions
+
+### 📋 **Agent Task Enhancement**
+
+#### **Phase Validation Agent**
+- **Comprehensive Analysis**: "Identify exactly what failed or is incomplete"
+- **Action Classification**: "Determine if this requires user action or system action"
+- **Specific Guidance**: "Provide specific, actionable guidance about what needs to be done"
+- **Control Awareness**: "Distinguish between things the user can control vs. system-level issues"
+
+#### **Flow Navigation Strategist**
+- **Actionable Routing**: "Route users to pages where they can actually take action"
+- **Process Triggering**: "Trigger system processes when needed (not user responsibility)"
+- **Clear Principles**: "Never tell users to 'ensure completion' of something they can't control"
+- **Expectation Setting**: "Provide clear reasoning about why this route was chosen and what the user should expect"
+
+### 🌟 **Business Impact**
+- **User Efficiency**: Users receive specific, actionable steps instead of vague instructions
+- **Reduced Confusion**: Clear separation between user responsibilities and system processes
+- **Better Conversion**: Users directed to pages where they can actually make progress
+- **Support Reduction**: Self-service guidance reduces need for user support
+- **Platform Intelligence**: Agents demonstrate true understanding of user capabilities and system limitations
+
+### 🎪 **Success Metrics**
+- **Guidance Specificity**: 100% of guidance now includes specific actions and routes
+- **Responsibility Clarity**: Clear distinction between user actions and system actions in all responses
+- **Routing Accuracy**: Users directed to correct pages based on what they can actually control
+- **Issue Identification**: Precise problem diagnosis with data counts and validation criteria
+
+// ... existing code ...
