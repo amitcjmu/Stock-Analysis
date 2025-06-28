@@ -738,11 +738,30 @@ const DataImport: React.FC = () => {
   }
 
   const ValidationProgressSection: React.FC<ValidationProgressSectionProps> = ({ file, onValidationUpdate }) => {
-    const monitoring = file.flow_id ? useComprehensiveRealTimeMonitoring(file.flow_id, 'data_import') : null;
+    const [hasPollingError, setHasPollingError] = useState(false);
+    const [errorRetryCount, setErrorRetryCount] = useState(0);
+    const MAX_RETRY_COUNT = 3;
+    
+    // Only use real-time monitoring if we have a flow_id and haven't exceeded error threshold
+    const shouldUseRealTimeMonitoring = file.flow_id && !hasPollingError && errorRetryCount < MAX_RETRY_COUNT;
+    const monitoring = shouldUseRealTimeMonitoring ? useComprehensiveRealTimeMonitoring(file.flow_id, 'data_import') : null;
+    
+    // Monitor for errors and disable polling if too many occur
+    React.useEffect(() => {
+      if (monitoring?.processing.error || monitoring?.validation.error || monitoring?.insights.error) {
+        setErrorRetryCount(prev => prev + 1);
+        console.warn('Real-time monitoring error detected, retry count:', errorRetryCount + 1);
+        
+        if (errorRetryCount >= MAX_RETRY_COUNT - 1) {
+          setHasPollingError(true);
+          console.warn('Too many polling errors, disabling real-time monitoring for this file');
+        }
+      }
+    }, [monitoring?.processing.error, monitoring?.validation.error, monitoring?.insights.error, errorRetryCount]);
     
     // Use real-time validation data if available, otherwise fall back to file properties
     const validationData = monitoring?.validation.validationData;
-    const hasRealTimeData = !!validationData;
+    const hasRealTimeData = !!validationData && !hasPollingError;
     
     // Determine validation status with real-time data priority
     const formatStatus = hasRealTimeData 
@@ -776,7 +795,11 @@ const DataImport: React.FC = () => {
     // Update parent component when validation data changes
     React.useEffect(() => {
       if (hasRealTimeData && onValidationUpdate) {
-        onValidationUpdate(validationData);
+        try {
+          onValidationUpdate(validationData);
+        } catch (error) {
+          console.error('Error updating validation data:', error);
+        }
       }
     }, [validationData, hasRealTimeData, onValidationUpdate]);
     
@@ -825,6 +848,11 @@ const DataImport: React.FC = () => {
           {hasRealTimeData && (
             <div className="text-xs text-gray-500">
               Real-time validation status • Last updated: {new Date().toLocaleTimeString()}
+            </div>
+          )}
+          {hasPollingError && (
+            <div className="text-xs text-amber-600">
+              ⚠️ Real-time updates disabled due to connection issues
             </div>
           )}
         </div>

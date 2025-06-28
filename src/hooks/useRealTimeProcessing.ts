@@ -64,101 +64,94 @@ export const useRealTimeProcessing = (options: RealTimeProcessingOptions) => {
   const {
     flow_id,
     phase,
-    polling_interval = 2000, // 2 seconds for real-time feel
+    polling_interval = 5000,
     max_updates_history = 50,
     enabled = true
   } = options;
 
   const queryClient = useQueryClient();
-  const [accumulatedUpdates, setAccumulatedUpdates] = useState<ProcessingUpdate[]>([]);
-  const pollingRef = useRef<NodeJS.Timeout | null>(null);
-  const consecutiveErrors = useRef<number>(0);
-  const lastSuccessfulFetch = useRef<number>(0);
-  const maxConsecutiveErrors = 3;
+  const [updates, setUpdates] = useState<ProcessingUpdate[]>([]);
+  const [isProcessingActive, setIsProcessingActive] = useState(false);
+  const [consecutiveErrors, setConsecutiveErrors] = useState(0);
+  const MAX_CONSECUTIVE_ERRORS = 3;
 
-  // Query for processing status with enhanced error handling
+  // Stop polling if too many consecutive errors
+  const shouldPoll = enabled && !!flow_id && consecutiveErrors < MAX_CONSECUTIVE_ERRORS;
+
   const {
     data: processingStatus,
     isLoading,
     error,
     refetch
-  } = useQuery<ProcessingStatus>({
+  } = useQuery({
     queryKey: ['real-time-processing', flow_id, phase],
     queryFn: async (): Promise<ProcessingStatus> => {
-      if (!flow_id) throw new Error('Flow ID is required');
-      
       try {
         const response = await apiCall(`/api/v1/discovery/flow/${flow_id}/processing-status`, {
           params: phase ? { phase } : undefined
         });
         
-        // Reset error count on successful fetch
-        consecutiveErrors.current = 0;
-        lastSuccessfulFetch.current = Date.now();
+        // Reset error count on successful response
+        setConsecutiveErrors(0);
         
         return response;
       } catch (err: any) {
-        consecutiveErrors.current += 1;
-        console.error(`❌ Processing status fetch error (attempt ${consecutiveErrors.current}):`, err);
-        
-        // Stop polling after max consecutive errors
-        if (consecutiveErrors.current >= maxConsecutiveErrors) {
-          console.warn(`🚫 Stopping polling for flow ${flow_id} after ${maxConsecutiveErrors} consecutive failures`);
-          if (pollingRef.current) {
-            clearInterval(pollingRef.current);
-            pollingRef.current = null;
-          }
-        }
-        
-        // Handle 404 errors gracefully - flow may not exist
+        // Handle 404 errors gracefully - these endpoints may not exist yet
         if (err.status === 404 || err.response?.status === 404) {
-          console.warn(`🚫 Flow ${flow_id} not found, stopping polling`);
-          throw new Error(`Flow ${flow_id} not found`);
+          console.log('Processing status endpoint not available yet for flow:', flow_id);
+          setConsecutiveErrors(prev => prev + 1);
+          return {
+            flow_id,
+            phase: phase || 'data_import',
+            status: 'initializing',
+            progress_percentage: 0,
+            records_processed: 0,
+            records_total: 0,
+            records_failed: 0,
+            validation_status: {
+              format_valid: false,
+              security_scan_passed: false,
+              data_quality_score: 0,
+              issues_found: []
+            },
+            agent_status: {},
+            recent_updates: [],
+            estimated_completion: null,
+            last_update: new Date().toISOString()
+          };
         }
         
+        // Increment error count for other errors
+        setConsecutiveErrors(prev => prev + 1);
         throw err;
       }
     },
-    enabled: enabled && !!flow_id && consecutiveErrors.current < maxConsecutiveErrors,
-    staleTime: 1000,
+    enabled: shouldPoll,
+    staleTime: 2000, // 2 seconds
+    refetchInterval: shouldPoll ? polling_interval : false,
     refetchOnWindowFocus: false,
-    refetchOnMount: true,
-    refetchOnReconnect: false,
-    retry: (failureCount, error) => {
-      // Don't retry if we've hit max consecutive errors
-      if (consecutiveErrors.current >= maxConsecutiveErrors) {
-        console.warn(`🚫 Max consecutive errors reached, stopping retries for flow ${flow_id}`);
+    retry: (failureCount, error: any) => {
+      // Don't retry on 404 errors or if we've had too many consecutive errors
+      if (error?.status === 404 || error?.response?.status === 404 || consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
         return false;
       }
-      
-      // Don't retry 404 errors (flow doesn't exist)
-      if (error && ('status' in error && error.status === 404)) {
-        console.warn(`🚫 Flow ${flow_id} not found, stopping retries`);
-        return false;
-      }
-      
-      // Don't retry if error message indicates flow not found
-      if (error && error.message && error.message.includes('not found')) {
-        console.warn(`🚫 Flow ${flow_id} not found (from message), stopping retries`);
-        return false;
-      }
-      
-      return failureCount < 2;
+      return failureCount < 2; // Reduced retry count
     },
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
 
   // Check if processing is active
-  const isProcessingActive = processingStatus && (
-    processingStatus.status === 'processing' || 
-    processingStatus.status === 'initializing' ||
-    processingStatus.status === 'validating'
-  );
+  useEffect(() => {
+    setIsProcessingActive(processingStatus && (
+      processingStatus.status === 'processing' || 
+      processingStatus.status === 'initializing' ||
+      processingStatus.status === 'validating'
+    ));
+  }, [processingStatus]);
 
   // Accumulate updates from processing status
   useEffect(() => {
     if (processingStatus?.recent_updates) {
-      setAccumulatedUpdates(prev => {
+      setUpdates(prev => {
         const newUpdates = processingStatus.recent_updates.filter(update => 
           !prev.some(existing => existing.id === update.id)
         );
@@ -168,96 +161,36 @@ export const useRealTimeProcessing = (options: RealTimeProcessingOptions) => {
     }
   }, [processingStatus, max_updates_history]);
 
-  // Enhanced polling control with error handling
-  useEffect(() => {
-    if (!enabled || !flow_id || consecutiveErrors.current >= maxConsecutiveErrors) {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
-      }
-      return;
-    }
-
-    // Clear existing polling
-    if (pollingRef.current) {
-      clearInterval(pollingRef.current);
-    }
-
-    // Check if processing is completely finished
-    const isFinished = processingStatus && (
-      processingStatus.status === 'completed' || 
-      processingStatus.status === 'failed' || 
-      processingStatus.status === 'error'
-    );
-
-    if (isFinished) {
-      // Stop polling when processing is finished
-      console.log(`🛑 Stopping polling for flow ${flow_id} - Status: ${processingStatus?.status}`);
-      return;
-    }
-
-    // Implement exponential backoff after errors
-    let intervalDelay = polling_interval;
-    if (consecutiveErrors.current > 0) {
-      intervalDelay = Math.min(polling_interval * Math.pow(2, consecutiveErrors.current), 30000); // Max 30 seconds
-      console.log(`⚠️ Using exponential backoff: ${intervalDelay}ms delay after ${consecutiveErrors.current} errors`);
-    }
-
-    if (isProcessingActive) {
-      // Fast polling during active processing
-      pollingRef.current = setInterval(() => {
-        if (consecutiveErrors.current < maxConsecutiveErrors) {
-          refetch();
-        }
-      }, intervalDelay);
-    } else {
-      // Slower polling when idle
-      pollingRef.current = setInterval(() => {
-        if (consecutiveErrors.current < maxConsecutiveErrors) {
-          refetch();
-        }
-      }, intervalDelay * 3);
-    }
-
-    return () => {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-      }
-    };
-  }, [enabled, flow_id, isProcessingActive, polling_interval, refetch, processingStatus, consecutiveErrors.current]);
-
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
+      if (shouldPoll) {
+        refetch();
       }
     };
-  }, []);
+  }, [shouldPoll, refetch]);
 
   // Recovery function to reset error state
   const resetErrorState = useCallback(() => {
-    consecutiveErrors.current = 0;
-    lastSuccessfulFetch.current = Date.now();
+    setConsecutiveErrors(0);
     console.log(`🔄 Reset error state for flow ${flow_id}`);
   }, [flow_id]);
 
   return {
     processingStatus,
-    accumulatedUpdates,
+    updates,
     isProcessingActive,
     isLoading,
     error,
     refetch,
-    consecutiveErrors: consecutiveErrors.current,
-    isPollingDisabled: consecutiveErrors.current >= maxConsecutiveErrors,
+    consecutiveErrors,
+    isPollingDisabled: consecutiveErrors >= MAX_CONSECUTIVE_ERRORS,
     resetErrorState,
     // Utility functions
-    getLatestUpdate: () => accumulatedUpdates[accumulatedUpdates.length - 1],
+    getLatestUpdate: () => updates[updates.length - 1],
     getUpdatesByType: (type: ProcessingUpdate['update_type']) => 
-      accumulatedUpdates.filter(update => update.update_type === type),
-    clearUpdates: () => setAccumulatedUpdates([]),
+      updates.filter(update => update.update_type === type),
+    clearUpdates: () => setUpdates([]),
   };
 };
 
@@ -330,13 +263,17 @@ export const useProcessingActions = () => {
  */
 export const useRealTimeAgentInsights = (flow_id: string, page_context?: string, processingStatus?: ProcessingStatus) => {
   const [streamingInsights, setStreamingInsights] = useState<any[]>([]);
+  const [consecutiveErrors, setConsecutiveErrors] = useState(0);
+  const MAX_CONSECUTIVE_ERRORS = 3;
 
-  // Stop polling if flow is completed
+  // Stop polling if flow is completed or too many errors
   const isCompleted = processingStatus && (
     processingStatus.status === 'completed' || 
     processingStatus.status === 'failed' || 
     processingStatus.status === 'error'
   );
+  
+  const shouldPoll = !!flow_id && !isCompleted && consecutiveErrors < MAX_CONSECUTIVE_ERRORS;
 
   const {
     data: insightsData,
@@ -349,26 +286,34 @@ export const useRealTimeAgentInsights = (flow_id: string, page_context?: string,
         const response = await apiCall(`/api/v1/discovery/flow/${flow_id}/agent-insights`, {
           params: page_context ? { page_context } : undefined
         });
+        
+        // Reset error count on successful response
+        setConsecutiveErrors(0);
+        
         return response;
       } catch (err: any) {
         // Handle 404 errors gracefully - these endpoints may not exist yet
         if (err.status === 404 || err.response?.status === 404) {
-          console.log('Agent insights endpoint not available yet');
+          console.log('Agent insights endpoint not available yet for flow:', flow_id);
+          setConsecutiveErrors(prev => prev + 1);
           return { insights: [] };
         }
+        
+        // Increment error count for other errors
+        setConsecutiveErrors(prev => prev + 1);
         throw err;
       }
     },
-    enabled: !!flow_id && !isCompleted,
+    enabled: shouldPoll,
     staleTime: 5000, // 5 seconds
-    refetchInterval: isCompleted ? false : 5000, // Stop polling when completed
+    refetchInterval: shouldPoll ? 5000 : false,
     refetchOnWindowFocus: false,
     retry: (failureCount, error: any) => {
-      // Don't retry on 404 errors
-      if (error?.status === 404 || error?.response?.status === 404) {
+      // Don't retry on 404 errors or if we've had too many consecutive errors
+      if (error?.status === 404 || error?.response?.status === 404 || consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
         return false;
       }
-      return failureCount < 3;
+      return failureCount < 2; // Reduced retry count
     },
   });
 
@@ -389,7 +334,10 @@ export const useRealTimeAgentInsights = (flow_id: string, page_context?: string,
     latestInsights: insightsData?.insights || [],
     isLoading,
     error,
+    consecutiveErrors,
+    isPollingDisabled: consecutiveErrors >= MAX_CONSECUTIVE_ERRORS,
     clearInsights: () => setStreamingInsights([]),
+    resetErrorState: () => setConsecutiveErrors(0),
     getInsightsByAgent: (agent_name: string) => 
       streamingInsights.filter(insight => insight.agent_name === agent_name),
     getInsightsByType: (insight_type: string) => 
@@ -401,12 +349,17 @@ export const useRealTimeAgentInsights = (flow_id: string, page_context?: string,
  * Hook for real-time validation feedback
  */
 export const useRealTimeValidation = (flow_id: string, processingStatus?: ProcessingStatus) => {
-  // Stop polling if flow is completed
+  const [consecutiveErrors, setConsecutiveErrors] = useState(0);
+  const MAX_CONSECUTIVE_ERRORS = 3;
+  
+  // Stop polling if flow is completed or too many errors
   const isCompleted = processingStatus && (
     processingStatus.status === 'completed' || 
     processingStatus.status === 'failed' || 
     processingStatus.status === 'error'
   );
+  
+  const shouldPoll = !!flow_id && !isCompleted && consecutiveErrors < MAX_CONSECUTIVE_ERRORS;
 
   const {
     data: validationData,
@@ -417,26 +370,41 @@ export const useRealTimeValidation = (flow_id: string, processingStatus?: Proces
     queryFn: async () => {
       try {
         const response = await apiCall(`/api/v1/discovery/flow/${flow_id}/validation-status`);
+        
+        // Reset error count on successful response
+        setConsecutiveErrors(0);
+        
         return response;
       } catch (err: any) {
         // Handle 404 errors gracefully - these endpoints may not exist yet
         if (err.status === 404 || err.response?.status === 404) {
-          console.log('Validation status endpoint not available yet');
-          return { security_scan: { issues: [] }, format_validation: { errors: [] }, data_quality: { score: 1.0 } };
+          console.log('Validation status endpoint not available yet for flow:', flow_id);
+          setConsecutiveErrors(prev => prev + 1);
+          return { 
+            security_scan: { issues: [] }, 
+            format_validation: { errors: [] }, 
+            data_quality: { score: 1.0 },
+            validation_progress: 0,
+            agents_completed: 0,
+            total_agents: 4
+          };
         }
+        
+        // Increment error count for other errors
+        setConsecutiveErrors(prev => prev + 1);
         throw err;
       }
     },
-    enabled: !!flow_id && !isCompleted,
+    enabled: shouldPoll,
     staleTime: 3000, // 3 seconds
-    refetchInterval: isCompleted ? false : 3000, // Stop polling when completed
+    refetchInterval: shouldPoll ? 3000 : false,
     refetchOnWindowFocus: false,
     retry: (failureCount, error: any) => {
-      // Don't retry on 404 errors
-      if (error?.status === 404 || error?.response?.status === 404) {
+      // Don't retry on 404 errors or if we've had too many consecutive errors
+      if (error?.status === 404 || error?.response?.status === 404 || consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
         return false;
       }
-      return failureCount < 3;
+      return failureCount < 2; // Reduced retry count
     },
   });
 
@@ -448,6 +416,8 @@ export const useRealTimeValidation = (flow_id: string, processingStatus?: Proces
     validationData,
     isLoading,
     error,
+    consecutiveErrors,
+    isPollingDisabled: consecutiveErrors >= MAX_CONSECUTIVE_ERRORS,
     hasSecurityIssues,
     hasFormatErrors,
     hasDataQualityIssues,
@@ -455,6 +425,7 @@ export const useRealTimeValidation = (flow_id: string, processingStatus?: Proces
     getSecurityIssues: () => validationData?.security_scan?.issues || [],
     getFormatErrors: () => validationData?.format_validation?.errors || [],
     getQualityScore: () => validationData?.data_quality?.score || 0,
+    resetErrorState: () => setConsecutiveErrors(0),
   };
 };
 
