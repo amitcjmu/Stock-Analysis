@@ -453,7 +453,7 @@ class UserManagementHandler(BaseRBACHandler):
             return {"status": "error", "message": f"Failed to get user profile: {str(e)}"}
     
     async def update_user_profile(self, user_id: str, profile_updates: Dict[str, Any]) -> Dict[str, Any]:
-        """Update user profile information with proper field mapping."""
+        """Update user profile information with proper field mapping and automatic access creation."""
         if not self.is_available:
             return {"status": "error", "message": "RBAC models not available"}
         
@@ -470,6 +470,12 @@ class UserManagementHandler(BaseRBACHandler):
             
             if not user_profile:
                 return {"status": "error", "message": "User profile not found"}
+            
+            # Track what client/engagement access needs to be created
+            new_client_id = None
+            new_engagement_id = None
+            old_client_id = user_profile.user.default_client_id if user_profile.user else None
+            old_engagement_id = user_profile.user.default_engagement_id if user_profile.user else None
             
             # Field mapping from frontend to database model
             user_field_mapping = {
@@ -511,6 +517,13 @@ class UserManagementHandler(BaseRBACHandler):
                                     import uuid
                                     uuid_value = uuid.UUID(value)
                                     setattr(user_profile.user, db_field, uuid_value)
+                                    
+                                    # Track new assignments for access creation
+                                    if frontend_field == 'default_client_id':
+                                        new_client_id = uuid_value
+                                    elif frontend_field == 'default_engagement_id':
+                                        new_engagement_id = uuid_value
+                                        
                                 except ValueError:
                                     logger.warning(f"Invalid UUID format for {frontend_field}: {value}")
                                     # Skip invalid UUIDs but don't fail the entire update
@@ -529,6 +542,75 @@ class UserManagementHandler(BaseRBACHandler):
             from datetime import datetime
             user_profile.updated_at = datetime.utcnow()
             
+            # Create access records for new client/engagement assignments
+            access_records_created = []
+            
+            # Create client access if new client assigned and doesn't already exist
+            if new_client_id and new_client_id != old_client_id:
+                # Check if client access already exists
+                existing_client_access = await self.db.execute(
+                    select(ClientAccess).where(
+                        and_(
+                            ClientAccess.user_profile_id == user_id,
+                            ClientAccess.client_account_id == new_client_id,
+                            ClientAccess.is_active == True
+                        )
+                    )
+                )
+                
+                if not existing_client_access.scalar_one_or_none():
+                    client_access = ClientAccess(
+                        user_profile_id=user_id,
+                        client_account_id=new_client_id,
+                        access_level=AccessLevel.READ_WRITE,  # Default access level
+                        permissions={
+                            "can_view_data": True,
+                            "can_import_data": True,
+                            "can_export_data": True,
+                            "can_manage_engagements": False,
+                            "can_configure_client_settings": False,
+                            "can_manage_client_users": False
+                        },
+                        granted_by=user_id  # Self-assigned through admin interface
+                    )
+                    self.db.add(client_access)
+                    access_records_created.append(f"client_access:{new_client_id}")
+                    logger.info(f"Created client access for user {user_id} to client {new_client_id}")
+            
+            # Create engagement access if new engagement assigned and doesn't already exist
+            if new_engagement_id and new_engagement_id != old_engagement_id:
+                # Check if engagement access already exists
+                existing_engagement_access = await self.db.execute(
+                    select(EngagementAccess).where(
+                        and_(
+                            EngagementAccess.user_profile_id == user_id,
+                            EngagementAccess.engagement_id == new_engagement_id,
+                            EngagementAccess.is_active == True
+                        )
+                    )
+                )
+                
+                if not existing_engagement_access.scalar_one_or_none():
+                    engagement_access = EngagementAccess(
+                        user_profile_id=user_id,
+                        engagement_id=new_engagement_id,
+                        access_level=AccessLevel.READ_WRITE,  # Default access level
+                        engagement_role="architect",  # Default role
+                        permissions={
+                            "can_view_data": True,
+                            "can_import_data": True,
+                            "can_export_data": True,
+                            "can_manage_sessions": False,
+                            "can_configure_agents": False,
+                            "can_access_sensitive_data": True,
+                            "can_approve_migration_decisions": False
+                        },
+                        granted_by=user_id  # Self-assigned through admin interface
+                    )
+                    self.db.add(engagement_access)
+                    access_records_created.append(f"engagement_access:{new_engagement_id}")
+                    logger.info(f"Created engagement access for user {user_id} to engagement {new_engagement_id}")
+            
             await self.db.commit()
             await self.db.refresh(user_profile)
             
@@ -537,12 +619,17 @@ class UserManagementHandler(BaseRBACHandler):
                 user_id=user_id,
                 action_type="user_profile_updated",
                 result="success",
-                reason="User profile updated successfully",
-                details={"updated_fields": list(profile_updates.keys())}
+                reason="User profile updated successfully with automatic access creation",
+                details={
+                    "updated_fields": list(profile_updates.keys()),
+                    "access_records_created": access_records_created
+                }
             )
             
             # Return updated profile data
             updated_profile = await self.get_user_profile(user_id)
+            if updated_profile.get("status") == "success":
+                updated_profile["access_records_created"] = access_records_created
             return updated_profile
             
         except Exception as e:
