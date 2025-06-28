@@ -304,6 +304,16 @@ class FlowManagementError(BaseModel):
     timestamp: str
     session_id: Optional[str] = None
 
+class FlowContinuationResult(BaseModel):
+    """Result of flow continuation analysis from CrewAI agents"""
+    flow_id: str
+    current_phase: str
+    target_page: str
+    user_guidance: str
+    confidence_score: float
+    processing_time: float
+    agent_insights: Dict[str, Any]
+
 class ErrorResponse(BaseModel):
     """Generic error response"""
     success: bool = False
