@@ -178,7 +178,7 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             if hasattr(self.state, 'user_id') and isinstance(self.state.user_id, uuid.UUID):
                 self.state.user_id = str(self.state.user_id)
                 
-            # Convert any UUID objects in nested data structures
+            # Convert any UUID objects in nested data structures recursively
             def convert_nested_uuids(obj):
                 if isinstance(obj, dict):
                     return {k: convert_nested_uuids(v) for k, v in obj.items()}
@@ -186,19 +186,48 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
                     return [convert_nested_uuids(item) for item in obj]
                 elif isinstance(obj, uuid.UUID):
                     return str(obj)
+                elif hasattr(obj, '__dict__'):
+                    # Handle objects with attributes that might contain UUIDs
+                    for attr_name in dir(obj):
+                        if not attr_name.startswith('_'):
+                            try:
+                                attr_value = getattr(obj, attr_name)
+                                if isinstance(attr_value, uuid.UUID):
+                                    setattr(obj, attr_name, str(attr_value))
+                            except (AttributeError, TypeError):
+                                continue
+                    return obj
                 else:
                     return obj
             
-            # Apply to complex data fields
-            if hasattr(self.state, 'metadata') and self.state.metadata:
-                self.state.metadata = convert_nested_uuids(self.state.metadata)
-            if hasattr(self.state, 'agent_insights') and self.state.agent_insights:
-                self.state.agent_insights = convert_nested_uuids(self.state.agent_insights)
-            if hasattr(self.state, 'crew_status') and self.state.crew_status:
-                self.state.crew_status = convert_nested_uuids(self.state.crew_status)
+            # Apply to all state attributes that might contain UUIDs
+            for attr_name in dir(self.state):
+                if not attr_name.startswith('_') and not callable(getattr(self.state, attr_name)):
+                    try:
+                        attr_value = getattr(self.state, attr_name)
+                        if attr_value is not None:
+                            converted_value = convert_nested_uuids(attr_value)
+                            setattr(self.state, attr_name, converted_value)
+                    except (AttributeError, TypeError) as e:
+                        logger.debug(f"Could not convert attribute {attr_name}: {e}")
+                        continue
                 
         except Exception as e:
             logger.warning(f"⚠️ UUID serialization safety check failed: {e}")
+            # Try to convert the most common problematic fields manually
+            try:
+                if hasattr(self.state, 'flow_id'):
+                    self.state.flow_id = str(self.state.flow_id) if self.state.flow_id else ""
+                if hasattr(self.state, 'session_id'):
+                    self.state.session_id = str(self.state.session_id) if self.state.session_id else ""
+                if hasattr(self.state, 'client_account_id'):
+                    self.state.client_account_id = str(self.state.client_account_id) if self.state.client_account_id else ""
+                if hasattr(self.state, 'engagement_id'):
+                    self.state.engagement_id = str(self.state.engagement_id) if self.state.engagement_id else ""
+                if hasattr(self.state, 'user_id'):
+                    self.state.user_id = str(self.state.user_id) if self.state.user_id else ""
+            except Exception as fallback_error:
+                logger.error(f"❌ Even fallback UUID conversion failed: {fallback_error}")
     
     async def _safe_update_flow_state(self):
         """Safely update flow state with UUID serialization safety"""
@@ -302,7 +331,7 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
                 page=f"flow_{self.state.flow_id}",
                 title="Starting Data Import Validation",
                 description=f"Beginning validation of {len(self.state.raw_data) if self.state.raw_data else 0} records",
-                content={
+                supporting_data={
                     'phase': 'data_import',
                     'records_total': len(self.state.raw_data) if self.state.raw_data else 0,
                     'start_time': datetime.utcnow().isoformat(),

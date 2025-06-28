@@ -666,10 +666,62 @@
     },
     "page": "dependencies",
     "actionable": true,
-    "client_account_id": "11111111-1111-1111-1111-111111111111",
-    "engagement_id": "22222222-2222-2222-2222-222222222222",
-    "session_id": "33333333-3333-3333-3333-333333333333",
+    "client_account_id": null,
+    "engagement_id": null,
+    "session_id": null,
     "created_at": "2025-06-27T07:30:37.980426",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "cc34edfd-7d71-436f-aec0-88d5b2121f6d": {
+    "id": "cc34edfd-7d71-436f-aec0-88d5b2121f6d",
+    "agent_id": "data_import_agent",
+    "agent_name": "Data Import Agent",
+    "insight_type": "progress",
+    "title": "Processing Data Records",
+    "description": "Analyzing 5 records for format validation, security scanning, and data quality assessment",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "progress_percentage": 10.0,
+      "records_processed": 2,
+      "validation_checks": [
+        "format",
+        "security",
+        "quality"
+      ]
+    },
+    "page": "flow_ecca4ced-03d2-40a7-8a13-05938728cc12",
+    "actionable": true,
+    "client_account_id": "dfea7406-1575-4348-a0b2-2770cbe2d9f9",
+    "engagement_id": "ce27e7b1-2ac6-4b74-8dd5-b52d542a1669",
+    "session_id": "ce27e7b1-2ac6-4b74-8dd5-b52d542a1669",
+    "created_at": "2025-06-28T00:57:56.325717",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "d1c76962-f01e-48ad-8745-6dea8a0c25db": {
+    "id": "d1c76962-f01e-48ad-8745-6dea8a0c25db",
+    "agent_id": "data_import_agent",
+    "agent_name": "Data Import Agent",
+    "insight_type": "success",
+    "title": "Data Import Validation Completed",
+    "description": "Successfully validated 5 records with 0.0% confidence",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "progress_percentage": 20.0,
+      "records_processed": 5,
+      "confidence_score": 0.0,
+      "validation_results": {},
+      "completion_time": "2025-06-28T00:57:56.349666"
+    },
+    "page": "flow_ecca4ced-03d2-40a7-8a13-05938728cc12",
+    "actionable": true,
+    "client_account_id": "dfea7406-1575-4348-a0b2-2770cbe2d9f9",
+    "engagement_id": "ce27e7b1-2ac6-4b74-8dd5-b52d542a1669",
+    "session_id": "ce27e7b1-2ac6-4b74-8dd5-b52d542a1669",
+    "created_at": "2025-06-28T00:57:56.349747",
     "user_feedback": null,
     "is_validated": false
   }

@@ -362,7 +362,7 @@ async def _trigger_discovery_flow(
                         "data_import_id": data_import_id,
                         "real_crewai_flow_id": actual_crewai_flow_id
                     },
-                    import_session_id=data_import_id,
+                    data_import_id=data_import_id,
                     user_id=user_id
                 )
                 

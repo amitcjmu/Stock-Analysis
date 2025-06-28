@@ -321,7 +321,7 @@ class DataImportValidationAgent(BaseDiscoveryAgent):
         return compliance_results
     
     async def _assess_data_quality(self, df: pd.DataFrame) -> Dict[str, Any]:
-        """Assess overall data quality"""
+        """Assess overall data quality with comprehensive error handling"""
         quality_results = {
             'confidence': 80.0,
             'completeness': {},
@@ -332,74 +332,135 @@ class DataImportValidationAgent(BaseDiscoveryAgent):
         
         # Safety check for empty DataFrame
         if len(df) == 0 or len(df.columns) == 0:
+            logger.warning("Empty DataFrame provided to data quality assessment")
             return {
                 'confidence': 0.0,
                 'completeness': {},
                 'consistency': {},
                 'validity': {},
-                'overall_score': 0.0
+                'overall_score': 0.0,
+                'error_message': 'No data available for quality assessment'
             }
         
-        # Completeness assessment
+        # Completeness assessment with enhanced error handling
         for column in df.columns:
             try:
-                null_count = df[column].isnull().sum()
+                # Safe null count calculation
+                null_count = 0
                 total_count = len(df)
                 
-                # Safe division to avoid division by zero
                 if total_count > 0:
-                    null_pct = float(null_count / total_count * 100)
+                    try:
+                        null_count = int(df[column].isnull().sum())
+                        null_pct = float(null_count) / float(total_count) * 100.0
+                    except (TypeError, ValueError, ZeroDivisionError) as e:
+                        logger.warning(f"Error calculating null percentage for column {column}: {e}")
+                        null_pct = 100.0
                 else:
                     null_pct = 100.0
                 
                 # Ensure we have a valid numeric value
-                if pd.isna(null_pct) or not pd.api.types.is_numeric_dtype(type(null_pct)):
+                if pd.isna(null_pct) or not isinstance(null_pct, (int, float)):
                     null_pct = 100.0
+                
+                # Clamp values to valid range
+                null_pct = max(0.0, min(100.0, float(null_pct)))
                 
                 quality_results['completeness'][column] = {
                     'null_percentage': null_pct,
-                    'score': max(0.0, 100.0 - null_pct)
+                    'score': max(0.0, 100.0 - null_pct),
+                    'null_count': null_count,
+                    'total_count': total_count
                 }
+                
             except Exception as e:
-                self.logger.warning(f"Error calculating completeness for column {column}: {e}")
+                logger.warning(f"Error calculating completeness for column {column}: {e}")
                 quality_results['completeness'][column] = {
                     'null_percentage': 100.0,
-                    'score': 0.0
+                    'score': 0.0,
+                    'null_count': len(df),
+                    'total_count': len(df),
+                    'error': str(e)
                 }
         
-        # Consistency assessment (data type consistency)
+        # Consistency assessment with enhanced error handling
         for column in df.columns:
             try:
-                if df[column].dtype == 'object':
-                    # Check for mixed data types in string columns
-                    sample_values = df[column].dropna().head(100)
-                    consistency_score = 90.0  # Default for string columns
-                else:
-                    consistency_score = 95.0  # Numeric columns are generally consistent
+                consistency_score = 90.0  # Default score
                 
-                quality_results['consistency'][column] = {'score': float(consistency_score)}
+                if column in df.columns:
+                    try:
+                        # Check data type consistency
+                        if df[column].dtype == 'object':
+                            # Check for mixed data types in string columns
+                            sample_values = df[column].dropna().head(100)
+                            if len(sample_values) > 0:
+                                # Simple consistency check - if all non-null values exist
+                                consistency_score = 90.0
+                            else:
+                                consistency_score = 0.0
+                        else:
+                            consistency_score = 95.0  # Numeric columns are generally consistent
+                    except Exception as dtype_error:
+                        logger.warning(f"Error checking data type for column {column}: {dtype_error}")
+                        consistency_score = 50.0  # Default for unknown issues
+                
+                quality_results['consistency'][column] = {
+                    'score': float(consistency_score),
+                    'data_type': str(df[column].dtype) if column in df.columns else 'unknown'
+                }
+                
             except Exception as e:
-                self.logger.warning(f"Error calculating consistency for column {column}: {e}")
-                quality_results['consistency'][column] = {'score': 0.0}
+                logger.warning(f"Error calculating consistency for column {column}: {e}")
+                quality_results['consistency'][column] = {
+                    'score': 0.0,
+                    'data_type': 'error',
+                    'error': str(e)
+                }
         
-        # Calculate overall quality score with safety checks
+        # Calculate overall quality score with comprehensive safety checks
         try:
-            if quality_results['completeness'] and quality_results['consistency']:
-                completeness_scores = [col['score'] for col in quality_results['completeness'].values()]
-                consistency_scores = [col['score'] for col in quality_results['consistency'].values()]
+            completeness_scores = []
+            consistency_scores = []
+            
+            # Safely extract scores
+            for col_data in quality_results['completeness'].values():
+                if isinstance(col_data, dict) and 'score' in col_data:
+                    score = col_data['score']
+                    if isinstance(score, (int, float)) and not pd.isna(score):
+                        completeness_scores.append(float(score))
+            
+            for col_data in quality_results['consistency'].values():
+                if isinstance(col_data, dict) and 'score' in col_data:
+                    score = col_data['score']
+                    if isinstance(score, (int, float)) and not pd.isna(score):
+                        consistency_scores.append(float(score))
+            
+            # Calculate averages safely
+            if completeness_scores:
+                completeness_avg = sum(completeness_scores) / len(completeness_scores)
+            else:
+                completeness_avg = 0.0
                 
-                completeness_avg = sum(completeness_scores) / len(completeness_scores) if completeness_scores else 0.0
-                consistency_avg = sum(consistency_scores) / len(consistency_scores) if consistency_scores else 0.0
-                
-                quality_results['overall_score'] = float((completeness_avg + consistency_avg) / 2)
+            if consistency_scores:
+                consistency_avg = sum(consistency_scores) / len(consistency_scores)
+            else:
+                consistency_avg = 0.0
+            
+            # Calculate overall score
+            if completeness_avg >= 0 and consistency_avg >= 0:
+                overall_score = (completeness_avg + consistency_avg) / 2.0
+                quality_results['overall_score'] = max(0.0, min(100.0, float(overall_score)))
                 quality_results['confidence'] = min(95.0, quality_results['overall_score'])
             else:
                 quality_results['overall_score'] = 0.0
                 quality_results['confidence'] = 0.0
+                
         except Exception as e:
-            self.logger.warning(f"Error calculating overall quality score: {e}")
+            logger.error(f"Error calculating overall quality score: {e}")
             quality_results['overall_score'] = 0.0
             quality_results['confidence'] = 0.0
+            quality_results['calculation_error'] = str(e)
         
         return quality_results
     

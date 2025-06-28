@@ -164,7 +164,7 @@ def transform_crewai_events_to_updates(events: List[Dict[str, Any]]) -> List[Pro
             update_type = "insight"
         
         # Create user-friendly message
-        message = create_user_friendly_message(event)
+        message = create_user_friendly_message(event["event_type"], event.get("crew_name", "Unknown"), event.get("data", {}))
         
         # Calculate confidence score based on event status
         confidence_score = 0.8  # Default
@@ -194,62 +194,73 @@ def transform_crewai_events_to_updates(events: List[Dict[str, Any]]) -> List[Pro
     
     return updates
 
-def create_user_friendly_message(event: Dict[str, Any]) -> str:
-    """Create user-friendly messages from CrewAI events"""
-    event_type = event.get("event_type", "unknown")
-    crew_name = event.get("crew_name", "Unknown")
-    agent_name = event.get("agent_name", "Agent")
+def create_user_friendly_message(event_type: str, crew_name: str, details: Dict[str, Any]) -> str:
+    """Create user-friendly messages from CrewAI events with comprehensive error handling"""
     
-    # Ensure event_type is not None
+    # Safety checks for None values
     if event_type is None:
         event_type = "unknown"
-    
-    # Ensure crew_name is not None for string operations
     if crew_name is None:
-        crew_name = "Unknown"
+        crew_name = "Unknown Agent"
+    if details is None:
+        details = {}
     
-    # Ensure agent_name is not None
-    if agent_name is None:
-        agent_name = "Agent"
+    # Convert to strings and handle None values
+    event_type = str(event_type).replace("_", " ").title() if event_type else "Unknown Event"
+    crew_name = str(crew_name).replace("_", " ").title() if crew_name else "Unknown Agent"
     
-    # Flow-level messages
-    if event_type == "flow_started":
-        return "🚀 Discovery flow started - Initializing AI agents and crews"
-    elif event_type == "flow_completed":
-        return "✅ Discovery flow completed successfully"
+    # Enhanced error handling with specific error details
+    if "error" in event_type.lower() or "failed" in event_type.lower():
+        error_message = details.get('error', details.get('message', 'Unknown error occurred'))
+        
+        # Provide specific error guidance based on error type
+        if "uuid" in str(error_message).lower() and "json" in str(error_message).lower():
+            return f"❌ {crew_name}: Data serialization error. The system encountered UUID formatting issues. Please try uploading your file again."
+        elif "multiply" in str(error_message).lower() and "sequence" in str(error_message).lower():
+            return f"❌ {crew_name}: Data validation error. There appears to be an issue with the data format. Please check that your file contains valid numeric data."
+        elif "import_session_id" in str(error_message).lower():
+            return f"❌ {crew_name}: Database configuration error. The system is being updated to fix this issue."
+        elif "validation" in str(error_message).lower():
+            return f"❌ {crew_name}: File validation failed. Please check your file format and ensure it contains the expected data structure."
+        elif "pii" in str(error_message).lower():
+            return f"⚠️ {crew_name}: Detected personally identifiable information (PII) in your data. Please review and anonymize sensitive data before proceeding."
+        elif "security" in str(error_message).lower():
+            return f"🔒 {crew_name}: Security scan detected potential risks in your data. Please review the flagged content."
+        elif "quality" in str(error_message).lower():
+            return f"📊 {crew_name}: Data quality issues detected. Your file may have missing values or formatting problems that need attention."
+        else:
+            return f"❌ {crew_name}: {error_message}. Please try again or contact support if the issue persists."
     
-    # Crew-level messages  
-    elif event_type == "crew_started":
-        return f"🔄 Starting {crew_name.replace('_', ' ').title()} crew"
-    elif event_type == "crew_completed":
-        return f"✅ {crew_name.replace('_', ' ').title()} crew completed"
-    elif event_type == "crew_failed":
-        error_msg = event.get("error_message", "Unknown error")
-        return f"❌ {crew_name.replace('_', ' ').title()} crew failed: {error_msg}"
+    # Success messages
+    elif "success" in event_type.lower() or "completed" in event_type.lower():
+        if "validation" in crew_name.lower():
+            return f"✅ {crew_name}: File validation completed successfully. Your data is ready for processing."
+        elif "mapping" in crew_name.lower():
+            return f"✅ {crew_name}: Field mapping completed. Data structure has been analyzed and mapped."
+        elif "cleansing" in crew_name.lower():
+            return f"✅ {crew_name}: Data cleansing completed. Your data has been processed and cleaned."
+        elif "inventory" in crew_name.lower():
+            return f"✅ {crew_name}: Asset inventory created. {details.get('assets_created', 'Assets')} have been cataloged."
+        else:
+            return f"✅ {crew_name}: {event_type} completed successfully."
     
-    # Agent-level messages
-    elif event_type == "agent_started":
-        return f"🤖 {agent_name} started working"
-    elif event_type == "agent_completed":
-        return f"✅ {agent_name} completed task"
-    elif event_type == "agent_failed":
-        return f"❌ {agent_name} encountered an error"
+    # Progress messages
+    elif "progress" in event_type.lower() or "processing" in event_type.lower():
+        progress = details.get('progress_percentage', details.get('progress', 0))
+        if progress:
+            return f"🔄 {crew_name}: Processing... {progress}% complete"
+        else:
+            return f"🔄 {crew_name}: Processing your data..."
     
-    # Task-level messages
-    elif event_type == "task_completed":
-        task_name = event.get("task_name", "task")
-        if task_name is None:
-            task_name = "task"
-        return f"📋 Completed: {task_name}"
-    elif event_type == "task_failed":
-        task_name = event.get("task_name", "task")
-        if task_name is None:
-            task_name = "task"
-        return f"❌ Failed: {task_name}"
+    # Warning messages
+    elif "warning" in event_type.lower():
+        warning_message = details.get('warning', details.get('message', 'Warning detected'))
+        return f"⚠️ {crew_name}: {warning_message}"
     
-    # Default fallback with safe string handling
+    # Default case with more context
     else:
-        return f"📊 {event_type.replace('_', ' ').title()}"
+        status = details.get('status', event_type)
+        return f"📋 {crew_name}: {status}"
 
 def calculate_agent_status_from_events(flow_id: str, agent_name: str, events: List[Dict[str, Any]]) -> AgentStatus:
     """Calculate agent status based on recent events"""
