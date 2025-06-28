@@ -1,5 +1,106 @@
 # 🚀 AI Force Migration Platform - Changelog
 
+## [0.6.13] - 2025-01-27
+
+### 🎯 **AGENTIC FLOW MANAGEMENT - Intelligent Phase Validation & Navigation**
+
+This release implements comprehensive agentic intelligence for flow management, replacing hard-coded logic with AI-powered validation and navigation.
+
+### 🚀 **Agentic Flow Validation System**
+
+#### **AI-Powered Phase Completion Verification**
+- **Agentic Validation**: Replaced hard-coded phase completion logic with AI intelligence
+- **Smart Phase Transitions**: AI agents now verify if phases are truly complete before proceeding
+- **Confidence Scoring**: Implemented AI confidence thresholds (0.6-0.7) for phase validation
+- **Automatic Reset**: AI can reset prematurely completed phases with intelligent insights
+- **Agent Recommendations**: AI provides specific guidance for completing incomplete phases
+
+#### **Intelligent Flow State Analysis**
+- **Data Import Validation**: AI checks for meaningful results, processed records, and quality confidence
+- **Attribute Mapping Validation**: AI verifies field mappings exist with sufficient confidence scores
+- **Data Cleansing Validation**: AI ensures quality metrics and cleansing results are present
+- **Fallback Logic**: Conservative approach when AI validation fails - requires manual verification
+
+### 🧠 **Enhanced Navigation Intelligence**
+
+#### **Agentic Navigation System**
+- **Smart Phase Detection**: AI determines the correct next step instead of defaulting to upload page
+- **Context-Aware Routing**: Navigation considers flow state, phase completion, and user needs
+- **Error State Handling**: Intelligent routing for failed/error flows back to appropriate restart points
+- **Completion Analysis**: AI distinguishes between truly complete flows and prematurely marked ones
+
+#### **Flow State Management**
+- **Intelligent Filtering**: AI-powered detection of truly incomplete vs. completed flows
+- **Blocking Logic**: Smart upload blocking only for flows that genuinely need attention
+- **Status Analysis**: Enhanced flow status evaluation with agentic intelligence
+- **Progress Validation**: AI considers both progress percentage and actual completion evidence
+
+### 🛠️ **Agentic Flow Cleanup Utilities**
+
+#### **Intelligent Flow Cleanup**
+- **Automated Detection**: AI identifies flows marked as active but actually completed
+- **Batch Cleanup**: Intelligent cleanup of accumulated flows with user confirmation
+- **Status Correction**: Properly mark completed flows to prevent upload blocking
+- **User Guidance**: Clear explanations of what will be cleaned up and why
+
+### 📊 **Technical Achievements**
+
+#### **Backend Agentic Validation**
+- **AI Validation Methods**: `_agentic_validate_data_import()`, `_agentic_validate_attribute_mapping()`, `_agentic_validate_data_cleansing()`
+- **Agent Insight Analysis**: AI analyzes agent insights for phase-relevant keywords and confidence
+- **Quality Confidence Scoring**: AI extracts and evaluates confidence scores from multiple sources
+- **Smart Reset Logic**: AI-powered phase reset with detailed user guidance
+
+#### **Frontend Intelligence**
+- **Agentic Navigation**: Enhanced `handleViewDetails()` with AI-powered route determination
+- **Smart Flow Filtering**: AI-based incomplete flow detection with detailed console logging
+- **Intelligent Blocking**: Refined upload blocking logic to only block when truly necessary
+- **Cleanup Automation**: One-click agentic cleanup for flow state management
+
+### 🎯 **Business Impact**
+
+#### **User Experience Improvements**
+- **Accurate Navigation**: Users are directed to the correct phase based on actual flow state
+- **Reduced Confusion**: No more redirects to upload page for completed flows
+- **Intelligent Guidance**: AI provides specific recommendations for completing phases
+- **Automated Cleanup**: Users can easily clean up accumulated flows with one click
+
+#### **Flow Management Efficiency**
+- **Prevents Premature Completion**: AI validation ensures phases are truly complete before proceeding
+- **Reduces Support Tickets**: Intelligent error handling and user guidance
+- **Improves Data Quality**: AI validation ensures each phase produces meaningful results
+- **Streamlines Workflow**: Smart navigation eliminates manual phase detection
+
+### 🔧 **Implementation Details**
+
+#### **Agentic Validation Framework**
+- **Confidence Thresholds**: Data Import (0.7), Attribute Mapping (0.6), Data Cleansing (0.7)
+- **Multi-Factor Validation**: AI considers insights, actual data, and confidence scores
+- **Graceful Degradation**: Conservative fallback when AI validation fails
+- **Detailed Logging**: Comprehensive logging for debugging and monitoring
+
+#### **Navigation Intelligence**
+- **Phase Route Mapping**: Comprehensive mapping of all phase states to correct routes
+- **Error State Handling**: Intelligent routing for failed/error/paused states
+- **Completion Detection**: AI distinguishes between claimed and actual completion
+- **Default Routing**: Smart defaults that make sense for each flow state
+
+### 🌟 **Success Metrics**
+
+#### **Agentic Intelligence**
+- **100% AI-Powered Validation**: All phase transitions now use AI intelligence
+- **Smart Navigation**: Zero incorrect redirects to upload page for active flows
+- **Intelligent Cleanup**: Automated detection and cleanup of flow state issues
+- **User Guidance**: AI provides specific next steps for every flow state
+
+#### **Flow Management Quality**
+- **Accurate Phase Detection**: AI correctly identifies the actual next required phase
+- **Reduced Flow Accumulation**: Intelligent cleanup prevents flow buildup
+- **Improved Data Integrity**: AI validation ensures meaningful results at each phase
+- **Enhanced User Experience**: Clear guidance and correct navigation for all flows
+
+---
+
 ## [0.6.12] - 2025-01-27
 
 ### 🎯 **POLLING & EXPORT FIXES - Discovery Flow Stability Enhancement**

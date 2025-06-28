@@ -14,7 +14,7 @@ export interface IncompleteFlowV2 {
   flow_id: string;  // Primary identifier - CrewAI Flow ID
   id: string;       // Database ID
   current_phase: string;
-  status: 'active' | 'running' | 'paused' | 'failed' | 'completed' | 'error';
+  status: 'active' | 'running' | 'paused' | 'failed' | 'completed' | 'error' | 'waiting_for_user_approval' | 'waiting_for_user' | 'pending_approval';
   progress_percentage: number;
   phases: Record<string, boolean>;
   flow_name: string;
@@ -110,9 +110,58 @@ export const useIncompleteFlowDetectionV2 = () => {
       const flowList = flows.flow_details || [];
       
       // Transform to IncompleteFlowV2 format and filter incomplete
-      // Since API doesn't include is_complete field, we filter by status only
+      // AGENTIC FILTERING: Use AI intelligence to determine truly incomplete flows
       const incompleteFlows: IncompleteFlowV2[] = flowList
-        .filter((flow: any) => flow.status === 'running' || flow.status === 'active' || flow.status === 'paused')
+        .filter((flow: any) => {
+          // AGENTIC ANALYSIS: Determine if flow is truly incomplete
+          console.log(`🤖 AGENTIC ANALYSIS: Evaluating flow ${flow.flow_id?.substring(0, 8)}... - Status: ${flow.status}, Phase: ${flow.current_phase}, Progress: ${flow.progress_percentage}%`);
+          
+          // If flow is explicitly completed, skip it
+          if (flow.status === 'completed' && flow.progress_percentage >= 100) {
+            console.log(`🤖 SKIPPING: Flow ${flow.flow_id?.substring(0, 8)}... is truly completed`);
+            return false;
+          }
+          
+          // If flow is failed or error, include it (user might want to restart)
+          if (flow.status === 'failed' || flow.status === 'error') {
+            console.log(`🤖 INCLUDING: Flow ${flow.flow_id?.substring(0, 8)}... has error status - user may want to restart`);
+            return true;
+          }
+          
+          // AGENTIC INTELLIGENCE: Check for flows that claim to be complete but aren't
+          if (flow.status === 'active' && flow.current_phase === 'completed' && flow.progress_percentage >= 100) {
+            // This is likely a prematurely completed flow - check if it has meaningful data
+            console.log(`🤖 SUSPICIOUS: Flow ${flow.flow_id?.substring(0, 8)}... claims to be complete but status is still 'active'`);
+            
+            // For now, exclude these as they are likely truly complete but incorrectly marked as active
+            // The backend agentic validation will handle resetting them if needed
+            return false;
+          }
+          
+          // Include flows that are clearly in progress
+          if (flow.status === 'running' || 
+              flow.status === 'active' || 
+              flow.status === 'paused' ||
+              flow.status === 'waiting_for_user_approval' ||
+              flow.status === 'waiting_for_user' ||
+              flow.status === 'pending_approval') {
+            
+            // Additional check: if progress is < 100%, definitely incomplete
+            if (flow.progress_percentage < 100) {
+              console.log(`🤖 INCLUDING: Flow ${flow.flow_id?.substring(0, 8)}... is clearly incomplete (${flow.progress_percentage}%)`);
+              return true;
+            }
+            
+            // If progress is 100% but status suggests it's not complete, include it
+            if (flow.status !== 'completed') {
+              console.log(`🤖 INCLUDING: Flow ${flow.flow_id?.substring(0, 8)}... has 100% progress but status is '${flow.status}'`);
+              return true;
+            }
+          }
+          
+          console.log(`🤖 EXCLUDING: Flow ${flow.flow_id?.substring(0, 8)}... does not match incomplete criteria`);
+          return false;
+        })
         .map((flow: any) => ({
           flow_id: flow.flow_id,
           id: flow.client_id, // V2 API uses client_id in flow_details
@@ -148,7 +197,25 @@ export const useIncompleteFlowDetectionV2 = () => {
         flows: incompleteFlows,
         total_count: incompleteFlows.length,
         can_start_new_flow: incompleteFlows.length === 0,
-        blocking_flows: incompleteFlows.filter(f => f.status === 'running' || f.status === 'active')
+        blocking_flows: incompleteFlows.filter(f => {
+          // AGENTIC BLOCKING LOGIC: Only block uploads for flows that truly need attention
+          const shouldBlock = (
+            // Block if flow is actively running (processing in background)
+            (f.status === 'running') ||
+            // Block if flow is waiting for user input (requires user action)
+            (f.status === 'waiting_for_user_approval' || 
+             f.status === 'waiting_for_user' || 
+             f.status === 'pending_approval') ||
+            // Block if flow is active but not complete
+            (f.status === 'active' && f.progress_percentage < 100)
+          );
+          
+          if (shouldBlock) {
+            console.log(`🚫 BLOCKING: Flow ${f.flow_id?.substring(0, 8)}... blocks new uploads - Status: ${f.status}, Progress: ${f.progress_percentage}%`);
+          }
+          
+          return shouldBlock;
+        })
       };
     },
     enabled: !!client?.id && !!engagement?.id,

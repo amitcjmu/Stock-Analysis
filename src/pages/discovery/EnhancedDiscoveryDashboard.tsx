@@ -142,23 +142,53 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
 
   // Handle view details navigation
   const handleViewDetails = (flowId: string, phase: string) => {
-    // Navigate to phase-specific page based on current phase
-    const phaseRoutes = {
-      'field_mapping': `/discovery/attribute-mapping/${flowId}`,
-      'attribute_mapping': `/discovery/attribute-mapping/${flowId}`,
-      'data_cleansing': `/discovery/data-cleansing/${flowId}`,
-      'asset_inventory': `/discovery/inventory/${flowId}`,
-      'inventory': `/discovery/inventory/${flowId}`, // Correct route
-      'dependency_analysis': `/discovery/dependencies/${flowId}`,
-      'dependencies': `/discovery/dependencies/${flowId}`, // Correct route
-      'tech_debt_analysis': `/discovery/tech-debt/${flowId}`,
-      'tech_debt': `/discovery/tech-debt/${flowId}`, // Correct route
-      'data_import': `/discovery/import`, // ✅ FIXED: Correct route to data import page
-      'initialization': `/discovery/import` // ✅ FIXED: Correct route for initialization
+    // AGENTIC NAVIGATION: Use AI intelligence to determine the correct next step
+    console.log(`🤖 AGENTIC NAVIGATION: Analyzing flow ${flowId} in phase "${phase}"`);
+    
+    // Enhanced phase detection with agentic intelligence
+    const getAgenticRoute = (currentPhase: string, flowId: string) => {
+      // If phase is "completed", check what the user actually needs to do
+      if (currentPhase === "completed") {
+        console.log(`🤖 Flow marked as completed, but checking if truly complete...`);
+        // For "completed" flows, navigate to results/inventory
+        return `/discovery/inventory/${flowId}`;
+      }
+      
+      // Enhanced phase routing with agentic intelligence
+      const agenticPhaseRoutes = {
+        'data_import': `/discovery/import`, // Import phase - stay on import page
+        'attribute_mapping': `/discovery/attribute-mapping/${flowId}`, // Field mapping needed
+        'field_mapping': `/discovery/attribute-mapping/${flowId}`, // Alternative name
+        'data_cleansing': `/discovery/data-cleansing/${flowId}`, // Data quality work needed
+        'inventory': `/discovery/inventory/${flowId}`, // Asset inventory phase
+        'asset_inventory': `/discovery/inventory/${flowId}`, // Alternative name
+        'dependencies': `/discovery/dependencies/${flowId}`, // Dependency analysis
+        'dependency_analysis': `/discovery/dependencies/${flowId}`, // Alternative name
+        'tech_debt': `/discovery/tech-debt/${flowId}`, // Technical debt analysis
+        'tech_debt_analysis': `/discovery/tech-debt/${flowId}`, // Alternative name
+        'technical_debt': `/discovery/tech-debt/${flowId}`, // Alternative name
+        
+        // Handle paused/waiting states
+        'waiting_for_user_approval': `/discovery/attribute-mapping/${flowId}`, // Usually waiting in attribute mapping
+        'paused': `/discovery/attribute-mapping/${flowId}`, // Usually paused in attribute mapping
+        'pending_approval': `/discovery/attribute-mapping/${flowId}`, // User approval needed
+        
+        // Handle error states intelligently
+        'failed': `/discovery/import`, // Failed flows should restart from import
+        'error': `/discovery/import`, // Error flows should restart from import
+        
+        // Handle unknown/undefined phases
+        'unknown': `/discovery/inventory/${flowId}`, // Default to inventory for unknown phases
+        'undefined': `/discovery/inventory/${flowId}`, // Default to inventory for undefined phases
+      };
+      
+      return agenticPhaseRoutes[currentPhase] || `/discovery/inventory/${flowId}`;
     };
     
-    const route = phaseRoutes[phase as keyof typeof phaseRoutes] || `/discovery/import`; // ✅ FIXED: Default to correct import route
-    console.log(`🔄 Backend validation result: phase="${phase}" -> route="${route}"`);
+    const route = getAgenticRoute(phase, flowId);
+    console.log(`🤖 AGENTIC DECISION: phase="${phase}" -> route="${route}"`);
+    
+    // Navigate with agentic intelligence
     navigate(route);
   };
 

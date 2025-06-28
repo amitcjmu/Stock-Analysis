@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   AlertTriangle, 
   Upload, 
@@ -8,7 +8,10 @@ import {
   Clock,
   TrendingUp,
   Activity,
-  Shield
+  Shield,
+  Broom,
+  RefreshCw,
+  Zap
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,6 +20,9 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { IncompleteFlowV2 } from '@/hooks/discovery/useIncompleteFlowDetectionV2';
+import { useBulkFlowOperationsV2 } from '@/hooks/discovery/useIncompleteFlowDetectionV2';
+import { useToast } from '@/hooks/use-toast';
+import { unifiedDiscoveryService } from '@/services/discoveryUnifiedService';
 
 interface UploadBlockerProps {
   incompleteFlows: IncompleteFlowV2[];
@@ -24,6 +30,7 @@ interface UploadBlockerProps {
   onDeleteFlow: (flowId: string) => void;
   onViewDetails: (flowId: string, phase: string) => void;
   onManageFlows: () => void;
+  onRefresh?: () => void;
   isLoading?: boolean;
 }
 
@@ -33,8 +40,13 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
   onDeleteFlow,
   onViewDetails,
   onManageFlows,
+  onRefresh,
   isLoading = false
 }) => {
+  const { toast } = useToast();
+  const bulkFlowOperations = useBulkFlowOperationsV2();
+  const [isCleaningUp, setIsCleaningUp] = useState(false);
+
   const getPhaseDisplayName = (phase: string) => {
     if (!phase) return 'Unknown';
     
@@ -115,6 +127,127 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
 
   const primaryFlow = getHighestPriorityFlow();
 
+  // Identify completed flows that are incorrectly marked as active
+  const completedFlows = incompleteFlows.filter(flow => 
+    flow.progress_percentage >= 100 && 
+    (flow.current_phase === 'completed' || flow.status === 'active')
+  );
+
+  const handleCleanupCompletedFlows = async () => {
+    if (completedFlows.length === 0) {
+      toast({
+        title: "No Cleanup Needed",
+        description: "No completed flows found that need cleanup.",
+        variant: "default"
+      });
+      return;
+    }
+
+    try {
+      const flowIds = completedFlows.map(flow => flow.flow_id);
+      await bulkFlowOperations.bulkDelete.mutateAsync({ 
+        flow_ids: flowIds,
+        force_delete: true 
+      });
+
+      toast({
+        title: "Cleanup Successful",
+        description: `Cleaned up ${completedFlows.length} completed flows. You can now upload new data.`,
+        variant: "default"
+      });
+    } catch (error) {
+      console.error('Cleanup failed:', error);
+      toast({
+        title: "Cleanup Failed",
+        description: "Failed to clean up completed flows. Please try manual deletion.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Agentic flow cleanup function
+  const handleAgenticCleanup = async () => {
+    setIsCleaningUp(true);
+    try {
+      console.log('🤖 AGENTIC CLEANUP: Starting intelligent flow cleanup...');
+      
+      // Get all flows for analysis
+      const allFlows = await unifiedDiscoveryService.getActiveFlows();
+      
+      // Agentic analysis: Find flows that are truly complete but marked as active
+      const flowsToCleanup = allFlows.filter(flow => 
+        flow.status === 'active' && 
+        flow.current_phase === 'completed' && 
+        flow.progress_percentage >= 100
+      );
+      
+      if (flowsToCleanup.length === 0) {
+        toast({
+          title: "🤖 Agentic Analysis Complete",
+          description: "No flows found that need cleanup. All flows are in correct states.",
+          variant: "default",
+        });
+        return;
+      }
+      
+      console.log(`🤖 AGENTIC CLEANUP: Found ${flowsToCleanup.length} flows that need cleanup`);
+      
+      // Show user what will be cleaned up
+      const confirmed = confirm(
+        `🤖 Agentic Flow Cleanup\n\n` +
+        `Found ${flowsToCleanup.length} flows that appear to be completed but are marked as active.\n\n` +
+        `These flows will be properly marked as completed:\n` +
+        flowsToCleanup.map(f => `• ${f.flow_id.substring(0, 8)}... (${f.progress_percentage}% complete)`).join('\n') +
+        `\n\nProceed with cleanup?`
+      );
+      
+      if (!confirmed) {
+        return;
+      }
+      
+      // Cleanup flows by marking them as completed
+      let cleanedCount = 0;
+      for (const flow of flowsToCleanup) {
+        try {
+          // Use the backend API to properly complete the flow
+          await fetch(`/api/v1/discovery/flow/${flow.flow_id}/complete`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Client-Account-Id': flow.client_account_id,
+              'X-Engagement-Id': flow.engagement_id
+            }
+          });
+          cleanedCount++;
+          console.log(`🤖 CLEANED: Flow ${flow.flow_id.substring(0, 8)}... marked as completed`);
+        } catch (error) {
+          console.error(`❌ Failed to cleanup flow ${flow.flow_id}:`, error);
+        }
+      }
+      
+      toast({
+        title: "🤖 Agentic Cleanup Complete",
+        description: `Successfully cleaned up ${cleanedCount} of ${flowsToCleanup.length} flows. You can now start new uploads.`,
+        variant: "default",
+      });
+      
+      // Refresh the flow list
+      if (onRefresh) {
+        setTimeout(onRefresh, 1000);
+      }
+      
+    } catch (error) {
+      console.error('❌ Agentic cleanup failed:', error);
+      toast({
+        title: "Cleanup Failed",
+        description: "Failed to perform agentic cleanup. Please try manual cleanup or contact support.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCleaningUp(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <Card className="border-orange-200 bg-orange-50">
@@ -131,9 +264,19 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
     );
   }
 
-  if (!incompleteFlows || incompleteFlows.length === 0) {
-    return null;
+  if (incompleteFlows.length === 0) {
+    return null; // No blocking needed
   }
+
+  // Debug: Show flow statuses for troubleshooting
+  const debugInfo = incompleteFlows.map(flow => ({
+    id: flow.flow_id.substring(0, 8),
+    status: flow.status,
+    phase: flow.current_phase,
+    progress: flow.progress_percentage
+  }));
+
+  console.log('🔍 Flow Debug Info:', debugInfo);
 
   return (
     <div className="space-y-4">
@@ -261,6 +404,37 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
           <span>Data integrity protection active</span>
         </div>
       </div>
+
+      {/* Debug Information */}
+      <Card className="border-blue-200 bg-blue-50">
+        <CardContent className="p-4">
+          <h4 className="text-sm font-medium text-blue-800 mb-2">
+            Debug: Flow Status Information
+          </h4>
+          <div className="text-xs text-blue-700 space-y-1">
+            {debugInfo.map(flow => (
+              <div key={flow.id} className="flex justify-between">
+                <span>Flow {flow.id}:</span>
+                <span>{flow.status} | {flow.phase} | {flow.progress}%</span>
+              </div>
+            ))}
+          </div>
+          <div className="mt-2 text-xs text-blue-600">
+            <strong>Issue:</strong> Flows with status="active" but phase="completed" and progress=100% 
+            should be marked as completed and not block uploads.
+          </div>
+        </CardContent>
+      </Card>
+
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={handleAgenticCleanup}
+        disabled={isCleaningUp}
+      >
+        <Zap className="h-4 w-4 mr-2" />
+        {isCleaningUp ? 'Cleaning up...' : 'Clean up agentic flows'}
+      </Button>
     </div>
   );
 };

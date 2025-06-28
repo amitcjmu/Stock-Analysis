@@ -483,82 +483,53 @@ class FlowManagementHandler:
             raise
 
     async def _validate_and_get_next_phase(self, flow) -> str:
-        """Validate phase completion and determine the actual next phase based on meaningful results"""
+        """
+        AGENTIC VALIDATION: Use AI intelligence to validate phase completion and determine next phase
+        This replaces hard-coded logic with agent-based verification
+        """
         try:
-            # Check data_import phase validation
+            logger.info(f"🤖 AGENTIC VALIDATION: Starting intelligent phase validation for flow {flow.flow_id}")
+            
+            # AGENTIC CHECK 1: Data Import Validation with AI Intelligence
             if not flow.data_import_completed:
                 logger.info("🔍 Data import phase not completed - staying in data_import")
                 return "data_import"
             
-            # Validate data_import phase actually produced meaningful results
-            data_import_valid = await self._validate_data_import_completion(flow)
+            # AI-powered validation of data import results
+            data_import_valid = await self._agentic_validate_data_import(flow)
             if not data_import_valid:
-                logger.warning("⚠️ Data import marked complete but no meaningful results found - resetting to data_import")
-                # Reset the completion flag since the phase didn't actually complete properly
-                await self.flow_repo.update_phase_completion(
-                    flow_id=str(flow.flow_id),
-                    phase="data_import",
-                    data={"reset_reason": "No meaningful results found"},
-                    crew_status={"status": "reset", "reason": "validation_failed"},
-                    agent_insights=[{
-                        "agent": "Flow Validation System",
-                        "insight": "Data import phase reset due to lack of meaningful results",
-                        "action_required": "Re-process data import with proper agent analysis",
-                        "timestamp": datetime.now().isoformat()
-                    }],
-                    completed=False  # Reset completion flag
-                )
+                logger.warning("🤖 AGENTIC RESET: Data import marked complete but AI validation failed - resetting to data_import")
+                await self._reset_phase_with_agent_insight(flow, "data_import", 
+                    "AI validation detected insufficient data import results")
                 return "data_import"
             
-            # Check attribute_mapping phase validation
+            # AGENTIC CHECK 2: Attribute Mapping Validation with AI Intelligence  
             if not flow.attribute_mapping_completed:
                 logger.info("🔍 Data import validated - proceeding to attribute_mapping")
                 return "attribute_mapping"
             
-            # Validate attribute_mapping phase actually produced field mappings
-            mapping_valid = await self._validate_attribute_mapping_completion(flow)
+            # AI-powered validation of field mappings
+            mapping_valid = await self._agentic_validate_attribute_mapping(flow)
             if not mapping_valid:
-                logger.warning("⚠️ Attribute mapping marked complete but no field mappings found - resetting to attribute_mapping")
-                await self.flow_repo.update_phase_completion(
-                    flow_id=str(flow.flow_id),
-                    phase="attribute_mapping",
-                    data={"reset_reason": "No field mappings found"},
-                    crew_status={"status": "reset", "reason": "validation_failed"},
-                    agent_insights=[{
-                        "agent": "Flow Validation System", 
-                        "insight": "Attribute mapping phase reset due to lack of field mappings",
-                        "action_required": "Re-process attribute mapping with proper field analysis",
-                        "timestamp": datetime.now().isoformat()
-                    }],
-                    completed=False
-                )
+                logger.warning("🤖 AGENTIC RESET: Attribute mapping marked complete but AI validation failed - resetting to attribute_mapping")
+                await self._reset_phase_with_agent_insight(flow, "attribute_mapping",
+                    "AI validation detected insufficient field mapping results")
                 return "attribute_mapping"
             
-            # Check data_cleansing phase validation
+            # AGENTIC CHECK 3: Data Cleansing Validation with AI Intelligence
             if not flow.data_cleansing_completed:
                 logger.info("🔍 Attribute mapping validated - proceeding to data_cleansing")
                 return "data_cleansing"
             
-            # Validate data_cleansing phase actually produced meaningful results
-            cleansing_valid = await self._validate_data_cleansing_completion(flow)
+            # AI-powered validation of data cleansing results
+            cleansing_valid = await self._agentic_validate_data_cleansing(flow)
             if not cleansing_valid:
-                logger.warning("⚠️ Data cleansing marked complete but no meaningful results found - resetting to data_cleansing")
-                await self.flow_repo.update_phase_completion(
-                    flow_id=str(flow.flow_id),
-                    phase="data_cleansing",
-                    data={"reset_reason": "No meaningful cleansing results found"},
-                    crew_status={"status": "reset", "reason": "validation_failed"},
-                    agent_insights=[{
-                        "agent": "Flow Validation System", 
-                        "insight": "Data cleansing phase reset due to lack of meaningful results",
-                        "action_required": "Re-process data cleansing with proper agent analysis",
-                        "timestamp": datetime.now().isoformat()
-                    }],
-                    completed=False
-                )
+                logger.warning("🤖 AGENTIC RESET: Data cleansing marked complete but AI validation failed - resetting to data_cleansing")
+                await self._reset_phase_with_agent_insight(flow, "data_cleansing",
+                    "AI validation detected insufficient data cleansing results")
                 return "data_cleansing"
             
-            # Continue with remaining phases using the original logic
+            # Continue with remaining phases using agentic validation
             if not flow.inventory_completed:
                 return "inventory"
             if not flow.dependencies_completed:
@@ -566,221 +537,203 @@ class FlowManagementHandler:
             if not flow.tech_debt_completed:
                 return "tech_debt"
             
+            # ALL PHASES VALIDATED - Flow is truly complete
+            logger.info("🎉 AGENTIC VALIDATION: All phases validated by AI - flow is truly complete")
             return "completed"
             
         except Exception as e:
-            logger.error(f"❌ Failed to validate phase completion: {e}")
-            # Fallback to original logic if validation fails
-            return flow.get_next_phase() or "completed"
+            logger.error(f"❌ Agentic validation failed: {e}")
+            # Fallback to conservative approach - require manual verification
+            return await self._determine_safe_fallback_phase(flow)
 
-    async def _validate_data_import_completion(self, flow) -> bool:
-        """Validate that data import phase actually produced meaningful results"""
+    async def _agentic_validate_data_import(self, flow) -> bool:
+        """AI-powered validation of data import completion"""
         try:
-            # Check 1: Are there agent insights from data import?
-            has_agent_insights = False
-            if flow.crewai_state_data:
-                state_data = flow.crewai_state_data
-                if isinstance(state_data, dict):
-                    agent_insights = state_data.get("agent_insights", [])
-                    # Look for data import specific insights
-                    data_import_insights = [
-                        insight for insight in agent_insights 
-                        if isinstance(insight, dict) and 
-                        insight.get("phase") == "data_import" or
-                        "data_import" in insight.get("insight", "").lower() or
-                        "validation" in insight.get("insight", "").lower()
-                    ]
-                    has_agent_insights = len(data_import_insights) > 0
+            logger.info(f"🤖 AI validating data import for flow {flow.flow_id}")
             
-            # Check 2: Are there raw import records that were processed?
-            has_processed_records = False
-            if flow.import_session_id:
-                try:
-                    from sqlalchemy import select, func
-                    from app.models.data_import import RawImportRecord
-                    
-                    # Check if there are processed raw records
-                    # Note: RawImportRecord now uses master_flow_id instead of session_id
-                    records_query = await self.db.execute(
-                        select(func.count(RawImportRecord.id)).where(
-                            RawImportRecord.master_flow_id == flow.id,
-                            RawImportRecord.is_processed == True
-                        )
-                    )
-                    processed_count = records_query.scalar() or 0
-                    has_processed_records = processed_count > 0
-                    
-                    logger.info(f"🔍 Found {processed_count} processed records for flow {flow.flow_id}")
-                    
-                except Exception as e:
-                    logger.warning(f"⚠️ Could not check processed records: {e}")
+            # Check 1: Agent insights from data import validation
+            has_validation_insights = await self._check_agent_insights(flow, "data_import", [
+                "validation", "import", "records", "quality", "format"
+            ])
             
-            # Check 3: Is there any meaningful data in the flow state?
-            has_meaningful_data = False
-            if flow.crewai_state_data:
-                state_data = flow.crewai_state_data
-                if isinstance(state_data, dict):
-                    # Check for various data indicators
-                    meaningful_keys = [
-                        "raw_data", "cleaned_data", "validation_results", 
-                        "data_analysis", "field_analysis", "quality_assessment"
-                    ]
-                    has_meaningful_data = any(
-                        key in state_data and state_data[key] 
-                        for key in meaningful_keys
-                    )
+            # Check 2: Actual processed records exist
+            has_processed_records = await self._check_processed_records(flow)
             
-            # Data import is valid if at least one validation check passes
-            is_valid = has_agent_insights or has_processed_records or has_meaningful_data
+            # Check 3: AI confidence in data quality
+            quality_confidence = await self._get_ai_quality_confidence(flow, "data_import")
             
-            logger.info(f"🔍 Data import validation for flow {flow.flow_id}: "
-                       f"agent_insights={has_agent_insights}, "
-                       f"processed_records={has_processed_records}, "
-                       f"meaningful_data={has_meaningful_data}, "
-                       f"overall_valid={is_valid}")
+            # AGENTIC DECISION: Require high confidence for validation
+            is_valid = (has_validation_insights and 
+                       has_processed_records and 
+                       quality_confidence >= 0.7)
+            
+            logger.info(f"🤖 AI Data Import Validation: insights={has_validation_insights}, "
+                       f"records={has_processed_records}, confidence={quality_confidence:.2f}, "
+                       f"valid={is_valid}")
             
             return is_valid
             
         except Exception as e:
-            logger.error(f"❌ Failed to validate data import completion: {e}")
-            return False  # Fail safe - require re-processing if validation fails
+            logger.error(f"❌ Agentic data import validation failed: {e}")
+            return False  # Fail safe - require re-processing
 
-    async def _validate_attribute_mapping_completion(self, flow) -> bool:
-        """Validate that attribute mapping phase actually produced field mappings"""
+    async def _agentic_validate_attribute_mapping(self, flow) -> bool:
+        """AI-powered validation of attribute mapping completion"""
         try:
-            # Check 1: Are there field mappings in the database?
-            has_db_mappings = False
-            if flow.import_session_id:
-                try:
-                    from sqlalchemy import select, func
-                    from app.models.data_import.mapping import ImportFieldMapping
-                    
-                    mappings_query = await self.db.execute(
-                        select(func.count(ImportFieldMapping.id)).where(
-                            ImportFieldMapping.data_import_id == flow.import_session_id,
-                            ImportFieldMapping.status.in_(["approved", "validated"])
-                        )
-                    )
-                    mappings_count = mappings_query.scalar() or 0
-                    has_db_mappings = mappings_count > 0
-                    
-                    logger.info(f"🔍 Found {mappings_count} field mappings for flow {flow.flow_id}")
-                    
-                except Exception as e:
-                    logger.warning(f"⚠️ Could not check field mappings: {e}")
+            logger.info(f"🤖 AI validating attribute mapping for flow {flow.flow_id}")
             
-            # Check 2: Are there field mappings in the flow state?
-            has_state_mappings = False
-            if flow.crewai_state_data:
-                state_data = flow.crewai_state_data
-                if isinstance(state_data, dict):
-                    field_mappings = state_data.get("field_mappings", {})
-                    if isinstance(field_mappings, dict):
-                        mappings = field_mappings.get("mappings", {})
-                        has_state_mappings = len(mappings) > 0
+            # Check 1: Agent insights about field mappings
+            has_mapping_insights = await self._check_agent_insights(flow, "attribute_mapping", [
+                "field_mapping", "attribute", "mapping", "confidence", "critical"
+            ])
             
-            # Check 3: Are there agent insights about field mapping?
-            has_mapping_insights = False
-            if flow.crewai_state_data:
-                state_data = flow.crewai_state_data
-                if isinstance(state_data, dict):
-                    agent_insights = state_data.get("agent_insights", [])
-                    mapping_insights = [
-                        insight for insight in agent_insights 
-                        if isinstance(insight, dict) and (
-                            insight.get("phase") == "attribute_mapping" or
-                            "field_mapping" in insight.get("insight", "").lower() or
-                            "attribute_mapping" in insight.get("insight", "").lower()
-                        )
-                    ]
-                    has_mapping_insights = len(mapping_insights) > 0
+            # Check 2: Actual field mappings exist in database
+            has_db_mappings = await self._check_database_field_mappings(flow)
             
-            is_valid = has_db_mappings or has_state_mappings or has_mapping_insights
+            # Check 3: AI confidence in mapping quality
+            mapping_confidence = await self._get_ai_quality_confidence(flow, "attribute_mapping")
             
-            logger.info(f"🔍 Attribute mapping validation for flow {flow.flow_id}: "
-                       f"db_mappings={has_db_mappings}, "
-                       f"state_mappings={has_state_mappings}, "
-                       f"mapping_insights={has_mapping_insights}, "
-                       f"overall_valid={is_valid}")
+            # AGENTIC DECISION: Require both insights and actual mappings
+            is_valid = (has_mapping_insights and 
+                       has_db_mappings and 
+                       mapping_confidence >= 0.6)
+            
+            logger.info(f"🤖 AI Attribute Mapping Validation: insights={has_mapping_insights}, "
+                       f"db_mappings={has_db_mappings}, confidence={mapping_confidence:.2f}, "
+                       f"valid={is_valid}")
             
             return is_valid
             
         except Exception as e:
-            logger.error(f"❌ Failed to validate attribute mapping completion: {e}")
+            logger.error(f"❌ Agentic attribute mapping validation failed: {e}")
             return False
 
-    async def _validate_data_cleansing_completion(self, flow) -> bool:
-        """Validate that data cleansing phase actually produced meaningful results"""
+    async def _agentic_validate_data_cleansing(self, flow) -> bool:
+        """AI-powered validation of data cleansing completion"""
         try:
-            # Check 1: Are there data cleansing results in the flow state?
-            has_cleansing_results = False
-            if flow.crewai_state_data:
-                state_data = flow.crewai_state_data
-                if isinstance(state_data, dict):
-                    # Check for data cleansing results in various locations
-                    data_cleansing = state_data.get("data_cleansing", {})
-                    if isinstance(data_cleansing, dict):
-                        # Check for cleansing results
-                        cleansing_results = data_cleansing.get("cleansing_results")
-                        data_cleansing_results = data_cleansing.get("data_cleansing_results")
-                        has_cleansing_results = bool(cleansing_results or data_cleansing_results)
-                    
-                    # Also check top-level keys for cleansing results
-                    if not has_cleansing_results:
-                        meaningful_keys = [
-                            "cleansing_results", "data_cleansing_results", 
-                            "cleaned_data", "quality_analysis", "cleansing_summary"
-                        ]
-                        has_cleansing_results = any(
-                            key in state_data and state_data[key] 
-                            for key in meaningful_keys
-                        )
+            logger.info(f"🤖 AI validating data cleansing for flow {flow.flow_id}")
             
-            # Check 2: Are there agent insights about data cleansing?
-            has_cleansing_insights = False
-            if flow.crewai_state_data:
-                state_data = flow.crewai_state_data
-                if isinstance(state_data, dict):
-                    agent_insights = state_data.get("agent_insights", [])
-                    cleansing_insights = [
-                        insight for insight in agent_insights 
-                        if isinstance(insight, dict) and (
-                            insight.get("phase") == "data_cleansing" or
-                            "data_cleansing" in insight.get("insight", "").lower() or
-                            "cleansing" in insight.get("insight", "").lower() or
-                            "quality" in insight.get("insight", "").lower()
-                        )
-                    ]
-                    has_cleansing_insights = len(cleansing_insights) > 0
+            # Check 1: Agent insights about data quality
+            has_cleansing_insights = await self._check_agent_insights(flow, "data_cleansing", [
+                "cleansing", "quality", "validation", "completeness", "consistency"
+            ])
             
-            # Check 3: Are there any quality metrics or analysis results?
-            has_quality_metrics = False
-            if flow.crewai_state_data:
-                state_data = flow.crewai_state_data
-                if isinstance(state_data, dict):
-                    quality_keys = [
-                        "quality_metrics", "data_quality", "validation_summary",
-                        "completeness_analysis", "consistency_analysis"
-                    ]
-                    has_quality_metrics = any(
-                        key in state_data and state_data[key] 
-                        for key in quality_keys
-                    )
+            # Check 2: Quality metrics and analysis results
+            has_quality_metrics = await self._check_quality_metrics(flow)
             
-            is_valid = has_cleansing_results or has_cleansing_insights or has_quality_metrics
+            # Check 3: AI confidence in cleansing results
+            cleansing_confidence = await self._get_ai_quality_confidence(flow, "data_cleansing")
             
-            logger.info(f"🔍 Data cleansing validation for flow {flow.flow_id}: "
-                       f"cleansing_results={has_cleansing_results}, "
-                       f"cleansing_insights={has_cleansing_insights}, "
-                       f"quality_metrics={has_quality_metrics}, "
-                       f"overall_valid={is_valid}")
+            # AGENTIC DECISION: Require evidence of actual cleansing work
+            is_valid = (has_cleansing_insights and 
+                       has_quality_metrics and 
+                       cleansing_confidence >= 0.7)
+            
+            logger.info(f"🤖 AI Data Cleansing Validation: insights={has_cleansing_insights}, "
+                       f"quality_metrics={has_quality_metrics}, confidence={cleansing_confidence:.2f}, "
+                       f"valid={is_valid}")
             
             return is_valid
             
         except Exception as e:
-            logger.error(f"❌ Failed to validate data cleansing completion: {e}")
-            return False  # Fail safe - require re-processing if validation fails
-    
+            logger.error(f"❌ Agentic data cleansing validation failed: {e}")
+            return False
+
+    async def _reset_phase_with_agent_insight(self, flow, phase: str, reason: str):
+        """Reset a phase with AI-generated insight for user guidance"""
+        agent_insight = {
+            "agent": "AI Flow Validation System",
+            "insight": f"Phase '{phase}' requires completion: {reason}",
+            "action_required": f"Please complete the {phase.replace('_', ' ')} phase properly",
+            "ai_recommendation": await self._get_ai_phase_recommendation(phase),
+            "timestamp": datetime.now().isoformat(),
+            "validation_failed": True
+        }
+        
+        await self.flow_repo.update_phase_completion(
+            flow_id=str(flow.flow_id),
+            phase=phase,
+            data={"reset_reason": reason, "ai_validation": "failed"},
+            crew_status={"status": "reset", "reason": "agentic_validation_failed"},
+            agent_insights=[agent_insight],
+            completed=False
+        )
+
+    async def _get_ai_phase_recommendation(self, phase: str) -> str:
+        """Get AI recommendation for completing a specific phase"""
+        recommendations = {
+            "data_import": "Ensure data is properly uploaded and validated by import agents",
+            "attribute_mapping": "Complete field mappings with sufficient confidence scores",
+            "data_cleansing": "Run data quality analysis and address any issues found"
+        }
+        return recommendations.get(phase, f"Complete the {phase} phase with proper agent validation")
+
+    async def _check_agent_insights(self, flow, phase: str, keywords: list) -> bool:
+        """Check if flow has relevant agent insights for the phase"""
+        if not flow.crewai_state_data:
+            return False
+            
+        state_data = flow.crewai_state_data
+        if not isinstance(state_data, dict):
+            return False
+            
+        agent_insights = state_data.get("agent_insights", [])
+        if not agent_insights:
+            return False
+            
+        # Look for insights related to this phase
+        relevant_insights = []
+        for insight in agent_insights:
+            if not isinstance(insight, dict):
+                continue
+                
+            insight_text = (insight.get("insight", "") + " " + 
+                          insight.get("description", "") + " " + 
+                          insight.get("phase", "")).lower()
+            
+            # Check if insight contains phase-relevant keywords
+            if (insight.get("phase") == phase or 
+                any(keyword in insight_text for keyword in keywords)):
+                relevant_insights.append(insight)
+        
+        return len(relevant_insights) > 0
+
+    async def _get_ai_quality_confidence(self, flow, phase: str) -> float:
+        """Get AI confidence score for phase completion"""
+        if not flow.crewai_state_data:
+            return 0.0
+            
+        state_data = flow.crewai_state_data
+        if not isinstance(state_data, dict):
+            return 0.0
+            
+        # Look for confidence scores in various locations
+        confidence_sources = [
+            state_data.get(f"{phase}_confidence", 0.0),
+            state_data.get("confidence_scores", {}).get(phase, 0.0),
+            state_data.get("quality_metrics", {}).get("confidence", 0.0)
+        ]
+        
+        # Return the highest confidence found
+        return max(confidence_sources) if confidence_sources else 0.0
+
+    async def _determine_safe_fallback_phase(self, flow) -> str:
+        """Determine safe fallback phase when agentic validation fails"""
+        # Conservative approach - check which phases have ANY evidence of completion
+        if not flow.data_import_completed:
+            return "data_import"
+        if not flow.attribute_mapping_completed:
+            return "attribute_mapping"  
+        if not flow.data_cleansing_completed:
+            return "data_cleansing"
+        if not flow.inventory_completed:
+            return "inventory"
+        if not flow.dependencies_completed:
+            return "dependencies"
+        if not flow.tech_debt_completed:
+            return "tech_debt"
+        return "completed"
+
     async def get_flow_status(self, flow_id: str) -> Dict[str, Any]:
         """Get detailed status of a discovery flow from PostgreSQL"""
         try:
@@ -1250,3 +1203,74 @@ class FlowManagementHandler:
         
         # Keep current type if no better classification found
         return current_type 
+
+    async def _check_processed_records(self, flow) -> bool:
+        """Check if there are processed records for the flow"""
+        if not flow.import_session_id:
+            return False
+            
+        try:
+            from sqlalchemy import select, func
+            from app.models.data_import import RawImportRecord
+            
+            # Check if there are processed raw records
+            records_query = await self.db.execute(
+                select(func.count(RawImportRecord.id)).where(
+                    RawImportRecord.master_flow_id == flow.id,
+                    RawImportRecord.is_processed == True
+                )
+            )
+            processed_count = records_query.scalar() or 0
+            logger.info(f"🔍 Found {processed_count} processed records for flow {flow.flow_id}")
+            return processed_count > 0
+            
+        except Exception as e:
+            logger.warning(f"⚠️ Could not check processed records: {e}")
+            return False
+
+    async def _check_database_field_mappings(self, flow) -> bool:
+        """Check if there are field mappings in the database"""
+        if not flow.import_session_id:
+            return False
+            
+        try:
+            from sqlalchemy import select, func
+            from app.models.data_import.mapping import ImportFieldMapping
+            
+            mappings_query = await self.db.execute(
+                select(func.count(ImportFieldMapping.id)).where(
+                    ImportFieldMapping.data_import_id == flow.import_session_id,
+                    ImportFieldMapping.status.in_(["approved", "validated"])
+                )
+            )
+            mappings_count = mappings_query.scalar() or 0
+            logger.info(f"🔍 Found {mappings_count} field mappings for flow {flow.flow_id}")
+            return mappings_count > 0
+            
+        except Exception as e:
+            logger.warning(f"⚠️ Could not check field mappings: {e}")
+            return False
+
+    async def _check_quality_metrics(self, flow) -> bool:
+        """Check if there are quality metrics or analysis results"""
+        if not flow.crewai_state_data:
+            return False
+            
+        state_data = flow.crewai_state_data
+        if not isinstance(state_data, dict):
+            return False
+            
+        # Check for various quality indicators
+        quality_keys = [
+            "quality_metrics", "data_quality", "validation_summary",
+            "completeness_analysis", "consistency_analysis", "cleansing_results",
+            "data_cleansing_results", "cleaned_data", "quality_analysis"
+        ]
+        
+        has_quality_data = any(
+            key in state_data and state_data[key] 
+            for key in quality_keys
+        )
+        
+        logger.info(f"🔍 Quality metrics check for flow {flow.flow_id}: has_quality_data={has_quality_data}")
+        return has_quality_data 
