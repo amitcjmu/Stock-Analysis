@@ -19,7 +19,9 @@ import {
   Lock,
   Scan,
   UserCheck,
-  Cog
+  Cog,
+  XCircle,
+  Clock
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -36,6 +38,7 @@ import { DataImportValidationService, ValidationAgentResult } from '@/services/d
 import { apiCall } from '@/config/api';
 import UniversalProcessingStatus from '@/components/discovery/UniversalProcessingStatus';
 import { PollingStatusIndicator, PollingControls } from '@/components/common/PollingControls';
+import { useComprehensiveRealTimeMonitoring } from '@/hooks/useRealTimeProcessing';
 
 // Flow Management Components
 import { UploadBlocker } from '@/components/discovery/UploadBlocker';
@@ -728,6 +731,204 @@ const DataImport: React.FC = () => {
     }
   };
 
+  // New component for enhanced validation progress with real-time data
+  interface ValidationProgressSectionProps {
+    file: UploadFile;
+    onValidationUpdate: (validationData: any) => void;
+  }
+
+  const ValidationProgressSection: React.FC<ValidationProgressSectionProps> = ({ file, onValidationUpdate }) => {
+    const monitoring = file.flow_id ? useComprehensiveRealTimeMonitoring(file.flow_id, 'data_import') : null;
+    
+    // Use real-time validation data if available, otherwise fall back to file properties
+    const validationData = monitoring?.validation.validationData;
+    const hasRealTimeData = !!validationData;
+    
+    // Determine validation status with real-time data priority
+    const formatStatus = hasRealTimeData 
+      ? (validationData.format_validation?.status === 'passed' ? 'passed' : 
+         validationData.format_validation?.errors?.length > 0 ? 'failed' : 'pending')
+      : (file.format_validation ? 'passed' : 'pending');
+      
+    const securityStatus = hasRealTimeData
+      ? (validationData.security_scan?.status === 'passed' ? 'passed' :
+         validationData.security_scan?.issues?.length > 0 ? 'failed' : 'pending')
+      : (file.security_clearance ? 'passed' : 'pending');
+      
+    const privacyStatus = hasRealTimeData
+      ? (validationData.data_quality?.score > 0.7 ? 'passed' :
+         validationData.data_quality?.score < 0.5 ? 'failed' : 'warning')
+      : (file.privacy_clearance ? 'passed' : 'pending');
+    
+    // Calculate progress from real-time data
+    const validationProgress = hasRealTimeData 
+      ? (validationData.validation_progress || 0)
+      : (file.validation_progress || 0);
+      
+    const agentsCompleted = hasRealTimeData
+      ? (validationData.agents_completed || 0)
+      : (file.agents_completed || 0);
+      
+    const totalAgents = hasRealTimeData
+      ? (validationData.total_agents || 4)
+      : (file.total_agents || 4);
+    
+    // Update parent component when validation data changes
+    React.useEffect(() => {
+      if (hasRealTimeData && onValidationUpdate) {
+        onValidationUpdate(validationData);
+      }
+    }, [validationData, hasRealTimeData, onValidationUpdate]);
+    
+    // Helper function to get status styling
+    const getStatusStyling = (status: string) => {
+      switch (status) {
+        case 'passed':
+          return {
+            bg: 'bg-green-50 border-green-200',
+            icon: 'text-green-600',
+            text: 'text-green-900'
+          };
+        case 'failed':
+          return {
+            bg: 'bg-red-50 border-red-200',
+            icon: 'text-red-600',
+            text: 'text-red-900'
+          };
+        case 'warning':
+          return {
+            bg: 'bg-yellow-50 border-yellow-200',
+            icon: 'text-yellow-600',
+            text: 'text-yellow-900'
+          };
+        default:
+          return {
+            bg: 'bg-gray-50 border-gray-200',
+            icon: 'text-gray-400',
+            text: 'text-gray-600'
+          };
+      }
+    };
+    
+    const formatStyling = getStatusStyling(formatStatus);
+    const securityStyling = getStatusStyling(securityStatus);
+    const privacyStyling = getStatusStyling(privacyStatus);
+    
+    return (
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span>Validation Progress</span>
+            <span>{agentsCompleted}/{totalAgents} agents completed</span>
+          </div>
+          <Progress value={validationProgress} className="h-2" />
+          {hasRealTimeData && (
+            <div className="text-xs text-gray-500">
+              Real-time validation status • Last updated: {new Date().toLocaleTimeString()}
+            </div>
+          )}
+        </div>
+
+        {/* Security Clearances with Real-time Status */}
+        <div className="grid grid-cols-3 gap-4">
+          <div className={`p-3 rounded-lg border ${formatStyling.bg}`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <FileCheck className={`h-4 w-4 ${formatStyling.icon}`} />
+                <span className={`text-sm font-medium ${formatStyling.text}`}>Format Valid</span>
+              </div>
+              {formatStatus === 'failed' && (
+                <XCircle className="h-4 w-4 text-red-500" />
+              )}
+              {formatStatus === 'passed' && (
+                <CheckCircle className="h-4 w-4 text-green-500" />
+              )}
+              {formatStatus === 'pending' && (
+                <Clock className="h-4 w-4 text-gray-400" />
+              )}
+            </div>
+            {hasRealTimeData && validationData.format_validation?.errors?.length > 0 && (
+              <div className="mt-1 text-xs text-red-600">
+                {validationData.format_validation.errors.length} error(s) found
+              </div>
+            )}
+          </div>
+          
+          <div className={`p-3 rounded-lg border ${securityStyling.bg}`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Shield className={`h-4 w-4 ${securityStyling.icon}`} />
+                <span className={`text-sm font-medium ${securityStyling.text}`}>Security Clear</span>
+              </div>
+              {securityStatus === 'failed' && (
+                <XCircle className="h-4 w-4 text-red-500" />
+              )}
+              {securityStatus === 'passed' && (
+                <CheckCircle className="h-4 w-4 text-green-500" />
+              )}
+              {securityStatus === 'pending' && (
+                <Clock className="h-4 w-4 text-gray-400" />
+              )}
+            </div>
+            {hasRealTimeData && validationData.security_scan?.issues?.length > 0 && (
+              <div className="mt-1 text-xs text-red-600">
+                {validationData.security_scan.issues.length} issue(s) found
+              </div>
+            )}
+          </div>
+          
+          <div className={`p-3 rounded-lg border ${privacyStyling.bg}`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <UserCheck className={`h-4 w-4 ${privacyStyling.icon}`} />
+                <span className={`text-sm font-medium ${privacyStyling.text}`}>Privacy Clear</span>
+              </div>
+              {privacyStatus === 'failed' && (
+                <XCircle className="h-4 w-4 text-red-500" />
+              )}
+              {privacyStatus === 'passed' && (
+                <CheckCircle className="h-4 w-4 text-green-500" />
+              )}
+              {privacyStatus === 'warning' && (
+                <AlertTriangle className="h-4 w-4 text-yellow-500" />
+              )}
+              {privacyStatus === 'pending' && (
+                <Clock className="h-4 w-4 text-gray-400" />
+              )}
+            </div>
+            {hasRealTimeData && validationData.data_quality?.score && (
+              <div className="mt-1 text-xs text-gray-600">
+                Quality: {Math.round(validationData.data_quality.score * 100)}%
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {/* Validation Error Details */}
+        {hasRealTimeData && (
+          <div className="space-y-2">
+            {validationData.format_validation?.errors?.map((error, index) => (
+              <Alert key={index} variant="destructive" className="py-2">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription className="text-sm">
+                  <strong>Format Error:</strong> {error}
+                </AlertDescription>
+              </Alert>
+            ))}
+            {validationData.security_scan?.issues?.map((issue, index) => (
+              <Alert key={index} variant="destructive" className="py-2">
+                <Shield className="h-4 w-4" />
+                <AlertDescription className="text-sm">
+                  <strong>Security Issue:</strong> {issue}
+                </AlertDescription>
+              </Alert>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar */}
@@ -976,153 +1177,122 @@ const DataImport: React.FC = () => {
 
                     {/* Validation Progress */}
                     {(file.status === 'validating' || file.status === 'approved' || file.status === 'approved_with_warnings' || file.status === 'rejected') && (
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between text-sm">
-                            <span>Validation Progress</span>
-                            <span>{file.agents_completed}/{file.total_agents} agents completed</span>
+                      <ValidationProgressSection 
+                        file={file}
+                        onValidationUpdate={(validationData) => {
+                          // Update file validation status based on real-time data
+                          setUploadedFiles(prev => prev.map(f => 
+                            f.id === file.id 
+                              ? { 
+                                  ...f, 
+                                  format_validation: validationData.format_validation?.status === 'passed',
+                                  security_clearance: validationData.security_scan?.status === 'passed',
+                                  privacy_clearance: !validationData.privacy_issues || validationData.privacy_issues.length === 0,
+                                  validation_progress: validationData.validation_progress || 0,
+                                  agents_completed: validationData.agents_completed || 0,
+                                  total_agents: validationData.total_agents || 4
+                                }
+                              : f
+                          ));
+                        }}
+                      />
+                    )}
+
+                    {/* Flow Summary - Completed Flow */}
+                    {file.status === 'approved' && file.flow_summary && (
+                      <div className="pt-4 border-t">
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-3">
+                          <div className="flex items-center space-x-2">
+                            <CheckCircle className="h-5 w-5 text-green-600" />
+                            <h4 className="text-sm font-semibold text-green-900">CrewAI Discovery Flow Complete</h4>
                           </div>
-                          <Progress value={file.validation_progress} className="h-2" />
+                          
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="text-center">
+                              <div className="text-lg font-bold text-green-700">{file.flow_summary.total_assets}</div>
+                              <div className="text-xs text-green-600">Assets Processed</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-lg font-bold text-green-700">{file.flow_summary.phases_completed.length}</div>
+                              <div className="text-xs text-green-600">Phases Complete</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-lg font-bold text-yellow-700">{file.flow_summary.warnings}</div>
+                              <div className="text-xs text-yellow-600">Warnings</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-lg font-bold text-red-700">{file.flow_summary.errors}</div>
+                              <div className="text-xs text-red-600">Errors</div>
+                            </div>
+                          </div>
+                          
+                          {file.flow_summary.phases_completed.length > 0 && (
+                            <div>
+                              <p className="text-xs font-medium text-green-800 mb-1">Completed Phases:</p>
+                              <div className="flex flex-wrap gap-1">
+                                {file.flow_summary.phases_completed.map(phase => (
+                                  <Badge key={phase} variant="secondary" className="text-xs bg-green-100 text-green-800">
+                                    {phase}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
-
-                        {/* Security Clearances */}
-                        <div className="grid grid-cols-3 gap-4">
-                          <div className={`p-3 rounded-lg border ${
-                            file.format_validation ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
-                          }`}>
-                            <div className="flex items-center space-x-2">
-                              <FileCheck className={`h-4 w-4 ${file.format_validation ? 'text-green-600' : 'text-gray-400'}`} />
-                              <span className="text-sm font-medium">Format Valid</span>
-                            </div>
-                          </div>
-                          <div className={`p-3 rounded-lg border ${
-                            file.security_clearance ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
-                          }`}>
-                            <div className="flex items-center space-x-2">
-                              <Shield className={`h-4 w-4 ${file.security_clearance ? 'text-green-600' : 'text-gray-400'}`} />
-                              <span className="text-sm font-medium">Security Clear</span>
-                            </div>
-                          </div>
-                          <div className={`p-3 rounded-lg border ${
-                            file.privacy_clearance ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
-                          }`}>
-                            <div className="flex items-center space-x-2">
-                              <UserCheck className={`h-4 w-4 ${file.privacy_clearance ? 'text-green-600' : 'text-gray-400'}`} />
-                              <span className="text-sm font-medium">Privacy Clear</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Agent Results */}
-                        {/* Agent results are removed as per the new architecture */}
-
-                        {/* Flow Summary - Completed Flow */}
-                        {file.status === 'approved' && file.flow_summary && (
-                          <div className="pt-4 border-t">
-                            <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-3">
-                              <div className="flex items-center space-x-2">
-                                <CheckCircle className="h-5 w-5 text-green-600" />
-                                <h4 className="text-sm font-semibold text-green-900">CrewAI Discovery Flow Complete</h4>
-                              </div>
-                              
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <div className="text-center">
-                                  <div className="text-lg font-bold text-green-700">{file.flow_summary.total_assets}</div>
-                                  <div className="text-xs text-green-600">Assets Processed</div>
-                                </div>
-                                <div className="text-center">
-                                  <div className="text-lg font-bold text-green-700">{file.flow_summary.phases_completed.length}</div>
-                                  <div className="text-xs text-green-600">Phases Complete</div>
-                                </div>
-                                <div className="text-center">
-                                  <div className="text-lg font-bold text-yellow-700">{file.flow_summary.warnings}</div>
-                                  <div className="text-xs text-yellow-600">Warnings</div>
-                                </div>
-                                <div className="text-center">
-                                  <div className="text-lg font-bold text-red-700">{file.flow_summary.errors}</div>
-                                  <div className="text-xs text-red-600">Errors</div>
-                                </div>
-                              </div>
-                              
-                              {file.flow_summary.phases_completed.length > 0 && (
-                                <div>
-                                  <p className="text-xs font-medium text-green-800 mb-1">Completed Phases:</p>
-                                  <div className="flex flex-wrap gap-1">
-                                    {file.flow_summary.phases_completed.map(phase => (
-                                      <Badge key={phase} variant="secondary" className="text-xs bg-green-100 text-green-800">
-                                        {phase}
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Action Buttons */}
-                        {(file.status === 'approved' || file.status === 'approved_with_warnings') && (
-                          <div className="pt-4 border-t">
-                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-3 sm:space-y-0">
-                              <div>
-                                <p className="text-sm font-medium text-gray-900">
-                                  {file.flow_summary ? 'Discovery Flow Complete' : 'Ready for Discovery Flow'}
-                                </p>
-                                <p className="text-sm text-gray-600">
-                                  {file.flow_summary 
-                                    ? 'Data analysis complete. Proceed to field mapping and detailed insights.'
-                                    : 'Data validation complete. Proceed to field mapping and AI-powered analysis.'
-                                  }
-                                </p>
-                              </div>
-                              <Button
-                                onClick={() => startDiscoveryFlow()}
-                                disabled={isStartingFlow}
-                                className="bg-green-600 hover:bg-green-700 flex items-center space-x-2"
-                              >
-                                {isStartingFlow ? (
-                                  <>
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                    <span>Starting Flow...</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Brain className="h-4 w-4" />
-                                    <span>{file.flow_summary ? 'View Results' : 'Start Discovery Flow'}</span>
-                                    <ArrowRight className="h-4 w-4" />
-                                  </>
-                                )}
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-
-                        {file.status === 'approved_with_warnings' && (
-                          <Alert className="border-yellow-200 bg-yellow-50">
-                            <AlertTriangle className="h-5 w-5 text-yellow-600" />
-                            <AlertDescription className="text-yellow-800">
-                              File validation completed with warnings. Review agent feedback before proceeding to field mapping.
-                            </AlertDescription>
-                          </Alert>
-                        )}
-
-                        {file.status === 'rejected' && (
-                          <Alert className="border-red-200 bg-red-50">
-                            <AlertTriangle className="h-5 w-5 text-red-600" />
-                            <AlertDescription className="text-red-800">
-                              File validation failed. Please review agent feedback and upload a corrected file.
-                            </AlertDescription>
-                          </Alert>
-                        )}
                       </div>
                     )}
 
-                    {/* Error State */}
-                    {file.status === 'error' && (
+                    {/* Action Buttons */}
+                    {(file.status === 'approved' || file.status === 'approved_with_warnings') && (
+                      <div className="pt-4 border-t">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-3 sm:space-y-0">
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">
+                              {file.flow_summary ? 'Discovery Flow Complete' : 'Ready for Discovery Flow'}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              {file.flow_summary 
+                                ? 'Data analysis complete. Proceed to field mapping and detailed insights.'
+                                : 'Data validation complete. Proceed to field mapping and AI-powered analysis.'
+                              }
+                            </p>
+                          </div>
+                          <Button
+                            onClick={() => startDiscoveryFlow()}
+                            disabled={isStartingFlow}
+                            className="bg-green-600 hover:bg-green-700 flex items-center space-x-2"
+                          >
+                            {isStartingFlow ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <span>Starting Flow...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Brain className="h-4 w-4" />
+                                <span>{file.flow_summary ? 'View Results' : 'Start Discovery Flow'}</span>
+                                <ArrowRight className="h-4 w-4" />
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {file.status === 'approved_with_warnings' && (
+                      <Alert className="border-yellow-200 bg-yellow-50">
+                        <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                        <AlertDescription className="text-yellow-800">
+                          File validation completed with warnings. Review agent feedback before proceeding to field mapping.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    {file.status === 'rejected' && (
                       <Alert className="border-red-200 bg-red-50">
-                        <AlertCircle className="h-5 w-5 text-red-600" />
+                        <AlertTriangle className="h-5 w-5 text-red-600" />
                         <AlertDescription className="text-red-800">
-                          {file.error_message || 'An error occurred during upload. Please try again.'}
+                          File validation failed. Please review agent feedback and upload a corrected file.
                         </AlertDescription>
                       </Alert>
                     )}

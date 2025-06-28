@@ -99,4 +99,9 @@ class ValidationStatusResponse(BaseModel):
     security_scan: SecurityScan
     format_validation: FormatValidation
     data_quality: DataQuality
-    last_validation: str 
+    last_validation: str
+    # Progress tracking fields
+    validation_progress: float = Field(default=0.0, description="Validation progress percentage (0-100)")
+    agents_completed: int = Field(default=0, description="Number of validation agents completed")
+    total_agents: int = Field(default=4, description="Total number of validation agents")
+    agent_status: Optional[Dict[str, Dict[str, Any]]] = Field(default=None, description="Individual agent status details") 
