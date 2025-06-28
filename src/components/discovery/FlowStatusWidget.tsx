@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -18,31 +18,38 @@ interface FlowStatusWidgetProps {
 }
 
 interface FlowAnalysis {
+  success: boolean;
   flow_id: string;
-  flow_type: string;
   current_phase: string;
-  progress_percentage: number;
-  phase_completion_status: {
-    [phase: string]: {
-      completed: boolean;
-      confidence: number;
-      missing_requirements?: string[];
-      completion_evidence?: string[];
-    };
-  };
-  routing_decision: {
-    recommended_page: string;
-    reasoning: string;
+  next_action: string;
+  routing_context: {
+    target_page: string;
+    context_data: any;
     specific_task?: string;
-    urgency_level: 'low' | 'medium' | 'high';
   };
+  checklist_status: Array<{
+    phase: string;
+    status: string;
+    completion_percentage: number;
+    tasks: Array<{
+      task_id: string;
+      task_name: string;
+      status: string;
+      confidence: number;
+      next_steps: string[];
+    }>;
+    next_required_actions: string[];
+  }>;
   user_guidance: {
     summary: string;
+    phase: string;
+    completion_percentage: number;
     next_steps: string[];
-    estimated_time_to_complete?: string;
-    blockers?: string[];
+    detailed_status: {
+      completed_tasks: Array<{ name: string; confidence: number }>;
+      pending_tasks: Array<{ name: string; next_steps: string[] }>;
+    };
   };
-  success: boolean;
   error_message?: string;
 }
 
@@ -58,15 +65,32 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
   const navigate = useNavigate();
   const { user } = useAuth();
   const { client, engagement } = useClient();
+  
+  // Request deduplication
+  const requestInProgress = useRef(false);
+  const lastRequestTime = useRef(0);
+  const REQUEST_DEBOUNCE_MS = 1000; // Prevent requests within 1 second of each other
 
   const fetchFlowAnalysis = async () => {
-    if (!flowId) return;
+    if (!flowId) {
+      console.warn('FlowStatusWidget: No flowId provided');
+      return;
+    }
     
+    // Prevent duplicate requests
+    const now = Date.now();
+    if (requestInProgress.current || (now - lastRequestTime.current) < REQUEST_DEBOUNCE_MS) {
+      console.log('FlowStatusWidget: Request blocked (duplicate prevention)');
+      return;
+    }
+    
+    requestInProgress.current = true;
+    lastRequestTime.current = now;
     setLoading(true);
     setError(null);
     
     try {
-      console.log('🔍 Fetching flow analysis for:', flowId);
+      console.log('🔍 FlowStatusWidget: Fetching flow analysis for:', flowId);
       
       const result = await flowProcessingService.processContinuation(flowId, {
         client_account_id: client?.id,
@@ -74,57 +98,96 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
         user_id: user?.id
       });
       
+      console.log('📊 FlowStatusWidget: Received result:', result);
+      
       if (result.success) {
         setAnalysis(result as FlowAnalysis);
+        setError(null);
       } else {
-        setError(result.error_message || 'Failed to analyze flow');
+        const errorMsg = result.error_message || 'Failed to analyze flow';
+        setError(errorMsg);
+        console.error('❌ FlowStatusWidget: Analysis failed:', errorMsg);
       }
     } catch (err) {
-      console.error('Flow analysis error:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error occurred';
+      console.error('❌ FlowStatusWidget: Request failed:', err);
+      setError(errorMsg);
+      
+      // Show user-friendly error toast
+      toast.error('Flow Analysis Failed', {
+        description: 'Unable to analyze flow status. Please try again.',
+      });
     } finally {
       setLoading(false);
+      requestInProgress.current = false;
     }
   };
 
   useEffect(() => {
-    fetchFlowAnalysis();
-  }, [flowId]);
+    // Add a small delay to prevent immediate execution on mount
+    const timer = setTimeout(() => {
+      fetchFlowAnalysis();
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [flowId]); // Only depend on flowId, not client/engagement which may change frequently
 
   const handleNavigateToRecommendedPage = () => {
-    if (!analysis?.routing_decision?.recommended_page) return;
+    if (!analysis?.routing_context?.target_page) {
+      toast.error('Navigation Error', {
+        description: 'No target page available. Please try refreshing.',
+      });
+      return;
+    }
     
-    // Show confirmation toast
-    toast.success('🚀 Navigating to recommended next step', {
-      description: analysis.routing_decision.reasoning
-    });
-    
-    // Navigate with context
-    navigate(analysis.routing_decision.recommended_page, {
-      state: {
-        flow_id: flowId,
-        phase: analysis.current_phase,
-        agent_guidance: analysis.user_guidance,
-        from_flow_status_widget: true
-      }
-    });
+    try {
+      // Show confirmation toast
+      toast.success('🚀 Navigating to recommended next step', {
+        description: analysis.user_guidance.summary
+      });
+      
+      // Navigate with context
+      navigate(analysis.routing_context.target_page, {
+        state: {
+          flow_id: flowId,
+          phase: analysis.current_phase,
+          agent_guidance: analysis.user_guidance,
+          from_flow_status_widget: true
+        }
+      });
+    } catch (navError) {
+      console.error('Navigation failed:', navError);
+      toast.error('Navigation Failed', {
+        description: 'Unable to navigate to the recommended page.',
+      });
+    }
   };
 
-  const getPhaseStatusIcon = (completed: boolean, confidence: number) => {
-    if (completed && confidence >= 0.8) {
+  const handleRetryAnalysis = () => {
+    // Reset state and retry
+    setError(null);
+    setAnalysis(null);
+    fetchFlowAnalysis();
+  };
+
+  const getPhaseStatusIcon = (status: string, confidence: number) => {
+    if (status === 'completed' && confidence >= 0.8) {
       return <CheckCircle className="h-4 w-4 text-green-500" />;
-    } else if (completed && confidence >= 0.6) {
+    } else if (status === 'completed' && confidence >= 0.6) {
       return <CheckCircle className="h-4 w-4 text-yellow-500" />;
+    } else if (status === 'in_progress') {
+      return <Clock className="h-4 w-4 text-blue-500" />;
     } else {
       return <Clock className="h-4 w-4 text-gray-400" />;
     }
   };
 
-  const getUrgencyColor = (urgency: string) => {
-    switch (urgency) {
-      case 'high': return 'destructive';
-      case 'medium': return 'default';
-      case 'low': return 'secondary';
+  const getTaskStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'default';
+      case 'pending': return 'secondary';
+      case 'in_progress': return 'default';
+      case 'blocked': return 'destructive';
       default: return 'outline';
     }
   };
@@ -137,6 +200,9 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
             <RefreshCw className="h-5 w-5 animate-spin" />
             Analyzing Flow Status...
           </CardTitle>
+          <CardDescription>
+            AI agent is analyzing your flow and determining next steps
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
@@ -157,14 +223,18 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
             <AlertCircle className="h-5 w-5" />
             Flow Analysis Error
           </CardTitle>
+          <CardDescription>
+            Unable to analyze flow status
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-gray-600 mb-4">{error}</p>
           <Button 
-            onClick={fetchFlowAnalysis} 
+            onClick={handleRetryAnalysis} 
             variant="outline" 
             size="sm"
             className="w-full"
+            disabled={loading || requestInProgress.current}
           >
             <RefreshCw className="h-4 w-4 mr-2" />
             Retry Analysis
@@ -175,12 +245,32 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
   }
 
   if (!analysis) {
-    return null;
+    return (
+      <Card className={className}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-gray-600">
+            <AlertCircle className="h-5 w-5" />
+            No Analysis Available
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-gray-600 mb-4">No flow analysis data available.</p>
+          <Button 
+            onClick={handleRetryAnalysis} 
+            variant="outline" 
+            size="sm"
+            className="w-full"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Load Analysis
+          </Button>
+        </CardContent>
+      </Card>
+    );
   }
 
-  const completedPhases = Object.values(analysis.phase_completion_status || {})
-    .filter(phase => phase.completed).length;
-  const totalPhases = Object.keys(analysis.phase_completion_status || {}).length;
+  const completedPhases = analysis.checklist_status?.filter(phase => phase.status === 'completed').length || 0;
+  const totalPhases = analysis.checklist_status?.length || 0;
 
   return (
     <Card className={className}>
@@ -190,7 +280,7 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
             <CardTitle className="flex items-center gap-2">
               🤖 Flow Intelligence
               <Badge variant="outline" className="ml-2">
-                {analysis.flow_type}
+                {flowType}
               </Badge>
             </CardTitle>
             <CardDescription>
@@ -198,11 +288,12 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
             </CardDescription>
           </div>
           <Button
-            onClick={fetchFlowAnalysis}
+            onClick={handleRetryAnalysis}
             variant="ghost"
             size="sm"
+            disabled={loading || requestInProgress.current}
           >
-            <RefreshCw className="h-4 w-4" />
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </Button>
         </div>
       </CardHeader>
@@ -216,31 +307,31 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
               {completedPhases}/{totalPhases} phases
             </span>
           </div>
-          <Progress value={analysis.progress_percentage} className="h-2" />
+          <Progress value={analysis.user_guidance.completion_percentage} className="h-2" />
           <p className="text-xs text-gray-500 mt-1">
-            Current Phase: <span className="font-medium">{analysis.current_phase}</span>
+            Current Phase: <span className="font-medium">{analysis.current_phase.replace('_', ' ')}</span>
           </p>
         </div>
 
         {/* Phase Status Breakdown */}
-        {analysis.phase_completion_status && (
+        {analysis.checklist_status && analysis.checklist_status.length > 0 && (
           <div>
             <h4 className="text-sm font-medium mb-3">Phase Status</h4>
             <div className="space-y-2">
-              {Object.entries(analysis.phase_completion_status).map(([phase, status]) => (
-                <div key={phase} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+              {analysis.checklist_status.map((phase) => (
+                <div key={phase.phase} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                   <div className="flex items-center gap-2">
-                    {getPhaseStatusIcon(status.completed, status.confidence)}
+                    {getPhaseStatusIcon(phase.status, phase.completion_percentage / 100)}
                     <span className="text-sm capitalize">
-                      {phase.replace(/_/g, ' ')}
+                      {phase.phase.replace(/_/g, ' ')}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge 
-                      variant={status.completed ? "default" : "secondary"}
+                      variant={getTaskStatusColor(phase.status)}
                       className="text-xs"
                     >
-                      {Math.round(status.confidence * 100)}%
+                      {Math.round(phase.completion_percentage)}%
                     </Badge>
                   </div>
                 </div>
@@ -271,57 +362,45 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
           )}
         </div>
 
-        {/* Blockers */}
-        {analysis.user_guidance.blockers && analysis.user_guidance.blockers.length > 0 && (
-          <div>
-            <h4 className="text-sm font-medium mb-2 text-orange-600">⚠️ Blockers</h4>
-            <ul className="space-y-1">
-              {analysis.user_guidance.blockers.map((blocker, index) => (
-                <li key={index} className="text-xs text-orange-700 flex items-start gap-2">
-                  <span className="text-orange-500 mt-1">•</span>
-                  {blocker}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Recommended Action */}
-        {analysis.routing_decision && (
-          <div className="border-t pt-4">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-medium">Recommended Action</h4>
-              <Badge variant={getUrgencyColor(analysis.routing_decision.urgency_level)}>
-                {analysis.routing_decision.urgency_level} priority
-              </Badge>
-            </div>
-            
-            <p className="text-sm text-gray-700 mb-3">
-              {analysis.routing_decision.reasoning}
+        {/* Action Button */}
+        <div className="pt-4 border-t">
+          <Button 
+            onClick={handleNavigateToRecommendedPage}
+            className="w-full"
+            size="sm"
+            disabled={!analysis.routing_context?.target_page}
+          >
+            <ArrowRight className="h-4 w-4 mr-2" />
+            {analysis.next_action}
+          </Button>
+          
+          {analysis.routing_context.specific_task && (
+            <p className="text-xs text-gray-500 mt-2 text-center">
+              Task: {analysis.routing_context.specific_task.replace('_', ' ')}
             </p>
-            
-            {analysis.routing_decision.specific_task && (
-              <p className="text-xs text-blue-600 mb-3">
-                <strong>Specific Task:</strong> {analysis.routing_decision.specific_task}
-              </p>
-            )}
+          )}
+        </div>
 
-            <Button 
-              onClick={handleNavigateToRecommendedPage}
-              className="w-full"
-              variant="default"
-            >
-              <ArrowRight className="h-4 w-4 mr-2" />
-              Go to Recommended Page
-              <ExternalLink className="h-3 w-3 ml-2" />
-            </Button>
-          </div>
-        )}
-
-        {/* Time Estimate */}
-        {analysis.user_guidance.estimated_time_to_complete && (
-          <div className="text-xs text-gray-500 text-center border-t pt-2">
-            Estimated time to complete: {analysis.user_guidance.estimated_time_to_complete}
+        {/* Debug Info (only in development) */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="pt-2 border-t">
+            <details>
+              <summary className="text-xs text-gray-500 cursor-pointer">Debug Info</summary>
+              <pre className="text-xs bg-gray-100 p-2 mt-2 rounded overflow-auto">
+                {JSON.stringify({
+                  flow_id: analysis.flow_id,
+                  current_phase: analysis.current_phase,
+                  target_page: analysis.routing_context.target_page,
+                  specific_task: analysis.routing_context.specific_task,
+                  request_state: {
+                    loading,
+                    error,
+                    request_in_progress: requestInProgress.current,
+                    last_request_time: new Date(lastRequestTime.current).toISOString()
+                  }
+                }, null, 2)}
+              </pre>
+            </details>
           </div>
         )}
       </CardContent>

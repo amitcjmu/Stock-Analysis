@@ -4,7 +4,7 @@ Handles flow continuation and routing decisions using intelligent agents
 """
 
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
@@ -20,15 +20,28 @@ router = APIRouter()
 class FlowContinuationRequest(BaseModel):
     user_context: Optional[Dict[str, Any]] = None
 
+class TaskResult(BaseModel):
+    task_id: str
+    task_name: str
+    status: str  # 'completed' | 'pending' | 'blocked' | 'not_started'
+    confidence: float
+    next_steps: List[str]
+
+class PhaseChecklistResult(BaseModel):
+    phase: str
+    status: str  # 'completed' | 'in_progress' | 'pending' | 'blocked'
+    completion_percentage: float
+    tasks: List[TaskResult]
+    next_required_actions: List[str]
+
 class FlowContinuationResponse(BaseModel):
     success: bool
     flow_id: str
-    routing_decision: str
-    user_guidance: str
-    system_actions: list[str]
-    confidence: float
-    reasoning: str
-    estimated_completion_time: int
+    current_phase: str
+    next_action: str
+    routing_context: Dict[str, Any]
+    checklist_status: List[PhaseChecklistResult]
+    user_guidance: Dict[str, Any]
     error_message: Optional[str] = None
 
 @router.post("/continue/{flow_id}", response_model=FlowContinuationResponse)
@@ -54,31 +67,114 @@ async def continue_flow_processing(
             user_context=request.user_context
         )
         
-        # Convert to API response format
+        # Convert to API response format that frontend expects
         if result.success:
             # Format user guidance from user actions
-            user_guidance = result.user_actions[0] if result.user_actions else "Follow system guidance"
+            user_guidance_text = result.user_actions[0] if result.user_actions else "Follow system guidance"
             
             # Add specific guidance based on routing decision
             if "/discovery/data-import" in result.routing_decision:
-                user_guidance = "Go to the Data Import page and upload a data file containing asset information."
+                user_guidance_text = "Go to the Data Import page and upload a data file containing asset information."
             elif "enhanced-dashboard" in result.routing_decision:
                 if "action=processing" in result.routing_decision:
-                    user_guidance = "Stay on the dashboard while the system processes your data in the background."
+                    user_guidance_text = "Stay on the dashboard while the system processes your data in the background."
                 else:
-                    user_guidance = "Review your flow status on the enhanced dashboard."
+                    user_guidance_text = "Review your flow status on the enhanced dashboard."
+            
+            # Create checklist status based on current phase
+            checklist_status = []
+            phases = ["data_import", "attribute_mapping", "data_cleansing", "inventory", "dependencies", "tech_debt"]
+            current_phase_index = phases.index(result.current_phase) if result.current_phase in phases else 0
+            
+            for i, phase in enumerate(phases):
+                if i < current_phase_index:
+                    status = "completed"
+                    completion = 100.0
+                    tasks = [TaskResult(
+                        task_id=f"{phase}_main",
+                        task_name=f"{phase.replace('_', ' ').title()} Complete",
+                        status="completed",
+                        confidence=0.9,
+                        next_steps=[]
+                    )]
+                elif i == current_phase_index:
+                    # Check if this is data_import phase with no data
+                    if phase == "data_import" and ("0 records" in result.reasoning or "No data records found" in result.reasoning):
+                        status = "pending"
+                        completion = 0.0
+                        tasks = [TaskResult(
+                            task_id=f"{phase}_upload",
+                            task_name="Upload Data File",
+                            status="not_started",
+                            confidence=0.0,
+                            next_steps=["Navigate to Data Import page", "Upload CSV/Excel file with asset data"]
+                        )]
+                    else:
+                        status = "in_progress"
+                        completion = 50.0
+                        tasks = [TaskResult(
+                            task_id=f"{phase}_process",
+                            task_name=f"Process {phase.replace('_', ' ').title()}",
+                            status="pending",
+                            confidence=0.7,
+                            next_steps=["Continue processing", "Review results"]
+                        )]
+                else:
+                    status = "pending"
+                    completion = 0.0
+                    tasks = [TaskResult(
+                        task_id=f"{phase}_future",
+                        task_name=f"{phase.replace('_', ' ').title()} Pending",
+                        status="not_started",
+                        confidence=0.0,
+                        next_steps=["Complete previous phases first"]
+                    )]
+                
+                checklist_status.append(PhaseChecklistResult(
+                    phase=phase,
+                    status=status,
+                    completion_percentage=completion,
+                    tasks=tasks,
+                    next_required_actions=[task.task_name for task in tasks if task.status != "completed"]
+                ))
             
             logger.info(f"✅ FLOW PROCESSING SUCCESS: {flow_id} -> {result.routing_decision}")
             
             return FlowContinuationResponse(
                 success=True,
                 flow_id=flow_id,
-                routing_decision=result.routing_decision,
-                user_guidance=user_guidance,
-                system_actions=result.system_actions,
-                confidence=result.confidence,
-                reasoning=result.reasoning,
-                estimated_completion_time=result.estimated_completion_time
+                current_phase=result.current_phase,
+                next_action=user_guidance_text,
+                routing_context={
+                    "target_page": result.routing_decision,
+                    "context_data": {
+                        "flow_id": flow_id,
+                        "phase": result.current_phase,
+                        "reasoning": result.reasoning
+                    },
+                    "specific_task": "upload_data" if "data-import" in result.routing_decision else "continue_flow"
+                },
+                checklist_status=checklist_status,
+                user_guidance={
+                    "summary": user_guidance_text,
+                    "phase": result.current_phase,
+                    "completion_percentage": (current_phase_index / len(phases)) * 100,
+                    "next_steps": result.user_actions if result.user_actions else [user_guidance_text],
+                    "detailed_status": {
+                        "completed_tasks": [
+                            {"name": task.task_name, "confidence": task.confidence} 
+                            for checklist in checklist_status 
+                            for task in checklist.tasks 
+                            if task.status == "completed"
+                        ],
+                        "pending_tasks": [
+                            {"name": task.task_name, "next_steps": task.next_steps}
+                            for checklist in checklist_status 
+                            for task in checklist.tasks 
+                            if task.status != "completed"
+                        ]
+                    }
+                }
             )
         else:
             logger.error(f"❌ FLOW PROCESSING FAILED: {flow_id} - {result.error_message}")
@@ -86,12 +182,24 @@ async def continue_flow_processing(
             return FlowContinuationResponse(
                 success=False,
                 flow_id=flow_id,
-                routing_decision=result.routing_decision,
-                user_guidance="There was an issue analyzing your flow. Please try again.",
-                system_actions=result.system_actions,
-                confidence=result.confidence,
-                reasoning=result.reasoning,
-                estimated_completion_time=0,
+                current_phase="error",
+                next_action="There was an issue analyzing your flow. Please try again.",
+                routing_context={
+                    "target_page": "/discovery/enhanced-dashboard",
+                    "context_data": {"error": result.error_message},
+                    "specific_task": "retry"
+                },
+                checklist_status=[],
+                user_guidance={
+                    "summary": "There was an issue analyzing your flow. Please try again.",
+                    "phase": "error",
+                    "completion_percentage": 0,
+                    "next_steps": ["Retry flow processing", "Check system logs"],
+                    "detailed_status": {
+                        "completed_tasks": [],
+                        "pending_tasks": [{"name": "Resolve Error", "next_steps": ["Retry processing"]}]
+                    }
+                },
                 error_message=result.error_message
             )
             
@@ -101,12 +209,24 @@ async def continue_flow_processing(
         return FlowContinuationResponse(
             success=False,
             flow_id=flow_id,
-            routing_decision="/discovery/enhanced-dashboard",
-            user_guidance="An error occurred while processing your request. Please try again.",
-            system_actions=["Log error and investigate"],
-            confidence=0.1,
-            reasoning=f"API error: {str(e)}",
-            estimated_completion_time=0,
+            current_phase="error",
+            next_action="An error occurred while processing your request. Please try again.",
+            routing_context={
+                "target_page": "/discovery/enhanced-dashboard",
+                "context_data": {"error": str(e)},
+                "specific_task": "retry"
+            },
+            checklist_status=[],
+            user_guidance={
+                "summary": "An error occurred while processing your request. Please try again.",
+                "phase": "error", 
+                "completion_percentage": 0,
+                "next_steps": ["Retry flow processing", "Contact support if issue persists"],
+                "detailed_status": {
+                    "completed_tasks": [],
+                    "pending_tasks": [{"name": "Resolve Error", "next_steps": ["Retry processing"]}]
+                }
+            },
             error_message=str(e)
         )
 
