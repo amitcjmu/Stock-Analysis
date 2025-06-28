@@ -330,31 +330,76 @@ class DataImportValidationAgent(BaseDiscoveryAgent):
             'overall_score': 0.0
         }
         
+        # Safety check for empty DataFrame
+        if len(df) == 0 or len(df.columns) == 0:
+            return {
+                'confidence': 0.0,
+                'completeness': {},
+                'consistency': {},
+                'validity': {},
+                'overall_score': 0.0
+            }
+        
         # Completeness assessment
         for column in df.columns:
-            null_pct = (df[column].isnull().sum() / len(df)) * 100
-            quality_results['completeness'][column] = {
-                'null_percentage': null_pct,
-                'score': max(0, 100 - null_pct)
-            }
+            try:
+                null_count = df[column].isnull().sum()
+                total_count = len(df)
+                
+                # Safe division to avoid division by zero
+                if total_count > 0:
+                    null_pct = float(null_count / total_count * 100)
+                else:
+                    null_pct = 100.0
+                
+                # Ensure we have a valid numeric value
+                if pd.isna(null_pct) or not pd.api.types.is_numeric_dtype(type(null_pct)):
+                    null_pct = 100.0
+                
+                quality_results['completeness'][column] = {
+                    'null_percentage': null_pct,
+                    'score': max(0.0, 100.0 - null_pct)
+                }
+            except Exception as e:
+                self.logger.warning(f"Error calculating completeness for column {column}: {e}")
+                quality_results['completeness'][column] = {
+                    'null_percentage': 100.0,
+                    'score': 0.0
+                }
         
         # Consistency assessment (data type consistency)
         for column in df.columns:
-            if df[column].dtype == 'object':
-                # Check for mixed data types in string columns
-                sample_values = df[column].dropna().head(100)
-                consistency_score = 90.0  # Default for string columns
+            try:
+                if df[column].dtype == 'object':
+                    # Check for mixed data types in string columns
+                    sample_values = df[column].dropna().head(100)
+                    consistency_score = 90.0  # Default for string columns
+                else:
+                    consistency_score = 95.0  # Numeric columns are generally consistent
+                
+                quality_results['consistency'][column] = {'score': float(consistency_score)}
+            except Exception as e:
+                self.logger.warning(f"Error calculating consistency for column {column}: {e}")
+                quality_results['consistency'][column] = {'score': 0.0}
+        
+        # Calculate overall quality score with safety checks
+        try:
+            if quality_results['completeness'] and quality_results['consistency']:
+                completeness_scores = [col['score'] for col in quality_results['completeness'].values()]
+                consistency_scores = [col['score'] for col in quality_results['consistency'].values()]
+                
+                completeness_avg = sum(completeness_scores) / len(completeness_scores) if completeness_scores else 0.0
+                consistency_avg = sum(consistency_scores) / len(consistency_scores) if consistency_scores else 0.0
+                
+                quality_results['overall_score'] = float((completeness_avg + consistency_avg) / 2)
+                quality_results['confidence'] = min(95.0, quality_results['overall_score'])
             else:
-                consistency_score = 95.0  # Numeric columns are generally consistent
-            
-            quality_results['consistency'][column] = {'score': consistency_score}
-        
-        # Calculate overall quality score
-        completeness_avg = sum(col['score'] for col in quality_results['completeness'].values()) / len(df.columns)
-        consistency_avg = sum(col['score'] for col in quality_results['consistency'].values()) / len(df.columns)
-        
-        quality_results['overall_score'] = (completeness_avg + consistency_avg) / 2
-        quality_results['confidence'] = min(95.0, quality_results['overall_score'])
+                quality_results['overall_score'] = 0.0
+                quality_results['confidence'] = 0.0
+        except Exception as e:
+            self.logger.warning(f"Error calculating overall quality score: {e}")
+            quality_results['overall_score'] = 0.0
+            quality_results['confidence'] = 0.0
         
         return quality_results
     

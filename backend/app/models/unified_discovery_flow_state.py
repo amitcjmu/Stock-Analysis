@@ -8,6 +8,27 @@ from pydantic import BaseModel, Field
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 import uuid
+import json
+
+class UUIDEncoder(json.JSONEncoder):
+    """Custom JSON encoder that handles UUID objects"""
+    def default(self, obj):
+        if isinstance(obj, uuid.UUID):
+            return str(obj)
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        return super().default(obj)
+
+def safe_uuid_to_str(value: Any) -> str:
+    """Safely convert UUID or string to string"""
+    if isinstance(value, uuid.UUID):
+        return str(value)
+    elif isinstance(value, str):
+        return value
+    elif value is None:
+        return ""
+    else:
+        return str(value)
 
 class UnifiedDiscoveryFlowState(BaseModel):
     """
@@ -496,4 +517,31 @@ class UnifiedDiscoveryFlowState(BaseModel):
         if self.completed_at:
             end_time = datetime.fromisoformat(self.completed_at.replace('Z', '+00:00'))
         
-        return (end_time - start_time).total_seconds() 
+        return (end_time - start_time).total_seconds()
+
+    def model_dump(self, **kwargs) -> Dict[str, Any]:
+        """Override model_dump to ensure UUID serialization safety"""
+        data = super().model_dump(**kwargs)
+        
+        # Recursively convert any UUID objects to strings
+        def convert_uuids(obj):
+            if isinstance(obj, dict):
+                return {k: convert_uuids(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [convert_uuids(item) for item in obj]
+            elif isinstance(obj, uuid.UUID):
+                return str(obj)
+            elif isinstance(obj, datetime):
+                return obj.isoformat()
+            else:
+                return obj
+        
+        return convert_uuids(data)
+    
+    def to_json_safe_dict(self) -> Dict[str, Any]:
+        """Convert to JSON-safe dictionary with UUID handling"""
+        return self.model_dump()
+    
+    def safe_json_dumps(self) -> str:
+        """Safely serialize to JSON with UUID handling"""
+        return json.dumps(self.model_dump(), cls=UUIDEncoder, default=str) 

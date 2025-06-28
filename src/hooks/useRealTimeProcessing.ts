@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { apiCall } from '@/config/api';
 
 // Types for real-time processing updates
@@ -70,11 +70,13 @@ export const useRealTimeProcessing = (options: RealTimeProcessingOptions) => {
   } = options;
 
   const queryClient = useQueryClient();
-  const [isProcessingActive, setIsProcessingActive] = useState(false);
   const [accumulatedUpdates, setAccumulatedUpdates] = useState<ProcessingUpdate[]>([]);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const consecutiveErrors = useRef<number>(0);
+  const lastSuccessfulFetch = useRef<number>(0);
+  const maxConsecutiveErrors = 3;
 
-  // Main processing status query
+  // Query for processing status with enhanced error handling
   const {
     data: processingStatus,
     isLoading,
@@ -83,38 +85,98 @@ export const useRealTimeProcessing = (options: RealTimeProcessingOptions) => {
   } = useQuery<ProcessingStatus>({
     queryKey: ['real-time-processing', flow_id, phase],
     queryFn: async (): Promise<ProcessingStatus> => {
-      const response = await apiCall(`/api/v1/discovery/flow/${flow_id}/processing-status`, {
-        params: phase ? { phase } : undefined
-      });
-      return response;
+      if (!flow_id) throw new Error('Flow ID is required');
+      
+      try {
+        const response = await apiCall(`/api/v1/discovery/flow/${flow_id}/processing-status`, {
+          params: phase ? { phase } : undefined
+        });
+        
+        // Reset error count on successful fetch
+        consecutiveErrors.current = 0;
+        lastSuccessfulFetch.current = Date.now();
+        
+        return response;
+      } catch (err: any) {
+        consecutiveErrors.current += 1;
+        console.error(`❌ Processing status fetch error (attempt ${consecutiveErrors.current}):`, err);
+        
+        // Stop polling after max consecutive errors
+        if (consecutiveErrors.current >= maxConsecutiveErrors) {
+          console.warn(`🚫 Stopping polling for flow ${flow_id} after ${maxConsecutiveErrors} consecutive failures`);
+          if (pollingRef.current) {
+            clearInterval(pollingRef.current);
+            pollingRef.current = null;
+          }
+        }
+        
+        // Handle 404 errors gracefully - flow may not exist
+        if (err.status === 404 || err.response?.status === 404) {
+          console.warn(`🚫 Flow ${flow_id} not found, stopping polling`);
+          throw new Error(`Flow ${flow_id} not found`);
+        }
+        
+        throw err;
+      }
     },
-    enabled: enabled && !!flow_id,
-    staleTime: 1000, // 1 second
+    enabled: enabled && !!flow_id && consecutiveErrors.current < maxConsecutiveErrors,
+    staleTime: 1000,
     refetchOnWindowFocus: false,
+    refetchOnMount: true,
+    refetchOnReconnect: false,
+    retry: (failureCount, error) => {
+      // Don't retry if we've hit max consecutive errors
+      if (consecutiveErrors.current >= maxConsecutiveErrors) {
+        console.warn(`🚫 Max consecutive errors reached, stopping retries for flow ${flow_id}`);
+        return false;
+      }
+      
+      // Don't retry 404 errors (flow doesn't exist)
+      if (error && ('status' in error && error.status === 404)) {
+        console.warn(`🚫 Flow ${flow_id} not found, stopping retries`);
+        return false;
+      }
+      
+      // Don't retry if error message indicates flow not found
+      if (error && error.message && error.message.includes('not found')) {
+        console.warn(`🚫 Flow ${flow_id} not found (from message), stopping retries`);
+        return false;
+      }
+      
+      return failureCount < 2;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
 
-  // Check if processing is active and adjust polling
+  // Check if processing is active
+  const isProcessingActive = processingStatus && (
+    processingStatus.status === 'processing' || 
+    processingStatus.status === 'initializing' ||
+    processingStatus.status === 'validating'
+  );
+
+  // Accumulate updates from processing status
   useEffect(() => {
-    if (processingStatus) {
-      const isActive = processingStatus.status === 'processing' || 
-                      processingStatus.status === 'validating' ||
-                      processingStatus.status === 'initializing';
-      setIsProcessingActive(isActive);
-      
-      // Add new updates to accumulated list
-      if (processingStatus.recent_updates && processingStatus.recent_updates.length > 0) {
-        setAccumulatedUpdates(prev => {
-          const newUpdates = [...prev, ...processingStatus.recent_updates];
-          // Keep only the most recent updates
-          return newUpdates.slice(-max_updates_history);
-        });
-      }
+    if (processingStatus?.recent_updates) {
+      setAccumulatedUpdates(prev => {
+        const newUpdates = processingStatus.recent_updates.filter(update => 
+          !prev.some(existing => existing.id === update.id)
+        );
+        const combined = [...prev, ...newUpdates];
+        return combined.slice(-max_updates_history);
+      });
     }
   }, [processingStatus, max_updates_history]);
 
-  // Dynamic polling based on processing status
+  // Enhanced polling control with error handling
   useEffect(() => {
-    if (!enabled || !flow_id) return;
+    if (!enabled || !flow_id || consecutiveErrors.current >= maxConsecutiveErrors) {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+      return;
+    }
 
     // Clear existing polling
     if (pollingRef.current) {
@@ -134,16 +196,27 @@ export const useRealTimeProcessing = (options: RealTimeProcessingOptions) => {
       return;
     }
 
+    // Implement exponential backoff after errors
+    let intervalDelay = polling_interval;
+    if (consecutiveErrors.current > 0) {
+      intervalDelay = Math.min(polling_interval * Math.pow(2, consecutiveErrors.current), 30000); // Max 30 seconds
+      console.log(`⚠️ Using exponential backoff: ${intervalDelay}ms delay after ${consecutiveErrors.current} errors`);
+    }
+
     if (isProcessingActive) {
       // Fast polling during active processing
       pollingRef.current = setInterval(() => {
-        refetch();
-      }, polling_interval);
+        if (consecutiveErrors.current < maxConsecutiveErrors) {
+          refetch();
+        }
+      }, intervalDelay);
     } else {
       // Slower polling when idle
       pollingRef.current = setInterval(() => {
-        refetch();
-      }, polling_interval * 3);
+        if (consecutiveErrors.current < maxConsecutiveErrors) {
+          refetch();
+        }
+      }, intervalDelay * 3);
     }
 
     return () => {
@@ -151,16 +224,24 @@ export const useRealTimeProcessing = (options: RealTimeProcessingOptions) => {
         clearInterval(pollingRef.current);
       }
     };
-  }, [enabled, flow_id, isProcessingActive, polling_interval, refetch, processingStatus]);
+  }, [enabled, flow_id, isProcessingActive, polling_interval, refetch, processingStatus, consecutiveErrors.current]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
+        pollingRef.current = null;
       }
     };
   }, []);
+
+  // Recovery function to reset error state
+  const resetErrorState = useCallback(() => {
+    consecutiveErrors.current = 0;
+    lastSuccessfulFetch.current = Date.now();
+    console.log(`🔄 Reset error state for flow ${flow_id}`);
+  }, [flow_id]);
 
   return {
     processingStatus,
@@ -169,6 +250,9 @@ export const useRealTimeProcessing = (options: RealTimeProcessingOptions) => {
     isLoading,
     error,
     refetch,
+    consecutiveErrors: consecutiveErrors.current,
+    isPollingDisabled: consecutiveErrors.current >= maxConsecutiveErrors,
+    resetErrorState,
     // Utility functions
     getLatestUpdate: () => accumulatedUpdates[accumulatedUpdates.length - 1],
     getUpdatesByType: (type: ProcessingUpdate['update_type']) => 

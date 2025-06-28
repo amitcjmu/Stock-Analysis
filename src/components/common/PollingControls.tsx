@@ -1,216 +1,398 @@
 /**
- * Polling Controls Component
+ * Enhanced Polling Controls Component
  * 
- * Provides emergency stop functionality and manual refresh controls
- * to replace automatic polling with pull-based requests.
+ * Provides centralized control over all polling operations in the application
+ * to replace automatic polling with pull-based requests and manage errors.
  */
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { 
-  AlertTriangle, 
-  RefreshCw, 
-  Square, 
-  Activity,
-  Clock,
-  Zap
-} from 'lucide-react';
-import { apiCall } from '@/lib/api';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle, RefreshCw, StopCircle, CheckCircle, XCircle } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { apiCall } from '@/config/api';
+import { toast } from 'sonner';
+
+interface PollingStatus {
+  totalActivePollers: number;
+  errorRate: number;
+  consecutiveErrors: number;
+  lastSuccessfulFetch: number;
+  problematicEndpoints: string[];
+}
 
 interface PollingControlsProps {
-  onManualRefresh?: () => Promise<void>;
-  refreshLabel?: string;
-  showEmergencyStop?: boolean;
-  className?: string;
+  flowId?: string;
+  onEmergencyStop?: () => void;
+  onRefresh?: () => void;
+  showDetailedStatus?: boolean;
 }
 
 export function PollingControls({
-  onManualRefresh,
-  refreshLabel = 'Refresh Data',
-  showEmergencyStop = true,
-  className = ''
+  flowId,
+  onEmergencyStop,
+  onRefresh,
+  showDetailedStatus = false
 }: PollingControlsProps) {
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  const queryClient = useQueryClient();
+  const [pollingStatus, setPollingStatus] = useState<PollingStatus>({
+    totalActivePollers: 0,
+    errorRate: 0,
+    consecutiveErrors: 0,
+    lastSuccessfulFetch: Date.now(),
+    problematicEndpoints: []
+  });
+  const [isEmergencyActive, setIsEmergencyActive] = useState(false);
 
-  const handleManualRefresh = async () => {
-    if (!onManualRefresh) return;
-    
-    setIsRefreshing(true);
-    try {
-      await onManualRefresh();
-      setLastRefresh(new Date());
-    } catch (error) {
-      console.error('Manual refresh failed:', error);
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
+  // Monitor polling status
+  useEffect(() => {
+    const checkPollingStatus = () => {
+      // Get query cache and analyze error patterns
+      const queryCache = queryClient.getQueryCache();
+      const queries = queryCache.getAll();
+      
+      let totalQueries = 0;
+      let errorQueries = 0;
+      let consecutiveErrors = 0;
+      const problematicEndpoints: string[] = [];
+      
+      queries.forEach(query => {
+        if (query.state.status === 'error') {
+          errorQueries++;
+          if (query.queryKey[0] && typeof query.queryKey[0] === 'string') {
+            problematicEndpoints.push(query.queryKey[0]);
+          }
+        }
+        totalQueries++;
+      });
+
+      // Check for consecutive errors across all queries
+      const recentErrors = queries.filter(q => 
+        q.state.error && 
+        q.state.errorUpdateCount > 2
+      ).length;
+
+      setPollingStatus({
+        totalActivePollers: totalQueries,
+        errorRate: totalQueries > 0 ? (errorQueries / totalQueries) * 100 : 0,
+        consecutiveErrors: recentErrors,
+        lastSuccessfulFetch: Date.now(),
+        problematicEndpoints: [...new Set(problematicEndpoints)]
+      });
+
+      // Auto-trigger emergency stop if error rate is too high
+      if (errorQueries > 5 && (errorQueries / totalQueries) > 0.5) {
+        console.warn('🚨 High error rate detected, triggering emergency stop');
+        handleEmergencyStop();
+      }
+    };
+
+    const interval = setInterval(checkPollingStatus, 5000);
+    checkPollingStatus(); // Initial check
+
+    return () => clearInterval(interval);
+  }, [queryClient]);
 
   const handleEmergencyStop = async () => {
     try {
-      // Stop frontend polling
+      setIsEmergencyActive(true);
+      
+      // Stop all frontend polling
       if (typeof window !== 'undefined' && (window as any).stopAllPolling) {
         (window as any).stopAllPolling();
       }
-      
+
+      // Clear all query cache to stop React Query polling
+      queryClient.clear();
+
       // Stop backend polling
       await apiCall('/api/v1/observability/polling/emergency-stop', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Client-Account-Id': '11111111-1111-1111-1111-111111111111',
-          'X-Engagement-Id': '22222222-2222-2222-2222-222222222222'
-        }
+        body: JSON.stringify({ 
+          reason: 'User triggered emergency stop',
+          flow_id: flowId 
+        })
+      });
+
+      onEmergencyStop?.();
+      console.log('🚨 EMERGENCY STOP: All polling operations halted');
+      toast.success('Emergency stop activated - all polling stopped');
+    } catch (error) {
+      console.error('Failed to execute emergency stop:', error);
+      toast.error('Failed to stop all polling operations');
+    }
+  };
+
+  const handleRefreshAll = async () => {
+    try {
+      // Invalidate all queries to trigger fresh fetches
+      await queryClient.invalidateQueries();
+      
+      // Reset error states
+      setPollingStatus(prev => ({
+        ...prev,
+        consecutiveErrors: 0,
+        errorRate: 0,
+        problematicEndpoints: []
+      }));
+      
+      onRefresh?.();
+      toast.success('All data refreshed');
+    } catch (error) {
+      console.error('Failed to refresh data:', error);
+      toast.error('Failed to refresh data');
+    }
+  };
+
+  const handleResetErrorState = async () => {
+    try {
+      // Clear error states in React Query
+      queryClient.resetQueries({ type: 'all' });
+      
+      // Reset local error tracking
+      setPollingStatus(prev => ({
+        ...prev,
+        consecutiveErrors: 0,
+        errorRate: 0,
+        problematicEndpoints: []
+      }));
+      
+      setIsEmergencyActive(false);
+      
+      toast.success('Error state reset - polling can resume');
+    } catch (error) {
+      console.error('Failed to reset error state:', error);
+      toast.error('Failed to reset error state');
+    }
+  };
+
+  const handleStopFlowPolling = async () => {
+    if (!flowId) return;
+    
+    try {
+      // Stop polling for specific flow
+      await queryClient.cancelQueries({ 
+        queryKey: ['discoveryFlowV2', flowId] 
+      });
+      await queryClient.cancelQueries({ 
+        queryKey: ['real-time-processing', flowId] 
+      });
+      await queryClient.cancelQueries({ 
+        queryKey: ['flow-escalation-status', flowId] 
       });
       
-      console.log('🚨 EMERGENCY STOP: All polling operations halted');
-      
+      // Stop all frontend polling for this flow
+      if (typeof window !== 'undefined' && (window as any).stopAllPolling) {
+        (window as any).stopAllPolling();
+      }
+
+      // Stop backend polling for this flow
+      await apiCall('/api/v1/observability/polling/emergency-stop', {
+        method: 'POST',
+        body: JSON.stringify({ 
+          reason: 'Flow-specific polling stop',
+          flow_id: flowId 
+        })
+      });
+
+      toast.success(`Stopped all polling for flow ${flowId}`);
     } catch (error) {
-      console.error('Emergency stop failed:', error);
+      console.error('Failed to stop flow polling:', error);
+      toast.error('Failed to stop flow polling');
     }
   };
 
-  return (
-    <div className={`space-y-4 ${className}`}>
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Activity className="h-5 w-5" />
-            Data Refresh Controls
-          </CardTitle>
-          <CardDescription>
-            Manual refresh controls for pull-based data updates
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Button 
-                onClick={handleManualRefresh}
-                disabled={isRefreshing}
-                variant="outline"
-                size="sm"
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-                {isRefreshing ? 'Refreshing...' : refreshLabel}
-              </Button>
-              
-              {lastRefresh && (
-                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                  <Clock className="h-3 w-3" />
-                  Last: {lastRefresh.toLocaleTimeString()}
-                </div>
-              )}
-            </div>
-          </div>
+  const getStatusColor = () => {
+    if (isEmergencyActive) return 'destructive';
+    if (pollingStatus.consecutiveErrors > 3) return 'destructive';
+    if (pollingStatus.errorRate > 25) return 'secondary';
+    return 'default';
+  };
 
-          {showEmergencyStop && (
-            <div className="flex gap-2 pt-2 border-t">
-              <Button
-                onClick={handleEmergencyStop}
-                variant="destructive"
-                size="sm"
-              >
-                <Square className="h-4 w-4 mr-2" />
-                Emergency Stop All Polling
-              </Button>
+  const getStatusIcon = () => {
+    if (isEmergencyActive) return <StopCircle className="h-4 w-4" />;
+    if (pollingStatus.consecutiveErrors > 3) return <XCircle className="h-4 w-4" />;
+    if (pollingStatus.errorRate > 25) return <AlertTriangle className="h-4 w-4" />;
+    return <CheckCircle className="h-4 w-4" />;
+  };
+
+  return (
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          {getStatusIcon()}
+          Polling Control Center
+          <Badge variant={getStatusColor()}>
+            {isEmergencyActive ? 'STOPPED' : 
+             pollingStatus.consecutiveErrors > 3 ? 'ERROR' :
+             pollingStatus.errorRate > 25 ? 'WARNING' : 'ACTIVE'}
+          </Badge>
+        </CardTitle>
+        <CardDescription>
+          Manage all polling operations and handle errors
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Status Overview */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="text-center">
+            <div className="text-2xl font-bold">{pollingStatus.totalActivePollers}</div>
+            <div className="text-sm text-muted-foreground">Active Queries</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold">{pollingStatus.errorRate.toFixed(1)}%</div>
+            <div className="text-sm text-muted-foreground">Error Rate</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold">{pollingStatus.consecutiveErrors}</div>
+            <div className="text-sm text-muted-foreground">Consecutive Errors</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold">
+              {Math.round((Date.now() - pollingStatus.lastSuccessfulFetch) / 1000)}s
             </div>
+            <div className="text-sm text-muted-foreground">Last Success</div>
+          </div>
+        </div>
+
+        {/* Error Alerts */}
+        {pollingStatus.consecutiveErrors > 3 && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              High error rate detected! {pollingStatus.consecutiveErrors} consecutive errors.
+              Consider using Emergency Stop to halt all polling.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {pollingStatus.problematicEndpoints.length > 0 && showDetailedStatus && (
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Problematic endpoints: {pollingStatus.problematicEndpoints.join(', ')}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Control Buttons */}
+        <div className="flex flex-wrap gap-2">
+          <Button 
+            onClick={handleEmergencyStop}
+            variant="destructive"
+            size="sm"
+            disabled={isEmergencyActive}
+          >
+            <StopCircle className="h-4 w-4 mr-2" />
+            Emergency Stop All Polling
+          </Button>
+
+          {flowId && (
+            <Button 
+              onClick={handleStopFlowPolling}
+              variant="outline"
+              size="sm"
+            >
+              <StopCircle className="h-4 w-4 mr-2" />
+              Stop Flow Polling
+            </Button>
           )}
 
-          <div className="text-xs text-muted-foreground space-y-1">
-            <p>• Use manual refresh to get the latest data</p>
-            <p>• Emergency stop disables all automatic polling</p>
-            <p>• Pull-based requests reduce server load and log spam</p>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+          <Button 
+            onClick={handleRefreshAll}
+            variant="outline"
+            size="sm"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh All Data
+          </Button>
+
+          <Button 
+            onClick={handleResetErrorState}
+            variant="outline"
+            size="sm"
+            disabled={!isEmergencyActive && pollingStatus.consecutiveErrors === 0}
+          >
+            <CheckCircle className="h-4 w-4 mr-2" />
+            Reset Error State
+          </Button>
+        </div>
+
+        {/* Instructions */}
+        <div className="text-sm text-muted-foreground space-y-1">
+          <p>• Emergency stop disables all automatic polling</p>
+          <p>• Use refresh to manually fetch latest data</p>
+          <p>• Reset error state to re-enable polling after issues</p>
+          {flowId && <p>• Flow-specific stop only affects current flow</p>}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
 /**
- * Simplified refresh button for inline use
+ * Compact Polling Status Indicator
+ * For use in headers or toolbars
  */
-export function RefreshButton({
-  onRefresh,
-  isLoading = false,
-  label = 'Refresh',
-  size = 'sm',
-  variant = 'outline'
-}: {
-  onRefresh: () => Promise<void>;
-  isLoading?: boolean;
-  label?: string;
-  size?: 'sm' | 'default' | 'lg';
-  variant?: 'default' | 'outline' | 'secondary';
-}) {
-  const [refreshing, setRefreshing] = useState(false);
+export function PollingStatusIndicator({ flowId }: { flowId?: string }) {
+  const queryClient = useQueryClient();
+  const [errorCount, setErrorCount] = useState(0);
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    try {
-      await onRefresh();
-    } catch (error) {
-      console.error('Refresh failed:', error);
-    } finally {
-      setRefreshing(false);
-    }
-  };
+  useEffect(() => {
+    const checkErrors = () => {
+      const queries = queryClient.getQueryCache().getAll();
+      const errors = queries.filter(q => q.state.status === 'error').length;
+      setErrorCount(errors);
+    };
 
-  return (
-    <Button
-      onClick={handleRefresh}
-      disabled={refreshing || isLoading}
-      variant={variant}
-      size={size}
-    >
-      <RefreshCw className={`h-4 w-4 mr-2 ${refreshing || isLoading ? 'animate-spin' : ''}`} />
-      {refreshing ? 'Refreshing...' : label}
-    </Button>
-  );
-}
+    const interval = setInterval(checkErrors, 2000);
+    checkErrors();
 
-/**
- * Emergency stop button for critical situations
- */
-export function EmergencyStopButton({ className = '' }: { className?: string }) {
-  const handleEmergencyStop = async () => {
+    return () => clearInterval(interval);
+  }, [queryClient]);
+
+  const handleQuickStop = async () => {
     try {
       // Stop all frontend polling
       if (typeof window !== 'undefined' && (window as any).stopAllPolling) {
         (window as any).stopAllPolling();
       }
-      
+
       // Stop backend polling
       await apiCall('/api/v1/observability/polling/emergency-stop', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Client-Account-Id': '11111111-1111-1111-1111-111111111111',
-          'X-Engagement-Id': '22222222-2222-2222-2222-222222222222'
-        }
+        body: JSON.stringify({ 
+          reason: 'Quick stop from indicator',
+          flow_id: flowId 
+        })
       });
-      
-      console.log('🚨 Emergency stop executed successfully');
-      
+
+      toast.success('Polling stopped');
     } catch (error) {
-      console.error('Emergency stop failed:', error);
+      console.error('Failed to stop polling:', error);
+      toast.error('Failed to stop polling');
     }
   };
 
+  if (errorCount === 0) {
+    return (
+      <Badge variant="default" className="cursor-pointer">
+        <CheckCircle className="h-3 w-3 mr-1" />
+        Polling OK
+      </Badge>
+    );
+  }
+
   return (
-    <Button
-      onClick={handleEmergencyStop}
-      variant="destructive"
-      size="sm"
-      className={className}
+    <Badge 
+      variant="destructive" 
+      className="cursor-pointer"
+      onClick={handleQuickStop}
     >
-      <Zap className="h-4 w-4 mr-2" />
-      Stop All Polling
-    </Button>
+      <XCircle className="h-3 w-3 mr-1" />
+      {errorCount} Errors - Click to Stop
+    </Badge>
   );
 }

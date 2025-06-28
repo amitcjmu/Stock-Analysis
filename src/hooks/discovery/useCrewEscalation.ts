@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiCall } from '@/config/api';
+import { useRef } from 'react';
 
 interface ThinkEscalationRequest {
   agent_id: string;
@@ -47,6 +48,8 @@ interface EscalationStatus {
 }
 
 export const useCrewEscalation = (flowId: string) => {
+  const consecutiveErrors = useRef<number>(0);
+  const maxConsecutiveErrors = 3;
   
   // Think escalation mutation
   const thinkMutation = useMutation({
@@ -81,15 +84,53 @@ export const useCrewEscalation = (flowId: string) => {
     }
   };
 
-  // Get flow escalation status
+  // Get flow escalation status with enhanced error handling
   const { data: flowEscalationStatus, isLoading: isLoadingFlowStatus } = useQuery({
     queryKey: ['flow-escalation-status', flowId],
     queryFn: async () => {
-      const response = await apiCall(`/api/v1/discovery/${flowId}/escalation/status`);
-      return response;
+      try {
+        const response = await apiCall(`/api/v1/discovery/${flowId}/escalation/status`);
+        consecutiveErrors.current = 0; // Reset on success
+        return response;
+      } catch (err: any) {
+        consecutiveErrors.current += 1;
+        console.error(`❌ Flow escalation status fetch error (attempt ${consecutiveErrors.current}):`, err);
+        
+        // Handle 404 errors gracefully - flow may not exist
+        if (err.status === 404 || err.response?.status === 404) {
+          console.warn(`🚫 Flow ${flowId} escalation status not found, stopping polling`);
+          return null;
+        }
+        
+        // Stop polling after max consecutive errors
+        if (consecutiveErrors.current >= maxConsecutiveErrors) {
+          console.warn(`🚫 Stopping flow escalation status polling after ${maxConsecutiveErrors} consecutive failures`);
+        }
+        
+        throw err;
+      }
     },
-    refetchInterval: 5000, // Refresh every 5 seconds
+    refetchInterval: consecutiveErrors.current >= maxConsecutiveErrors ? false : 5000, // Stop polling on errors
     enabled: !!flowId,
+    retry: (failureCount, error) => {
+      // Don't retry 404 errors (flow doesn't exist)
+      if (error && ('status' in error && error.status === 404)) {
+        console.warn(`🚫 Flow ${flowId} not found, stopping retries`);
+        return false;
+      }
+      
+      // Don't retry if error message indicates flow not found
+      if (error && error.message && error.message.includes('not found')) {
+        console.warn(`🚫 Flow ${flowId} not found (from message), stopping retries`);
+        return false;
+      }
+      
+      return failureCount < 2 && consecutiveErrors.current < maxConsecutiveErrors;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+    refetchOnReconnect: false,
   });
 
   // Cancel escalation mutation
@@ -115,6 +156,12 @@ export const useCrewEscalation = (flowId: string) => {
     return cancelEscalationMutation.mutateAsync(escalationId);
   };
 
+  // Reset error state function
+  const resetErrorState = () => {
+    consecutiveErrors.current = 0;
+    console.log(`🔄 Reset error state for flow escalation ${flowId}`);
+  };
+
   return {
     // Think functionality
     triggerThink,
@@ -136,6 +183,11 @@ export const useCrewEscalation = (flowId: string) => {
     // Cancellation
     cancelEscalation,
     isCancelling: cancelEscalationMutation.isPending,
+
+    // Error management
+    consecutiveErrors: consecutiveErrors.current,
+    isPollingDisabled: consecutiveErrors.current >= maxConsecutiveErrors,
+    resetErrorState,
 
     // Combined states
     isProcessing: thinkMutation.isPending || ponderMutation.isPending,

@@ -35,6 +35,7 @@ import { useToast } from '@/hooks/use-toast';
 import { DataImportValidationService, ValidationAgentResult } from '@/services/dataImportValidationService';
 import { apiCall } from '@/config/api';
 import UniversalProcessingStatus from '@/components/discovery/UniversalProcessingStatus';
+import { PollingStatusIndicator, PollingControls } from '@/components/common/PollingControls';
 
 // Flow Management Components
 import { UploadBlocker } from '@/components/discovery/UploadBlocker';
@@ -768,6 +769,8 @@ const DataImport: React.FC = () => {
                     <span>{user.full_name}</span>
                   </div>
                 )}
+                {/* Polling Status Indicator */}
+                <PollingStatusIndicator />
               </div>
             </div>
             <p className="mt-2 text-gray-600 max-w-3xl">
@@ -1229,6 +1232,29 @@ const DataImport: React.FC = () => {
                   />
                 );
               })}
+            </div>
+          )}
+
+          {/* Polling Controls - Show when there are active uploads or processing */}
+          {uploadedFiles.length > 0 && (
+            <div className="mt-8">
+              <PollingControls 
+                flowId={uploadedFiles.find(f => f.flow_id)?.flow_id}
+                showDetailedStatus={true}
+                onEmergencyStop={() => {
+                  toast({
+                    title: "Emergency Stop Activated",
+                    description: "All polling operations have been stopped. Use refresh to manually check status.",
+                    variant: "destructive"
+                  });
+                }}
+                onRefresh={() => {
+                  toast({
+                    title: "Data Refreshed",
+                    description: "All data has been manually refreshed.",
+                  });
+                }}
+              />
             </div>
           )}
 

@@ -1,5 +1,82 @@
 # 🚀 AI Force Migration Platform - Changelog
 
+## [0.6.7] - 2025-01-27
+
+### 🚨 **CRITICAL FIX - Discovery Flow Polling Error Management**
+
+This release fixes a critical issue where discovery flow polling operations would continue indefinitely when encountering errors, causing continuous browser console errors and degraded performance during data import processes.
+
+### 🐛 **Polling System Error Management**
+
+#### **Enhanced Error Handling with Automatic Stop**
+- **Consecutive Error Tracking**: All polling hooks now track consecutive errors and automatically stop polling after 3 consecutive failures
+- **Exponential Backoff**: Implemented exponential backoff delays to reduce server load during error conditions
+- **Graceful 404 Handling**: Properly handle flow-not-found errors without continuous retry attempts
+- **Error State Recovery**: Added reset functions to allow polling resumption after error resolution
+
+#### **Affected Polling Hooks Enhanced**
+- **useRealTimeProcessing**: Added error counting, automatic polling disable, and recovery functions
+- **useAgentQuestions**: Enhanced with consecutive error tracking and polling control
+- **useAgentInsights**: Implemented error-aware polling with automatic stop mechanisms
+- **useAgentStatus**: Added error handling and polling management
+- **useCrewEscalation**: Enhanced flow escalation status polling with error recovery
+- **useConfidenceScores**: Added error tracking and automatic polling termination
+
+### 🛠️ **Polling Control Infrastructure**
+
+#### **Enhanced Polling Controls Component**
+- **Real-time Error Monitoring**: Live tracking of query errors and polling status across all active queries
+- **Emergency Stop Functionality**: Comprehensive emergency stop that halts all frontend and backend polling
+- **Flow-Specific Controls**: Ability to stop polling for specific discovery flows
+- **Error Recovery**: Reset error states and re-enable polling after issues are resolved
+- **Status Dashboard**: Real-time display of active pollers, error rates, and consecutive error counts
+
+#### **Polling Status Indicator**
+- **Header Integration**: Added polling status indicator to discovery import page header
+- **Quick Stop Access**: One-click emergency stop when errors are detected
+- **Visual Error Feedback**: Clear visual indication of polling health status
+- **Error Count Display**: Shows number of failing queries with quick stop option
+
+### 🎯 **Discovery Flow Integration**
+
+#### **CMDB Import Page Enhancement**
+- **Polling Status Indicator**: Added real-time polling health indicator in page header
+- **Comprehensive Controls**: Full polling control panel available during active imports
+- **Error Management**: Users can now stop problematic polling and manually refresh data
+- **Flow-Specific Monitoring**: Polling controls are aware of active discovery flow IDs
+
+#### **Error Prevention Features**
+- **Maximum Error Limits**: Automatic polling termination after 3 consecutive errors
+- **404 Error Handling**: Graceful handling of non-existent flow errors
+- **Backoff Strategies**: Exponential delays to prevent overwhelming failing endpoints
+- **Manual Recovery**: Users can reset error states and resume polling when issues are resolved
+
+### 📊 **Technical Improvements**
+
+#### **React Query Enhancement**
+- **Error-Aware Intervals**: `refetchInterval` dynamically disabled based on error state
+- **Retry Logic**: Improved retry strategies with error-specific handling
+- **Query Cache Management**: Better error state management in React Query cache
+- **Automatic Cleanup**: Proper cleanup of polling intervals on component unmount
+
+#### **Browser Performance**
+- **Console Error Reduction**: Eliminated continuous error logging from failed polling attempts
+- **Memory Management**: Proper cleanup of polling intervals prevents memory leaks
+- **Network Request Optimization**: Reduced unnecessary network requests during error conditions
+- **User Experience**: Users can now stop problematic polling instead of enduring continuous errors
+
+### 🎯 **Success Metrics**
+- **Error Loop Prevention**: 100% elimination of infinite polling error loops
+- **User Control**: Complete user control over polling operations during errors
+- **Performance Improvement**: Significant reduction in browser console errors and network requests
+- **Recovery Capability**: Full error state recovery and polling resumption functionality
+
+### 🔧 **User Experience Enhancement**
+- **Visual Feedback**: Clear indication of polling health status in UI
+- **Error Management**: Users can identify and stop problematic polling operations
+- **Manual Control**: Emergency stop and refresh capabilities for all polling operations
+- **Status Transparency**: Real-time visibility into polling errors and system health
+
 ## [0.6.6] - 2025-01-27
 
 ### 🚨 **CRITICAL FIX - Admin User Management Access Creation**

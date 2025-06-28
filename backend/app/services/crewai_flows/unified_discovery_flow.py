@@ -163,6 +163,49 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         
         logger.info(f"✅ Unified Discovery Flow initialized with AGENT-FIRST architecture: session={self._init_session_id}")
     
+    def _ensure_uuid_serialization_safety(self):
+        """Ensure all UUID fields in state are strings for JSON serialization"""
+        try:
+            # Convert core identification fields
+            if hasattr(self.state, 'flow_id') and isinstance(self.state.flow_id, uuid.UUID):
+                self.state.flow_id = str(self.state.flow_id)
+            if hasattr(self.state, 'session_id') and isinstance(self.state.session_id, uuid.UUID):
+                self.state.session_id = str(self.state.session_id)
+            if hasattr(self.state, 'client_account_id') and isinstance(self.state.client_account_id, uuid.UUID):
+                self.state.client_account_id = str(self.state.client_account_id)
+            if hasattr(self.state, 'engagement_id') and isinstance(self.state.engagement_id, uuid.UUID):
+                self.state.engagement_id = str(self.state.engagement_id)
+            if hasattr(self.state, 'user_id') and isinstance(self.state.user_id, uuid.UUID):
+                self.state.user_id = str(self.state.user_id)
+                
+            # Convert any UUID objects in nested data structures
+            def convert_nested_uuids(obj):
+                if isinstance(obj, dict):
+                    return {k: convert_nested_uuids(v) for k, v in obj.items()}
+                elif isinstance(obj, list):
+                    return [convert_nested_uuids(item) for item in obj]
+                elif isinstance(obj, uuid.UUID):
+                    return str(obj)
+                else:
+                    return obj
+            
+            # Apply to complex data fields
+            if hasattr(self.state, 'metadata') and self.state.metadata:
+                self.state.metadata = convert_nested_uuids(self.state.metadata)
+            if hasattr(self.state, 'agent_insights') and self.state.agent_insights:
+                self.state.agent_insights = convert_nested_uuids(self.state.agent_insights)
+            if hasattr(self.state, 'crew_status') and self.state.crew_status:
+                self.state.crew_status = convert_nested_uuids(self.state.crew_status)
+                
+        except Exception as e:
+            logger.warning(f"⚠️ UUID serialization safety check failed: {e}")
+    
+    async def _safe_update_flow_state(self):
+        """Safely update flow state with UUID serialization safety"""
+        if self.flow_bridge:
+            self._ensure_uuid_serialization_safety()
+            await self.flow_bridge.update_flow_state(self.state)
+    
     @start()
     async def initialize_discovery(self):
         """Initialize the unified discovery workflow with PostgreSQL persistence"""
@@ -200,11 +243,11 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
                 self.state.flow_id = str(uuid.uuid4())
                 logger.error(f"❌ EMERGENCY: Generated new flow_id: {self.state.flow_id}")
         
-        # Set core state fields
-        self.state.session_id = self._init_session_id
-        self.state.client_account_id = self._init_client_account_id
-        self.state.engagement_id = self._init_engagement_id
-        self.state.user_id = self._init_user_id
+        # Set core state fields (ensure all UUIDs are strings for JSON serialization)
+        self.state.session_id = str(self._init_session_id) if self._init_session_id else ""
+        self.state.client_account_id = str(self._init_client_account_id) if self._init_client_account_id else ""
+        self.state.engagement_id = str(self._init_engagement_id) if self._init_engagement_id else ""
+        self.state.user_id = str(self._init_user_id) if self._init_user_id else ""
         self.state.raw_data = self._init_raw_data
         self.state.metadata = self._init_metadata
         
@@ -223,6 +266,8 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         
         # Initialize PostgreSQL persistence
         try:
+            # Ensure UUID serialization safety before persistence
+            self._ensure_uuid_serialization_safety()
             bridge_result = await self.flow_bridge.initialize_flow_state(self.state)
             logger.info(f"✅ Flow State Bridge initialized: {bridge_result}")
         except Exception as e:
@@ -245,8 +290,7 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         self.state.current_phase = "data_import"
         
         # REAL-TIME UPDATE: Update database immediately when phase starts
-        if self.flow_bridge:
-            await self.flow_bridge.update_flow_state(self.state)
+        await self._safe_update_flow_state()
         
         # Add real-time processing update
         try:
@@ -291,14 +335,13 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
                     page=f"flow_{self.state.flow_id}",
                     title="Processing Data Records",
                     description=f"Analyzing {len(self.state.raw_data)} records for format validation, security scanning, and data quality assessment",
-                    content={
+                    supporting_data={
                         'phase': 'data_import',
                         'progress_percentage': 10.0,
                         'records_processed': len(self.state.raw_data) // 2,  # Mock progress
                         'validation_checks': ['format', 'security', 'quality']
                     },
-                    confidence="high",
-                    priority="medium"
+                    confidence="high"
                 )
             except Exception:
                 pass
@@ -329,7 +372,7 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
                     page=f"flow_{self.state.flow_id}",
                     title="Data Import Validation Completed",
                     description=f"Successfully validated {len(self.state.raw_data)} records with {validation_result.confidence_score:.1f}% confidence",
-                    content={
+                    supporting_data={
                         'phase': 'data_import',
                         'progress_percentage': 20.0,
                         'records_processed': len(self.state.raw_data),
@@ -337,15 +380,13 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
                         'validation_results': validation_result.data,
                         'completion_time': datetime.utcnow().isoformat()
                     },
-                    confidence="high",
-                    priority="medium"
+                    confidence="high"
                 )
             except Exception:
                 pass
             
             # REAL-TIME UPDATE: Persist state with agent insights and progress
-            if self.flow_bridge:
-                await self.flow_bridge.update_flow_state(self.state)
+            await self._safe_update_flow_state()
             
             logger.info(f"✅ Data validation agent completed (confidence: {validation_result.confidence_score:.1f}%)")
             return "data_validation_completed"
@@ -363,21 +404,19 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
                     page=f"flow_{self.state.flow_id}",
                     title="Data Import Validation Failed",
                     description=f"Validation failed: {str(e)}",
-                    content={
+                    supporting_data={
                         'phase': 'data_import',
                         'error_type': 'agent_execution_failure',
                         'error_message': str(e),
                         'failure_time': datetime.utcnow().isoformat()
                     },
-                    confidence="high",
-                    priority="high"
+                    confidence="high"
                 )
             except Exception:
                 pass
             
             # REAL-TIME UPDATE: Update database even on failure
-            if self.flow_bridge:
-                await self.flow_bridge.update_flow_state(self.state)
+            await self._safe_update_flow_state()
             
             return "data_validation_failed"
 
