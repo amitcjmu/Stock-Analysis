@@ -24,8 +24,9 @@ export interface ProcessingUpdate {
 export interface ProcessingStatus {
   flow_id: string;
   phase: string;
-  status: 'initializing' | 'processing' | 'validating' | 'completed' | 'failed' | 'error';
+  status: 'initializing' | 'processing' | 'validating' | 'completed' | 'failed' | 'error' | 'paused' | 'waiting_for_user_approval' | 'running' | 'in_progress';
   progress_percentage: number;
+  progress?: number; // Alternative progress field name
   records_processed: number;
   records_total: number;
   records_failed: number;
@@ -65,7 +66,7 @@ export const useRealTimeProcessing = (options: RealTimeProcessingOptions) => {
     flow_id,
     phase,
     polling_interval = 10000, // Increased from 5000 to reduce server load
-    max_updates_history = 5,
+    max_updates_history = 50,
     enabled = true
   } = options;
 
@@ -75,27 +76,21 @@ export const useRealTimeProcessing = (options: RealTimeProcessingOptions) => {
   const [consecutiveErrors, setConsecutiveErrors] = useState(0);
   const [lastSuccessfulPoll, setLastSuccessfulPoll] = useState<number>(Date.now());
   const MAX_CONSECUTIVE_ERRORS = 3;
-  const CIRCUIT_BREAKER_TIMEOUT = 60000; // 1 minute timeout after max errors
+  const CIRCUIT_BREAKER_TIMEOUT = 60000; // 1 minute timeout
 
-  // Circuit breaker logic - stop polling if too many consecutive errors
+  // Circuit breaker logic
   const isCircuitBreakerOpen = consecutiveErrors >= MAX_CONSECUTIVE_ERRORS;
   const shouldRespectCircuitBreaker = isCircuitBreakerOpen && 
     (Date.now() - lastSuccessfulPoll) < CIRCUIT_BREAKER_TIMEOUT;
-  
-  // Enhanced polling conditions
-  const shouldPoll = enabled && 
-    !!flow_id && 
-    !shouldRespectCircuitBreaker &&
-    consecutiveErrors < MAX_CONSECUTIVE_ERRORS;
 
   const {
     data: processingStatus,
-    isLoading,
-    error,
+    isLoading: isLoadingStatus,
+    error: statusError,
     refetch
   } = useQuery({
-    queryKey: ['real-time-processing', flow_id, phase],
-    queryFn: async (): Promise<ProcessingStatus> => {
+    queryKey: ['processing-status', flow_id, phase],
+    queryFn: async () => {
       try {
         const url = `/api/v1/discovery/flow/${flow_id}/processing-status${phase ? `?phase=${phase}` : ''}`;
         const response = await apiCall(url);
@@ -110,134 +105,121 @@ export const useRealTimeProcessing = (options: RealTimeProcessingOptions) => {
         if (err.status === 404 || err.response?.status === 404) {
           console.log(`Processing status endpoint not available for flow: ${flow_id}`);
           setConsecutiveErrors(prev => prev + 1);
-          
-          // Return a more realistic default status for missing endpoints
-          return {
-            flow_id,
-            phase: phase || 'data_import',
-            status: 'initializing',
-            progress_percentage: 0,
-            records_processed: 0,
-            records_total: 0,
-            records_failed: 0,
-            validation_status: {
-              format_valid: false,
-              security_scan_passed: false,
-              data_quality_score: 0,
-              issues_found: []
-            },
-            agent_status: {},
-            recent_updates: [],
-            estimated_completion: null,
-            last_update: new Date().toISOString()
-          };
+          return null;
         }
         
-        // Handle other errors with exponential backoff
+        // Handle other errors with circuit breaker logic
         setConsecutiveErrors(prev => {
           const newCount = prev + 1;
-          console.warn(`Real-time processing error ${newCount}/${MAX_CONSECUTIVE_ERRORS} for flow ${flow_id}:`, err.message);
+          console.warn(`Processing status error ${newCount}/${MAX_CONSECUTIVE_ERRORS} for flow ${flow_id}:`, err.message);
           return newCount;
         });
         
-        // Don't throw error if circuit breaker should open
+        // Don't throw if circuit breaker should open
         if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS - 1) {
-          console.warn(`Circuit breaker opening for flow ${flow_id} after ${MAX_CONSECUTIVE_ERRORS} consecutive errors`);
-          return {
-            flow_id,
-            phase: phase || 'unknown',
-            status: 'error',
-            progress_percentage: 0,
-            records_processed: 0,
-            records_total: 0,
-            records_failed: 0,
-            validation_status: {
-              format_valid: false,
-              security_scan_passed: false,
-              data_quality_score: 0,
-              issues_found: ['Polling temporarily disabled due to repeated errors']
-            },
-            agent_status: {},
-            recent_updates: [],
-            estimated_completion: null,
-            last_update: new Date().toISOString()
-          };
+          console.warn(`Circuit breaker opening for processing status on flow ${flow_id}`);
+          return null;
         }
         
         throw err;
       }
     },
-    enabled: shouldPoll,
-    staleTime: 5000, // Increased from 2000 to reduce requests
-    refetchInterval: shouldPoll ? polling_interval : false,
+    enabled: enabled && !!flow_id && !shouldRespectCircuitBreaker,
+    staleTime: 8000, // Increased from 5000 to reduce requests
+    refetchInterval: (data) => {
+      // Stop polling if flow is completed, failed, paused, or waiting for user approval
+      if (!enabled || !flow_id || shouldRespectCircuitBreaker) {
+        return false;
+      }
+      
+      // Check if we should stop polling based on processing status
+      if (data && typeof data === 'object') {
+        const status = (data as any)?.status;
+        const phase = (data as any)?.phase;
+        const progress = (data as any)?.progress;
+        
+        if (status === 'completed' || 
+            status === 'failed' || 
+            status === 'error' ||
+            status === 'paused' ||
+            status === 'waiting_for_user_approval' ||
+            (phase === 'attribute_mapping' && progress >= 90)) {
+          console.log(`Stopping polling for flow ${flow_id} - Status: ${status}, Phase: ${phase}, Progress: ${progress}%`);
+          return false;
+        }
+      }
+      
+      return polling_interval;
+    },
     refetchOnWindowFocus: false,
-    refetchOnMount: false, // Prevent immediate polling on mount
-    refetchOnReconnect: false, // Prevent polling on network reconnect
+    refetchOnMount: false,
+    refetchOnReconnect: false,
     retry: (failureCount, error: any) => {
-      // Don't retry on 404 errors or if circuit breaker is open
       if (error?.status === 404 || 
           error?.response?.status === 404 || 
           consecutiveErrors >= MAX_CONSECUTIVE_ERRORS ||
           shouldRespectCircuitBreaker) {
         return false;
       }
-      return failureCount < 1; // Reduced retry count from 2 to 1
+      return failureCount < 2; // Allow a couple retries
     },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000), // Exponential backoff
   });
 
-  // Check if processing is active
+  // Update processing active status
   useEffect(() => {
-    setIsProcessingActive(processingStatus && (
-      processingStatus.status === 'processing' || 
-      processingStatus.status === 'initializing' ||
-      processingStatus.status === 'validating'
-    ));
+    if (processingStatus) {
+      const isActive = processingStatus.status === 'running' || 
+                      processingStatus.status === 'processing' || 
+                      processingStatus.status === 'validating' ||
+                      processingStatus.status === 'in_progress';
+      setIsProcessingActive(isActive);
+    }
   }, [processingStatus]);
 
-  // Accumulate updates from processing status
+  // Accumulate processing updates
   useEffect(() => {
     if (processingStatus?.recent_updates) {
       setUpdates(prev => {
-        const newUpdates = processingStatus.recent_updates.filter(update => 
-          !prev.some(existing => existing.id === update.id)
+        const newUpdates = processingStatus.recent_updates.filter(
+          (update: ProcessingUpdate) => !prev.some(existing => existing.id === update.id)
         );
         const combined = [...prev, ...newUpdates];
         return combined.slice(-max_updates_history);
       });
     }
-  }, [processingStatus, max_updates_history]);
+  }, [processingStatus?.recent_updates, max_updates_history]);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (shouldPoll) {
-        refetch();
-      }
-    };
-  }, [shouldPoll, refetch]);
-
-  // Recovery function to reset error state
-  const resetErrorState = useCallback(() => {
+  const clearUpdates = () => setUpdates([]);
+  const resetErrorState = () => {
     setConsecutiveErrors(0);
-    console.log(`🔄 Reset error state for flow ${flow_id}`);
-  }, [flow_id]);
+    setLastSuccessfulPoll(Date.now());
+  };
 
   return {
     processingStatus,
     updates,
+    accumulatedUpdates: updates,
     isProcessingActive,
-    isLoading,
-    error,
-    refetch,
+    isLoading: isLoadingStatus,
+    error: statusError,
     consecutiveErrors,
     isPollingDisabled: consecutiveErrors >= MAX_CONSECUTIVE_ERRORS,
+    lastSuccessfulPoll,
+    refetch,
+    clearUpdates,
     resetErrorState,
     // Utility functions
+    getUpdatesByPhase: (targetPhase: string) => 
+      updates.filter(update => update.phase === targetPhase),
+    getUpdatesByAgent: (agent_name: string) => 
+      updates.filter(update => update.agent_name === agent_name),
     getLatestUpdate: () => updates[updates.length - 1],
-    getUpdatesByType: (type: ProcessingUpdate['update_type']) => 
-      updates.filter(update => update.update_type === type),
-    clearUpdates: () => setUpdates([]),
+    hasRecentErrors: () => 
+      updates.some(update => 
+        update.update_type === 'error' && 
+        Date.now() - new Date(update.timestamp).getTime() < 300000 // 5 minutes
+      ),
   };
 };
 
@@ -429,11 +411,14 @@ export const useRealTimeValidation = (flow_id: string, processingStatus?: Proces
   const MAX_CONSECUTIVE_ERRORS = 3;
   const CIRCUIT_BREAKER_TIMEOUT = 60000; // 1 minute timeout
   
-  // Stop polling if flow is completed or too many errors
+  // Stop polling if flow is completed, paused, or too many errors
   const isCompleted = processingStatus && (
     processingStatus.status === 'completed' || 
     processingStatus.status === 'failed' || 
-    processingStatus.status === 'error'
+    processingStatus.status === 'error' ||
+    processingStatus.status === 'paused' ||
+    processingStatus.status === 'waiting_for_user_approval' ||
+    (processingStatus.phase === 'attribute_mapping' && processingStatus.progress >= 90)
   );
   
   const isCircuitBreakerOpen = consecutiveErrors >= MAX_CONSECUTIVE_ERRORS;

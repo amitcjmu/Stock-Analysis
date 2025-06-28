@@ -426,4 +426,6 @@ export const UniversalProcessingStatus: React.FC<UniversalProcessingStatusProps>
       </Card>
     </div>
   );
-}; 
+};
+
+export default UniversalProcessingStatus; 

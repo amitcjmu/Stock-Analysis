@@ -104,8 +104,6 @@ export const useIncompleteFlowDetectionV2 = () => {
   return useQuery({
     queryKey: ['incomplete-flows-v2', client?.id, engagement?.id],
     queryFn: async (): Promise<FlowDetectionResultV2> => {
-      // DEPRECATED: Redirecting to unified discovery service
-      console.log('🔄 DEPRECATED: Redirecting to unified discovery service');
       const flows = await unifiedDiscoveryService.getActiveFlows();
       
       // The unified service returns { flow_details: [...], total_flows: n }
