@@ -18,14 +18,14 @@ logger = logging.getLogger(__name__)
 # Import models with graceful fallback
 try:
     from app.models.asset import Asset, AssetType, AssetStatus
-    from app.models.discovery_asset import DiscoveryAsset
     from app.models.client_account import ClientAccount
-    from app.models.engagement import Engagement
+    from app.models.discovery_asset import DiscoveryAsset
+    from app.models.discovery_flow import DiscoveryFlow
     MODELS_AVAILABLE = True
 except ImportError as e:
     logger.warning(f"Models not available: {e}")
     MODELS_AVAILABLE = False
-    Asset = DiscoveryAsset = ClientAccount = Engagement = None
+    Asset = DiscoveryAsset = ClientAccount = DiscoveryFlow = None
 
 class AssetManagementHandler:
     """Handler for unified asset management operations"""

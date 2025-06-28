@@ -7,7 +7,7 @@ import asyncio
 import sys
 sys.path.append('/app')
 
-from app.models.client_account import ClientAccount
+from app.models.client_account import ClientAccount, Engagement
 from app.core.database import AsyncSessionLocal
 from sqlalchemy import select
 
@@ -48,7 +48,6 @@ async def check_clients_and_engagements():
         
         # Check if engagement model exists
         try:
-            from app.models.engagement import Engagement
             engagement_result = await session.execute(select(Engagement))
             engagements = engagement_result.scalars().all()
             

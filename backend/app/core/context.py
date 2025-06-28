@@ -26,6 +26,17 @@ DEMO_CLIENT_CONFIG = {
     "engagement_name": "Azure Transformation"
 }
 
+try:
+    from app.models.client_account import ClientAccount, Engagement
+    from app.models.user import User
+    CLIENT_ACCOUNT_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Client account models not available: {e}")
+    CLIENT_ACCOUNT_AVAILABLE = False
+    ClientAccount = None
+    Engagement = None
+    User = None
+
 
 class RequestContext:
     """Container for request context information."""
@@ -302,8 +313,7 @@ async def resolve_demo_client_ids(db_session) -> None:
     This ensures we're using actual UUIDs from the database.
     """
     try:
-        from app.models.client_account import ClientAccount
-        from app.models.engagement import Engagement
+        from app.models.client_account import ClientAccount, Engagement
         
         # Find the Complete Test Client
         client = await db_session.execute(

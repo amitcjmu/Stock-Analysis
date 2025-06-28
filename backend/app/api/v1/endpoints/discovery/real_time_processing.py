@@ -196,9 +196,21 @@ def transform_crewai_events_to_updates(events: List[Dict[str, Any]]) -> List[Pro
 
 def create_user_friendly_message(event: Dict[str, Any]) -> str:
     """Create user-friendly messages from CrewAI events"""
-    event_type = event["event_type"]
+    event_type = event.get("event_type", "unknown")
     crew_name = event.get("crew_name", "Unknown")
     agent_name = event.get("agent_name", "Agent")
+    
+    # Ensure event_type is not None
+    if event_type is None:
+        event_type = "unknown"
+    
+    # Ensure crew_name is not None for string operations
+    if crew_name is None:
+        crew_name = "Unknown"
+    
+    # Ensure agent_name is not None
+    if agent_name is None:
+        agent_name = "Agent"
     
     # Flow-level messages
     if event_type == "flow_started":
@@ -226,12 +238,16 @@ def create_user_friendly_message(event: Dict[str, Any]) -> str:
     # Task-level messages
     elif event_type == "task_completed":
         task_name = event.get("task_name", "task")
+        if task_name is None:
+            task_name = "task"
         return f"📋 Completed: {task_name}"
     elif event_type == "task_failed":
         task_name = event.get("task_name", "task")
+        if task_name is None:
+            task_name = "task"
         return f"❌ Failed: {task_name}"
     
-    # Default fallback
+    # Default fallback with safe string handling
     else:
         return f"📊 {event_type.replace('_', ' ').title()}"
 
@@ -318,9 +334,18 @@ async def get_processing_status(
             else:
                 # Use database values as final fallback
                 current_phase = flow.get_next_phase() or "completed"
-                status = flow.status
-                progress_percentage = flow.progress_percentage
+                status = flow.status or "unknown"
+                progress_percentage = flow.progress_percentage or 0.0
                 recent_events = []
+                
+                # Safety checks for None values from database
+                if current_phase is None:
+                    current_phase = "completed"
+                if status is None:
+                    status = "unknown"
+                if progress_percentage is None:
+                    progress_percentage = 0.0
+                
                 logger.warning(f"⚠️ Flow {flow_id} not found in CrewAI event listener, using database fallback")
         else:
             # Use CrewAI event listener data (preferred)
@@ -328,6 +353,16 @@ async def get_processing_status(
             status = crewai_flow_status.get("status", "unknown")
             progress_percentage = crewai_flow_status.get("progress", 0.0)
             recent_events = crewai_flow_status.get("recent_events", [])
+            
+            # Safety checks for None values
+            if current_phase is None:
+                current_phase = "unknown"
+            if status is None:
+                status = "unknown"
+            if progress_percentage is None:
+                progress_percentage = 0.0
+            if recent_events is None:
+                recent_events = []
             
             logger.info(f"✅ Using CrewAI event listener data for flow {flow_id}")
         

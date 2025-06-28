@@ -24,16 +24,9 @@ from sqlalchemy import select, func, text, and_
 from app.core.database import AsyncSessionLocal
 from app.models.asset import Asset
 from app.models.data_import import DataImport, RawImportRecord
-from app.models.client_account import ClientAccount
+from app.models.client_account import ClientAccount, Engagement
 
 # Try to import optional models
-try:
-    from app.models.engagement import Engagement
-    ENGAGEMENT_AVAILABLE = True
-except ImportError:
-    ENGAGEMENT_AVAILABLE = False
-    Engagement = None
-
 try:
     from app.models.application import Application
     APPLICATION_AVAILABLE = True

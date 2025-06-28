@@ -682,7 +682,7 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
                         await self.flow_bridge.update_flow_state(self.state)
                     
                     logger.info(f"✅ Discovery asset creation completed: {discovery_assets_created} discovery assets created from {len(self.state.cleaned_data)} records")
-                    return "discovery_asset_creation_completed"
+                    return "inventory_completed"
                     
                 except Exception as e:
                     await db_session.rollback()
@@ -811,7 +811,7 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
                         "assets_errored": creation_result.get("error_count", 0),
                         "success": creation_result.get("success", False),
                         "timestamp": datetime.utcnow().isoformat(),
-                        "phase": "asset_promotion",
+                        "phase": "dependencies",
                         "details": creation_result
                     }
                     
@@ -824,7 +824,7 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
                         await self.flow_bridge.update_flow_state(self.state)
                     
                     logger.info(f"✅ Asset promotion completed: {creation_result.get('created_count', 0)} assets created")
-                    return f"asset_promotion_completed_{creation_result.get('created_count', 0)}_assets"
+                    return f"dependencies_completed_{creation_result.get('created_count', 0)}_assets"
                     
                 except Exception as e:
                     await db_session.rollback()
@@ -833,13 +833,13 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
                     
         except Exception as e:
             logger.error(f"❌ Asset promotion failed: {e}")
-            self.state.add_error("asset_promotion", f"Asset promotion failed: {str(e)}")
+            self.state.add_error("dependencies", f"Asset promotion failed: {str(e)}")
             
             # REAL-TIME UPDATE: Update database even on failure
             if self.flow_bridge:
                 await self.flow_bridge.update_flow_state(self.state)
             
-            return "asset_promotion_failed"
+            return "dependencies_failed"
 
     @listen(promote_discovery_assets_to_assets)
     async def execute_parallel_analysis_agents(self, previous_result):

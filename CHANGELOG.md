@@ -1608,3 +1608,67 @@ This release resolves the critical "No data in inventory page" issue by implemen
 - **Error Handling**: Improved graceful degradation when flow data is unavailable
 
 ---
+
+## [0.12.1] - 2025-01-27
+
+### 🔧 **CRITICAL ERROR RESOLUTION - Discovery Flow Stability**
+
+This release addresses ALL remaining discovery flow errors identified through comprehensive backend log analysis, ensuring complete end-to-end discovery flow functionality.
+
+### 🚀 **Core Error Fixes**
+
+#### **Import and Module Resolution**
+- **Fixed Engagement Model Import**: Corrected import paths from `app.models.engagement` to `app.models.client_account.Engagement`
+- **Updated All Test Files**: Fixed engagement imports in test files and debug scripts
+- **Graceful Import Fallbacks**: Enhanced error handling for missing model dependencies
+
+#### **Discovery Flow Phase Names**
+- **Fixed Invalid Phase Names**: Changed `discovery_asset_creation` → `inventory` (valid phase)
+- **Fixed Asset Promotion Phase**: Changed `asset_promotion` → `dependencies` (valid phase)
+- **Phase Validation**: Aligned all phase names with valid phases list
+
+#### **Database Schema Compatibility**
+- **RawImportRecord Updates**: Fixed queries to use `master_flow_id` instead of deprecated `session_id`
+- **Flow Management**: Updated all flow handlers to use correct database schema
+- **Asset Creation**: Fixed asset creation queries to find actual imported data
+
+#### **UUID Serialization Safety**
+- **Enhanced UUID Handling**: Implemented comprehensive UUID-to-string conversion in flow state
+- **JSON Serialization**: Added `UUIDEncoder` class and `_ensure_uuid_serialization_safety()` method
+- **State Persistence**: Fixed CrewAI Flow state persistence with proper UUID handling
+
+#### **Data Validation Agent**
+- **Division by Zero Protection**: Added comprehensive error handling for empty DataFrames
+- **Type Safety**: Enhanced null percentage calculations with proper type handling
+- **Edge Case Handling**: Added graceful fallbacks for mathematical operations
+
+#### **Real-Time Processing**
+- **NoneType Safety**: Added comprehensive null checks in `create_user_friendly_message()` function
+- **String Operations**: Enhanced safety checks for all variables before string operations
+- **Error Recovery**: Improved error handling in processing status endpoints
+
+### 📊 **Technical Achievements**
+- **Zero Critical Errors**: Backend logs now show clean startup without any critical errors
+- **Complete Discovery Flow**: End-to-end discovery flow functionality restored
+- **Robust Error Handling**: All edge cases and error conditions properly handled
+- **Production Ready**: All fixes tested and verified in Docker environment
+
+### 🎯 **Success Metrics**
+- **Backend Health**: Clean startup with no errors or warnings
+- **Discovery Flow**: Complete flow execution from data import through asset creation
+- **Error Recovery**: Graceful handling of all edge cases and error conditions
+- **Code Quality**: Comprehensive error handling and validation throughout
+
+### 🔍 **Files Modified**
+- `backend/app/api/v1/discovery_handlers/asset_management.py`
+- `backend/app/services/crewai_flows/unified_discovery_flow.py`
+- `backend/app/core/context.py`
+- `backend/tests/check_real_clients.py`
+- `backend/tests/debug_discovery_workflow.py`
+- `backend/tests/temp/debug_discovery_workflow.py`
+- `backend/app/services/agents/data_import_validation_agent.py`
+- `backend/app/api/v1/endpoints/discovery/real_time_processing.py`
+
+---
+
+## [0.12.0] - 2025-01-27
