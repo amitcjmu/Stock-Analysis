@@ -20,15 +20,25 @@ interface FlowStatusWidgetProps {
 interface FlowAnalysis {
   success: boolean;
   flow_id: string;
+  flow_type: string;
   current_phase: string;
-  next_action: string;
   routing_context: {
     target_page: string;
-    context_data: any;
-    specific_task?: string;
+    recommended_page: string;
+    flow_id: string;
+    phase: string;
+    flow_type: string;
+  };
+  user_guidance: {
+    primary_message: string;
+    action_items: string[];
+    user_actions: string[];
+    system_actions: string[];
+    estimated_completion_time?: number;
   };
   checklist_status: Array<{
-    phase: string;
+    phase_id: string;
+    phase_name: string;
     status: string;
     completion_percentage: number;
     tasks: Array<{
@@ -38,18 +48,17 @@ interface FlowAnalysis {
       confidence: number;
       next_steps: string[];
     }>;
-    next_required_actions: string[];
+    estimated_time_remaining?: number;
   }>;
-  user_guidance: {
-    summary: string;
-    phase: string;
-    completion_percentage: number;
-    next_steps: string[];
-    detailed_status: {
-      completed_tasks: Array<{ name: string; confidence: number }>;
-      pending_tasks: Array<{ name: string; next_steps: string[] }>;
-    };
-  };
+  agent_insights: Array<{
+    agent: string;
+    analysis: string;
+    confidence: number;
+    issues_found: string[];
+  }>;
+  confidence: number;
+  reasoning: string;
+  execution_time: number;
   error_message?: string;
 }
 
@@ -143,7 +152,7 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
     try {
       // Show confirmation toast
       toast.success('🚀 Navigating to recommended next step', {
-        description: analysis.user_guidance.summary
+        description: analysis.user_guidance.primary_message
       });
       
       // Navigate with context
@@ -271,6 +280,7 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
 
   const completedPhases = analysis.checklist_status?.filter(phase => phase.status === 'completed').length || 0;
   const totalPhases = analysis.checklist_status?.length || 0;
+  const overallProgress = totalPhases > 0 ? (completedPhases / totalPhases) * 100 : 0;
 
   return (
     <Card className={className}>
@@ -307,9 +317,9 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
               {completedPhases}/{totalPhases} phases
             </span>
           </div>
-          <Progress value={analysis.user_guidance.completion_percentage} className="h-2" />
+          <Progress value={overallProgress} className="h-2" />
           <p className="text-xs text-gray-500 mt-1">
-            Current Phase: <span className="font-medium">{analysis.current_phase.replace('_', ' ')}</span>
+            Current Phase: <span className="font-medium">{analysis.current_phase?.replace('_', ' ') || 'Unknown'}</span>
           </p>
         </div>
 
@@ -319,11 +329,11 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
             <h4 className="text-sm font-medium mb-3">Phase Status</h4>
             <div className="space-y-2">
               {analysis.checklist_status.map((phase) => (
-                <div key={phase.phase} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                <div key={phase.phase_id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                   <div className="flex items-center gap-2">
                     {getPhaseStatusIcon(phase.status, phase.completion_percentage / 100)}
                     <span className="text-sm capitalize">
-                      {phase.phase.replace(/_/g, ' ')}
+                      {phase.phase_name.replace(/_/g, ' ')}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -344,14 +354,14 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
         <div>
           <h4 className="text-sm font-medium mb-2">AI Guidance</h4>
           <p className="text-sm text-gray-700 mb-3">
-            {analysis.user_guidance.summary}
+            {analysis.user_guidance.primary_message}
           </p>
           
-          {analysis.user_guidance.next_steps && analysis.user_guidance.next_steps.length > 0 && (
+          {analysis.user_guidance.action_items && analysis.user_guidance.action_items.length > 0 && (
             <div>
               <p className="text-xs font-medium text-gray-500 mb-2">Recommended Next Steps:</p>
               <ul className="space-y-1">
-                {analysis.user_guidance.next_steps.slice(0, 3).map((step, index) => (
+                {analysis.user_guidance.action_items.slice(0, 3).map((step, index) => (
                   <li key={index} className="text-xs text-gray-600 flex items-start gap-2">
                     <span className="text-blue-500 mt-1">•</span>
                     {step}
@@ -371,7 +381,7 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
             disabled={!analysis.routing_context?.target_page}
           >
             <ArrowRight className="h-4 w-4 mr-2" />
-            {analysis.next_action}
+            {analysis.user_guidance.action_items[0] || 'No Action Items'}
           </Button>
           
           {analysis.routing_context.specific_task && (

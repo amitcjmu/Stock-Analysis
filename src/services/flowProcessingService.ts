@@ -10,40 +10,49 @@ import { apiCall } from '@/lib/api';
 export interface TaskResult {
   task_id: string;
   task_name: string;
-  status: 'completed' | 'pending' | 'blocked' | 'not_started';
+  status: 'completed' | 'pending' | 'blocked' | 'not_started' | 'in_progress';
   confidence: number;
   next_steps: string[];
 }
 
 export interface PhaseChecklistResult {
-  phase: string;
-  status: 'completed' | 'in_progress' | 'pending' | 'blocked';
+  phase_id: string;
+  phase_name: string;
+  status: 'completed' | 'in_progress' | 'pending' | 'blocked' | 'not_started';
   completion_percentage: number;
   tasks: TaskResult[];
-  next_required_actions: string[];
+  estimated_time_remaining?: number;
 }
 
 export interface FlowContinuationResponse {
   success: boolean;
   flow_id: string;
+  flow_type: string;
   current_phase: string;
-  next_action: string;
   routing_context: {
     target_page: string;
-    context_data: any;
-    specific_task?: string;
+    recommended_page: string;
+    flow_id: string;
+    phase: string;
+    flow_type: string;
+  };
+  user_guidance: {
+    primary_message: string;
+    action_items: string[];
+    user_actions: string[];
+    system_actions: string[];
+    estimated_completion_time?: number;
   };
   checklist_status: PhaseChecklistResult[];
-  user_guidance: {
-    summary: string;
-    phase: string;
-    completion_percentage: number;
-    next_steps: string[];
-    detailed_status: {
-      completed_tasks: Array<{ name: string; confidence: number }>;
-      pending_tasks: Array<{ name: string; next_steps: string[] }>;
-    };
-  };
+  agent_insights: Array<{
+    agent: string;
+    analysis: string;
+    confidence: number;
+    issues_found: string[];
+  }>;
+  confidence: number;
+  reasoning: string;
+  execution_time: number;
   error_message?: string;
 }
 
@@ -94,8 +103,8 @@ class FlowProcessingService {
 
       if (response.success) {
         console.log(`✅ FLOW PROCESSING SUCCESS: ${flowId} -> ${response.routing_context.target_page}`);
-        console.log(`📋 USER GUIDANCE: ${response.user_guidance.summary}`);
-        console.log(`🎯 NEXT STEPS:`, response.user_guidance.next_steps);
+        console.log(`📋 USER GUIDANCE: ${response.user_guidance.primary_message}`);
+        console.log(`🎯 NEXT STEPS:`, response.user_guidance.action_items);
       } else {
         console.error(`❌ FLOW PROCESSING FAILED: ${flowId} - ${response.error_message}`);
       }
@@ -152,36 +161,19 @@ class FlowProcessingService {
    * Helper method to format user guidance for display
    */
   formatUserGuidance(guidance: FlowContinuationResponse['user_guidance']): string {
-    const { summary, next_steps, detailed_status } = guidance;
+    const { primary_message, action_items, estimated_completion_time } = guidance;
     
-    let formatted = `🤖 ${summary}\n\n`;
+    let formatted = `🤖 ${primary_message}\n\n`;
     
-    if (detailed_status.completed_tasks.length > 0) {
-      formatted += `✅ Completed Tasks:\n`;
-      detailed_status.completed_tasks.forEach(task => {
-        formatted += `  • ${task.name} (${(task.confidence * 100).toFixed(0)}% confidence)\n`;
-      });
-      formatted += '\n';
-    }
-    
-    if (detailed_status.pending_tasks.length > 0) {
-      formatted += `⏳ Pending Tasks:\n`;
-      detailed_status.pending_tasks.forEach(task => {
-        formatted += `  • ${task.name}\n`;
-        if (task.next_steps.length > 0) {
-          task.next_steps.forEach(step => {
-            formatted += `    - ${step}\n`;
-          });
-        }
-      });
-      formatted += '\n';
-    }
-    
-    if (next_steps.length > 0) {
+    if (action_items.length > 0) {
       formatted += `🎯 Next Steps:\n`;
-      next_steps.forEach((step, index) => {
+      action_items.forEach((step, index) => {
         formatted += `  ${index + 1}. ${step}\n`;
       });
+    }
+    
+    if (estimated_completion_time) {
+      formatted += `⏳ Estimated Completion Time: ${estimated_completion_time} minutes\n`;
     }
     
     return formatted;
@@ -211,7 +203,8 @@ class FlowProcessingService {
       'completed': '✅',
       'pending': '⏳',
       'blocked': '🚫',
-      'not_started': '⭕'
+      'not_started': '⭕',
+      'in_progress': '🔄'
     };
     
     return icons[status] || '❓';
@@ -225,7 +218,8 @@ class FlowProcessingService {
       'completed': 'text-green-600',
       'in_progress': 'text-blue-600',
       'pending': 'text-yellow-600',
-      'blocked': 'text-red-600'
+      'blocked': 'text-red-600',
+      'not_started': 'text-gray-600'
     };
     
     return colors[status] || 'text-gray-600';

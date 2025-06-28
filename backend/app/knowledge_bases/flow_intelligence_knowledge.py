@@ -1,362 +1,459 @@
 """
 Flow Intelligence Knowledge Base
-Comprehensive knowledge for the Flow Processing Agent to understand:
-- Flow types and their purposes
-- Phases within each flow and their sequence
+Comprehensive knowledge for the Flow Processing Agent
+
+This knowledge base provides the agent with:
+- Complete flow definitions and phases
 - Success criteria for each phase
 - Navigation paths and user actions
-- Available services and tools for validation
+- Service mappings for validation
+- Context requirements for multi-tenant operations
 """
 
-from typing import Dict, List, Any
-from dataclasses import dataclass
+from typing import Dict, List, Any, Optional
+from enum import Enum
 
-@dataclass
-class PhaseDefinition:
-    """Definition of a phase within a flow"""
-    name: str
-    display_name: str
-    description: str
-    success_criteria: List[str]
-    validation_service: str
-    validation_endpoint: str
-    user_actions: List[str]
-    system_actions: List[str]
-    navigation_route: str
-    dependencies: List[str]
-    estimated_time_minutes: int
+class FlowType(Enum):
+    DISCOVERY = "discovery"
+    ASSESSMENT = "assessment"
+    PLANNING = "planning"
+    EXECUTION = "execution"
+    DECOMMISSION = "decommission"
+    FINOPS = "finops"
+    MODERNIZE = "modernize"
 
-@dataclass
-class FlowDefinition:
-    """Definition of a complete flow"""
-    name: str
-    display_name: str
-    description: str
-    phases: List[PhaseDefinition]
-    entry_point: str
-    completion_route: str
-    purpose: str
+class PhaseStatus(Enum):
+    NOT_STARTED = "not_started"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    BLOCKED = "blocked"
 
-# DISCOVERY FLOW DEFINITION
-DISCOVERY_FLOW = FlowDefinition(
-    name="discovery",
-    display_name="Discovery Flow",
-    description="Comprehensive asset discovery and analysis flow for migration planning",
-    purpose="Analyze existing infrastructure to understand what needs to be migrated",
-    entry_point="/discovery/data-import",
-    completion_route="/assess",
-    phases=[
-        PhaseDefinition(
-            name="data_import",
-            display_name="Data Import",
-            description="Import and validate source data files (CMDB, infrastructure, applications)",
-            success_criteria=[
-                "At least 5 raw records imported",
-                "Data successfully parsed and stored",
-                "No critical validation errors",
-                "Import session created with valid flow_id"
-            ],
-            validation_service="data_import_validation",
-            validation_endpoint="/api/v1/flow-processing/validate-phase/{flow_id}/data_import",
-            user_actions=[
-                "Upload CSV/Excel files with asset data",
-                "Select appropriate data category (CMDB, App Discovery, Infrastructure)",
-                "Review and confirm file format",
-                "Retry upload if validation fails"
-            ],
-            system_actions=[
-                "Parse uploaded files",
-                "Validate data format and structure",
-                "Create import session and flow_id",
-                "Store raw records in database",
-                "Trigger initial data analysis"
-            ],
-            navigation_route="/discovery/data-import",
-            dependencies=[],
-            estimated_time_minutes=10
-        ),
-        PhaseDefinition(
-            name="attribute_mapping",
-            display_name="Attribute Mapping",
-            description="Map imported fields to standardized migration attributes",
-            success_criteria=[
-                "At least 3 field mappings approved",
-                "All critical attributes mapped (asset_name, asset_type, environment)",
-                "Mapping confidence scores above 70%",
-                "No unmapped critical fields"
-            ],
-            validation_service="field_mapping_validation",
-            validation_endpoint="/api/v1/flow-processing/validate-phase/{flow_id}/attribute_mapping",
-            user_actions=[
-                "Review suggested field mappings",
-                "Approve or modify mapping suggestions",
-                "Map unmapped critical fields manually",
-                "Validate mapping accuracy"
-            ],
-            system_actions=[
-                "Analyze field patterns using AI",
-                "Generate mapping suggestions",
-                "Calculate confidence scores",
-                "Update field mapping database"
-            ],
-            navigation_route="/discovery/attribute-mapping",
-            dependencies=["data_import"],
-            estimated_time_minutes=15
-        ),
-        PhaseDefinition(
-            name="data_cleansing",
-            display_name="Data Cleansing",
-            description="Clean and standardize imported data for analysis",
-            success_criteria=[
-                "Data quality score above 80%",
-                "Duplicate records resolved",
-                "Missing critical data filled or flagged",
-                "Data format standardized"
-            ],
-            validation_service="data_quality_validation",
-            validation_endpoint="/api/v1/flow-processing/validate-phase/{flow_id}/data_cleansing",
-            user_actions=[
-                "Review data quality issues",
-                "Resolve duplicate entries",
-                "Provide missing information",
-                "Approve cleansing recommendations"
-            ],
-            system_actions=[
-                "Identify data quality issues",
-                "Suggest cleansing actions",
-                "Apply approved cleansing rules",
-                "Generate data quality report"
-            ],
-            navigation_route="/discovery/data-cleansing",
-            dependencies=["attribute_mapping"],
-            estimated_time_minutes=20
-        ),
-        PhaseDefinition(
-            name="inventory",
-            display_name="Asset Inventory",
-            description="Build comprehensive asset inventory with classifications",
-            success_criteria=[
-                "All assets classified by type",
-                "Business criticality assigned",
-                "Technical complexity scored",
-                "Migration wave assignments suggested"
-            ],
-            validation_service="inventory_validation",
-            validation_endpoint="/api/v1/flow-processing/validate-phase/{flow_id}/inventory",
-            user_actions=[
-                "Review asset classifications",
-                "Adjust business criticality ratings",
-                "Validate technical assessments",
-                "Approve inventory completeness"
-            ],
-            system_actions=[
-                "Classify assets using AI analysis",
-                "Calculate business impact scores",
-                "Assess technical complexity",
-                "Generate migration recommendations"
-            ],
-            navigation_route="/discovery/inventory",
-            dependencies=["data_cleansing"],
-            estimated_time_minutes=25
-        ),
-        PhaseDefinition(
-            name="dependencies",
-            display_name="Dependency Analysis",
-            description="Identify and map asset dependencies and relationships",
-            success_criteria=[
-                "Application dependencies mapped",
-                "Infrastructure dependencies identified",
-                "Network dependencies documented",
-                "Dependency risks assessed"
-            ],
-            validation_service="dependency_validation",
-            validation_endpoint="/api/v1/flow-processing/validate-phase/{flow_id}/dependencies",
-            user_actions=[
-                "Review dependency mappings",
-                "Add missing dependencies",
-                "Validate relationship accuracy",
-                "Assess dependency risks"
-            ],
-            system_actions=[
-                "Analyze network connections",
-                "Identify application relationships",
-                "Map infrastructure dependencies",
-                "Calculate dependency complexity"
-            ],
-            navigation_route="/discovery/dependencies",
-            dependencies=["inventory"],
-            estimated_time_minutes=30
-        ),
-        PhaseDefinition(
-            name="tech_debt",
-            display_name="Technical Debt Analysis",
-            description="Assess technical debt and modernization opportunities",
-            success_criteria=[
-                "Technical debt scored for all assets",
-                "Modernization opportunities identified",
-                "Legacy system risks documented",
-                "Modernization roadmap suggested"
-            ],
-            validation_service="tech_debt_validation",
-            validation_endpoint="/api/v1/flow-processing/validate-phase/{flow_id}/tech_debt",
-            user_actions=[
-                "Review technical assessments",
-                "Validate modernization suggestions",
-                "Prioritize technical debt items",
-                "Approve analysis completeness"
-            ],
-            system_actions=[
-                "Analyze technology stacks",
-                "Identify legacy components",
-                "Calculate modernization ROI",
-                "Generate tech debt report"
-            ],
-            navigation_route="/discovery/tech-debt",
-            dependencies=["dependencies"],
-            estimated_time_minutes=20
-        )
-    ]
-)
+class ActionType(Enum):
+    USER_ACTION = "user_action"      # User needs to do something
+    SYSTEM_ACTION = "system_action"  # System needs to process something
+    NAVIGATION = "navigation"        # Simple navigation to view results
 
-# ASSESS FLOW DEFINITION
-ASSESS_FLOW = FlowDefinition(
-    name="assess",
-    display_name="Assessment Flow",
-    description="Comprehensive migration readiness and impact assessment",
-    purpose="Evaluate migration readiness and plan migration approach",
-    entry_point="/assess/migration-readiness",
-    completion_route="/plan",
-    phases=[
-        PhaseDefinition(
-            name="migration_readiness",
-            display_name="Migration Readiness",
-            description="Assess overall readiness for migration",
-            success_criteria=[
-                "Readiness score calculated for all assets",
-                "Blockers identified and documented",
-                "Dependencies validated",
-                "Risk assessment completed"
-            ],
-            validation_service="readiness_validation",
-            validation_endpoint="/api/v1/flow-processing/validate-phase/{flow_id}/migration_readiness",
-            user_actions=[
-                "Review readiness assessments",
-                "Address identified blockers",
-                "Validate dependency mappings",
-                "Approve readiness scores"
-            ],
-            system_actions=[
-                "Calculate readiness scores",
-                "Identify migration blockers",
-                "Assess dependency impacts",
-                "Generate readiness report"
-            ],
-            navigation_route="/assess/migration-readiness",
-            dependencies=[],
-            estimated_time_minutes=25
-        )
-    ]
-)
-
-# ALL FLOWS REGISTRY
-FLOW_REGISTRY = {
-    "discovery": DISCOVERY_FLOW,
-    "assess": ASSESS_FLOW,
-    # Additional flows can be added here
-}
-
-# CONTEXT SERVICES MAPPING
-CONTEXT_SERVICES = {
-    "flow_status": {
-        "service": "FlowManagementHandler",
-        "endpoint": "/api/v1/discovery/flow/status/{flow_id}",
-        "description": "Get comprehensive flow status including phases, progress, and data"
+# Complete Flow Definitions
+FLOW_DEFINITIONS = {
+    FlowType.DISCOVERY: {
+        "name": "Discovery Flow",
+        "description": "Asset discovery and inventory management",
+        "phases": [
+            {
+                "id": "data_import",
+                "name": "Data Import",
+                "description": "Import asset data from various sources",
+                "success_criteria": [
+                    "At least 1 data file uploaded successfully",
+                    "Raw data records > 0 in database",
+                    "Import status = 'completed'",
+                    "No critical import errors"
+                ],
+                "user_actions": [
+                    "Upload CSV/Excel files with asset data",
+                    "Configure data source connections",
+                    "Review and fix import errors"
+                ],
+                "system_actions": [
+                    "Process uploaded files",
+                    "Validate data formats",
+                    "Store raw data in database"
+                ],
+                "validation_services": [
+                    "data_import_service.get_latest_import",
+                    "data_import_service.get_import_stats",
+                    "raw_data_repository.count_records"
+                ],
+                "navigation_path": "/discovery/data-import"
+            },
+            {
+                "id": "attribute_mapping",
+                "name": "Attribute Mapping", 
+                "description": "Map imported fields to critical attributes",
+                "success_criteria": [
+                    "At least 80% of critical attributes mapped",
+                    "Required identity attributes mapped (name, id)",
+                    "Mapping confidence > 0.7",
+                    "Field mapping saved successfully"
+                ],
+                "user_actions": [
+                    "Review suggested field mappings",
+                    "Manually map unmapped fields",
+                    "Validate mapping accuracy",
+                    "Save final mapping configuration"
+                ],
+                "system_actions": [
+                    "Generate AI-powered mapping suggestions",
+                    "Calculate mapping confidence scores",
+                    "Apply mapping transformations"
+                ],
+                "validation_services": [
+                    "field_mapper_service.get_mapping_status",
+                    "field_mapper_service.calculate_coverage",
+                    "critical_attributes_service.validate_mappings"
+                ],
+                "navigation_path": "/discovery/attribute-mapping"
+            },
+            {
+                "id": "data_cleansing",
+                "name": "Data Cleansing",
+                "description": "Clean and standardize asset data",
+                "success_criteria": [
+                    "Data quality score > 80%",
+                    "Critical validation errors = 0",
+                    "Duplicate records resolved",
+                    "Standardization rules applied"
+                ],
+                "user_actions": [
+                    "Review data quality issues",
+                    "Resolve duplicate records",
+                    "Fix validation errors",
+                    "Apply cleansing rules"
+                ],
+                "system_actions": [
+                    "Run data quality analysis",
+                    "Detect duplicate records",
+                    "Apply standardization rules",
+                    "Generate quality reports"
+                ],
+                "validation_services": [
+                    "data_cleansing_service.get_quality_score",
+                    "data_cleansing_service.get_validation_results",
+                    "duplicate_detection_service.get_duplicates"
+                ],
+                "navigation_path": "/discovery/data-cleansing"
+            },
+            {
+                "id": "inventory",
+                "name": "Asset Inventory",
+                "description": "Generate comprehensive asset inventory",
+                "success_criteria": [
+                    "All assets categorized and classified",
+                    "Asset relationships identified",
+                    "Inventory completeness > 95%",
+                    "Asset profiles generated"
+                ],
+                "user_actions": [
+                    "Review asset classifications",
+                    "Validate asset categories",
+                    "Update asset profiles",
+                    "Confirm inventory accuracy"
+                ],
+                "system_actions": [
+                    "Classify assets using AI",
+                    "Generate asset profiles",
+                    "Calculate inventory metrics",
+                    "Create asset hierarchy"
+                ],
+                "validation_services": [
+                    "asset_service.get_classification_status",
+                    "asset_service.get_inventory_completeness",
+                    "asset_service.get_categorization_results"
+                ],
+                "navigation_path": "/discovery/inventory"
+            },
+            {
+                "id": "dependencies",
+                "name": "Dependency Analysis",
+                "description": "Analyze asset dependencies and relationships",
+                "success_criteria": [
+                    "Dependency mapping completed",
+                    "Critical dependencies identified",
+                    "Dependency confidence > 0.8",
+                    "Dependency graph generated"
+                ],
+                "user_actions": [
+                    "Review dependency mappings",
+                    "Validate critical dependencies",
+                    "Update dependency relationships",
+                    "Approve dependency analysis"
+                ],
+                "system_actions": [
+                    "Analyze asset dependencies",
+                    "Generate dependency graphs",
+                    "Calculate dependency scores",
+                    "Identify critical paths"
+                ],
+                "validation_services": [
+                    "dependency_service.get_analysis_status",
+                    "dependency_service.get_dependency_count",
+                    "dependency_service.get_critical_dependencies"
+                ],
+                "navigation_path": "/discovery/dependencies"
+            },
+            {
+                "id": "tech_debt",
+                "name": "Technical Debt Analysis",
+                "description": "Analyze technical debt and modernization opportunities",
+                "success_criteria": [
+                    "Tech debt assessment completed",
+                    "Modernization opportunities identified",
+                    "Risk levels calculated",
+                    "Recommendations generated"
+                ],
+                "user_actions": [
+                    "Review tech debt analysis",
+                    "Validate risk assessments",
+                    "Prioritize modernization opportunities",
+                    "Approve recommendations"
+                ],
+                "system_actions": [
+                    "Analyze technical debt",
+                    "Calculate risk scores",
+                    "Generate modernization recommendations",
+                    "Create priority matrices"
+                ],
+                "validation_services": [
+                    "tech_debt_service.get_analysis_status",
+                    "tech_debt_service.get_debt_score",
+                    "tech_debt_service.get_recommendations"
+                ],
+                "navigation_path": "/discovery/tech-debt"
+            }
+        ]
     },
-    "import_status": {
-        "service": "ImportStorageHandler", 
-        "endpoint": "/api/v1/data-import/processing-status/{import_session_id}",
-        "description": "Get import session status with record counts and processing progress"
-    },
-    "validation": {
-        "service": "PhaseValidationService",
-        "endpoint": "/api/v1/flow-processing/validate-phase/{flow_id}/{phase}",
-        "description": "Validate specific phase completion with detailed criteria checking"
-    },
-    "context_extraction": {
-        "service": "RequestContext",
-        "endpoint": "/api/v1/context/extract/{flow_id}",
-        "description": "Extract client_account_id and engagement_id from flow_id for proper context scoping"
+    
+    FlowType.ASSESSMENT: {
+        "name": "Assessment Flow",
+        "description": "Migration readiness and impact assessment",
+        "phases": [
+            {
+                "id": "readiness_assessment",
+                "name": "Readiness Assessment",
+                "description": "Assess migration readiness across all dimensions",
+                "success_criteria": [
+                    "All assessment categories completed",
+                    "Readiness score calculated",
+                    "Risk factors identified",
+                    "Recommendations generated"
+                ],
+                "user_actions": [
+                    "Complete assessment questionnaires",
+                    "Review readiness scores",
+                    "Address identified gaps",
+                    "Validate assessment results"
+                ],
+                "system_actions": [
+                    "Calculate readiness scores",
+                    "Analyze risk factors",
+                    "Generate recommendations",
+                    "Create readiness reports"
+                ],
+                "validation_services": [
+                    "assessment_service.get_readiness_status",
+                    "assessment_service.get_readiness_score",
+                    "assessment_service.get_risk_factors"
+                ],
+                "navigation_path": "/assess/readiness"
+            },
+            {
+                "id": "impact_analysis",
+                "name": "Impact Analysis",
+                "description": "Analyze migration impact on business and operations",
+                "success_criteria": [
+                    "Impact analysis completed",
+                    "Business impact assessed",
+                    "Operational impact evaluated",
+                    "Mitigation strategies defined"
+                ],
+                "user_actions": [
+                    "Review impact assessments",
+                    "Validate business impacts",
+                    "Define mitigation strategies",
+                    "Approve impact analysis"
+                ],
+                "system_actions": [
+                    "Calculate business impact",
+                    "Assess operational changes",
+                    "Generate impact reports",
+                    "Suggest mitigation strategies"
+                ],
+                "validation_services": [
+                    "impact_service.get_analysis_status",
+                    "impact_service.get_business_impact",
+                    "impact_service.get_operational_impact"
+                ],
+                "navigation_path": "/assess/impact"
+            }
+        ]
     }
 }
 
-# NAVIGATION RULES
+# Context Services for Multi-Tenant Operations
+CONTEXT_SERVICES = {
+    "client_context": {
+        "service": "context_service.get_client_context",
+        "description": "Get client account context for multi-tenant operations",
+        "required_params": ["client_account_id"],
+        "returns": "Client account details and configuration"
+    },
+    "engagement_context": {
+        "service": "context_service.get_engagement_context", 
+        "description": "Get engagement context for scoped operations",
+        "required_params": ["client_account_id", "engagement_id"],
+        "returns": "Engagement details and scope"
+    },
+    "user_context": {
+        "service": "context_service.get_user_context",
+        "description": "Get user context and permissions",
+        "required_params": ["user_id"],
+        "returns": "User details and access permissions"
+    }
+}
+
+# Navigation Rules
 NAVIGATION_RULES = {
-    "user_needs_to_upload_data": "/discovery/data-import",
-    "user_needs_to_configure_mappings": "/discovery/attribute-mapping?flow_id={flow_id}",
-    "user_needs_to_review_cleansing": "/discovery/data-cleansing?flow_id={flow_id}",
-    "user_needs_to_validate_inventory": "/discovery/inventory?flow_id={flow_id}",
-    "user_needs_to_review_dependencies": "/discovery/dependencies?flow_id={flow_id}",
-    "user_needs_to_assess_tech_debt": "/discovery/tech-debt?flow_id={flow_id}",
-    "system_processing_required": "/discovery/enhanced-dashboard?flow_id={flow_id}&action=processing",
-    "phase_complete_advance": "next_phase_route",
-    "flow_complete": "/assess?flow_id={flow_id}",
-    "error_occurred": "/discovery/enhanced-dashboard?flow_id={flow_id}&error=true"
+    "user_action_required": {
+        "description": "User needs to perform an action to continue",
+        "routing_pattern": "/flow_type/phase_id?flow_id={flow_id}",
+        "examples": [
+            "/discovery/data-import?flow_id=123",
+            "/discovery/attribute-mapping?flow_id=123"
+        ]
+    },
+    "system_processing": {
+        "description": "System is processing, user should wait or check status",
+        "routing_pattern": "/flow_type/overview?flow_id={flow_id}",
+        "examples": [
+            "/discovery/overview?flow_id=123",
+            "/assess/overview?flow_id=123"
+        ]
+    },
+    "phase_complete": {
+        "description": "Phase is complete, user can proceed to next phase",
+        "routing_pattern": "/flow_type/next_phase?flow_id={flow_id}",
+        "examples": [
+            "/discovery/attribute-mapping?flow_id=123",
+            "/discovery/data-cleansing?flow_id=123"
+        ]
+    },
+    "flow_complete": {
+        "description": "Entire flow is complete, user can view results or start next flow",
+        "routing_pattern": "/flow_type/results?flow_id={flow_id}",
+        "examples": [
+            "/discovery/results?flow_id=123",
+            "/assess/results?flow_id=123"
+        ]
+    }
 }
 
-# AGENT INTELLIGENCE GUIDELINES
-AGENT_GUIDELINES = {
-    "primary_goal": "Provide specific, actionable guidance that distinguishes between user actions and system actions",
-    "analysis_approach": "Use real validation services to get accurate status, don't rely on hardcoded assumptions",
-    "user_guidance_principles": [
-        "Never tell users to 'ensure completion' of something they can't control",
-        "Always provide specific, actionable steps",
-        "Route users to pages where they can actually take required actions",
-        "For system issues, explain that background processing is needed"
+# Agent Intelligence Guidelines
+AGENT_INTELLIGENCE = {
+    "decision_framework": [
+        "1. Determine flow type and current phase using flow_id",
+        "2. Get proper context (client, engagement, user) for multi-tenant operations",
+        "3. Validate current phase completion using appropriate services",
+        "4. Identify specific issues or blockers preventing progress",
+        "5. Distinguish between user actions and system actions needed",
+        "6. Provide specific, actionable guidance (not vague instructions)",
+        "7. Route user to appropriate page where they can take action"
     ],
-    "context_awareness": [
-        "Always extract proper context (client_account_id, engagement_id) for flow operations",
-        "Scope all data queries to the correct tenant context",
-        "Understand that flows are tied to specific engagements and clients"
-    ],
-    "validation_strategy": [
-        "Use fail-fast approach - stop at first incomplete phase",
-        "Check actual data counts and thresholds, not just flags",
-        "Validate success criteria against real data, not assumptions",
-        "Provide specific details about what failed and why"
-    ]
+    "actionable_guidance": {
+        "principles": [
+            "Be specific about what the user needs to do",
+            "Distinguish between user actions and system actions",
+            "Provide context about why the action is needed",
+            "Include expected outcomes of the action",
+            "Avoid vague instructions like 'ensure completion'"
+        ],
+        "good_examples": [
+            "Go to the Data Import page and upload a CSV file containing at least 100 asset records",
+            "Review the field mapping suggestions and manually map the 'Server Name' field to the 'hostname' attribute",
+            "Resolve the 15 duplicate server records found in the data cleansing analysis"
+        ],
+        "bad_examples": [
+            "Complete the data import phase",
+            "Ensure data import is finished",
+            "Fix the issues and try again"
+        ]
+    },
+    "context_usage": {
+        "always_get_context": [
+            "Use client_account_id for all database queries",
+            "Use engagement_id to scope flow operations", 
+            "Use user_id for permission checks",
+            "Use session_id for tracking user actions"
+        ],
+        "context_flow": [
+            "1. Extract context from request headers or parameters",
+            "2. Validate context using context services",
+            "3. Pass context to all service calls",
+            "4. Ensure all operations are properly scoped"
+        ]
+    },
+    "service_usage": {
+        "validation_pattern": [
+            "1. Call appropriate validation service for the phase",
+            "2. Check specific success criteria (not just generic status)",
+            "3. Identify exact issues preventing completion",
+            "4. Determine if issue requires user action or system action",
+            "5. Provide specific remediation steps"
+        ],
+        "error_handling": [
+            "Handle service failures gracefully",
+            "Provide fallback analysis when services are unavailable",
+            "Log specific errors for debugging",
+            "Never leave user without guidance"
+        ]
+    }
 }
 
-def get_flow_definition(flow_type: str) -> FlowDefinition:
-    """Get flow definition by type"""
-    return FLOW_REGISTRY.get(flow_type, DISCOVERY_FLOW)
+def get_flow_definition(flow_type: FlowType) -> Dict[str, Any]:
+    """Get complete flow definition including all phases and criteria"""
+    return FLOW_DEFINITIONS.get(flow_type, {})
 
-def get_phase_definition(flow_type: str, phase_name: str) -> PhaseDefinition:
-    """Get phase definition by flow type and phase name"""
-    flow = get_flow_definition(flow_type)
-    for phase in flow.phases:
-        if phase.name == phase_name:
+def get_phase_definition(flow_type: FlowType, phase_id: str) -> Dict[str, Any]:
+    """Get specific phase definition with success criteria and actions"""
+    flow_def = get_flow_definition(flow_type)
+    phases = flow_def.get("phases", [])
+    
+    for phase in phases:
+        if phase["id"] == phase_id:
             return phase
+    
+    return {}
+
+def get_next_phase(flow_type: FlowType, current_phase: str) -> Optional[str]:
+    """Get the next phase in the flow sequence"""
+    flow_def = get_flow_definition(flow_type)
+    phases = flow_def.get("phases", [])
+    
+    for i, phase in enumerate(phases):
+        if phase["id"] == current_phase and i + 1 < len(phases):
+            return phases[i + 1]["id"]
+    
     return None
 
-def get_next_phase(flow_type: str, current_phase: str) -> str:
-    """Get the next phase in the flow sequence"""
-    flow = get_flow_definition(flow_type)
-    phase_names = [phase.name for phase in flow.phases]
+def get_navigation_path(flow_type: FlowType, phase_id: str, flow_id: str, action_type: ActionType = ActionType.USER_ACTION) -> str:
+    """Get the navigation path for a specific phase and action type"""
+    phase_def = get_phase_definition(flow_type, phase_id)
     
-    try:
-        current_index = phase_names.index(current_phase)
-        if current_index + 1 < len(phase_names):
-            return phase_names[current_index + 1]
-        else:
-            return "completed"
-    except ValueError:
-        return phase_names[0] if phase_names else "unknown"
+    if not phase_def:
+        return f"/{flow_type.value}/overview?flow_id={flow_id}"
+    
+    base_path = phase_def.get("navigation_path", f"/{flow_type.value}/{phase_id}")
+    
+    # Add flow_id parameter
+    separator = "&" if "?" in base_path else "?"
+    return f"{base_path}{separator}flow_id={flow_id}"
 
-def get_navigation_route(situation: str, **kwargs) -> str:
-    """Get navigation route for a specific situation"""
-    route_template = NAVIGATION_RULES.get(situation, "/discovery/enhanced-dashboard")
-    return route_template.format(**kwargs)
+def get_validation_services(flow_type: FlowType, phase_id: str) -> List[str]:
+    """Get list of validation services for a specific phase"""
+    phase_def = get_phase_definition(flow_type, phase_id)
+    return phase_def.get("validation_services", [])
 
-def get_context_service(service_name: str) -> Dict[str, str]:
-    """Get context service information"""
-    return CONTEXT_SERVICES.get(service_name, {}) 
+def get_success_criteria(flow_type: FlowType, phase_id: str) -> List[str]:
+    """Get success criteria for a specific phase"""
+    phase_def = get_phase_definition(flow_type, phase_id)
+    return phase_def.get("success_criteria", [])
+
+def get_user_actions(flow_type: FlowType, phase_id: str) -> List[str]:
+    """Get user actions required for a specific phase"""
+    phase_def = get_phase_definition(flow_type, phase_id)
+    return phase_def.get("user_actions", [])
+
+def get_system_actions(flow_type: FlowType, phase_id: str) -> List[str]:
+    """Get system actions required for a specific phase"""
+    phase_def = get_phase_definition(flow_type, phase_id)
+    return phase_def.get("system_actions", []) 

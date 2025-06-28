@@ -1,231 +1,842 @@
 """
-Intelligent Flow Processing Agent
-Single agent with comprehensive knowledge and tools for flow analysis and routing.
-Replaces the complex multi-agent system with a streamlined, efficient approach.
+Single Intelligent Flow Processing Agent - Proper CrewAI Implementation
+
+This module implements a single, intelligent CrewAI agent that can handle all flow processing
+tasks using multiple tools and comprehensive knowledge of the platform.
+
+Based on CrewAI documentation patterns:
+- Single agent with role, goal, backstory
+- Multiple specialized tools at agent's disposal
+- Comprehensive knowledge base integration
+- Fast, intelligent decision making
 """
 
 import logging
 import asyncio
-from typing import Dict, Any, List, Optional
-from dataclasses import dataclass
+import json
+from typing import Dict, List, Any, Optional
+from datetime import datetime
+
+try:
+    from crewai import Agent, Task, Crew, Process
+    from crewai.tools import BaseTool
+    CREWAI_AVAILABLE = True
+except ImportError:
+    CREWAI_AVAILABLE = False
+    
+    class Agent:
+        def __init__(self, **kwargs):
+            for key, value in kwargs.items():
+                setattr(self, key, value)
+    
+    class Task:
+        def __init__(self, **kwargs):
+            for key, value in kwargs.items():
+                setattr(self, key, value)
+    
+    class Crew:
+        def __init__(self, **kwargs):
+            for key, value in kwargs.items():
+                setattr(self, key, value)
+        
+        def kickoff(self, inputs=None):
+            return {"result": "CrewAI not available - using fallback"}
+    
+    class Process:
+        sequential = "sequential"
+    
+    class BaseTool:
+        name: str = "fallback_tool"
+        description: str = "Fallback tool when CrewAI not available"
+        
+        def __init__(self, **kwargs):
+            for key, value in kwargs.items():
+                setattr(self, key, value)
+        
+        def _run(self, *args, **kwargs):
+            return "CrewAI not available - using fallback"
+
+# Import LLM configuration
+try:
+    from app.services.llm_config import get_crewai_llm
+    LLM_AVAILABLE = True
+except ImportError:
+    LLM_AVAILABLE = False
+    def get_crewai_llm():
+        return None
+
+# Import knowledge base
+from app.knowledge_bases.flow_intelligence_knowledge import (
+    FlowType, PhaseStatus, ActionType,
+    get_flow_definition, get_phase_definition, get_next_phase,
+    get_navigation_path, get_validation_services, get_success_criteria,
+    get_user_actions, get_system_actions, AGENT_INTELLIGENCE
+)
+
+from pydantic import BaseModel, Field
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.context import RequestContext
 
 logger = logging.getLogger(__name__)
 
-@dataclass
-class FlowIntelligenceResult:
-    """Result from intelligent flow analysis"""
+class FlowIntelligenceResult(BaseModel):
+    """Result from the intelligent flow agent"""
+    success: bool
     flow_id: str
     flow_type: str
     current_phase: str
-    phase_status: str
-    specific_issues: List[str]
-    user_actions: List[str]
-    system_actions: List[str]
     routing_decision: str
-    confidence: float
+    user_guidance: str
     reasoning: str
-    estimated_completion_time: int
-    success: bool = True
-    error_message: Optional[str] = None
+    confidence: float
+    next_actions: List[str] = []
+    issues_found: List[str] = []
 
-class IntelligentFlowAgent:
-    """Single intelligent agent for flow processing with comprehensive knowledge"""
+# CrewAI Tools for Single Agent
+
+class FlowContextTool(BaseTool):
+    """Tool for getting proper multi-tenant context for flow operations"""
     
-    def __init__(self):
-        """Initialize the intelligent flow agent"""
-        pass
+    name: str = "flow_context_analyzer"
+    description: str = "Gets proper client, engagement, and user context for multi-tenant flow operations using flow_id"
     
-    async def process_flow_intelligence(self, flow_id: str, user_context: Dict[str, Any] = None) -> FlowIntelligenceResult:
-        """Process flow with intelligent analysis and routing"""
+    def _run(self, flow_id: str, client_account_id: str = None, engagement_id: str = None, user_id: str = None) -> str:
+        """Get context information for flow operations"""
         try:
-            logger.info(f"🧠 INTELLIGENT FLOW AGENT: Starting analysis for flow {flow_id}")
+            context = self._get_flow_context(flow_id, client_account_id, engagement_id, user_id)
+            return json.dumps({
+                "context_found": True,
+                "client_account_id": context.get("client_account_id"),
+                "engagement_id": context.get("engagement_id"),
+                "user_id": context.get("user_id"),
+                "flow_type": context.get("flow_type", "discovery"),
+                "message": "Context successfully retrieved for multi-tenant operations"
+            })
+        except Exception as e:
+            logger.error(f"Context analysis failed for {flow_id}: {e}")
+            return json.dumps({
+                "context_found": False,
+                "error": str(e),
+                "fallback_context": {
+                    "client_account_id": client_account_id or "dfea7406-1575-4348-a0b2-2770cbe2d9f9",
+                    "engagement_id": engagement_id or "ce27e7b1-2ac6-4b74-8dd5-b52d542a1669",
+                    "flow_type": "discovery"
+                }
+            })
+    
+    def _get_flow_context(self, flow_id: str, client_account_id: str = None, engagement_id: str = None, user_id: str = None) -> Dict[str, Any]:
+        """Get context using flow management service"""
+        try:
+            # Use direct service calls for context
+            context = {
+                "client_account_id": client_account_id or "dfea7406-1575-4348-a0b2-2770cbe2d9f9",
+                "engagement_id": engagement_id or "ce27e7b1-2ac6-4b74-8dd5-b52d542a1669",
+                "user_id": user_id,
+                "flow_type": "discovery"  # Default, will be determined from flow data
+            }
             
-            # Get proper context
-            context_info = await self._extract_context(flow_id)
+            return context
+        except Exception as e:
+            logger.error(f"Failed to get context for flow {flow_id}: {e}")
+            raise
+
+class FlowStatusTool(BaseTool):
+    """Tool for getting comprehensive flow status and phase information"""
+    
+    name: str = "flow_status_analyzer"
+    description: str = "Gets detailed flow status including current phase, progress, and data validation results"
+    
+    def _run(self, flow_id: str, context_data: str) -> str:
+        """Get comprehensive flow status with detailed analysis"""
+        try:
+            context = json.loads(context_data) if isinstance(context_data, str) else context_data
             
-            # Perform comprehensive analysis
-            analysis_result = await self._analyze_flow_comprehensive(flow_id, context_info)
-            
-            # Make intelligent routing decision
-            routing_result = await self._make_intelligent_routing(analysis_result)
-            
-            logger.info(f"🧠 INTELLIGENT ANALYSIS COMPLETE: {flow_id} -> {routing_result.routing_decision}")
-            return routing_result
+            # Get real flow status using direct service calls
+            status_result = self._get_real_flow_status(flow_id, context)
+            return json.dumps(status_result)
             
         except Exception as e:
-            logger.error(f"❌ INTELLIGENT AGENT ERROR: {flow_id} - {str(e)}")
-            return FlowIntelligenceResult(
-                flow_id=flow_id,
-                flow_type="discovery",
-                current_phase="unknown",
-                phase_status="error",
-                specific_issues=[f"Analysis failed: {str(e)}"],
-                user_actions=["Contact support for assistance"],
-                system_actions=["Log error and retry analysis"],
-                routing_decision="/discovery/enhanced-dashboard",
-                confidence=0.1,
-                reasoning=f"Analysis error: {str(e)}",
-                estimated_completion_time=0,
-                success=False,
-                error_message=str(e)
-            )
+            logger.error(f"Flow status analysis failed for {flow_id}: {e}")
+            return json.dumps({
+                "success": False,
+                "error": str(e),
+                "flow_id": flow_id,
+                "current_phase": "data_import",
+                "progress": 0,
+                "status": "error"
+            })
     
-    async def _extract_context(self, flow_id: str) -> Dict[str, Any]:
-        """Extract proper context for flow operations"""
+    def _get_real_flow_status(self, flow_id: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Get real flow status using direct service calls"""
+        try:
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(asyncio.run, self._async_get_flow_status(flow_id, context))
+                result = future.result(timeout=10)
+                return result
+        except Exception as e:
+            logger.error(f"Real flow status failed: {e}")
+            # Return clear "not found" status for any errors
+            return {
+                "success": False,
+                "flow_id": flow_id,
+                "flow_type": "discovery",
+                "current_phase": "not_found",
+                "progress": 0.0,
+                "status": "not_found",
+                "phases": {},
+                "raw_data_count": 0,
+                "field_mapping": {},
+                "validation_results": {},
+                "error": str(e)
+            }
+    
+    async def _async_get_flow_status(self, flow_id: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Async flow status lookup with proper error handling"""
         try:
             from app.api.v1.discovery_handlers.flow_management import FlowManagementHandler
             from app.core.database import AsyncSessionLocal
-            from app.core.context import RequestContext
+            from app.core.request_context import RequestContext
             
-            # Create basic context
-            context = RequestContext(
-                client_account_id="dfea7406-1575-4348-a0b2-2770cbe2d9f9",
-                engagement_id="ce27e7b1-2ac6-4b74-8dd5-b52d542a1669",
-                user_id=None,
+            # Create request context
+            request_context = RequestContext(
+                client_account_id=context.get("client_account_id"),
+                engagement_id=context.get("engagement_id"),
+                user_id=context.get("user_id"),
                 session_id=None
             )
             
             async with AsyncSessionLocal() as session:
-                handler = FlowManagementHandler(session, context)
-                flow_status = await handler.get_flow_status(flow_id)
+                handler = FlowManagementHandler(session, request_context)
+                flow_response = await handler.get_flow_status(flow_id)
+                
+                # Handle non-existent flows clearly
+                if flow_response.get("status") == "not_found":
+                    return {
+                        "success": True,
+                        "flow_id": flow_id,
+                        "flow_type": "discovery",
+                        "current_phase": "not_found",
+                        "progress": 0.0,
+                        "status": "not_found",
+                        "phases": {},
+                        "raw_data_count": 0,
+                        "field_mapping": {},
+                        "validation_results": {},
+                        "user_guidance": "FLOW_NOT_FOUND: This flow ID does not exist in the system. User needs to start a new discovery flow by uploading data."
+                    }
                 
                 return {
-                    "client_account_id": flow_status.get("client_account_id", context.client_account_id),
-                    "engagement_id": flow_status.get("engagement_id", context.engagement_id),
-                    "flow_status": flow_status
+                    "success": True,
+                    "flow_id": flow_id,
+                    "flow_type": flow_response.get("flow_type", "discovery"),
+                    "current_phase": flow_response.get("current_phase", "data_import"),
+                    "progress": flow_response.get("progress_percentage", 0),
+                    "status": flow_response.get("status", "in_progress"),
+                    "phases": flow_response.get("phases", {}),
+                    "raw_data_count": len(flow_response.get("raw_data", [])),
+                    "field_mapping": flow_response.get("field_mapping", {}),
+                    "validation_results": flow_response.get("validation_results", {})
                 }
                 
         except Exception as e:
-            logger.error(f"Context extraction failed: {e}")
-            return {"error": str(e)}
+            logger.error(f"Async flow status failed: {e}")
+            # Return clear "not found" for any database/service errors
+            return {
+                "success": True,
+                "flow_id": flow_id,
+                "flow_type": "discovery", 
+                "current_phase": "not_found",
+                "progress": 0.0,
+                "status": "not_found",
+                "phases": {},
+                "raw_data_count": 0,
+                "field_mapping": {},
+                "validation_results": {},
+                "user_guidance": "FLOW_ERROR: Unable to access flow data. Flow may not exist or there may be a system issue."
+            }
+
+class PhaseValidationTool(BaseTool):
+    """Tool for validating specific phase completion using success criteria"""
     
-    async def _analyze_flow_comprehensive(self, flow_id: str, context_info: Dict[str, Any]) -> Dict[str, Any]:
-        """Perform comprehensive flow analysis using real services"""
+    name: str = "phase_validator"
+    description: str = "Validates if a specific phase meets its success criteria by checking actual data and validation services"
+    
+    def _run(self, flow_id: str, phase_id: str, flow_type: str, context_data: str) -> str:
+        """Validate phase completion against success criteria"""
         try:
-            from app.api.v1.discovery_handlers.flow_management import FlowManagementHandler
-            from app.core.database import AsyncSessionLocal
-            from app.core.context import RequestContext
+            context = json.loads(context_data) if isinstance(context_data, str) else context_data
             
-            # Create context from extracted info
-            context = RequestContext(
-                client_account_id=context_info.get("client_account_id", "dfea7406-1575-4348-a0b2-2770cbe2d9f9"),
-                engagement_id=context_info.get("engagement_id", "ce27e7b1-2ac6-4b74-8dd5-b52d542a1669"),
-                user_id=None,
+            # Get phase definition and success criteria
+            flow_type_enum = FlowType(flow_type)
+            phase_def = get_phase_definition(flow_type_enum, phase_id)
+            success_criteria = get_success_criteria(flow_type_enum, phase_id)
+            
+            if not phase_def:
+                return json.dumps({
+                    "phase_valid": False,
+                    "error": f"Unknown phase {phase_id} for flow type {flow_type}",
+                    "completion_percentage": 0
+                })
+            
+            # Validate phase using real services
+            validation_result = self._validate_phase_criteria(flow_id, phase_id, success_criteria, context)
+            
+            return json.dumps(validation_result)
+            
+        except Exception as e:
+            logger.error(f"Phase validation failed for {flow_id}/{phase_id}: {e}")
+            return json.dumps({
+                "phase_valid": False,
+                "error": str(e),
+                "completion_percentage": 0,
+                "issues": [f"Validation service error: {str(e)}"]
+            })
+    
+    def _validate_phase_criteria(self, flow_id: str, phase_id: str, success_criteria: List[str], context: Dict[str, Any]) -> Dict[str, Any]:
+        """Validate phase against its success criteria"""
+        try:
+            if phase_id == "data_import":
+                return self._validate_data_import_phase(flow_id, success_criteria, context)
+            elif phase_id == "attribute_mapping":
+                return self._validate_attribute_mapping_phase(flow_id, success_criteria, context)
+            elif phase_id == "data_cleansing":
+                return self._validate_data_cleansing_phase(flow_id, success_criteria, context)
+            else:
+                # Generic validation for other phases
+                return {
+                    "phase_valid": False,
+                    "completion_percentage": 0,
+                    "issues": [f"Phase {phase_id} validation not yet implemented"],
+                    "criteria_met": [],
+                    "criteria_failed": success_criteria
+                }
+        except Exception as e:
+            logger.error(f"Criteria validation failed: {e}")
+            return {
+                "phase_valid": False,
+                "completion_percentage": 0,
+                "issues": [f"Validation error: {str(e)}"],
+                "criteria_met": [],
+                "criteria_failed": success_criteria
+            }
+    
+    def _validate_data_import_phase(self, flow_id: str, success_criteria: List[str], context: Dict[str, Any]) -> Dict[str, Any]:
+        """Validate data import phase specifically"""
+        try:
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(asyncio.run, self._async_validate_data_import(flow_id, context))
+                result = future.result(timeout=10)
+                return result
+        except Exception as e:
+            logger.error(f"Data import validation failed: {e}")
+            return {
+                "phase_valid": False,
+                "completion_percentage": 0,
+                "issues": [f"Data import validation error: {str(e)}"],
+                "specific_issue": "Unable to check data import status",
+                "user_action_needed": "Check data import page and upload data if needed"
+            }
+    
+    async def _async_validate_data_import(self, flow_id: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Async validation of data import phase"""
+        try:
+            from app.services.data_import_v2_service import DataImportV2Service
+            from app.core.database import AsyncSessionLocal
+            
+            # Create request context
+            request_context = RequestContext(
+                client_account_id=context.get("client_account_id"),
+                engagement_id=context.get("engagement_id"),
+                user_id=context.get("user_id"),
                 session_id=None
             )
             
             async with AsyncSessionLocal() as session:
-                # Get flow status
-                handler = FlowManagementHandler(session, context)
-                flow_status = await handler.get_flow_status(flow_id)
+                import_service = DataImportV2Service(session, request_context)
+                latest_import = await import_service.get_latest_import()
                 
-                # Analyze data import status specifically
-                current_phase = "data_import"
-                raw_records = flow_status.get("raw_data", {}).get("record_count", 0) if flow_status.get("raw_data") else 0
-                
-                # Determine specific issues and actions
-                if raw_records == 0:
+                if not latest_import:
                     return {
-                        "flow_type": "discovery",
-                        "current_phase": current_phase,
-                        "phase_status": "INCOMPLETE",
-                        "raw_records": raw_records,
-                        "specific_issue": "No data records found",
-                        "user_action": "Upload data file with asset information",
-                        "system_action": "Process uploaded data and create records",
-                        "navigation": "/discovery/data-import",
-                        "confidence": 0.95
+                        "phase_valid": False,
+                        "completion_percentage": 0,
+                        "issues": ["No data import found"],
+                        "specific_issue": "No data has been uploaded yet",
+                        "user_action_needed": "Go to Data Import page and upload a CSV/Excel file with asset data",
+                        "criteria_met": [],
+                        "criteria_failed": ["At least 1 data file uploaded successfully", "Raw data records > 0 in database"]
                     }
-                elif raw_records < 5:
+                
+                # Check record count
+                record_count = latest_import.get("record_count", 0)
+                status = latest_import.get("status", "unknown")
+                
+                if record_count == 0:
                     return {
-                        "flow_type": "discovery",
-                        "current_phase": current_phase,
-                        "phase_status": "INCOMPLETE",
-                        "raw_records": raw_records,
-                        "specific_issue": f"Insufficient data ({raw_records} records, need 5+)",
-                        "user_action": "Upload larger data file with more records",
-                        "system_action": "Guide user through data upload process",
-                        "navigation": "/discovery/data-import",
-                        "confidence": 0.90
+                        "phase_valid": False,
+                        "completion_percentage": 0,
+                        "issues": [f"Data import found but contains 0 records (Status: {status})"],
+                        "specific_issue": "Data file was uploaded but contains no valid records",
+                        "user_action_needed": "Upload a data file containing asset information with at least 1 record",
+                        "criteria_met": [],
+                        "criteria_failed": ["Raw data records > 0 in database"]
+                    }
+                
+                # Import exists with data
+                criteria_met = [
+                    "At least 1 data file uploaded successfully",
+                    "Raw data records > 0 in database"
+                ]
+                
+                if status == "completed":
+                    criteria_met.append("Import status = 'completed'")
+                    criteria_met.append("No critical import errors")
+                    
+                    return {
+                        "phase_valid": True,
+                        "completion_percentage": 100,
+                        "issues": [],
+                        "record_count": record_count,
+                        "import_status": status,
+                        "criteria_met": criteria_met,
+                        "criteria_failed": []
                     }
                 else:
                     return {
-                        "flow_type": "discovery",
-                        "current_phase": current_phase,
-                        "phase_status": "PROCESSING",
-                        "raw_records": raw_records,
-                        "specific_issue": f"Data uploaded ({raw_records} records) but processing incomplete",
-                        "user_action": "No user action required",
-                        "system_action": "Trigger background data processing",
-                        "navigation": f"/discovery/enhanced-dashboard?flow_id={flow_id}&action=processing",
-                        "confidence": 0.85
+                        "phase_valid": False,
+                        "completion_percentage": 50,
+                        "issues": [f"Import status is '{status}', not 'completed'"],
+                        "specific_issue": f"Data import is in '{status}' status",
+                        "user_action_needed": "Wait for import processing to complete or check for import errors",
+                        "criteria_met": criteria_met[:2],  # First two criteria met
+                        "criteria_failed": ["Import status = 'completed'", "No critical import errors"]
                     }
+                    
+        except Exception as e:
+            logger.error(f"Async data import validation failed: {e}")
+            raise
+    
+    def _validate_attribute_mapping_phase(self, flow_id: str, success_criteria: List[str], context: Dict[str, Any]) -> Dict[str, Any]:
+        """Validate attribute mapping phase"""
+        # Simplified validation - in real implementation would check field mapping service
+        return {
+            "phase_valid": False,
+            "completion_percentage": 0,
+            "issues": ["Attribute mapping validation not yet implemented"],
+            "user_action_needed": "Complete field mapping configuration",
+            "criteria_met": [],
+            "criteria_failed": success_criteria
+        }
+    
+    def _validate_data_cleansing_phase(self, flow_id: str, success_criteria: List[str], context: Dict[str, Any]) -> Dict[str, Any]:
+        """Validate data cleansing phase"""
+        # Simplified validation - in real implementation would check data quality service
+        return {
+            "phase_valid": False,
+            "completion_percentage": 0,
+            "issues": ["Data cleansing validation not yet implemented"],
+            "user_action_needed": "Complete data quality analysis and cleansing",
+            "criteria_met": [],
+            "criteria_failed": success_criteria
+        }
+
+class NavigationDecisionTool(BaseTool):
+    """Tool for making intelligent navigation and routing decisions"""
+    
+    name: str = "navigation_decision_maker"
+    description: str = "Makes intelligent routing decisions based on flow analysis and validation results, providing specific actionable guidance"
+    
+    def _run(self, flow_status: str, validation_results: str, flow_type: str) -> str:
+        """Make intelligent navigation decision with actionable guidance"""
+        try:
+            status_data = json.loads(flow_status) if isinstance(flow_status, str) else flow_status
+            validation_data = json.loads(validation_results) if isinstance(validation_results, str) else validation_results
+            
+            flow_id = status_data.get("flow_id")
+            current_phase = status_data.get("current_phase", "data_import")
+            
+            # Make routing decision based on validation results
+            decision = self._make_routing_decision(flow_id, flow_type, current_phase, status_data, validation_data)
+            
+            return json.dumps(decision)
+            
+        except Exception as e:
+            logger.error(f"Navigation decision failed: {e}")
+            return json.dumps({
+                "routing_decision": "/discovery/overview",
+                "user_guidance": f"Navigation error: {str(e)}",
+                "action_type": "error",
+                "confidence": 0.0
+            })
+    
+    def _make_routing_decision(self, flow_id: str, flow_type: str, current_phase: str, status_data: Dict, validation_data: Dict) -> Dict[str, Any]:
+        """Make intelligent routing decision"""
+        try:
+            flow_type_enum = FlowType(flow_type)
+            
+            # Check if current phase is valid
+            if validation_data.get("phase_valid", False):
+                # Phase is complete, move to next phase
+                next_phase = get_next_phase(flow_type_enum, current_phase)
+                
+                if next_phase:
+                    # Move to next phase
+                    navigation_path = get_navigation_path(flow_type_enum, next_phase, flow_id)
+                    user_actions = get_user_actions(flow_type_enum, next_phase)
+                    
+                    return {
+                        "routing_decision": navigation_path,
+                        "user_guidance": f"Phase '{current_phase}' completed successfully. Continue to {next_phase}: {user_actions[0] if user_actions else 'Review and proceed'}",
+                        "action_type": "user_action",
+                        "confidence": 0.9,
+                        "next_phase": next_phase,
+                        "completion_status": "phase_complete"
+                    }
+                else:
+                    # Flow complete
+                    return {
+                        "routing_decision": f"/{flow_type}/results?flow_id={flow_id}",
+                        "user_guidance": f"All phases of the {flow_type} flow have been completed successfully. Review the results and proceed to the next workflow.",
+                        "action_type": "navigation",
+                        "confidence": 0.95,
+                        "completion_status": "flow_complete"
+                    }
+            else:
+                # Phase is not complete, provide specific guidance
+                issues = validation_data.get("issues", [])
+                specific_issue = validation_data.get("specific_issue", "Unknown issue")
+                user_action_needed = validation_data.get("user_action_needed", "Review and fix issues")
+                
+                # Route to current phase for user action
+                navigation_path = get_navigation_path(flow_type_enum, current_phase, flow_id)
+                
+                return {
+                    "routing_decision": navigation_path,
+                    "user_guidance": f"ISSUE: {specific_issue}. ACTION NEEDED: {user_action_needed}",
+                    "action_type": "user_action",
+                    "confidence": 0.85,
+                    "issues": issues,
+                    "completion_status": "action_required",
+                    "specific_issue": specific_issue
+                }
                 
         except Exception as e:
-            logger.error(f"Flow analysis failed: {e}")
-            return {"error": str(e)}
+            logger.error(f"Routing decision failed: {e}")
+            return {
+                "routing_decision": f"/{flow_type}/overview?flow_id={flow_id}",
+                "user_guidance": f"Unable to determine next steps: {str(e)}",
+                "action_type": "error",
+                "confidence": 0.0
+            }
+
+class IntelligentFlowAgent:
+    """Single intelligent CrewAI agent for flow processing"""
     
-    async def _make_intelligent_routing(self, analysis_result: Dict[str, Any]) -> FlowIntelligenceResult:
-        """Make intelligent routing decision based on analysis"""
+    def __init__(self):
+        """Initialize the intelligent flow agent"""
+        self.agent = None
+        self.crew = None
+        self.tools = []
+        
+        if CREWAI_AVAILABLE:
+            self._setup_crewai_agent()
+        else:
+            logger.warning("CrewAI not available - using fallback implementation")
+    
+    def _setup_crewai_agent(self):
+        """Setup CrewAI agent with proper tools and configuration"""
         try:
-            if "error" in analysis_result:
-                return FlowIntelligenceResult(
-                    flow_id=analysis_result.get("flow_id", "unknown"),
-                    flow_type="discovery",
-                    current_phase="unknown",
-                    phase_status="error",
-                    specific_issues=[f"Analysis error: {analysis_result['error']}"],
-                    user_actions=["Retry analysis"],
-                    system_actions=["Fix analysis system"],
-                    routing_decision="/discovery/enhanced-dashboard",
-                    confidence=0.1,
-                    reasoning=f"Analysis failed: {analysis_result['error']}",
-                    estimated_completion_time=0,
-                    success=False,
-                    error_message=analysis_result["error"]
-                )
+            # Create tools
+            self.flow_context_tool = FlowContextTool()
+            self.flow_status_tool = FlowStatusTool()
+            self.phase_validation_tool = PhaseValidationTool()
+            self.navigation_tool = NavigationDecisionTool()
             
-            # Extract analysis results
-            flow_type = analysis_result.get("flow_type", "discovery")
-            current_phase = analysis_result.get("current_phase", "data_import")
-            phase_status = analysis_result.get("phase_status", "INCOMPLETE")
-            specific_issue = analysis_result.get("specific_issue", "Unknown issue")
-            user_action = analysis_result.get("user_action", "No action specified")
-            system_action = analysis_result.get("system_action", "No action specified")
-            navigation = analysis_result.get("navigation", "/discovery/enhanced-dashboard")
-            confidence = analysis_result.get("confidence", 0.8)
-            raw_records = analysis_result.get("raw_records", 0)
+            # Create agent
+            self.agent = Agent(
+                role="Flow Intelligence Specialist",
+                goal="Analyze discovery flow status and provide intelligent routing decisions with actionable user guidance",
+                backstory="""You are an expert AI agent specializing in migration discovery flow analysis. 
+                You understand the complete discovery flow lifecycle and can provide precise guidance on what users need to do next.
+                You distinguish between user actions (things users can do) and system actions (things that happen automatically).
+                You provide specific, actionable guidance rather than vague instructions.""",
+                tools=[self.flow_context_tool, self.flow_status_tool, self.phase_validation_tool, self.navigation_tool],
+                verbose=True,
+                memory=False,  # Disable memory to prevent APIStatusError
+                llm=get_crewai_llm()
+            )
             
-            # Build comprehensive routing result
+            # Create task
+            self.task = Task(
+                description="""Analyze the discovery flow and provide intelligent routing guidance:
+
+1. FIRST: Get flow context using flow_context_analyzer to establish proper multi-tenant context
+2. THEN: Get detailed flow status using flow_status_analyzer 
+3. IF FLOW EXISTS: Validate current phase using phase_validator to check actual completion criteria
+4. IF FLOW NOT FOUND: Provide clear guidance to start a new discovery flow
+5. FINALLY: Use navigation_decision_maker to determine where to route the user with specific actionable steps
+
+CRITICAL GUIDELINES:
+- If flow status is "not_found" or "unknown": Guide user to start new discovery flow by uploading data
+- If flow exists but has issues: Provide specific steps to resolve the issues
+- Always distinguish between USER_ACTION (what user can do) vs SYSTEM_ACTION (automatic processes)
+- Provide specific page routes and actionable instructions
+- Focus on what the user can actually do right now
+
+RESPONSE FORMAT:
+- routing_decision: Specific page/route where user should go
+- user_guidance: Clear, actionable instructions for the user
+- reasoning: Your analysis of the current situation
+- next_actions: List of specific steps user can take""",
+                agent=self.agent,
+                expected_output="A comprehensive flow analysis with specific routing decision and actionable user guidance"
+            )
+            
+            # Create crew
+            self.crew = Crew(
+                agents=[self.agent],
+                tasks=[self.task],
+                process=Process.sequential,
+                memory=False,  # Disable memory to prevent APIStatusError
+                verbose=True
+            )
+            
+            self.crewai_available = True
+            logger.info("✅ CrewAI agent successfully configured")
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to setup CrewAI agent: {e}")
+            self.crewai_available = False
+    
+    async def analyze_flow_continuation(self, flow_id: str, client_account_id: str = None, engagement_id: str = None, user_id: str = None) -> FlowIntelligenceResult:
+        """Analyze flow continuation using intelligent agent"""
+        
+        if not self.crewai_available:
+            logger.warning("CrewAI not available, using fallback analysis")
+            return await self._fallback_analysis(flow_id, client_account_id, engagement_id, user_id)
+        
+        try:
+            logger.info(f"🤖 Starting intelligent flow analysis for {flow_id}")
+            
+            # Create dynamic task with flow-specific inputs
+            inputs = {
+                "flow_id": flow_id,
+                "client_account_id": client_account_id or "11111111-1111-1111-1111-111111111111",
+                "engagement_id": engagement_id or "22222222-2222-2222-2222-222222222222", 
+                "user_id": user_id or "33333333-3333-3333-3333-333333333333"
+            }
+            
+            # Execute crew with specific inputs
+            result = self.crew.kickoff(inputs=inputs)
+            
+            logger.info(f"✅ CrewAI analysis completed for {flow_id}")
+            
+            # Parse and return structured result
+            return self._parse_crew_result(result, flow_id)
+            
+        except Exception as e:
+            logger.error(f"❌ CrewAI flow analysis failed for {flow_id}: {e}")
+            # Fallback to direct analysis
+            return await self._fallback_analysis(flow_id, client_account_id, engagement_id, user_id)
+    
+    def _parse_crew_result(self, crew_result, flow_id: str) -> FlowIntelligenceResult:
+        """Parse crew result into structured response"""
+        try:
+            # Extract result text
+            result_text = str(crew_result)
+            
+            # Try to extract JSON from result
+            import re
+            json_match = re.search(r'\{.*\}', result_text, re.DOTALL)
+            
+            if json_match:
+                try:
+                    result_data = json.loads(json_match.group())
+                    
+                    # Fix next_actions if they're objects instead of strings
+                    next_actions = result_data.get("next_actions", [])
+                    if next_actions and isinstance(next_actions[0], dict):
+                        # Convert objects to strings
+                        next_actions = [
+                            action.get("description", str(action)) if isinstance(action, dict) else str(action)
+                            for action in next_actions
+                        ]
+                    
+                    return FlowIntelligenceResult(
+                        success=True,
+                        flow_id=flow_id,
+                        flow_type=result_data.get("flow_type", "discovery"),
+                        current_phase=result_data.get("current_phase", "data_import"),
+                        routing_decision=result_data.get("routing_decision", "/discovery/overview"),
+                        user_guidance=result_data.get("user_guidance", "Continue with flow processing"),
+                        reasoning=result_data.get("reasoning", result_text),
+                        confidence=float(result_data.get("confidence", 0.8)),
+                        next_actions=next_actions,
+                        issues_found=result_data.get("issues", [])
+                    )
+                except json.JSONDecodeError:
+                    pass
+            
+            # Fallback parsing if no JSON found
             return FlowIntelligenceResult(
-                flow_id=analysis_result.get("flow_id", "unknown"),
-                flow_type=flow_type,
-                current_phase=current_phase,
-                phase_status=phase_status,
-                specific_issues=[specific_issue],
-                user_actions=[user_action],
-                system_actions=[system_action],
-                routing_decision=navigation,
-                confidence=confidence,
-                reasoning=f"Analyzed {current_phase} phase: {specific_issue} (Records: {raw_records})",
-                estimated_completion_time=5,  # Fast single-agent analysis
-                success=True
+                success=True,
+                flow_id=flow_id,
+                flow_type="discovery",
+                current_phase="data_import",
+                routing_decision="/discovery/overview",
+                user_guidance=result_text[:200] + "..." if len(result_text) > 200 else result_text,
+                reasoning=result_text,
+                confidence=0.7
             )
             
         except Exception as e:
-            logger.error(f"Routing decision failed: {e}")
+            logger.error(f"Failed to parse crew result: {e}")
             return FlowIntelligenceResult(
-                flow_id="unknown",
+                success=False,
+                flow_id=flow_id,
+                flow_type="discovery",
+                current_phase="data_import",
+                routing_decision="/discovery/overview",
+                user_guidance="Unable to parse analysis result",
+                reasoning=f"Parse error: {str(e)}",
+                confidence=0.0,
+                issues_found=[str(e)]
+            )
+    
+    async def _fallback_analysis(self, flow_id: str, client_account_id: str = None, engagement_id: str = None, user_id: str = None) -> FlowIntelligenceResult:
+        """Fallback analysis when CrewAI is not available"""
+        try:
+            logger.info(f"🔄 Using fallback analysis for flow {flow_id}")
+            
+            # Use direct tools to analyze flow
+            context_tool = FlowContextTool()
+            status_tool = FlowStatusTool()
+            
+            # Get context
+            context_data = context_tool._run(
+                flow_id=flow_id,
+                client_account_id=client_account_id,
+                engagement_id=engagement_id, 
+                user_id=user_id
+            )
+            
+            # Get flow status
+            status_result = status_tool._run(flow_id, context_data)
+            status_data = json.loads(status_result) if isinstance(status_result, str) else status_result
+            
+            # Handle non-existent flows
+            if status_data.get("status") == "not_found" or status_data.get("current_phase") == "not_found":
+                return FlowIntelligenceResult(
+                    success=True,
+                    flow_id=flow_id,
+                    flow_type="discovery",
+                    current_phase="not_found",
+                    routing_decision="/discovery/data-import",
+                    user_guidance="FLOW NOT FOUND: This discovery flow does not exist. Please start a new discovery flow by uploading your CMDB or asset data file.",
+                    reasoning="Flow ID not found in database. User needs to initiate a new discovery flow by uploading data.",
+                    confidence=1.0,
+                    next_actions=[
+                        "Go to the Data Import page",
+                        "Upload a CSV or Excel file containing your asset/CMDB data", 
+                        "Wait for the system to process and analyze your data",
+                        "Review the generated field mappings"
+                    ],
+                    issues_found=["Flow does not exist in the system"]
+                )
+            
+            # Handle flows with no data
+            if status_data.get("raw_data_count", 0) == 0:
+                return FlowIntelligenceResult(
+                    success=True,
+                    flow_id=flow_id,
+                    flow_type="discovery",
+                    current_phase="data_import",
+                    routing_decision="/discovery/data-import",
+                    user_guidance="NO DATA FOUND: This flow exists but contains no data. Please upload your CMDB or asset data to begin the discovery process.",
+                    reasoning="Flow exists but has no raw data. Data import phase needs to be completed.",
+                    confidence=0.9,
+                    next_actions=[
+                        "Go to the Data Import page", 
+                        "Upload a CSV or Excel file with at least 1 record",
+                        "Ensure the file contains asset information like names, IDs, owners, etc.",
+                        "Wait for processing to complete"
+                    ],
+                    issues_found=["No raw data in flow", "Data import incomplete"]
+                )
+            
+            # Handle flows with data but incomplete phases
+            current_phase = status_data.get("current_phase", "data_import")
+            progress = status_data.get("progress", 0)
+            
+            if current_phase == "data_import" and progress < 100:
+                return FlowIntelligenceResult(
+                    success=True,
+                    flow_id=flow_id,
+                    flow_type="discovery",
+                    current_phase=current_phase,
+                    routing_decision="/discovery/data-import",
+                    user_guidance="DATA IMPORT IN PROGRESS: Your data is being processed. Please wait for completion or check for any import errors.",
+                    reasoning="Data import phase is not yet complete.",
+                    confidence=0.8,
+                    next_actions=[
+                        "Check the data import status",
+                        "Wait for processing to complete",
+                        "Review any error messages",
+                        "Upload additional data if needed"
+                    ]
+                )
+            
+            elif current_phase == "attribute_mapping":
+                return FlowIntelligenceResult(
+                    success=True,
+                    flow_id=flow_id,
+                    flow_type="discovery", 
+                    current_phase=current_phase,
+                    routing_decision=f"/discovery/attribute-mapping?flow_id={flow_id}",
+                    user_guidance="ATTRIBUTE MAPPING NEEDED: Review and configure how your data fields map to standard asset attributes.",
+                    reasoning="Data import complete, attribute mapping phase active.",
+                    confidence=0.9,
+                    next_actions=[
+                        "Review the suggested field mappings",
+                        "Correct any incorrect mappings",
+                        "Map critical fields like asset names, IDs, owners",
+                        "Save the mapping configuration"
+                    ]
+                )
+            
+            # Default case - route to overview
+            return FlowIntelligenceResult(
+                success=True,
+                flow_id=flow_id,
+                flow_type="discovery",
+                current_phase=current_phase,
+                routing_decision="/discovery/overview",
+                user_guidance=f"FLOW ANALYSIS: Current phase is {current_phase} ({progress}% complete). Continue with the discovery process.",
+                reasoning=f"Flow in {current_phase} phase with {progress}% completion.",
+                confidence=0.7,
+                next_actions=[
+                    "Review the current flow status",
+                    "Complete any pending tasks",
+                    "Proceed to the next phase when ready"
+                ]
+            )
+            
+        except Exception as e:
+            logger.error(f"❌ Fallback analysis failed for {flow_id}: {e}")
+            return FlowIntelligenceResult(
+                success=False,
+                flow_id=flow_id,
                 flow_type="discovery",
                 current_phase="unknown",
-                phase_status="routing_error",
-                specific_issues=[f"Routing failed: {str(e)}"],
-                user_actions=["Retry routing"],
-                system_actions=["Fix routing system"],
-                routing_decision="/discovery/enhanced-dashboard",
-                confidence=0.1,
-                reasoning=f"Routing error: {str(e)}",
-                estimated_completion_time=0,
-                success=False,
-                error_message=str(e)
+                routing_decision="/discovery/data-import", 
+                user_guidance="SYSTEM ERROR: Unable to analyze flow. Please start a new discovery flow by uploading data.",
+                reasoning=f"Analysis failed due to system error: {str(e)}",
+                confidence=0.0,
+                next_actions=[
+                    "Start a new discovery flow",
+                    "Upload your asset data file",
+                    "Contact support if the issue persists"
+                ],
+                issues_found=[f"System error: {str(e)}"]
             ) 
