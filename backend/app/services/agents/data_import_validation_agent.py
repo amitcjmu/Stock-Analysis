@@ -351,21 +351,41 @@ class DataImportValidationAgent(BaseDiscoveryAgent):
         # Completeness assessment with enhanced error handling
         for column in df.columns:
             try:
-                # Safe null count calculation
+                # Safe null count calculation with explicit type handling
                 null_count = 0
                 total_count = len(df)
                 
                 if total_count > 0:
                     try:
-                        null_count = int(df[column].isnull().sum())
-                        null_pct = float(null_count) / float(total_count) * 100.0
-                    except (TypeError, ValueError, ZeroDivisionError) as e:
+                        # Ensure we get a proper numeric value from pandas
+                        null_series_sum = df[column].isnull().sum()
+                        
+                        # Handle different pandas return types safely
+                        if hasattr(null_series_sum, 'item'):
+                            # pandas scalar - extract the actual value
+                            null_count = int(null_series_sum.item())
+                        elif isinstance(null_series_sum, (int, float)):
+                            null_count = int(null_series_sum)
+                        else:
+                            # Fallback: convert to string then int to handle edge cases
+                            null_count = int(str(null_series_sum))
+                        
+                        # Ensure we have valid numeric types for calculation
+                        null_count = max(0, int(null_count))  # Ensure non-negative integer
+                        total_count = max(1, int(total_count))  # Ensure positive integer
+                        
+                        # Safe percentage calculation with explicit float conversion
+                        null_pct = (float(null_count) / float(total_count)) * 100.0
+                        
+                    except (TypeError, ValueError, ZeroDivisionError, AttributeError) as e:
                         logger.warning(f"Error calculating null percentage for column {column}: {e}")
                         null_pct = 100.0
+                        null_count = total_count
                 else:
                     null_pct = 100.0
+                    null_count = 0
                 
-                # Ensure we have a valid numeric value
+                # Ensure we have a valid numeric value and handle edge cases
                 if pd.isna(null_pct) or not isinstance(null_pct, (int, float)):
                     null_pct = 100.0
                 

@@ -159,9 +159,14 @@ class UnifiedDiscoveryFlowState(BaseModel):
     # ========================================
     # FLOW CONTROL AND STATUS
     # ========================================
-    status: str = "running"  # running, completed, failed, paused
+    status: str = "running"  # running, completed, failed, paused, waiting_for_user
     progress_percentage: float = 0.0
     estimated_remaining_time: str = "Calculating..."
+    
+    # User approval and interaction
+    awaiting_user_approval: bool = False
+    user_approval_received: bool = False
+    user_approval_data: Dict[str, Any] = Field(default_factory=dict)
     
     # Success criteria tracking for validation
     success_criteria: Dict[str, Dict[str, Any]] = Field(default_factory=lambda: {

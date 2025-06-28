@@ -152,33 +152,92 @@ class DiscoveryFlowEventListener(BaseEventListener):
         
         @crewai_event_bus.on(FlowFinishedEvent) 
         def on_flow_finished(source, event: FlowFinishedEvent):
-            """Track when Discovery Flow completes"""
+            """Track when Discovery Flow completes - with conditional logic for user approval"""
             flow_id = self._extract_flow_id(source, event)
             
             if not flow_id:
                 logger.warning("⚠️ FlowFinishedEvent received but could not extract flow_id, skipping tracking")
                 return
             
-            self._add_flow_event(
-                flow_id=flow_id,
-                event_type="flow_completed",
-                source="discovery_flow",
-                data={
-                    "completion_time": datetime.utcnow().isoformat(),
-                    "total_duration": self._calculate_duration(flow_id),
-                    "final_results": getattr(event, 'output', {})
-                },
-                status="completed",
-                progress=100.0
-            )
+            # ✅ CONDITIONAL LOGIC: Check if flow is waiting for user approval
+            # Try multiple possible attributes to get the flow result
+            final_result = getattr(event, 'output', '')
+            if not final_result:
+                final_result = getattr(event, 'result', '')
+            if not final_result:
+                final_result = getattr(event, 'final_result', '')
+            if not final_result and hasattr(event, 'data'):
+                final_result = event.data.get('result', '')
             
-            # Update flow tracking
-            if flow_id in self.active_flows:
-                self.active_flows[flow_id]["end_time"] = datetime.utcnow()
-                self.active_flows[flow_id]["progress"] = 100.0
-            self.flow_status[flow_id] = "completed"
+            # Debug logging to see what we're getting
+            logger.info(f"🔍 Flow finished event attributes: output={getattr(event, 'output', 'None')}, result={getattr(event, 'result', 'None')}, final_result={getattr(event, 'final_result', 'None')}")
+            logger.info(f"🔍 Checking final_result: '{final_result}' for pause conditions")
             
-            logger.info(f"✅ Discovery Flow completed: {flow_id}")
+            # Check for various pause conditions
+            pause_conditions = [
+                "awaiting_user_approval_in_attribute_mapping",
+                "awaiting_user_approval", 
+                "paused_for_user_approval",
+                "waiting_for_user_approval",
+                "user_approval_required"
+            ]
+            
+            is_paused_for_approval = any(condition in str(final_result).lower() for condition in pause_conditions)
+            
+            if is_paused_for_approval:
+                # Flow paused for user approval - don't mark as completed
+                logger.info(f"⏸️ Discovery Flow paused for user approval: {flow_id}")
+                
+                self._add_flow_event(
+                    flow_id=flow_id,
+                    event_type="flow_paused_for_approval",
+                    source="discovery_flow",
+                    data={
+                        "pause_time": datetime.utcnow().isoformat(),
+                        "reason": "waiting_for_user_approval",
+                        "phase": "attribute_mapping",
+                        "total_duration": self._calculate_duration(flow_id),
+                        "next_action": "user_approval_required",
+                        "approval_context": "attribute_mapping_validation"
+                    },
+                    status="waiting_for_user",
+                    progress=90.0  # High progress but not complete
+                )
+                
+                # Update flow tracking to waiting state
+                if flow_id in self.active_flows:
+                    self.active_flows[flow_id]["current_phase"] = "attribute_mapping"
+                    self.active_flows[flow_id]["progress"] = 90.0
+                    self.active_flows[flow_id]["status"] = "waiting_for_user"
+                    # Don't set end_time - flow is paused, not finished
+                self.flow_status[flow_id] = "waiting_for_user"
+                
+                logger.info(f"⏸️ Flow {flow_id} paused in attribute_mapping - awaiting user approval")
+                
+            else:
+                # Flow actually completed
+                logger.info(f"🏁 Discovery Flow completed: {flow_id}")
+                
+                self._add_flow_event(
+                    flow_id=flow_id,
+                    event_type="flow_completed",
+                    source="discovery_flow",
+                    data={
+                        "completion_time": datetime.utcnow().isoformat(),
+                        "total_duration": self._calculate_duration(flow_id),
+                        "final_result": final_result,
+                        "completion_status": "success"
+                    },
+                    status="completed",
+                    progress=100.0
+                )
+                
+                # Update flow tracking to completed state
+                if flow_id in self.active_flows:
+                    self.active_flows[flow_id]["end_time"] = datetime.utcnow()
+                    self.active_flows[flow_id]["progress"] = 100.0
+                    self.active_flows[flow_id]["status"] = "completed"
+                self.flow_status[flow_id] = "completed"
         
         # Method execution events - Crew phase tracking
         @crewai_event_bus.on(MethodExecutionStartedEvent)

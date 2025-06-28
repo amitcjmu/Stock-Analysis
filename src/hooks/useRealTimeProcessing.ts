@@ -64,8 +64,8 @@ export const useRealTimeProcessing = (options: RealTimeProcessingOptions) => {
   const {
     flow_id,
     phase,
-    polling_interval = 5000,
-    max_updates_history = 50,
+    polling_interval = 10000, // Increased from 5000 to reduce server load
+    max_updates_history = 5,
     enabled = true
   } = options;
 
@@ -73,10 +73,20 @@ export const useRealTimeProcessing = (options: RealTimeProcessingOptions) => {
   const [updates, setUpdates] = useState<ProcessingUpdate[]>([]);
   const [isProcessingActive, setIsProcessingActive] = useState(false);
   const [consecutiveErrors, setConsecutiveErrors] = useState(0);
+  const [lastSuccessfulPoll, setLastSuccessfulPoll] = useState<number>(Date.now());
   const MAX_CONSECUTIVE_ERRORS = 3;
+  const CIRCUIT_BREAKER_TIMEOUT = 60000; // 1 minute timeout after max errors
 
-  // Stop polling if too many consecutive errors
-  const shouldPoll = enabled && !!flow_id && consecutiveErrors < MAX_CONSECUTIVE_ERRORS;
+  // Circuit breaker logic - stop polling if too many consecutive errors
+  const isCircuitBreakerOpen = consecutiveErrors >= MAX_CONSECUTIVE_ERRORS;
+  const shouldRespectCircuitBreaker = isCircuitBreakerOpen && 
+    (Date.now() - lastSuccessfulPoll) < CIRCUIT_BREAKER_TIMEOUT;
+  
+  // Enhanced polling conditions
+  const shouldPoll = enabled && 
+    !!flow_id && 
+    !shouldRespectCircuitBreaker &&
+    consecutiveErrors < MAX_CONSECUTIVE_ERRORS;
 
   const {
     data: processingStatus,
@@ -87,19 +97,21 @@ export const useRealTimeProcessing = (options: RealTimeProcessingOptions) => {
     queryKey: ['real-time-processing', flow_id, phase],
     queryFn: async (): Promise<ProcessingStatus> => {
       try {
-        const response = await apiCall(`/api/v1/discovery/flow/${flow_id}/processing-status`, {
-          params: phase ? { phase } : undefined
-        });
+        const url = `/api/v1/discovery/flow/${flow_id}/processing-status${phase ? `?phase=${phase}` : ''}`;
+        const response = await apiCall(url);
         
         // Reset error count on successful response
         setConsecutiveErrors(0);
+        setLastSuccessfulPoll(Date.now());
         
         return response;
       } catch (err: any) {
         // Handle 404 errors gracefully - these endpoints may not exist yet
         if (err.status === 404 || err.response?.status === 404) {
-          console.log('Processing status endpoint not available yet for flow:', flow_id);
+          console.log(`Processing status endpoint not available for flow: ${flow_id}`);
           setConsecutiveErrors(prev => prev + 1);
+          
+          // Return a more realistic default status for missing endpoints
           return {
             flow_id,
             phase: phase || 'data_import',
@@ -121,22 +133,57 @@ export const useRealTimeProcessing = (options: RealTimeProcessingOptions) => {
           };
         }
         
-        // Increment error count for other errors
-        setConsecutiveErrors(prev => prev + 1);
+        // Handle other errors with exponential backoff
+        setConsecutiveErrors(prev => {
+          const newCount = prev + 1;
+          console.warn(`Real-time processing error ${newCount}/${MAX_CONSECUTIVE_ERRORS} for flow ${flow_id}:`, err.message);
+          return newCount;
+        });
+        
+        // Don't throw error if circuit breaker should open
+        if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS - 1) {
+          console.warn(`Circuit breaker opening for flow ${flow_id} after ${MAX_CONSECUTIVE_ERRORS} consecutive errors`);
+          return {
+            flow_id,
+            phase: phase || 'unknown',
+            status: 'error',
+            progress_percentage: 0,
+            records_processed: 0,
+            records_total: 0,
+            records_failed: 0,
+            validation_status: {
+              format_valid: false,
+              security_scan_passed: false,
+              data_quality_score: 0,
+              issues_found: ['Polling temporarily disabled due to repeated errors']
+            },
+            agent_status: {},
+            recent_updates: [],
+            estimated_completion: null,
+            last_update: new Date().toISOString()
+          };
+        }
+        
         throw err;
       }
     },
     enabled: shouldPoll,
-    staleTime: 2000, // 2 seconds
+    staleTime: 5000, // Increased from 2000 to reduce requests
     refetchInterval: shouldPoll ? polling_interval : false,
     refetchOnWindowFocus: false,
+    refetchOnMount: false, // Prevent immediate polling on mount
+    refetchOnReconnect: false, // Prevent polling on network reconnect
     retry: (failureCount, error: any) => {
-      // Don't retry on 404 errors or if we've had too many consecutive errors
-      if (error?.status === 404 || error?.response?.status === 404 || consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+      // Don't retry on 404 errors or if circuit breaker is open
+      if (error?.status === 404 || 
+          error?.response?.status === 404 || 
+          consecutiveErrors >= MAX_CONSECUTIVE_ERRORS ||
+          shouldRespectCircuitBreaker) {
         return false;
       }
-      return failureCount < 2; // Reduced retry count
+      return failureCount < 1; // Reduced retry count from 2 to 1
     },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000), // Exponential backoff
   });
 
   // Check if processing is active
@@ -264,7 +311,9 @@ export const useProcessingActions = () => {
 export const useRealTimeAgentInsights = (flow_id: string, page_context?: string, processingStatus?: ProcessingStatus) => {
   const [streamingInsights, setStreamingInsights] = useState<any[]>([]);
   const [consecutiveErrors, setConsecutiveErrors] = useState(0);
+  const [lastSuccessfulPoll, setLastSuccessfulPoll] = useState<number>(Date.now());
   const MAX_CONSECUTIVE_ERRORS = 3;
+  const CIRCUIT_BREAKER_TIMEOUT = 60000; // 1 minute timeout
 
   // Stop polling if flow is completed or too many errors
   const isCompleted = processingStatus && (
@@ -273,7 +322,14 @@ export const useRealTimeAgentInsights = (flow_id: string, page_context?: string,
     processingStatus.status === 'error'
   );
   
-  const shouldPoll = !!flow_id && !isCompleted && consecutiveErrors < MAX_CONSECUTIVE_ERRORS;
+  const isCircuitBreakerOpen = consecutiveErrors >= MAX_CONSECUTIVE_ERRORS;
+  const shouldRespectCircuitBreaker = isCircuitBreakerOpen && 
+    (Date.now() - lastSuccessfulPoll) < CIRCUIT_BREAKER_TIMEOUT;
+  
+  const shouldPoll = !!flow_id && 
+    !isCompleted && 
+    !shouldRespectCircuitBreaker &&
+    consecutiveErrors < MAX_CONSECUTIVE_ERRORS;
 
   const {
     data: insightsData,
@@ -283,38 +339,57 @@ export const useRealTimeAgentInsights = (flow_id: string, page_context?: string,
     queryKey: ['real-time-agent-insights', flow_id, page_context],
     queryFn: async () => {
       try {
-        const response = await apiCall(`/api/v1/discovery/flow/${flow_id}/agent-insights`, {
-          params: page_context ? { page_context } : undefined
-        });
+        const url = `/api/v1/discovery/flow/${flow_id}/agent-insights${page_context ? `?page_context=${page_context}` : ''}`;
+        const response = await apiCall(url);
         
         // Reset error count on successful response
         setConsecutiveErrors(0);
+        setLastSuccessfulPoll(Date.now());
         
         return response;
       } catch (err: any) {
         // Handle 404 errors gracefully - these endpoints may not exist yet
         if (err.status === 404 || err.response?.status === 404) {
-          console.log('Agent insights endpoint not available yet for flow:', flow_id);
+          console.log(`Agent insights endpoint not available for flow: ${flow_id}`);
           setConsecutiveErrors(prev => prev + 1);
           return { insights: [] };
         }
         
-        // Increment error count for other errors
-        setConsecutiveErrors(prev => prev + 1);
+        // Handle other errors with circuit breaker logic
+        setConsecutiveErrors(prev => {
+          const newCount = prev + 1;
+          console.warn(`Agent insights error ${newCount}/${MAX_CONSECUTIVE_ERRORS} for flow ${flow_id}:`, err.message);
+          return newCount;
+        });
+        
+        // Don't throw if circuit breaker should open
+        if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS - 1) {
+          console.warn(`Circuit breaker opening for agent insights on flow ${flow_id}`);
+          return { 
+            insights: [],
+            error: 'Polling temporarily disabled due to repeated errors'
+          };
+        }
+        
         throw err;
       }
     },
     enabled: shouldPoll,
-    staleTime: 5000, // 5 seconds
-    refetchInterval: shouldPoll ? 5000 : false,
+    staleTime: 10000, // Increased from 5000 to reduce requests
+    refetchInterval: shouldPoll ? 15000 : false, // Increased from 5000 to reduce load
     refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
     retry: (failureCount, error: any) => {
-      // Don't retry on 404 errors or if we've had too many consecutive errors
-      if (error?.status === 404 || error?.response?.status === 404 || consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+      if (error?.status === 404 || 
+          error?.response?.status === 404 || 
+          consecutiveErrors >= MAX_CONSECUTIVE_ERRORS ||
+          shouldRespectCircuitBreaker) {
         return false;
       }
-      return failureCount < 2; // Reduced retry count
+      return failureCount < 1; // Reduced retry attempts
     },
+    retryDelay: (attemptIndex) => Math.min(2000 * 2 ** attemptIndex, 15000), // Exponential backoff
   });
 
   // Update streaming insights when new data arrives
@@ -350,7 +425,9 @@ export const useRealTimeAgentInsights = (flow_id: string, page_context?: string,
  */
 export const useRealTimeValidation = (flow_id: string, processingStatus?: ProcessingStatus) => {
   const [consecutiveErrors, setConsecutiveErrors] = useState(0);
+  const [lastSuccessfulPoll, setLastSuccessfulPoll] = useState<number>(Date.now());
   const MAX_CONSECUTIVE_ERRORS = 3;
+  const CIRCUIT_BREAKER_TIMEOUT = 60000; // 1 minute timeout
   
   // Stop polling if flow is completed or too many errors
   const isCompleted = processingStatus && (
@@ -359,7 +436,14 @@ export const useRealTimeValidation = (flow_id: string, processingStatus?: Proces
     processingStatus.status === 'error'
   );
   
-  const shouldPoll = !!flow_id && !isCompleted && consecutiveErrors < MAX_CONSECUTIVE_ERRORS;
+  const isCircuitBreakerOpen = consecutiveErrors >= MAX_CONSECUTIVE_ERRORS;
+  const shouldRespectCircuitBreaker = isCircuitBreakerOpen && 
+    (Date.now() - lastSuccessfulPoll) < CIRCUIT_BREAKER_TIMEOUT;
+  
+  const shouldPoll = !!flow_id && 
+    !isCompleted && 
+    !shouldRespectCircuitBreaker &&
+    consecutiveErrors < MAX_CONSECUTIVE_ERRORS;
 
   const {
     data: validationData,
@@ -373,12 +457,13 @@ export const useRealTimeValidation = (flow_id: string, processingStatus?: Proces
         
         // Reset error count on successful response
         setConsecutiveErrors(0);
+        setLastSuccessfulPoll(Date.now());
         
         return response;
       } catch (err: any) {
         // Handle 404 errors gracefully - these endpoints may not exist yet
         if (err.status === 404 || err.response?.status === 404) {
-          console.log('Validation status endpoint not available yet for flow:', flow_id);
+          console.log(`Validation status endpoint not available for flow: ${flow_id}`);
           setConsecutiveErrors(prev => prev + 1);
           return { 
             security_scan: { issues: [] }, 
@@ -390,22 +475,46 @@ export const useRealTimeValidation = (flow_id: string, processingStatus?: Proces
           };
         }
         
-        // Increment error count for other errors
-        setConsecutiveErrors(prev => prev + 1);
+        // Handle other errors with circuit breaker logic
+        setConsecutiveErrors(prev => {
+          const newCount = prev + 1;
+          console.warn(`Validation status error ${newCount}/${MAX_CONSECUTIVE_ERRORS} for flow ${flow_id}:`, err.message);
+          return newCount;
+        });
+        
+        // Don't throw if circuit breaker should open
+        if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS - 1) {
+          console.warn(`Circuit breaker opening for validation status on flow ${flow_id}`);
+          return { 
+            security_scan: { issues: ['Polling temporarily disabled'] }, 
+            format_validation: { errors: [] }, 
+            data_quality: { score: 0.0 },
+            validation_progress: 0,
+            agents_completed: 0,
+            total_agents: 4,
+            error: 'Polling temporarily disabled due to repeated errors'
+          };
+        }
+        
         throw err;
       }
     },
     enabled: shouldPoll,
-    staleTime: 3000, // 3 seconds
-    refetchInterval: shouldPoll ? 3000 : false,
+    staleTime: 10000, // Increased from 3000 to reduce requests
+    refetchInterval: shouldPoll ? 20000 : false, // Increased from 3000 to reduce load
     refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
     retry: (failureCount, error: any) => {
-      // Don't retry on 404 errors or if we've had too many consecutive errors
-      if (error?.status === 404 || error?.response?.status === 404 || consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+      if (error?.status === 404 || 
+          error?.response?.status === 404 || 
+          consecutiveErrors >= MAX_CONSECUTIVE_ERRORS ||
+          shouldRespectCircuitBreaker) {
         return false;
       }
-      return failureCount < 2; // Reduced retry count
+      return failureCount < 1; // Reduced retry attempts
     },
+    retryDelay: (attemptIndex) => Math.min(2000 * 2 ** attemptIndex, 20000), // Exponential backoff
   });
 
   const hasSecurityIssues = validationData?.security_scan?.issues?.length > 0;

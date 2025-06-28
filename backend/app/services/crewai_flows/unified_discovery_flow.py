@@ -1094,119 +1094,104 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
 
     @listen(execute_parallel_analysis_agents)
     async def check_user_approval_needed(self, previous_result):
-        """Check if user approval is needed before finalizing - implements conditional flow control"""
-        logger.info("🔍 Checking if user approval is needed before finalizing discovery flow")
+        """Check if user approval is needed after parallel analysis"""
+        logger.info("🔍 Checking if user approval is needed for attribute mapping...")
         
-        # ✅ CONDITIONAL LOGIC: Check if user clarifications or approval are needed
-        user_approval_needed = await self._check_if_user_approval_needed(previous_result)
+        # Always require user approval for attribute mapping validation
+        needs_approval = await self._check_if_user_approval_needed(previous_result)
         
-        if user_approval_needed:
-            logger.info("⏸️ User approval needed - pausing flow for attribute mapping review")
-            return await self._pause_for_user_approval(previous_result)
+        if needs_approval:
+            logger.info("⏸️ User approval required - pausing flow for attribute mapping validation")
+            await self._pause_for_user_approval(previous_result)
+            return "awaiting_user_approval_in_attribute_mapping"
         else:
             logger.info("✅ No user approval needed - proceeding to finalization")
             return await self.finalize_discovery_internal(previous_result)
-    
+
     async def _check_if_user_approval_needed(self, previous_result: str) -> bool:
-        """Determine if user approval is needed based on flow state and agent results"""
-        try:
-            # Check if there are user clarifications pending
-            if self.state.user_clarifications:
-                logger.info(f"📝 User clarifications pending: {len(self.state.user_clarifications)} items")
-                return True
-            
-            # Check if there are low confidence scores that need review
-            low_confidence_agents = []
-            for agent_name, confidence in self.state.agent_confidences.items():
-                if confidence < 70.0:  # Threshold for requiring user review
-                    low_confidence_agents.append(f"{agent_name}: {confidence:.1f}%")
-            
-            if low_confidence_agents:
-                logger.info(f"⚠️ Low confidence agents requiring review: {low_confidence_agents}")
-                return True
-            
-            # Check if there are significant errors that need user decision
-            if self.state.errors:
-                critical_errors = [e for e in self.state.errors if 'critical' in str(e).lower()]
-                if critical_errors:
-                    logger.info(f"🚨 Critical errors requiring user review: {len(critical_errors)} errors")
-                    return True
-            
-            # Check if this is the first time through (always require approval for new flows)
-            if not hasattr(self.state, 'user_approval_received') or not self.state.user_approval_received:
-                logger.info("👤 First-time flow - user approval required for attribute mapping")
-                return True
-            
-            logger.info("✅ No user approval needed - all conditions satisfied")
-            return False
-            
-        except Exception as e:
-            logger.error(f"❌ Error checking user approval needed: {e}")
-            # Default to requiring approval on error
-            return True
-    
+        """
+        Determine if user approval is needed based on flow state and results
+        
+        For Discovery Flow, we ALWAYS require user approval for attribute mapping
+        to ensure users can review and validate the field mappings before proceeding.
+        """
+        logger.info("🔍 Evaluating need for user approval...")
+        
+        # ALWAYS require user approval for attribute mapping phase
+        # This ensures users can review field mappings and data quality
+        approval_required = True
+        
+        # Log the decision
+        if approval_required:
+            logger.info("⏸️ User approval REQUIRED for attribute mapping validation")
+            logger.info("📋 User needs to review:")
+            logger.info("   - Field mapping accuracy and completeness")
+            logger.info("   - Data quality assessment results")
+            logger.info("   - Asset classification confidence")
+            logger.info("   - Any validation warnings or issues")
+        else:
+            logger.info("✅ User approval NOT required - proceeding automatically")
+        
+        return approval_required
+
     async def _pause_for_user_approval(self, previous_result: str):
-        """Pause the flow and set up for user approval in attribute mapping phase"""
+        """
+        Pause the flow for user approval and set appropriate state
+        """
+        logger.info("⏸️ Pausing Discovery Flow for user approval...")
+        
+        # Update flow state to indicate waiting for user approval
+        self.state.status = "waiting_for_user"
+        self.state.awaiting_user_approval = True
+        self.state.current_phase = "attribute_mapping"
+        self.state.progress_percentage = 85.0  # High progress but not complete
+        
+        # Add comprehensive approval context
+        approval_context = {
+            "approval_type": "attribute_mapping_validation",
+            "required_reviews": [
+                "field_mapping_accuracy",
+                "data_quality_assessment", 
+                "asset_classification_confidence",
+                "validation_warnings"
+            ],
+            "field_mappings": self.state.field_mappings,
+            "data_validation_results": self.state.data_validation_results,
+            "agent_insights": self.state.agent_insights[-10:],  # Last 10 insights
+            "user_clarifications": self.state.user_clarifications,
+            "next_phase": "data_cleansing",
+            "estimated_completion_time": "5-10 minutes after approval"
+        }
+        
+        self.state.user_approval_data = approval_context
+        
+        # Add user-facing insight about the pause
         try:
-            # Update flow state to waiting for user approval
-            self.state.status = "waiting_for_user"
-            self.state.current_phase = "attribute_mapping"
-            self.state.awaiting_user_approval = True
-            
-            # Update PostgreSQL discovery flow to waiting state
-            if self.flow_bridge:
-                try:
-                    from app.services.discovery_flow_service import DiscoveryFlowService
-                    from app.core.database import AsyncSessionLocal
-                    from app.core.context import RequestContext
-                    
-                    async with AsyncSessionLocal() as db_session:
-                        service_context = RequestContext(
-                            client_account_id=self.state.client_account_id,
-                            engagement_id=self.state.engagement_id,
-                            user_id=self.state.user_id
-                        )
-                        
-                        flow_service = DiscoveryFlowService(db_session, service_context)
-                        
-                        # Set discovery flow to waiting_for_user status using custom update
-                        from sqlalchemy import update
-                        from app.models.discovery_flow import DiscoveryFlow
-                        from datetime import datetime
-                        
-                        await db_session.execute(
-                            update(DiscoveryFlow).where(
-                                DiscoveryFlow.flow_id == self.state.flow_id
-                            ).values(
-                                status="waiting_for_user",
-                                progress_percentage=90.0,  # High progress but not 100%
-                                updated_at=datetime.utcnow()
-                            )
-                        )
-                        await db_session.commit()
-                        
-                        logger.info(f"✅ Discovery flow set to waiting_for_user in attribute_mapping phase")
-                        
-                except Exception as update_error:
-                    logger.warning(f"⚠️ Failed to update PostgreSQL flow state: {update_error}")
-            
-            # Ensure UUID safety before persistence
-            self._ensure_uuid_serialization_safety()
-            
-            # Persist the paused state
-            if self.flow_bridge:
-                await self.flow_bridge.update_flow_state(self.state)
-            
-            logger.info(f"⏸️ Flow paused for user approval - waiting in attribute_mapping phase")
-            logger.info(f"👥 Users can now review discovered assets and approve field mappings")
-            
-            # Return a special result that indicates user approval needed
-            return "awaiting_user_approval_in_attribute_mapping"
-            
+            from app.services.agent_ui_bridge import agent_ui_bridge
+            agent_ui_bridge.add_agent_insight(
+                agent_id="discovery_flow_manager",
+                agent_name="Discovery Flow Manager",
+                insight_type="user_action_required",
+                page=f"flow_{self.state.flow_id}",
+                title="User Approval Required",
+                description="Please review the attribute mapping results and data quality assessment before proceeding to the next phase.",
+                supporting_data={
+                    'phase': 'attribute_mapping',
+                    'approval_type': 'mapping_validation',
+                    'progress_percentage': 85.0,
+                    'next_action': 'user_review_and_approval',
+                    'review_items': approval_context["required_reviews"]
+                },
+                confidence="high"
+            )
         except Exception as e:
-            logger.error(f"❌ Failed to pause for user approval: {e}")
-            # Fallback to proceeding with finalization
-            return await self.finalize_discovery_internal(previous_result)
+            logger.warning(f"⚠️ Could not add user approval insight: {e}")
+        
+        # CRITICAL: Update the database state to reflect the pause
+        await self._safe_update_flow_state()
+        
+        logger.info("⏸️ Flow successfully paused - waiting for user approval in attribute mapping phase")
+        logger.info(f"📋 Approval context prepared with {len(approval_context['required_reviews'])} review items")
     
     async def finalize_discovery_internal(self, previous_result):
         """
