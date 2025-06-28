@@ -2258,8 +2258,8 @@
     "confidence": "medium",
     "priority": "normal",
     "created_at": "2025-06-27T07:26:45.231640",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "answered_at": "2025-06-28T14:07:56.690032",
+    "user_response": "Yes, confirm this dependency",
+    "is_resolved": true
   }
 }

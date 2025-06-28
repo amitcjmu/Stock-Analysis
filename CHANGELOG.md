@@ -1,10 +1,10 @@
 # 🚀 AI Force Migration Platform - Changelog
 
-## [0.6.13] - 2025-01-27
+## [0.6.14] - 2025-01-27
 
-### 🎯 **AGENTIC FLOW MANAGEMENT - Intelligent Phase Validation & Navigation**
+### 🤖 **FLOW PROCESSING AGENT - Central AI Orchestrator for Flow Continuations**
 
-This release implements comprehensive agentic intelligence for flow management, replacing hard-coded logic with AI-powered validation and navigation.
+This release introduces the **Flow Processing Agent**, a central AI-powered orchestrator that manages all discovery flow continuations. When users click "Continue Flow", this agent analyzes the flow's current state, evaluates completion checklists for each phase, and intelligently routes users to the appropriate next step.
 
 ### 🚀 **Agentic Flow Validation System**
 

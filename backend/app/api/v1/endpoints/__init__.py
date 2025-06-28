@@ -13,6 +13,7 @@ from . import data_import
 from . import sessions
 from . import context
 from . import test_discovery
+from . import flow_processing
 from .agents import router as agents_router
 
 # Expose the routers for the main api.py to collect
@@ -27,4 +28,5 @@ data_import_router = data_import.router
 sessions_router = sessions.router
 context_router = context.router
 test_discovery_router = test_discovery.router
+flow_processing_router = flow_processing.router
 # agents_router is already imported above 

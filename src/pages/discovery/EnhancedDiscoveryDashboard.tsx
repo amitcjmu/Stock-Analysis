@@ -192,28 +192,61 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
     navigate(route);
   };
 
-  // Handle continue flow with CrewAI orchestration
+  // Handle continue flow with Flow Processing Agent
   const handleContinueFlow = async (flowId: string) => {
     try {
       setFlowLoading(true);
       
-      // Call V2 continue endpoint to initialize CrewAI orchestration
-      const response = await unifiedDiscoveryService.continueFlow(flowId);
+      // Import Flow Processing Service dynamically
+      const { flowProcessingService } = await import('@/services/flowProcessingService');
       
-      // V2 API returns the flow object directly, not wrapped in success/data
-      if (response && response.flow_id) {
-        toast.success(`Flow ${flowId} continued successfully! CrewAI agents are now processing.`);
+      // Call the Flow Processing Agent to analyze and route the flow
+      const result = await flowProcessingService.processContinuation(flowId, {
+        client_account_id: client?.id,
+        engagement_id: engagement?.id,
+        user_id: user?.id
+      });
+      
+      if (result.success) {
+        // Show user what the agent determined
+        toast.success(`🤖 Flow Analysis Complete: ${result.user_guidance.summary}`, {
+          description: `Routing to: ${result.routing_context.target_page}`,
+          duration: 5000
+        });
         
-        // Navigate to the appropriate phase page
-        const nextPhase = response.next_phase || 'field_mapping';
-        handleViewDetails(flowId, nextPhase);
+        // Show detailed guidance if available
+        if (result.user_guidance.next_steps.length > 0) {
+          console.log(`🎯 NEXT STEPS:`, result.user_guidance.next_steps);
+          
+          // Show next steps in a toast
+          const nextStepsText = result.user_guidance.next_steps.slice(0, 2).join(', ');
+          toast.info(`Next Steps: ${nextStepsText}`, {
+            duration: 8000
+          });
+        }
         
-        // Refresh dashboard data
-        await fetchDashboardData();
+        // Route to the exact location determined by the agent
+        navigate(result.routing_context.target_page, {
+          state: {
+            flow_id: flowId,
+            phase: result.current_phase,
+            task_context: result.routing_context.context_data,
+            checklist_status: result.checklist_status,
+            agent_guidance: result.user_guidance,
+            from_flow_processing_agent: true
+          }
+        });
+        
       } else {
-        const errorMessage = response?.detail || response?.message || 'Unknown error';
-        toast.error(`Failed to continue flow: ${errorMessage}`);
+        toast.error(`Flow Processing Failed: ${result.error_message}`, {
+          description: 'Please try again or contact support',
+          duration: 5000
+        });
+        console.error('Flow Processing Agent failed:', result.error_message);
       }
+      
+      // Refresh dashboard data after successful routing
+      await fetchDashboardData();
     } catch (error) {
       console.error('Failed to continue flow:', error);
       const errorMessage = error?.response?.data?.detail || error?.message || 'Unknown error';

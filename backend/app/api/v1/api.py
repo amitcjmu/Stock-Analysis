@@ -256,6 +256,14 @@ api_router.include_router(agents_router, prefix="/agents", tags=["Agents"])
 api_router.include_router(agent_learning_router, prefix="/agent-learning", tags=["Agent Learning"])
 api_router.include_router(chat_router, prefix="/chat", tags=["Chat"])
 
+# Flow Processing Agent (Central routing for all flow continuations)
+try:
+    from app.api.v1.endpoints.flow_processing import router as flow_processing_router
+    api_router.include_router(flow_processing_router, prefix="/flow-processing", tags=["Flow Processing Agent"])
+    logger.info("✅ Flow Processing Agent router included")
+except ImportError as e:
+    logger.warning(f"⚠️ Flow Processing Agent router not available: {e}")
+
 # Session Management
 api_router.include_router(sessions_router, prefix="/sessions", tags=["Sessions"])
 
