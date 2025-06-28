@@ -7,7 +7,7 @@ from typing import Dict, Any, List
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from app.core.auth import get_current_context, RequestContext
+from app.core.context import get_current_context, RequestContext
 from app.services.agents.flow_processing_agent import FlowProcessingAgent, FlowContinuationResult
 from app.core.database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession

@@ -1,22 +1,23 @@
-# 🤖 Flow Processing Agent Design Document
+# 🤖 Universal Flow Processing Agent Design Document
 
 ## Executive Summary
 
-The **Flow Processing Agent** is a central AI-powered orchestrator that manages all discovery flow continuations. When a user clicks "Continue Flow", this agent analyzes the flow's current state, evaluates completion checklists for each phase, and intelligently routes the flow to the appropriate next step.
+The **Universal Flow Processing Agent** is a central AI-powered orchestrator that manages ALL flow continuations across the entire platform. Supporting Discovery, Assess, Plan, Execute, Modernize, FinOps, Observability, and Decommission flows, this agent analyzes the flow's current state, evaluates completion checklists for each phase, and intelligently routes the flow to the appropriate next step.
 
 ## 🎯 Core Responsibilities
 
-### 1. **Central Flow Orchestration**
-- Receive all "Continue Flow" requests from the UI
-- Analyze current flow state and completion status
-- Determine the correct next phase or action
+### 1. **Universal Flow Orchestration**
+- Receive all "Continue Flow" requests from ANY flow type in the UI
+- Automatically detect flow type (Discovery, Assess, Plan, Execute, etc.)
+- Analyze current flow state and completion status across all flow types
+- Determine the correct next phase or action based on flow-specific logic
 - Route users to the appropriate page with proper context
 
-### 2. **Intelligent Checklist Validation**
-- Maintain comprehensive checklists for each discovery phase
-- Evaluate what tasks have been completed vs. pending
-- Identify missing requirements and dependencies
-- Provide specific guidance on what needs to be done
+### 2. **Universal Checklist Validation**
+- Maintain comprehensive checklists for ALL flow types and their phases
+- Evaluate what tasks have been completed vs. pending across different flow types
+- Identify missing requirements and dependencies specific to each flow type
+- Provide flow-specific guidance on what needs to be done next
 
 ### 3. **Context-Aware Routing**
 - Analyze flow data to determine actual completion state
