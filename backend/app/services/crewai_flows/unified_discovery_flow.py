@@ -540,7 +540,7 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
     async def create_discovery_assets_from_cleaned_data(self, previous_result):
         """Create discovery assets from cleaned data after data cleansing (proper relational approach)"""
         logger.info("🏗️ Creating Discovery Assets from Cleaned Data")
-        self.state.current_phase = "discovery_asset_creation"
+        self.state.current_phase = "inventory"
         
         # REAL-TIME UPDATE: Update database immediately when phase starts
         if self.flow_bridge:
@@ -646,9 +646,10 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
                     # Find and update corresponding raw import records
                     if self.state.session_id:
                         # Update raw import records to mark them as processed
+                        # Note: RawImportRecord now uses master_flow_id instead of session_id
                         update_query = (
                             update(RawImportRecord)
-                            .where(RawImportRecord.session_id == uuid_pkg.UUID(self.state.session_id))
+                            .where(RawImportRecord.master_flow_id == uuid_pkg.UUID(self.state.flow_id))
                             .where(RawImportRecord.is_processed == False)
                             .values(
                                 is_processed=True,
@@ -779,7 +780,7 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
     async def promote_discovery_assets_to_assets(self, previous_result):
         """Promote discovery assets to final assets table for migration planning"""
         logger.info("🚀 Promoting Discovery Assets to Final Assets Table")
-        self.state.current_phase = "asset_promotion"
+        self.state.current_phase = "dependencies"
         
         # REAL-TIME UPDATE: Update database immediately when phase starts
         if self.flow_bridge:

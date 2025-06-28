@@ -600,9 +600,10 @@ class FlowManagementHandler:
                     from app.models.data_import import RawImportRecord
                     
                     # Check if there are processed raw records
+                    # Note: RawImportRecord now uses master_flow_id instead of session_id
                     records_query = await self.db.execute(
                         select(func.count(RawImportRecord.id)).where(
-                            RawImportRecord.session_id == flow.import_session_id,
+                            RawImportRecord.master_flow_id == flow.id,
                             RawImportRecord.is_processed == True
                         )
                     )
