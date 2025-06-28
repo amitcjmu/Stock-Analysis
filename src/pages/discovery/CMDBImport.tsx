@@ -766,12 +766,12 @@ const DataImport: React.FC = () => {
     // Determine validation status with real-time data priority
     const formatStatus = hasRealTimeData 
       ? (validationData.format_validation?.status === 'passed' ? 'passed' : 
-         validationData.format_validation?.errors?.length > 0 ? 'failed' : 'pending')
+         (validationData.format_validation?.errors && validationData.format_validation.errors.length > 0) ? 'failed' : 'pending')
       : (file.format_validation ? 'passed' : 'pending');
       
     const securityStatus = hasRealTimeData
       ? (validationData.security_scan?.status === 'passed' ? 'passed' :
-         validationData.security_scan?.issues?.length > 0 ? 'failed' : 'pending')
+         (validationData.security_scan?.issues && validationData.security_scan.issues.length > 0) ? 'failed' : 'pending')
       : (file.security_clearance ? 'passed' : 'pending');
       
     const privacyStatus = hasRealTimeData
@@ -875,7 +875,7 @@ const DataImport: React.FC = () => {
                 <Clock className="h-4 w-4 text-gray-400" />
               )}
             </div>
-            {hasRealTimeData && validationData.format_validation?.errors?.length > 0 && (
+            {hasRealTimeData && validationData.format_validation?.errors && validationData.format_validation.errors.length > 0 && (
               <div className="mt-1 text-xs text-red-600">
                 {validationData.format_validation.errors.length} error(s) found
               </div>
@@ -898,7 +898,7 @@ const DataImport: React.FC = () => {
                 <Clock className="h-4 w-4 text-gray-400" />
               )}
             </div>
-            {hasRealTimeData && validationData.security_scan?.issues?.length > 0 && (
+            {hasRealTimeData && validationData.security_scan?.issues && validationData.security_scan.issues.length > 0 && (
               <div className="mt-1 text-xs text-red-600">
                 {validationData.security_scan.issues.length} issue(s) found
               </div>
@@ -935,7 +935,7 @@ const DataImport: React.FC = () => {
         {/* Validation Error Details */}
         {hasRealTimeData && (
           <div className="space-y-2">
-            {validationData.format_validation?.errors?.map((error, index) => (
+            {validationData.format_validation?.errors && validationData.format_validation.errors.map((error, index) => (
               <Alert key={index} variant="destructive" className="py-2">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription className="text-sm">
@@ -943,7 +943,7 @@ const DataImport: React.FC = () => {
                 </AlertDescription>
               </Alert>
             ))}
-            {validationData.security_scan?.issues?.map((issue, index) => (
+            {validationData.security_scan?.issues && validationData.security_scan.issues.map((issue, index) => (
               <Alert key={index} variant="destructive" className="py-2">
                 <Shield className="h-4 w-4" />
                 <AlertDescription className="text-sm">

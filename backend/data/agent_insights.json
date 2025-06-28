@@ -745,9 +745,9 @@
     },
     "page": "flow_17e92859-8ad4-4ac4-b91d-c8462ab6f2a7",
     "actionable": true,
-    "client_account_id": "dfea7406-1575-4348-a0b2-2770cbe2d9f9",
-    "engagement_id": "ce27e7b1-2ac6-4b74-8dd5-b52d542a1669",
-    "session_id": "ce27e7b1-2ac6-4b74-8dd5-b52d542a1669",
+    "client_account_id": null,
+    "engagement_id": null,
+    "session_id": null,
     "created_at": "2025-06-28T01:38:26.723440",
     "user_feedback": null,
     "is_validated": false
@@ -770,10 +770,62 @@
     },
     "page": "flow_17e92859-8ad4-4ac4-b91d-c8462ab6f2a7",
     "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "session_id": null,
+    "created_at": "2025-06-28T01:38:26.759838",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "df1721ca-0849-405f-992f-6320e2eadd36": {
+    "id": "df1721ca-0849-405f-992f-6320e2eadd36",
+    "agent_id": "data_import_agent",
+    "agent_name": "Data Import Agent",
+    "insight_type": "progress",
+    "title": "Processing Data Records",
+    "description": "Analyzing 5 records for format validation, security scanning, and data quality assessment",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "progress_percentage": 10.0,
+      "records_processed": 2,
+      "validation_checks": [
+        "format",
+        "security",
+        "quality"
+      ]
+    },
+    "page": "flow_9a0cb58d-bad8-4fb7-a4b9-ee7e35df281b",
+    "actionable": true,
     "client_account_id": "dfea7406-1575-4348-a0b2-2770cbe2d9f9",
     "engagement_id": "ce27e7b1-2ac6-4b74-8dd5-b52d542a1669",
     "session_id": "ce27e7b1-2ac6-4b74-8dd5-b52d542a1669",
-    "created_at": "2025-06-28T01:38:26.759838",
+    "created_at": "2025-06-28T02:09:19.992762",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "12895a6a-9487-4292-a1f1-00080b33ffaf": {
+    "id": "12895a6a-9487-4292-a1f1-00080b33ffaf",
+    "agent_id": "data_import_agent",
+    "agent_name": "Data Import Agent",
+    "insight_type": "success",
+    "title": "Data Import Validation Completed",
+    "description": "Successfully validated 5 records with 0.0% confidence",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "data_import",
+      "progress_percentage": 20.0,
+      "records_processed": 5,
+      "confidence_score": 0.0,
+      "validation_results": {},
+      "completion_time": "2025-06-28T02:09:20.056940"
+    },
+    "page": "flow_9a0cb58d-bad8-4fb7-a4b9-ee7e35df281b",
+    "actionable": true,
+    "client_account_id": "dfea7406-1575-4348-a0b2-2770cbe2d9f9",
+    "engagement_id": "ce27e7b1-2ac6-4b74-8dd5-b52d542a1669",
+    "session_id": "ce27e7b1-2ac6-4b74-8dd5-b52d542a1669",
+    "created_at": "2025-06-28T02:09:20.057007",
     "user_feedback": null,
     "is_validated": false
   }
