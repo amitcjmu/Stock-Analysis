@@ -48,6 +48,7 @@ import {
 } from '@/hooks/discovery/useIncompleteFlowDetectionV2';
 import { IncompleteFlowManager } from '@/components/discovery/IncompleteFlowManager';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import FlowStatusWidget from '@/components/discovery/FlowStatusWidget';
 
 interface FlowSummary {
   flow_id: string;
@@ -193,68 +194,8 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
   };
 
   // Handle continue flow with Flow Processing Agent
-  const handleContinueFlow = async (flowId: string) => {
-    try {
-      setFlowLoading(true);
-      
-      // Import Flow Processing Service dynamically
-      const { flowProcessingService } = await import('@/services/flowProcessingService');
-      
-      // Call the Flow Processing Agent to analyze and route the flow
-      const result = await flowProcessingService.processContinuation(flowId, {
-        client_account_id: client?.id,
-        engagement_id: engagement?.id,
-        user_id: user?.id
-      });
-      
-      if (result.success) {
-        // Show user what the agent determined
-        toast.success(`🤖 Flow Analysis Complete: ${result.user_guidance.summary}`, {
-          description: `Routing to: ${result.routing_context.target_page}`,
-          duration: 5000
-        });
-        
-        // Show detailed guidance if available
-        if (result.user_guidance.next_steps.length > 0) {
-          console.log(`🎯 NEXT STEPS:`, result.user_guidance.next_steps);
-          
-          // Show next steps in a toast
-          const nextStepsText = result.user_guidance.next_steps.slice(0, 2).join(', ');
-          toast.info(`Next Steps: ${nextStepsText}`, {
-            duration: 8000
-          });
-        }
-        
-        // Route to the exact location determined by the agent
-        navigate(result.routing_context.target_page, {
-          state: {
-            flow_id: flowId,
-            phase: result.current_phase,
-            task_context: result.routing_context.context_data,
-            checklist_status: result.checklist_status,
-            agent_guidance: result.user_guidance,
-            from_flow_processing_agent: true
-          }
-        });
-        
-      } else {
-        toast.error(`Flow Processing Failed: ${result.error_message}`, {
-          description: 'Please try again or contact support',
-          duration: 5000
-        });
-        console.error('Flow Processing Agent failed:', result.error_message);
-      }
-      
-      // Refresh dashboard data after successful routing
-      await fetchDashboardData();
-    } catch (error) {
-      console.error('Failed to continue flow:', error);
-      const errorMessage = error?.response?.data?.detail || error?.message || 'Unknown error';
-      toast.error(`Failed to continue flow: ${errorMessage}`);
-    } finally {
-      setFlowLoading(false);
-    }
-  };
+  // Remove the automatic continue flow function - replaced with Flow Status Widget
+  const [selectedFlowForStatus, setSelectedFlowForStatus] = useState<string | null>(null);
 
   // Fetch dashboard data
   const fetchDashboardData = async () => {
@@ -795,11 +736,12 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
                     <div className="flex gap-2">
                       <Button 
                         size="sm" 
-                        onClick={() => handleContinueFlow(flow.flow_id)}
+                        onClick={() => setSelectedFlowForStatus(flow.flow_id)}
                         className="flex items-center gap-1"
+                        variant="default"
                       >
-                        <Play className="h-3 w-3" />
-                        Continue Flow
+                        <Brain className="h-3 w-3" />
+                        View Flow Status
                       </Button>
                       <Button 
                         size="sm" 
@@ -1135,6 +1077,25 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* Flow Status Analysis Modal */}
+      <Dialog open={!!selectedFlowForStatus} onOpenChange={() => setSelectedFlowForStatus(null)}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Brain className="h-5 w-5" />
+              Flow Intelligence Analysis
+            </DialogTitle>
+          </DialogHeader>
+          {selectedFlowForStatus && (
+            <FlowStatusWidget 
+              flowId={selectedFlowForStatus}
+              flowType="discovery"
+              className="border-0 shadow-none"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Incomplete Flow Management Modal */}
       <Dialog open={showIncompleteFlowManager} onOpenChange={setShowIncompleteFlowManager}>
         <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
@@ -1144,8 +1105,9 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
           <IncompleteFlowManager 
             flows={incompleteFlows}
             onContinueFlow={(flowId) => {
-              // Use the proper continue flow handler
-              handleContinueFlow(flowId);
+              // Show Flow Status instead of automatic continuation
+              setSelectedFlowForStatus(flowId);
+              setShowIncompleteFlowManager(false);
             }}
             onDeleteFlow={(flowId) => {
               // Use V2 delete function

@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/flow-processing", tags=["flow-processing"])
+router = APIRouter(tags=["flow-processing"])
 
 class FlowContinuationRequest(BaseModel):
     """Request model for flow continuation"""
@@ -31,6 +31,12 @@ class FlowContinuationResponse(BaseModel):
     checklist_status: List[Dict[str, Any]]
     user_guidance: Dict[str, Any]
     error_message: str = None
+    
+    # Enhanced fields for FlowStatusWidget
+    flow_type: str = "unknown"
+    progress_percentage: float = 0.0
+    phase_completion_status: Dict[str, Any] = Field(default_factory=dict)
+    routing_decision: Dict[str, Any] = Field(default_factory=dict)
 
 class FlowChecklistResponse(BaseModel):
     """Response model for flow checklist status"""
@@ -79,36 +85,63 @@ async def continue_flow_with_agent(
         if result.success:
             logger.info(f"✅ FLOW PROCESSING SUCCESS: {flow_id} -> {result.routing_decision.target_page}")
             
+            # Get checklist analysis for enhanced response
+            checklist_results = await flow_agent._evaluate_all_phase_checklists(
+                await flow_agent._analyze_flow_state(flow_id)
+            )
+            
+            # Build phase completion status for frontend
+            phase_completion_status = {}
+            total_progress = 0
+            
+            for phase in checklist_results:
+                # Handle both dict and object structures
+                phase_name = phase.get("phase") if isinstance(phase, dict) else phase.phase
+                phase_status = phase.get("status", {}) if isinstance(phase, dict) else phase.status
+                phase_completion = phase.get("completion_percentage", 0) if isinstance(phase, dict) else phase.completion_percentage
+                phase_actions = phase.get("next_required_actions", []) if isinstance(phase, dict) else phase.next_required_actions
+                phase_tasks = phase.get("tasks", []) if isinstance(phase, dict) else phase.tasks
+                
+                # Extract status value safely
+                status_value = phase_status.get("value") if isinstance(phase_status, dict) else (phase_status.value if hasattr(phase_status, 'value') else str(phase_status))
+                
+                phase_completion_status[phase_name] = {
+                    "completed": status_value == "completed",
+                    "confidence": phase_completion / 100.0,
+                    "missing_requirements": phase_actions if status_value != "completed" else [],
+                    "completion_evidence": [task.get("evidence", []) if isinstance(task, dict) else task.evidence for task in phase_tasks if task]
+                }
+                total_progress += phase_completion
+            
+            overall_progress = total_progress / len(checklist_results) if checklist_results else 0
+            
             return FlowContinuationResponse(
                 success=True,
                 flow_id=flow_id,
                 current_phase=result.current_phase,
-                next_action=result.next_action,
+                next_action=result.routing_decision.reasoning,
                 routing_context={
                     "target_page": result.routing_decision.target_page,
                     "context_data": result.routing_decision.context_data,
-                    "specific_task": result.routing_decision.specific_task
+                    "specific_task": getattr(result.routing_decision, 'specific_task', None)
                 },
-                checklist_status=[
-                    {
-                        "phase": phase.phase,
-                        "status": phase.status.value,
-                        "completion_percentage": phase.completion_percentage,
-                        "tasks": [
-                            {
-                                "task_id": task.task_id,
-                                "task_name": task.task_name,
-                                "status": task.status.value,
-                                "confidence": task.confidence,
-                                "next_steps": task.next_steps
-                            }
-                            for task in phase.tasks
-                        ],
-                        "next_required_actions": phase.next_required_actions
-                    }
-                    for phase in result.checklist_status
-                ],
-                user_guidance=result.user_guidance
+                checklist_status=[],  # Keep for backward compatibility
+                user_guidance={
+                    "summary": result.user_guidance.get("summary", "Flow analysis complete"),
+                    "next_steps": result.user_guidance.get("next_steps", []),
+                    "estimated_time_to_complete": result.user_guidance.get("estimated_time_to_complete"),
+                    "blockers": result.user_guidance.get("blockers", [])
+                },
+                # Enhanced fields for FlowStatusWidget
+                flow_type=result.flow_type,
+                progress_percentage=overall_progress,
+                phase_completion_status=phase_completion_status,
+                routing_decision={
+                    "recommended_page": result.routing_decision.target_page,
+                    "reasoning": result.routing_decision.reasoning,
+                    "specific_task": getattr(result.routing_decision, 'specific_task', None),
+                    "urgency_level": getattr(result.routing_decision, 'urgency_level', 'medium')
+                }
             )
         else:
             logger.error(f"❌ FLOW PROCESSING FAILED: {flow_id} - {result.error_message}")
@@ -116,7 +149,7 @@ async def continue_flow_with_agent(
             return FlowContinuationResponse(
                 success=False,
                 flow_id=flow_id,
-                current_phase="error",
+                current_phase=result.current_phase,
                 next_action="error_recovery",
                 routing_context={
                     "target_page": "/discovery/enhanced-dashboard",
@@ -172,11 +205,15 @@ async def get_flow_checklist_status(
         checklist_results = await flow_agent._evaluate_all_phase_checklists(flow_analysis)
         
         # Calculate overall completion
-        total_tasks = sum(len(phase.tasks) for phase in checklist_results)
-        completed_tasks = sum(
-            len([task for task in phase.tasks if task.status.value == "completed"])
-            for phase in checklist_results
-        )
+        total_tasks = sum(len(phase.get("tasks", []) if isinstance(phase, dict) else phase.tasks) for phase in checklist_results)
+        completed_tasks = 0
+        for phase in checklist_results:
+            phase_tasks = phase.get("tasks", []) if isinstance(phase, dict) else phase.tasks
+            for task in phase_tasks:
+                task_status = task.get("status", {}) if isinstance(task, dict) else task.status
+                status_value = task_status.get("value") if isinstance(task_status, dict) else (task_status.value if hasattr(task_status, 'value') else str(task_status))
+                if status_value == "completed":
+                    completed_tasks += 1
         overall_completion = (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0
         
         # Get next required tasks across all phases
@@ -184,31 +221,39 @@ async def get_flow_checklist_status(
         blocking_issues = []
         
         for phase in checklist_results:
-            if phase.status.value != "completed":
-                next_required_tasks.extend(phase.next_required_actions[:2])  # Top 2 per phase
-                if phase.blocking_issues:
-                    blocking_issues.extend(phase.blocking_issues)
+            phase_status = phase.get("status", {}) if isinstance(phase, dict) else phase.status
+            status_value = phase_status.get("value") if isinstance(phase_status, dict) else (phase_status.value if hasattr(phase_status, 'value') else str(phase_status))
+            
+            if status_value != "completed":
+                phase_actions = phase.get("next_required_actions", []) if isinstance(phase, dict) else phase.next_required_actions
+                next_required_tasks.extend(phase_actions[:2])  # Top 2 per phase
+                
+                phase_blocking = phase.get("blocking_issues", []) if isinstance(phase, dict) else getattr(phase, 'blocking_issues', [])
+                if phase_blocking:
+                    blocking_issues.extend(phase_blocking)
         
         return FlowChecklistResponse(
             flow_id=flow_id,
             phases=[
                 {
-                    "phase": phase.phase,
-                    "status": phase.status.value,
-                    "completion_percentage": phase.completion_percentage,
+                    "phase": phase.get("phase") if isinstance(phase, dict) else phase.phase,
+                    "status": (phase.get("status", {}).get("value") if isinstance(phase, dict) else 
+                              (phase.status.value if hasattr(phase.status, 'value') else str(phase.status))),
+                    "completion_percentage": phase.get("completion_percentage", 0) if isinstance(phase, dict) else phase.completion_percentage,
                     "tasks": [
                         {
-                            "task_id": task.task_id,
-                            "task_name": task.task_name,
-                            "status": task.status.value,
-                            "confidence": task.confidence,
-                            "evidence": task.evidence,
-                            "next_steps": task.next_steps
+                            "task_id": task.get("task_id") if isinstance(task, dict) else task.task_id,
+                            "task_name": task.get("task_name") if isinstance(task, dict) else task.task_name,
+                            "status": (task.get("status", {}).get("value") if isinstance(task, dict) else 
+                                      (task.status.value if hasattr(task.status, 'value') else str(task.status))),
+                            "confidence": task.get("confidence", 0.0) if isinstance(task, dict) else task.confidence,
+                            "evidence": task.get("evidence", []) if isinstance(task, dict) else task.evidence,
+                            "next_steps": task.get("next_steps", []) if isinstance(task, dict) else task.next_steps
                         }
-                        for task in phase.tasks
+                        for task in (phase.get("tasks", []) if isinstance(phase, dict) else phase.tasks)
                     ],
-                    "ready_for_next_phase": phase.ready_for_next_phase,
-                    "next_required_actions": phase.next_required_actions
+                    "ready_for_next_phase": phase.get("ready_for_next_phase", False) if isinstance(phase, dict) else phase.ready_for_next_phase,
+                    "next_required_actions": phase.get("next_required_actions", []) if isinstance(phase, dict) else phase.next_required_actions
                 }
                 for phase in checklist_results
             ],
