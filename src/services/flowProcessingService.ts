@@ -5,7 +5,7 @@
  * which serves as the central routing agent for all CrewAI flows.
  */
 
-import { apiCall } from '@/lib/api/apiCall';
+import { apiCall } from '@/lib/api';
 
 export interface TaskResult {
   task_id: string;
