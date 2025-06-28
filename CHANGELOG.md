@@ -2,9 +2,28 @@
 
 ## [0.6.7] - 2025-01-27
 
-### 🚨 **CRITICAL FIX - Discovery Flow Polling Error Management**
+### 🚨 **CRITICAL FIX - Discovery Flow Core Errors Resolved**
 
-This release fixes a critical issue where discovery flow polling operations would continue indefinitely when encountering errors, causing continuous browser console errors and degraded performance during data import processes.
+This release resolves multiple critical issues that were preventing the discovery flow from completing successfully, including JSON serialization errors, data validation failures, and continuous polling errors.
+
+### 🐛 **Core Discovery Flow Fixes**
+
+#### **UUID Serialization Error Resolution**
+- **Root Cause**: CrewAI Flow persistence was failing with "Object of type UUID is not JSON serializable" 
+- **Solution**: Added comprehensive UUID safety checks and custom JSON encoder throughout flow state management
+- **Implementation**: Enhanced UnifiedDiscoveryFlowState with UUIDEncoder and recursive UUID conversion methods
+- **Impact**: Discovery flow now completes without JSON serialization crashes
+
+#### **Data Import Validation Agent Fixes**
+- **Division by Zero Error**: Fixed data quality assessment calculation when DataFrame is empty (`len(df) = 0`)
+- **Type Conversion Error**: Resolved "can't multiply sequence by non-int of type 'float'" in completeness calculations  
+- **Robust Error Handling**: Added comprehensive safety checks for empty datasets and invalid data types
+- **Enhanced Data Quality**: Improved assessment accuracy with proper null percentage calculations
+
+#### **Agent UI Bridge Parameter Fix**
+- **Parameter Mismatch**: Fixed AgentUIBridge.add_agent_insight() calls using incorrect 'content' parameter
+- **Correct Implementation**: Updated all calls to use 'supporting_data' parameter as expected by the method signature
+- **Real-time Updates**: Restored proper agent insight logging throughout discovery flow phases
 
 ### 🐛 **Polling System Error Management**
 
