@@ -42,8 +42,19 @@ def configure_logging():
     logging.getLogger("httpx").setLevel(logging.ERROR)
     # LiteLLM references removed - using custom DeepInfra implementation
     logging.getLogger("openai").setLevel(logging.ERROR)
+    
+    # Keep CrewAI agent conversation logs visible (commented out to see agent discussions)
     #logging.getLogger("crewai").setLevel(logging.ERROR)
     #logging.getLogger("CrewAI").setLevel(logging.ERROR)
+    
+    # Disable LLM cost tracking and usage logs (these create chatter)
+    logging.getLogger("app.services.llm_usage_tracker").setLevel(logging.ERROR)
+    logging.getLogger("app.services.deepinfra_llm").setLevel(logging.WARNING)  # Keep warnings
+    logging.getLogger("app.services.llm_config").setLevel(logging.WARNING)    # Keep warnings
+    logging.getLogger("litellm").setLevel(logging.ERROR)                       # Disable LiteLLM cost tracking
+    logging.getLogger("LiteLLM").setLevel(logging.ERROR)                       # Disable LiteLLM cost tracking
+    
+    # Keep these at ERROR to reduce noise
     logging.getLogger("deepinfra").setLevel(logging.ERROR)
     
     # Additional LLM-related loggers
@@ -64,7 +75,7 @@ def configure_logging():
     # Root logger
     logging.getLogger().setLevel(logging.INFO)
     
-    print("✅ Logging configured - LLM library logs suppressed to ERROR level")
+    print("✅ Logging configured - Cost tracking logs suppressed, agent conversations visible")
 
 # Configure logging before any other imports
 configure_logging()
