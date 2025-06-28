@@ -25,6 +25,26 @@ This release resolves multiple critical issues that were preventing the discover
 - **Correct Implementation**: Updated all calls to use 'supporting_data' parameter as expected by the method signature
 - **Real-time Updates**: Restored proper agent insight logging throughout discovery flow phases
 
+### 🐛 **Database Schema Compatibility Fixes**
+
+#### **RawImportRecord Session ID Error Resolution**
+- **Root Cause**: Code was accessing `RawImportRecord.session_id` but model was updated to use `master_flow_id`
+- **Solution**: Updated all queries to use correct `master_flow_id` field instead of deprecated `session_id`
+- **Files Fixed**: `unified_discovery_flow.py`, `flow_management.py`
+- **Impact**: Asset creation now correctly finds and processes raw import records
+
+#### **Invalid Discovery Flow Phase Names**
+- **Root Cause**: Flow was using `discovery_asset_creation` and `asset_promotion` which aren't in valid phase list
+- **Solution**: Mapped to correct phases: `inventory` and `dependencies` respectively
+- **Valid Phases**: `['data_import', 'attribute_mapping', 'data_cleansing', 'inventory', 'dependencies', 'tech_debt']`
+- **Impact**: Phase validation now passes, flow state updates work correctly
+
+#### **Asset Creation Discovery Flow Fix**
+- **Zero Assets Issue**: Fixed "📊 Found 0 discovery assets to process" error
+- **Database Queries**: Corrected RawImportRecord queries to find actual imported data
+- **Flow Progression**: Asset creation and promotion phases now complete successfully
+- **Data Pipeline**: Complete end-to-end data flow from import to asset creation works properly
+
 ### 🐛 **Polling System Error Management**
 
 #### **Enhanced Error Handling with Automatic Stop**
