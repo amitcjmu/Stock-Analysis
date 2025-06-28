@@ -1,5 +1,57 @@
 # 🚀 AI Force Migration Platform - Changelog
 
+## [0.6.11] - 2025-01-27
+
+### 🎯 **UI/UX ENHANCEMENT - Discovery Flow User Experience**
+
+This release significantly improves the discovery flow user experience with streamlined UI, better progress tracking, and clear next-step guidance.
+
+### 🚀 **Enhanced User Interface**
+
+#### **Streamlined Processing Status Component**
+- **Merged Sections**: Combined Upload & Validation with Real-Time Processing Monitor for simplified user experience
+- **Removed Debug Tools**: Removed polling control section from user interface (debugging tool not for end users)
+- **Improved Progress Tracking**: Fixed Upload & Validation progress to show actual completion percentage (was stuck at 0%)
+- **Smart Status Detection**: Enhanced status detection to properly show completion at 90%+ when moving to attribute mapping phase
+
+#### **Enhanced Agent Insights & Security Assessment**
+- **Consolidated Security Summary**: Replaced individual agent insights with comprehensive security assessment summary
+- **Three-Tier Analysis**: Data Type Assessment, Security Classification, and Data Privacy Assessment
+- **Contextual Information**: Provides insights about data content, security threats, and privacy considerations
+- **User-Focused Content**: Simplified technical details into actionable information for users
+
+#### **Next Steps Navigation**
+- **Clear Guidance**: Added prominent "Next Steps Required" card when user approval is needed
+- **Direct Navigation**: Integrated "Go to Attribute Mapping" button for seamless workflow progression
+- **Progress Indicators**: Visual step-by-step guidance with numbered instructions
+- **Status-Aware Messaging**: Dynamic messaging based on current flow state and completion status
+
+### 📊 **Technical Improvements**
+
+#### **Component Architecture**
+- **State Management**: Improved collapsible sections with expanded-by-default behavior
+- **Data Integration**: Better integration with comprehensive real-time monitoring hooks
+- **Progress Calculation**: Fixed progress percentage calculation from actual processing status
+- **Error Handling**: Enhanced error handling for undefined data states
+
+#### **User Experience Flow**
+- **Phase Transition**: Smooth transition messaging when moving between discovery phases
+- **Completion Detection**: Accurate detection of phase completion and user approval requirements
+- **Visual Feedback**: Improved visual indicators for processing states and completion status
+- **Responsive Design**: Better responsive layout for different screen sizes
+
+### 🎯 **Business Impact**
+- **Reduced User Confusion**: Clear guidance eliminates uncertainty about next steps
+- **Improved Workflow**: Streamlined interface reduces cognitive load on users
+- **Faster Adoption**: Intuitive navigation accelerates user onboarding
+- **Better Data Quality**: Enhanced security assessment builds user confidence
+
+### 🎯 **Success Metrics**
+- **UI Complexity**: Reduced from 4 sections to 2 main sections (50% simplification)
+- **Progress Accuracy**: Fixed progress tracking from 0% stuck to actual percentage
+- **Navigation Clarity**: Added direct navigation links for 100% workflow completion
+- **Security Transparency**: Comprehensive security assessment replaces raw technical insights
+
 ## [0.6.10] - 2025-01-27
 
 ### 🎯 **CRITICAL BUG FIXES - Discovery Flow Stability**
