@@ -738,40 +738,21 @@ const DataImport: React.FC = () => {
   }
 
   const ValidationProgressSection: React.FC<ValidationProgressSectionProps> = ({ file, onValidationUpdate }) => {
-    const [hasPollingError, setHasPollingError] = useState(false);
-    const [errorRetryCount, setErrorRetryCount] = useState(0);
-    const MAX_RETRY_COUNT = 3;
-    
-    // Only use real-time monitoring if we have a flow_id and haven't exceeded error threshold
-    const shouldUseRealTimeMonitoring = file.flow_id && !hasPollingError && errorRetryCount < MAX_RETRY_COUNT;
-    const monitoring = shouldUseRealTimeMonitoring ? useComprehensiveRealTimeMonitoring(file.flow_id, 'data_import') : null;
-    
-    // Monitor for errors and disable polling if too many occur
-    React.useEffect(() => {
-      if (monitoring?.processing.error || monitoring?.validation.error || monitoring?.insights.error) {
-        setErrorRetryCount(prev => prev + 1);
-        console.warn('Real-time monitoring error detected, retry count:', errorRetryCount + 1);
-        
-        if (errorRetryCount >= MAX_RETRY_COUNT - 1) {
-          setHasPollingError(true);
-          console.warn('Too many polling errors, disabling real-time monitoring for this file');
-        }
-      }
-    }, [monitoring?.processing.error, monitoring?.validation.error, monitoring?.insights.error, errorRetryCount]);
+    const monitoring = file.flow_id ? useComprehensiveRealTimeMonitoring(file.flow_id, 'data_import') : null;
     
     // Use real-time validation data if available, otherwise fall back to file properties
     const validationData = monitoring?.validation.validationData;
-    const hasRealTimeData = !!validationData && !hasPollingError;
+    const hasRealTimeData = !!validationData;
     
     // Determine validation status with real-time data priority
     const formatStatus = hasRealTimeData 
       ? (validationData.format_validation?.status === 'passed' ? 'passed' : 
-         (validationData.format_validation?.errors && validationData.format_validation.errors.length > 0) ? 'failed' : 'pending')
+         validationData.format_validation?.errors?.length > 0 ? 'failed' : 'pending')
       : (file.format_validation ? 'passed' : 'pending');
       
     const securityStatus = hasRealTimeData
       ? (validationData.security_scan?.status === 'passed' ? 'passed' :
-         (validationData.security_scan?.issues && validationData.security_scan.issues.length > 0) ? 'failed' : 'pending')
+         validationData.security_scan?.issues?.length > 0 ? 'failed' : 'pending')
       : (file.security_clearance ? 'passed' : 'pending');
       
     const privacyStatus = hasRealTimeData
@@ -795,11 +776,7 @@ const DataImport: React.FC = () => {
     // Update parent component when validation data changes
     React.useEffect(() => {
       if (hasRealTimeData && onValidationUpdate) {
-        try {
-          onValidationUpdate(validationData);
-        } catch (error) {
-          console.error('Error updating validation data:', error);
-        }
+        onValidationUpdate(validationData);
       }
     }, [validationData, hasRealTimeData, onValidationUpdate]);
     
@@ -850,11 +827,6 @@ const DataImport: React.FC = () => {
               Real-time validation status • Last updated: {new Date().toLocaleTimeString()}
             </div>
           )}
-          {hasPollingError && (
-            <div className="text-xs text-amber-600">
-              ⚠️ Real-time updates disabled due to connection issues
-            </div>
-          )}
         </div>
 
         {/* Security Clearances with Real-time Status */}
@@ -875,7 +847,7 @@ const DataImport: React.FC = () => {
                 <Clock className="h-4 w-4 text-gray-400" />
               )}
             </div>
-            {hasRealTimeData && validationData.format_validation?.errors && validationData.format_validation.errors.length > 0 && (
+            {hasRealTimeData && validationData.format_validation?.errors?.length > 0 && (
               <div className="mt-1 text-xs text-red-600">
                 {validationData.format_validation.errors.length} error(s) found
               </div>
@@ -898,7 +870,7 @@ const DataImport: React.FC = () => {
                 <Clock className="h-4 w-4 text-gray-400" />
               )}
             </div>
-            {hasRealTimeData && validationData.security_scan?.issues && validationData.security_scan.issues.length > 0 && (
+            {hasRealTimeData && validationData.security_scan?.issues?.length > 0 && (
               <div className="mt-1 text-xs text-red-600">
                 {validationData.security_scan.issues.length} issue(s) found
               </div>
@@ -935,7 +907,7 @@ const DataImport: React.FC = () => {
         {/* Validation Error Details */}
         {hasRealTimeData && (
           <div className="space-y-2">
-            {validationData.format_validation?.errors && validationData.format_validation.errors.map((error, index) => (
+            {validationData.format_validation?.errors?.map((error, index) => (
               <Alert key={index} variant="destructive" className="py-2">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription className="text-sm">
@@ -943,7 +915,7 @@ const DataImport: React.FC = () => {
                 </AlertDescription>
               </Alert>
             ))}
-            {validationData.security_scan?.issues && validationData.security_scan.issues.map((issue, index) => (
+            {validationData.security_scan?.issues?.map((issue, index) => (
               <Alert key={index} variant="destructive" className="py-2">
                 <Shield className="h-4 w-4" />
                 <AlertDescription className="text-sm">
