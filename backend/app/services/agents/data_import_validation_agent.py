@@ -169,6 +169,12 @@ class DataImportValidationAgent(BaseDiscoveryAgent):
     
     async def _validate_file_structure(self, df: pd.DataFrame, file_info: Dict[str, Any]) -> Dict[str, Any]:
         """Validate file structure and format"""
+        # Safe null percentage calculation
+        if len(df) > 0:
+            null_percentages = (df.isnull().sum() / len(df) * 100).to_dict()
+        else:
+            null_percentages = {col: 100.0 for col in df.columns}
+        
         results = {
             'confidence': 90.0,
             'issues': [],
@@ -177,7 +183,7 @@ class DataImportValidationAgent(BaseDiscoveryAgent):
             'row_count': len(df),
             'column_count': len(df.columns),
             'data_types': df.dtypes.to_dict(),
-            'null_percentages': (df.isnull().sum() / len(df) * 100).to_dict()
+            'null_percentages': null_percentages
         }
         
         # Check for structural issues

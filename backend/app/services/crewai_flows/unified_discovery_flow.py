@@ -201,16 +201,31 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
                     return obj
             
             # Apply to all state attributes that might contain UUIDs
-            for attr_name in dir(self.state):
-                if not attr_name.startswith('_') and not callable(getattr(self.state, attr_name)):
+            # Use model fields if available (Pydantic models), otherwise use dir()
+            if hasattr(self.state, '__fields__') or hasattr(self.state, 'model_fields'):
+                # Handle Pydantic models safely
+                fields = getattr(self.state, 'model_fields', getattr(self.state, '__fields__', {}))
+                for attr_name in fields.keys():
                     try:
                         attr_value = getattr(self.state, attr_name)
                         if attr_value is not None:
                             converted_value = convert_nested_uuids(attr_value)
                             setattr(self.state, attr_name, converted_value)
                     except (AttributeError, TypeError) as e:
-                        logger.debug(f"Could not convert attribute {attr_name}: {e}")
+                        logger.debug(f"Could not convert Pydantic field {attr_name}: {e}")
                         continue
+            else:
+                # Handle regular objects
+                for attr_name in dir(self.state):
+                    if not attr_name.startswith('_'):
+                        try:
+                            attr_value = getattr(self.state, attr_name)
+                            if attr_value is not None and not callable(attr_value):
+                                converted_value = convert_nested_uuids(attr_value)
+                                setattr(self.state, attr_name, converted_value)
+                        except (AttributeError, TypeError) as e:
+                            logger.debug(f"Could not convert attribute {attr_name}: {e}")
+                            continue
                 
         except Exception as e:
             logger.warning(f"⚠️ UUID serialization safety check failed: {e}")
@@ -371,8 +386,7 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
                     'start_time': datetime.utcnow().isoformat(),
                     'estimated_duration': '2-3 minutes'
                 },
-                confidence="high",
-                priority="medium"
+                confidence="high"
             )
         except Exception as e:
             logger.warning(f"⚠️ Could not add real-time update: {e}")
@@ -917,7 +931,7 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
     async def execute_parallel_analysis_agents(self, previous_result):
         """Execute asset inventory, dependency, and tech debt analysis agents in parallel"""
         logger.info("🤖 Starting Parallel Analysis Agents (Asset, Dependency, Tech Debt)")
-        self.state.current_phase = "analysis"
+        self.state.current_phase = "tech_debt"
         
         # REAL-TIME UPDATE: Update database immediately when phase starts
         if self.flow_bridge:
@@ -1060,57 +1074,88 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             'tech_debt_analysis': results[2].to_dict() if not isinstance(results[2], Exception) else {'error': str(results[2])}
         }
 
+    async def approve_attribute_mapping_and_complete(self, user_approval_data: Dict[str, Any] = None):
+        """Called when user approves attribute mapping - completes the discovery flow"""
+        logger.info("👍 User approved attribute mapping - completing discovery flow")
+        
+        # Store user approval data if provided
+        if user_approval_data:
+            self.state.user_approval_data = user_approval_data
+            logger.info(f"📝 User approval data stored: {len(user_approval_data)} items")
+        
+        # Mark that user approval has been received
+        self.state.user_approval_received = True
+        self.state.awaiting_user_approval = False
+        
+        # Call the finalize discovery method
+        result = await self.finalize_discovery_internal("user_approved_attribute_mapping")
+        
+        return result
+
     @listen(execute_parallel_analysis_agents)
-    async def finalize_discovery(self, previous_result):
-        """Finalize the discovery flow and provide comprehensive summary"""
-        if previous_result in ["tech_debt_analysis_skipped", "tech_debt_analysis_failed"]:
-            logger.warning(f"⚠️ Finalizing with incomplete tech debt analysis: {previous_result}")
+    async def check_user_approval_needed(self, previous_result):
+        """Check if user approval is needed before finalizing - implements conditional flow control"""
+        logger.info("🔍 Checking if user approval is needed before finalizing discovery flow")
         
-        logger.info("🎯 Finalizing Unified Discovery Flow")
-        self.state.current_phase = "finalization"
-        self.state.progress_percentage = 100.0
+        # ✅ CONDITIONAL LOGIC: Check if user clarifications or approval are needed
+        user_approval_needed = await self._check_if_user_approval_needed(previous_result)
         
+        if user_approval_needed:
+            logger.info("⏸️ User approval needed - pausing flow for attribute mapping review")
+            return await self._pause_for_user_approval(previous_result)
+        else:
+            logger.info("✅ No user approval needed - proceeding to finalization")
+            return await self.finalize_discovery_internal(previous_result)
+    
+    async def _check_if_user_approval_needed(self, previous_result: str) -> bool:
+        """Determine if user approval is needed based on flow state and agent results"""
         try:
-            # Generate final summary
-            summary = self.state.finalize_flow()
+            # Check if there are user clarifications pending
+            if self.state.user_clarifications:
+                logger.info(f"📝 User clarifications pending: {len(self.state.user_clarifications)} items")
+                return True
             
-            # Ensure UUID safety before any persistence
-            self._ensure_uuid_serialization_safety()
+            # Check if there are low confidence scores that need review
+            low_confidence_agents = []
+            for agent_name, confidence in self.state.agent_confidences.items():
+                if confidence < 70.0:  # Threshold for requiring user review
+                    low_confidence_agents.append(f"{agent_name}: {confidence:.1f}%")
             
-            # Validate overall success - check multiple data sources
-            total_assets = 0
+            if low_confidence_agents:
+                logger.info(f"⚠️ Low confidence agents requiring review: {low_confidence_agents}")
+                return True
             
-            # Check asset inventory
-            if hasattr(self.state, 'asset_inventory') and self.state.asset_inventory:
-                total_assets = self.state.asset_inventory.get("total_assets", 0)
+            # Check if there are significant errors that need user decision
+            if self.state.errors:
+                critical_errors = [e for e in self.state.errors if 'critical' in str(e).lower()]
+                if critical_errors:
+                    logger.info(f"🚨 Critical errors requiring user review: {len(critical_errors)} errors")
+                    return True
             
-            # Fallback: check cleaned_data
-            if total_assets == 0 and hasattr(self.state, 'cleaned_data') and self.state.cleaned_data:
-                total_assets = len(self.state.cleaned_data)
-                logger.info(f"📊 Using cleaned_data count: {total_assets} assets")
+            # Check if this is the first time through (always require approval for new flows)
+            if not hasattr(self.state, 'user_approval_received') or not self.state.user_approval_received:
+                logger.info("👤 First-time flow - user approval required for attribute mapping")
+                return True
             
-            # Fallback: check raw_data
-            if total_assets == 0 and hasattr(self.state, 'raw_data') and self.state.raw_data:
-                total_assets = len(self.state.raw_data)
-                logger.info(f"📊 Using raw_data count: {total_assets} assets")
+            logger.info("✅ No user approval needed - all conditions satisfied")
+            return False
             
-            if total_assets == 0:
-                logger.error("❌ Discovery Flow FAILED: No assets were processed")
-                logger.error(f"   State debug: asset_inventory={getattr(self.state, 'asset_inventory', 'None')}")
-                logger.error(f"   State debug: cleaned_data length={len(getattr(self.state, 'cleaned_data', []))}")
-                logger.error(f"   State debug: raw_data length={len(getattr(self.state, 'raw_data', []))}")
-                self.state.status = "failed"
-                self.state.add_error("finalization", "No assets were processed during discovery")
-                return "discovery_failed"
+        except Exception as e:
+            logger.error(f"❌ Error checking user approval needed: {e}")
+            # Default to requiring approval on error
+            return True
+    
+    async def _pause_for_user_approval(self, previous_result: str):
+        """Pause the flow and set up for user approval in attribute mapping phase"""
+        try:
+            # Update flow state to waiting for user approval
+            self.state.status = "waiting_for_user"
+            self.state.current_phase = "attribute_mapping"
+            self.state.awaiting_user_approval = True
             
-            # ✅ CRITICAL FIX: Use existing intelligent phase progression logic
-            # The flow should use the existing get_next_phase() method which already has
-            # sophisticated validation logic for determining next phase based on data quality
-            
-            # Mark data_import phase as completed in PostgreSQL
+            # Update PostgreSQL discovery flow to waiting state
             if self.flow_bridge:
                 try:
-                    # Update the PostgreSQL flow to mark data_import as completed
                     from app.services.discovery_flow_service import DiscoveryFlowService
                     from app.core.database import AsyncSessionLocal
                     from app.core.context import RequestContext
@@ -1124,58 +1169,169 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
                         
                         flow_service = DiscoveryFlowService(db_session, service_context)
                         
-                        # Mark data_import phase as completed with CrewAI results
-                        await flow_service.update_phase_completion(
-                            flow_id=self.state.flow_id,
-                            phase="data_import", 
-                            data={
-                                "crewai_summary": summary,
-                                "total_assets": total_assets,
-                                "timestamp": datetime.now().isoformat()
-                            },
-                            crew_status={"status": "completed", "phase": "data_import"},
-                            agent_insights=[{
-                                "agent": "UnifiedDiscoveryFlow",
-                                "insight": f"CrewAI processing completed with {total_assets} assets processed",
-                                "phase": "data_import",
-                                "timestamp": datetime.now().isoformat()
-                            }],
-                            completed=True
+                        # Set discovery flow to waiting_for_user status using custom update
+                        from sqlalchemy import update
+                        from app.models.discovery_flow import DiscoveryFlow
+                        from datetime import datetime
+                        
+                        await db_session.execute(
+                            update(DiscoveryFlow).where(
+                                DiscoveryFlow.flow_id == self.state.flow_id
+                            ).values(
+                                status="waiting_for_user",
+                                progress_percentage=90.0,  # High progress but not 100%
+                                updated_at=datetime.utcnow()
+                            )
                         )
+                        await db_session.commit()
                         
-                        # Get updated flow to determine next phase using existing logic
-                        updated_flow = await flow_service.get_flow(self.state.flow_id)
-                        next_phase = updated_flow.get_next_phase() or "completed"
-                        
-                        # Update CrewAI state to match PostgreSQL state
-                        self.state.status = "running" if next_phase != "completed" else "completed"
-                        self.state.current_phase = next_phase
-                        
-                        logger.info(f"✅ PostgreSQL discovery flow updated - next phase: {next_phase}")
-                        logger.info(f"🎯 Flow will {'continue to ' + next_phase if next_phase != 'completed' else 'be marked as completed'}")
+                        logger.info(f"✅ Discovery flow set to waiting_for_user in attribute_mapping phase")
                         
                 except Exception as update_error:
                     logger.warning(f"⚠️ Failed to update PostgreSQL flow state: {update_error}")
-                    # Fallback: use running status and attribute_mapping as next phase
-                    self.state.status = "running"
-                    self.state.current_phase = "attribute_mapping"
+            
+            # Ensure UUID safety before persistence
+            self._ensure_uuid_serialization_safety()
+            
+            # Persist the paused state
+            if self.flow_bridge:
+                await self.flow_bridge.update_flow_state(self.state)
+            
+            logger.info(f"⏸️ Flow paused for user approval - waiting in attribute_mapping phase")
+            logger.info(f"👥 Users can now review discovered assets and approve field mappings")
+            
+            # Return a special result that indicates user approval needed
+            return "awaiting_user_approval_in_attribute_mapping"
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to pause for user approval: {e}")
+            # Fallback to proceeding with finalization
+            return await self.finalize_discovery_internal(previous_result)
+    
+    async def finalize_discovery_internal(self, previous_result):
+        """
+        Internal method to finalize discovery flow with conditional logic.
+        Makes PostgreSQL flow subservient to CrewAI flow decisions.
+        """
+        try:
+            logger.info(f"🔍 Finalizing discovery flow: {self.state.flow_id}")
+            
+            # Create comprehensive summary
+            total_assets = len(self.state.asset_inventory.get("assets", []))
+            summary = {
+                "flow_id": self.state.flow_id,
+                "total_assets": total_assets,
+                "phases_completed": list(self.state.phase_completion.keys()),
+                "errors": self.state.errors,
+                "warnings": self.state.warnings,
+                "agent_insights": self.state.agent_insights,
+                "final_status": "awaiting_user_approval_in_attribute_mapping"
+            }
+            
+            # Update final state with summary
+            self.state.discovery_summary = summary
+            self.state.final_result = "awaiting_user_approval_in_attribute_mapping"
+            
+            # ✅ CRITICAL FIX: Make PostgreSQL flow subservient to CrewAI conditional logic
+            # Instead of completing tech_debt phase (which triggers 100% completion),
+            # set flow to waiting_for_user in attribute_mapping with 90% progress
+            
+            if self.flow_bridge:
+                try:
+                    from app.services.discovery_flow_service import DiscoveryFlowService
+                    from app.core.context import RequestContext
+                    from app.core.database import AsyncSessionLocal
+                    
+                    async with AsyncSessionLocal() as session:
+                        context = RequestContext(
+                            client_account_id=self.state.client_account_id,
+                            engagement_id=self.state.engagement_id,
+                            user_id=self.state.user_id
+                        )
+                        
+                        flow_service = DiscoveryFlowService(session, context)
+                        
+                        # ✅ INSTEAD OF: Updating tech_debt phase (which triggers 100% completion)
+                        # ❌ await flow_service.update_phase_completion(
+                        # ❌     flow_id=self.state.flow_id,
+                        # ❌     phase="tech_debt",  # This would trigger 100% completion
+                        # ❌     phase_data={...}
+                        # ❌ )
+                        
+                        # ✅ DO THIS: Update flow to waiting_for_user in attribute_mapping with 90% progress
+                        # This keeps the flow from auto-completing while preserving all CrewAI analysis results
+                        
+                        # First, store the CrewAI analysis results in the flow state
+                        crewai_analysis_results = {
+                            "crewai_summary": summary,
+                            "total_assets": total_assets,
+                            "asset_inventory": self.state.asset_inventory,
+                            "dependencies": self.state.dependencies,
+                            "technical_debt": self.state.technical_debt,
+                            "field_mappings": self.state.field_mappings,
+                            "analysis_complete": True,
+                            "awaiting_user_approval": True,
+                            "timestamp": datetime.now().isoformat()
+                        }
+                        
+                        # Update flow to waiting_for_user status with high progress but not 100%
+                        flow = await flow_service.get_flow_by_id(self.state.flow_id)
+                        if flow:
+                            # Use repository directly to set custom status and progress
+                            from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
+                            flow_repo = DiscoveryFlowRepository(session, self.state.client_account_id, self.state.engagement_id)
+                            
+                            # Custom update that doesn't trigger auto-completion
+                            from sqlalchemy import update
+                            from app.models.discovery_flow import DiscoveryFlow
+                            
+                            await session.execute(
+                                update(DiscoveryFlow).where(
+                                    DiscoveryFlow.flow_id == self.state.flow_id
+                                ).values(
+                                    status="waiting_for_user",
+                                    progress_percentage=90.0,  # High progress but not 100%
+                                    crewai_state_data=crewai_analysis_results,
+                                    updated_at=datetime.utcnow()
+                                )
+                            )
+                            await session.commit()
+                            
+                            logger.info(f"✅ PostgreSQL flow set to waiting_for_user in attribute_mapping (90% progress)")
+                            logger.info(f"📊 CrewAI analysis results stored for user review")
+                        
+                        next_phase = "attribute_mapping"
+                        
+                        # Update CrewAI state - CrewAI flow completes but PostgreSQL flow waits for user
+                        self.state.status = "completed"  # CrewAI flow completes
+                        self.state.current_phase = "completed"  # CrewAI flow is done
+                        
+                        logger.info(f"✅ PostgreSQL discovery flow updated - next phase: {next_phase}")
+                        logger.info(f"🎯 Flow will wait for user approval in {next_phase} phase")
+                        
+                except Exception as update_error:
+                    logger.warning(f"⚠️ Failed to update PostgreSQL flow state: {update_error}")
+                    # Fallback: CrewAI flow completes, PostgreSQL flow waits for user
+                    self.state.status = "completed"
+                    self.state.current_phase = "completed"
             else:
-                # Fallback if no flow bridge
-                self.state.status = "running" 
-                self.state.current_phase = "attribute_mapping"
+                # Fallback if no flow bridge - CrewAI flow completes
+                self.state.status = "completed" 
+                self.state.current_phase = "completed"
                 
             logger.info(f"✅ Unified Discovery Flow CrewAI processing completed successfully")
             logger.info(f"📊 CrewAI Analysis Summary: {total_assets} assets, {len(self.state.errors)} errors, {len(self.state.warnings)} warnings")
             logger.info(f"🔄 Flow Status: {self.state.status.upper()}")
             logger.info(f"➡️  Next Phase: {self.state.current_phase}")
             
-            if self.state.current_phase == "completed":
-                logger.info(f"🎉 All phases completed - Flow ready for Assessment phase")
-            else:
-                logger.info(f"⏭️  Flow will continue to {self.state.current_phase} phase")
-                logger.info(f"🎯 Intelligent phase progression: Agents determined next phase based on data quality and confidence")
+            logger.info(f"🎉 CrewAI Discovery Flow completed successfully")
+            logger.info(f"⏸️  PostgreSQL Discovery Flow set to waiting_for_user in attribute_mapping phase")
+            logger.info(f"👥 Users can now review discovered assets and approve field mappings")
+            logger.info(f"🔄 Next: User approval will trigger final discovery flow completion")
             
-            return summary
+            # ✅ CRITICAL FIX: Return the exact string that the event listener expects
+            # This ensures the FlowFinishedEvent handler recognizes the flow should pause for user approval
+            return "awaiting_user_approval_in_attribute_mapping"
             
         except Exception as e:
             logger.error(f"❌ Discovery flow finalization failed: {e}")
