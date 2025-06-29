@@ -189,6 +189,11 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
     fetchAvailableFields();
   }, []);
 
+  // Filter options - show all by default, but allow filtering
+  const [showApproved, setShowApproved] = useState(true);
+  const [showRejected, setShowRejected] = useState(false);
+  const [showPending, setShowPending] = useState(true);
+
   // Debug logging for field mappings
   console.log('🔍 FieldMappingsTab received:', {
     fieldMappings: fieldMappings,
@@ -197,26 +202,7 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
     sample: fieldMappings?.[0]
   });
 
-  // Force field mappings to be editable if they're in "suggested" status
-  const editableFieldMappings = fieldMappings.map((mapping: any) => ({
-    ...mapping,
-    status: mapping.status === 'suggested' ? 'pending' : mapping.status || 'pending'
-  }));
-
-  // Filter options - show all by default, but allow filtering
-  const [showApproved, setShowApproved] = useState(true);
-  const [showRejected, setShowRejected] = useState(false);
-  const [showPending, setShowPending] = useState(true);
-  
-  // Apply filters
-  const filteredMappings = editableFieldMappings.filter((mapping: any) => {
-    if (mapping.status === 'approved' && !showApproved) return false;
-    if (mapping.status === 'rejected' && !showRejected) return false;
-    if ((mapping.status === 'pending' || mapping.status === 'suggested' || !mapping.status) && !showPending) return false;
-    return true;
-  });
-
-  // Handle case where fieldMappings is not yet available or not an array
+  // Early return if no field mappings
   if (!Array.isArray(fieldMappings) || fieldMappings.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow-md p-6 mb-8 text-center">
@@ -229,6 +215,22 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
       </div>
     );
   }
+
+  // Force field mappings to be editable if they're in "suggested" status
+  const editableFieldMappings = fieldMappings.map((mapping: any) => ({
+    ...mapping,
+    status: mapping.status === 'suggested' ? 'pending' : mapping.status || 'pending'
+  }));
+  
+  // Apply filters
+  const filteredMappings = editableFieldMappings.filter((mapping: any) => {
+    if (mapping.status === 'approved' && !showApproved) return false;
+    if (mapping.status === 'rejected' && !showRejected) return false;
+    if ((mapping.status === 'pending' || mapping.status === 'suggested' || !mapping.status) && !showPending) return false;
+    return true;
+  });
+
+  // This check is now handled above before processing
 
   const fetchAvailableFields = async () => {
     try {

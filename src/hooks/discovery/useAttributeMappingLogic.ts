@@ -218,13 +218,6 @@ export const useAttributeMappingLogic = () => {
       
       console.log('✅ Mapping approved successfully:', result);
       
-      // Update the local state immediately for better UX
-      const updatedMappings = fieldMappings.map((mapping: any) => 
-        mapping.id === mappingId 
-          ? { ...mapping, status: 'approved', is_validated: true }
-          : mapping
-      );
-      
       // Refresh both flow data and field mappings
       await Promise.all([refresh(), refetchFieldMappings()]);
       
@@ -237,7 +230,7 @@ export const useAttributeMappingLogic = () => {
       console.error('❌ Failed to approve mapping:', error);
       // Could add error toast notification here
     }
-  }, [refresh, refetchFieldMappings, getAuthHeaders, fieldMappings]);
+  }, [refresh, refetchFieldMappings, getAuthHeaders]);
 
   const handleRejectMapping = useCallback(async (mappingId: string, rejectionReason?: string) => {
     try {
@@ -256,13 +249,6 @@ export const useAttributeMappingLogic = () => {
       
       console.log('✅ Mapping rejected successfully:', result);
       
-      // Update the local state immediately for better UX
-      const updatedMappings = fieldMappings.map((mapping: any) => 
-        mapping.id === mappingId 
-          ? { ...mapping, status: 'rejected', user_feedback: rejectionReason, is_validated: true }
-          : mapping
-      );
-      
       // Refresh both flow data and field mappings
       await Promise.all([refresh(), refetchFieldMappings()]);
       
@@ -275,7 +261,7 @@ export const useAttributeMappingLogic = () => {
       console.error('❌ Failed to reject mapping:', error);
       // Could add error toast notification here
     }
-  }, [refresh, refetchFieldMappings, getAuthHeaders, fieldMappings]);
+  }, [refresh, refetchFieldMappings, getAuthHeaders]);
 
   const handleMappingChange = useCallback(async (mappingId: string, newTarget: string) => {
     try {
