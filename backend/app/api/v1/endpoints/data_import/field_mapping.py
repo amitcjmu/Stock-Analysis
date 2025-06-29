@@ -1095,6 +1095,162 @@ async def get_simple_field_mappings(
             "mappings": []
         }
 
+@router.post("/mappings/approve-by-field")
+async def approve_field_mapping_by_field(
+    request_data: dict,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+):
+    """Approve a field mapping by source and target field names."""
+    try:
+        source_field = request_data.get("source_field")
+        target_field = request_data.get("target_field") 
+        import_id = request_data.get("import_id")
+        
+        if not all([source_field, target_field, import_id]):
+            raise HTTPException(status_code=400, detail="Missing required fields: source_field, target_field, import_id")
+        
+        # Find or create the mapping
+        mapping_query = select(ImportFieldMapping).where(
+            and_(
+                ImportFieldMapping.data_import_id == import_id,
+                ImportFieldMapping.source_field == source_field
+            )
+        )
+        result = await db.execute(mapping_query)
+        mapping = result.scalar_one_or_none()
+        
+        if not mapping:
+            # Create new mapping
+            mapping = ImportFieldMapping(
+                data_import_id=import_id,
+                source_field=source_field,
+                target_field=target_field,
+                mapping_type="user_defined",
+                confidence_score=1.0,
+                status="approved",
+                is_user_defined=True,
+                is_validated=True,
+                validation_method="user_approved",
+                user_feedback="User approved mapping"
+            )
+            db.add(mapping)
+        else:
+            # Update existing mapping
+            mapping.target_field = target_field
+            mapping.status = "approved"
+            mapping.is_validated = True
+            mapping.validation_method = "user_approved"
+            mapping.user_feedback = "User approved mapping"
+            mapping.is_user_defined = True
+        
+        # Enable agent learning
+        try:
+            from app.services.field_mapper_modular import field_mapper
+            learning_result = field_mapper.learn_field_mapping(
+                mapping.target_field, 
+                [mapping.source_field], 
+                "user_approval"
+            )
+            logger.info(f"✅ Agent learning applied for approved mapping: {mapping.source_field} -> {mapping.target_field}")
+        except Exception as e:
+            logger.warning(f"⚠️ Agent learning failed but mapping approved: {e}")
+        
+        await db.commit()
+        await db.refresh(mapping)
+        
+        return {
+            "status": "success",
+            "message": f"Field mapping approved: {mapping.source_field} -> {mapping.target_field}",
+            "mapping_id": str(mapping.id),
+            "learning_applied": True
+        }
+        
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Failed to approve field mapping by field: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to approve mapping: {str(e)}")
+
+@router.post("/mappings/reject-by-field")
+async def reject_field_mapping_by_field(
+    request_data: dict,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+):
+    """Reject a field mapping by source and target field names."""
+    try:
+        source_field = request_data.get("source_field")
+        target_field = request_data.get("target_field")
+        rejection_reason = request_data.get("rejection_reason", "User rejected this mapping")
+        import_id = request_data.get("import_id")
+        
+        if not all([source_field, target_field, import_id]):
+            raise HTTPException(status_code=400, detail="Missing required fields: source_field, target_field, import_id")
+        
+        # Find or create the mapping
+        mapping_query = select(ImportFieldMapping).where(
+            and_(
+                ImportFieldMapping.data_import_id == import_id,
+                ImportFieldMapping.source_field == source_field
+            )
+        )
+        result = await db.execute(mapping_query)
+        mapping = result.scalar_one_or_none()
+        
+        if not mapping:
+            # Create new mapping as rejected
+            mapping = ImportFieldMapping(
+                data_import_id=import_id,
+                source_field=source_field,
+                target_field=target_field,
+                mapping_type="user_defined",
+                confidence_score=0.0,
+                status="rejected",
+                is_user_defined=True,
+                is_validated=True,
+                validation_method="user_rejected",
+                user_feedback=rejection_reason,
+                correction_reason=rejection_reason
+            )
+            db.add(mapping)
+        else:
+            # Update existing mapping
+            mapping.target_field = target_field
+            mapping.status = "rejected"
+            mapping.is_validated = True
+            mapping.validation_method = "user_rejected"
+            mapping.user_feedback = rejection_reason
+            mapping.correction_reason = rejection_reason
+            mapping.is_user_defined = True
+        
+        # Enable agent learning from rejection
+        try:
+            from app.services.field_mapper_modular import field_mapper
+            learning_result = field_mapper.learn_field_mapping_rejection(
+                mapping.source_field,
+                mapping.target_field,
+                rejection_reason
+            )
+            logger.info(f"✅ Agent learning applied for rejected mapping: {mapping.source_field} -> {mapping.target_field}")
+        except Exception as e:
+            logger.warning(f"⚠️ Agent learning failed but mapping rejected: {e}")
+        
+        await db.commit()
+        await db.refresh(mapping)
+        
+        return {
+            "status": "success", 
+            "message": f"Field mapping rejected: {mapping.source_field} -> {mapping.target_field}",
+            "mapping_id": str(mapping.id),
+            "learning_applied": True,
+            "reason": rejection_reason
+        }
+        
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Failed to reject field mapping by field: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to reject mapping: {str(e)}")
+
 @router.post("/mappings/{mapping_id}/approve")
 async def approve_field_mapping(
     mapping_id: str,

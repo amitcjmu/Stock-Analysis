@@ -49,20 +49,10 @@ export const useAttributeMappingLogic = () => {
   // Get field mapping data from unified flow (for legacy compatibility)
   const fieldMappingData = flow?.field_mapping;
   
-  // Debug logging
-  if (flow) {
-    console.log('🔍 Flow data available:', {
-      flow_id: flow.flow_id,
-      status: flow.status,
-      has_field_mapping: !!flow.field_mapping,
-      field_mapping_keys: flow.field_mapping ? Object.keys(flow.field_mapping) : [],
-      fieldMappings_length: fieldMappings?.length,
-      realFieldMappings_length: realFieldMappings?.length
-    });
-  }
+  // Debug logging - moved after fieldMappings declaration
   
   // Extract data with proper type checking and safe access
-  const agenticData = (() => {
+  const agenticData = useMemo(() => {
     try {
       if (fieldMappingData && !Array.isArray(fieldMappingData) && fieldMappingData.attributes) {
         return { attributes: Array.isArray(fieldMappingData.attributes) ? fieldMappingData.attributes : [] };
@@ -72,10 +62,10 @@ export const useAttributeMappingLogic = () => {
       console.error('Error extracting agenticData:', error);
       return { attributes: [] };
     }
-  })();
+  }, [fieldMappingData]);
   
   // Use field mappings from flow state if available, otherwise fall back to database mappings
-  const fieldMappings = (() => {
+  const fieldMappings = useMemo(() => {
     // First try to get mappings from flow state
     if (fieldMappingData && fieldMappingData.mappings) {
       // Convert the mappings object to array format expected by frontend
@@ -98,11 +88,25 @@ export const useAttributeMappingLogic = () => {
       return flowStateMappings;
     }
     // Fall back to real field mappings from separate API call
-    console.log('🔄 Using database mappings:', realFieldMappings);
-    return realFieldMappings;
-  })();
+    console.log('🔄 Using database mappings:', realFieldMappings || []);
+    return realFieldMappings || [];
+  }, [fieldMappingData, realFieldMappings]);
   
-  const crewAnalysis = (() => {
+  // Debug logging - moved here after fieldMappings is declared
+  useEffect(() => {
+    if (flow) {
+      console.log('🔍 Flow data available:', {
+        flow_id: flow.flow_id,
+        status: flow.status,
+        has_field_mapping: !!flow.field_mapping,
+        field_mapping_keys: flow.field_mapping ? Object.keys(flow.field_mapping) : [],
+        fieldMappings_length: fieldMappings?.length,
+        realFieldMappings_length: realFieldMappings?.length
+      });
+    }
+  }, [flow, fieldMappings, realFieldMappings]);
+  
+  const crewAnalysis = useMemo(() => {
     try {
       // For now, return empty array since analysis is an object, not array of crew analysis
       return [];
@@ -110,9 +114,9 @@ export const useAttributeMappingLogic = () => {
       console.error('Error extracting crewAnalysis:', error);
       return [];
     }
-  })();
+  }, []);
   
-  const mappingProgress = (() => {
+  const mappingProgress = useMemo(() => {
     try {
       // Use progress from flow state if available
       if (fieldMappingData && fieldMappingData.progress) {
@@ -125,10 +129,10 @@ export const useAttributeMappingLogic = () => {
       }
       
       // Otherwise calculate from field mappings
-      const total = fieldMappings.length;
-      const approved = fieldMappings.filter((m: any) => m.status === 'approved').length;
-      const suggested = fieldMappings.filter((m: any) => m.status === 'suggested').length;
-      const pending = fieldMappings.filter((m: any) => m.status === 'pending').length;
+      const total = fieldMappings?.length || 0;
+      const approved = fieldMappings?.filter((m: any) => m.status === 'approved').length || 0;
+      const suggested = fieldMappings?.filter((m: any) => m.status === 'suggested').length || 0;
+      const pending = fieldMappings?.filter((m: any) => m.status === 'pending').length || 0;
       
       return {
         total: total,
@@ -140,9 +144,9 @@ export const useAttributeMappingLogic = () => {
       console.error('Error calculating mappingProgress:', error);
       return { total: 0, mapped: 0, critical_mapped: 0, pending: 0 };
     }
-  })();
+  }, [fieldMappingData, fieldMappings]);
   
-  const criticalAttributes = (() => {
+  const criticalAttributes = useMemo(() => {
     try {
       if (fieldMappingData && !Array.isArray(fieldMappingData) && fieldMappingData.critical_attributes && typeof fieldMappingData.critical_attributes === 'object') {
         return Object.entries(fieldMappingData.critical_attributes).map(([name, mapping]: [string, any]) => ({
@@ -166,7 +170,7 @@ export const useAttributeMappingLogic = () => {
       console.error('Error extracting criticalAttributes:', error);
       return [];
     }
-  })();
+  }, [fieldMappingData]);
 
   // Session and flow information
   const sessionId = effectiveFlowId;
@@ -208,12 +212,25 @@ export const useAttributeMappingLogic = () => {
     try {
       console.log(`✅ Approving mapping: ${mappingId}`);
       
-      const result = await apiCall(`/data-import/mappings/${mappingId}/approve`, {
+      // Find the mapping to get source and target field names
+      const mapping = fieldMappings.find((m: any) => m.id === mappingId);
+      if (!mapping) {
+        console.error('❌ Mapping not found:', mappingId);
+        return;
+      }
+      
+      // Use the new field-based API endpoint
+      const result = await apiCall(`/data-import/mappings/approve-by-field`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...getAuthHeaders()
-        }
+        },
+        body: JSON.stringify({
+          source_field: mapping.sourceField,
+          target_field: mapping.targetAttribute,
+          import_id: effectiveFlowId // This should be the import ID
+        })
       });
       
       console.log('✅ Mapping approved successfully:', result);
@@ -230,20 +247,31 @@ export const useAttributeMappingLogic = () => {
       console.error('❌ Failed to approve mapping:', error);
       // Could add error toast notification here
     }
-  }, [refresh, refetchFieldMappings, getAuthHeaders]);
+  }, [fieldMappings, effectiveFlowId, refresh, refetchFieldMappings, getAuthHeaders]);
 
   const handleRejectMapping = useCallback(async (mappingId: string, rejectionReason?: string) => {
     try {
       console.log(`❌ Rejecting mapping: ${mappingId}`);
       
-      const result = await apiCall(`/data-import/mappings/${mappingId}/reject`, {
+      // Find the mapping to get source and target field names
+      const mapping = fieldMappings.find((m: any) => m.id === mappingId);
+      if (!mapping) {
+        console.error('❌ Mapping not found:', mappingId);
+        return;
+      }
+      
+      // Use the new field-based API endpoint
+      const result = await apiCall(`/data-import/mappings/reject-by-field`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...getAuthHeaders()
         },
         body: JSON.stringify({
-          rejection_reason: rejectionReason || 'User rejected this mapping'
+          source_field: mapping.sourceField,
+          target_field: mapping.targetAttribute,
+          rejection_reason: rejectionReason || 'User rejected this mapping',
+          import_id: effectiveFlowId // This should be the import ID
         })
       });
       
@@ -261,7 +289,7 @@ export const useAttributeMappingLogic = () => {
       console.error('❌ Failed to reject mapping:', error);
       // Could add error toast notification here
     }
-  }, [refresh, refetchFieldMappings, getAuthHeaders]);
+  }, [fieldMappings, effectiveFlowId, refresh, refetchFieldMappings, getAuthHeaders]);
 
   const handleMappingChange = useCallback(async (mappingId: string, newTarget: string) => {
     try {
@@ -322,6 +350,25 @@ export const useAttributeMappingLogic = () => {
     return Promise.all([refresh(), refetchFieldMappings()]);
   }, [refresh, refetchFieldMappings]);
 
+  const checkMappingApprovalStatus = useCallback(async (dataImportId: string) => {
+    try {
+      const result = await apiCall(`/data-import/mappings/approval-status/${dataImportId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        }
+      });
+      
+      return result;
+      
+    } catch (error) {
+      console.error('❌ Failed to check mapping approval status:', error);
+      return null;
+    }
+  }, [getAuthHeaders]);
+
+  // Move canContinueToDataCleansing after all data is declared to avoid forward reference
   const canContinueToDataCleansing = useCallback(() => {
     // Check if flow phase is complete
     if (flow?.phases?.attribute_mapping === true) {
@@ -347,24 +394,6 @@ export const useAttributeMappingLogic = () => {
     
     return false;
   }, [flow, fieldMappings, mappingProgress]);
-
-  const checkMappingApprovalStatus = useCallback(async (dataImportId: string) => {
-    try {
-      const result = await apiCall(`/data-import/mappings/approval-status/${dataImportId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders()
-        }
-      });
-      
-      return result;
-      
-    } catch (error) {
-      console.error('❌ Failed to check mapping approval status:', error);
-      return null;
-    }
-  }, [getAuthHeaders]);
 
   return {
     // Data

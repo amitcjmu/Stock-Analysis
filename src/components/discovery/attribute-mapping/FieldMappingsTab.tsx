@@ -189,6 +189,21 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
     fetchAvailableFields();
   }, []);
 
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.dropdown-container')) {
+        setOpenDropdowns({});
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   // Filter options - show all by default, but allow filtering
   const [showApproved, setShowApproved] = useState(true);
   const [showRejected, setShowRejected] = useState(false);
@@ -496,7 +511,7 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
                       <ArrowRight className="h-4 w-4 text-gray-400" />
                       
                       {/* Enhanced dropdown for target field selection */}
-                      <div className="relative">
+                      <div className="relative dropdown-container">
                         <button
                           onClick={() => toggleDropdown(mapping.id)}
                           disabled={mapping.status === 'approved' || mapping.status === 'rejected'}
