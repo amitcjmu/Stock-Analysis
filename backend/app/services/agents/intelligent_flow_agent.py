@@ -153,6 +153,11 @@ class FlowStatusTool(BaseTool):
             
             # Get real flow status using direct service calls
             status_result = self._get_real_flow_status(flow_id, context)
+            
+            # Special handling for not_found flows
+            if status_result.get("status") == "not_found" or status_result.get("current_phase") == "not_found":
+                status_result["user_guidance"] = "Flow not found. User needs to start a new discovery flow by uploading data."
+            
             return json.dumps(status_result)
             
         except Exception as e:
@@ -196,7 +201,7 @@ class FlowStatusTool(BaseTool):
         try:
             from app.api.v1.discovery_handlers.flow_management import FlowManagementHandler
             from app.core.database import AsyncSessionLocal
-            from app.core.request_context import RequestContext
+            from app.core.context import RequestContext
             
             # Create request context
             request_context = RequestContext(
@@ -473,6 +478,22 @@ class NavigationDecisionTool(BaseTool):
     def _make_routing_decision(self, flow_id: str, flow_type: str, current_phase: str, status_data: Dict, validation_data: Dict) -> Dict[str, Any]:
         """Make intelligent routing decision"""
         try:
+            # Handle not_found flows first
+            if current_phase == "not_found" or status_data.get("status") == "not_found":
+                return {
+                    "routing_decision": "/discovery/data-import",
+                    "user_guidance": "The discovery flow was not found. Please start a new discovery flow by uploading your data.",
+                    "action_type": "user_action",
+                    "confidence": 1.0,
+                    "next_actions": [
+                        "Navigate to the Data Import page",
+                        "Click on 'Upload Data' button",
+                        "Select your CMDB or asset data file (CSV/Excel)",
+                        "Wait for the upload to complete"
+                    ],
+                    "completion_status": "flow_not_found"
+                }
+            
             flow_type_enum = FlowType(flow_type)
             
             # Check if current phase is valid
@@ -571,18 +592,29 @@ class IntelligentFlowAgent:
             self.task = Task(
                 description="""Analyze the discovery flow and provide intelligent routing guidance:
 
-1. FIRST: Get flow context using flow_context_analyzer to establish proper multi-tenant context
-2. THEN: Get detailed flow status using flow_status_analyzer 
-3. IF FLOW EXISTS: Validate current phase using phase_validator to check actual completion criteria
-4. IF FLOW NOT FOUND: Provide clear guidance to start a new discovery flow
-5. FINALLY: Use navigation_decision_maker to determine where to route the user with specific actionable steps
+1. FIRST: Use flow_context_analyzer with flow_id="current_flow_id", client_account_id="current_client_account_id"
+2. THEN: Use flow_status_analyzer with the flow_id and context_data from step 1
+3. CHECK THE RESULT: 
+   - If current_phase="not_found" or status="not_found": STOP HERE and provide guidance to start new flow
+   - If flow exists: Continue to step 4
+4. IF FLOW EXISTS: Use phase_validator to check if current phase meets completion criteria
+5. ONLY IF FLOW EXISTS: Use navigation_decision_maker with proper string parameters
 
-CRITICAL GUIDELINES:
-- If flow status is "not_found" or "unknown": Guide user to start new discovery flow by uploading data
-- If flow exists but has issues: Provide specific steps to resolve the issues
-- Always distinguish between USER_ACTION (what user can do) vs SYSTEM_ACTION (automatic processes)
-- Provide specific page routes and actionable instructions
-- Focus on what the user can actually do right now
+CRITICAL RULES FOR NOT_FOUND FLOWS:
+- If flow_status_analyzer returns current_phase="not_found" or status="not_found"
+- DO NOT call phase_validator or navigation_decision_maker
+- DIRECTLY provide this response:
+  {
+    "routing_decision": "/discovery/data-import",
+    "user_guidance": "The discovery flow was not found. Please start a new discovery flow by uploading your data.",
+    "reasoning": "Flow ID not found in database. User needs to initiate a new discovery flow.",
+    "next_actions": [
+      "Navigate to the Data Import page",
+      "Click on 'Upload Data' button", 
+      "Select your CMDB or asset data file",
+      "Wait for upload to complete"
+    ]
+  }
 
 RESPONSE FORMAT:
 - routing_decision: Specific page/route where user should go
