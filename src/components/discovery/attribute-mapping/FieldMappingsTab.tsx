@@ -189,6 +189,33 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
     fetchAvailableFields();
   }, []);
 
+  // Debug logging for field mappings
+  console.log('🔍 FieldMappingsTab received:', {
+    fieldMappings: fieldMappings,
+    isArray: Array.isArray(fieldMappings),
+    length: fieldMappings?.length,
+    sample: fieldMappings?.[0]
+  });
+
+  // Force field mappings to be editable if they're in "suggested" status
+  const editableFieldMappings = fieldMappings.map((mapping: any) => ({
+    ...mapping,
+    status: mapping.status === 'suggested' ? 'pending' : mapping.status || 'pending'
+  }));
+
+  // Filter options - show all by default, but allow filtering
+  const [showApproved, setShowApproved] = useState(true);
+  const [showRejected, setShowRejected] = useState(false);
+  const [showPending, setShowPending] = useState(true);
+  
+  // Apply filters
+  const filteredMappings = editableFieldMappings.filter((mapping: any) => {
+    if (mapping.status === 'approved' && !showApproved) return false;
+    if (mapping.status === 'rejected' && !showRejected) return false;
+    if ((mapping.status === 'pending' || mapping.status === 'suggested' || !mapping.status) && !showPending) return false;
+    return true;
+  });
+
   // Handle case where fieldMappings is not yet available or not an array
   if (!Array.isArray(fieldMappings) || fieldMappings.length === 0) {
     return (
@@ -196,6 +223,9 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
         <p className="text-gray-500">
           {!Array.isArray(fieldMappings) ? 'Loading field mappings...' : 'No field mappings available yet.'}
         </p>
+        <div className="mt-4 text-xs text-gray-400">
+          Debug: {JSON.stringify({ fieldMappings: fieldMappings?.slice(0, 2), isArray: Array.isArray(fieldMappings) })}
+        </div>
       </div>
     );
   }
@@ -329,11 +359,11 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
     });
   };
 
-  // Calculate pagination
-  const totalPages = Math.ceil(fieldMappings.length / ITEMS_PER_PAGE);
+  // Calculate pagination using filtered mappings
+  const totalPages = Math.ceil(filteredMappings.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
-  const currentMappings = fieldMappings.slice(startIndex, endIndex);
+  const currentMappings = filteredMappings.slice(startIndex, endIndex);
 
   const handleTargetFieldChange = (mappingId: string, newTarget: string) => {
     setOpenDropdowns(prev => ({ ...prev, [mappingId]: false }));
@@ -408,11 +438,48 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
         )}
       </div>
       
-      {fieldMappings.length === 0 ? (
+      {/* Filter controls */}
+      <div className="mb-4 flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
+        <span className="text-sm font-medium text-gray-700">Show:</span>
+        <label className="flex items-center">
+          <input
+            type="checkbox"
+            checked={showPending}
+            onChange={(e) => setShowPending(e.target.checked)}
+            className="mr-2"
+          />
+          <span className="text-sm text-gray-600">Pending ({editableFieldMappings.filter(m => m.status === 'pending' || m.status === 'suggested' || !m.status).length})</span>
+        </label>
+        <label className="flex items-center">
+          <input
+            type="checkbox"
+            checked={showApproved}
+            onChange={(e) => setShowApproved(e.target.checked)}
+            className="mr-2"
+          />
+          <span className="text-sm text-gray-600">Approved ({editableFieldMappings.filter(m => m.status === 'approved').length})</span>
+        </label>
+        <label className="flex items-center">
+          <input
+            type="checkbox"
+            checked={showRejected}
+            onChange={(e) => setShowRejected(e.target.checked)}
+            className="mr-2"
+          />
+          <span className="text-sm text-gray-600">Rejected ({editableFieldMappings.filter(m => m.status === 'rejected').length})</span>
+        </label>
+      </div>
+
+      {filteredMappings.length === 0 ? (
         <div className="text-center py-10">
           <Tag className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-sm font-medium text-gray-900">No Field Mappings</h3>
-          <p className="mt-1 text-sm text-gray-500">No automated field mappings were generated. You can manually map fields or analyze your data again.</p>
+          <p className="mt-1 text-sm text-gray-500">
+            {editableFieldMappings.length === 0 
+              ? 'No automated field mappings were generated. You can manually map fields or analyze your data again.'
+              : 'No mappings match your current filter criteria. Try adjusting the filters above.'
+            }
+          </p>
         </div>
       ) : (
         <>
@@ -432,13 +499,14 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
                           onClick={() => toggleDropdown(mapping.id)}
                           disabled={mapping.status === 'approved' || mapping.status === 'rejected'}
                           className={`flex items-center space-x-2 px-3 py-1 rounded-lg border ${
-                            mapping.status === 'pending' 
+                            mapping.status === 'pending' || mapping.status === 'suggested' || !mapping.status
                               ? 'bg-white border-gray-300 hover:border-blue-500 cursor-pointer' 
                               : mapping.status === 'approved'
                               ? 'bg-green-50 border-green-200 cursor-not-allowed'
                               : 'bg-red-50 border-red-200 cursor-not-allowed'
                           }`}
                         >
+                          <span className="text-xs bg-gray-100 px-1 rounded">{mapping.status || 'unknown'}</span>
                           <span className={`font-medium ${
                             mapping.status === 'pending' ? 'text-blue-600' :
                             mapping.status === 'approved' ? 'text-green-700' : 'text-red-700'
@@ -457,7 +525,7 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
                         </button>
                         
                         {/* Enhanced dropdown menu with categories and search */}
-                        {openDropdowns[mapping.id] && mapping.status === 'pending' && (
+                        {openDropdowns[mapping.id] && (mapping.status === 'pending' || mapping.status === 'suggested' || !mapping.status) && (
                           <div className="absolute z-10 mt-1 w-80 bg-white border border-gray-300 rounded-lg shadow-lg max-h-96 overflow-hidden">
                             {loadingFields ? (
                               <div className="p-3 text-center text-gray-500">Loading fields...</div>
@@ -559,7 +627,7 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
                   </div>
                   
                   {/* Action buttons */}
-                  {mapping.status === 'pending' && (
+                  {(mapping.status === 'pending' || mapping.status === 'suggested' || !mapping.status) && (
                     <div className="flex items-center space-x-2 ml-4">
                       <button
                         onClick={() => onMappingAction(mapping.id, 'approve')}
@@ -602,7 +670,10 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
           {totalPages > 1 && (
             <div className="flex items-center justify-between mt-6">
               <p className="text-sm text-gray-700">
-                Showing <span className="font-medium">{startIndex + 1}</span> to <span className="font-medium">{Math.min(endIndex, fieldMappings.length)}</span> of <span className="font-medium">{fieldMappings.length}</span> results
+                Showing <span className="font-medium">{startIndex + 1}</span> to <span className="font-medium">{Math.min(endIndex, filteredMappings.length)}</span> of <span className="font-medium">{filteredMappings.length}</span> results
+                {filteredMappings.length !== editableFieldMappings.length && (
+                  <span className="ml-2 text-gray-500">(filtered from {editableFieldMappings.length} total)</span>
+                )}
               </p>
               <div className="flex items-center space-x-2">
                 <button

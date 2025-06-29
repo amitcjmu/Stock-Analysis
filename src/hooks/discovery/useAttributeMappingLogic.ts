@@ -49,6 +49,18 @@ export const useAttributeMappingLogic = () => {
   // Get field mapping data from unified flow (for legacy compatibility)
   const fieldMappingData = flow?.field_mapping;
   
+  // Debug logging
+  if (flow) {
+    console.log('🔍 Flow data available:', {
+      flow_id: flow.flow_id,
+      status: flow.status,
+      has_field_mapping: !!flow.field_mapping,
+      field_mapping_keys: flow.field_mapping ? Object.keys(flow.field_mapping) : [],
+      fieldMappings_length: fieldMappings?.length,
+      realFieldMappings_length: realFieldMappings?.length
+    });
+  }
+  
   // Extract data with proper type checking and safe access
   const agenticData = (() => {
     try {
@@ -62,8 +74,33 @@ export const useAttributeMappingLogic = () => {
     }
   })();
   
-  // Use real field mappings from database instead of flow state
-  const fieldMappings = realFieldMappings;
+  // Use field mappings from flow state if available, otherwise fall back to database mappings
+  const fieldMappings = (() => {
+    // First try to get mappings from flow state
+    if (fieldMappingData && fieldMappingData.mappings) {
+      // Convert the mappings object to array format expected by frontend
+      const mappingsObj = fieldMappingData.mappings;
+      const flowStateMappings = Object.entries(mappingsObj).map(([sourceField, mapping]: [string, any]) => ({
+        id: `mapping-${sourceField}`,
+        sourceField: mapping.source_column || sourceField,
+        targetAttribute: mapping.asset_field || sourceField,
+        confidence: (mapping.confidence || 0) / 100, // Convert to 0-1 range
+        mapping_type: mapping.match_type || 'ai_suggested',
+        sample_values: [],
+        status: 'pending', // Ensure mappings are editable
+        ai_reasoning: `AI mapped ${mapping.source_column} to ${mapping.asset_field} with ${mapping.confidence}% confidence`,
+        is_user_defined: false,
+        user_feedback: null,
+        validation_method: mapping.pattern_matched || 'semantic_analysis',
+        is_validated: false
+      }));
+      console.log('🔄 Using flow state mappings:', flowStateMappings);
+      return flowStateMappings;
+    }
+    // Fall back to real field mappings from separate API call
+    console.log('🔄 Using database mappings:', realFieldMappings);
+    return realFieldMappings;
+  })();
   
   const crewAnalysis = (() => {
     try {
@@ -77,11 +114,21 @@ export const useAttributeMappingLogic = () => {
   
   const mappingProgress = (() => {
     try {
-      // Calculate progress from real field mappings
-      const total = realFieldMappings.length;
-      const approved = realFieldMappings.filter((m: any) => m.status === 'approved').length;
-      const suggested = realFieldMappings.filter((m: any) => m.status === 'suggested').length;
-      const pending = realFieldMappings.filter((m: any) => m.status === 'pending').length;
+      // Use progress from flow state if available
+      if (fieldMappingData && fieldMappingData.progress) {
+        return {
+          total: fieldMappingData.progress.total || 0,
+          mapped: fieldMappingData.progress.mapped || 0,
+          critical_mapped: fieldMappingData.progress.critical_mapped || 0,
+          pending: (fieldMappingData.progress.total || 0) - (fieldMappingData.progress.mapped || 0)
+        };
+      }
+      
+      // Otherwise calculate from field mappings
+      const total = fieldMappings.length;
+      const approved = fieldMappings.filter((m: any) => m.status === 'approved').length;
+      const suggested = fieldMappings.filter((m: any) => m.status === 'suggested').length;
+      const pending = fieldMappings.filter((m: any) => m.status === 'pending').length;
       
       return {
         total: total,
@@ -171,20 +218,26 @@ export const useAttributeMappingLogic = () => {
       
       console.log('✅ Mapping approved successfully:', result);
       
+      // Update the local state immediately for better UX
+      const updatedMappings = fieldMappings.map((mapping: any) => 
+        mapping.id === mappingId 
+          ? { ...mapping, status: 'approved', is_validated: true }
+          : mapping
+      );
+      
       // Refresh both flow data and field mappings
       await Promise.all([refresh(), refetchFieldMappings()]);
       
       // Show success message
       if (typeof window !== 'undefined') {
-        // Could add toast notification here
-        console.log(`Mapping approved: ${result.message}`);
+        console.log(`Mapping approved: ${result.message || 'Mapping approved successfully'}`);
       }
       
     } catch (error) {
       console.error('❌ Failed to approve mapping:', error);
       // Could add error toast notification here
     }
-  }, [refresh, refetchFieldMappings, getAuthHeaders]);
+  }, [refresh, refetchFieldMappings, getAuthHeaders, fieldMappings]);
 
   const handleRejectMapping = useCallback(async (mappingId: string, rejectionReason?: string) => {
     try {
@@ -203,20 +256,26 @@ export const useAttributeMappingLogic = () => {
       
       console.log('✅ Mapping rejected successfully:', result);
       
+      // Update the local state immediately for better UX
+      const updatedMappings = fieldMappings.map((mapping: any) => 
+        mapping.id === mappingId 
+          ? { ...mapping, status: 'rejected', user_feedback: rejectionReason, is_validated: true }
+          : mapping
+      );
+      
       // Refresh both flow data and field mappings
       await Promise.all([refresh(), refetchFieldMappings()]);
       
       // Show success message
       if (typeof window !== 'undefined') {
-        // Could add toast notification here
-        console.log(`Mapping rejected: ${result.message}`);
+        console.log(`Mapping rejected: ${result.message || 'Mapping rejected successfully'}`);
       }
       
     } catch (error) {
       console.error('❌ Failed to reject mapping:', error);
       // Could add error toast notification here
     }
-  }, [refresh, refetchFieldMappings, getAuthHeaders]);
+  }, [refresh, refetchFieldMappings, getAuthHeaders, fieldMappings]);
 
   const handleMappingChange = useCallback(async (mappingId: string, newTarget: string) => {
     try {
@@ -405,7 +464,7 @@ const useRealFieldMappings = () => {
           confidence: mapping.confidence,
           mapping_type: mapping.mapping_type || 'direct',
           sample_values: mapping.sample_values || [],
-          status: mapping.status || 'suggested',
+          status: mapping.status === 'suggested' ? 'pending' : mapping.status || 'pending', // Ensure editable
           ai_reasoning: mapping.ai_reasoning || `AI suggested mapping based on field similarity`,
           is_user_defined: mapping.is_user_defined || false,
           user_feedback: mapping.user_feedback,
