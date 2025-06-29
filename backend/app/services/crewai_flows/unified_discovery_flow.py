@@ -366,6 +366,13 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         
         logger.info("🤖 Starting Data Import Validation with Agent-First Architecture")
         self.state.current_phase = "data_import"
+        self.state.status = "running"
+        self.state.progress_percentage = 10.0  # Start with 10% progress
+        
+        # Store record count for proper tracking
+        total_records = len(self.state.raw_data) if self.state.raw_data else 0
+        self.state.records_processed = 0
+        self.state.records_total = total_records
         
         # REAL-TIME UPDATE: Update database immediately when phase starts
         await self._safe_update_flow_state()
@@ -379,10 +386,12 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
                 insight_type="processing",
                 page=f"flow_{self.state.flow_id}",
                 title="Starting Data Import Validation",
-                description=f"Beginning validation of {len(self.state.raw_data) if self.state.raw_data else 0} records",
+                description=f"Beginning validation of {total_records} records",
                 supporting_data={
                     'phase': 'data_import',
-                    'records_total': len(self.state.raw_data) if self.state.raw_data else 0,
+                    'records_total': total_records,
+                    'records_processed': 0,
+                    'progress_percentage': 10.0,
                     'start_time': datetime.utcnow().isoformat(),
                     'estimated_duration': '2-3 minutes'
                 },
@@ -439,6 +448,8 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             # Update phase completion
             self.state.phase_completion['data_import'] = True
             self.state.progress_percentage = 20.0
+            self.state.records_processed = len(self.state.raw_data)
+            self.state.records_valid = len(self.state.raw_data)  # Assume all valid for now
             
             # Add completion update
             try:
@@ -453,6 +464,7 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
                         'phase': 'data_import',
                         'progress_percentage': 20.0,
                         'records_processed': len(self.state.raw_data),
+                        'records_total': self.state.records_total,
                         'confidence_score': validation_result.confidence_score,
                         'validation_results': validation_result.data,
                         'completion_time': datetime.utcnow().isoformat()

@@ -65,7 +65,7 @@ FLOW_DEFINITIONS = {
                     "data_import_service.get_import_stats",
                     "raw_data_repository.count_records"
                 ],
-                "navigation_path": "/discovery/data-import"
+                "navigation_path": "/discovery/cmdb-import"
             },
             {
                 "id": "attribute_mapping",

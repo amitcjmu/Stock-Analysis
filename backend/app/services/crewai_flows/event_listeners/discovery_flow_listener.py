@@ -148,6 +148,36 @@ class DiscoveryFlowEventListener(BaseEventListener):
             }
             self.flow_status[flow_id] = "running"
             
+            # Update database status to "running"
+            try:
+                import asyncio
+                from app.db.session import AsyncSessionLocal
+                from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
+                
+                async def update_flow_status():
+                    async with AsyncSessionLocal() as db:
+                        # Create repository with system context
+                        flow_repo = DiscoveryFlowRepository(
+                            db=db,
+                            client_account_id="11111111-1111-1111-1111-111111111111",  # Default for system updates
+                            engagement_id="22222222-2222-2222-2222-222222222222"
+                        )
+                        
+                        # Update flow status
+                        flow = await flow_repo.get_by_flow_id(flow_id)
+                        if flow:
+                            flow.status = "running"
+                            await db.commit()
+                            logger.info(f"✅ Updated database status to 'running' for flow: {flow_id}")
+                        else:
+                            logger.warning(f"⚠️ Flow not found in database: {flow_id}")
+                
+                # Run the update in the background
+                asyncio.create_task(update_flow_status())
+                
+            except Exception as e:
+                logger.error(f"❌ Failed to update database status: {e}")
+            
             logger.info(f"🚀 Discovery Flow started: {flow_id}")
         
         @crewai_event_bus.on(FlowFinishedEvent) 

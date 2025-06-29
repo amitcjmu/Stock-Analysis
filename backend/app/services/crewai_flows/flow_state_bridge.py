@@ -116,6 +116,16 @@ class FlowStateBridge:
             # Determine current phase from state
             current_phase = getattr(state, 'current_phase', 'unknown')
             
+            # Extract and ensure processing statistics are at root level of state data
+            # This is critical for the frontend to receive the correct record counts
+            state_dict = state.model_dump()
+            
+            # Ensure these fields are available at the root level for API responses
+            processing_fields = ['records_processed', 'records_total', 'records_valid', 'records_failed']
+            for field in processing_fields:
+                if hasattr(state, field):
+                    state_dict[field] = getattr(state, field)
+            
             # Handle phase mapping for parallel analysis phases
             if current_phase == "analysis":
                 # For analysis phase, update individual component phases based on completion status

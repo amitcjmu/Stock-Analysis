@@ -1,0 +1,6 @@
+app_id,application_name,version,criticality,environment,dependencies,owner,last_updated
+APP001,Customer Portal,2.5.0,High,Production,"Database, Redis",John Smith,2024-01-15
+APP002,Payment Gateway,1.8.2,Critical,Production,"Database, Queue, External API",Jane Doe,2024-01-20
+APP003,Admin Dashboard,3.1.0,Medium,Production,"Database, Auth Service",Bob Johnson,2024-01-18
+APP004,Mobile API,4.0.1,High,Production,"Database, Redis, Queue",Alice Brown,2024-01-22
+APP005,Analytics Engine,2.2.3,Low,Development,"Database, Data Lake",Charlie Davis,2024-01-10

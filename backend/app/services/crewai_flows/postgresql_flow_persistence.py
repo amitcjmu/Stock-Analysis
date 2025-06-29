@@ -136,6 +136,15 @@ class PostgreSQLFlowPersistence:
                 # Use V2 Discovery Flow Service
                 flow_service = DiscoveryFlowService(db_session, context)
                 
+                # Extract state data and ensure processing statistics are at root level
+                state_data = state.model_dump()
+                
+                # Ensure processing statistics are available at root level
+                processing_fields = ['records_processed', 'records_total', 'records_valid', 'records_failed']
+                for field in processing_fields:
+                    if hasattr(state, field):
+                        state_data[field] = getattr(state, field)
+                
                 # Update flow with current phase if available
                 if state.current_phase and state.current_phase != "initialization":
                     flow = await flow_service.update_phase_completion(
@@ -145,7 +154,9 @@ class PostgreSQLFlowPersistence:
                             "status": state.status,
                             "progress": state.progress_percentage,
                             "crew_status": state.crew_status,
-                            "legacy_data": state.model_dump()
+                            "legacy_data": state.model_dump(),
+                            # Include processing statistics at root level
+                            **{field: state_data.get(field, 0) for field in processing_fields}
                         },
                         crew_status=state.crew_status,
                         agent_insights=state.agent_insights or []

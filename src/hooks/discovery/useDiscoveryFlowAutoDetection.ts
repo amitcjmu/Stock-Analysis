@@ -14,7 +14,7 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
   
   const {
     currentPhase,
-    preferredStatuses = ['running', 'active', 'in_progress'],
+    preferredStatuses = ['initialized', 'running', 'active', 'in_progress'],
     fallbackToAnyRunning = true
   } = options;
 
@@ -43,6 +43,30 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
       if (currentPhaseFlow) {
         console.log(`✅ Found flow needing ${currentPhase} phase:`, currentPhaseFlow.flow_id);
         return currentPhaseFlow.flow_id;
+      }
+    }
+    
+    // Priority 1.5: For attribute_mapping, also check flows that completed data_import
+    if (currentPhase === 'attribute_mapping') {
+      const dataImportCompleteFlow = flowList.find((flow: any) => {
+        // Check if data_import is completed
+        const dataImportCompleted = flow.phases?.data_import === true || 
+                                   flow.data_import_completed === true ||
+                                   flow.current_phase === 'data_import';
+        
+        // Check if flow is in a suitable status
+        const isPreferredStatus = preferredStatuses.includes(flow.status);
+        
+        // Check if attribute_mapping is not yet completed
+        const attributeMappingNotCompleted = flow.phases?.attribute_mapping !== true && 
+                                           flow.attribute_mapping_completed !== true;
+        
+        return dataImportCompleted && isPreferredStatus && attributeMappingNotCompleted;
+      });
+      
+      if (dataImportCompleteFlow) {
+        console.log(`✅ Found flow with completed data_import ready for attribute_mapping:`, dataImportCompleteFlow.flow_id);
+        return dataImportCompleteFlow.flow_id;
       }
     }
     
@@ -139,7 +163,7 @@ export const useDataImportFlowDetection = () => {
 export const useAttributeMappingFlowDetection = () => {
   return useDiscoveryFlowAutoDetection({
     currentPhase: 'attribute_mapping',
-    preferredStatuses: ['running', 'active'],
+    preferredStatuses: ['initialized', 'running', 'active', 'initializing', 'processing', 'paused', 'waiting_for_user_approval'],
     fallbackToAnyRunning: true
   });
 };

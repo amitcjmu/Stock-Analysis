@@ -742,6 +742,14 @@ class FlowManagementHandler:
             # Get flow from database
             flow = await self.flow_repo.get_by_flow_id(flow_id)
             
+            # If not found with current context, try global search
+            if not flow:
+                logger.info(f"🔍 Flow not found with current context, trying global search: {flow_id}")
+                flow = await self.flow_repo.get_by_flow_id_global(flow_id)
+                
+                if flow:
+                    logger.info(f"✅ Flow found globally - client: {flow.client_account_id}, engagement: {flow.engagement_id}")
+            
             if not flow:
                 # Return minimal status for non-existent flows
                 return {
@@ -904,6 +912,34 @@ class FlowManagementHandler:
                 except Exception as e:
                     logger.warning(f"Failed to get import data for field mapping: {e}")
             
+            # Extract processing statistics from CrewAI state data
+            records_processed = 0
+            records_total = 0
+            records_valid = 0
+            records_failed = 0
+            
+            if flow.crewai_state_data:
+                try:
+                    import json
+                    state_data = json.loads(flow.crewai_state_data) if isinstance(flow.crewai_state_data, str) else flow.crewai_state_data
+                    if isinstance(state_data, dict):
+                        # Check for processing statistics in the state data
+                        records_processed = state_data.get("records_processed", 0)
+                        records_total = state_data.get("records_total", 0)
+                        records_valid = state_data.get("records_valid", 0)
+                        records_failed = state_data.get("records_failed", 0)
+                        
+                        # Also check in data_import phase data
+                        if "data_import" in state_data and isinstance(state_data["data_import"], dict):
+                            data_import = state_data["data_import"]
+                            records_processed = records_processed or data_import.get("records_processed", 0)
+                            records_total = records_total or data_import.get("records_total", 0)
+                            records_valid = records_valid or data_import.get("records_valid", 0)
+                            records_failed = records_failed or data_import.get("records_failed", 0)
+                            
+                except Exception as e:
+                    logger.warning(f"Failed to extract processing statistics from crewai_state_data: {e}")
+            
             flow_status = {
                 "flow_id": flow_id,
                 "data_import_id": str(flow.import_session_id) if flow.import_session_id else None,
@@ -913,7 +949,12 @@ class FlowManagementHandler:
                 "phases": phases,
                 "agent_insights": agent_insights,
                 "created_at": flow.created_at.isoformat() if flow.created_at else "",
-                "updated_at": flow.updated_at.isoformat() if flow.updated_at else datetime.now().isoformat()
+                "updated_at": flow.updated_at.isoformat() if flow.updated_at else datetime.now().isoformat(),
+                # Include processing statistics
+                "records_processed": records_processed,
+                "records_total": records_total,
+                "records_valid": records_valid,
+                "records_failed": records_failed
             }
             
             # Include field mapping data if available

@@ -62,18 +62,27 @@ export const UniversalProcessingStatus: React.FC<UniversalProcessingStatusProps>
   console.log('[UniversalProcessingStatus] Monitoring state:', {
     isLoading: monitoring?.processing?.isLoading,
     error: monitoring?.processing?.error,
-    consecutiveErrors: monitoring?.processing?.consecutiveErrors
+    consecutiveErrors: monitoring?.processing?.consecutiveErrors,
+    isPollingDisabled: monitoring?.processing?.isPollingDisabled
   });
 
   // Enhanced status determination with user approval detection
   const getEnhancedStatus = () => {
-    // Check if flow is paused for user approval
-    const isAwaitingApproval = processingStatus?.status === 'paused' || 
-                              processingStatus?.status === 'waiting_for_user_approval' ||
-                              (processingStatus?.phase === 'attribute_mapping' && 
-                               (processingStatus?.progress >= 90 || processingStatus?.progress_percentage >= 90)) ||
-                              (processingStatus?.current_phase === 'attribute_mapping' && 
-                               processingStatus?.progress_percentage >= 90);
+    // Check if flow is paused for user approval or has completed data import
+    const isDataImportComplete = 
+      processingStatus?.phases?.data_import === true ||
+      processingStatus?.phases?.data_import_completed === true ||
+      (processingStatus?.current_phase === 'data_import' && processingStatus?.status === 'completed') ||
+      (processingStatus?.phase === 'data_import' && processingStatus?.progress_percentage >= 100);
+      
+    const isAwaitingApproval = 
+      processingStatus?.status === 'paused' || 
+      processingStatus?.status === 'waiting_for_user_approval' ||
+      (processingStatus?.phase === 'attribute_mapping' && 
+       (processingStatus?.progress >= 90 || processingStatus?.progress_percentage >= 90)) ||
+      (processingStatus?.current_phase === 'attribute_mapping' && 
+       processingStatus?.progress_percentage >= 90) ||
+      isDataImportComplete;
     
     if (isAwaitingApproval) {
       return {
@@ -90,8 +99,10 @@ export const UniversalProcessingStatus: React.FC<UniversalProcessingStatusProps>
 
     // Check actual progress from processing status (handle both field names)
     const actualProgress = processingStatus?.progress_percentage || processingStatus?.progress || 0;
+    console.log('[UniversalProcessingStatus] Actual progress:', actualProgress, 'from processingStatus:', processingStatus);
     
-    if (processingStatus?.status === 'completed') {
+    if (processingStatus?.status === 'completed' || 
+        (processingStatus?.status === 'active' && actualProgress >= 100)) {
       return {
         status: 'completed',
         message: 'Processing Complete',
@@ -115,7 +126,7 @@ export const UniversalProcessingStatus: React.FC<UniversalProcessingStatusProps>
       };
     }
 
-    if (processingStatus?.status === 'running' || processingStatus?.status === 'in_progress' || processingStatus?.status === 'active') {
+    if (processingStatus?.status === 'running' || processingStatus?.status === 'in_progress' || processingStatus?.status === 'processing') {
       const currentPhase = processingStatus?.current_phase || processingStatus?.phase || 'unknown';
       return {
         status: 'running',
@@ -126,6 +137,34 @@ export const UniversalProcessingStatus: React.FC<UniversalProcessingStatusProps>
         iconColor: 'text-yellow-600',
         progress: actualProgress
       };
+    }
+
+    // Handle active status based on progress
+    if (processingStatus?.status === 'active' || processingStatus?.status === 'initialized') {
+      if (actualProgress === 0) {
+        return {
+          status: 'starting',
+          message: 'CrewAI Flow Started',
+          description: 'The discovery flow has been created and is initializing. Data processing will begin shortly.',
+          color: 'bg-green-50 border-green-200',
+          icon: Activity,
+          iconColor: 'text-green-600',
+          progress: 0,
+          showNextSteps: true
+        };
+      } else {
+        // Active with progress - show as running
+        const currentPhase = processingStatus?.current_phase || processingStatus?.phase || 'processing';
+        return {
+          status: 'running',
+          message: 'Processing Active',
+          description: `Currently in ${currentPhase.replace(/_/g, ' ')} phase...`,
+          color: 'bg-blue-50 border-blue-200',
+          icon: Activity,
+          iconColor: 'text-blue-600',
+          progress: actualProgress
+        };
+      }
     }
 
     return {
@@ -199,6 +238,38 @@ export const UniversalProcessingStatus: React.FC<UniversalProcessingStatusProps>
   // Next Steps Component for user approval state
   const NextStepsCard = () => {
     if (!enhancedStatus.showNextSteps) return null;
+
+    // Different content for different states
+    if (enhancedStatus.status === 'starting') {
+      return (
+        <Card className="mb-6 border-green-200 bg-green-50">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-green-800">
+              <Activity className="h-5 w-5" />
+              Discovery Flow Created Successfully
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <p className="text-sm text-green-700">
+                Your CrewAI Discovery Flow has been created with ID: <code className="bg-green-100 px-1 rounded">{flow_id?.substring(0, 8)}...</code>
+              </p>
+              <p className="text-sm text-green-700">
+                The AI agents are initializing and will begin processing your data shortly. This page will automatically update with progress.
+              </p>
+              <div className="mt-4 p-3 bg-green-100 rounded-lg">
+                <div className="flex items-center gap-2 text-green-800">
+                  <Info className="h-4 w-4" />
+                  <span className="text-sm font-medium">
+                    If progress doesn't start within 30 seconds, try navigating to the Attribute Mapping page to continue the flow.
+                  </span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
 
     return (
       <Card className="mb-6 border-blue-200 bg-blue-50">
@@ -327,36 +398,38 @@ export const UniversalProcessingStatus: React.FC<UniversalProcessingStatusProps>
                 <Progress value={enhancedStatus.progress} className="w-full" />
               </div>
 
-              {/* Processing Statistics */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {processingStatus?.records_processed || processingStatus?.recordsProcessed || 0}
+              {/* Processing Statistics - Only show when we have actual records */}
+              {(processingStatus?.records_total > 0 || processingStatus?.recordsProcessed > 0) && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {processingStatus?.records_processed || processingStatus?.recordsProcessed || 0}
+                    </div>
+                    <div className="text-sm text-gray-600">Records Processed</div>
                   </div>
-                  <div className="text-sm text-gray-600">Records Processed</div>
-                </div>
-                
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">
-                    {processingStatus?.records_valid || processingStatus?.recordsValid || processingStatus?.records_processed || processingStatus?.recordsProcessed || 0}
+                  
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600">
+                      {processingStatus?.records_valid || processingStatus?.recordsValid || processingStatus?.records_processed || processingStatus?.recordsProcessed || 0}
+                    </div>
+                    <div className="text-sm text-gray-600">Valid Records</div>
                   </div>
-                  <div className="text-sm text-gray-600">Valid Records</div>
-                </div>
-                
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-red-600">
-                    {processingStatus?.records_failed || processingStatus?.recordsInvalid || 0}
+                  
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-red-600">
+                      {processingStatus?.records_failed || processingStatus?.recordsInvalid || 0}
+                    </div>
+                    <div className="text-sm text-gray-600">Invalid Records</div>
                   </div>
-                  <div className="text-sm text-gray-600">Invalid Records</div>
-                </div>
-                
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-600">
-                    {agentInsights?.length || 0}
+                  
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-purple-600">
+                      {agentInsights?.length || 0}
+                    </div>
+                    <div className="text-sm text-gray-600">Agent Insights</div>
                   </div>
-                  <div className="text-sm text-gray-600">Agent Insights</div>
                 </div>
-              </div>
+              )}
 
               {(processingStatus?.phase || processingStatus?.current_phase) && (
                 <div className="flex items-center gap-2 mt-4">

@@ -136,12 +136,24 @@ class DiscoveryFlowRepository(ContextAwareRepository):
     
     async def get_by_flow_id_global(self, flow_id: str) -> Optional[DiscoveryFlow]:
         """Get discovery flow by CrewAI Flow ID without tenant filtering (for duplicate checking)"""
-        stmt = select(DiscoveryFlow).where(
-            DiscoveryFlow.flow_id == flow_id
-        )
-        
-        result = await self.db.execute(stmt)
-        return result.scalar_one_or_none()
+        try:
+            # Convert flow_id to UUID for database query
+            try:
+                flow_uuid = uuid.UUID(flow_id) if isinstance(flow_id, str) else flow_id
+            except (ValueError, TypeError) as e:
+                logger.error(f"❌ Invalid flow_id UUID format: {flow_id}, error: {e}")
+                return None
+            
+            stmt = select(DiscoveryFlow).where(
+                DiscoveryFlow.flow_id == flow_uuid
+            )
+            
+            result = await self.db.execute(stmt)
+            return result.scalar_one_or_none()
+            
+        except Exception as e:
+            logger.error(f"❌ Database error in get_by_flow_id_global: {e}")
+            return None
     
     async def get_by_import_session_id(self, import_session_id: str) -> Optional[DiscoveryFlow]:
         """Get discovery flow by import session ID (for backward compatibility)"""
@@ -197,6 +209,13 @@ class DiscoveryFlowRepository(ContextAwareRepository):
                     state_data["crew_status"] = crew_status
                 if agent_insights:
                     state_data["agent_insights"] = agent_insights
+                
+                # Extract processing statistics to root level for API responses
+                processing_fields = ['records_processed', 'records_total', 'records_valid', 'records_failed']
+                for field in processing_fields:
+                    if field in data:
+                        state_data[field] = data[field]
+                
                 update_values["crewai_state_data"] = state_data
                 
                 # Set CrewAI persistence ID if not already set (for validation compatibility)
@@ -323,7 +342,7 @@ class DiscoveryFlowRepository(ContextAwareRepository):
         # Include phase names that may have been incorrectly set as status
         # This handles legacy data where phase names were used as status
         valid_active_statuses = [
-            "active", "running", "paused",
+            "initialized", "active", "running", "paused",
             # Phase names that might have been set as status by mistake
             "data_import", "attribute_mapping", "field_mapping", 
             "data_cleansing", "inventory", "dependencies", "tech_debt"
@@ -347,7 +366,7 @@ class DiscoveryFlowRepository(ContextAwareRepository):
         """
         # Include phase names that may have been incorrectly set as status
         valid_statuses = [
-            "active", "running", "paused", "completed",
+            "initialized", "active", "running", "paused", "completed",
             # Phase names that might have been set as status by mistake
             "data_import", "attribute_mapping", "field_mapping",
             "data_cleansing", "inventory", "dependencies", "tech_debt"

@@ -270,6 +270,10 @@ class FlowStatusTool(BaseTool):
             phase_name = next_phase.replace('_', ' ').title()
             return f"Navigate to {route} to continue with {phase_name} phase."
         
+        # Handle flow not found
+        if current_phase == "not_found":
+            return "Flow not found. Navigate to /discovery/cmdb-import to start a new discovery flow."
+        
         return f"Currently in {current_phase.replace('_', ' ').title()} phase."
     
     async def _async_get_flow_status(self, flow_id: str, context: Dict[str, Any]) -> Dict[str, Any]:
@@ -557,12 +561,12 @@ class NavigationDecisionTool(BaseTool):
             # Handle not_found flows first
             if current_phase == "not_found" or status_data.get("status") == "not_found":
                 return {
-                    "routing_decision": "/discovery/data-import",
+                    "routing_decision": "/discovery/cmdb-import",
                     "user_guidance": "The discovery flow was not found. Please start a new discovery flow by uploading your data.",
                     "action_type": "user_action",
                     "confidence": 1.0,
                     "next_actions": [
-                        "Navigate to the Data Import page",
+                        "Navigate to the CMDB Import page",
                         "Click on 'Upload Data' button",
                         "Select your CMDB or asset data file (CSV/Excel)",
                         "Wait for the upload to complete"

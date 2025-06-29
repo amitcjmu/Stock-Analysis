@@ -101,6 +101,11 @@ const AttributeMapping: React.FC = () => {
 
         <div className="flex-1 overflow-y-auto">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-7xl">
+            {/* Always show breadcrumbs at the top */}
+            <div className="mb-6">
+              <ContextBreadcrumbs />
+            </div>
+            
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-gray-900 mb-2">Attribute Mapping</h1>
               <p className="text-gray-600">Map your data fields to standard migration attributes and verify data quality.</p>
@@ -247,10 +252,6 @@ const AttributeMapping: React.FC = () => {
               </Alert>
             )}
 
-            <div className="mb-6">
-              <ContextBreadcrumbs />
-            </div>
-
             {/* Only render main content if flow is found */}
             {!isFlowNotFound && (
               <>
@@ -303,10 +304,11 @@ const AttributeMapping: React.FC = () => {
                   isLoading={isAgenticLoading}
                 />
 
-                {flowState?.session_id && (
+                {/* Show agent orchestration panel when we have a flow */}
+                {(sessionId || flowState) && (
                   <div className="mb-6">
                     <EnhancedAgentOrchestrationPanel
-                      sessionId={flowState.session_id}
+                      sessionId={sessionId || flowState?.flow_id || effectiveFlowId}
                       flowState={flowState}
                     />
                   </div>

@@ -157,7 +157,7 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
       
       // Enhanced phase routing with agentic intelligence
       const agenticPhaseRoutes = {
-        'data_import': `/discovery/import`, // Import phase - stay on import page
+        'data_import': `/discovery/cmdb-import`, // Fixed: correct import route
         'attribute_mapping': `/discovery/attribute-mapping/${flowId}`, // Field mapping needed
         'field_mapping': `/discovery/attribute-mapping/${flowId}`, // Alternative name
         'data_cleansing': `/discovery/data-cleansing/${flowId}`, // Data quality work needed
@@ -175,8 +175,9 @@ const EnhancedDiscoveryDashboard: React.FC = () => {
         'pending_approval': `/discovery/attribute-mapping/${flowId}`, // User approval needed
         
         // Handle error states intelligently
-        'failed': `/discovery/import`, // Failed flows should restart from import
-        'error': `/discovery/import`, // Error flows should restart from import
+        'failed': `/discovery/cmdb-import`, // Fixed: correct import route
+        'error': `/discovery/cmdb-import`, // Fixed: correct import route
+        'not_found': `/discovery/cmdb-import`, // Fixed: handle flow not found
         
         // Handle unknown/undefined phases
         'unknown': `/discovery/inventory/${flowId}`, // Default to inventory for unknown phases

@@ -85,6 +85,11 @@ class DiscoveryFlowResponse(BaseModel):
     cleaned_data: Optional[List[Dict[str, Any]]] = None
     created_at: str
     updated_at: str
+    # Processing statistics
+    records_processed: int = 0
+    records_total: int = 0
+    records_valid: int = 0
+    records_failed: int = 0
 
 class FlowExecutionRequest(BaseModel):
     """Request for executing flow phases"""
@@ -219,7 +224,7 @@ async def get_discovery_flow_status(
                 crewai_handler = CrewAIExecutionHandler(db, context)
                 crewai_status = await crewai_handler.get_flow_status(flow_id)
                 flow_status.update(crewai_status)
-                flow_status["crewai_status"] = "active"
+                flow_status["crewai_status"] = crewai_status.get("status", "unknown")
                 logger.info("✅ CrewAI status retrieved")
             except Exception as e:
                 logger.warning(f"⚠️ CrewAI status retrieval failed: {e}")
@@ -231,17 +236,19 @@ async def get_discovery_flow_status(
                 flow_handler = FlowManagementHandler(db, context)
                 db_status = await flow_handler.get_flow_status(flow_id)
                 flow_status.update(db_status)
-                flow_status["database_status"] = "active"
+                flow_status["database_status"] = db_status.get("status", "unknown")
                 logger.info("✅ PostgreSQL status retrieved")
             except Exception as e:
                 logger.warning(f"⚠️ Database status retrieval failed: {e}")
                 flow_status["database_status"] = "failed"
         
-        # Determine overall status
-        if flow_status["crewai_status"] == "active" or flow_status["database_status"] == "active":
-            flow_status["status"] = "active"
-        else:
-            flow_status["status"] = "failed"
+        # Determine overall status - use the actual status from handlers
+        if "status" not in flow_status or flow_status["status"] == "unknown":
+            # If no status was set by handlers, determine from component statuses
+            if flow_status["crewai_status"] in ["active", "running", "initialized"] or flow_status["database_status"] in ["active", "running", "initialized"]:
+                flow_status["status"] = flow_status["database_status"] if flow_status["database_status"] != "unknown" else flow_status["crewai_status"]
+            else:
+                flow_status["status"] = "failed"
         
         logger.info(f"✅ Discovery flow status retrieved: {flow_id}")
         return DiscoveryFlowResponse(**flow_status)
