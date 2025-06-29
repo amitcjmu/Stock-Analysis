@@ -229,7 +229,7 @@ export const useAttributeMappingLogic = () => {
         body: JSON.stringify({
           source_field: mapping.sourceField,
           target_field: mapping.targetAttribute,
-          import_id: effectiveFlowId // This should be the import ID
+          import_id: flow?.data_import_id || effectiveFlowId // Use data_import_id from flow
         })
       });
       
@@ -247,7 +247,7 @@ export const useAttributeMappingLogic = () => {
       console.error('❌ Failed to approve mapping:', error);
       // Could add error toast notification here
     }
-  }, [fieldMappings, effectiveFlowId, refresh, refetchFieldMappings, getAuthHeaders]);
+  }, [fieldMappings, flow, effectiveFlowId, refresh, refetchFieldMappings, getAuthHeaders]);
 
   const handleRejectMapping = useCallback(async (mappingId: string, rejectionReason?: string) => {
     try {
@@ -271,7 +271,7 @@ export const useAttributeMappingLogic = () => {
           source_field: mapping.sourceField,
           target_field: mapping.targetAttribute,
           rejection_reason: rejectionReason || 'User rejected this mapping',
-          import_id: effectiveFlowId // This should be the import ID
+          import_id: flow?.data_import_id || effectiveFlowId // Use data_import_id from flow
         })
       });
       
@@ -289,7 +289,7 @@ export const useAttributeMappingLogic = () => {
       console.error('❌ Failed to reject mapping:', error);
       // Could add error toast notification here
     }
-  }, [fieldMappings, effectiveFlowId, refresh, refetchFieldMappings, getAuthHeaders]);
+  }, [fieldMappings, flow, effectiveFlowId, refresh, refetchFieldMappings, getAuthHeaders]);
 
   const handleMappingChange = useCallback(async (mappingId: string, newTarget: string) => {
     try {

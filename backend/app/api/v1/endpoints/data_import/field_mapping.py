@@ -1148,9 +1148,9 @@ async def approve_field_mapping_by_field(
         try:
             from app.services.field_mapper_modular import field_mapper
             learning_result = field_mapper.learn_field_mapping(
-                mapping.target_field, 
-                [mapping.source_field], 
-                "user_approval"
+                canonical_field=mapping.target_field, 
+                field_variations=[mapping.source_field], 
+                source="user_approval"
             )
             logger.info(f"✅ Agent learning applied for approved mapping: {mapping.source_field} -> {mapping.target_field}")
         except Exception as e:
@@ -1277,9 +1277,9 @@ async def approve_field_mapping(
         try:
             from app.services.field_mapper_modular import field_mapper
             learning_result = field_mapper.learn_field_mapping(
-                mapping.target_field, 
-                [mapping.source_field], 
-                "user_approval"
+                canonical_field=mapping.target_field, 
+                field_variations=[mapping.source_field], 
+                source="user_approval"
             )
             logger.info(f"✅ Agent learning applied for approved mapping: {mapping.source_field} -> {mapping.target_field}")
         except Exception as e:
