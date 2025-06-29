@@ -587,6 +587,7 @@ class IntelligentFlowAgent:
                 - If a flow doesn't exist (status="not_found"), users must upload data to create a new flow
                 - You distinguish between user actions (things users can do) and system actions (automatic processes)
                 - Always use the actual values from inputs, not literal strings like "current_flow_id"
+                - Note: Some flows may have phase names (tech_debt, inventory, etc.) as their status due to legacy data
                 
                 Tool Usage Examples:
                 - flow_context_analyzer: Use with actual flow_id from inputs, e.g., "9a0cb58d-bad8-4fb7-a4b9-ee7e35df281b"

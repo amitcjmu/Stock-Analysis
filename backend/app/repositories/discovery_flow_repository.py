@@ -320,11 +320,20 @@ class DiscoveryFlowRepository(ContextAwareRepository):
     
     async def get_active_flows(self) -> List[DiscoveryFlow]:
         """Get all active discovery flows for the client/engagement"""
+        # Include phase names that may have been incorrectly set as status
+        # This handles legacy data where phase names were used as status
+        valid_active_statuses = [
+            "active", "running", "paused",
+            # Phase names that might have been set as status by mistake
+            "data_import", "attribute_mapping", "field_mapping", 
+            "data_cleansing", "inventory", "dependencies", "tech_debt"
+        ]
+        
         stmt = select(DiscoveryFlow).where(
             and_(
                 DiscoveryFlow.client_account_id == uuid.UUID(self.client_account_id),
                 DiscoveryFlow.engagement_id == uuid.UUID(self.engagement_id),
-                DiscoveryFlow.status.in_(["active", "running", "paused"])
+                DiscoveryFlow.status.in_(valid_active_statuses)
             )
         ).order_by(desc(DiscoveryFlow.created_at))
         
@@ -336,12 +345,20 @@ class DiscoveryFlowRepository(ContextAwareRepository):
         Get all incomplete discovery flows that should block new uploads.
         This includes flows with status 'active', 'running', 'paused', and 'completed' flows that are not actually complete.
         """
+        # Include phase names that may have been incorrectly set as status
+        valid_statuses = [
+            "active", "running", "paused", "completed",
+            # Phase names that might have been set as status by mistake
+            "data_import", "attribute_mapping", "field_mapping",
+            "data_cleansing", "inventory", "dependencies", "tech_debt"
+        ]
+        
         # First get all non-failed flows
         stmt = select(DiscoveryFlow).where(
             and_(
                 DiscoveryFlow.client_account_id == uuid.UUID(self.client_account_id),
                 DiscoveryFlow.engagement_id == uuid.UUID(self.engagement_id),
-                DiscoveryFlow.status.in_(["active", "running", "paused", "completed"])
+                DiscoveryFlow.status.in_(valid_statuses)
             )
         ).order_by(desc(DiscoveryFlow.created_at))
         
@@ -350,9 +367,16 @@ class DiscoveryFlowRepository(ContextAwareRepository):
         
         # Filter to only truly incomplete flows
         incomplete_flows = []
+        non_final_statuses = [
+            "active", "running", "paused",
+            # Phase names that might have been set as status
+            "data_import", "attribute_mapping", "field_mapping",
+            "data_cleansing", "inventory", "dependencies", "tech_debt"
+        ]
+        
         for flow in all_flows:
             # Include flows that are not complete OR have non-final status
-            if not flow.is_complete() or flow.status in ["active", "running", "paused"]:
+            if not flow.is_complete() or flow.status in non_final_statuses:
                 incomplete_flows.append(flow)
         
         return incomplete_flows
