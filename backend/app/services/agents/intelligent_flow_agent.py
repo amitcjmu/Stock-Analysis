@@ -98,7 +98,7 @@ class FlowContextTool(BaseTool):
     """Tool for getting proper multi-tenant context for flow operations"""
     
     name: str = "flow_context_analyzer"
-    description: str = "Gets proper client, engagement, and user context for multi-tenant flow operations using flow_id"
+    description: str = "Gets proper client, engagement, and user context for multi-tenant flow operations. Expects the actual flow_id UUID (e.g., '9a0cb58d-bad8-4fb7-a4b9-ee7e35df281b'), not placeholder strings."
     
     def _run(self, flow_id: str, client_account_id: str = None, engagement_id: str = None, user_id: str = None) -> str:
         """Get context information for flow operations"""
@@ -144,7 +144,7 @@ class FlowStatusTool(BaseTool):
     """Tool for getting comprehensive flow status and phase information"""
     
     name: str = "flow_status_analyzer"
-    description: str = "Gets detailed flow status including current phase, progress, and data validation results"
+    description: str = "Gets detailed flow status including current phase, progress, and data validation results. Pass the actual flow_id UUID and context_data as a JSON string."
     
     def _run(self, flow_id: str, context_data: str) -> str:
         """Get comprehensive flow status with detailed analysis"""
@@ -580,8 +580,18 @@ class IntelligentFlowAgent:
                 goal="Analyze discovery flow status and provide intelligent routing decisions with actionable user guidance",
                 backstory="""You are an expert AI agent specializing in migration discovery flow analysis. 
                 You understand the complete discovery flow lifecycle and can provide precise guidance on what users need to do next.
-                You distinguish between user actions (things users can do) and system actions (things that happen automatically).
-                You provide specific, actionable guidance rather than vague instructions.""",
+                
+                Key Knowledge:
+                - When you receive inputs like {flow_id}, {client_account_id}, etc., these are actual values provided by the system
+                - The flow_context_analyzer tool expects the actual flow_id value, not the placeholder string
+                - If a flow doesn't exist (status="not_found"), users must upload data to create a new flow
+                - You distinguish between user actions (things users can do) and system actions (automatic processes)
+                - Always use the actual values from inputs, not literal strings like "current_flow_id"
+                
+                Tool Usage Examples:
+                - flow_context_analyzer: Use with actual flow_id from inputs, e.g., "9a0cb58d-bad8-4fb7-a4b9-ee7e35df281b"
+                - flow_status_analyzer: Pass the actual flow_id and context data
+                - Never pass placeholder strings like "current_flow_id" to tools""",
                 tools=[self.flow_context_tool, self.flow_status_tool, self.phase_validation_tool, self.navigation_tool],
                 verbose=True,
                 memory=False,  # Disable memory to prevent APIStatusError
@@ -590,37 +600,35 @@ class IntelligentFlowAgent:
             
             # Create task
             self.task = Task(
-                description="""Analyze the discovery flow and provide intelligent routing guidance:
+                description="""Analyze the discovery flow and provide intelligent routing guidance.
 
-1. FIRST: Use flow_context_analyzer with flow_id="current_flow_id", client_account_id="current_client_account_id"
-2. THEN: Use flow_status_analyzer with the flow_id and context_data from step 1
-3. CHECK THE RESULT: 
-   - If current_phase="not_found" or status="not_found": STOP HERE and provide guidance to start new flow
-   - If flow exists: Continue to step 4
-4. IF FLOW EXISTS: Use phase_validator to check if current phase meets completion criteria
-5. ONLY IF FLOW EXISTS: Use navigation_decision_maker with proper string parameters
+You will receive these inputs:
+- flow_id: The actual UUID of the flow to analyze
+- client_account_id: The client's account UUID
+- engagement_id: The engagement UUID
+- user_id: The user's UUID
 
-CRITICAL RULES FOR NOT_FOUND FLOWS:
-- If flow_status_analyzer returns current_phase="not_found" or status="not_found"
-- DO NOT call phase_validator or navigation_decision_maker
-- DIRECTLY provide this response:
-  {
-    "routing_decision": "/discovery/data-import",
-    "user_guidance": "The discovery flow was not found. Please start a new discovery flow by uploading your data.",
-    "reasoning": "Flow ID not found in database. User needs to initiate a new discovery flow.",
-    "next_actions": [
-      "Navigate to the Data Import page",
-      "Click on 'Upload Data' button", 
-      "Select your CMDB or asset data file",
-      "Wait for upload to complete"
-    ]
-  }
+IMPORTANT: These are real values, not placeholders. Use them directly in your tool calls.
 
-RESPONSE FORMAT:
-- routing_decision: Specific page/route where user should go
-- user_guidance: Clear, actionable instructions for the user
-- reasoning: Your analysis of the current situation
-- next_actions: List of specific steps user can take""",
+Analysis Steps:
+1. Use flow_context_analyzer with the actual flow_id and other values from inputs
+2. Use flow_status_analyzer with the actual flow_id and context_data from step 1
+3. Analyze the results to understand the flow's current state
+4. Based on the flow status, determine the appropriate next steps
+5. If flow exists and needs validation, use phase_validator
+6. Make intelligent routing decisions based on your analysis
+
+Key Decision Points:
+- If a flow doesn't exist (not_found), guide user to upload data
+- If a flow exists but has incomplete phases, guide to complete them
+- If a flow has validation errors, provide specific resolution steps
+- Always provide actionable, specific guidance
+
+Your response should include:
+- routing_decision: The specific page/route for the user
+- user_guidance: Clear, actionable instructions
+- reasoning: Your analysis of the situation
+- next_actions: List of specific steps the user can take""",
                 agent=self.agent,
                 expected_output="A comprehensive flow analysis with specific routing decision and actionable user guidance"
             )
