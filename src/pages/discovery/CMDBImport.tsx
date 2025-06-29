@@ -610,12 +610,20 @@ const DataImport: React.FC = () => {
         }),
       });
 
+      console.log('📡 Store import response:', JSON.stringify(response, null, 2));
+      
       if (response.success) {
         console.log('✅ Data stored successfully, import session ID:', response.import_session_id);
         console.log('✅ CrewAI Flow ID:', response.flow_id);
+        console.log('✅ Full response data:', response);
+        
+        // Make sure we're returning the correct flow_id
+        const flowId = response.flow_id || response.crewai_flow_id || response.discovery_flow_id;
+        console.log('🎯 Using flow ID:', flowId);
+        
         return { 
           import_session_id: response.import_session_id,
-          flow_id: response.flow_id 
+          flow_id: flowId
         };
       } else {
         console.error('❌ Failed to store data:', response.error);
@@ -1389,6 +1397,13 @@ const DataImport: React.FC = () => {
                   ));
                 };
 
+                console.log('[CMDBImport] Rendering UniversalProcessingStatus for file:', {
+                  fileName: file.name,
+                  flowId: file.flow_id,
+                  status: file.status,
+                  flowStatus: file.flow_status
+                });
+                
                 return (
                   <UniversalProcessingStatus
                     key={file.flow_id}

@@ -44,6 +44,11 @@ export const UniversalProcessingStatus: React.FC<UniversalProcessingStatusProps>
   compact = false,
   title = 'Discovery Flow Processing'
 }) => {
+  // Log flow_id for debugging
+  console.log('[UniversalProcessingStatus] Component rendered with flow_id:', flow_id);
+  console.log('[UniversalProcessingStatus] Page context:', page_context);
+  console.log('[UniversalProcessingStatus] Component props:', { flow_id, page_context, title });
+  
   // Use comprehensive monitoring hook
   const monitoring = useComprehensiveRealTimeMonitoring(flow_id, page_context);
 
@@ -51,6 +56,14 @@ export const UniversalProcessingStatus: React.FC<UniversalProcessingStatusProps>
   const processingStatus = monitoring?.processing?.processingStatus;
   const validationStatus = monitoring?.validation?.validationStatus;
   const agentInsights = monitoring?.insights?.agentInsights || [];
+  
+  // Log processing status for debugging
+  console.log('[UniversalProcessingStatus] Processing status:', processingStatus);
+  console.log('[UniversalProcessingStatus] Monitoring state:', {
+    isLoading: monitoring?.processing?.isLoading,
+    error: monitoring?.processing?.error,
+    consecutiveErrors: monitoring?.processing?.consecutiveErrors
+  });
 
   // Enhanced status determination with user approval detection
   const getEnhancedStatus = () => {
@@ -58,7 +71,9 @@ export const UniversalProcessingStatus: React.FC<UniversalProcessingStatusProps>
     const isAwaitingApproval = processingStatus?.status === 'paused' || 
                               processingStatus?.status === 'waiting_for_user_approval' ||
                               (processingStatus?.phase === 'attribute_mapping' && 
-                               processingStatus?.progress >= 90);
+                               (processingStatus?.progress >= 90 || processingStatus?.progress_percentage >= 90)) ||
+                              (processingStatus?.current_phase === 'attribute_mapping' && 
+                               processingStatus?.progress_percentage >= 90);
     
     if (isAwaitingApproval) {
       return {
@@ -73,8 +88,8 @@ export const UniversalProcessingStatus: React.FC<UniversalProcessingStatusProps>
       };
     }
 
-    // Check actual progress from processing status
-    const actualProgress = processingStatus?.progress || 0;
+    // Check actual progress from processing status (handle both field names)
+    const actualProgress = processingStatus?.progress_percentage || processingStatus?.progress || 0;
     
     if (processingStatus?.status === 'completed') {
       return {
@@ -100,11 +115,12 @@ export const UniversalProcessingStatus: React.FC<UniversalProcessingStatusProps>
       };
     }
 
-    if (processingStatus?.status === 'running' || processingStatus?.status === 'in_progress') {
+    if (processingStatus?.status === 'running' || processingStatus?.status === 'in_progress' || processingStatus?.status === 'active') {
+      const currentPhase = processingStatus?.current_phase || processingStatus?.phase || 'unknown';
       return {
         status: 'running',
         message: 'Processing in Progress',
-        description: `Currently in ${processingStatus?.phase?.replace(/_/g, ' ') || 'unknown'} phase...`,
+        description: `Currently in ${currentPhase.replace(/_/g, ' ')} phase...`,
         color: 'bg-yellow-50 border-yellow-200',
         icon: Loader2,
         iconColor: 'text-yellow-600',
@@ -315,21 +331,21 @@ export const UniversalProcessingStatus: React.FC<UniversalProcessingStatusProps>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-blue-600">
-                    {processingStatus?.recordsProcessed || 0}
+                    {processingStatus?.records_processed || processingStatus?.recordsProcessed || 0}
                   </div>
                   <div className="text-sm text-gray-600">Records Processed</div>
                 </div>
                 
                 <div className="text-center">
                   <div className="text-2xl font-bold text-green-600">
-                    {processingStatus?.recordsValid || processingStatus?.recordsProcessed || 0}
+                    {processingStatus?.records_valid || processingStatus?.recordsValid || processingStatus?.records_processed || processingStatus?.recordsProcessed || 0}
                   </div>
                   <div className="text-sm text-gray-600">Valid Records</div>
                 </div>
                 
                 <div className="text-center">
                   <div className="text-2xl font-bold text-red-600">
-                    {processingStatus?.recordsInvalid || 0}
+                    {processingStatus?.records_failed || processingStatus?.recordsInvalid || 0}
                   </div>
                   <div className="text-sm text-gray-600">Invalid Records</div>
                 </div>
@@ -342,10 +358,10 @@ export const UniversalProcessingStatus: React.FC<UniversalProcessingStatusProps>
                 </div>
               </div>
 
-              {processingStatus?.phase && (
+              {(processingStatus?.phase || processingStatus?.current_phase) && (
                 <div className="flex items-center gap-2 mt-4">
                   <Badge variant="outline">
-                    Current Phase: {processingStatus.phase.replace(/_/g, ' ').toUpperCase()}
+                    Current Phase: {(processingStatus.current_phase || processingStatus.phase).replace(/_/g, ' ').toUpperCase()}
                   </Badge>
                   {enhancedStatus.status === 'awaiting_approval' && (
                     <Badge className="bg-blue-100 text-blue-800">

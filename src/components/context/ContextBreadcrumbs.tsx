@@ -202,8 +202,8 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
 
   return (
     <div className={`flex items-center justify-between ${className}`}>
-      {/* Breadcrumbs Navigation */}
-      <div className="flex items-center text-sm text-gray-500">
+      {/* Breadcrumbs Navigation with Colored Items */}
+      <div className="flex items-center text-sm">
         <Button
           variant="ghost"
           size="sm"
@@ -213,38 +213,25 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
           <Home className="h-4 w-4" />
         </Button>
         
-        {breadcrumbs.map((crumb) => (
+        {breadcrumbs.map((crumb, index) => (
           <React.Fragment key={crumb.id}>
             <ChevronRight className="h-4 w-4 text-gray-400 mx-1" />
-            <div className="flex items-center space-x-1">
-              {crumb.type === 'Client' && <Building2 className="h-4 w-4" />}
-              {crumb.type === 'Engagement' && <Calendar className="h-4 w-4" />}
-              <span className="font-medium text-gray-700">{crumb.label}</span>
-            </div>
+            <Badge 
+              variant="outline" 
+              className={crumb.type === 'Client' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-green-50 text-green-700 border-green-200'}
+            >
+              {crumb.type === 'Client' && <Building2 className="h-3 w-3 mr-1" />}
+              {crumb.type === 'Engagement' && <Calendar className="h-3 w-3 mr-1" />}
+              {crumb.label}
+            </Badge>
           </React.Fragment>
         ))}
       </div>
 
       {/* Context Switcher */}
       {showContextSelector && (
-        <div className="flex items-center space-x-2">
-          {/* Current Context Display */}
-          <div className="flex items-center space-x-2">
-            {client && (
-              <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                <Building2 className="h-3 w-3 mr-1" />
-                {client.name}
-              </Badge>
-            )}
-            {engagement && (
-              <Badge variant="outline" className="bg-green-50 text-green-700">
-                <Calendar className="h-3 w-3 mr-1" />
-                {engagement.name}
-              </Badge>
-            )}
-          </div>
-
-          {/* Context Switcher Popover */}
+        <div className="flex items-center">
+          {/* Context Switcher Popover - No duplicate badges */}
           <Popover open={isContextSelectorOpen} onOpenChange={setIsContextSelectorOpen}>
             <PopoverTrigger asChild>
               <Button

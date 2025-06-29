@@ -65,7 +65,7 @@ export const useRealTimeProcessing = (options: RealTimeProcessingOptions) => {
   const {
     flow_id,
     phase,
-    polling_interval = 10000, // Increased from 5000 to reduce server load
+    polling_interval = 5000, // Reduced to 5 seconds for faster updates
     max_updates_history = 50,
     enabled = true
   } = options;
@@ -93,7 +93,10 @@ export const useRealTimeProcessing = (options: RealTimeProcessingOptions) => {
     queryFn: async () => {
       try {
         const url = `/api/v1/discovery/flow/${flow_id}/processing-status${phase ? `?phase=${phase}` : ''}`;
+        console.log(`[useRealTimeProcessing] Fetching status from: ${url}`);
         const response = await apiCall(url);
+        
+        console.log(`[useRealTimeProcessing] Response for flow ${flow_id}:`, response);
         
         // Reset error count on successful response
         setConsecutiveErrors(0);
@@ -103,9 +106,87 @@ export const useRealTimeProcessing = (options: RealTimeProcessingOptions) => {
       } catch (err: any) {
         // Handle 404 errors gracefully - these endpoints may not exist yet
         if (err.status === 404 || err.response?.status === 404) {
-          console.log(`Processing status endpoint not available for flow: ${flow_id}`);
+          console.log(`[useRealTimeProcessing] 404 - Processing status endpoint not available for flow: ${flow_id}`);
+          console.log(`[useRealTimeProcessing] Error details:`, err);
           setConsecutiveErrors(prev => prev + 1);
-          return null;
+          
+          // Try alternative endpoints for flow status
+          const alternativeEndpoints = [
+            `/api/v1/unified-discovery/flow/status/${flow_id}`,
+            `/api/v2/discovery-flows/flows/${flow_id}`,
+            `/api/v1/discovery/flow/${flow_id}`,
+            `/api/v1/workflows/unified-discovery/${flow_id}/status`
+          ];
+          
+          for (const alternativeUrl of alternativeEndpoints) {
+            try {
+              console.log(`[useRealTimeProcessing] Trying alternative endpoint: ${alternativeUrl}`);
+              const alternativeResponse = await apiCall(alternativeUrl);
+              
+              if (alternativeResponse) {
+                console.log(`[useRealTimeProcessing] Alternative endpoint success (${alternativeUrl}):`, alternativeResponse);
+              
+                // Transform the response to match expected format
+                const transformedResponse = {
+                  flow_id: alternativeResponse.flow_id || alternativeResponse.session_id || flow_id,
+                  phase: alternativeResponse.current_phase || alternativeResponse.phase || 'data_import',
+                  status: alternativeResponse.status || alternativeResponse.flow_status || 'initializing',
+                  progress_percentage: alternativeResponse.progress_percentage || alternativeResponse.progress || 0,
+                  progress: alternativeResponse.progress_percentage || alternativeResponse.progress || 0,
+                  records_processed: alternativeResponse.results?.total_records || alternativeResponse.records_processed || 0,
+                  records_total: alternativeResponse.results?.total_records || alternativeResponse.total_records || 0,
+                  records_failed: alternativeResponse.records_failed || 0,
+                  validation_status: alternativeResponse.validation_status || {
+                    format_valid: true,
+                    security_scan_passed: true,
+                    data_quality_score: 1.0,
+                    issues_found: []
+                  },
+                  agent_status: alternativeResponse.agent_status || (alternativeResponse.crewai_status ? {
+                    'CrewAI Flow': {
+                      status: alternativeResponse.crewai_status === 'active' || alternativeResponse.crewai_status === 'running' ? 'processing' : 'idle',
+                      confidence: 1.0,
+                      insights_generated: alternativeResponse.agent_insights?.length || 0,
+                      clarifications_pending: 0
+                    }
+                  } : {}),
+                  recent_updates: alternativeResponse.recent_updates || [],
+                  estimated_completion: alternativeResponse.estimated_completion || null,
+                  last_update: alternativeResponse.updated_at || alternativeResponse.last_update || new Date().toISOString()
+                };
+                
+                // Reset error count on successful response
+                setConsecutiveErrors(0);
+                setLastSuccessfulPoll(Date.now());
+                
+                return transformedResponse;
+              }
+            } catch (altErr) {
+              console.log(`[useRealTimeProcessing] Endpoint ${alternativeUrl} failed:`, altErr);
+            }
+          }
+          
+          // Return a default "initializing" status instead of null to show proper UI
+          return {
+            flow_id: flow_id,
+            phase: phase || 'data_import',
+            status: 'initializing',
+            progress_percentage: 0,
+            progress: 0,
+            records_processed: 0,
+            records_total: 0,
+            records_failed: 0,
+            validation_status: {
+              format_valid: true,
+              security_scan_passed: true,
+              data_quality_score: 1.0,
+              issues_found: []
+            },
+            agent_status: {},
+            recent_updates: [],
+            estimated_completion: null,
+            last_update: new Date().toISOString()
+          };
         }
         
         // Handle other errors with circuit breaker logic
@@ -125,7 +206,7 @@ export const useRealTimeProcessing = (options: RealTimeProcessingOptions) => {
       }
     },
     enabled: enabled && !!flow_id && !shouldRespectCircuitBreaker,
-    staleTime: 8000, // Increased from 5000 to reduce requests
+    staleTime: 3000, // Reduced to 3 seconds for fresher data
     refetchInterval: (data) => {
       // Stop polling if flow is completed, failed, paused, or waiting for user approval
       if (!enabled || !flow_id || shouldRespectCircuitBreaker) {
@@ -137,14 +218,21 @@ export const useRealTimeProcessing = (options: RealTimeProcessingOptions) => {
         const status = (data as any)?.status;
         const phase = (data as any)?.phase;
         const progress = (data as any)?.progress;
+        const progressPercentage = (data as any)?.progress_percentage;
+        const currentPhase = (data as any)?.current_phase;
         
-        if (status === 'completed' || 
+        // Check various status fields for completion
+        const isCompleted = status === 'completed' || 
             status === 'failed' || 
             status === 'error' ||
             status === 'paused' ||
             status === 'waiting_for_user_approval' ||
-            (phase === 'attribute_mapping' && progress >= 90)) {
-          console.log(`Stopping polling for flow ${flow_id} - Status: ${status}, Phase: ${phase}, Progress: ${progress}%`);
+            (phase === 'attribute_mapping' && (progress >= 90 || progressPercentage >= 90)) ||
+            (currentPhase === 'completed') ||
+            progressPercentage === 100;
+            
+        if (isCompleted) {
+          console.log(`[useRealTimeProcessing] Stopping polling for flow ${flow_id} - Status: ${status}, Phase: ${phase || currentPhase}, Progress: ${progress || progressPercentage}%`);
           return false;
         }
       }
