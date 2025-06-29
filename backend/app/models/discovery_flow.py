@@ -93,6 +93,27 @@ class DiscoveryFlow(Base):
         """Update progress percentage based on phase completion"""
         self.progress_percentage = self.calculate_progress()
 
+    def get_current_phase(self) -> str:
+        """Get the current phase based on completion status"""
+        phases = [
+            ('data_import', self.data_import_completed),
+            ('attribute_mapping', self.attribute_mapping_completed),
+            ('data_cleansing', self.data_cleansing_completed),
+            ('inventory', self.inventory_completed),
+            ('dependencies', self.dependencies_completed),
+            ('tech_debt', self.tech_debt_completed)
+        ]
+        
+        # Find the last completed phase
+        current_phase = "data_import"  # Default starting phase
+        for phase_name, completed in phases:
+            if completed:
+                current_phase = phase_name
+            else:
+                break
+        
+        return current_phase
+
     def get_next_phase(self) -> Optional[str]:
         """Get the next phase that needs to be completed"""
         phases = [

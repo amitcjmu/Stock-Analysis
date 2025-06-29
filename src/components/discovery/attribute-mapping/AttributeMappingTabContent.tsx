@@ -64,7 +64,7 @@ const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
         );
       case 'data':
         return (
-          <ImportedDataTab />
+          <ImportedDataTab sessionInfo={sessionInfo} />
         );
       default:
         return (

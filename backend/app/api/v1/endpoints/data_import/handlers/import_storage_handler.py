@@ -866,4 +866,111 @@ async def get_import_by_id(
         raise
     except Exception as e:
         logger.error(f"Failed to retrieve import {import_session_id}: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve import: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve import: {str(e)}")
+
+@router.get("/flow/{flow_id}/import-data")
+async def get_import_data_by_flow_id(
+    flow_id: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get import data for a specific discovery flow.
+    This endpoint bridges the gap between flow_id and the raw import data.
+    """
+    try:
+        # Extract context from request headers
+        from app.core.context import extract_context_from_request
+        context = extract_context_from_request(request)
+        
+        logger.info(f"🔍 Getting import data for flow: {flow_id}, context: client={context.client_account_id}, engagement={context.engagement_id}")
+        
+        # First, find the discovery flow by flow_id
+        from app.models.discovery_flow import DiscoveryFlow
+        flow_query = select(DiscoveryFlow).where(
+            DiscoveryFlow.flow_id == flow_id
+        )
+        
+        flow_result = await db.execute(flow_query)
+        discovery_flow = flow_result.scalar_one_or_none()
+        
+        if not discovery_flow:
+            logger.warning(f"❌ Discovery flow not found: {flow_id}")
+            return {
+                "success": False,
+                "message": f"Discovery flow not found: {flow_id}",
+                "data": [],
+                "import_metadata": None
+            }
+        
+        # Check if the flow has a data_import_id
+        if not discovery_flow.data_import_id:
+            logger.warning(f"⚠️ Discovery flow {flow_id} has no associated data import")
+            return {
+                "success": True,
+                "message": "No data import associated with this flow",
+                "data": [],
+                "import_metadata": {
+                    "flow_id": str(discovery_flow.flow_id),
+                    "flow_name": discovery_flow.flow_name,
+                    "status": discovery_flow.status,
+                    "no_import": True
+                }
+            }
+        
+        # Find the data import using the data_import_id
+        import_query = select(DataImport).where(
+            DataImport.id == discovery_flow.data_import_id
+        )
+        
+        import_result = await db.execute(import_query)
+        data_import = import_result.scalar_one_or_none()
+        
+        if not data_import:
+            logger.error(f"❌ Data import not found for flow {flow_id}, data_import_id: {discovery_flow.data_import_id}")
+            return {
+                "success": False,
+                "message": f"Data import not found: {discovery_flow.data_import_id}",
+                "data": [],
+                "import_metadata": None
+            }
+        
+        # Get the raw records
+        records_query = select(RawImportRecord).where(
+            RawImportRecord.data_import_id == data_import.id
+        ).order_by(RawImportRecord.row_number).limit(1000)  # Limit for performance
+        
+        records_result = await db.execute(records_query)
+        raw_records = records_result.scalars().all()
+        
+        # Extract the data
+        imported_data = [record.raw_data for record in raw_records]
+        
+        logger.info(f"✅ Retrieved {len(imported_data)} records for flow {flow_id}")
+        
+        return {
+            "success": True,
+            "data": imported_data,
+            "import_metadata": {
+                "filename": data_import.source_filename or "Unknown",
+                "import_type": data_import.import_type,
+                "imported_at": data_import.completed_at.isoformat() if data_import.completed_at else None,
+                "total_records": len(imported_data),
+                "actual_total_records": data_import.total_records or 0,
+                "import_id": str(data_import.id),
+                "flow_id": str(discovery_flow.flow_id),
+                "flow_name": discovery_flow.flow_name,
+                "flow_status": discovery_flow.status,
+                "client_account_id": str(data_import.client_account_id),
+                "engagement_id": str(data_import.engagement_id)
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error getting import data for flow {flow_id}: {str(e)}")
+        return {
+            "success": False,
+            "message": f"Failed to retrieve import data: {str(e)}",
+            "data": [],
+            "import_metadata": None
+        } 

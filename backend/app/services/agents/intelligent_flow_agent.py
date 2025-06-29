@@ -172,15 +172,66 @@ class FlowStatusTool(BaseTool):
             })
     
     def _get_real_flow_status(self, flow_id: str, context: Dict[str, Any]) -> Dict[str, Any]:
-        """Get real flow status using direct service calls"""
+        """Get real flow status using agent service layer"""
         try:
-            import concurrent.futures
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(asyncio.run, self._async_get_flow_status(flow_id, context))
-                result = future.result(timeout=10)
-                return result
+            # Import service layer
+            from app.services.agents.agent_service_layer import get_agent_service
+            
+            # Get service instance with context
+            service = get_agent_service(
+                client_account_id=context.get("client_account_id", "dfea7406-1575-4348-a0b2-2770cbe2d9f9"),
+                engagement_id=context.get("engagement_id", "ce27e7b1-2ac6-4b74-8dd5-b52d542a1669"),
+                user_id=context.get("user_id")
+            )
+            
+            # Direct service call - no HTTP
+            result = service.get_flow_status(flow_id)
+            
+            # Handle service layer responses
+            if result.get("status") == "not_found":
+                return {
+                    "success": True,
+                    "flow_id": flow_id,
+                    "flow_type": "discovery",
+                    "current_phase": "not_found",
+                    "progress": 0.0,
+                    "status": "not_found",
+                    "phases": {},
+                    "flow_exists": False,
+                    "user_guidance": "Flow not found. User needs to start a new discovery flow by uploading data."
+                }
+            
+            elif result.get("status") == "error":
+                return {
+                    "success": False,
+                    "flow_id": flow_id,
+                    "flow_type": "discovery",
+                    "current_phase": "error",
+                    "progress": 0.0,
+                    "status": "error",
+                    "phases": {},
+                    "error": result.get("error", "Service error"),
+                    "user_guidance": result.get("guidance", "System error occurred")
+                }
+            
+            # Success case - extract flow data
+            flow_data = result.get("flow", {})
+            return {
+                "success": True,
+                "flow_id": flow_id,
+                "flow_type": "discovery",
+                "current_phase": flow_data.get("current_phase", "data_import"),
+                "next_phase": flow_data.get("next_phase"),
+                "progress": flow_data.get("progress", 0.0),
+                "status": flow_data.get("status", "active"),
+                "phases": flow_data.get("phases_completed", {}),
+                "flow_exists": True,
+                "is_complete": flow_data.get("progress", 0) >= 100,
+                "user_guidance": self._generate_user_guidance(flow_data)
+            }
+            
         except Exception as e:
-            logger.error(f"Real flow status failed: {e}")
+            logger.error(f"Service layer flow status failed: {e}")
             # Return clear "not found" status for any errors
             return {
                 "success": False,
@@ -195,6 +246,31 @@ class FlowStatusTool(BaseTool):
                 "validation_results": {},
                 "error": str(e)
             }
+    
+    def _generate_user_guidance(self, flow_data: Dict[str, Any]) -> str:
+        """Generate actionable user guidance based on flow state"""
+        current_phase = flow_data.get("current_phase", "unknown")
+        next_phase = flow_data.get("next_phase")
+        progress = flow_data.get("progress", 0)
+        
+        if progress >= 100:
+            return "All discovery phases completed. Flow is ready for assessment."
+        
+        if next_phase:
+            phase_routes = {
+                "data_import": "/discovery/data-import",
+                "attribute_mapping": "/discovery/attribute-mapping",
+                "data_cleansing": "/discovery/data-cleansing", 
+                "inventory": "/discovery/inventory-building",
+                "dependencies": "/discovery/dependency-analysis",
+                "tech_debt": "/discovery/tech-debt-analysis"
+            }
+            
+            route = phase_routes.get(next_phase, f"/discovery/{next_phase}")
+            phase_name = next_phase.replace('_', ' ').title()
+            return f"Navigate to {route} to continue with {phase_name} phase."
+        
+        return f"Currently in {current_phase.replace('_', ' ').title()} phase."
     
     async def _async_get_flow_status(self, flow_id: str, context: Dict[str, Any]) -> Dict[str, Any]:
         """Async flow status lookup with proper error handling"""
