@@ -1,5 +1,46 @@
 # 🚀 AI Force Migration Platform - Changelog
 
+## [0.9.1] - 2025-01-29
+
+### 🎯 **ATTRIBUTE MAPPING PAGE CONTEXT FIXES & UI IMPROVEMENTS**
+
+This release fixes critical context header mismatches causing the attribute mapping page to fail loading existing flow data, and improves the page layout for better focus on core functionality.
+
+### 🔧 **Context Header & Flow Retrieval Fixes**
+
+#### **Context Mismatch Resolution**
+- **Issue**: Attribute mapping page showed 0 active flows due to inconsistent context headers
+- **Root Cause**: Frontend sending multiple client_account_id values, flows created with one context not found with different context
+- **Fix**: Enhanced flow retrieval with fallback to global search and context switching
+- **Impact**: Flows are now properly retrieved regardless of context header variations
+- **Files**: 
+  - `backend/app/api/v1/discovery_handlers/flow_management.py` - Added context fallback in get_flow_status and get_active_flows
+  - `src/services/discoveryUnifiedService.ts` - Removed hardcoded demo headers that were overriding auth context
+
+#### **Hardcoded Context Headers Removal**
+- **Issue**: UnifiedDiscoveryService was hardcoding demo context headers, overriding actual auth headers
+- **Fix**: Removed hardcoded headers, now uses actual context from getAuthHeaders()
+- **Impact**: Consistent context headers across all discovery API calls
+- **Files**: `src/services/discoveryUnifiedService.ts`
+
+### 🎨 **UI/UX Improvements**
+
+#### **Attribute Mapping Page Layout Reorganization**
+- **Enhancement**: Moved Flow Detection Debug Info and Discovery Flow Crew Progress to bottom of page
+- **Rationale**: Focus on the 4 main tabs (imported data, field mapping, critical attributes, training progress)
+- **Implementation**:
+  - Debug info and crew progress moved to bottom section with border separator
+  - Main content grid now prominently displays the core functionality tabs
+  - Improved visual hierarchy for better user experience
+- **Files**: `src/pages/discovery/AttributeMapping.tsx`
+
+### 🧪 **Testing & Validation**
+- **Validated**: Flow retrieval works with both demo and real context configurations
+- **Confirmed**: Active flows API returns flows properly (9 flows for demo context, 7 for real context)
+- **Verified**: Flow status API successfully retrieves flow data with field mapping information
+
+---
+
 ## [0.9.0] - 2025-01-29
 
 ### 🎯 **DISCOVERY FLOW SYNCHRONIZATION & DATA PROCESSING FIXES**

@@ -59,10 +59,7 @@ const httpClient = {
         ...options,
         headers: {
           'Content-Type': 'application/json',
-          // Use demo context headers for development
-          'X-Client-Account-Id': '11111111-1111-1111-1111-111111111111',
-          'X-Engagement-Id': '22222222-2222-2222-2222-222222222222', 
-          'X-User-ID': '44444444-4444-4444-4444-444444444444',
+          // Get context from auth headers (no hardcoded values)
           ...getAuthHeaders(),
           ...options.headers,
         },

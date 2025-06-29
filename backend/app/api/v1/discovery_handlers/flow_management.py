@@ -74,10 +74,38 @@ class FlowManagementHandler:
     async def get_active_flows(self) -> List[Dict[str, Any]]:
         """Get active flows from PostgreSQL"""
         try:
-            logger.info("🔍 Getting active flows from PostgreSQL")
+            logger.info(f"🔍 Getting active flows from PostgreSQL for context - client: {self.client_account_id}, engagement: {self.engagement_id}")
             
             # Get actual flows from database
             flows = await self.flow_repo.get_active_flows()
+            
+            # If no flows found with current context, try getting ALL active flows
+            if not flows:
+                logger.info("🔍 No flows found with current context, trying global search for active flows")
+                # Create a temporary repository without context filtering
+                from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
+                temp_repo = DiscoveryFlowRepository(self.db, self.client_account_id, self.engagement_id)
+                
+                # Get all flows globally and filter for active ones
+                from sqlalchemy import select, desc
+                from app.models.discovery_flow import DiscoveryFlow
+                
+                valid_active_statuses = [
+                    "initialized", "active", "running", "paused",
+                    # Phase names that might have been set as status
+                    "data_import", "attribute_mapping", "field_mapping", 
+                    "data_cleansing", "inventory", "dependencies", "tech_debt"
+                ]
+                
+                stmt = select(DiscoveryFlow).where(
+                    DiscoveryFlow.status.in_(valid_active_statuses)
+                ).order_by(desc(DiscoveryFlow.created_at))
+                
+                result = await self.db.execute(stmt)
+                flows = result.scalars().all()
+                
+                if flows:
+                    logger.info(f"✅ Found {len(flows)} active flows globally")
             
             # Convert to API format
             active_flows = []
@@ -744,11 +772,17 @@ class FlowManagementHandler:
             
             # If not found with current context, try global search
             if not flow:
-                logger.info(f"🔍 Flow not found with current context, trying global search: {flow_id}")
+                logger.info(f"🔍 Flow not found with current context (client: {self.client_account_id}, engagement: {self.engagement_id}), trying global search: {flow_id}")
                 flow = await self.flow_repo.get_by_flow_id_global(flow_id)
                 
                 if flow:
                     logger.info(f"✅ Flow found globally - client: {flow.client_account_id}, engagement: {flow.engagement_id}")
+                    # CRITICAL: Update the repository context to match the found flow
+                    # This ensures subsequent operations use the correct context
+                    self.flow_repo.client_account_id = str(flow.client_account_id)
+                    self.flow_repo.engagement_id = str(flow.engagement_id)
+                    self.client_account_id = str(flow.client_account_id)
+                    self.engagement_id = str(flow.engagement_id)
             
             if not flow:
                 # Return minimal status for non-existent flows

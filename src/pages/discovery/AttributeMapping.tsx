@@ -153,37 +153,6 @@ const AttributeMapping: React.FC = () => {
               </Alert>
             )}
 
-            {/* Flow Detection Debug Info (development only) */}
-            {process.env.NODE_ENV === 'development' && (
-              <Alert className="mb-6 border-blue-200 bg-blue-50">
-                <AlertDescription className="text-blue-800">
-                  <details className="cursor-pointer">
-                    <summary className="font-medium mb-2 hover:text-blue-900">🔍 Flow Detection Debug Info (Click to expand)</summary>
-                    <div className="text-sm space-y-1 mt-2">
-                      <p><strong>URL Flow ID:</strong> {urlFlowId || 'None'}</p>
-                      <p><strong>Auto-detected Flow ID:</strong> {autoDetectedFlowId || 'None'}</p>
-                      <p><strong>Effective Flow ID:</strong> {effectiveFlowId || 'None'}</p>
-                      <p><strong>Available Flows:</strong> {flowList?.length || 0}</p>
-                      {flowList && flowList.length > 0 && (
-                        <div>
-                          <p><strong>Flow Details:</strong></p>
-                          <ul className="list-disc list-inside ml-4">
-                            {flowList.map((flow: any, index: number) => (
-                              <li key={index}>
-                                {flow.flow_id?.substring(0, 8)}... - Status: {flow.status}, Phase: {flow.current_phase || flow.next_phase}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                      <p><strong>Has Field Mapping Data:</strong> {hasData ? 'Yes' : 'No'}</p>
-                      <p><strong>Attributes Count:</strong> {agenticData?.attributes?.length || 0}</p>
-                    </div>
-                  </details>
-                </AlertDescription>
-              </Alert>
-            )}
-
             {/* Show message when no flows are available */}
             {!isLoading && !hasData && !isFlowNotFound && (
               <Alert className="mb-6 border-yellow-200 bg-yellow-50">
@@ -304,17 +273,8 @@ const AttributeMapping: React.FC = () => {
                   isLoading={isAgenticLoading}
                 />
 
-                {/* Show agent orchestration panel when we have a flow */}
-                {(sessionId || flowState) && (
-                  <div className="mb-6">
-                    <EnhancedAgentOrchestrationPanel
-                      sessionId={sessionId || flowState?.flow_id || effectiveFlowId}
-                      flowState={flowState}
-                    />
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+                {/* Main Content Grid - Focused on the 4 tabs */}
+                <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8">
                   <div className="xl:col-span-3 space-y-6">
                     <div className="bg-white rounded-lg shadow-md">
                       <NavigationTabs 
@@ -385,6 +345,50 @@ const AttributeMapping: React.FC = () => {
                       }}
                     />
                   </div>
+                </div>
+
+                {/* Bottom Section - Debug Info and Agent Orchestration */}
+                <div className="space-y-6 border-t pt-6">
+                  {/* Show agent orchestration panel when we have a flow */}
+                  {(sessionId || flowState) && (
+                    <div>
+                      <EnhancedAgentOrchestrationPanel
+                        sessionId={sessionId || flowState?.flow_id || effectiveFlowId}
+                        flowState={flowState}
+                      />
+                    </div>
+                  )}
+
+                  {/* Flow Detection Debug Info (development only) - Moved to bottom */}
+                  {process.env.NODE_ENV === 'development' && (
+                    <Alert className="border-blue-200 bg-blue-50">
+                      <AlertDescription className="text-blue-800">
+                        <details className="cursor-pointer">
+                          <summary className="font-medium mb-2 hover:text-blue-900">🔍 Flow Detection Debug Info (Click to expand)</summary>
+                          <div className="text-sm space-y-1 mt-2">
+                            <p><strong>URL Flow ID:</strong> {urlFlowId || 'None'}</p>
+                            <p><strong>Auto-detected Flow ID:</strong> {autoDetectedFlowId || 'None'}</p>
+                            <p><strong>Effective Flow ID:</strong> {effectiveFlowId || 'None'}</p>
+                            <p><strong>Available Flows:</strong> {flowList?.length || 0}</p>
+                            {flowList && flowList.length > 0 && (
+                              <div>
+                                <p><strong>Flow Details:</strong></p>
+                                <ul className="list-disc list-inside ml-4">
+                                  {flowList.map((flow: any, index: number) => (
+                                    <li key={index}>
+                                      {flow.flow_id?.substring(0, 8)}... - Status: {flow.status}, Phase: {flow.current_phase || flow.next_phase}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            <p><strong>Has Field Mapping Data:</strong> {hasData ? 'Yes' : 'No'}</p>
+                            <p><strong>Attributes Count:</strong> {agenticData?.attributes?.length || 0}</p>
+                          </div>
+                        </details>
+                      </AlertDescription>
+                    </Alert>
+                  )}
                 </div>
               </>
             )}
