@@ -107,6 +107,7 @@ Thumbs.db
 .cursor/
 .windsurf/rules/migration.md
 .windsurf/rules/task-list.md
+CLAUDE.md
 
 # Archive directories (legacy code from migrations)
 **/archive_*/

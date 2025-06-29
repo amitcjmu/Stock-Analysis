@@ -190,9 +190,23 @@ async def store_import_data(
             "intended_type": intended_type
         }
         
-        # Store field mappings
+        # Store raw import records AND field mappings
         records_stored = 0
         if file_data:
+            # First, store the raw records from the CSV
+            for idx, record in enumerate(file_data):
+                raw_record = RawImportRecord(
+                    data_import_id=data_import.id,
+                    client_account_id=client_account_id,
+                    engagement_id=engagement_id,
+                    row_number=idx + 1,
+                    raw_data=record,
+                    is_processed=False,
+                    is_valid=True
+                )
+                db.add(raw_record)
+                records_stored += 1
+            
             # Create basic field mappings for each column
             sample_record = file_data[0] if file_data else {}
             for field_name in sample_record.keys():
@@ -206,10 +220,10 @@ async def store_import_data(
                     status="pending"
                 )
                 db.add(field_mapping)
-                records_stored += 1
         
-        # Update status to completed
+        # Update status to completed with proper record count
         data_import.status = "completed"
+        data_import.total_records = records_stored
         data_import.processed_records = records_stored
         data_import.completed_at = datetime.utcnow()
         
@@ -581,26 +595,21 @@ async def get_latest_import(
                 try:
                     client_uuid = uuid.UUID(context.client_account_id) if context.client_account_id else None
                     engagement_uuid = uuid.UUID(context.engagement_id) if context.engagement_id else None
-                except (ValueError, TypeError):
-                    logger.warning(f"Invalid UUID format - client: {context.client_account_id}, engagement: {context.engagement_id}")
+                    logger.debug(f"Converting context IDs to UUIDs: client {context.client_account_id} -> {client_uuid}, engagement {context.engagement_id} -> {engagement_uuid}")
+                except (ValueError, TypeError) as e:
+                    logger.warning(f"Invalid UUID format - client: {context.client_account_id}, engagement: {context.engagement_id}, error: {e}")
                     return None
                 
-                # First, let's get imports that actually have raw records available
-                # by joining with raw_import_records and counting them
-                from sqlalchemy import exists
-                
+                # Get the latest import for this context
+                # Remove the exists() check since older imports may not have raw records
                 latest_import_query = select(DataImport).where(
                     and_(
                         DataImport.client_account_id == client_uuid,
-                        DataImport.engagement_id == engagement_uuid,
-                        # Only select imports that have raw records
-                        exists().where(RawImportRecord.data_import_id == DataImport.id)
+                        DataImport.engagement_id == engagement_uuid
                     )
                 ).order_by(
-                    # First priority: imports with actual total_records (not NULL)
-                    DataImport.total_records.desc().nulls_last(),
-                    # Second priority: most recent among those with same record count  
-                    DataImport.completed_at.desc()
+                    # First priority: most recent imports  
+                    DataImport.created_at.desc()
                 ).limit(1)
                 
                 result = await db.execute(latest_import_query)
@@ -610,17 +619,35 @@ async def get_latest_import(
                 if import_result:
                     logger.info(f"✅ Found context-filtered import: {import_result.id} with {import_result.total_records} records ({import_result.source_filename}) [status: {import_result.status}]")
                 else:
-                    logger.warning(f"❌ No imports found for context: client={context.client_account_id}, engagement={context.engagement_id}")
+                    logger.info(f"ℹ️ No imports found for context: client={context.client_account_id}, engagement={context.engagement_id}")
+                    logger.info(f"   This is expected if no data has been imported yet. User should upload data via Data Import page.")
+                    logger.debug(f"   Query used client_uuid={client_uuid}, engagement_uuid={engagement_uuid}")
                     
                     # Debug: Check if there are any imports at all in the database
-                    all_imports_query = select(DataImport).order_by(DataImport.completed_at.desc()).limit(5)
+                    all_imports_query = select(DataImport).order_by(DataImport.created_at.desc()).limit(5)
                     all_imports_result = await db.execute(all_imports_query)
                     all_imports = all_imports_result.scalars().all()
                     
                     if all_imports:
-                        logger.info(f"📊 Found {len(all_imports)} total imports in database (any context):")
+                        logger.info(f"📊 Found {len(all_imports)} total imports in database (showing first 5):")
                         for imp in all_imports:
                             logger.info(f"  - {imp.id}: {imp.source_filename} ({imp.total_records} records, client: {imp.client_account_id}, engagement: {imp.engagement_id}, status: {imp.status})")
+                        
+                        # Check specifically for imports with our context IDs
+                        context_imports_query = select(DataImport).where(
+                            and_(
+                                DataImport.client_account_id == context.client_account_id,
+                                DataImport.engagement_id == context.engagement_id
+                            )
+                        ).limit(5)
+                        context_imports_result = await db.execute(context_imports_query)
+                        context_imports = context_imports_result.scalars().all()
+                        
+                        if context_imports:
+                            logger.warning(f"🔍 Actually found {len(context_imports)} imports for context when using string comparison!")
+                            logger.warning(f"   This suggests a UUID type mismatch issue")
+                        else:
+                            logger.info(f"🔍 No imports found even with string comparison for context")
                     else:
                         logger.warning("📊 No imports found in database at all!")
                 
@@ -654,14 +681,24 @@ async def get_latest_import(
                 }
             }
         
-        # ⚡ FAST PATH: No import found - return quickly
+        # ⚡ FAST PATH: No import found - return quickly but with helpful info
         if not latest_import:
-            logger.info(f"⚡ Fast path: No import data found for context")
+            logger.info(f"⚡ No import data found for context, but returning success with empty data")
             return {
-                "success": False,
-                "message": "No import data found for this client and engagement",
+                "success": True,  # Changed to True - no data is not an error
+                "message": "No import data available yet for this client and engagement. Please upload data using the Data Import page.",
                 "data": [],
-                "import_metadata": None,
+                "import_metadata": {
+                    "filename": None,
+                    "import_type": None,
+                    "imported_at": None,
+                    "total_records": 0,
+                    "actual_total_records": 0,
+                    "import_id": None,
+                    "client_account_id": context.client_account_id,
+                    "engagement_id": context.engagement_id,
+                    "no_imports_exist": True  # Flag to indicate no imports exist yet
+                },
                 "performance": {
                     "response_time_ms": (datetime.utcnow() - start_time).total_seconds() * 1000,
                     "no_data": True
@@ -735,6 +772,10 @@ async def get_latest_import(
         for record in raw_records:
             response_data.append(record.raw_data)
         
+        # If no raw records found, return metadata only with a notice
+        if not response_data:
+            logger.warning(f"⚠️ Import {latest_import.id} has no raw records stored")
+        
         import_metadata = {
             "filename": latest_import.source_filename or "Unknown",
             "import_type": latest_import.import_type,
@@ -744,7 +785,8 @@ async def get_latest_import(
             "import_id": str(latest_import.id),
             "client_account_id": str(latest_import.client_account_id),
             "engagement_id": str(latest_import.engagement_id),
-            "limited_records": len(response_data) >= max_records
+            "limited_records": len(response_data) >= max_records,
+            "no_raw_records": len(response_data) == 0  # Flag to indicate no raw records
         }
         
         response_time = (datetime.utcnow() - start_time).total_seconds() * 1000
