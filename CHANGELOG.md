@@ -1,5 +1,92 @@
 # 🚀 AI Force Migration Platform - Changelog
 
+## [0.9.2] - 2025-06-30
+
+### 🎯 **CREWAI FLOW COORDINATION ARCHITECTURE FIX & RAILWAY DEPLOYMENT PREPARATION**
+
+This release resolves a critical architecture issue where discovery flows were not properly coordinated with the CrewAI flow state management system, causing orphaned flows and broken flow creation. All 16 existing orphaned flows have been migrated and the flow creation process is now working properly.
+
+### 🔧 **Flow Coordination Architecture Fixes**
+
+#### **Critical Issue Resolution**
+- **Issue**: `crewai_flow_state_extensions` table was empty while `discovery_flows` had 16 records, breaking flow coordination
+- **Root Cause**: DiscoveryFlowService was only creating records in `discovery_flows` but not in `crewai_flow_state_extensions`
+- **Fix**: Complete flow creation architecture overhaul to ensure both tables are populated with the same `flow_id`
+- **Impact**: All flows now have proper master-subordinate coordination for CrewAI flow management
+
+#### **Enhanced Flow Creation Process**
+- **Implementation**: Modified DiscoveryFlowService to create records in both tables atomically
+- **Process**: 
+  1. Create record in `discovery_flows` table
+  2. Create corresponding record in `crewai_flow_state_extensions` with same `flow_id`
+  3. Both tables now properly coordinated for all future flows
+- **Files**: 
+  - `backend/app/services/discovery_flow_service.py` - Enhanced create_discovery_flow method
+  - `backend/app/repositories/crewai_flow_state_extensions_repository.py` - New repository for master flow management
+
+#### **Orphan Flow Migration**
+- **Achievement**: Successfully migrated all 16 orphaned discovery flows to have proper coordination
+- **Results**: 
+  - Discovery flows: 17 (including test flow)
+  - Extension records: 17
+  - Properly coordinated: 17 (100% success rate)
+  - Orphaned flows: 0
+- **Files**: 
+  - `backend/app/services/migration/orphan_flow_migrator.py` - Migration script for existing data
+  - `backend/railway_deploy_prep.py` - Automated orphan flow fixing
+
+### 🚢 **Railway Deployment Safety**
+
+#### **Railway-Safe Migration Strategy**
+- **Issue**: Local migration history might differ from Railway production, causing deployment failures
+- **Solution**: Created idempotent, Railway-safe migrations that check actual schema state
+- **Implementation**:
+  - `railway_safe_schema_sync.py` - Idempotent migration that safely synchronizes schema
+  - `railway_migration_check.py` - Validation script for deployment readiness
+  - `railway_deploy_prep.py` - Complete deployment preparation automation
+- **Files**: 
+  - `backend/alembic/versions/railway_safe_schema_sync.py`
+  - `backend/railway_migration_check.py`
+  - `backend/railway_deploy_prep.py`
+  - `docs/RAILWAY_DEPLOYMENT_GUIDE.md`
+
+#### **Database Schema Synchronization**
+- **Enhancement**: Added missing columns to `crewai_flow_state_extensions` table
+- **Columns Added**: `client_account_id`, `engagement_id`, `user_id`, `flow_type`, `flow_name`, `flow_status`, `flow_configuration`
+- **Indexes**: Created performance indexes for multi-tenant queries
+- **Constraints**: Added unique constraint on `flow_id` for proper coordination
+- **Files**: `backend/alembic/versions/a1409a6c4f88_fix_crewai_flow_state_extensions_for_.py`
+
+### 🎨 **Context Switching Improvements**
+
+#### **Enhanced Error Handling**
+- **Issue**: Browser console errors during context switching, uncertain database persistence
+- **Fix**: Enhanced error handling for context persistence API calls with non-blocking fallbacks
+- **Implementation**:
+  - Made context persistence API calls non-blocking
+  - Added comprehensive error logging
+  - Implemented graceful fallback behavior
+- **Files**: 
+  - `src/lib/api/context.ts` - Enhanced updateUserDefaults with error handling
+  - `src/contexts/AuthContext.tsx` - Non-blocking context persistence
+
+### 🧪 **Testing & Validation**
+
+- **Validated**: Flow creation process creates records in both tables with matching `flow_id`
+- **Confirmed**: All 16 orphaned flows successfully migrated to proper coordination
+- **Verified**: Railway deployment preparation script validates schema and data consistency
+- **Tested**: New flow creation maintains proper architecture (17th flow created during testing)
+
+### 📋 **Migration Scripts & Tools**
+
+#### **Comprehensive Tooling**
+- **Railway Migration Check**: Validates database state for safe deployment
+- **Orphan Flow Migrator**: Fixes existing orphaned flows
+- **Deployment Preparation**: Automated Railway deployment preparation
+- **Schema Synchronization**: Idempotent migrations for Railway safety
+
+---
+
 ## [0.9.1] - 2025-01-29
 
 ### 🎯 **ATTRIBUTE MAPPING PAGE CONTEXT FIXES & UI IMPROVEMENTS**

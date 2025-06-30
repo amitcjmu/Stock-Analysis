@@ -27,6 +27,8 @@ export const updateUserDefaults = async (
   request: UpdateUserDefaultsRequest
 ): Promise<UpdateUserDefaultsResponse> => {
   try {
+    console.log('🔄 Updating user defaults:', request);
+    
     const response = await apiCall('/api/v1/context/me/defaults', {
       method: 'PUT',
       headers: {
@@ -35,10 +37,29 @@ export const updateUserDefaults = async (
       body: JSON.stringify(request),
     });
 
+    console.log('✅ User defaults updated successfully:', response);
     return response;
-  } catch (error) {
-    console.error('Failed to update user defaults:', error);
-    throw error;
+  } catch (error: any) {
+    console.error('❌ Failed to update user defaults:', {
+      error: error.message || error,
+      status: error.status,
+      request,
+      endpoint: '/api/v1/context/me/defaults'
+    });
+    
+    // Don't throw the error - make this non-blocking
+    // The context switching should still work via localStorage
+    console.warn('⚠️ Continuing with localStorage-only context persistence');
+    
+    // Return a fallback response
+    return {
+      success: false,
+      message: `Failed to update user defaults: ${error.message || error}`,
+      updated_defaults: {
+        default_client_id: request.client_id || null,
+        default_engagement_id: request.engagement_id || null,
+      }
+    };
   }
 };
 

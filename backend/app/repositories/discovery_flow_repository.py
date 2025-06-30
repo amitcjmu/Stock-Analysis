@@ -84,11 +84,14 @@ class DiscoveryFlowRepository(ContextAwareRepository):
             logger.error(f"❌ Invalid CrewAI Flow ID provided: {flow_id}, error: {e}")
             raise ValueError(f"Invalid CrewAI Flow ID: {flow_id}. Must be a valid UUID.")
         
+        # Safely handle user_id (don't try to convert to UUID)
+        safe_user_id = user_id or "test-user"  # Store as string, not UUID
+        
         flow = DiscoveryFlow(
             flow_id=parsed_flow_id,  # Always use the REAL CrewAI Flow ID
             client_account_id=uuid.UUID(self.client_account_id) if self.client_account_id else demo_client_id,
             engagement_id=uuid.UUID(self.engagement_id) if self.engagement_id else demo_engagement_id,
-            user_id=str(uuid.UUID(user_id)) if user_id else str(demo_user_id),
+            user_id=safe_user_id,  # Store as string, not UUID
             import_session_id=uuid.UUID(import_session_id) if import_session_id else None,
             flow_name=f"Discovery Flow {flow_id[:8]}",
             status="active",

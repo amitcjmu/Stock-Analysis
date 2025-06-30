@@ -693,12 +693,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.removeItem('auth_engagement');
         localStorage.removeItem('auth_session');
         
-        // Update user defaults with just the client
+        // Update user defaults with just the client (non-blocking)
         try {
-          await updateUserDefaults({ client_id: clientId });
-          console.log('✅ Updated user default client:', clientId);
+          const result = await updateUserDefaults({ client_id: clientId });
+          if (result.success) {
+            console.log('✅ Updated user default client:', clientId);
+          } else {
+            console.warn('⚠️ Failed to update user default client (non-blocking):', result.message);
+          }
         } catch (defaultError) {
-          console.warn('⚠️ Failed to update user default client:', defaultError);
+          console.warn('⚠️ Failed to update user default client (non-blocking):', defaultError);
         }
       }
       
@@ -767,15 +771,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         session: sessionData 
       });
       
-      // Update user defaults in the backend
+      // Update user defaults in the backend (non-blocking)
       try {
-        await updateUserDefaults({
+        const result = await updateUserDefaults({
           client_id: client?.id,
           engagement_id: engagementId
         });
-        console.log('✅ Updated user defaults - client:', client?.id, 'engagement:', engagementId);
+        if (result.success) {
+          console.log('✅ Updated user defaults - client:', client?.id, 'engagement:', engagementId);
+        } else {
+          console.warn('⚠️ Failed to update user defaults (non-blocking):', result.message);
+        }
       } catch (defaultError) {
-        console.warn('⚠️ Failed to update user defaults:', defaultError);
+        console.warn('⚠️ Failed to update user defaults (non-blocking):', defaultError);
       }
       
     } catch (error) {

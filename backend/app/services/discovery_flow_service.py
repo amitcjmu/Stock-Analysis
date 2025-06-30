@@ -10,6 +10,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository, DiscoveryAssetRepository
+from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
 from app.models.discovery_flow import DiscoveryFlow
 from app.models.discovery_asset import DiscoveryAsset
 from app.core.context import RequestContext
@@ -29,6 +30,12 @@ class DiscoveryFlowService:
         self.context = context
         
         # Initialize repositories with multi-tenant context
+        self.master_flow_repo = CrewAIFlowStateExtensionsRepository(
+            db=db,
+            client_account_id=str(context.client_account_id),
+            engagement_id=str(context.engagement_id)
+        )
+        
         self.flow_repo = DiscoveryFlowRepository(
             db=db,
             client_account_id=str(context.client_account_id),
@@ -50,11 +57,17 @@ class DiscoveryFlowService:
         user_id: str = None
     ) -> DiscoveryFlow:
         """
-        Create a new discovery flow using CrewAI Flow ID as single source of truth.
-        Handles duplicate flow IDs gracefully by returning existing flow if found.
+        Create a new discovery flow and ensure corresponding crewai_flow_state_extensions record.
+        
+        Simple Architecture:
+        1. Create discovery flow in discovery_flows table with flow_id = X
+        2. Create crewai_flow_state_extensions record with same flow_id = X  
+        3. Both tables linked by having the same flow_id value
+        
+        This ensures crewai_flow_state_extensions is populated for flow coordination.
         """
         try:
-            logger.info(f"🚀 Creating discovery flow with CrewAI Flow ID: {flow_id}")
+            logger.info(f"🚀 Creating discovery flow and extensions record: {flow_id}")
             
             # Validate input
             if not flow_id:
@@ -67,11 +80,12 @@ class DiscoveryFlowService:
             existing_flow = await self.flow_repo.get_by_flow_id_global(flow_id)
             if existing_flow:
                 logger.info(f"✅ Discovery flow already exists globally, returning existing: {flow_id}")
-                logger.info(f"   Existing flow client: {existing_flow.client_account_id}, current context: {self.context.client_account_id}")
                 return existing_flow
             
-            # Create discovery flow
-            flow = await self.flow_repo.create_discovery_flow(
+            # Step 1: Create discovery flow in discovery_flows table
+            logger.info(f"🔧 Creating discovery flow: {flow_id}")
+            
+            discovery_flow = await self.flow_repo.create_discovery_flow(
                 flow_id=flow_id,
                 import_session_id=data_import_id,
                 user_id=user_id or str(self.context.user_id),
@@ -79,8 +93,36 @@ class DiscoveryFlowService:
                 metadata=metadata or {}
             )
             
-            logger.info(f"✅ Discovery flow created successfully: {flow.flow_id}")
-            return flow
+            # Step 2: Create corresponding crewai_flow_state_extensions record with same flow_id
+            logger.info(f"🔧 Creating crewai_flow_state_extensions record: {flow_id}")
+            
+            try:
+                extensions_record = await self.master_flow_repo.create_master_flow(
+                    flow_id=flow_id,  # Same flow_id as discovery flow
+                    flow_type="discovery",
+                    user_id=user_id or str(self.context.user_id),
+                    flow_name=f"Discovery Flow {flow_id[:8]}",
+                    flow_configuration={
+                        "data_import_id": data_import_id,
+                        "raw_data_count": len(raw_data),
+                        "metadata": metadata or {}
+                    },
+                    initial_state={
+                        "created_from": "discovery_flow_service",
+                        "raw_data_sample": raw_data[:2] if raw_data else [],
+                        "creation_timestamp": datetime.utcnow().isoformat()
+                    }
+                )
+                logger.info(f"✅ Extensions record created: {extensions_record.flow_id}")
+            except Exception as ext_error:
+                logger.warning(f"⚠️ Failed to create extensions record (non-critical): {ext_error}")
+                # Don't fail the whole operation if extensions creation fails
+            
+            logger.info(f"✅ Discovery flow created successfully: {flow_id}")
+            logger.info(f"   Discovery flow: discovery_flows.flow_id = {flow_id}")
+            logger.info(f"   Extensions: crewai_flow_state_extensions.flow_id = {flow_id}")
+            
+            return discovery_flow
             
         except Exception as e:
             logger.error(f"❌ Failed to create discovery flow: {e}")

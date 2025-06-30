@@ -15,14 +15,26 @@ from app.core.database import Base
 
 class CrewAIFlowStateExtensions(Base):
     """
-    Extended table for CrewAI-specific flow state data
-    Phase 4: Comprehensive flow analytics and performance tracking
+    Master table for all CrewAI flow coordination.
+    This table serves as the central hub for coordinating Discovery, Assessment, Planning, and Execution flows.
+    All other flow-specific tables reference this master table via master_flow_id.
     """
     __tablename__ = "crewai_flow_state_extensions"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    discovery_flow_id = Column(UUID(as_uuid=True), ForeignKey("discovery_flows.id", ondelete="CASCADE"), nullable=False, index=True)
-    flow_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    # Primary flow identifier - CrewAI Flow ID
+    flow_id = Column(UUID(as_uuid=True), nullable=False, unique=True, index=True)
+    
+    # Multi-tenant isolation
+    client_account_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    engagement_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    user_id = Column(String(255), nullable=False)
+    
+    # Flow metadata
+    flow_type = Column(String(50), nullable=False)  # discovery, assessment, planning, execution
+    flow_name = Column(String(255), nullable=True)
+    flow_status = Column(String(50), nullable=False, default="initialized")
+    flow_configuration = Column(JSONB, nullable=False, server_default=text("'{}'::jsonb"))
     
     # CrewAI Flow persistence data
     flow_persistence_data = Column(JSONB, nullable=False, server_default=text("'{}'::jsonb"))
@@ -44,18 +56,25 @@ class CrewAIFlowStateExtensions(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
-    # Updated relationship to discovery_flows
-    discovery_flow = relationship("DiscoveryFlow", back_populates="crewai_extensions")
+    # Relationships - This is the master table, so subordinate tables reference it
+    # Note: Subordinate flow tables (discovery_flows, assessment_flows, etc.) 
+    # should have master_flow_id foreign keys pointing to this table's flow_id
     
     def __repr__(self):
-        return f"<CrewAIFlowStateExtensions(discovery_flow_id={self.discovery_flow_id}, flow_id={self.flow_id})>"
+        return f"<CrewAIFlowStateExtensions(flow_id={self.flow_id}, flow_type={self.flow_type}, status={self.flow_status})>"
     
     def to_dict(self):
         """Convert to dictionary for API responses"""
         return {
             "id": str(self.id),
-            "discovery_flow_id": str(self.discovery_flow_id),
             "flow_id": str(self.flow_id),
+            "client_account_id": str(self.client_account_id),
+            "engagement_id": str(self.engagement_id),
+            "user_id": self.user_id,
+            "flow_type": self.flow_type,
+            "flow_name": self.flow_name,
+            "flow_status": self.flow_status,
+            "flow_configuration": self.flow_configuration or {},
             "flow_persistence_data": self.flow_persistence_data or {},
             "agent_collaboration_log": self.agent_collaboration_log or [],
             "memory_usage_metrics": self.memory_usage_metrics or {},

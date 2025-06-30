@@ -71,7 +71,7 @@ class DiscoveryFlow(Base):
     # Relationships
     # Note: discovery_assets table was consolidated into main assets table
     # Use assets table with discovery_flow_id foreign key instead
-    crewai_extensions = relationship("CrewAIFlowStateExtensions", back_populates="discovery_flow", cascade="all, delete-orphan")
+    # Note: CrewAIFlowStateExtensions is now the master table, so no direct relationship needed
 
     def __repr__(self):
         return f"<DiscoveryFlow(flow_id={self.flow_id}, name='{self.flow_name}', status='{self.status}')>"
