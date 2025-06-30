@@ -877,6 +877,121 @@ async def get_client_engagements(
         else:
             return EngagementsListResponse(engagements=[])
 
+@router.put(
+    "/me/defaults",
+    summary="Update user default context",
+    description="Update the user's default client and engagement preferences."
+)
+async def update_user_defaults(
+    request: dict,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> dict:
+    """
+    Update the user's default client and engagement preferences.
+    
+    This ensures that when the user logs in or refreshes the page,
+    their previously selected context is restored.
+    """
+    try:
+        client_id = request.get('client_id')
+        engagement_id = request.get('engagement_id')
+        
+        # Validate that the user has access to the specified client
+        if client_id:
+            from app.models.client_account import ClientAccount
+            from app.models.rbac import UserRole, ClientAccess
+            from sqlalchemy import select, and_
+            
+            # Check if user is platform admin (has access to all clients)
+            role_query = select(UserRole).where(
+                and_(
+                    UserRole.user_id == str(current_user.id),
+                    UserRole.role_type == 'platform_admin',
+                    UserRole.is_active == True
+                )
+            )
+            role_result = await db.execute(role_query)
+            is_platform_admin = role_result.scalar_one_or_none() is not None
+            
+            if not is_platform_admin:
+                # Regular users: Verify they have access to this client
+                access_query = select(ClientAccess).where(
+                    and_(
+                        ClientAccess.user_profile_id == str(current_user.id),
+                        ClientAccess.client_account_id == client_id,
+                        ClientAccess.is_active == True
+                    )
+                )
+                access_result = await db.execute(access_query)
+                client_access = access_result.scalar_one_or_none()
+                
+                # Special case for demo user accessing demo client
+                is_demo_access = (
+                    str(current_user.id) == "44444444-4444-4444-4444-444444444444" and
+                    client_id == "11111111-1111-1111-1111-111111111111"
+                )
+                
+                if not client_access and not is_demo_access:
+                    raise HTTPException(status_code=403, detail="Access denied: No permission for this client")
+            
+            # Verify client exists and is active
+            client_query = select(ClientAccount).where(
+                and_(
+                    ClientAccount.id == client_id,
+                    ClientAccount.is_active == True
+                )
+            )
+            client_result = await db.execute(client_query)
+            client = client_result.scalar_one_or_none()
+            
+            if not client:
+                raise HTTPException(status_code=404, detail="Client not found or inactive")
+        
+        # Validate that the engagement belongs to the specified client
+        if engagement_id and client_id:
+            from app.models.client_account import Engagement
+            
+            engagement_query = select(Engagement).where(
+                and_(
+                    Engagement.id == engagement_id,
+                    Engagement.client_account_id == client_id,
+                    Engagement.is_active == True
+                )
+            )
+            engagement_result = await db.execute(engagement_query)
+            engagement = engagement_result.scalar_one_or_none()
+            
+            if not engagement:
+                raise HTTPException(status_code=404, detail="Engagement not found or doesn't belong to specified client")
+        
+        # Update user defaults
+        if client_id:
+            current_user.default_client_id = client_id
+        if engagement_id:
+            current_user.default_engagement_id = engagement_id
+        
+        await db.commit()
+        await db.refresh(current_user)
+        
+        return {
+            "success": True,
+            "message": "User defaults updated successfully",
+            "updated_defaults": {
+                "default_client_id": str(current_user.default_client_id) if current_user.default_client_id else None,
+                "default_engagement_id": str(current_user.default_engagement_id) if current_user.default_engagement_id else None
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error updating user defaults: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update user defaults: {str(e)}"
+        )
+
 @router.get(
     "/me",
     response_model=UserContext,

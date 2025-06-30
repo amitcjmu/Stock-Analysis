@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { useNavigate } from 'react-router-dom';
 import { authApi, User } from '@/lib/api/auth';
 import { apiCall, updateApiContext } from '@/config/api';
+import { updateUserDefaults } from '@/lib/api/context';
 
 interface TokenStorage {
   getToken: () => string | null;
@@ -691,6 +692,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(null);
         localStorage.removeItem('auth_engagement');
         localStorage.removeItem('auth_session');
+        
+        // Update user defaults with just the client
+        try {
+          await updateUserDefaults({ client_id: clientId });
+          console.log('✅ Updated user default client:', clientId);
+        } catch (defaultError) {
+          console.warn('⚠️ Failed to update user default client:', defaultError);
+        }
       }
       
     } catch (error) {
@@ -757,6 +766,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         engagement: fullEngagementData, 
         session: sessionData 
       });
+      
+      // Update user defaults in the backend
+      try {
+        await updateUserDefaults({
+          client_id: client?.id,
+          engagement_id: engagementId
+        });
+        console.log('✅ Updated user defaults - client:', client?.id, 'engagement:', engagementId);
+      } catch (defaultError) {
+        console.warn('⚠️ Failed to update user defaults:', defaultError);
+      }
       
     } catch (error) {
       console.error('Error switching engagement:', error);
