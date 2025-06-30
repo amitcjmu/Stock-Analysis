@@ -1,0 +1,397 @@
+name: Phase 1 Test Suite
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '18'
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: migration_test_db
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Cache Python dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      
+      - name: Install Python dependencies
+        run: |
+          cd backend
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest-cov pytest-xdist pytest-mock coverage
+      
+      - name: Set up test environment
+        run: |
+          cd backend
+          cp .env.example .env.test
+          echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/migration_test_db" >> .env.test
+          echo "ENVIRONMENT=test" >> .env.test
+          echo "DEEPINFRA_API_KEY=test-key" >> .env.test
+      
+      - name: Run database migrations
+        run: |
+          cd backend
+          export PYTHONPATH=$PWD
+          python -c "
+          import asyncio
+          from app.database import engine
+          from app.models import Base
+          
+          async def create_tables():
+              async with engine.begin() as conn:
+                  await conn.run_sync(Base.metadata.create_all)
+          
+          asyncio.run(create_tables())
+          "
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/migration_test_db
+      
+      - name: Run unit tests with coverage
+        run: |
+          cd backend
+          export PYTHONPATH=$PWD
+          pytest tests/unit --cov=app --cov-report=xml --cov-report=term-missing -v --maxfail=10
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/migration_test_db
+          ENVIRONMENT: test
+      
+      - name: Run integration tests
+        run: |
+          cd backend
+          export PYTHONPATH=$PWD
+          pytest tests/integration -v --maxfail=5
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/migration_test_db
+          ENVIRONMENT: test
+      
+      - name: Run performance tests
+        run: |
+          cd backend
+          export PYTHONPATH=$PWD
+          pytest tests/performance -v --maxfail=3
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/migration_test_db
+          ENVIRONMENT: test
+      
+      - name: Generate coverage report
+        run: |
+          cd backend
+          coverage report --show-missing
+          coverage html
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./backend/coverage.xml
+          flags: backend
+          name: backend-coverage
+          fail_ci_if_error: false
+      
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: backend-coverage-report
+          path: backend/htmlcov/
+
+  frontend-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Install Vitest for unit testing
+        run: npm install --save-dev vitest @vitest/ui jsdom @testing-library/react @testing-library/jest-dom
+      
+      - name: Create Vitest config
+        run: |
+          cat > vitest.config.ts << 'EOF'
+          import { defineConfig } from 'vitest/config'
+          import react from '@vitejs/plugin-react-swc'
+          
+          export default defineConfig({
+            plugins: [react()],
+            test: {
+              globals: true,
+              environment: 'jsdom',
+              setupFiles: ['./src/test-setup.ts'],
+              coverage: {
+                provider: 'v8',
+                reporter: ['text', 'json', 'html', 'lcov'],
+                exclude: [
+                  'node_modules/',
+                  'src/test-setup.ts',
+                  '**/*.d.ts',
+                  '**/*.config.*',
+                  'dist/',
+                  'coverage/'
+                ]
+              }
+            }
+          })
+          EOF
+      
+      - name: Create test setup file
+        run: |
+          mkdir -p src
+          cat > src/test-setup.ts << 'EOF'
+          import '@testing-library/jest-dom'
+          
+          // Mock window.matchMedia
+          Object.defineProperty(window, 'matchMedia', {
+            writable: true,
+            value: vi.fn().mockImplementation(query => ({
+              matches: false,
+              media: query,
+              onchange: null,
+              addListener: vi.fn(),
+              removeListener: vi.fn(),
+              addEventListener: vi.fn(),
+              removeEventListener: vi.fn(),
+              dispatchEvent: vi.fn(),
+            })),
+          })
+          
+          // Mock ResizeObserver
+          global.ResizeObserver = vi.fn().mockImplementation(() => ({
+            observe: vi.fn(),
+            unobserve: vi.fn(),
+            disconnect: vi.fn(),
+          }))
+          EOF
+      
+      - name: Run unit tests with coverage
+        run: npm run test:coverage || npm run test -- --coverage || npx vitest run --coverage
+      
+      - name: Run type checking
+        run: npm run type-check || npx tsc --noEmit
+      
+      - name: Run linting
+        run: npm run lint
+      
+      - name: Upload frontend coverage
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage/lcov.info
+          flags: frontend
+          name: frontend-coverage
+          fail_ci_if_error: false
+      
+      - name: Upload frontend test artifacts
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: frontend-test-results
+          path: |
+            coverage/
+            test-results/
+
+  e2e-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [backend-tests, frontend-tests]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Install Playwright
+        run: npx playwright install --with-deps
+      
+      - name: Start Docker services
+        run: |
+          docker-compose up -d --build
+          echo "Waiting for services to be ready..."
+          timeout 120 bash -c 'until curl -f http://localhost:3000/health 2>/dev/null; do sleep 2; done' || echo "Frontend health check timeout"
+          timeout 120 bash -c 'until curl -f http://localhost:8000/health 2>/dev/null; do sleep 2; done' || echo "Backend health check timeout"
+          sleep 10  # Additional buffer time
+      
+      - name: Run E2E tests
+        run: npm run test:e2e
+        env:
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
+      
+      - name: Upload E2E test artifacts
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: e2e-test-results
+          path: |
+            test-results/
+            playwright-report/
+      
+      - name: Stop Docker services
+        if: always()
+        run: docker-compose down -v
+
+  security-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+      
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  test-summary:
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-tests, e2e-tests, security-scan]
+    if: always()
+    
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+      
+      - name: Generate test summary
+        run: |
+          echo "# Phase 1 Test Suite Results" > test-summary.md
+          echo "" >> test-summary.md
+          echo "## Test Status" >> test-summary.md
+          echo "- Backend Tests: ${{ needs.backend-tests.result }}" >> test-summary.md
+          echo "- Frontend Tests: ${{ needs.frontend-tests.result }}" >> test-summary.md
+          echo "- E2E Tests: ${{ needs.e2e-tests.result }}" >> test-summary.md
+          echo "- Security Scan: ${{ needs.security-scan.result }}" >> test-summary.md
+          echo "" >> test-summary.md
+          
+          if [[ "${{ needs.backend-tests.result }}" == "success" && "${{ needs.frontend-tests.result }}" == "success" && "${{ needs.e2e-tests.result }}" == "success" ]]; then
+            echo "✅ All tests passed! Phase 1 changes are ready for deployment." >> test-summary.md
+          else
+            echo "❌ Some tests failed. Please review the results before proceeding." >> test-summary.md
+          fi
+      
+      - name: Comment PR with test summary
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('test-summary.md', 'utf8');
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });
+
+  performance-benchmarks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: github.event_name == 'pull_request'
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: migration_benchmark_db
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+          pip install pytest-benchmark
+      
+      - name: Run performance benchmarks
+        run: |
+          cd backend
+          export PYTHONPATH=$PWD
+          pytest tests/performance --benchmark-only --benchmark-json=benchmark.json
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/migration_benchmark_db
+      
+      - name: Store benchmark results
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          tool: 'pytest'
+          output-file-path: backend/benchmark.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: false
+          comment-on-alert: true
+          alert-threshold: '200%'
+          fail-on-alert: false

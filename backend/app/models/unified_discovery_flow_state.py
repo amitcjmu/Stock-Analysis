@@ -46,8 +46,9 @@ class UnifiedDiscoveryFlowState(BaseModel):
     # ========================================
     # CORE IDENTIFICATION (Required)
     # ========================================
-    flow_id: str = ""  # Will be set by CrewAI Flow - NEVER generate our own
-    session_id: str = ""
+    flow_id: str = ""  # Primary identifier from CrewAI Flow - NEVER generate our own
+    # Legacy session_id maintained for backward compatibility during migration
+    session_id: str = ""  # DEPRECATED: Use flow_id instead
     client_account_id: str = ""
     engagement_id: str = ""
     user_id: str = ""

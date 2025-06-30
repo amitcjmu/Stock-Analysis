@@ -32,6 +32,13 @@ export interface Session {
   status: string;
 }
 
+export interface Flow {
+  id: string;
+  name: string;
+  status: string;
+  session_id?: string; // For backward compatibility
+}
+
 const tokenStorage: TokenStorage = {
   getToken: () => localStorage.getItem('auth_token'),
   setToken: (token) => localStorage.setItem('auth_token', token),
@@ -81,6 +88,7 @@ interface AuthContextType {
   client: Client | null;
   engagement: Engagement | null;
   session: Session | null;
+  flow: Flow | null; // New flow context
   isLoading: boolean;
   error: string | null;
   isDemoMode: boolean;
@@ -92,10 +100,13 @@ interface AuthContextType {
   switchClient: (clientId: string, clientData?: Client) => Promise<void>;
   switchEngagement: (engagementId: string, engagementData?: Engagement) => Promise<void>;
   switchSession: (sessionId: string) => Promise<void>;
+  switchFlow: (flowId: string, flowData?: Flow) => Promise<void>; // New flow method
 
   setCurrentSession: (session: Session | null) => void;
+  setCurrentFlow: (flow: Flow | null) => void; // New flow setter
   currentEngagementId: string | null;
   currentSessionId: string | null;
+  currentFlowId: string | null; // New flow ID getter
   getAuthHeaders: () => Record<string, string>;
 }
 

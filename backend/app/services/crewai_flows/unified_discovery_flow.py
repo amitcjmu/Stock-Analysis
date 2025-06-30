@@ -75,19 +75,17 @@ from app.services.agents.dependency_analysis_agent import DependencyAnalysisAgen
 from app.services.agents.tech_debt_analysis_agent import TechDebtAnalysisAgent
 from app.services.agents.discovery_agent_orchestrator import DiscoveryAgentOrchestrator
 
-@persist()  # Enable CrewAI state persistence
 class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
     """
-    Unified Discovery Flow following CrewAI documentation patterns.
+    Unified Discovery Flow with PostgreSQL-only persistence.
     Single source of truth for all discovery flow operations.
     
-    Now integrated with Flow State Bridge for hybrid CrewAI + PostgreSQL persistence.
-    Addresses gaps from the consolidation plan:
-    - Gap #1: CrewAI @persist() + PostgreSQL multi-tenancy
-    - Gap #2: Manager-level state updates during crew execution
-    - Gap #3: State validation and integrity checks
-    - Gap #4: Advanced recovery and reconstruction capabilities
-    - Gap #5: Performance monitoring and analytics integration
+    Features:
+    - PostgreSQL-only state management (no SQLite dependency)
+    - Multi-tenant data isolation
+    - State validation and recovery mechanisms
+    - Atomic operations with optimistic locking
+    - Comprehensive audit trail
     
     Handles all discovery phases with proper state management:
     1. Field Mapping

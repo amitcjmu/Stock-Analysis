@@ -6,6 +6,7 @@
 
 import { apiCall } from '../config/api';
 import { getAuthHeaders } from '../utils/contextUtils';
+import { SessionToFlowMigration } from '../utils/migration/sessionToFlow';
 
 // Configuration - API base URL no longer needed as apiCall handles the full URL construction
 
@@ -335,6 +336,35 @@ export class UnifiedDiscoveryService {
     }
   }
 
+  // === Migration Helpers ===
+
+  /**
+   * Smart identifier resolver - accepts either session_id or flow_id
+   */
+  private resolveFlowId(identifier: string): string {
+    // Check if it's already a flow ID (UUID format)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (uuidRegex.test(identifier)) {
+      return identifier;
+    }
+    
+    // Convert session ID to flow ID
+    return SessionToFlowMigration.convertSessionToFlowId(identifier);
+  }
+
+  /**
+   * Get flow status with automatic session_id to flow_id conversion
+   */
+  async getFlowStatusSmart(identifier: string): Promise<UnifiedDiscoveryFlowResponse> {
+    const flowId = this.resolveFlowId(identifier);
+    
+    if (flowId !== identifier) {
+      SessionToFlowMigration.logDeprecationWarning('getFlowStatusSmart', identifier);
+    }
+    
+    return await this.getFlowStatus(flowId);
+  }
+
   // === Legacy Compatibility ===
 
   /**
@@ -356,9 +386,14 @@ export class UnifiedDiscoveryService {
    */
   async getFlowStatusLegacy(sessionId: string): Promise<UnifiedDiscoveryFlowResponse> {
     try {
-      console.log('🔄 Legacy status lookup (converting session_id)');
-      const result = await httpClient.get<UnifiedDiscoveryFlowResponse>(`/flow/status?session_id=${sessionId}`);
-      return result;
+      SessionToFlowMigration.logDeprecationWarning('getFlowStatusLegacy', sessionId);
+      
+      // Convert session ID to flow ID using migration utility
+      const flowId = SessionToFlowMigration.convertSessionToFlowId(sessionId);
+      console.log('🔄 Legacy status lookup - converted to flow_id:', { sessionId, flowId });
+      
+      // Use the regular flow status method with converted ID
+      return await this.getFlowStatus(flowId);
     } catch (error) {
       console.error('❌ Legacy status lookup failed:', error);
       throw error;

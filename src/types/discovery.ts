@@ -1,5 +1,12 @@
+// Flow identifier interfaces for session-to-flow migration
+export interface FlowIdentifier {
+  flowId: string;
+  sessionId?: string; // @deprecated - remove in Phase 2
+}
+
 export interface FlowState {
-  session_id: string;
+  flow_id: string; // Primary identifier
+  session_id?: string; // @deprecated - Use flow_id instead
   current_phase: string;
   next_phase: string;
   previous_phase: string;
@@ -130,4 +137,66 @@ export interface FlowState {
   agent_schedule_data: Record<string, any>;
   agent_planning_data: Record<string, any>;
   agent_execution_data: Record<string, any>;
+}
+
+// Discovery Flow Types for Phase 1 Migration
+export interface DiscoveryFlowData {
+  id: string;
+  flow_id: string;
+  client_account_id: string;
+  engagement_id: string;
+  user_id: string;
+  import_session_id?: string; // Legacy field for backward compatibility
+  flow_name: string;
+  flow_description?: string;
+  status: 'active' | 'completed' | 'failed' | 'paused' | 'waiting_for_user' | 'migrated';
+  progress_percentage: number;
+  phases: {
+    data_import_completed: boolean;
+    attribute_mapping_completed: boolean;
+    data_cleansing_completed: boolean;
+    inventory_completed: boolean;
+    dependencies_completed: boolean;
+    tech_debt_completed: boolean;
+  };
+  current_phase: string;
+  next_phase?: string;
+  created_at: string;
+  updated_at: string;
+  completed_at?: string;
+}
+
+// API Response Types
+export interface FlowStatusResponse {
+  flow_id: string;
+  session_id?: string; // @deprecated
+  status: string;
+  progress_percentage: number;
+  current_phase: string;
+  phase_completion: Record<string, boolean>;
+  records_processed?: number;
+  records_total?: number;
+  records_valid?: number;
+  agent_insights?: any[];
+  errors?: string[];
+  warnings?: string[];
+}
+
+// Migration Utility Types
+export interface MigrationContext {
+  useFlowId: boolean;
+  identifier: string; // Either flowId or sessionId depending on context
+  legacySessionId?: string;
+}
+
+// Backward Compatibility Types
+export interface LegacySessionData {
+  sessionId: string;
+  sessionData: any;
+}
+
+export interface FlowData {
+  flowId: string;
+  flowData: any;
+  sessionId?: string; // For backward compatibility
 } 

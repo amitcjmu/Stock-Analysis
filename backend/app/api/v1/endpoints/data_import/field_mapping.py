@@ -34,6 +34,19 @@ from app.services.field_mapper_modular import field_mapper
 # from app.services.agents_legacy import AgentManager
 from app.core.auth import get_current_user_id
 
+def validate_context_access(
+    resource: Any, 
+    context: RequestContext
+) -> None:
+    """Validate user has access to resource"""
+    if hasattr(resource, 'client_account_id'):
+        if resource.client_account_id != context.client_account_id:
+            raise HTTPException(403, "Access denied")
+    
+    if hasattr(resource, 'engagement_id') and context.engagement_id:
+        if resource.engagement_id != context.engagement_id:
+            raise HTTPException(403, "Access denied")
+
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
@@ -1110,6 +1123,17 @@ async def approve_field_mapping_by_field(
         if not all([source_field, target_field, import_id]):
             raise HTTPException(status_code=400, detail="Missing required fields: source_field, target_field, import_id")
         
+        # Validate import exists and user has access
+        import_query = select(DataImport).where(DataImport.id == import_id)
+        import_result = await db.execute(import_query)
+        data_import = import_result.scalar_one_or_none()
+        
+        if not data_import:
+            raise HTTPException(status_code=404, detail="Data import not found")
+            
+        # Validate context access
+        validate_context_access(data_import, context)
+        
         # Find or create the mapping
         mapping_query = select(ImportFieldMapping).where(
             and_(
@@ -1186,6 +1210,17 @@ async def reject_field_mapping_by_field(
         
         if not all([source_field, target_field, import_id]):
             raise HTTPException(status_code=400, detail="Missing required fields: source_field, target_field, import_id")
+        
+        # Validate import exists and user has access
+        import_query = select(DataImport).where(DataImport.id == import_id)
+        import_result = await db.execute(import_query)
+        data_import = import_result.scalar_one_or_none()
+        
+        if not data_import:
+            raise HTTPException(status_code=404, detail="Data import not found")
+            
+        # Validate context access
+        validate_context_access(data_import, context)
         
         # Find or create the mapping
         mapping_query = select(ImportFieldMapping).where(

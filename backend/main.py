@@ -213,6 +213,22 @@ except Exception as e:
     print(f"⚠️  API v1 routes error: {e}")
     API_ROUTES_ERROR = str(e)
 
+# Try to import API v3 routes
+API_V3_ROUTES_ENABLED = False
+API_V3_ROUTES_ERROR = None
+try:
+    from app.api.v3.router import api_router as api_v3_router, setup_v3_middleware
+    app.include_router(api_v3_router)  # v3 router includes its own /api/v3 prefix
+    
+    # Setup v3-specific middleware
+    setup_v3_middleware(app)
+    
+    API_V3_ROUTES_ENABLED = True
+    print("✅ API v3 routes loaded successfully")
+except Exception as e:
+    print(f"⚠️  API v3 routes error: {e}")
+    API_V3_ROUTES_ERROR = str(e)
+
 # WebSocket support removed for Vercel+Railway compatibility
 WEBSOCKET_ENABLED = False
 print("ℹ️  WebSocket support disabled - using HTTP polling for Vercel+Railway compatibility")
@@ -297,6 +313,12 @@ try:
             "/api/v1/discovery/flow/status",  # Allow checking flow status
             "/api/v1/unified-discovery/flow/health",  # Allow health checks
             "/api/v1/unified-discovery/flow/status",  # Allow flow status checks
+            # API v3 health and status endpoints
+            "/api/v3/health",  # V3 main health endpoint
+            "/api/v3/discovery-flow/health",  # V3 discovery flow health
+            "/api/v3/field-mapping/health",  # V3 field mapping health
+            "/api/v3/status",  # V3 status endpoint
+            "/api/v3/metrics",  # V3 metrics endpoint
             # Authentication endpoints - should not require context
             "/api/v1/auth/login",
             "/api/v1/auth/register",
@@ -361,10 +383,15 @@ async def debug_routes():
     
     return {
         "total_routes": len(routes_info),
-        "api_routes_enabled": API_ROUTES_ENABLED,
-        "api_routes_error": API_ROUTES_ERROR,
+        "api_v1_enabled": API_ROUTES_ENABLED,
+        "api_v3_enabled": API_V3_ROUTES_ENABLED,
+        "errors": {
+            "api_v1": API_ROUTES_ERROR,
+            "api_v3": API_V3_ROUTES_ERROR
+        },
         "routes": routes_info[:20],  # First 20 routes
-        "discovery_routes": [r for r in routes_info if 'discovery' in r['path']]
+        "discovery_routes": [r for r in routes_info if 'discovery' in r['path']],
+        "v3_routes": [r for r in routes_info if '/api/v3/' in r['path']]
     }
 
 @app.get("/debug/test-dependency")
@@ -454,10 +481,14 @@ async def health_check():
         "components": {
             "database": DATABASE_ENABLED,
             "websocket": WEBSOCKET_ENABLED,
-            "api_routes": API_ROUTES_ENABLED
+            "api_routes": API_ROUTES_ENABLED,
+            "api_v3_routes": API_V3_ROUTES_ENABLED
         },
         "environment": getattr(settings, 'ENVIRONMENT', 'production'),
-        "error": API_ROUTES_ERROR
+        "errors": {
+            "api_v1": API_ROUTES_ERROR,
+            "api_v3": API_V3_ROUTES_ERROR
+        }
     }
 
 # WebSocket endpoint removed - using HTTP polling for Vercel+Railway compatibility

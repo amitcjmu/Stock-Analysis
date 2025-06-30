@@ -15,8 +15,9 @@ class FlowDeletionAudit(Base):
     
     # Primary identification
     id = Column(UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid())
-    session_id = Column(UUID(as_uuid=True), nullable=False, index=True)
-    flow_id = Column(UUID(as_uuid=True), nullable=False)
+    flow_id = Column(UUID(as_uuid=True), nullable=False, index=True)  # Primary flow identifier
+    # Legacy session_id maintained for backward compatibility during migration
+    session_id = Column(UUID(as_uuid=True), nullable=True, index=True)  # DEPRECATED: Use flow_id instead
     client_account_id = Column(UUID(as_uuid=True), nullable=False, index=True)
     engagement_id = Column(UUID(as_uuid=True), nullable=False, index=True)
     user_id = Column(String, nullable=False)
@@ -46,14 +47,14 @@ class FlowDeletionAudit(Base):
     recovery_data = Column(JSONB, nullable=False, default={})
     
     def __repr__(self):
-        return f"<FlowDeletionAudit(id={self.id}, session_id={self.session_id}, type={self.deletion_type})>"
+        return f"<FlowDeletionAudit(id={self.id}, flow_id={self.flow_id}, type={self.deletion_type})>"
     
     @property
     def deletion_summary(self) -> dict:
         """Get a summary of the deletion operation."""
         return {
-            "session_id": str(self.session_id),
             "flow_id": str(self.flow_id),
+            "session_id": str(self.session_id) if self.session_id else None,  # Legacy field for backward compatibility
             "deletion_type": self.deletion_type,
             "deletion_method": self.deletion_method,
             "deleted_at": self.deleted_at.isoformat() if self.deleted_at else None,
@@ -71,7 +72,6 @@ class FlowDeletionAudit(Base):
     @classmethod
     def create_audit_record(
         cls,
-        session_id: str,
         flow_id: str,
         client_account_id: str,
         engagement_id: str,
@@ -79,6 +79,7 @@ class FlowDeletionAudit(Base):
         deletion_type: str,
         deletion_method: str,
         deleted_by: str,
+        session_id: str = None,  # Legacy parameter for backward compatibility
         deletion_reason: str = None,
         data_deleted: dict = None,
         deletion_impact: dict = None,
@@ -87,8 +88,8 @@ class FlowDeletionAudit(Base):
     ) -> 'FlowDeletionAudit':
         """Create a new audit record for flow deletion."""
         return cls(
-            session_id=session_id,
             flow_id=flow_id,
+            session_id=session_id,  # Optional legacy field
             client_account_id=client_account_id,
             engagement_id=engagement_id,
             user_id=user_id,

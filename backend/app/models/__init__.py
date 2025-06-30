@@ -55,6 +55,9 @@ from app.models.llm_usage import LLMUsageLog, LLMUsageSummary
 # SixR Analysis Models
 from app.models.sixr_analysis import SixRAnalysis
 
+# V3 API Models
+from app.models.v3 import V3DataImport, V3DiscoveryFlow, V3FieldMapping, V3RawImportRecord
+
 # DEPRECATED MODELS (Legacy V1 - Use V2 Discovery Flow instead)
 # from app.models.workflow_state import WorkflowState  # REMOVED - Use DiscoveryFlow
 # from app.models.session_management import SessionManagement  # REMOVED - Use DiscoveryFlow
@@ -116,5 +119,11 @@ __all__ = [
     "LLMUsageSummary",
     
     # SixR Analysis Models
-    "SixRAnalysis"
+    "SixRAnalysis",
+    
+    # V3 API Models
+    "V3DataImport",
+    "V3DiscoveryFlow", 
+    "V3FieldMapping",
+    "V3RawImportRecord"
 ] 

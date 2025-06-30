@@ -87,7 +87,9 @@ class Asset(Base):
     client_account_id = Column(PostgresUUID(as_uuid=True), ForeignKey('client_accounts.id', ondelete='CASCADE'), nullable=False, index=True)
     engagement_id = Column(PostgresUUID(as_uuid=True), ForeignKey('engagements.id', ondelete='CASCADE'), nullable=False, index=True)
     
-    # Session tracking (Task 1.1.5)
+    # Flow-based tracking (migrated from session_id)
+    flow_id = Column(PostgresUUID(as_uuid=True), ForeignKey('discovery_flows.flow_id', ondelete='CASCADE'), nullable=True, index=True)
+    # Legacy session tracking - maintained for backward compatibility during migration
     session_id = Column(PostgresUUID(as_uuid=True), ForeignKey('data_import_sessions.id', ondelete='CASCADE'), nullable=True, index=True)
     migration_id = Column(PostgresUUID(as_uuid=True), ForeignKey('migrations.id'), nullable=True)
     
@@ -194,6 +196,7 @@ class Asset(Base):
     client_account = relationship("ClientAccount")
     migration = relationship("Migration", back_populates="assets")
     engagement = relationship("Engagement", back_populates="assets")
+    discovery_flow = relationship("DiscoveryFlow", foreign_keys=[flow_id], primaryjoin="Asset.flow_id == DiscoveryFlow.flow_id")
     
     def __repr__(self):
         return f"<Asset(id={self.id}, name='{self.name}', type='{self.asset_type}', is_mock={self.is_mock})>"

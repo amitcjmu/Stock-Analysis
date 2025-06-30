@@ -212,10 +212,22 @@ export const useAttributeMappingLogic = () => {
     try {
       console.log(`✅ Approving mapping: ${mappingId}`);
       
+      // Validate data_import_id exists
+      if (!flow?.data_import_id) {
+        console.error('❌ No data_import_id available in flow');
+        return;
+      }
+      
       // Find the mapping to get source and target field names
       const mapping = fieldMappings.find((m: any) => m.id === mappingId);
       if (!mapping) {
         console.error('❌ Mapping not found:', mappingId);
+        return;
+      }
+      
+      // Validate mapping has database ID (not temp ID)
+      if (mapping.id.startsWith('mapping-')) {
+        console.error('❌ Cannot approve temporary mapping ID:', mappingId);
         return;
       }
       
@@ -229,7 +241,7 @@ export const useAttributeMappingLogic = () => {
         body: JSON.stringify({
           source_field: mapping.sourceField,
           target_field: mapping.targetAttribute,
-          import_id: flow?.data_import_id || effectiveFlowId // Use data_import_id from flow
+          import_id: flow?.data_import_id // Use only data_import_id from flow
         })
       });
       
@@ -238,14 +250,22 @@ export const useAttributeMappingLogic = () => {
       // Refresh both flow data and field mappings
       await Promise.all([refresh(), refetchFieldMappings()]);
       
-      // Show success message
-      if (typeof window !== 'undefined') {
-        console.log(`Mapping approved: ${result.message || 'Mapping approved successfully'}`);
+      // Show success toast if available
+      if (typeof window !== 'undefined' && (window as any).showSuccessToast) {
+        (window as any).showSuccessToast('Mapping approved successfully');
       }
       
     } catch (error) {
       console.error('❌ Failed to approve mapping:', error);
-      // Could add error toast notification here
+      
+      // Show error toast if available
+      if (typeof window !== 'undefined' && (window as any).showErrorToast) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to approve mapping';
+        (window as any).showErrorToast(errorMessage);
+      }
+      
+      // Re-throw for component error handling
+      throw error;
     }
   }, [fieldMappings, flow, effectiveFlowId, refresh, refetchFieldMappings, getAuthHeaders]);
 
@@ -253,10 +273,22 @@ export const useAttributeMappingLogic = () => {
     try {
       console.log(`❌ Rejecting mapping: ${mappingId}`);
       
+      // Validate data_import_id exists
+      if (!flow?.data_import_id) {
+        console.error('❌ No data_import_id available in flow');
+        return;
+      }
+      
       // Find the mapping to get source and target field names
       const mapping = fieldMappings.find((m: any) => m.id === mappingId);
       if (!mapping) {
         console.error('❌ Mapping not found:', mappingId);
+        return;
+      }
+      
+      // Validate mapping has database ID (not temp ID)
+      if (mapping.id.startsWith('mapping-')) {
+        console.error('❌ Cannot reject temporary mapping ID:', mappingId);
         return;
       }
       
@@ -271,7 +303,7 @@ export const useAttributeMappingLogic = () => {
           source_field: mapping.sourceField,
           target_field: mapping.targetAttribute,
           rejection_reason: rejectionReason || 'User rejected this mapping',
-          import_id: flow?.data_import_id || effectiveFlowId // Use data_import_id from flow
+          import_id: flow?.data_import_id // Use only data_import_id from flow
         })
       });
       
@@ -280,14 +312,22 @@ export const useAttributeMappingLogic = () => {
       // Refresh both flow data and field mappings
       await Promise.all([refresh(), refetchFieldMappings()]);
       
-      // Show success message
-      if (typeof window !== 'undefined') {
-        console.log(`Mapping rejected: ${result.message || 'Mapping rejected successfully'}`);
+      // Show success toast if available
+      if (typeof window !== 'undefined' && (window as any).showSuccessToast) {
+        (window as any).showSuccessToast('Mapping rejected successfully');
       }
       
     } catch (error) {
       console.error('❌ Failed to reject mapping:', error);
-      // Could add error toast notification here
+      
+      // Show error toast if available
+      if (typeof window !== 'undefined' && (window as any).showErrorToast) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to reject mapping';
+        (window as any).showErrorToast(errorMessage);
+      }
+      
+      // Re-throw for component error handling
+      throw error;
     }
   }, [fieldMappings, flow, effectiveFlowId, refresh, refetchFieldMappings, getAuthHeaders]);
 
@@ -323,6 +363,15 @@ export const useAttributeMappingLogic = () => {
       
     } catch (error) {
       console.error('❌ Failed to update mapping:', error);
+      
+      // Show error toast if available
+      if (typeof window !== 'undefined' && (window as any).showErrorToast) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to update mapping';
+        (window as any).showErrorToast(errorMessage);
+      }
+      
+      // Re-throw for component error handling
+      throw error;
     }
   }, [fieldMappings, refresh, refetchFieldMappings, getAuthHeaders]);
 

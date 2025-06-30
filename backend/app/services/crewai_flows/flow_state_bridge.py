@@ -1,7 +1,7 @@
 """
 Flow State Bridge
-Bridges CrewAI Flow @persist() functionality with PostgreSQL persistence.
-Implements hybrid persistence strategy from the consolidation plan.
+PostgreSQL-only persistence for CrewAI flows.
+Single source of truth implementation replacing dual SQLite/PostgreSQL system.
 """
 
 import logging
@@ -19,15 +19,13 @@ logger = logging.getLogger(__name__)
 
 class FlowStateBridge:
     """
-    Bridge between CrewAI Flow state and PostgreSQL persistence.
+    PostgreSQL-only persistence bridge for CrewAI flows.
     
-    This class addresses Gap #1 from the consolidation plan:
-    "CrewAI @persist() uses SQLite, but we need PostgreSQL for multi-tenancy"
-    
-    Strategy:
-    1. Let CrewAI handle flow execution state and continuity
-    2. Mirror critical state to PostgreSQL for enterprise requirements
-    3. Provide fallback recovery when CrewAI persistence fails
+    Single source of truth implementation that:
+    1. Uses PostgreSQL as the only persistence layer
+    2. Provides enterprise multi-tenancy and data isolation
+    3. Includes state validation and recovery mechanisms
+    4. Supports atomic operations and optimistic locking
     """
     
     def __init__(self, context: RequestContext):
@@ -42,69 +40,66 @@ class FlowStateBridge:
     
     async def initialize_flow_state(self, state: UnifiedDiscoveryFlowState) -> Dict[str, Any]:
         """
-        Initialize flow state in both CrewAI and PostgreSQL.
-        Called when CrewAI Flow starts execution.
+        Initialize flow state in PostgreSQL as single source of truth.
+        Called when flow starts execution.
         """
         try:
-            # 1. Let CrewAI handle its own persistence first
-            logger.info(f"🔄 Initializing flow state bridge for CrewAI Flow ID: {state.flow_id}")
+            logger.info(f"🔄 Initializing PostgreSQL-only flow state: {state.flow_id}")
             logger.info(f"   📋 Session context: {state.session_id}")
             
-            # 2. Mirror to PostgreSQL for enterprise requirements
+            # Persist to PostgreSQL as single source of truth
             pg_result = await self.pg_persistence.persist_flow_initialization(state)
             
-            # 3. Log successful initialization
-            logger.info(f"✅ Flow state bridge initialized: CrewAI Flow ID={state.flow_id}")
+            logger.info(f"✅ PostgreSQL flow state initialized: Flow ID={state.flow_id}")
             
             return {
                 "status": "success",
-                "crewai_persistence": "enabled",  # CrewAI handles this automatically
                 "postgresql_persistence": pg_result,
+                "persistence_model": "postgresql_only",
                 "bridge_enabled": True
             }
             
         except Exception as e:
-            logger.error(f"❌ Flow state bridge initialization failed: {e}")
-            # Don't fail the entire flow - CrewAI can still function
+            logger.error(f"❌ PostgreSQL flow state initialization failed: {e}")
             return {
-                "status": "partial_success",
-                "crewai_persistence": "enabled",
+                "status": "failed",
                 "postgresql_persistence": {"status": "failed", "error": str(e)},
+                "persistence_model": "postgresql_only",
                 "bridge_enabled": False
             }
     
     async def sync_state_update(self, state: UnifiedDiscoveryFlowState, phase: str, crew_results: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
-        Sync state updates between CrewAI and PostgreSQL.
+        Update PostgreSQL state as single source of truth.
         Called during phase transitions and state changes.
         """
         if not self._state_sync_enabled:
             return {"status": "sync_disabled"}
         
         try:
-            # Update PostgreSQL state
+            # Update PostgreSQL state (single source of truth)
             pg_result = await self.pg_persistence.update_workflow_state(state)
             
             # Log phase completion if crew results provided
             if crew_results:
                 await self.pg_persistence.persist_phase_completion(state, phase, crew_results)
             
-            logger.debug(f"🔄 State synced for CrewAI Flow ID: {state.flow_id}, phase: {phase}")
+            logger.debug(f"🔄 PostgreSQL state updated for Flow ID: {state.flow_id}, phase: {phase}")
             
             return {
                 "status": "success",
-                "postgresql_sync": pg_result,
+                "postgresql_update": pg_result,
                 "phase": phase,
-                "crew_results_logged": crew_results is not None
+                "crew_results_logged": crew_results is not None,
+                "persistence_model": "postgresql_only"
             }
             
         except Exception as e:
-            logger.warning(f"⚠️ State sync failed (non-critical): {e}")
-            # Don't fail the flow - this is supplementary persistence
+            logger.error(f"❌ PostgreSQL state update failed: {e}")
             return {
-                "status": "sync_failed",
+                "status": "update_failed",
                 "error": str(e),
-                "impact": "PostgreSQL state may be stale, but CrewAI flow continues"
+                "persistence_model": "postgresql_only"
             }
     
     async def update_flow_state(self, state: UnifiedDiscoveryFlowState) -> Dict[str, Any]:
@@ -211,19 +206,12 @@ class FlowStateBridge:
     
     async def validate_state_integrity(self, session_id: str) -> Dict[str, Any]:
         """
-        Validate flow state integrity across both persistence layers.
+        Validate PostgreSQL flow state integrity.
         Comprehensive health check for state consistency.
         """
         try:
-            # Validate PostgreSQL state integrity
+            # Validate PostgreSQL state integrity (single source of truth)
             pg_validation = await self.pg_persistence.validate_flow_integrity(session_id)
-            
-            # Note: CrewAI state validation would require accessing their internal storage
-            # For now, we rely on CrewAI's built-in integrity checks
-            crewai_validation = {
-                "status": "assumed_valid",
-                "note": "CrewAI handles internal state validation"
-            }
             
             overall_valid = pg_validation.get("valid", False)
             
@@ -231,55 +219,57 @@ class FlowStateBridge:
                 "status": "validated",
                 "session_id": session_id,
                 "overall_valid": overall_valid,
-                "crewai_validation": crewai_validation,
                 "postgresql_validation": pg_validation,
+                "persistence_model": "postgresql_only",
                 "validation_timestamp": datetime.utcnow().isoformat()
             }
             
         except Exception as e:
-            logger.error(f"❌ State integrity validation failed: {e}")
+            logger.error(f"❌ PostgreSQL state integrity validation failed: {e}")
             return {
                 "status": "validation_error",
                 "session_id": session_id,
                 "overall_valid": False,
-                "error": str(e)
+                "error": str(e),
+                "persistence_model": "postgresql_only"
             }
     
     async def cleanup_expired_states(self, expiration_hours: int = 72) -> Dict[str, Any]:
         """
         Clean up expired flow states from PostgreSQL.
-        CrewAI handles its own cleanup automatically.
+        Single source of truth cleanup.
         """
         try:
             cleanup_result = await self.pg_persistence.cleanup_expired_flows(expiration_hours)
             
-            logger.info(f"✅ Expired states cleanup completed: {cleanup_result.get('flows_cleaned', 0)} flows cleaned")
+            logger.info(f"✅ PostgreSQL cleanup completed: {cleanup_result.get('flows_cleaned', 0)} flows cleaned")
             
             return {
                 "status": "success",
                 "postgresql_cleanup": cleanup_result,
-                "crewai_cleanup": "handled_automatically"
+                "persistence_model": "postgresql_only"
             }
             
         except Exception as e:
-            logger.error(f"❌ Expired states cleanup failed: {e}")
+            logger.error(f"❌ PostgreSQL cleanup failed: {e}")
             return {
                 "status": "cleanup_error",
-                "error": str(e)
+                "error": str(e),
+                "persistence_model": "postgresql_only"
             }
     
     def disable_sync(self, reason: str = "performance_optimization"):
         """
-        Temporarily disable state synchronization.
+        Temporarily disable PostgreSQL state updates.
         Useful for performance optimization during intensive operations.
         """
         self._state_sync_enabled = False
-        logger.info(f"🔄 State sync disabled: {reason}")
+        logger.info(f"🔄 PostgreSQL updates disabled: {reason}")
     
     def enable_sync(self):
-        """Re-enable state synchronization"""
+        """Re-enable PostgreSQL state updates"""
         self._state_sync_enabled = True
-        logger.info("🔄 State sync re-enabled")
+        logger.info("🔄 PostgreSQL updates re-enabled")
     
     @asynccontextmanager
     async def sync_disabled(self, reason: str = "temporary_optimization"):

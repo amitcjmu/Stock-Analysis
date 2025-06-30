@@ -10,6 +10,7 @@ interface AppContextType {
   client: { id: string } | null;
   engagement: { id: string } | null;
   session: { id: string } | null;
+  flow?: { id: string } | null; // New flow context for migration
 }
 
 // Create a variable to store the current context
@@ -17,7 +18,8 @@ let currentContext: AppContextType = {
   user: null,
   client: null,
   engagement: null,
-  session: null
+  session: null,
+  flow: null
 };
 
 // Export a function to update the context
@@ -256,6 +258,9 @@ export const apiCall = async (
           }
           if (currentContext?.session?.id) {
             headers['X-Session-ID'] = currentContext.session.id;
+          }
+          if (currentContext?.flow?.id) {
+            headers['X-Flow-ID'] = currentContext.flow.id;
           }
         } catch (contextError) {
           console.warn('Failed to add context headers:', contextError);

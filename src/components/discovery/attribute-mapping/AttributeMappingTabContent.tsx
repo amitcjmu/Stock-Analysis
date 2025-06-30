@@ -2,6 +2,7 @@ import React from 'react';
 import FieldMappingsTab from './FieldMappingsTab';
 import CriticalAttributesTab from './CriticalAttributesTab';
 import ImportedDataTab from './ImportedDataTab';
+import { FieldMappingErrorBoundary } from './FieldMappingErrorBoundary';
 
 interface AttributeMappingTabContentProps {
   activeTab: 'mappings' | 'data' | 'critical';
@@ -38,18 +39,20 @@ const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
     switch (activeTab) {
       case 'mappings':
         return (
-          <FieldMappingsTab
-            fieldMappings={fieldMappings}
-            isAnalyzing={false}
-            onMappingAction={(mappingId: string, action: 'approve' | 'reject', rejectionReason?: string) => {
-              if (action === 'approve') {
-                onApproveMapping(mappingId);
-              } else {
-                onRejectMapping(mappingId, rejectionReason);
-              }
-            }}
+          <FieldMappingErrorBoundary>
+            <FieldMappingsTab
+              fieldMappings={fieldMappings}
+              isAnalyzing={false}
+              onMappingAction={(mappingId: string, action: 'approve' | 'reject', rejectionReason?: string) => {
+                if (action === 'approve') {
+                  onApproveMapping(mappingId);
+                } else {
+                  onRejectMapping(mappingId, rejectionReason);
+                }
+              }}
             onMappingChange={onMappingChange}
           />
+          </FieldMappingErrorBoundary>
         );
       case 'critical':
         return (

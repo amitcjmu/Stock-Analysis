@@ -172,6 +172,8 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
   const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [approvingMappings, setApprovingMappings] = useState<Set<string>>(new Set());
+  const [rejectingMappings, setRejectingMappings] = useState<Set<string>>(new Set());
   const [rejectionDialog, setRejectionDialog] = useState<{
     isOpen: boolean;
     mappingId: string;
@@ -419,14 +421,44 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
     return CATEGORY_COLORS[category] || 'bg-gray-100 text-gray-700';
   };
 
+  const handleApproveMapping = async (mappingId: string) => {
+    setApprovingMappings(prev => new Set(prev).add(mappingId));
+    try {
+      await onMappingAction(mappingId, 'approve');
+    } catch (error) {
+      console.error('Failed to approve mapping:', error);
+    } finally {
+      setApprovingMappings(prev => {
+        const next = new Set(prev);
+        next.delete(mappingId);
+        return next;
+      });
+    }
+  };
+  
+  const handleRejectMapping = async (mappingId: string, reason?: string) => {
+    setRejectingMappings(prev => new Set(prev).add(mappingId));
+    try {
+      await onMappingAction(mappingId, 'reject', reason);
+      setRejectionDialog({
+        isOpen: false,
+        mappingId: '',
+        sourceField: '',
+        targetField: ''
+      });
+    } catch (error) {
+      console.error('Failed to reject mapping:', error);
+    } finally {
+      setRejectingMappings(prev => {
+        const next = new Set(prev);
+        next.delete(mappingId);
+        return next;
+      });
+    }
+  };
+  
   const handleRejectionConfirm = (reason: string) => {
-    onMappingAction(rejectionDialog.mappingId, 'reject', reason);
-    setRejectionDialog({
-      isOpen: false,
-      mappingId: '',
-      sourceField: '',
-      targetField: ''
-    });
+    handleRejectMapping(rejectionDialog.mappingId, reason);
   };
 
   const handleRejectionCancel = () => {
@@ -647,12 +679,17 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
                   {(mapping.status === 'pending' || mapping.status === 'suggested' || !mapping.status) && (
                     <div className="flex items-center space-x-2 ml-4">
                       <button
-                        onClick={() => onMappingAction(mapping.id, 'approve')}
-                        className="flex items-center space-x-1 px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 disabled:opacity-50"
+                        onClick={() => handleApproveMapping(mapping.id)}
+                        disabled={approvingMappings.has(mapping.id) || rejectingMappings.has(mapping.id)}
+                        className="flex items-center space-x-1 px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Approve mapping"
                       >
-                        <CheckCircle className="h-3 w-3" />
-                        <span>Approve</span>
+                        {approvingMappings.has(mapping.id) ? (
+                          <RefreshCw className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <CheckCircle className="h-3 w-3" />
+                        )}
+                        <span>{approvingMappings.has(mapping.id) ? 'Approving...' : 'Approve'}</span>
                       </button>
                       <button
                         onClick={() => setRejectionDialog({
@@ -661,11 +698,16 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
                           sourceField: mapping.sourceField,
                           targetField: mapping.targetAttribute
                         })}
-                        className="flex items-center space-x-1 px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 disabled:opacity-50"
+                        disabled={approvingMappings.has(mapping.id) || rejectingMappings.has(mapping.id)}
+                        className="flex items-center space-x-1 px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Reject mapping"
                       >
-                        <X className="h-3 w-3" />
-                        <span>Reject</span>
+                        {rejectingMappings.has(mapping.id) ? (
+                          <RefreshCw className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <X className="h-3 w-3" />
+                        )}
+                        <span>{rejectingMappings.has(mapping.id) ? 'Rejecting...' : 'Reject'}</span>
                       </button>
                     </div>
                   )}

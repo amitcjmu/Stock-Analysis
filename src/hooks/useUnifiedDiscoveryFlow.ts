@@ -1,11 +1,13 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
+import { SessionToFlowMigration } from '../utils/migration/sessionToFlow';
+import { FlowIdentifier, MigrationContext } from '../types/discovery';
 
 // Types for UnifiedDiscoveryFlow
 interface UnifiedDiscoveryFlowState {
   flow_id: string;
-  session_id: string;
+  session_id?: string; // @deprecated - Use flow_id instead
   client_account_id: string;
   engagement_id: string;
   user_id: string;
@@ -38,6 +40,9 @@ interface UseUnifiedDiscoveryFlowReturn {
   canProceedToPhase: (phase: string) => boolean;
   refreshFlow: () => Promise<void>;
   isExecutingPhase: boolean;
+  // Migration helpers
+  flowIdentifier: FlowIdentifier | null;
+  migrationContext: MigrationContext;
 }
 
 // API functions for UnifiedDiscoveryFlow
@@ -128,23 +133,65 @@ export const useUnifiedDiscoveryFlow = (): UseUnifiedDiscoveryFlowReturn => {
   const queryClient = useQueryClient();
   const [isExecutingPhase, setIsExecutingPhase] = useState(false);
 
-  // Get current session ID from URL or localStorage
-  const sessionId = useMemo(() => {
-    // Try to get from URL first
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlSessionId = urlParams.get('session_id');
-    if (urlSessionId) return urlSessionId;
-
-    // Try to get from localStorage
-    const storedSessionId = localStorage.getItem('current_discovery_session_id');
-    if (storedSessionId) return storedSessionId;
-
-    // Extract from path (e.g., /discovery/attribute-mapping/session-123)
-    const pathMatch = window.location.pathname.match(/\/discovery\/[^\/]+\/([^\/]+)/);
-    if (pathMatch) return pathMatch[1];
-
-    return null;
+  // Initialize migration on component mount
+  useEffect(() => {
+    SessionToFlowMigration.initialize();
   }, []);
+
+  // Get migration context
+  const migrationContext = useMemo(() => {
+    return SessionToFlowMigration.getMigrationContext();
+  }, []);
+
+  // Get current flow identifier from URL or localStorage with migration support
+  const flowIdentifier = useMemo((): FlowIdentifier | null => {
+    try {
+      // Try to get from URL parameters (both flow_id and session_id for backward compatibility)
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlFlowId = urlParams.get('flow_id') || urlParams.get('flowId');
+      const urlSessionId = urlParams.get('session_id') || urlParams.get('sessionId');
+      
+      if (urlFlowId) {
+        const identifier = SessionToFlowMigration.createFlowIdentifier(urlFlowId);
+        SessionToFlowMigration.storeIdentifier(identifier.flowId, true);
+        return identifier;
+      }
+      
+      if (urlSessionId) {
+        SessionToFlowMigration.logDeprecationWarning('useUnifiedDiscoveryFlow', urlSessionId);
+        const identifier = SessionToFlowMigration.createFlowIdentifier(urlSessionId);
+        SessionToFlowMigration.storeIdentifier(identifier.flowId, true);
+        return identifier;
+      }
+
+      // Extract from path (e.g., /discovery/attribute-mapping/flow-123 or session-123)
+      const pathMatch = window.location.pathname.match(/\/discovery\/[^\/]+\/([^\/]+)/);
+      if (pathMatch) {
+        const pathIdentifier = pathMatch[1];
+        const identifier = SessionToFlowMigration.createFlowIdentifier(pathIdentifier);
+        SessionToFlowMigration.storeIdentifier(identifier.flowId, true);
+        return identifier;
+      }
+
+      // Try to get from localStorage using migration utility
+      const currentIdentifier = SessionToFlowMigration.getIdentifier();
+      if (currentIdentifier) {
+        return SessionToFlowMigration.createFlowIdentifier(currentIdentifier);
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error getting flow identifier:', error);
+      return null;
+    }
+  }, []);
+
+  // Get the actual identifier to use for API calls
+  const currentIdentifier = useMemo(() => {
+    if (!flowIdentifier) return null;
+    
+    return migrationContext.useFlowId ? flowIdentifier.flowId : flowIdentifier.sessionId || flowIdentifier.flowId;
+  }, [flowIdentifier, migrationContext]);
 
   // Flow state query
   const {
@@ -153,9 +200,9 @@ export const useUnifiedDiscoveryFlow = (): UseUnifiedDiscoveryFlowReturn => {
     error,
     refetch: refreshFlow,
   } = useQuery({
-    queryKey: ['unifiedDiscoveryFlow', sessionId],
-    queryFn: () => sessionId ? unifiedDiscoveryAPI.getFlowStatus(sessionId) : null,
-    enabled: !!sessionId,
+    queryKey: ['unifiedDiscoveryFlow', currentIdentifier, migrationContext.useFlowId],
+    queryFn: () => currentIdentifier ? unifiedDiscoveryAPI.getFlowStatus(currentIdentifier) : null,
+    enabled: !!currentIdentifier,
     refetchInterval: false, // DISABLED: No automatic polling - use manual refresh
     refetchIntervalInBackground: false,
     staleTime: 30000, // Consider data fresh for 30 seconds
@@ -174,9 +221,15 @@ export const useUnifiedDiscoveryFlow = (): UseUnifiedDiscoveryFlowReturn => {
     mutationFn: unifiedDiscoveryAPI.initializeFlow,
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['unifiedDiscoveryFlow'] });
-      // Store session ID for future use
-      if (data.session_id) {
-        localStorage.setItem('current_discovery_session_id', data.session_id);
+      
+      // Store identifier using migration utility
+      if (data.flow_id) {
+        SessionToFlowMigration.storeIdentifier(data.flow_id, true);
+      } else if (data.session_id) {
+        // Legacy support
+        SessionToFlowMigration.logDeprecationWarning('initializeFlow response', data.session_id);
+        const flowId = SessionToFlowMigration.convertSessionToFlowId(data.session_id);
+        SessionToFlowMigration.storeIdentifier(flowId, true);
       }
     },
   });
@@ -189,7 +242,7 @@ export const useUnifiedDiscoveryFlow = (): UseUnifiedDiscoveryFlowReturn => {
       setIsExecutingPhase(true);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['unifiedDiscoveryFlow', sessionId] });
+      queryClient.invalidateQueries({ queryKey: ['unifiedDiscoveryFlow', currentIdentifier, migrationContext.useFlowId] });
     },
     onError: (error) => {
       console.error('Phase execution failed:', error);
@@ -266,5 +319,8 @@ export const useUnifiedDiscoveryFlow = (): UseUnifiedDiscoveryFlowReturn => {
       await refreshFlow();
     },
     isExecutingPhase,
+    // Migration helpers
+    flowIdentifier,
+    migrationContext,
   };
 }; 
