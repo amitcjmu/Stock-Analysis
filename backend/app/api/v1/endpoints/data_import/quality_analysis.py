@@ -13,7 +13,7 @@ import logging
 from app.core.database import get_db
 from app.core.context import get_current_context, RequestContext
 from app.models.data_import import (
-    DataImport, RawImportRecord, DataQualityIssue
+    DataImport, RawImportRecord  # DataQualityIssue removed in consolidation
 )
 from .utilities import expand_abbreviation, get_suggested_value, is_valid_ip
 

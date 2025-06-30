@@ -1,5 +1,9 @@
 # AI Force Migration Platform - Coding Agent Quick Reference
 
+> **🚨 IMPORTANT**: This platform has evolved through 6 architectural phases. For complete evolution journey and current state context, see `docs/development/PLATFORM_EVOLUTION_AND_CURRENT_STATE.md`. For archived/legacy documentation, see `docs/archive/ARCHIVE_INDEX.md`.
+
+> **📍 Current State**: Phase 5 (Flow-Based Architecture) with Remediation Phase 1 in progress (75% complete). NOT all "Phase 1" work is complete as claimed in some documentation.
+
 ## 🚨 **CRITICAL RULES - READ FIRST**
 
 ### **Architecture: CrewAI Flow-Based (NOT Individual Agents)**
@@ -19,19 +23,47 @@
 
 ---
 
-## 🏗️ **CURRENT ARCHITECTURE**
+## 🏗️ **CURRENT ARCHITECTURE (In Remediation)**
 
-### **Hybrid Architecture: UnifiedDiscoveryFlow + V2 Management**
+### **Phase 5 Flow-Based + Remediation Phase 1 (75% Complete)**
 ```
-Frontend (Vercel) → V2 API → DiscoveryFlowService → PostgreSQL
-                           ↓
-                    UnifiedDiscoveryFlow → CrewAI Crews → Agents
+Frontend (Vercel) → API v3/v1 Mixed → DiscoveryFlowService → PostgreSQL
+                                    ↓
+                             UnifiedDiscoveryFlow → CrewAI Crews → True Agents
+                                    ↓
+                             Event Bus → Flow Coordination → Multi-Tenant Context
 ```
+
+⚠️ **Current Issues Being Fixed**:
+- 132+ files still have session_id references (migration incomplete)
+- Flow data sometimes written to wrong tables (context sync issues)
+- Field mapping UI shows "0 active flows" (API endpoint confusion)
+- Mix of v1 and v3 API usage in frontend
 
 **Key Components**:
-- **UnifiedDiscoveryFlow**: CrewAI execution engine (`@persist()` + crews)
-- **V2 DiscoveryFlow**: Enterprise management (PostgreSQL + multi-tenancy)
+- **UnifiedDiscoveryFlow**: CrewAI Flow with `@start/@listen` decorators (Phase 5)
+- **PostgreSQL-Only State**: SQLite eliminated, full PostgreSQL persistence
+- **Multi-Tenant Context**: `client_account_id` → `engagement_id` → `user_id` hierarchy
+- **Event-Driven Coordination**: Real-time flow communication (Remediation Phase 2)
+- **True CrewAI Agents**: Learning, memory, autonomous decision-making (Mixed implementation)
 - **Flow State Bridge**: Connects CrewAI execution to enterprise management
+
+## 📚 **Essential Documentation**
+
+### **Platform Context (Required Reading)**
+- `docs/development/PLATFORM_EVOLUTION_AND_CURRENT_STATE.md` - **MUST READ** - Complete evolution journey
+- `docs/planning/CURRENT_ARCHITECTURE_STATUS.md` - Detailed current state analysis
+- `docs/planning/REMEDIATION_SUMMARY.md` - Remediation progress and timeline
+
+### **Discovery Flow System (Consolidated)**
+- `docs/development/DISCOVERY_FLOW_ARCHITECTURE.md` - Current flow-based architecture
+- `docs/development/DISCOVERY_FLOW_IMPLEMENTATION_GUIDE.md` - Development patterns and remediation tasks
+- `docs/development/DISCOVERY_FLOW_TROUBLESHOOTING.md` - Known issues and working solutions
+
+### **Development Guides**
+- `docs/development/CrewAI_Development_Guide.md` - CrewAI implementation patterns
+- `docs/api/v3-migration-guide.md` - API transition guidance (hybrid state)
+- `docs/troubleshooting/discovery-flow-sync-issues.md` - Critical issue resolution
 
 ### **Data Flow: CMDBImport → UnifiedDiscoveryFlow**
 ```

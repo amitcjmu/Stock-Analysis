@@ -24,7 +24,8 @@ from app.core.context import RequestContext
 
 # V2 Discovery Flow imports (target architecture)
 from app.models.discovery_flow import DiscoveryFlow
-from app.models.discovery_asset import DiscoveryAsset
+# from app.models.discovery_asset import DiscoveryAsset  # Model removed - using Asset model instead
+from app.models.asset import Asset
 from app.services.discovery_flow_service import DiscoveryFlowService
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 

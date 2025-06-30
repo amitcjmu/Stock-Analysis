@@ -20,7 +20,7 @@ except ImportError:
 from app.core.database import get_db
 from app.models.asset import Asset  # Updated from CMDBAsset to Asset
 from app.models.tags import Tag
-from app.models.data_import import MappingLearningPattern
+# from app.models.data_import import MappingLearningPattern  # Model removed in consolidation
 # from app.models.learning_patterns import AssetClassificationPattern
 from app.core.config import settings
 

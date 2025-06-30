@@ -714,17 +714,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const switchEngagement = async (engagementId: string, engagementData?: any) => {
     try {
-      console.log('🔄 Switching to engagement:', engagementId);
+      console.log('🔄 Switching to engagement:', engagementId, 'with data:', engagementData);
       
       let fullEngagementData = engagementData;
       
-      // If no engagement data provided, fetch it
+      // If no engagement data provided, try to get it from the list of engagements
       if (!fullEngagementData && client) {
-        const response = await apiCall(`/context/clients/${client.id}/engagements/${engagementId}`, {
-          method: 'GET',
-          headers: getAuthHeaders()
-        });
-        fullEngagementData = response.engagement;
+        try {
+          const response = await apiCall(`/context/clients/${client.id}/engagements`, {
+            method: 'GET',
+            headers: getAuthHeaders()
+          });
+          // Find the specific engagement from the list
+          if (response.engagements) {
+            fullEngagementData = response.engagements.find(e => e.id === engagementId);
+          }
+        } catch (fetchError) {
+          console.warn('Failed to fetch engagement data:', fetchError);
+        }
       }
       
       if (!fullEngagementData) {
@@ -772,15 +779,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       
       // Update user defaults in the backend (non-blocking)
+      // Only update if we have a valid client-engagement combination
       try {
-        const result = await updateUserDefaults({
-          client_id: client?.id,
-          engagement_id: engagementId
-        });
-        if (result.success) {
-          console.log('✅ Updated user defaults - client:', client?.id, 'engagement:', engagementId);
+        // Use the engagement's client_id as the source of truth
+        const effectiveClientId = fullEngagementData?.client_id;
+        if (effectiveClientId && fullEngagementData?.client_id === effectiveClientId) {
+          const result = await updateUserDefaults({
+            client_id: effectiveClientId,
+            engagement_id: engagementId
+          });
+          if (result.success) {
+            console.log('✅ Updated user defaults - client:', effectiveClientId, 'engagement:', engagementId);
+          } else {
+            console.warn('⚠️ Failed to update user defaults (non-blocking):', result.message);
+          }
         } else {
-          console.warn('⚠️ Failed to update user defaults (non-blocking):', result.message);
+          console.warn('⚠️ Skipping user defaults update - engagement data missing client_id:', {
+            engagementData: fullEngagementData,
+            engagementId
+          });
         }
       } catch (defaultError) {
         console.warn('⚠️ Failed to update user defaults (non-blocking):', defaultError);

@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { unifiedDiscoveryService } from '../services/discoveryUnifiedService';
+import Phase2CrewMonitor from './Phase2CrewMonitor';
 
 type FlowStatus = 'running' | 'completed' | 'failed' | 'pending' | 'paused';
 type CrewStatus = 'active' | 'completed' | 'failed' | 'pending' | 'paused';
@@ -95,17 +96,21 @@ const FlowCrewAgentMonitor: React.FC = () => {
   const [selectedFlow, setSelectedFlow] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [isStartingFlow, setIsStartingFlow] = useState(false);
-  
+  const [usePhase2Monitor, setUsePhase2Monitor] = useState(false);
+  const [discoveryFlows, setDiscoveryFlows] = useState([]);
   const { getAuthHeaders } = useAuth();
 
   const fetchMonitoringData = async () => {
     try {
       setRefreshing(true);
+      setError(null);
       
-      // Fetch complete agent registry to show all available agents
-      const agentRegistryResponse = await fetch('/api/v1/monitoring/status', {
-        headers: getAuthHeaders()
-      });
+      // Try to fetch from the original monitoring endpoints first
+      try {
+        // Fetch complete agent registry to show all available agents
+        const agentRegistryResponse = await fetch('/api/v1/monitoring/status', {
+          headers: getAuthHeaders()
+        });
       
       // Fetch active flows with crew and agent details
       const flowsResponse = await fetch('/api/v1/monitoring/crewai-flows', {
@@ -132,19 +137,20 @@ const FlowCrewAgentMonitor: React.FC = () => {
       const flowsData = await flowsResponse.json();
       const agentRegistryData = agentRegistryResponse.ok ? await agentRegistryResponse.json() : null;
       
-      // Debug logging
-      console.log('🔍 Monitoring Data Sources:', {
-        crewaiFlows: flowsData?.crewai_flows?.active_flows?.length || 0,
-        discoveryFlows: discoveryFlowData?.flow_details?.length || 0,
-        discoveryFlowData: discoveryFlowData
-      });
+      // Debug logging (reduced)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 Monitoring Data Sources:', {
+          crewaiFlows: flowsData?.crewai_flows?.active_flows?.length || 0,
+          discoveryFlows: discoveryFlows?.length || 0
+        });
+      }
       
       // Transform the data to match our interface
       const activeFlows: DiscoveryFlow[] = [];
       
       // Priority 1: Use Discovery Flow data if available (more accurate)
-      if (discoveryFlowData && discoveryFlowData.flow_details && discoveryFlowData.flow_details.length > 0) {
-        for (const flow of discoveryFlowData.flow_details) {
+      if (discoveryFlows && discoveryFlows.length > 0) {
+        for (const flow of discoveryFlows) {
           try {
             // Get detailed crew monitoring for this flow  
             const crewResponse = await fetch(`/api/v1/discovery/flow/crews/monitoring/${flow.flow_id}`, {
@@ -244,10 +250,17 @@ const FlowCrewAgentMonitor: React.FC = () => {
         }
       };
       
-      setData(monitoringData);
-      setError(null);
+        setData(monitoringData);
+        setError(null);
+      } catch (originalError) {
+        console.warn('Original monitoring endpoints failed, falling back to Phase 2 Crew Monitor:', originalError);
+        setUsePhase2Monitor(true);
+        setError(null); // Clear error since we're using fallback
+      }
     } catch (err) {
+      console.error('All monitoring attempts failed:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
+      setUsePhase2Monitor(true); // Use Phase 2 as final fallback
     } finally {
       setIsLoading(false);
       setRefreshing(false);
@@ -506,7 +519,7 @@ const FlowCrewAgentMonitor: React.FC = () => {
 
   useEffect(() => {
     fetchMonitoringData();
-    const interval = setInterval(fetchMonitoringData, 5000); // Poll every 5 seconds
+    const interval = setInterval(fetchMonitoringData, 60000); // Poll every 60 seconds (reduced frequency)
     return () => clearInterval(interval);
   }, []);
 
@@ -633,6 +646,11 @@ const FlowCrewAgentMonitor: React.FC = () => {
     }
   };
 
+  // Use Phase2CrewMonitor as fallback when enabled
+  if (usePhase2Monitor) {
+    return <Phase2CrewMonitor />;
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -650,10 +668,16 @@ const FlowCrewAgentMonitor: React.FC = () => {
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <p>Error loading monitoring data: {error}</p>
-          <Button onClick={fetchMonitoringData} className="mt-2">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Retry
-          </Button>
+          <div className="flex space-x-2 mt-2">
+            <Button onClick={fetchMonitoringData}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
+            <Button onClick={() => setUsePhase2Monitor(true)} variant="outline">
+              <Settings className="h-4 w-4 mr-2" />
+              Use Phase 2 Monitor
+            </Button>
+          </div>
         </Alert>
       </div>
     );
@@ -686,6 +710,14 @@ const FlowCrewAgentMonitor: React.FC = () => {
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh
+          </Button>
+          <Button 
+            onClick={() => setUsePhase2Monitor(true)} 
+            variant="outline"
+            title="Switch to Phase 2 Crew Monitor"
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            Phase 2 Monitor
           </Button>
           <Button 
             onClick={startTestDiscoveryFlow} 

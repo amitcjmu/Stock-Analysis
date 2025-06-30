@@ -191,7 +191,7 @@ class FlowManagementHandler:
                     cleaned_data, quality_metrics = await self._perform_data_cleansing(raw_data, field_mappings)
                     
                     # CREATE DISCOVERY ASSETS from cleaned data (this is the key fix!)
-                    discovery_assets_created = await self._create_discovery_assets_from_cleaned_data(
+                    assets_created = await self._create_discovery_assets_from_cleaned_data(
                         flow, cleaned_data, field_mappings
                     )
                     
@@ -199,7 +199,7 @@ class FlowManagementHandler:
                     cleansing_results = {
                         "cleaned_data": cleaned_data,
                         "quality_metrics": quality_metrics,
-                        "discovery_assets_created": discovery_assets_created,
+                        "assets_created": assets_created,
                         "original_record_count": len(raw_data),
                         "cleaned_record_count": len(cleaned_data),
                         "cleansing_operations": [
@@ -216,7 +216,7 @@ class FlowManagementHandler:
                     phase_data.update({
                         "data_cleansing_results": cleansing_results,
                         "cleaned_data": cleaned_data,
-                        "discovery_assets_created": discovery_assets_created,
+                        "assets_created": assets_created,
                         "quality_metrics": quality_metrics,
                         "records_processed": len(raw_data),
                         "records_cleaned": len(cleaned_data),
@@ -276,7 +276,7 @@ class FlowManagementHandler:
                                 "id": "rec_2",
                                 "type": "asset_classification",
                                 "title": "Proceed to Asset Inventory",
-                                "description": f"Data cleansing complete. {discovery_assets_created} discovery assets ready for classification",
+                                "description": f"Data cleansing complete. {assets_created} discovery assets ready for classification",
                                 "confidence": 0.90,
                                 "priority": "high",
                                 "fields": ["asset_type", "asset_name"],
@@ -292,7 +292,7 @@ class FlowManagementHandler:
                         "metadata": {
                             "original_records": len(raw_data),
                             "cleaned_records": len(cleaned_data),
-                            "discovery_assets_created": discovery_assets_created
+                            "assets_created": assets_created
                         },
                         "data_quality_metrics": {
                             "overall_improvement": {
@@ -314,43 +314,47 @@ class FlowManagementHandler:
                     await self.db.commit()
                     await self.db.refresh(flow)
                     
-                    logger.info(f"✅ Data cleansing completed: {len(cleaned_data)} records cleaned, {discovery_assets_created} discovery assets created, crewai_state_data updated")
+                    logger.info(f"✅ Data cleansing completed: {len(cleaned_data)} records cleaned, {assets_created} discovery assets created, crewai_state_data updated")
                 else:
                     logger.warning("⚠️ No raw data found for data cleansing")
                     phase_data.update({
                         "data_cleansing_results": {"error": "No raw data available"},
-                        "discovery_assets_created": 0
+                        "assets_created": 0
                     })
             
             elif phase == "inventory" or phase == "asset_inventory":
                 logger.info("📦 Executing Asset Inventory Phase (Classification)")
                 
                 # Get existing discovery assets created during data cleansing
-                from app.models.discovery_asset import DiscoveryAsset
+                # from app.models.discovery_asset import DiscoveryAsset  # Model removed in consolidation
                 from sqlalchemy import select
                 
-                asset_query = select(DiscoveryAsset).where(
-                    DiscoveryAsset.discovery_flow_id == flow.id,
-                    DiscoveryAsset.client_account_id == flow.client_account_id
+                # Use Asset model instead of DiscoveryAsset
+                from app.models.asset import Asset
+                
+                # Get assets created by this discovery flow
+                asset_query = select(Asset).where(
+                    Asset.custom_attributes['discovery_flow_id'].astext == str(flow.id),
+                    Asset.client_account_id == flow.client_account_id
                 )
                 asset_result = await self.db.execute(asset_query)
-                discovery_assets = asset_result.scalars().all()
+                assets = asset_result.scalars().all()
                 
-                if discovery_assets:
-                    # Classify and enhance existing discovery assets
-                    classification_results = await self._classify_discovery_assets(discovery_assets)
+                if assets:
+                    # Classify and enhance existing assets
+                    classification_results = await self._classify_assets(assets)
                     
                     phase_data.update({
                         "inventory_results": classification_results,
-                        "assets_classified": len(discovery_assets),
-                        "asset_types_identified": len(set(asset.asset_type for asset in discovery_assets if asset.asset_type))
+                        "assets_classified": len(assets),
+                        "asset_types_identified": len(set(asset.type for asset in assets))
                     })
                     
-                    logger.info(f"✅ Asset inventory completed: {len(discovery_assets)} assets classified")
+                    logger.info(f"✅ Asset inventory completed: {len(assets)} assets classified")
                 else:
-                    logger.warning("⚠️ No discovery assets found for inventory classification")
+                    logger.warning("⚠️ No assets found for inventory classification")
                     phase_data.update({
-                        "inventory_results": {"error": "No discovery assets available for classification"},
+                        "inventory_results": {"error": "No assets available for classification"},
                         "assets_classified": 0
                     })
             
@@ -1104,7 +1108,8 @@ class FlowManagementHandler:
             logger.info(f"📊 Creating discovery assets from {len(cleaned_data)} cleaned records")
             
             # Import required modules
-            from app.models.discovery_asset import DiscoveryAsset
+            # Use Asset model instead of DiscoveryAsset
+            from app.models.asset import Asset
             import uuid as uuid_pkg
             from datetime import datetime
             
@@ -1114,7 +1119,7 @@ class FlowManagementHandler:
                 if hasattr(mapping, 'source_field') and hasattr(mapping, 'target_field'):
                     mapping_dict[mapping.source_field] = mapping.target_field
                     
-            discovery_assets_created = 0
+            assets_created = 0
             
             # Process each cleaned record into a discovery asset
             for index, record in enumerate(cleaned_data):
@@ -1122,42 +1127,38 @@ class FlowManagementHandler:
                     # Apply field mappings to get standardized data
                     mapped_data = self._apply_field_mappings_to_record(record, mapping_dict)
                     
-                    # Create discovery asset
-                    discovery_asset = DiscoveryAsset(
+                    # Create asset with discovery metadata in custom_attributes
+                    asset = Asset(
                         # Multi-tenant isolation
                         client_account_id=flow.client_account_id,
                         engagement_id=flow.engagement_id,
-                        discovery_flow_id=flow.id,
                         
                         # Asset identification
-                        asset_name=mapped_data.get('asset_name') or mapped_data.get('Asset_Name') or mapped_data.get('hostname') or f"Asset_{index + 1}",
-                        asset_type=self._determine_asset_type_from_data(mapped_data, record),
+                        name=mapped_data.get('asset_name') or mapped_data.get('Asset_Name') or mapped_data.get('hostname') or f"Asset_{index + 1}",
+                        type=self._determine_asset_type_from_data(mapped_data, record),
+                        status='discovered',
                         
-                        # Discovery metadata
-                        discovered_in_phase='data_cleansing',
-                        discovery_method='postgresql_flow_manager',
-                        confidence_score=0.85,
-                        
-                        # Asset data
-                        raw_data=record,
-                        normalized_data=mapped_data,
-                        
-                        # Migration readiness
-                        migration_ready=False,  # Will be determined in later phases
-                        migration_complexity="Medium",
-                        migration_priority=3,
-                        
-                        # Status tracking
-                        asset_status="discovered",
-                        validation_status="pending",
+                        # Store discovery metadata in custom_attributes
+                        custom_attributes={
+                            'discovery_flow_id': str(flow.id),
+                            'discovered_in_phase': 'data_cleansing',
+                            'discovery_method': 'postgresql_flow_manager',
+                            'confidence_score': 0.85,
+                            'raw_data': record,
+                            'normalized_data': mapped_data,
+                            'migration_ready': False,
+                            'migration_complexity': 'Medium',
+                            'migration_priority': 3,
+                            'validation_status': 'pending'
+                        },
                         
                         # Timestamps
                         created_at=datetime.utcnow(),
                         updated_at=datetime.utcnow()
                     )
                     
-                    self.db.add(discovery_asset)
-                    discovery_assets_created += 1
+                    self.db.add(asset)
+                    assets_created += 1
                     
                 except Exception as e:
                     logger.error(f"❌ Failed to create discovery asset {index}: {e}")
@@ -1166,8 +1167,8 @@ class FlowManagementHandler:
             # Commit all discovery assets
             await self.db.commit()
             
-            logger.info(f"✅ Created {discovery_assets_created} discovery assets during data cleansing")
-            return discovery_assets_created
+            logger.info(f"✅ Created {assets_created} assets during data cleansing")
+            return assets_created
             
         except Exception as e:
             logger.error(f"❌ Failed to create discovery assets: {e}")
@@ -1209,25 +1210,26 @@ class FlowManagementHandler:
         # Default fallback
         return "SERVER"
 
-    async def _classify_discovery_assets(self, discovery_assets: List[Any]) -> Dict[str, Any]:
-        """Classify and enhance discovery assets during inventory phase"""
+    async def _classify_assets(self, assets: List[Any]) -> Dict[str, Any]:
+        """Classify and enhance assets during inventory phase"""
         try:
             classification_results = {
-                "assets_processed": len(discovery_assets),
+                "assets_processed": len(assets),
                 "asset_type_distribution": {},
                 "classification_updates": [],
                 "enhancement_summary": {}
             }
             
-            for asset in discovery_assets:
+            for asset in assets:
                 # Enhance asset type classification if needed
-                current_type = asset.asset_type or "UNKNOWN"
+                current_type = asset.type or "UNKNOWN"
                 
-                # Improve classification based on normalized data
-                if asset.normalized_data:
-                    enhanced_type = self._enhance_asset_classification(asset.normalized_data, current_type)
+                # Improve classification based on custom attributes
+                custom_attrs = asset.custom_attributes or {}
+                if 'raw_asset_data' in custom_attrs:
+                    enhanced_type = self._enhance_asset_classification(custom_attrs['raw_asset_data'], current_type)
                     if enhanced_type != current_type:
-                        asset.asset_type = enhanced_type
+                        asset.type = enhanced_type
                         classification_results["classification_updates"].append({
                             "asset_id": str(asset.id),
                             "old_type": current_type,
@@ -1235,14 +1237,14 @@ class FlowManagementHandler:
                         })
                 
                 # Update distribution count
-                final_type = asset.asset_type or "UNKNOWN"
+                final_type = asset.type or "UNKNOWN"
                 classification_results["asset_type_distribution"][final_type] = \
                     classification_results["asset_type_distribution"].get(final_type, 0) + 1
             
             # Commit classification updates
             await self.db.commit()
             
-            logger.info(f"✅ Classified {len(discovery_assets)} assets: {classification_results['asset_type_distribution']}")
+            logger.info(f"✅ Classified {len(assets)} assets: {classification_results['asset_type_distribution']}")
             return classification_results
             
         except Exception as e:

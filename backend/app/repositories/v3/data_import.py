@@ -6,21 +6,22 @@ from typing import Optional, List, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, func, update
 from app.repositories.v3.base import V3BaseRepository
-from app.models.v3 import V3DataImport, ImportStatus
+from app.models import DataImport
+from app.models.data_import.enums import ImportStatus
 import logging
 
 logger = logging.getLogger(__name__)
 
-class V3DataImportRepository(V3BaseRepository[V3DataImport]):
-    """Repository for V3 data imports"""
+class V3DataImportRepository(V3BaseRepository[DataImport]):
+    """Repository for V3 data imports using consolidated DataImport model"""
     
     def __init__(self, db: AsyncSession, client_account_id: Optional[str] = None, engagement_id: Optional[str] = None):
-        super().__init__(db, V3DataImport, client_account_id, engagement_id)
+        super().__init__(db, DataImport, client_account_id, engagement_id)
     
-    async def get_by_status(self, status: ImportStatus) -> List[V3DataImport]:
+    async def get_by_status(self, status: ImportStatus) -> List[DataImport]:
         """Get imports by status"""
-        query = select(V3DataImport).where(
-            V3DataImport.status == status
+        query = select(DataImport).where(
+            DataImport.status == status
         )
         query = self._apply_context_filter(query)
         result = await self.db.execute(query)
@@ -38,8 +39,8 @@ class V3DataImportRepository(V3BaseRepository[V3DataImport]):
         if not import_obj:
             return False
         
-        query = update(V3DataImport).where(
-            V3DataImport.id == import_id
+        query = update(DataImport).where(
+            DataImport.id == import_id
         ).values(
             processed_records=processed,
             failed_records=failed,
@@ -63,8 +64,8 @@ class V3DataImportRepository(V3BaseRepository[V3DataImport]):
         if not import_obj:
             return False
         
-        query = update(V3DataImport).where(
-            V3DataImport.id == import_id
+        query = update(DataImport).where(
+            DataImport.id == import_id
         ).values(
             status=ImportStatus.COMPLETED,
             processed_records=total_processed,
@@ -90,8 +91,8 @@ class V3DataImportRepository(V3BaseRepository[V3DataImport]):
         if not import_obj:
             return False
         
-        query = update(V3DataImport).where(
-            V3DataImport.id == import_id
+        query = update(DataImport).where(
+            DataImport.id == import_id
         ).values(
             status=ImportStatus.FAILED,
             error_message=error_message,
@@ -109,17 +110,17 @@ class V3DataImportRepository(V3BaseRepository[V3DataImport]):
         start_date,
         end_date,
         status: Optional[ImportStatus] = None
-    ) -> List[V3DataImport]:
+    ) -> List[DataImport]:
         """Get imports within a date range"""
-        query = select(V3DataImport).where(
+        query = select(DataImport).where(
             and_(
-                V3DataImport.created_at >= start_date,
-                V3DataImport.created_at <= end_date
+                DataImport.created_at >= start_date,
+                DataImport.created_at <= end_date
             )
         )
         
         if status:
-            query = query.where(V3DataImport.status == status)
+            query = query.where(DataImport.status == status)
         
         query = self._apply_context_filter(query)
         result = await self.db.execute(query)

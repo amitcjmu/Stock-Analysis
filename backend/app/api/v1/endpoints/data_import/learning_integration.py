@@ -13,7 +13,7 @@ import logging
 from app.core.database import get_db
 from app.core.context import get_current_context, RequestContext
 from app.models.data_import import (
-    DataImport, ImportFieldMapping, CustomTargetField, MappingLearningPattern
+    DataImport, ImportFieldMapping, CustomTargetField
 )
 # Note: Field analysis functions have been replaced by CrewAI Field Mapping Crew
 # infer_field_type and generate_format_regex are now handled by AI agents
@@ -82,69 +82,75 @@ async def create_or_update_learning_pattern(
     db: AsyncSession
 ):
     """Create or update AI learning patterns based on user feedback."""
-    try:
-        # Look for existing pattern
-        existing_query = select(MappingLearningPattern).where(
-            and_(
-                MappingLearningPattern.source_field_pattern == source_field,
-                MappingLearningPattern.target_field == target_field,
-                MappingLearningPattern.client_account_id == "d838573d-f461-44e4-81b5-5af510ef83b7"
-            )
-        )
-        existing_result = await db.execute(existing_query)
-        existing_pattern = existing_result.scalar_one_or_none()
-        
-        if existing_pattern:
+    # MappingLearningPattern model removed in consolidation
+    # TODO: Implement new learning pattern storage if needed
+    logger.info(f"Learning pattern creation skipped - model removed in consolidation")
+    return None
+    
+    # Original implementation commented out:
+    # try:
+    #     # Look for existing pattern
+    #     existing_query = select(MappingLearningPattern).where(
+    #         and_(
+    #             MappingLearningPattern.source_field_pattern == source_field,
+    #             MappingLearningPattern.target_field == target_field,
+    #             MappingLearningPattern.client_account_id == "d838573d-f461-44e4-81b5-5af510ef83b7"
+    #         )
+    #     )
+    #     existing_result = await db.execute(existing_query)
+    #     existing_pattern = existing_result.scalar_one_or_none()
+    #     
+    #     if existing_pattern:
             # Update existing pattern
-            if was_correct:
-                existing_pattern.success_count += 1
-            else:
-                existing_pattern.failure_count += 1
-            
-            existing_pattern.update_success_rate()
-            existing_pattern.last_applied_at = datetime.utcnow()
-            existing_pattern.times_applied += 1
-            
+    #        if was_correct:
+    #            existing_pattern.success_count += 1
+    #        else:
+    #            existing_pattern.failure_count += 1
+    #        
+    #        existing_pattern.update_success_rate()
+    #        existing_pattern.last_applied_at = datetime.utcnow()
+    #        existing_pattern.times_applied += 1
+    #        
             # Update content pattern with new samples
-            content_pattern = existing_pattern.content_pattern or {}
-            if sample_values:
-                existing_samples = content_pattern.get("sample_values", [])
-                content_pattern["sample_values"] = list(set(existing_samples + sample_values[:3]))
+    #        content_pattern = existing_pattern.content_pattern or {}
+    #        if sample_values:
+    #            existing_samples = content_pattern.get("sample_values", [])
+    #            content_pattern["sample_values"] = list(set(existing_samples + sample_values[:3]))
                 # Note: Field type inference now handled by CrewAI Field Mapping Crew
-                content_pattern["data_type"] = "string"  # Default fallback
-                content_pattern["ai_analysis_needed"] = True
-                existing_pattern.content_pattern = content_pattern
-            
-        else:
+    #            content_pattern["data_type"] = "string"  # Default fallback
+    #            content_pattern["ai_analysis_needed"] = True
+    #            existing_pattern.content_pattern = content_pattern
+    #        
+    #    else:
             # Create new learning pattern
             # Note: Advanced pattern analysis now handled by CrewAI Field Mapping Crew
-            content_pattern = {
-                "data_type": "string",  # Default fallback
-                "sample_values": sample_values[:3],
-                "format_regex": "",  # Will be analyzed by AI agents
-                "ai_analysis_needed": True
-            }
-            
-            new_pattern = MappingLearningPattern(
-                client_account_id="d838573d-f461-44e4-81b5-5af510ef83b7",
-                source_field_pattern=source_field,
-                target_field=target_field,
-                content_pattern=content_pattern,
-                success_count=1 if was_correct else 0,
-                failure_count=0 if was_correct else 1,
-                pattern_confidence=1.0 if was_correct else 0.0,
-                learned_from_mapping_id=mapping.id,
-                user_feedback=f"Learned from user mapping: {source_field} → {target_field}",
-                matching_rules=generate_matching_rules(source_field, sample_values),
-                times_applied=1,
-                last_applied_at=datetime.utcnow()
-            )
-            
-            new_pattern.update_success_rate()
-            db.add(new_pattern)
-    except Exception as e:
-        logger.error(f"Error creating/updating learning pattern: {e}")
-        raise e
+    #        content_pattern = {
+    #            "data_type": "string",  # Default fallback
+    #            "sample_values": sample_values[:3],
+    #            "format_regex": "",  # Will be analyzed by AI agents
+    #            "ai_analysis_needed": True
+    #        }
+    #        
+    #        new_pattern = MappingLearningPattern(
+    #            client_account_id="d838573d-f461-44e4-81b5-5af510ef83b7",
+    #            source_field_pattern=source_field,
+    #            target_field=target_field,
+    #            content_pattern=content_pattern,
+    #            success_count=1 if was_correct else 0,
+    #            failure_count=0 if was_correct else 1,
+    #            pattern_confidence=1.0 if was_correct else 0.0,
+    #            learned_from_mapping_id=mapping.id,
+    #            user_feedback=f"Learned from user mapping: {source_field} → {target_field}",
+    #            matching_rules=generate_matching_rules(source_field, sample_values),
+    #            times_applied=1,
+    #            last_applied_at=datetime.utcnow()
+    #        )
+    #        
+    #        new_pattern.update_success_rate()
+    #        db.add(new_pattern)
+    #except Exception as e:
+    #    logger.error(f"Error creating/updating learning pattern: {e}")
+    #    raise e
 
 async def update_custom_field_usage(field_name: str, was_successful: bool, db: AsyncSession):
     """Update usage statistics for custom fields."""
@@ -176,6 +182,8 @@ async def update_custom_field_usage(field_name: str, was_successful: bool, db: A
 @router.get("/learning-statistics")
 async def get_learning_statistics(db: AsyncSession = Depends(get_db)):
     """Get statistics on how much the AI has learned."""
+    # MappingLearningPattern model removed in consolidation
+    # Return minimal statistics based on custom fields only
     try:
         # Get custom fields count
         custom_fields_query = select(CustomTargetField).where(
@@ -184,51 +192,43 @@ async def get_learning_statistics(db: AsyncSession = Depends(get_db)):
         custom_fields_result = await db.execute(custom_fields_query)
         custom_fields = custom_fields_result.scalars().all()
         
-        # Get learning patterns count
-        patterns_query = select(MappingLearningPattern).where(
-            MappingLearningPattern.client_account_id == "d838573d-f461-44e4-81b5-5af510ef83b7"
-        )
-        patterns_result = await db.execute(patterns_query)
-        patterns = patterns_result.scalars().all()
-        
-        # Calculate statistics
-        total_patterns = len(patterns)
-        successful_patterns = sum(1 for p in patterns if p.pattern_confidence > 0.7)
-        total_mappings_learned = sum(p.success_count + p.failure_count for p in patterns)
-        
-        avg_confidence = sum(p.pattern_confidence for p in patterns) / len(patterns) if patterns else 0
-        
         return {
             "learning_summary": {
                 "total_custom_fields_created": len(custom_fields),
-                "total_patterns_learned": total_patterns,
-                "high_confidence_patterns": successful_patterns,
-                "total_mappings_processed": total_mappings_learned,
-                "average_pattern_confidence": round(avg_confidence, 2),
-                "learning_enabled": True
+                "total_patterns_learned": 0,  # MappingLearningPattern removed
+                "high_confidence_patterns": 0,
+                "total_mappings_processed": 0,
+                "average_pattern_confidence": 0.0,
+                "learning_enabled": False  # Temporarily disabled
             },
             "custom_fields": [
                 {
                     "name": field.field_name,
                     "type": field.field_type,
-                    "usage_count": field.usage_count,
-                    "success_rate": round(field.success_rate, 2),
-                    "created_at": field.created_at.isoformat() if field.created_at else None
+                    "description": field.description,
+                    "usage_count": field.usage_count
                 }
                 for field in custom_fields
             ],
-            "top_patterns": [
-                {
-                    "source_pattern": pattern.source_field_pattern,
-                    "target_field": pattern.target_field,
-                    "confidence": round(pattern.pattern_confidence, 2),
-                    "success_count": pattern.success_count,
-                    "failure_count": pattern.failure_count,
-                    "times_applied": pattern.times_applied
-                }
-                for pattern in sorted(patterns, key=lambda p: p.pattern_confidence, reverse=True)[:10]
-            ]
+            "recent_patterns": []  # No patterns available
         }
+        
+    # Original implementation commented out:
+    #     # Get learning patterns count
+    #     patterns_query = select(MappingLearningPattern).where(
+    #         MappingLearningPattern.client_account_id == "d838573d-f461-44e4-81b5-5af510ef83b7"
+    #     )
+    #     patterns_result = await db.execute(patterns_query)
+    #     patterns = patterns_result.scalars().all()
+        
+    #     # Calculate statistics
+    #     total_patterns = len(patterns)
+    #     successful_patterns = sum(1 for p in patterns if p.pattern_confidence > 0.7)
+    #     total_mappings_learned = sum(p.success_count + p.failure_count for p in patterns)
+    #     
+    #     avg_confidence = sum(p.pattern_confidence for p in patterns) / len(patterns) if patterns else 0
+    #     
+    #     return {
     except Exception as e:
         logger.error(f"Error getting learning statistics: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to get learning statistics: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Failed to get learning statistics: {str(e)}")

@@ -33,37 +33,29 @@ class ImportFieldMapping(Base):
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid_pkg.uuid4)
     data_import_id = Column(UUID(as_uuid=True), ForeignKey("data_imports.id", ondelete="CASCADE"), nullable=False)
+    client_account_id = Column(UUID(as_uuid=True), nullable=False)  # Added for multi-tenancy
+    master_flow_id = Column(UUID(as_uuid=True), ForeignKey("crewai_flow_state_extensions.id"), nullable=True)
     
     source_field = Column(String(255), nullable=False)
     target_field = Column(String(255), nullable=False)
     
-    mapping_type = Column(String(50), nullable=False, default="direct") # direct, transformation, constant
-    confidence_score = Column(Float, nullable=True) # Confidence from AI suggestion
+    match_type = Column(String(50), nullable=False, default="direct")  # was mapping_type
+    confidence_score = Column(Float, nullable=True)  # Confidence from AI suggestion
     
-    is_user_defined = Column(Boolean, default=False)
-    is_validated = Column(Boolean, default=False)
-    validation_method = Column(String(50), nullable=True) # e.g., 'user_approved', 'system_validated'
+    status = Column(String(20), default="suggested")  # suggested, approved, rejected, implemented
+    suggested_by = Column(String(50), default="ai_mapper")
     
-    status = Column(String(20), default="suggested") # suggested, approved, rejected, implemented
+    # Approval workflow (simplified)
+    approved_by = Column(String(255), nullable=True)
+    approved_at = Column(DateTime(timezone=True), nullable=True)
+    transformation_rules = Column(JSON, nullable=True)  # Replaces validation_rules and transformation_logic
     
-    # Tracking feedback and learning
-    user_feedback = Column(Text, nullable=True)
-    original_ai_suggestion = Column(String(255), nullable=True)
-    correction_reason = Column(Text, nullable=True)
-    
-    # Advanced mapping details
-    transformation_logic = Column(JSON, nullable=True) # For complex transformations
-    validation_rules = Column(JSON, nullable=True) # Rules to apply to the mapped field
-    sample_values = Column(JSON, nullable=True) # Sample source values for context
-    
-    suggested_by = Column(String(50), default="ai_agent") # 'ai_agent' or 'user'
-    validated_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
-    
+    # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    validated_at = Column(DateTime(timezone=True), nullable=True)
+    updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
     
-    data_import = relationship("DataImport")
-    user = relationship("User")
+    # Relationships
+    data_import = relationship("DataImport", back_populates="field_mappings")
 
     __table_args__ = (
         {"comment": "Manages field mappings for data imports, including AI suggestions and user overrides."},

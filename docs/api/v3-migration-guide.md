@@ -1,10 +1,23 @@
-# API v3 Migration Guide
+# API v3 Migration Guide - Hybrid Transition State
 
-This guide helps you migrate from the existing API (v1/v2) to the new unified v3 API for the AI Force Migration Platform.
+⚠️ **Current Reality**: This platform is in **active remediation** with mixed v1/v3 API usage. This guide reflects the **transition state**, not a completed migration.
 
-## Overview
+## Current API State (Remediation Phase 1)
 
-The v3 API consolidates all discovery flow operations into a clean, well-documented, and type-safe interface. It provides:
+**Infrastructure Status**: ✅ API v3 fully implemented and functional  
+**Adoption Status**: ⚠️ Frontend still primarily uses v1 API  
+**Timeline**: Gradual migration over 6-8 weeks during remediation  
+
+### **What Works Now**
+- ✅ API v3 endpoints are fully functional
+- ✅ Both v1 and v3 APIs accept flow_id
+- ✅ Multi-tenant context headers working on both versions
+- ⚠️ Field mapping has UI issues (shows "0 active flows")
+- ⚠️ Frontend uses inconsistent API versions
+
+## Migration Strategy (Remediation Context)
+
+The v3 API provides a clean, well-documented interface that will eventually replace v1, but the migration is **gradual during remediation** rather than immediate. It provides:
 
 - **Unified Interface**: Single API for all discovery operations
 - **Type Safety**: Full TypeScript support with generated types
@@ -14,21 +27,75 @@ The v3 API consolidates all discovery flow operations into a clean, well-documen
 - **Retry Logic**: Automatic retries with exponential backoff
 - **Request/Response Logging**: Debug-friendly logging
 
-## Breaking Changes
+## Gradual Migration Plan (Not Breaking Changes)
 
-### URL Structure Changes
+### **Phase 1: Infrastructure Ready** ✅ **COMPLETE**
+- API v3 endpoints implemented and tested
+- Both APIs run in parallel (no breaking changes)
+- Multi-tenant headers work on both versions
 
-| Old Endpoint | New Endpoint |
-|--------------|--------------|
-| `/api/v1/unified-discovery/flow/initialize` | `/api/v3/discovery-flow/flows` (POST) |
-| `/api/v1/discovery/session/{id}/status` | `/api/v3/discovery-flow/flows/{id}/status` |
-| `/api/v2/discovery-flows/flows/active` | `/api/v3/discovery-flow/flows?status=active` |
-| `/api/v1/data-import/store-import` | `/api/v3/data-import/imports` |
-| `/api/v1/field-mapping/*` | `/api/v3/field-mapping/mappings/*` |
+### **Phase 2: Frontend Migration** ⚠️ **IN PROGRESS** (Weeks 3-4)
+- Gradually update frontend components to use v3
+- Test both APIs during transition
+- Fix field mapping UI issues
+
+### **Phase 3: V1 Deprecation** 📋 **PLANNED** (Weeks 5-6)
+- Add deprecation warnings to v1 endpoints
+- Complete frontend migration verification
+- Remove v1 endpoints
+
+### **Current API Compatibility Matrix**
+
+| **Operation** | **V1 Endpoint (Current Primary)** | **V3 Endpoint (Target)** | **Status** |
+|---------------|-----------------------------------|---------------------------|------------|
+| Initialize Flow | `/api/v1/unified-discovery/flow/initialize` | `/api/v3/discovery-flow/flows` (POST) | ⚠️ **Mixed Usage** |
+| Flow Status | `/api/v1/unified-discovery/flow/status/{flow_id}` | `/api/v3/discovery-flow/flows/{flow_id}/status` | ⚠️ **Mixed Usage** |
+| Data Import | `/api/v1/data-import/store-import` | `/api/v3/data-import/imports` | ⚠️ **V1 Primary** |
+| Field Mapping | `/api/v1/field-mapping/*` | `/api/v3/field-mapping/mappings/*` | ⚠️ **UI Issues in V3** |
+
+### **Development Guidance During Transition**
+
+#### **For New Features**
+```typescript
+// Use v3 API for all new development
+const response = await fetch('/api/v3/discovery-flow/flows', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-Client-Account-ID': clientAccountId,
+    'X-Engagement-ID': engagementId
+  },
+  body: JSON.stringify(flowData)
+});
+```
+
+#### **For Existing Features**
+```typescript
+// May still use v1 during transition - gradual migration
+const response = await fetch('/api/v1/unified-discovery/flow/initialize', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-Client-Account-ID': clientAccountId,
+    'X-Engagement-ID': engagementId
+  },
+  body: JSON.stringify(flowData)
+});
+```
+
+#### **Troubleshooting Mixed API Usage**
+
+**Problem**: "Flow shows as 0 active flows in UI"
+- **Cause**: Frontend calling v1 API, UI expects v3 response format
+- **Fix**: Verify API endpoint version matches expected response format
+
+**Problem**: "Flow context lost during processing"
+- **Cause**: Multi-tenant headers missing or inconsistent between API calls
+- **Fix**: Ensure all API calls include proper headers regardless of version
 
 ### Response Format Changes
 
-**Old Response Format:**
+**V1 Response Format (Current):**
 ```json
 {
   "session_id": "uuid",

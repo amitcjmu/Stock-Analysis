@@ -13,10 +13,10 @@ from app.models.client_account import ClientAccount, Engagement, User
 
 # V2 Discovery Flow Models (Primary)
 from app.models.discovery_flow import DiscoveryFlow
-from app.models.discovery_asset import DiscoveryAsset
 
 # Data Import Models
-from app.models.data_import.core import DataImport
+from app.models.data_import.core import DataImport, RawImportRecord
+from app.models.data_import.mapping import ImportFieldMapping
 from app.models.data_import_session import DataImportSession
 
 # Assessment Models
@@ -55,8 +55,7 @@ from app.models.llm_usage import LLMUsageLog, LLMUsageSummary
 # SixR Analysis Models
 from app.models.sixr_analysis import SixRAnalysis
 
-# V3 API Models
-from app.models.v3 import V3DataImport, V3DiscoveryFlow, V3FieldMapping, V3RawImportRecord
+# V3 Models REMOVED - Using consolidated schema
 
 # DEPRECATED MODELS (Legacy V1 - Use V2 Discovery Flow instead)
 # from app.models.workflow_state import WorkflowState  # REMOVED - Use DiscoveryFlow
@@ -70,10 +69,11 @@ __all__ = [
     
     # V2 Discovery Flow Models (Primary)
     "DiscoveryFlow",
-    "DiscoveryAsset",
     
     # Data Import Models
     "DataImport",
+    "RawImportRecord",
+    "ImportFieldMapping",
     "DataImportSession",
     
     # Assessment Models
@@ -119,11 +119,5 @@ __all__ = [
     "LLMUsageSummary",
     
     # SixR Analysis Models
-    "SixRAnalysis",
-    
-    # V3 API Models
-    "V3DataImport",
-    "V3DiscoveryFlow", 
-    "V3FieldMapping",
-    "V3RawImportRecord"
+    "SixRAnalysis"
 ] 

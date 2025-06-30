@@ -12,7 +12,8 @@ from datetime import datetime
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository, DiscoveryAssetRepository
 from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
 from app.models.discovery_flow import DiscoveryFlow
-from app.models.discovery_asset import DiscoveryAsset
+# from app.models.discovery_asset import DiscoveryAsset  # Model removed - using Asset model instead
+from app.models.asset import Asset
 from app.core.context import RequestContext
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -87,7 +88,8 @@ class DiscoveryFlowService:
             
             discovery_flow = await self.flow_repo.create_discovery_flow(
                 flow_id=flow_id,
-                import_session_id=data_import_id,
+                import_session_id=data_import_id,  # For backward compatibility
+                data_import_id=data_import_id,  # Store as data_import_id
                 user_id=user_id or str(self.context.user_id),
                 raw_data=raw_data,
                 metadata=metadata or {}
@@ -262,7 +264,7 @@ class DiscoveryFlowService:
             logger.error(f"❌ Failed to get completed flows: {e}")
             raise
     
-    async def get_flow_assets(self, flow_id: str) -> List[DiscoveryAsset]:
+    async def get_flow_assets(self, flow_id: str) -> List[Asset]:
         """Get all assets for a discovery flow"""
         try:
             flow = await self.get_flow_by_id(flow_id)
@@ -277,7 +279,7 @@ class DiscoveryFlowService:
             logger.error(f"❌ Failed to get assets for flow {flow_id}: {e}")
             raise
     
-    async def get_assets_by_type(self, asset_type: str) -> List[DiscoveryAsset]:
+    async def get_assets_by_type(self, asset_type: str) -> List[Asset]:
         """Get assets by type for the current client/engagement"""
         try:
             assets = await self.asset_repo.get_assets_by_type(asset_type)
@@ -293,7 +295,7 @@ class DiscoveryFlowService:
         asset_id: uuid.UUID,
         validation_status: str,
         validation_results: Dict[str, Any] = None
-    ) -> DiscoveryAsset:
+    ) -> Asset:
         """Update asset validation status and results"""
         try:
             logger.info(f"🔍 Validating asset: {asset_id}, status: {validation_status}")
@@ -412,7 +414,7 @@ class DiscoveryFlowService:
         self,
         flow: DiscoveryFlow,
         asset_data_list: List[Dict[str, Any]]
-    ) -> List[DiscoveryAsset]:
+    ) -> List[Asset]:
         """Create discovery assets from inventory phase results"""
         try:
             logger.info(f"📦 Creating {len(asset_data_list)} assets from inventory for flow: {flow.flow_id}")

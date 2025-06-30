@@ -21,7 +21,8 @@ from app.core.context import get_current_context
 
 # V2 Discovery Flow Models
 from app.models.discovery_flow import DiscoveryFlow
-from app.models.discovery_asset import DiscoveryAsset
+# from app.models.discovery_asset import DiscoveryAsset  # Model removed - using Asset model instead
+from app.models.asset import Asset
 
 # V2 Discovery Flow Services
 from app.services.discovery_flow_service import DiscoveryFlowService

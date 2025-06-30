@@ -682,7 +682,8 @@ class CrewAIExecutionHandler:
             logger.info(f"📊 Processing {len(cleaned_data)} records for discovery asset creation")
             
             # Import required modules
-            from app.models.discovery_asset import DiscoveryAsset
+            # Use Asset model instead of DiscoveryAsset
+            from app.models.asset import Asset
             from app.models.data_import.mapping import ImportFieldMapping
             from sqlalchemy import select
             import uuid as uuid_pkg
@@ -704,54 +705,54 @@ class CrewAIExecutionHandler:
             for mapping in field_mappings:
                 mapping_dict[mapping.source_field] = mapping.target_field
                 
-            discovery_assets_created = 0
+            assets_created = 0
             
-            # Process each cleaned record into a discovery asset
+            # Process each cleaned record into an asset
             for index, record in enumerate(cleaned_data):
                 try:
                     # Apply field mappings to get standardized data
                     mapped_data = self._apply_field_mappings_to_record(record, mapping_dict)
                     
-                    # Create discovery asset
-                    discovery_asset = DiscoveryAsset(
+                    # Create asset with discovery metadata in custom_attributes
+                    asset = Asset(
                         # Multi-tenant isolation
                         client_account_id=flow.client_account_id,
                         engagement_id=flow.engagement_id,
-                        discovery_flow_id=flow.id,
                         
                         # Asset identification
-                        asset_name=mapped_data.get('asset_name') or mapped_data.get('Asset_Name') or f"Asset_{index + 1}",
-                        asset_type=self._determine_asset_type_from_data(mapped_data, record),
+                        name=mapped_data.get('asset_name') or mapped_data.get('Asset_Name') or f"Asset_{index + 1}",
+                        type=self._determine_asset_type_from_data(mapped_data, record),
+                        status='discovered',
                         
-                        # Discovery metadata
-                        discovered_in_phase='inventory',
-                        discovery_method='crewai_agent_analysis',
-                        confidence_score=0.87,
-                        
-                        # Asset data
-                        raw_data=record,
-                        normalized_data=mapped_data,
-                        
-                        # Migration readiness
-                        migration_ready=True,
+                        # Store discovery metadata in custom_attributes
+                        custom_attributes={
+                            'discovery_flow_id': str(flow.id),
+                            'discovered_in_phase': 'inventory',
+                            'discovery_method': 'crewai_agent_analysis',
+                            'confidence_score': 0.87,
+                            'raw_data': record,
+                            'normalized_data': mapped_data,
+                            'migration_ready': True,
+                            'validation_status': 'pending'
+                        },
                         
                         # Timestamps
                         created_at=datetime.utcnow(),
                         updated_at=datetime.utcnow()
                     )
                     
-                    self.db.add(discovery_asset)
-                    discovery_assets_created += 1
+                    self.db.add(asset)
+                    assets_created += 1
                     
                 except Exception as e:
-                    logger.error(f"❌ Failed to create discovery asset {index}: {e}")
+                    logger.error(f"❌ Failed to create asset {index}: {e}")
                     continue
                     
-            # Commit all discovery assets
+            # Commit all assets
             await self.db.commit()
             
-            logger.info(f"✅ Created {discovery_assets_created} discovery assets")
-            return discovery_assets_created
+            logger.info(f"✅ Created {assets_created} assets")
+            return assets_created
             
         except Exception as e:
             logger.error(f"❌ Failed to create discovery assets: {e}")

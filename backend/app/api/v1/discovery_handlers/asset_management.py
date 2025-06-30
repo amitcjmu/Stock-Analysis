@@ -19,13 +19,12 @@ logger = logging.getLogger(__name__)
 try:
     from app.models.asset import Asset, AssetType, AssetStatus
     from app.models.client_account import ClientAccount
-    from app.models.discovery_asset import DiscoveryAsset
     from app.models.discovery_flow import DiscoveryFlow
     MODELS_AVAILABLE = True
 except ImportError as e:
     logger.warning(f"Models not available: {e}")
     MODELS_AVAILABLE = False
-    Asset = DiscoveryAsset = ClientAccount = DiscoveryFlow = None
+    Asset = ClientAccount = DiscoveryFlow = None
 
 class AssetManagementHandler:
     """Handler for unified asset management operations"""
@@ -77,24 +76,22 @@ class AssetManagementHandler:
                     flow = await flow_repo.get_by_flow_id(flow_id)
                     
                     if flow:
-                        # Query discovery assets for this flow
-                        discovery_assets_query = select(DiscoveryAsset).where(
+                        # Query assets created by this discovery flow
+                        from app.models.asset import Asset
+                        asset_query = select(Asset).where(
                             and_(
-                                DiscoveryAsset.discovery_flow_id == flow.id,
-                                DiscoveryAsset.client_account_id == self.context.client_account_id,
-                                DiscoveryAsset.is_mock == False  # Only get real assets
+                                Asset.custom_attributes['discovery_flow_id'].astext == str(flow.id),
+                                Asset.client_account_id == self.context.client_account_id
                             )
                         )
-                        discovery_assets_result = await self.db.execute(discovery_assets_query)
-                        discovery_assets = discovery_assets_result.scalars().all()
+                        asset_result = await self.db.execute(asset_query)
+                        discovery_assets = asset_result.scalars().all()
                         
                         if discovery_assets:
-                            logger.info(f"✅ Found {len(discovery_assets)} real discovery assets for flow: {flow_id}")
+                            logger.info(f"✅ Found {len(discovery_assets)} assets for flow: {flow_id}")
                             for asset in discovery_assets:
-                                assets.append(self._convert_discovery_asset_to_dict(asset))
+                                assets.append(self._convert_asset_to_dict(asset))
                             return assets
-                        else:
-                            logger.info(f"⚠️ No real discovery assets found for flow: {flow_id}")
                             
                 except Exception as e:
                     logger.warning(f"⚠️ Failed to query discovery assets: {e}")
@@ -155,62 +152,90 @@ class AssetManagementHandler:
             "raw_data": asset.raw_data,
         }
 
-    def _convert_discovery_asset_to_dict(self, asset: DiscoveryAsset) -> Dict[str, Any]:
-        """Convert DiscoveryAsset model to dictionary format"""
-        normalized_data = asset.normalized_data or {}
-        raw_data = asset.raw_data or {}
-        
-        return {
-            "id": str(asset.id),
-            "asset_id": str(asset.id),
-            "flow_id": str(asset.discovery_flow_id),
-            "asset_name": asset.asset_name,
-            "name": asset.asset_name,
-            "asset_type": asset.asset_type,
-            "environment": normalized_data.get('environment') or raw_data.get('DR_Tier', 'Unknown'),
-            "operating_system": normalized_data.get('operating_system') or raw_data.get('Operating_System'),
-            "status": asset.asset_status or "discovered",
-            "criticality": normalized_data.get('criticality', 'Medium'),
-            "business_criticality": normalized_data.get('business_criticality', 'medium'),
-            "location": normalized_data.get('location') or raw_data.get('Location_DataCenter'),
-            "dependencies": [],  # Will be populated from dependency analysis
-            "dependencies_count": 0,
-            "risk_score": asset.confidence_score or 0.85,
-            "migration_readiness": "Ready" if asset.migration_ready else "Needs Review", 
-            "migration_complexity": asset.migration_complexity or "medium",
-            "six_r_strategy": "rehost",  # Default strategy
-            "last_updated": asset.updated_at.isoformat() if asset.updated_at else None,
-            "discovered_at": asset.created_at.isoformat() if asset.created_at else None,
-            "created_at": asset.created_at.isoformat() if asset.created_at else None,
-            "is_mock": asset.is_mock or False,
+    def _convert_asset_to_dict(self, asset: Any) -> Dict[str, Any]:
+        """Convert Asset model to dictionary format"""
+        try:
+            # Extract discovery metadata from custom_attributes
+            custom_attrs = asset.custom_attributes or {}
             
+            return {
+                "id": str(asset.id),
+                "asset_name": asset.name,
+                "asset_type": asset.type,
+                "status": asset.status,
+                "flow_id": custom_attrs.get('discovery_flow_id'),
+                "raw_data": custom_attrs.get('raw_data', {}),
+                "normalized_data": custom_attrs.get('normalized_data', {}),
+                "confidence_score": custom_attrs.get('confidence_score', 0.0),
+                "migration_ready": custom_attrs.get('migration_ready', False),
+                "migration_complexity": custom_attrs.get('migration_complexity', 'Medium'),
+                "discovered_at": asset.created_at.isoformat() if asset.created_at else None,
+                "discovered_in_phase": custom_attrs.get('discovered_in_phase', 'unknown'),
+                "discovery_method": custom_attrs.get('discovery_method', 'unknown'),
+                "validation_status": custom_attrs.get('validation_status', 'pending')
+            }
+        except Exception as e:
+            logger.error(f"Error converting asset to dict: {e}")
+            return {
+                "id": str(asset.id) if hasattr(asset, 'id') else 'unknown',
+                "asset_name": getattr(asset, 'name', 'Unknown'),
+                "asset_type": getattr(asset, 'type', 'unknown'),
+                "error": str(e)
+            }
+    #     normalized_data = asset.normalized_data or {}
+    #     raw_data = asset.raw_data or {}
+    #     
+    #     return {
+    #        "id": str(asset.id),
+    #        "asset_id": str(asset.id),
+    #        "flow_id": str(asset.discovery_flow_id),
+    #        "asset_name": asset.asset_name,
+    #        "name": asset.asset_name,
+    #        "asset_type": asset.asset_type,
+    #        "environment": normalized_data.get('environment') or raw_data.get('DR_Tier', 'Unknown'),
+    #        "operating_system": normalized_data.get('operating_system') or raw_data.get('Operating_System'),
+    #        "status": asset.asset_status or "discovered",
+    #        "criticality": normalized_data.get('criticality', 'Medium'),
+    #        "business_criticality": normalized_data.get('business_criticality', 'medium'),
+    #        "location": normalized_data.get('location') or raw_data.get('Location_DataCenter'),
+    #        "dependencies": [],  # Will be populated from dependency analysis
+    #        "dependencies_count": 0,
+    #        "risk_score": asset.confidence_score or 0.85,
+    #        "migration_readiness": "Ready" if asset.migration_ready else "Needs Review", 
+    #        "migration_complexity": asset.migration_complexity or "medium",
+    #        "six_r_strategy": "rehost",  # Default strategy
+    #        "last_updated": asset.updated_at.isoformat() if asset.updated_at else None,
+    #        "discovered_at": asset.created_at.isoformat() if asset.created_at else None,
+    #        "created_at": asset.created_at.isoformat() if asset.created_at else None,
+    #        "is_mock": asset.is_mock or False,
+    #        
             # Additional fields from normalized data
-            "hostname": normalized_data.get('hostname'),
-            "ip_address": normalized_data.get('ip_address') or raw_data.get('IP_Address'),
-            "mac_address": normalized_data.get('mac_address') or raw_data.get('MAC_Address'),
-            "cpu_cores": normalized_data.get('cpu_cores') or raw_data.get('CPU_Cores'),
-            "memory_gb": normalized_data.get('memory_gb') or raw_data.get('RAM_GB'),
-            "storage_gb": normalized_data.get('storage_gb') or raw_data.get('Storage_GB'),
-            "manufacturer": normalized_data.get('manufacturer') or raw_data.get('Manufacturer'),
-            "model": normalized_data.get('model') or raw_data.get('Model'),
-            "serial_number": normalized_data.get('serial_number') or raw_data.get('Serial_Number'),
-            "os_version": normalized_data.get('os_version') or raw_data.get('OS_Version'),
-            "business_owner": normalized_data.get('business_owner') or raw_data.get('Application_Owner'),
-            "technical_owner": normalized_data.get('technical_owner'),
-            "department": normalized_data.get('department'),
-            "application_name": normalized_data.get('service_name') or raw_data.get('Application_Service'),
-            "technology_stack": normalized_data.get('technology_stack'),
-            "datacenter": normalized_data.get('location') or raw_data.get('Location_DataCenter'),
-            "custom_attributes": {
-                "discovered_in_phase": asset.discovered_in_phase,
-                "discovery_method": asset.discovery_method,
-                "confidence_score": asset.confidence_score,
-                "validation_status": asset.validation_status,
-                "migration_notes": raw_data.get('Migration_Notes'),
-                "migration_readiness_score": raw_data.get('Cloud_Migration_Readiness_Score')
-            },
-            "raw_data": raw_data,
-        }
+    #        "hostname": normalized_data.get('hostname'),
+    #        "ip_address": normalized_data.get('ip_address') or raw_data.get('IP_Address'),
+    #        "mac_address": normalized_data.get('mac_address') or raw_data.get('MAC_Address'),
+    #        "cpu_cores": normalized_data.get('cpu_cores') or raw_data.get('CPU_Cores'),
+    #        "memory_gb": normalized_data.get('memory_gb') or raw_data.get('RAM_GB'),
+    #        "storage_gb": normalized_data.get('storage_gb') or raw_data.get('Storage_GB'),
+    #        "manufacturer": normalized_data.get('manufacturer') or raw_data.get('Manufacturer'),
+    #        "model": normalized_data.get('model') or raw_data.get('Model'),
+    #        "serial_number": normalized_data.get('serial_number') or raw_data.get('Serial_Number'),
+    #        "os_version": normalized_data.get('os_version') or raw_data.get('OS_Version'),
+    #        "business_owner": normalized_data.get('business_owner') or raw_data.get('Application_Owner'),
+    #        "technical_owner": normalized_data.get('technical_owner'),
+    #        "department": normalized_data.get('department'),
+    #        "application_name": normalized_data.get('service_name') or raw_data.get('Application_Service'),
+    #        "technology_stack": normalized_data.get('technology_stack'),
+    #        "datacenter": normalized_data.get('location') or raw_data.get('Location_DataCenter'),
+    #        "custom_attributes": {
+    #            "discovered_in_phase": asset.discovered_in_phase,
+    #            "discovery_method": asset.discovery_method,
+    #            "confidence_score": asset.confidence_score,
+    #            "validation_status": asset.validation_status,
+    #            "migration_notes": raw_data.get('Migration_Notes'),
+    #            "migration_readiness_score": raw_data.get('Cloud_Migration_Readiness_Score')
+    #        },
+    #        "raw_data": raw_data,
+    #    }
     
     async def get_asset_classification_summary(self) -> Dict[str, Any]:
         """Get asset classification summary for the classification cards"""
@@ -405,43 +430,9 @@ class AssetManagementHandler:
     
     async def _get_discovery_assets_fallback(self, flow_id: str) -> List[Dict[str, Any]]:
         """Fallback to discovery_assets table if main assets table fails"""
-        try:
-            if not MODELS_AVAILABLE:
-                return self._get_fallback_assets(flow_id)
-            
-            stmt = select(DiscoveryAsset).where(
-                and_(
-                    DiscoveryAsset.discovery_flow_id == uuid.UUID(flow_id),
-                    DiscoveryAsset.client_account_id == uuid.UUID(self.client_account_id),
-                    DiscoveryAsset.engagement_id == uuid.UUID(self.engagement_id)
-                )
-            )
-            
-            result = await self.db.execute(stmt)
-            discovery_assets = result.scalars().all()
-            
-            assets = []
-            for asset in discovery_assets:
-                asset_dict = {
-                    "id": str(asset.id),
-                    "asset_name": asset.asset_name,
-                    "asset_type": asset.asset_type,
-                    "flow_id": flow_id,
-                    "raw_data": asset.raw_data,
-                    "normalized_data": asset.normalized_data,
-                    "confidence_score": asset.confidence_score,
-                    "migration_ready": asset.migration_ready,
-                    "migration_complexity": asset.migration_complexity,
-                    "discovered_at": asset.created_at.isoformat() if asset.created_at else None
-                }
-                assets.append(asset_dict)
-            
-            logger.info(f"📦 Fallback: Retrieved {len(assets)} from discovery_assets")
-            return assets
-            
-        except Exception as e:
-            logger.error(f"❌ Discovery assets fallback failed: {e}")
-            return self._get_fallback_assets(flow_id)
+        # DiscoveryAsset model removed - return empty list
+        logger.warning("⚠️ DiscoveryAsset model removed - returning empty fallback assets")
+        return []
     
     def _get_fallback_assets(self, flow_id: str) -> List[Dict[str, Any]]:
         """Final fallback with mock data when database is unavailable"""

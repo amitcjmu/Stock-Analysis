@@ -19,6 +19,19 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Discovery - Unified API"])
 
+def get_safe_context() -> RequestContext:
+    """Get context safely with fallback values"""
+    context = get_current_context()
+    if context:
+        return context
+    
+    logger.warning("⚠️ No context available, using fallback values")
+    return RequestContext(
+        client_account_id="11111111-1111-1111-1111-111111111111",
+        engagement_id="22222222-2222-2222-2222-222222222222", 
+        user_id="347d1ecd-04f6-4e3a-86ca-d35703512301"
+    )
+
 # === Import Handlers (Modular Pattern) ===
 
 # Discovery Flow Management Handler
@@ -102,8 +115,7 @@ class FlowExecutionRequest(BaseModel):
 @router.post("/flow/initialize", response_model=DiscoveryFlowResponse)
 async def initialize_discovery_flow(
     request: InitializeDiscoveryRequest,
-    db: AsyncSession = Depends(get_db),
-    context: RequestContext = Depends(get_current_context)
+    db: AsyncSession = Depends(get_db)
 ):
     """
     Initialize discovery flow with hybrid CrewAI + PostgreSQL architecture.
@@ -111,6 +123,9 @@ async def initialize_discovery_flow(
     """
     try:
         logger.info(f"🚀 Initializing unified discovery flow, mode: {request.execution_mode}")
+        
+        # Get context safely with fallback values
+        context = get_safe_context()
         
         flow_result = {
             "flow_id": f"flow-{datetime.now().strftime('%Y%m%d-%H%M%S')}",
@@ -188,8 +203,7 @@ async def initialize_discovery_flow(
 @router.get("/flow/status/{flow_id}", response_model=DiscoveryFlowResponse)
 async def get_discovery_flow_status(
     flow_id: str,
-    db: AsyncSession = Depends(get_db),
-    context: RequestContext = Depends(get_current_context)
+    db: AsyncSession = Depends(get_db)
 ):
     """
     Get unified discovery flow status from both CrewAI and PostgreSQL layers.
@@ -197,10 +211,11 @@ async def get_discovery_flow_status(
     try:
         logger.info(f"🔍 Getting discovery flow status: {flow_id}")
         
-        # Ensure context values are not None to avoid Pydantic validation errors
-        client_account_id = context.client_account_id or "11111111-1111-1111-1111-111111111111"
-        engagement_id = context.engagement_id or "22222222-2222-2222-2222-222222222222"
-        user_id = context.user_id or "347d1ecd-04f6-4e3a-86ca-d35703512301"
+        # Get context safely with fallback values
+        context = get_safe_context()
+        client_account_id = context.client_account_id
+        engagement_id = context.engagement_id
+        user_id = context.user_id
         
         flow_status = {
             "flow_id": flow_id,
@@ -329,8 +344,7 @@ async def execute_discovery_flow(
 
 @router.get("/flows/active", response_model=Dict[str, Any])
 async def get_active_discovery_flows(
-    db: AsyncSession = Depends(get_db),
-    context: RequestContext = Depends(get_current_context)
+    db: AsyncSession = Depends(get_db)
 ):
     """
     Get active discovery flows from unified management layer.
@@ -338,6 +352,9 @@ async def get_active_discovery_flows(
     """
     try:
         logger.info("🔍 Getting active discovery flows")
+        
+        # Get context safely with fallback values
+        context = get_safe_context()
         
         active_flows = {
             "success": True,
@@ -978,7 +995,7 @@ async def fix_asset_promotion_for_completed_flow(
         
         # Check if flow exists and has discovery assets but no main assets
         from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
-        from app.models.discovery_asset import DiscoveryAsset
+        # from app.models.discovery_asset import DiscoveryAsset  # Model removed in consolidation
         from app.models.asset import Asset
         from sqlalchemy import select, func
         import uuid as uuid_pkg
@@ -989,10 +1006,11 @@ async def fix_asset_promotion_for_completed_flow(
         if not flow:
             raise HTTPException(status_code=404, detail=f"Flow not found: {flow_id}")
         
-        # Check discovery assets count
-        discovery_assets_query = select(func.count(DiscoveryAsset.id)).where(
-            DiscoveryAsset.discovery_flow_id == flow.id,
-            DiscoveryAsset.client_account_id == context.client_account_id
+        # Count assets created by this discovery flow
+        from app.models.asset import Asset
+        discovery_assets_query = select(func.count(Asset.id)).where(
+            Asset.custom_attributes['discovery_flow_id'].astext == str(flow.id),
+            Asset.client_account_id == context.client_account_id
         )
         discovery_count_result = await db.execute(discovery_assets_query)
         discovery_assets_count = discovery_count_result.scalar()
@@ -1112,7 +1130,7 @@ async def create_assets_from_field_mapping_data(
             logger.info(f"📊 Processing {len(attributes)} attributes from field mapping")
             
             # Import required modules
-            from app.models.discovery_asset import DiscoveryAsset
+            # from app.models.discovery_asset import DiscoveryAsset  # Model removed in consolidation
             import uuid as uuid_pkg
             from datetime import datetime
             
@@ -1133,61 +1151,58 @@ async def create_assets_from_field_mapping_data(
                     asset_name = record.get('Asset_Name') or f"Asset_{index + 1}"
                     asset_type = record.get('Asset_Type', 'Server').lower()
                     
-                    # Create discovery asset with real data
-                    discovery_asset = DiscoveryAsset(
+                    # Create asset with discovery metadata
+                    from app.models.asset import Asset
+                    
+                    asset = Asset(
                         # Multi-tenant isolation
                         client_account_id=flow.client_account_id,
                         engagement_id=flow.engagement_id,
-                        discovery_flow_id=flow.id,
                         
-                        # Asset identification from real data
-                        asset_name=asset_name,
-                        asset_type=asset_type,
+                        # Asset identification
+                        name=asset_name,
+                        type=asset_type,
+                        status='discovered',
                         
-                        # Discovery metadata
-                        discovered_in_phase='inventory',
-                        discovery_method='field_mapping_processing',
-                        confidence_score=0.95,  # High confidence since this is real data
-                        
-                        # Asset data
-                        raw_data=record,
-                        normalized_data={
-                            'asset_name': asset_name,
-                            'asset_type': asset_type,
-                            'ip_address': record.get('IP_Address'),
-                            'operating_system': record.get('Operating_System'),
-                            'environment': record.get('DR_Tier'),
-                            'location': record.get('Location_DataCenter'),
-                            'business_owner': record.get('Application_Owner'),
-                            'cpu_cores': record.get('CPU_Cores'),
-                            'memory_gb': record.get('RAM_GB'),
-                            'storage_gb': record.get('Storage_GB'),
-                            'manufacturer': record.get('Manufacturer'),
-                            'model': record.get('Model'),
-                            'serial_number': record.get('Serial_Number'),
-                            'mac_address': record.get('MAC_Address'),
-                            'os_version': record.get('OS_Version'),
-                            'service_name': record.get('Application_Service'),
-                            'migration_notes': record.get('Migration_Notes'),
-                            'migration_readiness_score': record.get('Cloud_Migration_Readiness_Score')
+                        # Store discovery metadata and raw data in custom_attributes
+                        custom_attributes={
+                            'discovery_flow_id': str(flow.id),
+                            'discovered_in_phase': 'inventory',
+                            'discovery_method': 'field_mapping_processing',
+                            'confidence_score': 0.95,
+                            'raw_data': record,
+                            'normalized_data': {
+                                'asset_name': asset_name,
+                                'asset_type': asset_type,
+                                'ip_address': record.get('IP_Address'),
+                                'operating_system': record.get('Operating_System'),
+                                'environment': record.get('DR_Tier'),
+                                'location': record.get('Location_DataCenter'),
+                                'business_owner': record.get('Application_Owner'),
+                                'cpu_cores': record.get('CPU_Cores'),
+                                'memory_gb': record.get('RAM_GB'),
+                                'storage_gb': record.get('Storage_GB'),
+                                'manufacturer': record.get('Manufacturer'),
+                                'model': record.get('Model'),
+                                'serial_number': record.get('Serial_Number'),
+                                'mac_address': record.get('MAC_Address'),
+                                'os_version': record.get('OS_Version'),
+                                'service_name': record.get('Application_Service'),
+                                'migration_notes': record.get('Migration_Notes'),
+                                'migration_readiness_score': record.get('Cloud_Migration_Readiness_Score')
+                            },
+                            'migration_ready': True,
+                            'migration_complexity': 'Medium',
+                            'migration_priority': int(record.get('Cloud_Migration_Readiness_Score', '3')),
+                            'validation_status': 'validated'
                         },
-                        
-                        # Migration assessment
-                        migration_ready=True,  # Real data is migration ready
-                        migration_complexity="Medium",
-                        migration_priority=int(record.get('Cloud_Migration_Readiness_Score', '3')),
-                        
-                        # Status
-                        asset_status='discovered',
-                        validation_status='validated',
-                        is_mock=False,  # This is real data!
                         
                         # Timestamps
                         created_at=datetime.utcnow(),
                         updated_at=datetime.utcnow()
                     )
                     
-                    db.add(discovery_asset)
+                    db.add(asset)
                     discovery_assets_created += 1
                     
                 except Exception as e:

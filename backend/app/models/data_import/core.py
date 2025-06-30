@@ -41,11 +41,11 @@ class DataImport(Base):
     import_type = Column(String(50), nullable=False)  # e.g., 'cmdb', 'asset_inventory'
     description = Column(Text, nullable=True)
 
-    # File metadata
-    source_filename = Column(String(255), nullable=False)
-    file_size_bytes = Column(Integer, nullable=True)
-    file_type = Column(String(100), nullable=True)
-    file_hash = Column(String(64), nullable=True)
+    # File metadata (consolidated field names)
+    filename = Column(String(255), nullable=False)  # was source_filename
+    file_size = Column(Integer, nullable=True)  # was file_size_bytes
+    mime_type = Column(String(100), nullable=True)  # was file_type
+    source_system = Column(String(100), nullable=True)  # New field for data origin
 
     # Job status and progress
     status = Column(String(20), nullable=False, default="pending")  # pending, processing, completed, failed
@@ -55,20 +55,23 @@ class DataImport(Base):
     failed_records = Column(Integer, default=0)
 
     # Configuration and user info
-    import_config = Column(JSON, nullable=True)
     imported_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    
+    # Error handling (new fields)
+    error_message = Column(Text, nullable=True)
+    error_details = Column(JSON, nullable=True)
     
     # Timestamps
     started_at = Column(DateTime(timezone=True), server_default=func.now())
     completed_at = Column(DateTime(timezone=True), nullable=True)
-    
-    is_mock = Column(Boolean, default=False, nullable=False)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     # Relationships
     raw_records = relationship("RawImportRecord", back_populates="data_import", cascade="all, delete-orphan")
+    field_mappings = relationship("ImportFieldMapping", back_populates="data_import", cascade="all, delete-orphan")
+    discovery_flows = relationship("DiscoveryFlow", back_populates="data_import")
     
     user = relationship("User")
     client_account = relationship("ClientAccount")
@@ -92,10 +95,9 @@ class RawImportRecord(Base):
     engagement_id = Column(UUID(as_uuid=True), ForeignKey("engagements.id"), nullable=True)
     master_flow_id = Column(UUID(as_uuid=True), ForeignKey("crewai_flow_state_extensions.id"), nullable=True)
 
-    row_number = Column(Integer, nullable=False)
-    record_id = Column(String(255), nullable=True)  # Optional unique ID from source system
+    record_index = Column(Integer, nullable=False)  # was row_number
     raw_data = Column(JSON, nullable=False)
-    processed_data = Column(JSON, nullable=True)
+    cleansed_data = Column(JSON, nullable=True)  # was processed_data
     
     # Validation and processing status
     validation_errors = Column(JSON, nullable=True)

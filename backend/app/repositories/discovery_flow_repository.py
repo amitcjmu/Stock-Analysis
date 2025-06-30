@@ -14,7 +14,8 @@ from sqlalchemy.orm import selectinload
 
 from app.repositories.base_repository import ContextAwareRepository
 from app.models.discovery_flow import DiscoveryFlow
-from app.models.discovery_asset import DiscoveryAsset
+# from app.models.discovery_asset import DiscoveryAsset  # Model removed in consolidation
+from app.models.asset import Asset  # Use Asset model instead of DiscoveryAsset
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +63,7 @@ class DiscoveryFlowRepository(ContextAwareRepository):
         self, 
         flow_id: str,  # CrewAI generated flow ID
         import_session_id: str = None,
+        data_import_id: str = None,  # Added data_import_id parameter
         user_id: str = None,
         raw_data: List[Dict[str, Any]] = None,
         metadata: Dict[str, Any] = None
@@ -93,6 +95,7 @@ class DiscoveryFlowRepository(ContextAwareRepository):
             engagement_id=uuid.UUID(self.engagement_id) if self.engagement_id else demo_engagement_id,
             user_id=safe_user_id,  # Store as string, not UUID
             import_session_id=uuid.UUID(import_session_id) if import_session_id else None,
+            data_import_id=uuid.UUID(data_import_id) if data_import_id else None,  # Store data_import_id
             flow_name=f"Discovery Flow {flow_id[:8]}",
             status="active",
             crewai_state_data=metadata or {}
@@ -563,10 +566,11 @@ class DiscoveryFlowRepository(ContextAwareRepository):
             return False
 
 
+# Redirecting DiscoveryAsset operations to use Asset model
 class DiscoveryAssetRepository(ContextAwareRepository):
     """
-    Repository for discovery assets
-    Created automatically from Discovery Flow results
+    Repository for discovery assets - now using Asset model
+    Provides compatibility layer for existing code
     """
     
     def __init__(self, db: AsyncSession, client_account_id: str, engagement_id: str = None):
@@ -583,27 +587,31 @@ class DiscoveryAssetRepository(ContextAwareRepository):
         discovery_flow_id: uuid.UUID, 
         asset_data_list: List[Dict[str, Any]],
         discovered_in_phase: str = "inventory"
-    ) -> List[DiscoveryAsset]:
-        """Create DiscoveryAsset records from flow results"""
+    ) -> List[Asset]:
+        """Create Asset records from discovery flow results"""
         
         assets = []
         demo_client_id = uuid.UUID("11111111-1111-1111-1111-111111111111")
         demo_engagement_id = uuid.UUID("22222222-2222-2222-2222-222222222222")
         
         for asset_data in asset_data_list:
-            asset = DiscoveryAsset(
-                discovery_flow_id=discovery_flow_id,
+            # Create asset using the Asset model with discovery metadata in custom_attributes
+            asset = Asset(
                 client_account_id=uuid.UUID(self.client_account_id) if self.client_account_id else demo_client_id,
                 engagement_id=uuid.UUID(self.engagement_id) if self.engagement_id else demo_engagement_id,
-                asset_name=asset_data.get('name', 'Unknown'),
-                asset_type=asset_data.get('type', 'unknown'),
-                asset_subtype=asset_data.get('subtype'),
-                asset_data=asset_data,
-                discovered_in_phase=discovered_in_phase,
-                discovery_method="crewai_discovery_flow",
-                # quality_score field doesn't exist in DiscoveryAsset model
-                confidence_score=asset_data.get('confidence_score', 0.0),
-                validation_status="pending"
+                name=asset_data.get('name', 'Unknown'),
+                type=asset_data.get('type', 'server'),  # Default to server type
+                status='discovered',
+                # Store discovery-specific data in custom_attributes
+                custom_attributes={
+                    'discovery_flow_id': str(discovery_flow_id),
+                    'discovered_in_phase': discovered_in_phase,
+                    'discovery_method': 'crewai_discovery_flow',
+                    'asset_subtype': asset_data.get('subtype'),
+                    'confidence_score': asset_data.get('confidence_score', 0.0),
+                    'validation_status': 'pending',
+                    'raw_asset_data': asset_data
+                }
             )
             
             self.db.add(asset)
@@ -617,28 +625,29 @@ class DiscoveryAssetRepository(ContextAwareRepository):
         
         return assets
     
-    async def get_assets_by_flow_id(self, discovery_flow_id: uuid.UUID) -> List[DiscoveryAsset]:
+    async def get_assets_by_flow_id(self, discovery_flow_id: uuid.UUID) -> List[Asset]:
         """Get all assets for a discovery flow"""
-        stmt = select(DiscoveryAsset).where(
+        # Query assets that were created by this discovery flow
+        stmt = select(Asset).where(
             and_(
-                DiscoveryAsset.discovery_flow_id == discovery_flow_id,
-                DiscoveryAsset.client_account_id == uuid.UUID(self.client_account_id),
-                DiscoveryAsset.engagement_id == uuid.UUID(self.engagement_id)
+                Asset.custom_attributes['discovery_flow_id'].astext == str(discovery_flow_id),
+                Asset.client_account_id == uuid.UUID(self.client_account_id),
+                Asset.engagement_id == uuid.UUID(self.engagement_id)
             )
-        ).order_by(DiscoveryAsset.created_at)
+        ).order_by(Asset.created_at)
         
         result = await self.db.execute(stmt)
         return result.scalars().all()
     
-    async def get_assets_by_type(self, asset_type: str) -> List[DiscoveryAsset]:
+    async def get_assets_by_type(self, asset_type: str) -> List[Asset]:
         """Get assets by type for the client/engagement"""
-        stmt = select(DiscoveryAsset).where(
+        stmt = select(Asset).where(
             and_(
-                DiscoveryAsset.asset_type == asset_type,
-                DiscoveryAsset.client_account_id == uuid.UUID(self.client_account_id),
-                DiscoveryAsset.engagement_id == uuid.UUID(self.engagement_id)
+                Asset.type == asset_type,
+                Asset.client_account_id == uuid.UUID(self.client_account_id),
+                Asset.engagement_id == uuid.UUID(self.engagement_id)
             )
-        ).order_by(DiscoveryAsset.asset_name)
+        ).order_by(Asset.name)
         
         result = await self.db.execute(stmt)
         return result.scalars().all()
@@ -648,7 +657,7 @@ class DiscoveryAssetRepository(ContextAwareRepository):
         asset_id: uuid.UUID, 
         validation_status: str,
         validation_results: Dict[str, Any] = None
-    ) -> DiscoveryAsset:
+    ) -> Asset:
         """Update asset validation status and results"""
         
         update_values = {
@@ -659,19 +668,38 @@ class DiscoveryAssetRepository(ContextAwareRepository):
         if validation_results:
             update_values["validation_results"] = validation_results
         
-        stmt = update(DiscoveryAsset).where(
+        # Update Asset with validation info in custom_attributes
+        stmt = select(Asset).where(
             and_(
-                DiscoveryAsset.id == asset_id,
-                DiscoveryAsset.client_account_id == uuid.UUID(self.client_account_id),
-                DiscoveryAsset.engagement_id == uuid.UUID(self.engagement_id)
+                Asset.id == asset_id,
+                Asset.client_account_id == uuid.UUID(self.client_account_id),
+                Asset.engagement_id == uuid.UUID(self.engagement_id)
             )
-        ).values(**update_values)
+        )
+        result = await self.db.execute(stmt)
+        asset = result.scalar_one_or_none()
+        
+        if asset:
+            # Update custom attributes with validation info
+            custom_attrs = asset.custom_attributes or {}
+            custom_attrs['validation_status'] = validation_status
+            if validation_results:
+                custom_attrs['validation_results'] = validation_results
+            
+            update_stmt = update(Asset).where(
+                Asset.id == asset_id
+            ).values(
+                custom_attributes=custom_attrs,
+                updated_at=datetime.utcnow()
+            )
+            await self.db.execute(update_stmt)
+            await self.db.commit()
         
         await self.db.execute(stmt)
         await self.db.commit()
         
         # Return updated asset
         result = await self.db.execute(
-            select(DiscoveryAsset).where(DiscoveryAsset.id == asset_id)
+            select(Asset).where(Asset.id == asset_id)
         )
-        return result.scalar_one_or_none() 
+        return result.scalar_one_or_none()

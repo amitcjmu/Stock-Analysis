@@ -941,7 +941,7 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
     async def execute_parallel_analysis_agents(self, previous_result):
         """Execute asset inventory, dependency, and tech debt analysis agents in parallel"""
         logger.info("🤖 Starting Parallel Analysis Agents (Asset, Dependency, Tech Debt)")
-        self.state.current_phase = "tech_debt"
+        self.state.current_phase = "analysis"
         
         # REAL-TIME UPDATE: Update database immediately when phase starts
         if self.flow_bridge:

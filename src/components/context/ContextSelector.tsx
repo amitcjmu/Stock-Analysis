@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { getContextHeaders } from '@/utils/contextUtils';
 
 interface Client {
   id: string;
@@ -43,7 +44,7 @@ interface ContextSelectorProps {
 }
 
 const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compact = false, onSelectionChange }) => {
-  const { getContextHeaders } = useAuth();
+  const auth = useAuth();
   const { currentClient, setCurrentClient } = useClient();
   const { currentEngagement, setCurrentEngagement } = useEngagement();
   const { currentSession, setCurrentSession, viewMode, setViewMode } = useSession();
@@ -64,7 +65,16 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
     queryFn: async () => {
       const response = await apiCall('clients', {
         method: 'GET',
-        headers: getContextHeaders()
+        headers: {
+          ...auth.getAuthHeaders(),
+          ...getContextHeaders({
+            client: auth.client,
+            engagement: auth.engagement,
+            session: auth.session,
+            currentEngagementId: auth.currentEngagementId,
+            currentSessionId: auth.currentSessionId
+          })
+        }
       });
       return response.clients;
     }
@@ -76,7 +86,16 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
       if (!stagedClient?.id) return [];
       const response = await apiCall(`/context/clients/${stagedClient.id}/engagements`, {
         method: 'GET',
-        headers: getContextHeaders()
+        headers: {
+          ...auth.getAuthHeaders(),
+          ...getContextHeaders({
+            client: stagedClient,
+            engagement: auth.engagement,
+            session: auth.session,
+            currentEngagementId: auth.currentEngagementId,
+            currentSessionId: auth.currentSessionId
+          })
+        }
       });
       return response.engagements;
     },
@@ -89,7 +108,16 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
       if (!stagedEngagement?.id) return [];
       const response = await apiCall(`/context/engagements/${stagedEngagement.id}/sessions`, {
         method: 'GET',
-        headers: getContextHeaders()
+        headers: {
+          ...auth.getAuthHeaders(),
+          ...getContextHeaders({
+            client: stagedClient,
+            engagement: stagedEngagement,
+            session: auth.session,
+            currentEngagementId: auth.currentEngagementId,
+            currentSessionId: auth.currentSessionId
+          })
+        }
       });
       return response.sessions;
     },
@@ -136,29 +164,56 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
   };
 
   // Confirm the staged selections and apply to global context
-  const handleConfirmSelection = () => {
-    if (stagedClient) {
-      setCurrentClient(stagedClient);
-    }
-    if (stagedEngagement) {
-      setCurrentEngagement(stagedEngagement);
-    }
-    if (stagedSession) {
-      setCurrentSession(stagedSession);
-    }
-    setViewMode(stagedViewMode);
+  const handleConfirmSelection = async () => {
+    try {
+      // Switch client first and wait for completion
+      if (stagedClient && stagedClient.id !== auth.client?.id) {
+        console.log('🔄 Switching client first:', stagedClient.id);
+        await auth.switchClient(stagedClient.id, stagedClient);
+        console.log('✅ Client switch completed');
+        
+        // Small delay to ensure context state is updated
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      // Then switch engagement with the updated client context
+      if (stagedEngagement && stagedEngagement.id !== auth.engagement?.id) {
+        console.log('🔄 Switching engagement:', stagedEngagement.id);
+        await auth.switchEngagement(stagedEngagement.id, stagedEngagement);
+        console.log('✅ Engagement switch completed');
+      }
+      
+      // Also update local context providers for compatibility
+      if (stagedClient) {
+        setCurrentClient(stagedClient);
+      }
+      if (stagedEngagement) {
+        setCurrentEngagement(stagedEngagement);
+      }
+      if (stagedSession) {
+        setCurrentSession(stagedSession);
+      }
+      setViewMode(stagedViewMode);
 
-    const contextParts = [];
-    if (stagedClient) contextParts.push(stagedClient.name);
-    if (stagedEngagement) contextParts.push(stagedEngagement.name);
-    if (stagedSession) contextParts.push(stagedSession.session_display_name || stagedSession.session_name);
+      const contextParts = [];
+      if (stagedClient) contextParts.push(stagedClient.name);
+      if (stagedEngagement) contextParts.push(stagedEngagement.name);
+      if (stagedSession) contextParts.push(stagedSession.session_display_name || stagedSession.session_name);
 
-    toast({
-      title: "Context Switched",
-      description: `Switched to: ${contextParts.join(' → ')}`
-    });
+      toast({
+        title: "Context Switched",
+        description: `Switched to: ${contextParts.join(' → ')}`
+      });
 
-    onSelectionChange?.();
+      onSelectionChange?.();
+    } catch (error) {
+      console.error('Failed to switch context:', error);
+      toast({
+        title: "Context Switch Failed",
+        description: "Failed to switch context. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   // Cancel staged selections and revert to current context

@@ -32,7 +32,7 @@ class DiscoveryFlow(Base):
     
     # Data import integration
     import_session_id = Column(UUID(as_uuid=True), nullable=True, index=True)
-    data_import_id = Column(UUID(as_uuid=True), nullable=True, index=True)
+    data_import_id = Column(UUID(as_uuid=True), ForeignKey("data_imports.id"), nullable=True, index=True)
     
     # Flow metadata
     flow_name = Column(String(255), nullable=False)
@@ -40,28 +40,34 @@ class DiscoveryFlow(Base):
     status = Column(String(20), nullable=False, default='active', index=True)
     progress_percentage = Column(Float, nullable=False, default=0.0)
     
-    # Phase completion tracking (6 phases)
-    data_import_completed = Column(Boolean, nullable=False, default=False)
-    attribute_mapping_completed = Column(Boolean, nullable=False, default=False)
+    # Phase completion tracking - HYBRID APPROACH
+    # Boolean flags (keep for backward compatibility)
+    data_validation_completed = Column(Boolean, nullable=False, default=False)
+    field_mapping_completed = Column(Boolean, nullable=False, default=False)  # was attribute_mapping_completed
     data_cleansing_completed = Column(Boolean, nullable=False, default=False)
-    inventory_completed = Column(Boolean, nullable=False, default=False)
-    dependencies_completed = Column(Boolean, nullable=False, default=False)
-    tech_debt_completed = Column(Boolean, nullable=False, default=False)
+    asset_inventory_completed = Column(Boolean, nullable=False, default=False)  # was inventory_completed
+    dependency_analysis_completed = Column(Boolean, nullable=False, default=False)  # was dependencies_completed
+    tech_debt_assessment_completed = Column(Boolean, nullable=False, default=False)  # was tech_debt_completed
+    
+    # JSON fields for CrewAI state management (V3 features)
+    flow_type = Column(String(100), default='unified_discovery')
+    current_phase = Column(String(100), nullable=True)
+    phases_completed = Column(JSON, default=list)
+    flow_state = Column(JSON, default=dict)
+    crew_outputs = Column(JSON, default=dict)
+    field_mappings = Column(JSON, nullable=True)
+    discovered_assets = Column(JSON, nullable=True)
+    dependencies = Column(JSON, nullable=True)
+    tech_debt_analysis = Column(JSON, nullable=True)
     
     # CrewAI integration
     crewai_persistence_id = Column(UUID(as_uuid=True), nullable=True)
     crewai_state_data = Column(JSONB, nullable=False, default={})
     
-    # Agent learning and memory
-    learning_scope = Column(String(50), nullable=False, default='engagement')
-    memory_isolation_level = Column(String(20), nullable=False, default='strict')
-    
-    # Assessment handoff preparation
-    assessment_ready = Column(Boolean, nullable=False, default=False)
-    assessment_package = Column(JSONB, nullable=True)
-    
-    # Demo mode support
-    is_mock = Column(Boolean, nullable=False, default=False, index=True)
+    # Error handling (new fields)
+    error_message = Column(Text, nullable=True)
+    error_phase = Column(String(100), nullable=True)
+    error_details = Column(JSON, nullable=True)
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
@@ -72,6 +78,7 @@ class DiscoveryFlow(Base):
     # Note: discovery_assets table was consolidated into main assets table
     # Use assets table with discovery_flow_id foreign key instead
     # Note: CrewAIFlowStateExtensions is now the master table, so no direct relationship needed
+    data_import = relationship("DataImport", back_populates="discovery_flows")
 
     def __repr__(self):
         return f"<DiscoveryFlow(flow_id={self.flow_id}, name='{self.flow_name}', status='{self.status}')>"
@@ -79,12 +86,12 @@ class DiscoveryFlow(Base):
     def calculate_progress(self) -> float:
         """Calculate progress percentage based on completed phases"""
         phases = [
-            self.data_import_completed,
-            self.attribute_mapping_completed,
+            self.data_validation_completed,
+            self.field_mapping_completed,
             self.data_cleansing_completed,
-            self.inventory_completed,
-            self.dependencies_completed,
-            self.tech_debt_completed
+            self.asset_inventory_completed,
+            self.dependency_analysis_completed,
+            self.tech_debt_assessment_completed
         ]
         completed_count = sum(1 for phase in phases if phase)
         return round((completed_count / len(phases)) * 100, 1)
@@ -95,17 +102,21 @@ class DiscoveryFlow(Base):
 
     def get_current_phase(self) -> str:
         """Get the current phase based on completion status"""
+        # Use JSON field if available, otherwise calculate from booleans
+        if self.current_phase:
+            return self.current_phase
+            
         phases = [
-            ('data_import', self.data_import_completed),
-            ('attribute_mapping', self.attribute_mapping_completed),
+            ('data_validation', self.data_validation_completed),
+            ('field_mapping', self.field_mapping_completed),
             ('data_cleansing', self.data_cleansing_completed),
-            ('inventory', self.inventory_completed),
-            ('dependencies', self.dependencies_completed),
-            ('tech_debt', self.tech_debt_completed)
+            ('asset_inventory', self.asset_inventory_completed),
+            ('dependency_analysis', self.dependency_analysis_completed),
+            ('tech_debt_assessment', self.tech_debt_assessment_completed)
         ]
         
         # Find the last completed phase
-        current_phase = "data_import"  # Default starting phase
+        current_phase = "data_validation"  # Default starting phase
         for phase_name, completed in phases:
             if completed:
                 current_phase = phase_name
@@ -117,12 +128,12 @@ class DiscoveryFlow(Base):
     def get_next_phase(self) -> Optional[str]:
         """Get the next phase that needs to be completed"""
         phases = [
-            ('data_import', self.data_import_completed),
-            ('attribute_mapping', self.attribute_mapping_completed),
+            ('data_validation', self.data_validation_completed),
+            ('field_mapping', self.field_mapping_completed),
             ('data_cleansing', self.data_cleansing_completed),
-            ('inventory', self.inventory_completed),
-            ('dependencies', self.dependencies_completed),
-            ('tech_debt', self.tech_debt_completed)
+            ('asset_inventory', self.asset_inventory_completed),
+            ('dependency_analysis', self.dependency_analysis_completed),
+            ('tech_debt_assessment', self.tech_debt_assessment_completed)
         ]
         
         for phase_name, completed in phases:
@@ -133,12 +144,12 @@ class DiscoveryFlow(Base):
     def is_complete(self) -> bool:
         """Check if all phases are completed"""
         return all([
-            self.data_import_completed,
-            self.attribute_mapping_completed,
+            self.data_validation_completed,
+            self.field_mapping_completed,
             self.data_cleansing_completed,
-            self.inventory_completed,
-            self.dependencies_completed,
-            self.tech_debt_completed
+            self.asset_inventory_completed,
+            self.dependency_analysis_completed,
+            self.tech_debt_assessment_completed
         ])
 
     def prepare_assessment_package(self) -> Dict[str, Any]:

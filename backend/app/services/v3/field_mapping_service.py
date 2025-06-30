@@ -5,7 +5,8 @@ V3 Field Mapping Service
 from typing import Optional, List, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.repositories.v3.field_mapping import V3FieldMappingRepository
-from app.models.v3 import V3FieldMapping, MappingStatus
+from app.models import ImportFieldMapping
+from app.repositories.v3.field_mapping import MappingStatus
 from app.core.context import get_current_context
 import logging
 import uuid
@@ -35,7 +36,7 @@ class V3FieldMappingService:
         self,
         import_id: str,
         suggestions: List[Dict[str, Any]]
-    ) -> List[V3FieldMapping]:
+    ) -> List[ImportFieldMapping]:
         """Create AI-suggested field mappings"""
         try:
             # Prepare mapping data
@@ -70,7 +71,7 @@ class V3FieldMappingService:
         self,
         import_id: str,
         source_fields: List[str]
-    ) -> List[V3FieldMapping]:
+    ) -> List[ImportFieldMapping]:
         """Generate automatic field mappings using heuristics"""
         try:
             suggestions = []

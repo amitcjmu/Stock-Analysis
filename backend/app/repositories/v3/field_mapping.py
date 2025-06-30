@@ -6,22 +6,30 @@ from typing import Optional, List, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, func, update
 from app.repositories.v3.base import V3BaseRepository
-from app.models.v3 import V3FieldMapping, MappingStatus
+from app.models import ImportFieldMapping
+from enum import Enum
+
+# Define MappingStatus if not available
+class MappingStatus(str, Enum):
+    SUGGESTED = "suggested"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    IMPLEMENTED = "implemented"
 from datetime import datetime
 import logging
 
 logger = logging.getLogger(__name__)
 
-class V3FieldMappingRepository(V3BaseRepository[V3FieldMapping]):
-    """Repository for V3 field mappings"""
+class V3FieldMappingRepository(V3BaseRepository[ImportFieldMapping]):
+    """Repository for V3 field mappings using consolidated ImportFieldMapping model"""
     
     def __init__(self, db: AsyncSession, client_account_id: Optional[str] = None, engagement_id: Optional[str] = None):
-        super().__init__(db, V3FieldMapping, client_account_id, engagement_id)
+        super().__init__(db, ImportFieldMapping, client_account_id, engagement_id)
     
-    async def get_by_import(self, import_id: str) -> List[V3FieldMapping]:
+    async def get_by_import(self, import_id: str) -> List[ImportFieldMapping]:
         """Get all mappings for an import"""
-        query = select(V3FieldMapping).where(
-            V3FieldMapping.data_import_id == import_id
+        query = select(ImportFieldMapping).where(
+            ImportFieldMapping.data_import_id == import_id
         )
         query = self._apply_context_filter(query)
         result = await self.db.execute(query)
@@ -31,24 +39,24 @@ class V3FieldMappingRepository(V3BaseRepository[V3FieldMapping]):
         self,
         import_id: str,
         source_field: str
-    ) -> Optional[V3FieldMapping]:
+    ) -> Optional[ImportFieldMapping]:
         """Get mapping by source field"""
-        query = select(V3FieldMapping).where(
+        query = select(ImportFieldMapping).where(
             and_(
-                V3FieldMapping.data_import_id == import_id,
-                V3FieldMapping.source_field == source_field
+                ImportFieldMapping.data_import_id == import_id,
+                ImportFieldMapping.source_field == source_field
             )
         )
         query = self._apply_context_filter(query)
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
     
-    async def get_by_status(self, import_id: str, status: MappingStatus) -> List[V3FieldMapping]:
+    async def get_by_status(self, import_id: str, status: MappingStatus) -> List[ImportFieldMapping]:
         """Get mappings by status for an import"""
-        query = select(V3FieldMapping).where(
+        query = select(ImportFieldMapping).where(
             and_(
-                V3FieldMapping.data_import_id == import_id,
-                V3FieldMapping.status == status
+                ImportFieldMapping.data_import_id == import_id,
+                ImportFieldMapping.status == status
             )
         )
         query = self._apply_context_filter(query)
@@ -66,8 +74,8 @@ class V3FieldMappingRepository(V3BaseRepository[V3FieldMapping]):
         if not mapping:
             return False
         
-        query = update(V3FieldMapping).where(
-            V3FieldMapping.id == mapping_id
+        query = update(ImportFieldMapping).where(
+            ImportFieldMapping.id == mapping_id
         ).values(
             status=MappingStatus.APPROVED,
             approved_by=approved_by,
@@ -91,8 +99,8 @@ class V3FieldMappingRepository(V3BaseRepository[V3FieldMapping]):
         if not mapping:
             return False
         
-        query = update(V3FieldMapping).where(
-            V3FieldMapping.id == mapping_id
+        query = update(ImportFieldMapping).where(
+            ImportFieldMapping.id == mapping_id
         ).values(
             status=MappingStatus.REJECTED,
             updated_at=func.now()
@@ -124,8 +132,8 @@ class V3FieldMappingRepository(V3BaseRepository[V3FieldMapping]):
         if transformation_rules:
             values["transformation_rules"] = transformation_rules
         
-        query = update(V3FieldMapping).where(
-            V3FieldMapping.id == mapping_id
+        query = update(ImportFieldMapping).where(
+            ImportFieldMapping.id == mapping_id
         ).values(**values)
         
         result = await self.db.execute(query)
@@ -137,7 +145,7 @@ class V3FieldMappingRepository(V3BaseRepository[V3FieldMapping]):
         self,
         import_id: str,
         mappings: List[Dict[str, Any]]
-    ) -> List[V3FieldMapping]:
+    ) -> List[ImportFieldMapping]:
         """Create multiple mappings at once"""
         # Add import_id to all mappings
         for mapping in mappings:

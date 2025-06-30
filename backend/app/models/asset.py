@@ -183,8 +183,7 @@ class Asset(Base):
     raw_data = Column(JSON)  # Original imported data
     field_mappings_used = Column(JSON)  # Field mappings applied during import
     
-    # Mock data flag
-    is_mock = Column(Boolean, default=False, nullable=False, index=True)
+    # is_mock removed - use multi-tenant isolation instead
     
     # Audit fields
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -199,7 +198,7 @@ class Asset(Base):
     discovery_flow = relationship("DiscoveryFlow", foreign_keys=[flow_id], primaryjoin="Asset.flow_id == DiscoveryFlow.flow_id")
     
     def __repr__(self):
-        return f"<Asset(id={self.id}, name='{self.name}', type='{self.asset_type}', is_mock={self.is_mock})>"
+        return f"<Asset(id={self.id}, name='{self.name}', type='{self.asset_type}')>"
     
     @property
     def is_migrated(self) -> bool:
@@ -243,7 +242,7 @@ class AssetDependency(Base):
     depends_on_asset_id = Column(PostgresUUID(as_uuid=True), ForeignKey('assets.id', ondelete='CASCADE'), nullable=False)
     dependency_type = Column(String(50), nullable=False)  # e.g., 'database', 'application', 'storage'
     description = Column(Text)
-    is_mock = Column(Boolean, default=False, nullable=False)
+    # is_mock removed - use multi-tenant isolation instead
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     asset = relationship("Asset", foreign_keys=[asset_id])
@@ -257,7 +256,7 @@ class WorkflowProgress(Base):
     stage = Column(String(50), nullable=False)  # e.g., 'Discovery', 'Assessment', 'Migration'
     status = Column(String(50), nullable=False)  # e.g., 'Not Started', 'In Progress', 'Completed'
     notes = Column(Text)
-    is_mock = Column(Boolean, default=False, nullable=False)
+    # is_mock removed - use multi-tenant isolation instead
     started_at = Column(DateTime(timezone=True))
     completed_at = Column(DateTime(timezone=True))
     
@@ -297,8 +296,7 @@ class CMDBSixRAnalysis(Base):
     analysis_results = Column(JSON)  # Detailed results per asset
     recommendations = Column(JSON)  # Overall recommendations
     
-    # Mock data flag
-    is_mock = Column(Boolean, default=False, nullable=False, index=True)
+    # is_mock removed - use multi-tenant isolation instead
     
     # Audit
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -343,8 +341,7 @@ class MigrationWave(Base):
     estimated_effort_hours = Column(Float)
     actual_effort_hours = Column(Float)
     
-    # Mock data flag
-    is_mock = Column(Boolean, default=False, nullable=False, index=True)
+    # is_mock removed - use multi-tenant isolation instead
     
     # Audit
     created_at = Column(DateTime(timezone=True), server_default=func.now())

@@ -6,7 +6,7 @@ from typing import Generic, TypeVar, Optional, List, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, func, update
 from app.repositories.context_aware_repository import ContextAwareRepository
-from app.models.v3 import V3DataImport, V3DiscoveryFlow, V3FieldMapping, V3RawImportRecord
+from app.models import DataImport, DiscoveryFlow, ImportFieldMapping, RawImportRecord
 import logging
 
 logger = logging.getLogger(__name__)

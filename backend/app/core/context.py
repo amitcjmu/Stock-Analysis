@@ -3,16 +3,24 @@ Context management for multi-tenant request handling.
 Provides utilities for extracting and injecting client/engagement/session context.
 """
 
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, TypeVar, Callable
 from contextvars import ContextVar
 from fastapi import Request, HTTPException, Depends
+from functools import wraps
+from dataclasses import dataclass, asdict
 import uuid
 import logging
 from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 
-# Context variables for request-scoped data
+# Context variable for request context
+_request_context: ContextVar[Optional['RequestContext']] = ContextVar(
+    'request_context',
+    default=None
+)
+
+# Legacy context variables for backward compatibility
 _client_account_id: ContextVar[Optional[str]] = ContextVar('client_account_id', default=None)
 _engagement_id: ContextVar[Optional[str]] = ContextVar('engagement_id', default=None) 
 _user_id: ContextVar[Optional[str]] = ContextVar('user_id', default=None)
@@ -38,29 +46,37 @@ except ImportError as e:
     User = None
 
 
+@dataclass
 class RequestContext:
-    """Container for request context information."""
+    """Enhanced request context with audit fields"""
+    client_account_id: Optional[str] = None
+    engagement_id: Optional[str] = None
+    user_id: Optional[str] = None
+    session_id: Optional[str] = None
+    request_id: Optional[str] = None
     
-    def __init__(
-        self,
-        client_account_id: Optional[str] = None,
-        engagement_id: Optional[str] = None,
-        user_id: Optional[str] = None,
-        session_id: Optional[str] = None
-    ):
-        self.client_account_id = client_account_id
-        self.engagement_id = engagement_id
-        self.user_id = user_id
-        self.session_id = session_id
+    # Audit fields
+    ip_address: Optional[str] = None
+    user_agent: Optional[str] = None
+    api_version: Optional[str] = None
+    
+    # Feature flags
+    feature_flags: Optional[Dict[str, bool]] = None
+    
+    def __post_init__(self):
+        if self.feature_flags is None:
+            self.feature_flags = {}
+        if self.request_id is None:
+            self.request_id = str(uuid.uuid4())
     
     def to_dict(self) -> Dict[str, Any]:
-        """Convert context to dictionary."""
-        return {
-            "client_account_id": self.client_account_id,
-            "engagement_id": self.engagement_id,
-            "user_id": self.user_id,
-            "session_id": self.session_id
-        }
+        """Convert to dictionary for serialization"""
+        return asdict(self)
+    
+    def has_permission(self, resource: str, action: str) -> bool:
+        """Check if context has permission for resource/action"""
+        # TODO: Implement permission checking
+        return True
     
     def __repr__(self):
         return f"RequestContext(client={self.client_account_id}, engagement={self.engagement_id}, user={self.user_id}, session={self.session_id})"
@@ -172,7 +188,7 @@ def get_request_context(request: Request) -> RequestContext:
         RequestContext extracted from request headers
     """
     context = extract_context_from_request(request)
-    set_context(context)
+    set_request_context(context)
     return context
 
 
@@ -187,36 +203,62 @@ def get_request_context_dependency(request: Request) -> RequestContext:
         RequestContext extracted from request headers
     """
     context = extract_context_from_request(request)
-    set_context(context)
+    set_request_context(context)
     return context
 
 
-def set_context(context: RequestContext) -> None:
-    """
-    Set context variables for the current request.
-    
-    Args:
-        context: RequestContext to set
-    """
+def set_request_context(context: RequestContext) -> None:
+    """Set the current request context"""
+    _request_context.set(context)
+    # Also set legacy context variables for backward compatibility
     _client_account_id.set(context.client_account_id)
     _engagement_id.set(context.engagement_id)
     _user_id.set(context.user_id)
     _session_id.set(context.session_id)
+    logger.debug(f"Set context for client {context.client_account_id}")
+
+def set_context(context: RequestContext) -> None:
+    """Legacy function for backward compatibility"""
+    set_request_context(context)
 
 
-def get_current_context() -> RequestContext:
-    """
-    Get current request context from context variables.
+def get_current_context() -> Optional[RequestContext]:
+    """Get the current request context"""
+    context = _request_context.get()
+    if context:
+        return context
     
-    Returns:
-        Current RequestContext
-    """
-    return RequestContext(
-        client_account_id=_client_account_id.get(),
-        engagement_id=_engagement_id.get(),
-        user_id=_user_id.get(),
-        session_id=_session_id.get()
-    )
+    # Fallback to legacy context variables for backward compatibility
+    client_id = _client_account_id.get()
+    engagement_id = _engagement_id.get()
+    user_id = _user_id.get()
+    session_id = _session_id.get()
+    
+    if any([client_id, engagement_id, user_id, session_id]):
+        return RequestContext(
+            client_account_id=client_id,
+            engagement_id=engagement_id,
+            user_id=user_id,
+            session_id=session_id
+        )
+    
+    return None
+
+def get_required_context() -> RequestContext:
+    """Get context or raise if not available"""
+    context = get_current_context()
+    if not context:
+        raise RuntimeError("No request context available")
+    return context
+
+def clear_request_context() -> None:
+    """Clear the current request context"""
+    _request_context.set(None)
+    # Also clear legacy variables
+    _client_account_id.set(None)
+    _engagement_id.set(None)
+    _user_id.set(None)
+    _session_id.set(None)
 
 
 def get_client_account_id() -> Optional[str]:
@@ -340,4 +382,98 @@ async def resolve_demo_client_ids(db_session) -> None:
         
     except Exception as e:
         logger.warning(f"⚠️ Could not resolve demo client IDs from database: {e}")
-        # Keep using the hardcoded UUIDs as fallback 
+        # Keep using the hardcoded UUIDs as fallback
+
+
+# Decorators for context management
+T = TypeVar('T')
+
+def require_context(func: Callable[..., T]) -> Callable[..., T]:
+    """Decorator that ensures context is available"""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        context = get_current_context()
+        if not context:
+            raise RuntimeError(f"Context required for {func.__name__}")
+        return func(*args, **kwargs)
+    return wrapper
+
+def inject_context(func: Callable[..., T]) -> Callable[..., T]:
+    """Decorator that injects context as first argument"""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        context = get_required_context()
+        return func(context, *args, **kwargs)
+    return wrapper
+
+def with_context(
+    client_account_id: str,
+    engagement_id: str,
+    user_id: str,
+    **extra_fields
+):
+    """Decorator to run function with specific context"""
+    def decorator(func: Callable[..., T]) -> Callable[..., T]:
+        @wraps(func)
+        async def async_wrapper(*args, **kwargs):
+            context = RequestContext(
+                client_account_id=client_account_id,
+                engagement_id=engagement_id,
+                user_id=user_id,
+                request_id=f"test-{func.__name__}",
+                **extra_fields
+            )
+            
+            # Set context
+            token = _request_context.set(context)
+            try:
+                return await func(*args, **kwargs)
+            finally:
+                _request_context.reset(token)
+        
+        @wraps(func)
+        def sync_wrapper(*args, **kwargs):
+            context = RequestContext(
+                client_account_id=client_account_id,
+                engagement_id=engagement_id,
+                user_id=user_id,
+                request_id=f"test-{func.__name__}",
+                **extra_fields
+            )
+            
+            # Set context
+            token = _request_context.set(context)
+            try:
+                return func(*args, **kwargs)
+            finally:
+                _request_context.reset(token)
+        
+        # Return appropriate wrapper
+        import asyncio
+        if asyncio.iscoroutinefunction(func):
+            return async_wrapper
+        return sync_wrapper
+    
+    return decorator
+
+
+# Context propagation for async tasks
+class ContextTask:
+    """Wrapper for asyncio tasks that preserves context"""
+    
+    @staticmethod
+    def create_task(coro, *, name=None):
+        """Create task that preserves current context"""
+        context = get_current_context()
+        
+        async def wrapped():
+            if context:
+                set_request_context(context)
+            try:
+                return await coro
+            finally:
+                if context:
+                    clear_request_context()
+        
+        import asyncio
+        return asyncio.create_task(wrapped(), name=name) 

@@ -12,7 +12,8 @@ import logging
 
 from .context import (
     extract_context_from_request, 
-    set_context, 
+    set_request_context,
+    clear_request_context,
     validate_context,
     RequestContext,
     is_demo_client
@@ -162,11 +163,11 @@ class ContextMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
         
         # Initialize context variable
-        context = RequestContext()
+        context = None
         
         # Extract context from request
         try:
-            from app.core.context import extract_context_from_request, validate_context, set_context, is_demo_client
+            from app.core.context import extract_context_from_request, validate_context, set_request_context, is_demo_client
             
             context = extract_context_from_request(request)
             
@@ -178,7 +179,7 @@ class ContextMiddleware(BaseHTTPMiddleware):
             )
             
             # Set context for the request
-            set_context(context)
+            set_request_context(context)
             
             # Log context info
             log_level = logging.DEBUG if is_demo_client(context.client_account_id) else logging.INFO
@@ -216,6 +217,9 @@ class ContextMiddleware(BaseHTTPMiddleware):
         except Exception as e:
             logger.error(f"Request processing failed: {e}")
             raise
+        finally:
+            # Always clear context after request
+            clear_request_context()
     
     def _is_admin_endpoint(self, path: str) -> bool:
         """Check if endpoint is admin-only and should allow context exemption for platform admins."""

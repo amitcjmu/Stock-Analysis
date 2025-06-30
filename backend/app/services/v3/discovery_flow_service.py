@@ -6,7 +6,8 @@ from typing import Optional, List, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.repositories.v3.discovery_flow import V3DiscoveryFlowRepository
 from app.repositories.v3.field_mapping import V3FieldMappingRepository
-from app.models.v3 import V3DiscoveryFlow, FlowStatus
+from app.models import DiscoveryFlow
+from app.repositories.v3.discovery_flow import FlowStatus
 from app.core.context import get_current_context
 import logging
 import uuid
@@ -38,7 +39,7 @@ class V3DiscoveryFlowService:
         flow_name: str,
         data_import_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None
-    ) -> V3DiscoveryFlow:
+    ) -> DiscoveryFlow:
         """Create a new discovery flow"""
         try:
             flow_data = {

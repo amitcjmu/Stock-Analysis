@@ -7,7 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.repositories.v3.data_import import V3DataImportRepository
 from app.repositories.v3.discovery_flow import V3DiscoveryFlowRepository
 from app.repositories.v3.field_mapping import V3FieldMappingRepository
-from app.models.v3 import V3DataImport, V3DiscoveryFlow, ImportStatus, FlowStatus
+from app.models import DataImport, DiscoveryFlow
+from app.models.data_import.enums import ImportStatus
+from app.repositories.v3.discovery_flow import FlowStatus
 from app.core.context import get_current_context
 import logging
 import uuid
@@ -40,7 +42,7 @@ class V3DataImportService:
         filename: str,
         file_data: bytes,
         source_system: Optional[str] = None
-    ) -> V3DataImport:
+    ) -> DataImport:
         """Create new data import"""
         try:
             # Create import record

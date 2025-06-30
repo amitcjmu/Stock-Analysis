@@ -698,18 +698,280 @@ async def promote_assets(
         )
 
 
+# === Phase 2 Flow Manager Endpoints ===
+
+@router.post("/flows/crewai", response_model=FlowResponse)
+async def create_crewai_flow(
+    request: FlowCreate,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+) -> FlowResponse:
+    """
+    Create a new CrewAI flow using Phase 2 flow manager
+    """
+    try:
+        from app.services.flows.manager import flow_manager
+        
+        # Prepare import data for flow creation
+        import_data = {
+            "flow_id": str(uuid.uuid4()),
+            "import_id": request.name,  # Use name as import identifier
+            "filename": f"{request.name}.data",
+            "record_count": 0,  # Will be updated with actual data
+            "raw_data": [],  # Initial empty data
+            "session_id": str(uuid.uuid4())
+        }
+        
+        # Create and start flow
+        flow_id = await flow_manager.create_discovery_flow(db, context, import_data)
+        
+        # Return response
+        return FlowResponse(
+            flow_id=uuid.UUID(flow_id),
+            name=request.name,
+            description=request.description,
+            status=FlowStatus.IN_PROGRESS,
+            current_phase=FlowPhase.INITIALIZATION,
+            execution_mode=request.execution_mode,
+            progress_percentage=0.0,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow(),
+            client_account_id=uuid.UUID(context.client_account_id),
+            engagement_id=uuid.UUID(context.engagement_id),
+            user_id=uuid.UUID(context.user_id) if context.user_id != "anonymous" else None,
+            phases_completed=[],
+            next_phase=FlowPhase.DATA_VALIDATION,
+            estimated_completion=None
+        )
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to create CrewAI flow: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create CrewAI flow: {str(e)}"
+        )
+
+
+@router.get("/flows/{flow_id}/crewai-status")
+async def get_crewai_flow_status(
+    flow_id: uuid.UUID = Path(..., description="Flow identifier"),
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+) -> Dict[str, Any]:
+    """
+    Get CrewAI flow status from Phase 2 flow manager
+    """
+    try:
+        from app.services.flows.manager import flow_manager
+        
+        # Get flow status
+        status_info = await flow_manager.get_flow_status(str(flow_id))
+        
+        if not status_info:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"CrewAI flow not found: {flow_id}"
+            )
+        
+        return {
+            "success": True,
+            "data": status_info
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to get CrewAI flow status: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get flow status: {str(e)}"
+        )
+
+
+@router.post("/flows/{flow_id}/pause")
+async def pause_crewai_flow(
+    flow_id: uuid.UUID = Path(..., description="Flow identifier"),
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+) -> Dict[str, Any]:
+    """
+    Pause a CrewAI flow using Phase 2 flow manager
+    """
+    try:
+        from app.services.flows.manager import flow_manager
+        
+        # Pause flow
+        success = await flow_manager.pause_flow(str(flow_id))
+        
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Flow not found or not pausable: {flow_id}"
+            )
+        
+        return {
+            "success": True,
+            "message": f"Flow {flow_id} paused successfully",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to pause CrewAI flow: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to pause flow: {str(e)}"
+        )
+
+
+@router.post("/flows/{flow_id}/resume")
+async def resume_crewai_flow(
+    flow_id: uuid.UUID = Path(..., description="Flow identifier"),
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+) -> Dict[str, Any]:
+    """
+    Resume a CrewAI flow using Phase 2 flow manager
+    """
+    try:
+        from app.services.flows.manager import flow_manager
+        
+        # Resume flow
+        success = await flow_manager.resume_flow(str(flow_id), db, context)
+        
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Flow not found or not resumable: {flow_id}"
+            )
+        
+        return {
+            "success": True,
+            "message": f"Flow {flow_id} resumed successfully",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to resume CrewAI flow: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to resume flow: {str(e)}"
+        )
+
+
+@router.get("/flows/events/{flow_id}")
+async def get_flow_events(
+    flow_id: uuid.UUID = Path(..., description="Flow identifier"),
+    limit: int = Query(100, ge=1, le=1000, description="Maximum number of events"),
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+) -> Dict[str, Any]:
+    """
+    Get flow events from Phase 2 event bus
+    """
+    try:
+        from app.services.flows.events import flow_event_bus
+        
+        # Get flow events
+        events = flow_event_bus.get_flow_events(str(flow_id))
+        recent_events = events[-limit:] if len(events) > limit else events
+        
+        # Convert events to JSON-serializable format
+        event_data = []
+        for event in recent_events:
+            event_data.append({
+                "flow_id": event.flow_id,
+                "event_type": event.event_type,
+                "phase": event.phase,
+                "data": event.data,
+                "timestamp": event.timestamp.isoformat(),
+                "context": event.context
+            })
+        
+        return {
+            "success": True,
+            "data": {
+                "flow_id": str(flow_id),
+                "events": event_data,
+                "total_events": len(events),
+                "returned_events": len(event_data)
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to get flow events: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get flow events: {str(e)}"
+        )
+
+
+@router.get("/flows/manager/status")
+async def get_flow_manager_status(
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+) -> Dict[str, Any]:
+    """
+    Get overall flow manager status
+    """
+    try:
+        from app.services.flows.manager import flow_manager
+        from app.services.flows.events import flow_event_bus
+        
+        # Get all flow statuses
+        flow_statuses = await flow_manager.get_all_flow_statuses()
+        
+        # Cleanup completed flows
+        cleaned_count = await flow_manager.cleanup_completed_flows()
+        
+        # Get recent events
+        recent_events = flow_event_bus.get_recent_events(50)
+        
+        return {
+            "success": True,
+            "data": {
+                "active_flows": len(flow_manager.active_flows),
+                "running_tasks": len(flow_manager.flow_tasks),
+                "flows": flow_statuses,
+                "cleaned_flows": cleaned_count,
+                "recent_events": len(recent_events),
+                "event_history_size": len(flow_event_bus.event_history),
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to get flow manager status: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get manager status: {str(e)}"
+        )
+
+
 # === Health Check ===
 
 @router.get("/health", response_model=FlowHealthResponse)
 async def health_check():
     """
-    Discovery flow health check
+    Discovery flow health check including Phase 2 components
     """
+    try:
+        from app.services.flows.manager import flow_manager
+        from app.services.flows.events import flow_event_bus
+        phase2_available = True
+    except ImportError:
+        phase2_available = False
+    
     return FlowHealthResponse(
         timestamp=datetime.utcnow(),
         components={
             "flow_management": FLOW_MANAGEMENT_AVAILABLE,
             "crewai_execution": CREWAI_EXECUTION_AVAILABLE,
-            "asset_management": ASSET_MANAGEMENT_AVAILABLE
+            "asset_management": ASSET_MANAGEMENT_AVAILABLE,
+            "phase2_flow_manager": phase2_available,
+            "phase2_event_bus": phase2_available
         }
     )

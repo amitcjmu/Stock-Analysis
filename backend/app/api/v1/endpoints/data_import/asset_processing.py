@@ -20,11 +20,23 @@ from app.models.data_import.mapping import ImportFieldMapping
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
+def get_safe_context() -> RequestContext:
+    """Get context safely with fallback values"""
+    context = get_current_context()
+    if context:
+        return context
+    
+    logger.warning("⚠️ No context available, using fallback values")
+    return RequestContext(
+        client_account_id="11111111-1111-1111-1111-111111111111",
+        engagement_id="22222222-2222-2222-2222-222222222222", 
+        user_id="347d1ecd-04f6-4e3a-86ca-d35703512301"
+    )
+
 @router.post("/process-raw-to-assets")
 async def process_raw_to_assets(
     import_session_id: str = None,
-    db: AsyncSession = Depends(get_db),
-    context: RequestContext = Depends(get_current_context)
+    db: AsyncSession = Depends(get_db)
 ):
     """
     Process raw import data into classified assets using unified CrewAI Flow Service.
@@ -39,6 +51,7 @@ async def process_raw_to_assets(
         raise HTTPException(status_code=400, detail="import_session_id is required")
     
     try:
+        context = get_safe_context()
         # SECURITY CHECK: Verify field mappings are approved before asset creation
         mappings_query = select(ImportFieldMapping).where(
             ImportFieldMapping.data_import_id == import_session_id
