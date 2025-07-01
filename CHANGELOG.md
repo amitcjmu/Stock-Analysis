@@ -1,5 +1,32 @@
 # 🚀 AI Force Migration Platform - Changelog
 
+## [0.9.7] - 2025-07-01
+
+### 🗄️ **Database Consolidation Final Alignment**
+
+This release completes the final alignment between SQLAlchemy models and database schema following the consolidation migrations.
+
+### 🔧 **Model-Database Alignment Fixes**
+
+#### **RawImportRecord Consolidation**
+- Created follow-up migration `raw_records_fix_20250101` to align table with model:
+  - Renamed `row_number` → `record_index`
+  - Renamed `processed_data` → `cleansed_data`
+  - Dropped deprecated `record_id` column
+
+#### **DiscoveryFlow Model Corrections**
+- Fixed model to match actual database schema:
+  - Removed `flow_description` field (was dropped in migration)
+  - Renamed `data_validation_completed` → `data_import_completed`
+  - Removed references to non-existent fields in `to_dict()` method:
+    - `is_mock`, `learning_scope`, `memory_isolation_level`, `assessment_ready`
+  - Updated all phase tracking methods to use correct field names
+
+### ✅ **Verification**
+- All SQLAlchemy models now match database schema exactly
+- API endpoints working without column mismatch errors
+- Both consolidation migrations applied successfully
+
 ## [0.9.6] - 2025-07-01
 
 ### 🐛 **Critical Bug Fixes - Data Import & Field Mapping**
