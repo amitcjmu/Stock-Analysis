@@ -125,9 +125,6 @@ class DataImportSession(Base):
     # User tracking
     created_by = Column(PostgresUUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
     
-    # Mock data flag
-    is_mock = Column(Boolean, default=False, nullable=False, index=True)
-    
     # Audit
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

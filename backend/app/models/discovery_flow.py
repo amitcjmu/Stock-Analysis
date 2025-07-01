@@ -201,12 +201,12 @@ class DiscoveryFlow(Base):
             "status": self.status,
             "progress_percentage": self.progress_percentage,
             "phases": {
-                "data_import_completed": self.data_import_completed,
-                "attribute_mapping_completed": self.attribute_mapping_completed,
+                "data_validation_completed": self.data_validation_completed,
+                "field_mapping_completed": self.field_mapping_completed,
                 "data_cleansing_completed": self.data_cleansing_completed,
-                "inventory_completed": self.inventory_completed,
-                "dependencies_completed": self.dependencies_completed,
-                "tech_debt_completed": self.tech_debt_completed
+                "asset_inventory_completed": self.asset_inventory_completed,
+                "dependency_analysis_completed": self.dependency_analysis_completed,
+                "tech_debt_assessment_completed": self.tech_debt_assessment_completed
             },
             "crewai_persistence_id": str(self.crewai_persistence_id) if self.crewai_persistence_id else None,
             "learning_scope": self.learning_scope,

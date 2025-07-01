@@ -1,5 +1,53 @@
 # 🚀 AI Force Migration Platform - Changelog
 
+## [0.9.5] - 2025-07-01
+
+### 🗄️ **Database Consolidation Complete**
+
+This release completes the database consolidation effort, removing all deprecated fields and preparing the platform for seamless deployment to Railway/AWS.
+
+### 🧹 **Model Cleanup**
+- Removed `is_mock` field from all SQLAlchemy models (8 model classes)
+- Updated `__repr__` methods to remove is_mock references
+- Fixed field name references in `to_dict()` methods
+
+### 📊 **Comprehensive Migration**
+- Created single migration file combining all database consolidation changes
+- **File**: `20250101_database_consolidation.py`
+- **Features**:
+  - Idempotent operations with existence checks
+  - Comprehensive error handling and logging
+  - Full rollback support
+
+### 🔄 **Schema Changes Applied**
+1. **Dropped V3 Tables** (7 tables)
+2. **Field Renames**:
+   - `data_imports`: filename, file_size, mime_type
+   - `discovery_flows`: field_mapping_completed, asset_inventory_completed, etc.
+   - `assets`: memory_gb, storage_gb
+3. **Dropped Columns**:
+   - `is_mock` from 8 tables
+   - Other deprecated columns (7 total)
+4. **Added Columns**:
+   - JSON state columns (flow_state, phase_state, agent_state)
+   - Error handling columns
+   - source_system column
+5. **Created Indexes**:
+   - Multi-tenant indexes (6)
+   - Performance indexes (5)
+6. **Dropped Deprecated Tables** (5 tables)
+
+### ✅ **Migration Testing**
+- Successfully tested migration in Docker environment
+- All schema changes verified
+- API endpoints working correctly
+- No `is_mock` columns remaining in database
+
+### 🚀 **Deployment Ready**
+- Single migration file for Railway/AWS deployment
+- Automatic migration on deployment with `alembic upgrade head`
+- Full documentation provided in migration files
+
 ## [0.9.4] - 2025-06-30
 
 ### 🔧 **Migration Issues Resolution**
@@ -37,6 +85,20 @@ This release fixes critical migration issues that were preventing deployment to 
 - All migrations now safe for Railway/AWS deployment
 - Idempotent migrations handle various database states
 - No hard dependency on specific database roles
+
+### 🔄 **Column Name Alignment & Schema Fixes**
+- Fixed `data_imports` table column naming mismatches
+- Renamed `source_filename` → `filename`
+- Renamed `file_size_bytes` → `file_size`
+- Renamed `file_type` → `mime_type`
+- Added missing `source_system` column to `data_imports` table
+- Added missing `error_message` and `error_details` columns for error handling
+
+### 🧹 **Legacy Schema Cleanup**
+- Dropped all V3 prefixed tables (v3_data_imports, v3_discovery_flows, v3_field_mappings, v3_raw_import_records)
+- Removed `is_mock` columns from all 16 tables
+- Multi-tenancy (clientID/engagementID) now used for demo/mock data separation
+- Data import functionality now working correctly with clean schema
 
 ---
 

@@ -97,9 +97,6 @@ class ClientAccount(Base):
         }
     })
     
-    # Mock data flag
-    is_mock = Column(Boolean, default=False, nullable=False, index=True)
-    
     # Audit
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -176,9 +173,6 @@ class Engagement(Base):
         "project_methodology": "agile"
     })
     
-    # Mock data flag
-    is_mock = Column(Boolean, default=False, nullable=False, index=True)
-    
     # Audit
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -207,7 +201,7 @@ class Engagement(Base):
     sessions = relationship("DataImportSession", back_populates="engagement", cascade="all, delete-orphan", lazy="select")
     
     def __repr__(self):
-        return f"<Engagement(id={self.id}, name='{self.name}', client_account_id={self.client_account_id}, is_mock={self.is_mock})>"
+        return f"<Engagement(id={self.id}, name='{self.name}', client_account_id={self.client_account_id})>"
 
 
 class User(Base):
@@ -229,9 +223,6 @@ class User(Base):
     default_client_id = Column(PostgresUUID(as_uuid=True), ForeignKey('client_accounts.id'), nullable=True)
     default_engagement_id = Column(PostgresUUID(as_uuid=True), ForeignKey('engagements.id'), nullable=True)
     
-    # Mock data flag
-    is_mock = Column(Boolean, default=False, nullable=False, index=True)
-    
     # Audit
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
@@ -247,7 +238,7 @@ class User(Base):
     )
     
     def __repr__(self):
-        return f"<User(id={self.id}, email='{self.email}', is_mock={self.is_mock})>"
+        return f"<User(id={self.id}, email='{self.email}')>"
 
 
 class UserAccountAssociation(Base):
@@ -261,9 +252,6 @@ class UserAccountAssociation(Base):
     
     # Role within the client account
     role = Column(String(50), nullable=False, default='member')
-    
-    # Mock data flag
-    is_mock = Column(Boolean, default=False, nullable=False, index=True)
     
     # Audit
     created_at = Column(DateTime(timezone=True), server_default=func.now())

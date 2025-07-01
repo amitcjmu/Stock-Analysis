@@ -53,7 +53,6 @@ class Tag(Base):
     # Tag metadata
     confidence_threshold = Column(Float, default=0.7)  # Minimum similarity score for auto-assignment
     is_active = Column(Boolean, default=True, index=True)
-    is_mock = Column(Boolean, default=False, nullable=False, index=True)
     
     # Usage statistics
     usage_count = Column(Integer, default=0)
@@ -86,9 +85,6 @@ class AssetEmbedding(Base):
     source_text = Column(Text)  # Concatenated asset description, name, tech stack, etc.
     embedding_model = Column(String(100), default='text-embedding-ada-002')
     
-    # Mock data flag (for demo embeddings)
-    is_mock = Column(Boolean, default=False, nullable=False, index=True)
-    
     # Audit
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -97,7 +93,7 @@ class AssetEmbedding(Base):
     asset = relationship("Asset")
     
     def __repr__(self):
-        return f"<AssetEmbedding(id={self.id}, asset_id={self.asset_id}, is_mock={self.is_mock})>"
+        return f"<AssetEmbedding(id={self.id}, asset_id={self.asset_id})>"
 
 
 class AssetTag(Base):
@@ -119,9 +115,6 @@ class AssetTag(Base):
     validated_by = Column(PostgresUUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
     validated_at = Column(DateTime(timezone=True))
     
-    # Mock data flag
-    is_mock = Column(Boolean, default=False, nullable=False, index=True)
-    
     # Audit
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -131,4 +124,4 @@ class AssetTag(Base):
     tag = relationship("Tag")
     
     def __repr__(self):
-        return f"<AssetTag(asset_id={self.asset_id}, tag_id={self.tag_id}, confidence={self.confidence_score}, is_mock={self.is_mock})>" 
+        return f"<AssetTag(asset_id={self.asset_id}, tag_id={self.tag_id}, confidence={self.confidence_score})>" 
