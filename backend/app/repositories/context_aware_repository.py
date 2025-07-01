@@ -172,6 +172,10 @@ class ContextAwareRepository(Generic[ModelType]):
         Returns:
             Created model instance
         """
+        # Apply field renames if method exists (for backward compatibility)
+        if hasattr(self, '_handle_field_renames'):
+            data = self._handle_field_renames(data)
+        
         instance = self.model_class(**data)
         instance = self._apply_context_to_instance(instance)
         
@@ -193,6 +197,10 @@ class ContextAwareRepository(Generic[ModelType]):
         Returns:
             Updated model instance or None if not found
         """
+        # Apply field renames if method exists (for backward compatibility)
+        if hasattr(self, '_handle_field_renames'):
+            data = self._handle_field_renames(data)
+        
         instance = await self.get_by_id(id)
         if not instance:
             return None

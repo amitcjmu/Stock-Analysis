@@ -74,17 +74,13 @@ class FieldMappingValidationResponse(BaseModel):
     data_type_conflicts: List[Dict[str, Any]] = Field(default_factory=list)
 
 
-# === Import Field Mapping Handlers ===
+# === Import V3 Services ===
 
-# V3 uses its own implementation, V1 handlers not needed
-FIELD_MAPPING_HANDLERS_AVAILABLE = True
+from app.services.v3.field_mapping_service import V3FieldMappingService
+from app.services.v3.discovery_flow_service import V3DiscoveryFlowService
+from app.services.v3.data_import_service import V3DataImportService
 
-try:
-    from app.api.v1.discovery_handlers.flow_management import FlowManagementHandler
-    FLOW_MANAGEMENT_AVAILABLE = True
-except ImportError:
-    FLOW_MANAGEMENT_AVAILABLE = False
-    logger.warning("⚠️ Flow management handler not available")
+logger.info("✅ V3 Field mapping services loaded")
 
 
 # === Field Mapping Endpoints ===
@@ -156,29 +152,25 @@ async def create_field_mapping(
             result.mapping_percentage = (len(auto_mappings) / len(request.source_fields)) * 100
             result.avg_confidence = sum(confidence_scores.values()) / max(len(confidence_scores), 1)
         
-        # Store mapping in flow data if flow management is available
-        if FLOW_MANAGEMENT_AVAILABLE:
-            try:
-                flow_handler = FlowManagementHandler(db, context)
-                mapping_data = {
-                    "mapping_id": str(mapping_id),
-                    "mappings": result.mappings,
-                    "confidence_scores": result.confidence_scores,
-                    "unmapped_fields": result.unmapped_fields,
-                    "validation_results": result.validation_results,
-                    "statistics": {
-                        "total_fields": result.total_fields,
-                        "mapped_fields": result.mapped_fields,
-                        "mapping_percentage": result.mapping_percentage,
-                        "avg_confidence": result.avg_confidence
-                    }
-                }
-                
-                await flow_handler.update_field_mappings(str(request.flow_id), mapping_data)
-                logger.info("✅ Field mappings stored in flow data")
-                
-            except Exception as e:
-                logger.warning(f"⚠️ Failed to store mapping in flow: {e}")
+        # Store mapping using V3 service
+        try:
+            mapping_service = V3FieldMappingService(
+                db,
+                str(context.client_account_id),
+                str(context.engagement_id)
+            )
+            
+            # Create field mappings in database
+            await mapping_service.create_flow_mappings(
+                str(request.flow_id),
+                result.mappings,
+                confidence_scores=result.confidence_scores
+            )
+            
+            logger.info("✅ Field mappings stored using V3 service")
+            
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to store mapping: {e}")
         
         logger.info(f"✅ Field mappings created: {result.mapped_fields}/{result.total_fields} mapped")
         return result
@@ -203,36 +195,49 @@ async def get_field_mapping(
     try:
         logger.info(f"🔍 Getting field mappings for flow: {flow_id}")
         
-        # Try to get mappings from flow data
-        if FLOW_MANAGEMENT_AVAILABLE:
-            try:
-                flow_handler = FlowManagementHandler(db, context)
-                flow_status = await flow_handler.get_flow_status(str(flow_id))
+        # Get mappings using V3 service
+        try:
+            mapping_service = V3FieldMappingService(
+                db,
+                str(context.client_account_id),
+                str(context.engagement_id)
+            )
+            
+            # Get field mappings for the flow
+            mappings_data = await mapping_service.get_flow_mappings(str(flow_id))
+            
+            if mappings_data:
+                # Calculate statistics
+                mappings = {mapping["source_field"]: mapping["target_field"] for mapping in mappings_data}
+                confidence_scores = {mapping["source_field"]: mapping.get("confidence_score", 0.0) for mapping in mappings_data}
                 
-                field_mapping = flow_status.get('field_mapping', {})
-                if field_mapping:
-                    result = FieldMappingResponse(
-                        flow_id=flow_id,
-                        mapping_id=uuid.UUID(field_mapping.get('mapping_id', str(uuid.uuid4()))),
-                        status="active",
-                        mappings=field_mapping.get('mappings', {}),
-                        confidence_scores=field_mapping.get('confidence_scores', {}),
-                        unmapped_fields=field_mapping.get('unmapped_fields', []),
-                        validation_results=field_mapping.get('validation_results', {}),
-                        agent_insights=field_mapping.get('agent_insights', []),
-                        created_at=datetime.fromisoformat(flow_status.get('created_at', datetime.utcnow().isoformat())),
-                        updated_at=datetime.fromisoformat(flow_status.get('updated_at', datetime.utcnow().isoformat())),
-                        total_fields=field_mapping.get('statistics', {}).get('total_fields', 0),
-                        mapped_fields=field_mapping.get('statistics', {}).get('mapped_fields', 0),
-                        mapping_percentage=field_mapping.get('statistics', {}).get('mapping_percentage', 0.0),
-                        avg_confidence=field_mapping.get('statistics', {}).get('avg_confidence', 0.0)
-                    )
-                    
-                    logger.info(f"✅ Field mappings retrieved from flow data")
-                    return result
-                    
-            except Exception as e:
-                logger.warning(f"⚠️ Failed to get mappings from flow: {e}")
+                total_fields = len(mappings)
+                mapped_fields = len([m for m in mappings.values() if m])
+                mapping_percentage = (mapped_fields / max(total_fields, 1)) * 100
+                avg_confidence = sum(confidence_scores.values()) / max(len(confidence_scores), 1)
+                
+                result = FieldMappingResponse(
+                    flow_id=flow_id,
+                    mapping_id=uuid.uuid4(),  # Generate for response
+                    status="active",
+                    mappings=mappings,
+                    confidence_scores=confidence_scores,
+                    unmapped_fields=[],  # Could be calculated
+                    validation_results={},
+                    agent_insights=[],
+                    created_at=datetime.utcnow(),
+                    updated_at=datetime.utcnow(),
+                    total_fields=total_fields,
+                    mapped_fields=mapped_fields,
+                    mapping_percentage=mapping_percentage,
+                    avg_confidence=avg_confidence
+                )
+                
+                logger.info(f"✅ Field mappings retrieved from V3 service")
+                return result
+                
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to get mappings from V3 service: {e}")
         
         # Return empty mapping if not found
         raise HTTPException(
@@ -293,29 +298,25 @@ async def update_field_mapping(
         if existing_mapping.confidence_scores:
             existing_mapping.avg_confidence = sum(existing_mapping.confidence_scores.values()) / len(existing_mapping.confidence_scores)
         
-        # Update in flow data
-        if FLOW_MANAGEMENT_AVAILABLE:
-            try:
-                flow_handler = FlowManagementHandler(db, context)
-                mapping_data = {
-                    "mapping_id": str(existing_mapping.mapping_id),
-                    "mappings": existing_mapping.mappings,
-                    "confidence_scores": existing_mapping.confidence_scores,
-                    "unmapped_fields": existing_mapping.unmapped_fields,
-                    "validation_results": existing_mapping.validation_results,
-                    "statistics": {
-                        "total_fields": existing_mapping.total_fields,
-                        "mapped_fields": existing_mapping.mapped_fields,
-                        "mapping_percentage": existing_mapping.mapping_percentage,
-                        "avg_confidence": existing_mapping.avg_confidence
-                    }
-                }
-                
-                await flow_handler.update_field_mappings(str(flow_id), mapping_data)
-                logger.info("✅ Field mappings updated in flow data")
-                
-            except Exception as e:
-                logger.warning(f"⚠️ Failed to update mapping in flow: {e}")
+        # Update using V3 service
+        try:
+            mapping_service = V3FieldMappingService(
+                db,
+                str(context.client_account_id),
+                str(context.engagement_id)
+            )
+            
+            # Update field mappings
+            await mapping_service.update_flow_mappings(
+                str(flow_id),
+                existing_mapping.mappings,
+                confidence_scores=existing_mapping.confidence_scores
+            )
+            
+            logger.info("✅ Field mappings updated using V3 service")
+            
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to update mapping: {e}")
         
         logger.info(f"✅ Field mappings updated: {existing_mapping.mapped_fields} fields mapped")
         return existing_mapping
@@ -434,19 +435,24 @@ async def delete_field_mapping(
     try:
         logger.info(f"🗑️ Deleting field mappings for flow: {flow_id}")
         
-        # Remove mappings from flow data
-        if FLOW_MANAGEMENT_AVAILABLE:
-            try:
-                flow_handler = FlowManagementHandler(db, context)
-                await flow_handler.clear_field_mappings(str(flow_id))
-                logger.info("✅ Field mappings deleted from flow data")
-                
-            except Exception as e:
-                logger.warning(f"⚠️ Failed to delete mapping from flow: {e}")
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail=f"Failed to delete field mappings: {str(e)}"
-                )
+        # Delete mappings using V3 service
+        try:
+            mapping_service = V3FieldMappingService(
+                db,
+                str(context.client_account_id),
+                str(context.engagement_id)
+            )
+            
+            # Delete field mappings for the flow
+            await mapping_service.delete_flow_mappings(str(flow_id))
+            logger.info("✅ Field mappings deleted using V3 service")
+            
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to delete mapping: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to delete field mappings: {str(e)}"
+            )
         
         logger.info(f"✅ Field mappings deleted for flow: {flow_id}")
         

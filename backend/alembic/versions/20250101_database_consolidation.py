@@ -155,6 +155,15 @@ def rename_fields():
     if column_exists('assets', 'storage_mb') and not column_exists('assets', 'storage_gb'):
         op.alter_column('assets', 'storage_mb', new_column_name='storage_gb')
         logger.info("Renamed assets.storage_mb to storage_gb")
+    
+    # raw_import_records table field renames
+    if column_exists('raw_import_records', 'row_number') and not column_exists('raw_import_records', 'record_index'):
+        op.alter_column('raw_import_records', 'row_number', new_column_name='record_index')
+        logger.info("Renamed raw_import_records.row_number to record_index")
+    
+    if column_exists('raw_import_records', 'processed_data') and not column_exists('raw_import_records', 'cleansed_data'):
+        op.alter_column('raw_import_records', 'processed_data', new_column_name='cleansed_data')
+        logger.info("Renamed raw_import_records.processed_data to cleansed_data")
 
 
 def drop_deprecated_columns():
@@ -203,7 +212,8 @@ def drop_deprecated_columns():
         ('discovery_flows', 'assessment_package'),
         ('discovery_flows', 'flow_description'),
         ('discovery_flows', 'user_feedback'),
-        ('import_field_mappings', 'sample_values')
+        ('import_field_mappings', 'sample_values'),
+        ('raw_import_records', 'record_id')  # Not in SQLAlchemy model
     ]
     
     for table, column in deprecated_columns:
@@ -404,6 +414,14 @@ def revert_field_renames():
             batch_op.alter_column('storage_gb', new_column_name='storage_mb')
         except Exception as e:
             logger.warning(f"Error reverting assets field renames: {e}")
+    
+    # Revert raw_import_records field renames
+    with op.batch_alter_table('raw_import_records') as batch_op:
+        try:
+            batch_op.alter_column('record_index', new_column_name='row_number')
+            batch_op.alter_column('cleansed_data', new_column_name='processed_data')
+        except Exception as e:
+            logger.warning(f"Error reverting raw_import_records field renames: {e}")
 
 
 def recreate_deprecated_columns():
@@ -428,6 +446,14 @@ def recreate_deprecated_columns():
             logger.info(f"Recreated is_mock column in {table}")
         except Exception as e:
             logger.warning(f"Could not recreate is_mock in {table}: {e}")
+    
+    # Recreate record_id column in raw_import_records
+    try:
+        with op.batch_alter_table('raw_import_records') as batch_op:
+            batch_op.add_column(sa.Column('record_id', sa.String(255), nullable=True))
+        logger.info("Recreated record_id column in raw_import_records")
+    except Exception as e:
+        logger.warning(f"Could not recreate record_id in raw_import_records: {e}")
 
 
 def drop_new_columns():

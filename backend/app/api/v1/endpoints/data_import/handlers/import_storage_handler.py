@@ -162,12 +162,11 @@ async def store_import_data(
                     import_name=f"{filename} Import",
                     import_type=intended_type,
                     description=f"Data import for {intended_type} category",
-                    source_filename=filename,
-                    file_size_bytes=file_size,
-                    file_type=file_type,
+                    filename=filename,  # Changed from filename
+                    file_size=file_size,  # Changed from file_size_bytes
+                    mime_type=file_type,  # Changed from file_type
                     status="pending",
-                    imported_by=user_id,
-                    is_mock=False
+                    imported_by=user_id
                 )
                 db.add(data_import)
                 await db.flush()  # Flush to get the record in the session
@@ -184,11 +183,6 @@ async def store_import_data(
         
         # Update the existing import record instead of creating a new one
         data_import.status = "processing"
-        data_import.import_config = {
-            "validation_session_id": validation_session_id,
-            "upload_timestamp": upload_timestamp,
-            "intended_type": intended_type
-        }
         
         # Store raw import records AND field mappings
         records_stored = 0
@@ -212,12 +206,12 @@ async def store_import_data(
             for field_name in sample_record.keys():
                 field_mapping = ImportFieldMapping(
                     data_import_id=data_import.id,
+                    client_account_id=client_account_id,  # Required for multi-tenancy
                     source_field=field_name,
                     target_field=field_name.lower().replace(' ', '_'),
                     confidence_score=0.8,  # Default confidence
-                    mapping_type="automatic",
-                    sample_values=json.dumps([str(record.get(field_name, "")) for record in file_data[:5]]),
-                    status="pending"
+                    match_type="direct",  # Changed from mapping_type to match_type
+                    status="suggested"  # Default status is suggested, not pending
                 )
                 db.add(field_mapping)
         
@@ -617,7 +611,7 @@ async def get_latest_import(
                 
                 # Log what we found for debugging
                 if import_result:
-                    logger.info(f"✅ Found context-filtered import: {import_result.id} with {import_result.total_records} records ({import_result.source_filename}) [status: {import_result.status}]")
+                    logger.info(f"✅ Found context-filtered import: {import_result.id} with {import_result.total_records} records ({import_result.filename}) [status: {import_result.status}]")
                 else:
                     logger.info(f"ℹ️ No imports found for context: client={context.client_account_id}, engagement={context.engagement_id}")
                     logger.info(f"   This is expected if no data has been imported yet. User should upload data via Data Import page.")
@@ -631,7 +625,7 @@ async def get_latest_import(
                     if all_imports:
                         logger.info(f"📊 Found {len(all_imports)} total imports in database (showing first 5):")
                         for imp in all_imports:
-                            logger.info(f"  - {imp.id}: {imp.source_filename} ({imp.total_records} records, client: {imp.client_account_id}, engagement: {imp.engagement_id}, status: {imp.status})")
+                            logger.info(f"  - {imp.id}: {imp.filename} ({imp.total_records} records, client: {imp.client_account_id}, engagement: {imp.engagement_id}, status: {imp.status})")
                         
                         # Check specifically for imports with our context IDs
                         context_imports_query = select(DataImport).where(
@@ -732,7 +726,7 @@ async def get_latest_import(
                 "success": True,
                 "data": [],
                 "import_metadata": {
-                    "filename": latest_import.source_filename or "Unknown",
+                    "filename": latest_import.filename or "Unknown",
                     "import_type": latest_import.import_type,
                     "imported_at": latest_import.completed_at.isoformat() if latest_import.completed_at else None,
                     "total_records": latest_import.total_records or 0,
@@ -752,7 +746,7 @@ async def get_latest_import(
                 "success": True,
                 "data": [],
                 "import_metadata": {
-                    "filename": latest_import.source_filename or "Unknown",
+                    "filename": latest_import.filename or "Unknown",
                     "import_type": latest_import.import_type,
                     "imported_at": latest_import.completed_at.isoformat() if latest_import.completed_at else None,
                     "total_records": latest_import.total_records or 0,
@@ -777,7 +771,7 @@ async def get_latest_import(
             logger.warning(f"⚠️ Import {latest_import.id} has no raw records stored")
         
         import_metadata = {
-            "filename": latest_import.source_filename or "Unknown",
+            "filename": latest_import.filename or "Unknown",
             "import_type": latest_import.import_type,
             "imported_at": latest_import.completed_at.isoformat() if latest_import.completed_at else None,
             "total_records": len(response_data),
@@ -853,7 +847,7 @@ async def get_import_by_id(
             "success": True,
             "import_session_id": str(import_session.id),
             "import_metadata": {
-                "filename": import_session.source_filename,
+                "filename": import_session.filename,
                 "import_type": import_session.import_type,
                 "imported_at": import_session.completed_at.isoformat() if import_session.completed_at else None,
                 "total_records": import_session.total_records,
@@ -952,7 +946,7 @@ async def get_import_data_by_flow_id(
             "success": True,
             "data": imported_data,
             "import_metadata": {
-                "filename": data_import.source_filename or "Unknown",
+                "filename": data_import.filename or "Unknown",
                 "import_type": data_import.import_type,
                 "imported_at": data_import.completed_at.isoformat() if data_import.completed_at else None,
                 "total_records": len(imported_data),

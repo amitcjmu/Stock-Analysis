@@ -14,6 +14,7 @@ class MappingStatus(str, Enum):
     SUGGESTED = "suggested"
     APPROVED = "approved"
     REJECTED = "rejected"
+    MODIFIED = "modified"
     IMPLEMENTED = "implemented"
 from datetime import datetime
 import logging
@@ -178,4 +179,65 @@ class V3FieldMappingRepository(V3BaseRepository[ImportFieldMapping]):
             "modified": modified_count,
             "approval_rate": approved_count / total_mappings if total_mappings > 0 else 0.0,
             "average_confidence": avg_confidence
+        }
+    
+    async def simplify_mappings(
+        self,
+        import_id: str,
+        auto_approve_threshold: float = 0.85
+    ) -> Dict[str, Any]:
+        """Simplify mappings by auto-approving high confidence matches"""
+        mappings = await self.get_by_import(import_id)
+        
+        auto_approved = 0
+        for mapping in mappings:
+            if (mapping.status == MappingStatus.SUGGESTED and 
+                mapping.confidence_score and 
+                mapping.confidence_score >= auto_approve_threshold):
+                
+                await self.approve_mapping(str(mapping.id), "auto_approver")
+                auto_approved += 1
+        
+        return {
+            "total_mappings": len(mappings),
+            "auto_approved": auto_approved,
+            "threshold_used": auto_approve_threshold
+        }
+    
+    async def get_unmapped_fields(
+        self,
+        import_id: str,
+        source_fields: List[str]
+    ) -> List[str]:
+        """Get source fields that don't have mappings"""
+        existing_mappings = await self.get_by_import(import_id)
+        mapped_fields = {m.source_field for m in existing_mappings}
+        
+        return [field for field in source_fields if field not in mapped_fields]
+    
+    async def implement_mappings(
+        self,
+        import_id: str
+    ) -> Dict[str, Any]:
+        """Mark approved mappings as implemented"""
+        mappings = await self.get_by_status(import_id, MappingStatus.APPROVED)
+        
+        implemented_count = 0
+        for mapping in mappings:
+            query = update(ImportFieldMapping).where(
+                ImportFieldMapping.id == mapping.id
+            ).values(
+                status=MappingStatus.IMPLEMENTED,
+                updated_at=func.now()
+            )
+            
+            result = await self.db.execute(query)
+            if result.rowcount > 0:
+                implemented_count += 1
+        
+        await self.db.commit()
+        
+        return {
+            "total_approved": len(mappings),
+            "implemented": implemented_count
         }

@@ -41,17 +41,27 @@ class V3DataImportService:
         self,
         filename: str,
         file_data: bytes,
-        source_system: Optional[str] = None
+        source_system: Optional[str] = None,
+        import_name: Optional[str] = None,
+        import_type: Optional[str] = None,
+        user_id: Optional[str] = None
     ) -> DataImport:
-        """Create new data import"""
+        """Create new data import with consolidated fields"""
         try:
-            # Create import record
+            # Handle backward compatibility for field names
+            if not import_name:
+                import_name = f"Import - {filename}"
+            
+            # Create import record with new field names
             import_data = {
-                "filename": filename,
-                "file_size": len(file_data),
-                "mime_type": self._detect_mime_type(filename),
+                "filename": filename,  # Consolidated field name
+                "file_size": len(file_data),  # Consolidated field name
+                "mime_type": self._detect_mime_type(filename),  # Consolidated field name
                 "source_system": source_system or "unknown",
-                "status": ImportStatus.PENDING
+                "import_name": import_name,
+                "import_type": import_type or "cmdb",
+                "status": ImportStatus.PENDING,
+                "imported_by": user_id or str(uuid.uuid4())  # Required field
             }
             
             data_import = await self.import_repo.create(import_data)
@@ -60,7 +70,9 @@ class V3DataImportService:
             flow_data = {
                 "data_import_id": data_import.id,
                 "flow_name": f"Discovery for {filename}",
-                "status": FlowStatus.INITIALIZING
+                "status": FlowStatus.INITIALIZING,
+                "flow_id": uuid.uuid4(),  # CrewAI Flow ID
+                "user_id": user_id or "system"
             }
             
             discovery_flow = await self.flow_repo.create(flow_data)

@@ -38,22 +38,32 @@ class V3DiscoveryFlowService:
         self,
         flow_name: str,
         data_import_id: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
+        user_id: Optional[str] = None,
+        master_flow_id: Optional[str] = None
     ) -> DiscoveryFlow:
-        """Create a new discovery flow"""
+        """Create a new discovery flow with consolidated fields"""
         try:
+            # Generate CrewAI Flow ID
+            flow_id = uuid.uuid4()
+            
             flow_data = {
+                "flow_id": flow_id,  # CrewAI Flow ID is required
                 "flow_name": flow_name,
                 "data_import_id": data_import_id,
+                "master_flow_id": master_flow_id,  # For orchestration
                 "status": FlowStatus.INITIALIZING,
                 "current_phase": "initialization",
                 "progress_percentage": 0.0,
-                "flow_state": metadata or {}
+                "flow_state": metadata or {},
+                "phases_completed": [],
+                "crew_outputs": {},
+                "user_id": user_id or "system"
             }
             
             flow = await self.flow_repo.create(flow_data)
             
-            logger.info(f"Created discovery flow {flow.id}")
+            logger.info(f"Created discovery flow {flow.id} with CrewAI flow_id {flow_id}")
             
             return flow
             
@@ -273,3 +283,63 @@ class V3DiscoveryFlowService:
             }
             for mapping in mappings
         ]
+    
+    async def complete_phase(
+        self,
+        flow_id: str,
+        phase: str,
+        phase_results: Optional[Dict[str, Any]] = None
+    ) -> bool:
+        """Complete a specific phase (hybrid approach)"""
+        try:
+            # Update phase completion
+            success = await self.flow_repo.update_phase_completion(flow_id, phase, True)
+            
+            if success and phase_results:
+                # Store phase results in crew_outputs
+                flow = await self.flow_repo.get_by_id(flow_id)
+                if flow:
+                    crew_outputs = flow.crew_outputs or {}
+                    crew_outputs[phase] = phase_results
+                    
+                    await self.flow_repo.update(flow_id, {"crew_outputs": crew_outputs})
+            
+            if success:
+                logger.info(f"Completed phase {phase} for flow {flow_id}")
+            
+            return success
+            
+        except Exception as e:
+            logger.error(f"Failed to complete phase: {e}")
+            return False
+    
+    async def update_phase_state(
+        self,
+        flow_id: str,
+        phase: str,
+        phase_state: Dict[str, Any]
+    ) -> bool:
+        """Update state for a specific phase"""
+        try:
+            # Store phase-specific state
+            flow = await self.flow_repo.get_by_id(flow_id)
+            if not flow:
+                return False
+            
+            flow_state = flow.flow_state or {}
+            flow_state[phase] = phase_state
+            
+            success = await self.flow_repo.update(flow_id, {"flow_state": flow_state})
+            
+            if success:
+                logger.info(f"Updated state for phase {phase} in flow {flow_id}")
+            
+            return success
+            
+        except Exception as e:
+            logger.error(f"Failed to update phase state: {e}")
+            return False
+    
+    async def get_flow_statistics(self, flow_id: str) -> Dict[str, Any]:
+        """Get detailed flow statistics"""
+        return await self.flow_repo.get_flow_statistics(flow_id)

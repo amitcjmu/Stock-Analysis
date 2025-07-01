@@ -30,7 +30,8 @@ interface DiscoveryFlowV2 {
   learning_scope: string;
   memory_isolation_level: string;
   assessment_ready: boolean;
-  is_mock: boolean;
+  client_account_id: string;
+  engagement_id: string;
   created_at?: string;
   updated_at?: string;
   completed_at?: string;
@@ -64,7 +65,8 @@ interface DiscoveryAssetV2 {
   migration_priority?: number;
   asset_status: string;
   validation_status: string;
-  is_mock: boolean;
+  client_account_id: string;
+  engagement_id: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -183,7 +185,7 @@ const apiClient = {
         learning_scope: 'client',
         memory_isolation_level: 'engagement',
         assessment_ready: false,
-        is_mock: false,
+        
         migration_readiness_score: 0,
         is_complete: response.status === 'completed',
         field_mapping: response.field_mapping
@@ -212,7 +214,7 @@ const apiClient = {
         learning_scope: 'client',
         memory_isolation_level: 'engagement',
         assessment_ready: response.assessment_ready || false,
-        is_mock: false,
+        
         migration_readiness_score: response.migration_readiness_score || 0,
         is_complete: response.status === 'completed',
         field_mapping: response.field_mapping,
@@ -258,7 +260,7 @@ const apiClient = {
           learning_scope: 'client',
           memory_isolation_level: 'engagement',
           assessment_ready: parallelResult.assessment_ready || false,
-          is_mock: false,
+          
           migration_readiness_score: parallelResult.migration_readiness_score || 0,
           is_complete: parallelResult.status === 'completed',
           next_phase: parallelResult.next_phase || 'completed',
@@ -292,7 +294,7 @@ const apiClient = {
         learning_scope: 'client',
         memory_isolation_level: 'engagement',
         assessment_ready: response.assessment_ready || false,
-        is_mock: false,
+        
         migration_readiness_score: response.migration_readiness_score || 0,
         is_complete: response.status === 'completed',
         next_phase: response.next_phase,
@@ -331,7 +333,7 @@ const apiClient = {
         learning_scope: 'client',
         memory_isolation_level: 'engagement',
         assessment_ready: true,
-        is_mock: false,
+        
         migration_readiness_score: response.migration_readiness_score || 0,
         is_complete: true,
         completed_at: new Date().toISOString(),

@@ -5,8 +5,9 @@ import { useAuth } from '@/contexts/AuthContext';
 interface UserType {
   user_id: string;
   is_demo_admin: boolean;
-  is_mock_user: boolean;
-  should_see_mock_data_only: boolean;
+  client_account_id: string;
+  engagement_id: string;
+  is_demo_tenant: boolean;
   access_level: 'demo' | 'production';
 }
 
@@ -42,8 +43,9 @@ export const useUserType = () => {
         setUserType({
           user_id: 'unknown',
           is_demo_admin: true,
-          is_mock_user: false,
-          should_see_mock_data_only: true,
+          client_account_id: 'demo',
+          engagement_id: 'demo',
+          is_demo_tenant: true,
           access_level: 'demo'
         });
       }
@@ -55,8 +57,9 @@ export const useUserType = () => {
       setUserType({
         user_id: 'unknown',
         is_demo_admin: true,
-        is_mock_user: false,
-        should_see_mock_data_only: true,
+        client_account_id: 'demo',
+        engagement_id: 'demo',
+        is_demo_tenant: true,
         access_level: 'demo'
       });
     } finally {
@@ -73,8 +76,8 @@ export const useUserType = () => {
     loading,
     error,
     refetch: fetchUserType,
-    isDemoUser: userType?.is_demo_admin || userType?.is_mock_user || false,
-    shouldUseMockData: userType?.should_see_mock_data_only || false,
+    isDemoUser: userType?.is_demo_admin || userType?.is_demo_tenant || false,
+    shouldUseMockData: userType?.is_demo_tenant || false,
     accessLevel: userType?.access_level || 'demo'
   };
 };

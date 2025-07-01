@@ -1,0 +1,91 @@
+"""
+Field mapping suggestion route handlers.
+"""
+
+import logging
+from typing import Optional, Dict, Any
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.database import get_db
+from app.core.context import get_current_context, RequestContext
+from ..models.mapping_schemas import FieldMappingAnalysis
+from ..services.suggestion_service import SuggestionService
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/suggestions", tags=["field-mapping-suggestions"])
+
+
+def get_suggestion_service(
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+) -> SuggestionService:
+    """Dependency injection for suggestion service."""
+    return SuggestionService(db, context)
+
+
+@router.get("/imports/{import_id}/suggestions", response_model=FieldMappingAnalysis)
+async def get_field_mapping_suggestions(
+    import_id: str,
+    service: SuggestionService = Depends(get_suggestion_service)
+):
+    """Get AI-powered field mapping suggestions for an import."""
+    try:
+        analysis = await service.get_field_mapping_suggestions(import_id)
+        return analysis
+    except ValueError as e:
+        logger.warning(f"Validation error getting suggestions for import {import_id}: {e}")
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error getting field mapping suggestions for import {import_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate field mapping suggestions")
+
+
+@router.post("/imports/{import_id}/regenerate", response_model=FieldMappingAnalysis)
+async def regenerate_suggestions(
+    import_id: str,
+    feedback: Optional[Dict[str, Any]] = None,
+    service: SuggestionService = Depends(get_suggestion_service)
+):
+    """Regenerate suggestions with user feedback incorporated."""
+    try:
+        analysis = await service.regenerate_suggestions(import_id, feedback)
+        return analysis
+    except ValueError as e:
+        logger.warning(f"Error regenerating suggestions for import {import_id}: {e}")
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error regenerating suggestions for import {import_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to regenerate suggestions")
+
+
+@router.get("/imports/{import_id}/confidence-metrics")
+async def get_confidence_metrics(
+    import_id: str,
+    service: SuggestionService = Depends(get_suggestion_service)
+):
+    """Get confidence metrics for field mapping suggestions."""
+    try:
+        metrics = await service.get_suggestion_confidence_metrics(import_id)
+        return metrics
+    except Exception as e:
+        logger.error(f"Error getting confidence metrics for import {import_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get confidence metrics")
+
+
+@router.get("/available-target-fields")
+async def get_available_target_fields(
+    service: SuggestionService = Depends(get_suggestion_service)
+):
+    """Get list of all available target fields for mapping."""
+    try:
+        fields = await service._get_available_target_fields()
+        return {
+            "fields": fields,
+            "total_count": len(fields),
+            "categories": list(set(field.get("category", "unknown") for field in fields))
+        }
+    except Exception as e:
+        logger.error(f"Error getting available target fields: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get available target fields")

@@ -7,6 +7,7 @@ export * from './common';
 export * from './discovery';
 export * from './fieldMapping';
 export * from './responses';
+export * from './fieldCompatibility';
 
 // Re-export specific items from dataImport to avoid conflicts
 export type {

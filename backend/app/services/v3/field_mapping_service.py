@@ -376,3 +376,76 @@ class V3FieldMappingService:
             
         except Exception as e:
             logger.error(f"Failed to trigger agent learning: {e}")
+    
+    async def auto_approve_high_confidence(
+        self,
+        import_id: str,
+        threshold: float = 0.85
+    ) -> Dict[str, Any]:
+        """Auto-approve mappings with high confidence scores"""
+        try:
+            result = await self.mapping_repo.simplify_mappings(import_id, threshold)
+            
+            if result['auto_approved'] > 0:
+                logger.info(f"Auto-approved {result['auto_approved']} mappings for import {import_id}")
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Failed to auto-approve mappings: {e}")
+            raise
+    
+    async def get_unmapped_fields(
+        self,
+        import_id: str,
+        source_fields: List[str]
+    ) -> List[str]:
+        """Get source fields that don't have mappings yet"""
+        return await self.mapping_repo.get_unmapped_fields(import_id, source_fields)
+    
+    async def implement_approved_mappings(
+        self,
+        import_id: str
+    ) -> Dict[str, Any]:
+        """Mark all approved mappings as implemented"""
+        try:
+            result = await self.mapping_repo.implement_mappings(import_id)
+            
+            logger.info(f"Implemented {result['implemented']} mappings for import {import_id}")
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Failed to implement mappings: {e}")
+            raise
+    
+    async def create_mapping(
+        self,
+        import_id: str,
+        source_field: str,
+        target_field: str,
+        match_type: str = "manual",
+        transformation_rules: Optional[Dict[str, Any]] = None
+    ) -> ImportFieldMapping:
+        """Create a single manual mapping"""
+        try:
+            mapping_data = {
+                "data_import_id": import_id,
+                "source_field": source_field,
+                "target_field": target_field,
+                "match_type": match_type,
+                "status": MappingStatus.APPROVED,  # Manual mappings are pre-approved
+                "suggested_by": "user",
+                "confidence_score": 1.0,  # Full confidence for manual mappings
+                "transformation_rules": transformation_rules
+            }
+            
+            mapping = await self.mapping_repo.create(mapping_data)
+            
+            logger.info(f"Created manual mapping: {source_field} -> {target_field}")
+            
+            return mapping
+            
+        except Exception as e:
+            logger.error(f"Failed to create manual mapping: {e}")
+            raise

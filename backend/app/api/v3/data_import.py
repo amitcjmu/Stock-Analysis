@@ -138,6 +138,10 @@ class DataPreviewResponse(BaseModel):
 from app.services.v3.data_import_service import V3DataImportService
 from app.services.v3.discovery_flow_service import V3DiscoveryFlowService
 from app.services.v3.field_mapping_service import V3FieldMappingService
+from app.api.v3.utils.backward_compatibility import field_compatibility
+from app.api.v3.utils.error_handling import (
+    V3ErrorHandler, handle_api_error, log_api_error, with_error_handling
+)
 
 logger.info("✅ V3 Data import services loaded")
 
@@ -192,7 +196,10 @@ async def create_data_import(
         data_import = await import_service.create_import(
             filename=f"{request.name}.{request.source_type}",
             file_data=file_data,
-            source_system=request.source_type
+            source_system=request.source_type,
+            import_name=request.name,
+            import_type=request.source_type,
+            user_id=str(context.user_id) if context.user_id and context.user_id != "anonymous" else None
         )
         
         # Process the data
@@ -217,30 +224,39 @@ async def create_data_import(
         # Get the complete import data with mappings
         import_data = await import_service.get_import_with_flow(str(data_import.id))
         
-        # Build response
-        result = DataImportResponse(
-            import_id=data_import.id,
-            name=request.name,
-            description=request.description,
-            source_type=request.source_type,
-            status=data_import.status,
-            created_at=data_import.created_at,
-            updated_at=data_import.updated_at,
-            client_account_id=data_import.client_account_id,
-            engagement_id=data_import.engagement_id,
-            user_id=uuid.UUID(context.user_id) if context.user_id and context.user_id != "anonymous" else None,
-            total_records=data_import.total_records,
-            valid_records=data_import.total_records,  # All records valid initially
-            invalid_records=0,
-            processed_records=data_import.processed_records,
-            data_quality_score=0.9,  # Default good score
-            validation_errors=[],
-            validation_warnings=[],
-            field_analysis={},  # Could be populated from data analysis
-            suggested_mappings={},  # Populated from field mappings
-            metadata=request.metadata or {},
-            flow_id=import_data["flow"].id if import_data["flow"] else None
-        )
+        # Build response with backward compatibility
+        response_data = {
+            "import_id": data_import.id,
+            "name": request.name,
+            "description": request.description,
+            "source_type": request.source_type,
+            "status": data_import.status,
+            "created_at": data_import.created_at,
+            "updated_at": data_import.updated_at,
+            "client_account_id": data_import.client_account_id,
+            "engagement_id": data_import.engagement_id,
+            "user_id": uuid.UUID(context.user_id) if context.user_id and context.user_id != "anonymous" else None,
+            "total_records": data_import.total_records,
+            "valid_records": data_import.total_records,  # All records valid initially
+            "invalid_records": 0,
+            "processed_records": data_import.processed_records,
+            "data_quality_score": 0.9,  # Default good score
+            "validation_errors": [],
+            "validation_warnings": [],
+            "field_analysis": {},  # Could be populated from data analysis
+            "suggested_mappings": {},  # Populated from field mappings
+            "metadata": {
+                "filename": data_import.filename,
+                "file_size": data_import.file_size,
+                "mime_type": data_import.mime_type,
+                **(request.metadata or {})
+            },
+            "flow_id": import_data["flow"].id if import_data["flow"] else None
+        }
+        
+        # Apply backward compatibility to response
+        response_data = field_compatibility.process_response(response_data)
+        result = DataImportResponse(**response_data)
         
         logger.info(f"✅ Data import created: {data_import.id}, {len(request.data)} records")
         return result
@@ -375,37 +391,75 @@ async def get_data_import(
     """
     Get data import details
     """
+    request_id = str(uuid.uuid4())
     try:
-        logger.info(f"🔍 Getting data import: {import_id}")
+        logger.info(f"🔍 Getting data import: {import_id} (request_id: {request_id})")
         
-        # Try to get import data from service
-        if DATA_IMPORT_SERVICE_AVAILABLE:
-            try:
-                import_service = DataImportService(db, context)
-                import_data = await import_service.get_import_data(str(import_id))
-                
-                if import_data:
-                    result = DataImportResponse(**import_data)
-                    logger.info(f"✅ Data import retrieved: {import_id}")
-                    return result
-                    
-            except Exception as e:
-                logger.warning(f"⚠️ Failed to get import from service: {e}")
-        
-        # Return not found if import doesn't exist
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Data import not found: {import_id}"
+        # Use V3 service to get import data
+        import_service = V3DataImportService(
+            db, 
+            str(context.client_account_id), 
+            str(context.engagement_id)
         )
+        
+        import_with_flow = await import_service.get_import_with_flow(str(import_id))
+        
+        if not import_with_flow:
+            error_handler = V3ErrorHandler()
+            error_response = error_handler.handle_not_found_error(
+                "Data Import", str(import_id), request_id
+            )
+            raise error_response.to_http_exception()
+        
+        data_import = import_with_flow["import"]
+        flow = import_with_flow["flow"]
+        mappings = import_with_flow.get("mappings", [])
+        
+        # Get statistics
+        stats = await import_service.get_import_statistics(str(import_id))
+        
+        # Build response with backward compatibility
+        response_data = {
+            "import_id": data_import.id,
+            "name": data_import.import_name,
+            "description": data_import.description,
+            "source_type": data_import.import_type,
+            "status": data_import.status,
+            "created_at": data_import.created_at,
+            "updated_at": data_import.updated_at,
+            "client_account_id": data_import.client_account_id,
+            "engagement_id": data_import.engagement_id,
+            "user_id": data_import.imported_by,
+            "total_records": data_import.total_records or 0,
+            "valid_records": data_import.processed_records or 0,
+            "invalid_records": data_import.failed_records or 0,
+            "processed_records": data_import.processed_records or 0,
+            "data_quality_score": stats.get("processing_rate", 0.0),
+            "validation_errors": [],
+            "validation_warnings": [],
+            "field_analysis": {},
+            "suggested_mappings": {mapping["source_field"]: mapping["target_field"] for mapping in mappings},
+            "metadata": {
+                "filename": data_import.filename,
+                "file_size": data_import.file_size,
+                "mime_type": data_import.mime_type,
+                "source_system": data_import.source_system
+            },
+            "flow_id": flow.id if flow else None
+        }
+        
+        # Apply backward compatibility to response
+        response_data = field_compatibility.process_response(response_data)
+        result = DataImportResponse(**response_data)
+        
+        logger.info(f"✅ Data import retrieved: {import_id}")
+        return result
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ Failed to get data import: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get data import: {str(e)}"
-        )
+        log_api_error("get_data_import", e, request_id, {"import_id": str(import_id)})
+        raise handle_api_error(e, request_id)
 
 
 @router.get("/imports", response_model=DataImportListResponse)
@@ -423,41 +477,68 @@ async def list_data_imports(
     try:
         logger.info(f"📋 Listing data imports")
         
-        imports = []
-        total_imports = 0
+        # Use V3 service to list imports
+        import_service = V3DataImportService(
+            db, 
+            str(context.client_account_id), 
+            str(context.engagement_id)
+        )
         
-        # Get imports from service if available
-        if DATA_IMPORT_SERVICE_AVAILABLE:
+        # Convert status_filter to ImportStatus enum if needed
+        from app.models.data_import.enums import ImportStatus
+        status_enum = None
+        if status_filter:
             try:
-                import_service = DataImportService(db, context)
-                all_imports = await import_service.list_imports(
-                    status_filter=status_filter,
-                    source_type=source_type
-                )
-                
-                # Convert to response format
-                for import_data in all_imports:
-                    try:
-                        import_response = DataImportResponse(**import_data)
-                        imports.append(import_response)
-                    except Exception as e:
-                        logger.warning(f"⚠️ Failed to convert import data: {e}")
-                        continue
-                
-                total_imports = len(imports)
-                logger.info(f"✅ Retrieved {len(imports)} imports")
-                
-            except Exception as e:
-                logger.warning(f"⚠️ Failed to list imports from service: {e}")
+                status_enum = ImportStatus(status_filter.lower())
+            except ValueError:
+                logger.warning(f"Invalid status filter: {status_filter}")
         
-        # Apply pagination
-        start_idx = (page - 1) * page_size
-        end_idx = start_idx + page_size
+        # Get imports from V3 service
+        all_imports = await import_service.list_imports(
+            status_filter=status_enum,
+            limit=page_size * 10,  # Get extra to handle pagination
+            offset=(page - 1) * page_size
+        )
+        
+        # Convert to response format
+        imports = []
+        for import_data in all_imports:
+            try:
+                import_response = DataImportResponse(
+                    import_id=uuid.UUID(import_data["import_id"]),
+                    name=import_data.get("import_name", import_data.get("filename", "Unknown")),
+                    description="",
+                    source_type=import_data.get("import_type", "unknown"),
+                    status=import_data["status"],
+                    created_at=datetime.fromisoformat(import_data["created_at"]) if import_data.get("created_at") else datetime.utcnow(),
+                    updated_at=datetime.utcnow(),
+                    client_account_id=uuid.UUID(str(context.client_account_id)),
+                    engagement_id=uuid.UUID(str(context.engagement_id)),
+                    total_records=import_data.get("total_records", 0),
+                    valid_records=import_data.get("processed_records", 0),
+                    invalid_records=0,
+                    processed_records=import_data.get("processed_records", 0),
+                    data_quality_score=0.9,
+                    validation_errors=[],
+                    validation_warnings=[],
+                    field_analysis={},
+                    suggested_mappings={},
+                    metadata={}
+                )
+                imports.append(import_response)
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to convert import data: {e}")
+                continue
+        
+        total_imports = len(imports)
+        
+        # Apply pagination to results
+        start_idx = 0  # Already handled by service offset
+        end_idx = min(page_size, len(imports))
         paginated_imports = imports[start_idx:end_idx]
         
         # Calculate pagination info
-        total_pages = (total_imports + page_size - 1) // page_size
-        has_next = page < total_pages
+        has_next = len(imports) >= page_size
         has_previous = page > 1
         
         result = DataImportListResponse(
@@ -623,16 +704,16 @@ async def preview_data_import(
         # Get full import data (this would be optimized in production to avoid loading all data)
         import_data = await get_data_import(import_id, db, context)
         
-        # Get sample data from service if available
+        # Get sample data from V3 service
         preview_data = []
-        if DATA_IMPORT_SERVICE_AVAILABLE:
-            try:
-                import_service = DataImportService(db, context)
-                full_data = await import_service.get_raw_data(str(import_id))
-                preview_data = full_data[:sample_size] if full_data else []
-                
-            except Exception as e:
-                logger.warning(f"⚠️ Failed to get raw data from service: {e}")
+        try:
+            # For now, return empty preview data - this would be implemented
+            # to get actual raw records from the database
+            preview_data = []
+            logger.info("Preview data functionality to be implemented")
+            
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to get raw data from service: {e}")
         
         # Extract field information from sample
         field_names = []
@@ -717,36 +798,41 @@ async def delete_data_import(
     try:
         logger.info(f"🗑️ Deleting data import: {import_id}, cascade: {cascade}")
         
+        # Use V3 service to delete import
+        import_service = V3DataImportService(
+            db, 
+            str(context.client_account_id), 
+            str(context.engagement_id)
+        )
+        
         # Get import data to check for associated flow
         try:
-            import_data = await get_data_import(import_id, db, context)
+            import_with_flow = await import_service.get_import_with_flow(str(import_id))
             
-            # Delete associated flow if cascade is requested
-            if cascade and import_data.flow_id:
+            if import_with_flow and cascade and import_with_flow.get("flow"):
+                # Delete associated flow if cascade is requested
                 try:
-                    from app.api.v3.discovery_flow import delete_flow
-                    await delete_flow(import_data.flow_id, force_delete=True, db=db, context=context)
-                    logger.info(f"✅ Associated flow deleted: {import_data.flow_id}")
+                    flow_service = V3DiscoveryFlowService(
+                        db,
+                        str(context.client_account_id),
+                        str(context.engagement_id)
+                    )
+                    await flow_service.delete_flow(str(import_with_flow["flow"].id))
+                    logger.info(f"✅ Associated flow deleted: {import_with_flow['flow'].id}")
                 except Exception as e:
                     logger.warning(f"⚠️ Failed to delete associated flow: {e}")
                     
-        except HTTPException:
-            # Import not found, but continue with deletion attempt
-            pass
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to get import data: {e}")
         
-        # Delete import data from service
-        if DATA_IMPORT_SERVICE_AVAILABLE:
-            try:
-                import_service = DataImportService(db, context)
-                await import_service.delete_import_data(str(import_id))
-                logger.info("✅ Import data deleted from service")
-                
-            except Exception as e:
-                logger.warning(f"⚠️ Failed to delete import from service: {e}")
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail=f"Failed to delete data import: {str(e)}"
-                )
+        # Delete import data using V3 service
+        success = await import_service.delete_import(str(import_id), cascade=cascade)
+        
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Data import not found: {import_id}"
+            )
         
         logger.info(f"✅ Data import deleted: {import_id}")
         
@@ -758,3 +844,17 @@ async def delete_data_import(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to delete data import: {str(e)}"
         )
+
+
+@router.get("/field-mappings", response_model=Dict[str, Any])
+async def get_field_mappings():
+    """
+    Get field mapping information for backward compatibility
+    """
+    from app.api.v3.utils.backward_compatibility import get_field_mapping_info
+    
+    return {
+        "success": True,
+        "data": get_field_mapping_info(),
+        "message": "Field mapping information for V3 API backward compatibility"
+    }

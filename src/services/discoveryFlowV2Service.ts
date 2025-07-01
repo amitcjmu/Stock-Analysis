@@ -23,7 +23,6 @@ export interface DiscoveryFlowV2 {
   learning_scope: string;
   memory_isolation_level: string;
   assessment_ready: boolean;
-  is_mock: boolean;
   created_at?: string;
   updated_at?: string;
   completed_at?: string;
@@ -50,7 +49,6 @@ export interface DiscoveryAssetV2 {
   migration_priority?: number;
   asset_status: string;
   validation_status: string;
-  is_mock: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -305,7 +303,6 @@ export class DiscoveryFlowV2Service {
       learning_scope: 'client',
       memory_isolation_level: 'engagement',
       assessment_ready: response.assessment_ready || false,
-      is_mock: false,
       created_at: response.created_at,
       updated_at: response.updated_at,
       completed_at: response.completed_at,

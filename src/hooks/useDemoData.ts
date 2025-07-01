@@ -48,7 +48,6 @@ export interface DemoAsset {
   current_monthly_cost?: number;
   estimated_cloud_cost?: number;
   tags?: DemoTag[];
-  is_mock: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -80,7 +79,6 @@ export interface DemoSixRAnalysis {
   potential_savings: number;
   analysis_results?: any;
   recommendations?: any;
-  is_mock: boolean;
   created_at?: string;
 }
 
@@ -101,7 +99,6 @@ export interface DemoMigrationWave {
   actual_cost?: number;
   estimated_effort_hours?: number;
   actual_effort_hours?: number;
-  is_mock: boolean;
   created_at?: string;
 }
 
