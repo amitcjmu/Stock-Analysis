@@ -95,7 +95,7 @@ class RawImportRecord(Base):
     engagement_id = Column(UUID(as_uuid=True), ForeignKey("engagements.id"), nullable=True)
     master_flow_id = Column(UUID(as_uuid=True), ForeignKey("crewai_flow_state_extensions.id"), nullable=True)
 
-    record_index = Column(Integer, nullable=False)  # was row_number
+    row_number = Column(Integer, nullable=False)  # temporarily using old name until migration
     raw_data = Column(JSON, nullable=False)
     cleansed_data = Column(JSON, nullable=True)  # was processed_data
     

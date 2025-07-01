@@ -36,13 +36,12 @@ class DiscoveryFlow(Base):
     
     # Flow metadata
     flow_name = Column(String(255), nullable=False)
-    flow_description = Column(Text, nullable=True)
     status = Column(String(20), nullable=False, default='active', index=True)
     progress_percentage = Column(Float, nullable=False, default=0.0)
     
     # Phase completion tracking - HYBRID APPROACH
     # Boolean flags (keep for backward compatibility)
-    data_validation_completed = Column(Boolean, nullable=False, default=False)
+    data_import_completed = Column(Boolean, nullable=False, default=False)  # was data_validation_completed
     field_mapping_completed = Column(Boolean, nullable=False, default=False)  # was attribute_mapping_completed
     data_cleansing_completed = Column(Boolean, nullable=False, default=False)
     asset_inventory_completed = Column(Boolean, nullable=False, default=False)  # was inventory_completed
@@ -86,7 +85,7 @@ class DiscoveryFlow(Base):
     def calculate_progress(self) -> float:
         """Calculate progress percentage based on completed phases"""
         phases = [
-            self.data_validation_completed,
+            self.data_import_completed,
             self.field_mapping_completed,
             self.data_cleansing_completed,
             self.asset_inventory_completed,
@@ -107,7 +106,7 @@ class DiscoveryFlow(Base):
             return self.current_phase
             
         phases = [
-            ('data_validation', self.data_validation_completed),
+            ('data_import', self.data_import_completed),
             ('field_mapping', self.field_mapping_completed),
             ('data_cleansing', self.data_cleansing_completed),
             ('asset_inventory', self.asset_inventory_completed),
@@ -116,7 +115,7 @@ class DiscoveryFlow(Base):
         ]
         
         # Find the last completed phase
-        current_phase = "data_validation"  # Default starting phase
+        current_phase = "data_import"  # Default starting phase
         for phase_name, completed in phases:
             if completed:
                 current_phase = phase_name
@@ -128,7 +127,7 @@ class DiscoveryFlow(Base):
     def get_next_phase(self) -> Optional[str]:
         """Get the next phase that needs to be completed"""
         phases = [
-            ('data_validation', self.data_validation_completed),
+            ('data_import', self.data_import_completed),
             ('field_mapping', self.field_mapping_completed),
             ('data_cleansing', self.data_cleansing_completed),
             ('asset_inventory', self.asset_inventory_completed),
@@ -144,7 +143,7 @@ class DiscoveryFlow(Base):
     def is_complete(self) -> bool:
         """Check if all phases are completed"""
         return all([
-            self.data_validation_completed,
+            self.data_import_completed,
             self.field_mapping_completed,
             self.data_cleansing_completed,
             self.asset_inventory_completed,
@@ -165,9 +164,7 @@ class DiscoveryFlow(Base):
                 "phases_completed": self.calculate_progress()
             },
             "assets": [],  # Will be populated by repository query
-            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
-            "learning_scope": self.learning_scope,
-            "memory_isolation_level": self.memory_isolation_level
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None
         }
 
     def get_migration_readiness_score(self) -> float:
@@ -197,11 +194,10 @@ class DiscoveryFlow(Base):
             "import_session_id": str(self.import_session_id) if self.import_session_id else None,
             "data_import_id": str(self.data_import_id) if self.data_import_id else None,
             "flow_name": self.flow_name,
-            "flow_description": self.flow_description,
             "status": self.status,
             "progress_percentage": self.progress_percentage,
             "phases": {
-                "data_validation_completed": self.data_validation_completed,
+                "data_import_completed": self.data_import_completed,
                 "field_mapping_completed": self.field_mapping_completed,
                 "data_cleansing_completed": self.data_cleansing_completed,
                 "asset_inventory_completed": self.asset_inventory_completed,
@@ -209,10 +205,6 @@ class DiscoveryFlow(Base):
                 "tech_debt_assessment_completed": self.tech_debt_assessment_completed
             },
             "crewai_persistence_id": str(self.crewai_persistence_id) if self.crewai_persistence_id else None,
-            "learning_scope": self.learning_scope,
-            "memory_isolation_level": self.memory_isolation_level,
-            "assessment_ready": self.assessment_ready,
-            "is_mock": self.is_mock,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "completed_at": self.completed_at.isoformat() if self.completed_at else None,
