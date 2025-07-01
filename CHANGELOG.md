@@ -1,5 +1,55 @@
 # 🚀 AI Force Migration Platform - Changelog
 
+## [0.9.6] - 2025-07-01
+
+### 🐛 **Critical Bug Fixes - Data Import & Field Mapping**
+
+This release fixes critical errors in the data import and field mapping functionality that were preventing successful data uploads and attribute mapping approval.
+
+### 🔧 **Technical Fixes**
+
+#### **DataImport Model Field Alignment**
+- **Fixed**: Import storage handler using outdated field names
+- **Updated**: Field mappings to match current model schema
+  - `source_filename` → `filename`
+  - `file_size_bytes` → `file_size`
+  - `file_type` → `mime_type`
+  - Removed non-existent `is_mock` and `import_config` fields
+
+#### **ImportFieldMapping Model Corrections**
+- **Fixed**: Field mapping creation using incorrect field names
+- **Updated**: Mapping fields to match model schema
+  - `mapping_type` → `match_type`
+  - Added required `client_account_id` for multi-tenancy
+  - Changed default status from "pending" to "suggested"
+  - Removed `sample_values` field (doesn't exist in model)
+
+#### **RawImportRecord Field Updates**
+- **Fixed**: Record creation using outdated field names
+- **Updated**: Field references to match model
+  - `row_number` → `record_index`
+  - `processed_data` → `cleansed_data`
+  - Removed non-existent `is_processed` and `is_valid` fields
+  - Dropped deprecated `record_id` column from database
+
+#### **Discovery Flow Data Import ID**
+- **Fixed**: Missing `data_import_id` in discovery flows preventing field mapping approval
+- **Solution**: 
+  - Updated `DiscoveryFlowRepository` to accept and store `data_import_id`
+  - Updated `DiscoveryFlowService` to pass `data_import_id` during flow creation
+  - Created migration script to populate missing `data_import_id` values in existing flows
+  - Fixed 13 existing discovery flows with missing data import references
+
+### 📊 **Business Impact**
+- **Data Import**: Users can now successfully upload CSV files without 500 errors
+- **Field Mapping**: Attribute mapping approval/reject functionality now works correctly
+- **Flow Continuity**: Discovery flows properly track their associated data imports
+
+### 🎯 **Success Metrics**
+- **Error Resolution**: Eliminated 500 errors on data import
+- **Data Integrity**: All discovery flows now have proper data import references
+- **User Experience**: Smooth data upload and field mapping workflow restored
+
 ## [0.9.5] - 2025-07-01
 
 ### 🗄️ **Database Consolidation Complete**
