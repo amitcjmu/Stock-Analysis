@@ -71,7 +71,7 @@ try:
     }
     
     response = requests.post(
-        "http://localhost:8000/api/v1/unified-discovery/flow/initialize",
+        "http://localhost:8000/api/v1/discovery/flow/initialize",
         json=payload,
         headers=headers
     )
@@ -90,7 +90,7 @@ try:
             time.sleep(2)  # Give it time to start
             
             status_response = requests.get(
-                f"http://localhost:8000/api/v1/unified-discovery/flow/status/{flow_id}",
+                f"http://localhost:8000/api/v1/discovery/flow/status/{flow_id}",
                 headers=headers
             )
             

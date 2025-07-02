@@ -2430,5 +2430,97 @@
     "created_at": "2025-07-02T06:44:25.606109",
     "user_feedback": null,
     "is_validated": false
+  },
+  "1b530828-a60c-4877-881e-3c006065c06f": {
+    "id": "1b530828-a60c-4877-881e-3c006065c06f",
+    "agent_id": "attribute_mapping_agent",
+    "agent_name": "Attribute Mapping Agent",
+    "insight_type": "processing",
+    "title": "Starting Field Mapping Analysis",
+    "description": "Analyzing source columns and determining optimal field mappings",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "attribute_mapping",
+      "source_columns": [],
+      "progress_percentage": 30.0,
+      "start_time": "2025-07-02T13:33:28.622633"
+    },
+    "page": "flow_d8c13e0a-c228-4cfa-b5f1-3587b2c45528",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-07-02T13:33:28.625294",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "1a9832f9-2fc6-41f6-b79c-f804dec09d00": {
+    "id": "1a9832f9-2fc6-41f6-b79c-f804dec09d00",
+    "agent_id": "attribute_mapping_agent",
+    "agent_name": "Attribute Mapping Agent",
+    "insight_type": "error",
+    "title": "Field Mapping Failed",
+    "description": "Mapping failed: 'StateWithId' object has no attribute 'session_id'",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "attribute_mapping",
+      "error_type": "agent_execution_failure",
+      "error_message": "'StateWithId' object has no attribute 'session_id'",
+      "failure_time": "2025-07-02T13:33:28.683517"
+    },
+    "page": "flow_d8c13e0a-c228-4cfa-b5f1-3587b2c45528",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-07-02T13:33:28.683576",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "b1292722-41dd-41c5-b7d1-78893cd81f37": {
+    "id": "b1292722-41dd-41c5-b7d1-78893cd81f37",
+    "agent_id": "attribute_mapping_agent",
+    "agent_name": "Attribute Mapping Agent",
+    "insight_type": "processing",
+    "title": "Starting Field Mapping Analysis",
+    "description": "Analyzing source columns and determining optimal field mappings",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "attribute_mapping",
+      "source_columns": [],
+      "progress_percentage": 30.0,
+      "start_time": "2025-07-02T13:43:34.568762"
+    },
+    "page": "flow_67ec761f-f668-4a38-bd59-429c75927333",
+    "actionable": true,
+    "client_account_id": "524e48ba-2c05-46ff-a41f-35f07aad1415",
+    "engagement_id": "7247a119-e586-460f-a053-cf9be362e446",
+    "flow_id": null,
+    "created_at": "2025-07-02T13:43:34.569378",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "eb63031a-68ac-4d33-a861-c14a3d059b73": {
+    "id": "eb63031a-68ac-4d33-a861-c14a3d059b73",
+    "agent_id": "attribute_mapping_agent",
+    "agent_name": "Attribute Mapping Agent",
+    "insight_type": "error",
+    "title": "Field Mapping Failed",
+    "description": "Mapping failed: 'StateWithId' object has no attribute 'session_id'",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "attribute_mapping",
+      "error_type": "agent_execution_failure",
+      "error_message": "'StateWithId' object has no attribute 'session_id'",
+      "failure_time": "2025-07-02T13:43:34.595140"
+    },
+    "page": "flow_67ec761f-f668-4a38-bd59-429c75927333",
+    "actionable": true,
+    "client_account_id": "524e48ba-2c05-46ff-a41f-35f07aad1415",
+    "engagement_id": "7247a119-e586-460f-a053-cf9be362e446",
+    "flow_id": null,
+    "created_at": "2025-07-02T13:43:34.597228",
+    "user_feedback": null,
+    "is_validated": false
   }
 }

@@ -10,7 +10,7 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.repositories.base_repository import ContextAwareRepository
+from app.repositories.base import ContextAwareRepository
 from app.models.discovery_flow import DiscoveryFlow
 from app.models.asset import Asset
 
@@ -54,7 +54,7 @@ class DiscoveryFlowRepository(ContextAwareRepository):
             logger.warning(f"Invalid engagement_id '{engagement_id}', using demo fallback")
             parsed_engagement_id = demo_engagement_id
         
-        super().__init__(db, client_account_id=int(parsed_client_id.int), engagement_id=int(parsed_engagement_id.int), user_id=user_id)
+        super().__init__(db, client_account_id=str(parsed_client_id), engagement_id=str(parsed_engagement_id), user_id=user_id)
         
         # Initialize query and command handlers
         self.flow_queries = FlowQueries(db, parsed_client_id, parsed_engagement_id)

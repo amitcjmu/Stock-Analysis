@@ -15,13 +15,13 @@ from .base_handler import BaseRBACHandler
 # Import RBAC models with fallback
 try:
     from app.models.rbac import (
-        UserProfile, UserRole, ClientAccess,
+        UserProfile, UserRole, ClientAccess, EngagementAccess,
         UserStatus, AccessLevel, RoleType
     )
     RBAC_MODELS_AVAILABLE = True
 except ImportError:
     RBAC_MODELS_AVAILABLE = False
-    UserProfile = UserRole = ClientAccess = None
+    UserProfile = UserRole = ClientAccess = EngagementAccess = None
     UserStatus = AccessLevel = RoleType = None
 
 # Import user and client models with fallback
@@ -151,12 +151,49 @@ class AdminOperationsHandler(BaseRBACHandler):
             
             self.db.add(user_role)
             
-            # Create client access if specified
+            # Automatically create ClientAccess if default_client_id is provided
+            if user_data.get("default_client_id"):
+                try:
+                    default_client_access = ClientAccess(
+                        user_profile_id=user_id,
+                        client_account_id=user_data["default_client_id"],
+                        access_level=access_level,
+                        permissions=self._get_default_permissions(access_level),
+                        granted_by=admin_user_uuid,
+                        is_active=True
+                    )
+                    self.db.add(default_client_access)
+                    logger.info(f"Created ClientAccess for user {user_id} to default client {user_data['default_client_id']}")
+                except Exception as e:
+                    logger.warning(f"Failed to create default client access: {e}")
+            
+            # Automatically create EngagementAccess if default_engagement_id is provided
+            if user_data.get("default_engagement_id"):
+                try:
+                    default_engagement_access = EngagementAccess(
+                        user_profile_id=user_id,
+                        engagement_id=user_data["default_engagement_id"],
+                        access_level=access_level,
+                        engagement_role=user_data.get("role_name", "Analyst"),
+                        permissions=self._get_default_permissions(access_level),
+                        granted_by=admin_user_uuid,
+                        is_active=True
+                    )
+                    self.db.add(default_engagement_access)
+                    logger.info(f"Created EngagementAccess for user {user_id} to default engagement {user_data['default_engagement_id']}")
+                except Exception as e:
+                    logger.warning(f"Failed to create default engagement access: {e}")
+            
+            # Create additional client access if specified
             client_accesses = user_data.get("client_access", [])
             created_access_count = 0
             
             for client_access_data in client_accesses:
                 try:
+                    # Skip if this is the same as default_client_id to avoid duplicates
+                    if user_data.get("default_client_id") and client_access_data["client_id"] == user_data["default_client_id"]:
+                        continue
+                    
                     client_access = ClientAccess(
                         user_profile_id=user_id,
                         client_account_id=client_access_data["client_id"],

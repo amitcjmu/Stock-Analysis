@@ -16,7 +16,12 @@ import random
 class DemoDataConfig:
     """Configuration for demo data creation"""
     
-    # UUID Pattern for demo data: XXXXXXXX-def0-def0-def0-XXXXXXXXXXXX (DEFault/DEmo pattern)
+    # Fixed demo IDs for frontend fallback - ALWAYS created first
+    FIXED_DEMO_CLIENT_ID = uuid.UUID("11111111-1111-1111-1111-111111111111")
+    FIXED_DEMO_ENGAGEMENT_ID = uuid.UUID("22222222-2222-2222-2222-222222222222")
+    FIXED_DEMO_USER_ID = uuid.UUID("33333333-3333-3333-3333-333333333333")
+    
+    # UUID Pattern for additional demo data: XXXXXXXX-def0-def0-def0-XXXXXXXXXXXX (DEFault/DEmo pattern)
     DEMO_UUID_MIDDLE = "def0-def0-def0"
     
     @classmethod

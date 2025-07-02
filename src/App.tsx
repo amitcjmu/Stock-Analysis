@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,6 +9,7 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ClientProvider } from "./contexts/ClientContext";
 // import { AppContextProvider } from "./hooks/useContext";
 import GlobalChatFeedback from "./components/GlobalChatFeedback";
+import { AppInitializer } from "./services/appInitializer";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Assess from "./pages/Assess";
@@ -25,6 +27,16 @@ import Treatment from "./pages/assess/Treatment";
 import WavePlanning from "./pages/assess/WavePlanning";
 import Roadmap from "./pages/assess/Roadmap";
 import Editor from "./pages/assess/Editor";
+// Assessment Flow pages
+import InitializeAssessmentFlow from "./pages/assessment/InitializeFlow";
+import DemoInitializeAssessmentFlow from "./pages/assessment/DemoInitializeFlow";
+import AssessmentFlowOverview from "./pages/assessment/AssessmentFlowOverview";
+import InitializeFlowWithInventory from "./pages/assessment/InitializeFlowWithInventory";
+import AssessmentArchitecture from "./pages/assessment/[flowId]/architecture";
+import AssessmentTechDebt from "./pages/assessment/[flowId]/tech-debt";
+import AssessmentSixRReview from "./pages/assessment/[flowId]/sixr-review";
+import AssessmentAppOnPage from "./pages/assessment/[flowId]/app-on-page";
+import AssessmentSummary from "./pages/assessment/[flowId]/summary";
 import Plan from "./pages/Plan";
 import PlanIndex from "./pages/plan/Index";
 import Timeline from "./pages/plan/Timeline";
@@ -79,9 +91,24 @@ const queryClient = new QueryClient();
 // Component to handle authenticated routes
 const AuthenticatedApp = () => {
   const { isLoading, isAuthenticated } = useAuth();
+  const [appInitialized, setAppInitialized] = useState(false);
+
+  // Initialize app on first load
+  useEffect(() => {
+    AppInitializer.initialize()
+      .then(() => {
+        setAppInitialized(true);
+        console.log('✅ App initialization completed');
+      })
+      .catch((error) => {
+        console.error('❌ App initialization failed:', error);
+        // Continue anyway - don't block the app
+        setAppInitialized(true);
+      });
+  }, []);
 
   // Debug logging
-  console.log('🔍 AuthenticatedApp State:', { isLoading, isAuthenticated });
+  console.log('🔍 AuthenticatedApp State:', { isLoading, isAuthenticated, appInitialized });
 
   // Show loading screen while authentication is being determined
   if (isLoading) {
@@ -133,11 +160,22 @@ const AuthenticatedApp = () => {
               <Route path="/discovery/tech-debt" element={<TechDebtAnalysis />} />
               <Route path="/discovery/tech-debt/:flowId" element={<TechDebtAnalysis />} />
               <Route path="/assess" element={<Assess />} />
-              <Route path="/assess/overview" element={<AssessIndex />} />
+              <Route path="/assess/overview" element={<AssessmentFlowOverview />} />
               <Route path="/assess/treatment" element={<Treatment />} />
               <Route path="/assess/waveplanning" element={<WavePlanning />} />
               <Route path="/assess/roadmap" element={<Roadmap />} />
               <Route path="/assess/editor" element={<Editor />} />
+              
+              {/* Assessment Flow Routes */}
+              <Route path="/assessment" element={<AssessmentFlowOverview />} />
+              <Route path="/assessment/overview" element={<AssessmentFlowOverview />} />
+              <Route path="/assessment/initialize" element={<InitializeFlowWithInventory />} />
+              <Route path="/assessment/:flowId/architecture" element={<AssessmentArchitecture />} />
+              <Route path="/assessment/:flowId/tech-debt" element={<AssessmentTechDebt />} />
+              <Route path="/assessment/:flowId/sixr-review" element={<AssessmentSixRReview />} />
+              <Route path="/assessment/:flowId/app-on-page" element={<AssessmentAppOnPage />} />
+              <Route path="/assessment/:flowId/summary" element={<AssessmentSummary />} />
+              
               <Route path="/plan" element={<Plan />} />
               <Route path="/plan/overview" element={<PlanIndex />} />
               <Route path="/plan/timeline" element={<Timeline />} />

@@ -59,7 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   useDebugLogging(user, isAuthenticated, isAdmin, isDemoMode, getAuthHeaders);
-  useApiContextSync(user, client, engagement, session);
+  useApiContextSync(user, client, engagement, session, flow);
 
   const setCurrentSession = useCallback((session: Session | null) => {
     setSession(session);

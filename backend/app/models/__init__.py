@@ -22,17 +22,17 @@ from app.models.data_import_session import DataImportSession
 # Assessment Models
 from app.models.assessment import Assessment, WavePlan
 
-# Assessment Flow Models (New) - Temporarily disabled due to SQLAlchemy compatibility issue
-# from app.models.assessment_flow import (
-#     AssessmentFlow, 
-#     EngagementArchitectureStandard, 
-#     ApplicationArchitectureOverride,
-#     ApplicationComponent, 
-#     TechDebtAnalysis, 
-#     ComponentTreatment, 
-#     SixRDecision, 
-#     AssessmentLearningFeedback
-# )
+# Assessment Flow Models (New)
+from app.models.assessment_flow import (
+    AssessmentFlow, 
+    EngagementArchitectureStandard, 
+    ApplicationArchitectureOverride,
+    ApplicationComponent, 
+    TechDebtAnalysis, 
+    ComponentTreatment, 
+    SixRDecision, 
+    AssessmentLearningFeedback
+)
 
 # Assessment Flow State Models (New) - Temporarily disabled due to SQLAlchemy compatibility issue
 # from app.models.assessment_flow_state import (
@@ -114,15 +114,15 @@ __all__ = [
     "Assessment",
     "WavePlan",
     
-    # Assessment Flow Models (SQLAlchemy) - Temporarily disabled
-    # "AssessmentFlow",
-    # "EngagementArchitectureStandard", 
-    # "ApplicationArchitectureOverride",
-    # "ApplicationComponent",
-    # "TechDebtAnalysis",
-    # "ComponentTreatment",
-    # "SixRDecision",
-    # "AssessmentLearningFeedback",
+    # Assessment Flow Models (SQLAlchemy)
+    "AssessmentFlow",
+    "EngagementArchitectureStandard", 
+    "ApplicationArchitectureOverride",
+    "ApplicationComponent",
+    "TechDebtAnalysis",
+    "ComponentTreatment",
+    "SixRDecision",
+    "AssessmentLearningFeedback",
     
     # Assessment Flow State Models (Pydantic) - Temporarily disabled
     # "AssessmentFlowState",

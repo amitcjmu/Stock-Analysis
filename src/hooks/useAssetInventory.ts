@@ -195,7 +195,4 @@ export const useRefreshAssetInventory = () => {
 };
 
 // Export the main hook as useAssetInventory for backward compatibility
-export const useAssetInventory = useAssetInventoryAnalysis;
-
-// Also export the analysis function directly for clarity
-export { useAssetInventoryAnalysis }; 
+export const useAssetInventory = useAssetInventoryAnalysis; 

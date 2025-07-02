@@ -78,6 +78,17 @@ if SQLALCHEMY_AVAILABLE:
     
     logger.info(f"⚡ Creating unified pgvector database engine with {pool_class.__name__} pool")
     
+    # Merge connect_args with pool_config if it exists
+    if 'connect_args' in pool_config:
+        pool_config['connect_args']['server_settings'] = pool_config['connect_args'].get('server_settings', {})
+        pool_config['connect_args']['server_settings']['search_path'] = 'migration,public'
+    else:
+        pool_config['connect_args'] = {
+            "server_settings": {
+                "search_path": "migration,public"
+            }
+        }
+    
     # Unified database engine with pgvector support
     engine = create_async_engine(
         get_database_url(),
@@ -115,6 +126,7 @@ else:
     logger.warning("SQLAlchemy not available. Database functionality will be limited.")
 
 # Create declarative base
+# Note: Schema is set at the session/engine level, not in metadata
 Base = declarative_base()
 
 # ⚡ CONNECTION HEALTH TRACKING

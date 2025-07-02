@@ -70,19 +70,6 @@ async def get_default_client(
         )
 
 
-@router.get("/clients/public", response_model=ClientsListResponse)
-async def get_public_clients(
-    db: AsyncSession = Depends(get_db)
-) -> ClientsListResponse:
-    """
-    Get list of public/demo clients.
-    
-    This endpoint returns demo clients that can be used without authentication.
-    """
-    service = ClientService(db)
-    return await service.get_public_clients()
-
-
 @router.get("/clients", response_model=ClientsListResponse)
 async def get_user_clients(
     db: AsyncSession = Depends(get_db),

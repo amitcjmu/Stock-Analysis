@@ -295,12 +295,13 @@ try:
             # "/api/v1/assets/list/paginated",  # Removed - now requires context
             "/api/v1/me",  # Allow user context endpoint
             "/api/v1/clients/default",  # Allow default client endpoint
-            "/api/v1/clients/public",  # Allow public clients list endpoint for context establishment
             "/api/v1/clients",  # Allow clients list endpoint for context establishment
             "/api/v1/clients/",  # Allow clients list endpoint with trailing slash
             # Context establishment endpoints - these are needed to establish context
             "/api/v1/context/clients",  # New dedicated context establishment endpoint
+            "/api/v1/context/clients/",  # With trailing slash
             "/api/v1/context/engagements",  # New dedicated context establishment endpoint
+            "/api/v1/context/engagements/",  # With trailing slash
             "/api/v1/context-establishment/clients",  # Correct context establishment endpoint
             "/api/v1/context-establishment/engagements",  # Correct context establishment endpoint
             "/api/v1/context-establishment/clients",  # Correct context establishment endpoint

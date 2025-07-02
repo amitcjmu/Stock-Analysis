@@ -87,7 +87,8 @@ class FlowFinalizer:
             logger.error(f"❌ Discovery flow finalization failed: {e}")
             self.state_manager.add_error("finalization", str(e))
             self.state.status = "failed"
-            self.state.failed_at = datetime.utcnow()
+            # Mark as completed even if failed, to indicate the flow has ended
+            self.state.completed_at = datetime.utcnow().isoformat()
             return "discovery_failed"
     
     def _calculate_final_metrics(self) -> None:

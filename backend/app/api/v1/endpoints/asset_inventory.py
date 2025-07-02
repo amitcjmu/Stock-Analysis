@@ -479,16 +479,33 @@ async def list_assets_paginated(
         from app.models.asset import Asset
         
         # Build base query with context filtering
-        query = select(Asset).where(
-            Asset.client_account_id == context.client_account_id,
-            Asset.engagement_id == context.engagement_id
-        ).order_by(Asset.created_at.desc())
+        # Platform admins should see all assets across all clients
+        if hasattr(context, 'user_id') and context.user_id:
+            # Check if user is platform admin (user ID acb04904-98a7-4f45-aacd-174d28dd3aad)
+            is_platform_admin = context.user_id == "acb04904-98a7-4f45-aacd-174d28dd3aad"
+        else:
+            is_platform_admin = False
+            
+        if is_platform_admin:
+            # Platform admin sees all assets
+            query = select(Asset).order_by(Asset.created_at.desc())
+        else:
+            # Regular users see only their context assets
+            query = select(Asset).where(
+                Asset.client_account_id == context.client_account_id,
+                Asset.engagement_id == context.engagement_id
+            ).order_by(Asset.created_at.desc())
         
         # Get total count
-        count_query = select(func.count()).select_from(Asset).where(
-            Asset.client_account_id == context.client_account_id,
-            Asset.engagement_id == context.engagement_id
-        )
+        if is_platform_admin:
+            # Platform admin sees count of all assets
+            count_query = select(func.count()).select_from(Asset)
+        else:
+            # Regular users see count of their context assets
+            count_query = select(func.count()).select_from(Asset).where(
+                Asset.client_account_id == context.client_account_id,
+                Asset.engagement_id == context.engagement_id
+            )
         count_result = await db.execute(count_query)
         total_items = count_result.scalar() or 0
         

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { useRouter } from 'next/router';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 // Types for Assessment Flow
@@ -328,7 +328,7 @@ const eventSourceService = {
 export const useAssessmentFlow = (
   initialFlowId?: string
 ): UseAssessmentFlowReturn => {
-  const router = useRouter();
+  const navigate = useNavigate();
   const { user, getAuthHeaders } = useAuth();
   const eventSourceRef = useRef<EventSource | null>(null);
   
@@ -386,8 +386,8 @@ export const useAssessmentFlow = (
       subscribeToUpdates();
       
       // Navigate to first phase
-      if (router) {
-        await router.push(`/assessment/${response.flow_id}/architecture`);
+      if (navigate) {
+        navigate(`/assessment/${response.flow_id}/architecture`);
       }
       
     } catch (error) {
@@ -398,7 +398,7 @@ export const useAssessmentFlow = (
       }));
       throw error;
     }
-  }, [clientAccountId, engagementId, router, getAuthHeaders]);
+  }, [clientAccountId, engagementId, navigate, getAuthHeaders]);
   
   // Resume flow from current phase
   const resumeFlow = useCallback(async (userInput: any) => {
@@ -460,8 +460,8 @@ export const useAssessmentFlow = (
         'finalization': 'summary'
       };
       
-      if (router) {
-        await router.push(`/assessment/${state.flowId}/${phaseRoutes[phase]}`);
+      if (navigate) {
+        navigate(`/assessment/${state.flowId}/${phaseRoutes[phase]}`);
       }
       
     } catch (error) {
@@ -471,7 +471,7 @@ export const useAssessmentFlow = (
       }));
       throw error;
     }
-  }, [state.flowId, router]);
+  }, [state.flowId, navigate]);
   
   // Update architecture standards
   const updateArchitectureStandards = useCallback(async (

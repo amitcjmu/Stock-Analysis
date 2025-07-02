@@ -26,12 +26,12 @@ _engagement_id: ContextVar[Optional[str]] = ContextVar('engagement_id', default=
 _user_id: ContextVar[Optional[str]] = ContextVar('user_id', default=None)
 _flow_id: ContextVar[Optional[str]] = ContextVar('flow_id', default=None)
 
-# Demo client configuration with proper UUIDs (using existing client from database)
+# Demo client configuration with fixed UUIDs for frontend fallback
 DEMO_CLIENT_CONFIG = {
-    "client_account_id": "bafd5b46-aaaf-4c95-8142-573699d93171",  # Complete Test Client UUID
-    "client_name": "Complete Test Client",
-    "engagement_id": "6e9c8133-4169-4b79-b052-106dc93d0208",  # Azure Transformation UUID
-    "engagement_name": "Azure Transformation"
+    "client_account_id": "11111111-1111-1111-1111-111111111111",  # Fixed demo client UUID
+    "client_name": "Demo Corporation",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",  # Fixed demo engagement UUID
+    "engagement_name": "Demo Cloud Migration Project"
 }
 
 try:

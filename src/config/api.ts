@@ -245,16 +245,17 @@ export const apiCall = async (
       // Add context headers if needed
       if (includeContext) {
         try {
-          if (currentContext?.user?.id) {
+          // Only add headers if the value exists and is not "null" string
+          if (currentContext?.user?.id && currentContext.user.id !== 'null') {
             headers['X-User-ID'] = currentContext.user.id;
           }
-          if (currentContext?.client?.id) {
+          if (currentContext?.client?.id && currentContext.client.id !== 'null') {
             headers['X-Client-Account-ID'] = currentContext.client.id;
           }
-          if (currentContext?.engagement?.id) {
+          if (currentContext?.engagement?.id && currentContext.engagement.id !== 'null') {
             headers['X-Engagement-ID'] = currentContext.engagement.id;
           }
-          if (currentContext?.flow?.id) {
+          if (currentContext?.flow?.id && currentContext.flow.id !== 'null') {
             headers['X-Flow-ID'] = currentContext.flow.id;
           }
         } catch (contextError) {

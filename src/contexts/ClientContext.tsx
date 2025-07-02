@@ -39,10 +39,10 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   useEffect(() => {
     // For demo user, set demo client immediately
-    if (user && user.id === '44444444-4444-4444-4444-444444444444') {
+    if (user && user.id === '33333333-3333-3333-3333-333333333333') {
       setCurrentClient({
         id: '11111111-1111-1111-1111-111111111111',
-        name: 'Democorp',
+        name: 'Demo Corporation',
         status: 'active',
         type: 'enterprise',
         created_at: '2024-01-01T00:00:00Z',
@@ -120,7 +120,7 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const fetchClients = async () => {
         setIsLoading(true);
         try {
-          const response = await apiCall('/context/clients'); 
+          const response = await apiCall('/context/clients', {}, false); // Don't include context headers when fetching clients 
           if (response.items) {
             setAvailableClients(response.items);
             const storedClientId = sessionStorage.getItem(CLIENT_KEY);

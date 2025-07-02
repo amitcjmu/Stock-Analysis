@@ -10,9 +10,9 @@ from datetime import datetime
 import logging
 import asyncio
 
-from app.core.database import get_async_db
-from app.core.auth import get_current_user
-from app.core.context import verify_client_access, verify_engagement_access
+from app.core.database import get_db
+from app.api.v1.auth.auth_utils import get_current_user
+from app.core.context_helpers import verify_client_access, verify_engagement_access, verify_standards_modification_permission
 from app.repositories.assessment_flow_repository import AssessmentFlowRepository
 from app.schemas.assessment_flow import (
     AssessmentFlowCreateRequest,
@@ -53,7 +53,7 @@ router = APIRouter(prefix="/assessment-flow", tags=["Assessment Flow"])
 async def verify_flow_access(
     flow_id: str,
     db: AsyncSession,
-    client_account_id: int
+    client_account_id: str
 ) -> bool:
     """Verify user has access to assessment flow."""
     repository = AssessmentFlowRepository(db, client_account_id)
@@ -63,8 +63,8 @@ async def verify_flow_access(
 
 async def get_assessment_flow_context(
     flow_id: str,
-    client_account_id: int,
-    engagement_id: int,
+    client_account_id: str,
+    engagement_id: str,
     user_id: str,
     db: AsyncSession
 ):
@@ -121,9 +121,9 @@ async def initialize_assessment_flow(
     request: AssessmentFlowCreateRequest,
     background_tasks: BackgroundTasks,
     current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_async_db),
-    client_account_id: int = Depends(verify_client_access),
-    engagement_id: int = Header(..., alias="X-Engagement-ID")
+    db: AsyncSession = Depends(get_db),
+    client_account_id: str = Depends(verify_client_access),
+    engagement_id: str = Header(..., alias="X-Engagement-ID")
 ):
     """
     Initialize new assessment flow with selected applications.
@@ -186,8 +186,8 @@ async def initialize_assessment_flow(
 async def get_assessment_flow_status(
     flow_id: str,
     current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_async_db),
-    client_account_id: int = Depends(verify_client_access)
+    db: AsyncSession = Depends(get_db),
+    client_account_id: str = Depends(verify_client_access)
 ):
     """
     Get current status and progress of assessment flow.
@@ -234,8 +234,8 @@ async def resume_assessment_flow(
     request: ResumeFlowRequest,
     background_tasks: BackgroundTasks,
     current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_async_db),
-    client_account_id: int = Depends(verify_client_access)
+    db: AsyncSession = Depends(get_db),
+    client_account_id: str = Depends(verify_client_access)
 ):
     """
     Resume assessment flow from current phase with user input.
@@ -293,8 +293,8 @@ async def navigate_to_assessment_phase(
     flow_id: str,
     phase: str,
     current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_async_db),
-    client_account_id: int = Depends(verify_client_access)
+    db: AsyncSession = Depends(get_db),
+    client_account_id: str = Depends(verify_client_access)
 ):
     """
     Navigate to specific phase in assessment flow (for user going back).
@@ -344,8 +344,8 @@ async def navigate_to_assessment_phase(
 async def get_architecture_standards(
     flow_id: str,
     current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_async_db),
-    client_account_id: int = Depends(verify_client_access)
+    db: AsyncSession = Depends(get_db),
+    client_account_id: str = Depends(verify_client_access)
 ):
     """
     Get architecture standards for assessment flow.
@@ -384,8 +384,8 @@ async def update_architecture_standards(
     flow_id: str,
     request: ArchitectureStandardsUpdateRequest,
     current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_async_db),
-    client_account_id: int = Depends(verify_client_access)
+    db: AsyncSession = Depends(get_db),
+    client_account_id: str = Depends(verify_client_access)
 ):
     """
     Update architecture standards and application overrides.
@@ -439,8 +439,8 @@ async def get_application_components(
     flow_id: str,
     app_id: Optional[str] = Query(None, description="Specific application ID"),
     current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_async_db),
-    client_account_id: int = Depends(verify_client_access)
+    db: AsyncSession = Depends(get_db),
+    client_account_id: str = Depends(verify_client_access)
 ):
     """
     Get identified components for all or specific application.
@@ -476,8 +476,8 @@ async def update_application_components(
     app_id: str,
     request: ComponentUpdate,
     current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_async_db),
-    client_account_id: int = Depends(verify_client_access)
+    db: AsyncSession = Depends(get_db),
+    client_account_id: str = Depends(verify_client_access)
 ):
     """
     Update component identification for application.
@@ -518,8 +518,8 @@ async def get_tech_debt_analysis(
     flow_id: str,
     app_id: Optional[str] = Query(None, description="Specific application ID"),
     current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_async_db),
-    client_account_id: int = Depends(verify_client_access)
+    db: AsyncSession = Depends(get_db),
+    client_account_id: str = Depends(verify_client_access)
 ):
     """
     Get technical debt analysis for applications.
@@ -555,8 +555,8 @@ async def update_tech_debt_analysis(
     app_id: str,
     request: TechDebtUpdates,
     current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_async_db),
-    client_account_id: int = Depends(verify_client_access)
+    db: AsyncSession = Depends(get_db),
+    client_account_id: str = Depends(verify_client_access)
 ):
     """
     Update tech debt analysis with user modifications.
@@ -598,8 +598,8 @@ async def update_tech_debt_analysis(
 async def get_sixr_decisions(
     flow_id: str,
     current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_async_db),
-    client_account_id: int = Depends(verify_client_access)
+    db: AsyncSession = Depends(get_db),
+    client_account_id: str = Depends(verify_client_access)
 ):
     """
     Get 6R decisions for all applications in flow.
@@ -629,8 +629,8 @@ async def update_sixr_decision(
     app_id: str,
     request: SixRDecisionUpdate,
     current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_async_db),
-    client_account_id: int = Depends(verify_client_access)
+    db: AsyncSession = Depends(get_db),
+    client_account_id: str = Depends(verify_client_access)
 ):
     """
     Update 6R decision for application with user modifications.
@@ -671,8 +671,8 @@ async def get_app_on_page(
     flow_id: str,
     app_id: str,
     current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_async_db),
-    client_account_id: int = Depends(verify_client_access)
+    db: AsyncSession = Depends(get_db),
+    client_account_id: str = Depends(verify_client_access)
 ):
     """
     Get comprehensive app-on-page view.
@@ -714,8 +714,8 @@ async def finalize_assessment(
     flow_id: str,
     request: AssessmentFinalization,
     current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_async_db),
-    client_account_id: int = Depends(verify_client_access)
+    db: AsyncSession = Depends(get_db),
+    client_account_id: str = Depends(verify_client_access)
 ):
     """
     Finalize assessment and mark apps ready for planning.
@@ -756,8 +756,8 @@ async def finalize_assessment(
 async def get_assessment_report(
     flow_id: str,
     current_user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_async_db),
-    client_account_id: int = Depends(verify_client_access)
+    db: AsyncSession = Depends(get_db),
+    client_account_id: str = Depends(verify_client_access)
 ):
     """
     Get comprehensive assessment report.
@@ -804,8 +804,8 @@ async def get_assessment_report(
 
 async def execute_assessment_flow_initialization(
     flow_id: str,
-    client_account_id: int,
-    engagement_id: int,
+    client_account_id: str,
+    engagement_id: str,
     user_id: str
 ):
     """Execute assessment flow initialization in background."""
@@ -828,7 +828,7 @@ async def resume_assessment_flow_execution(
     flow_id: str,
     phase: AssessmentPhase,
     user_input: Dict[str, Any],
-    client_account_id: int
+    client_account_id: str
 ):
     """Resume assessment flow execution from specific phase."""
     try:
@@ -879,11 +879,7 @@ async def validate_phase_user_input(phase: AssessmentPhase, user_input: Dict[str
     # Add more validation as needed
 
 
-async def verify_standards_modification_permission(current_user, client_account_id: int):
-    """Verify user has permission to modify standards."""
-    # Implementation for RBAC permission check
-    # For now, allow all authenticated users
-    pass
+# verify_standards_modification_permission is imported from context_helpers
 
 
 async def get_available_templates() -> List[Dict[str, Any]]:

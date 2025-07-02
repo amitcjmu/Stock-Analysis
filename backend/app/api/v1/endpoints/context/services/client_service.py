@@ -235,19 +235,6 @@ class ClientService:
             available_sessions=[session_base]
         )
     
-    async def get_public_clients(self) -> ClientsListResponse:
-        """Get public/demo clients"""
-        demo_clients = [
-            ClientResponse(
-                id="11111111-1111-1111-1111-111111111111",
-                name="Democorp",
-                industry="Technology",
-                company_size="1000-5000",
-                status="active"
-            )
-        ]
-        return ClientsListResponse(clients=demo_clients)
-    
     async def get_user_clients(self, user_id: UUID, is_platform_admin: bool) -> ClientsListResponse:
         """Get clients accessible to user"""
         clients = []

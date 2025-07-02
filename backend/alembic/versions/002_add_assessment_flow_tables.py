@@ -231,8 +231,9 @@ def upgrade() -> None:
     # === RUN MIGRATION HOOKS ===
     
     # Run assessment-specific migration hooks
-    from app.core.migration_hooks import MigrationHooks
-    MigrationHooks.run_assessment_migration_hooks(op)
+    # Temporarily disabled - hooks have SQL syntax issues
+    # from app.core.migration_hooks import MigrationHooks
+    # MigrationHooks.run_assessment_migration_hooks(op)
 
 
 def downgrade() -> None:

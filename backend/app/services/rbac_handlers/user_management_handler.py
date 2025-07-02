@@ -83,6 +83,34 @@ class UserManagementHandler(BaseRBACHandler):
             )
             
             self.db.add(user_profile)
+            
+            # Create pending ClientAccess if default_client_id is provided
+            if user_data.get("default_client_id"):
+                client_access = ClientAccess(
+                    user_profile_id=user_data["user_id"],
+                    client_account_id=user_data["default_client_id"],
+                    access_level=user_data.get("requested_access_level", AccessLevel.READ_ONLY),
+                    permissions=self._get_default_permissions(user_data.get("requested_access_level", AccessLevel.READ_ONLY)),
+                    granted_by=None,  # Will be set when approved
+                    is_active=False  # Not active until approved
+                )
+                self.db.add(client_access)
+                logger.info(f"Created pending ClientAccess for user {user_data['user_id']} to client {user_data['default_client_id']}")
+            
+            # Create pending EngagementAccess if default_engagement_id is provided
+            if user_data.get("default_engagement_id"):
+                engagement_access = EngagementAccess(
+                    user_profile_id=user_data["user_id"],
+                    engagement_id=user_data["default_engagement_id"],
+                    access_level=user_data.get("requested_access_level", AccessLevel.READ_ONLY),
+                    engagement_role=user_data.get("role_description", "Analyst"),
+                    permissions=self._get_default_permissions(user_data.get("requested_access_level", AccessLevel.READ_ONLY)),
+                    granted_by=None,  # Will be set when approved
+                    is_active=False  # Not active until approved
+                )
+                self.db.add(engagement_access)
+                logger.info(f"Created pending EngagementAccess for user {user_data['user_id']} to engagement {user_data['default_engagement_id']}")
+            
             await self.db.commit()
             await self.db.refresh(user_profile)
             
@@ -142,7 +170,39 @@ class UserManagementHandler(BaseRBACHandler):
             access_level = approval_data.get("access_level", user_profile.requested_access_level)
             client_accesses = approval_data.get("client_access", [])
             
-            # Create client access records
+            # Activate any pending access records from registration
+            if user_profile.requested_access_level:
+                # Activate pending ClientAccess records
+                pending_client_access = await self.db.execute(
+                    select(ClientAccess).where(
+                        and_(
+                            ClientAccess.user_profile_id == user_id,
+                            ClientAccess.is_active == False
+                        )
+                    )
+                )
+                for access in pending_client_access.scalars():
+                    access.is_active = True
+                    access.granted_by = approved_by
+                    access.granted_at = datetime.utcnow()
+                    logger.info(f"Activated pending ClientAccess {access.id} for user {user_id}")
+                
+                # Activate pending EngagementAccess records
+                pending_engagement_access = await self.db.execute(
+                    select(EngagementAccess).where(
+                        and_(
+                            EngagementAccess.user_profile_id == user_id,
+                            EngagementAccess.is_active == False
+                        )
+                    )
+                )
+                for access in pending_engagement_access.scalars():
+                    access.is_active = True
+                    access.granted_by = approved_by
+                    access.granted_at = datetime.utcnow()
+                    logger.info(f"Activated pending EngagementAccess {access.id} for user {user_id}")
+            
+            # Create additional client access records if specified
             for client_access_data in client_accesses:
                 client_access = ClientAccess(
                     user_profile_id=user_id,

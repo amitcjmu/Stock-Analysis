@@ -5,11 +5,31 @@ Complete SQLAlchemy models for assessment flow architecture with multi-tenant su
 import uuid
 from datetime import datetime
 from typing import Optional, Dict, Any, List
+from enum import Enum
 from sqlalchemy import Column, String, DateTime, Integer, Boolean, Text, Float, ForeignKey, CheckConstraint, UniqueConstraint, Numeric
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.core.database import Base
+
+
+class AssessmentFlowStatus(str, Enum):
+    """Assessment flow status states."""
+    INITIALIZED = "initialized"
+    PROCESSING = "processing"
+    PAUSED_FOR_USER_INPUT = "paused_for_user_input"
+    COMPLETED = "completed"
+    ERROR = "error"
+
+
+class AssessmentPhase(str, Enum):
+    """Assessment flow phases."""
+    INITIALIZATION = "initialization"
+    ARCHITECTURE_MINIMUMS = "architecture_minimums"
+    TECH_DEBT_ANALYSIS = "tech_debt_analysis"
+    COMPONENT_SIXR_STRATEGIES = "component_sixr_strategies"
+    APP_ON_PAGE_GENERATION = "app_on_page_generation"
+    FINALIZATION = "finalization"
 
 class AssessmentFlow(Base):
     """
@@ -22,8 +42,8 @@ class AssessmentFlow(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     
     # Multi-tenant isolation
-    client_account_id = Column(UUID(as_uuid=True), nullable=False, index=True)
-    engagement_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    client_account_id = Column(UUID(as_uuid=True), ForeignKey('client_accounts.id', ondelete='CASCADE'), nullable=False, index=True)
+    engagement_id = Column(UUID(as_uuid=True), ForeignKey('engagements.id', ondelete='CASCADE'), nullable=False, index=True)
     
     # Flow configuration
     selected_application_ids = Column(JSONB, nullable=False)  # List of application UUIDs
@@ -53,12 +73,10 @@ class AssessmentFlow(Base):
     # Constraints
     __table_args__ = (
         CheckConstraint('progress >= 0 AND progress <= 100', name='valid_progress'),
-        ForeignKey('client_accounts.id', ondelete='CASCADE'),
-        ForeignKey('engagements.id', ondelete='CASCADE'),
     )
     
     # Relationships
-    architecture_standards = relationship("EngagementArchitectureStandard", back_populates="assessment_flow", cascade="all, delete-orphan")
+    # Note: architecture_standards are linked via engagement_id, not directly
     application_overrides = relationship("ApplicationArchitectureOverride", back_populates="assessment_flow", cascade="all, delete-orphan")
     application_components = relationship("ApplicationComponent", back_populates="assessment_flow", cascade="all, delete-orphan")
     tech_debt_analysis = relationship("TechDebtAnalysis", back_populates="assessment_flow", cascade="all, delete-orphan")
@@ -78,7 +96,7 @@ class EngagementArchitectureStandard(Base):
     __tablename__ = 'engagement_architecture_standards'
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    engagement_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    engagement_id = Column(UUID(as_uuid=True), ForeignKey('engagements.id', ondelete='CASCADE'), nullable=False, index=True)
     
     # Standard definition
     requirement_type = Column(String(100), nullable=False)  # e.g., 'java_versions', 'security_standards'
@@ -97,11 +115,10 @@ class EngagementArchitectureStandard(Base):
     # Constraints
     __table_args__ = (
         UniqueConstraint('engagement_id', 'requirement_type', name='unique_engagement_requirement'),
-        ForeignKey('engagements.id', ondelete='CASCADE'),
     )
     
     # Relationships
-    assessment_flow = relationship("AssessmentFlow", back_populates="architecture_standards")
+    # Note: Related to AssessmentFlow via engagement_id, not direct foreign key
     application_overrides = relationship("ApplicationArchitectureOverride", back_populates="standard")
 
     def __repr__(self):

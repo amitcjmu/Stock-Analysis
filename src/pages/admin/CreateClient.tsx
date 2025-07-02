@@ -73,9 +73,13 @@ const CreateClient: React.FC = () => {
       navigate('/admin/clients');
     },
     onError: (error: any) => {
+      console.error('Create client error:', error);
+      const errorMessage = error?.response?.data?.detail || 
+                          error?.message || 
+                          "Failed to create client. Please try again.";
       toast({
         title: "Error",
-        description: error?.message || "Failed to create client. Please try again.",
+        description: errorMessage,
         variant: "destructive"
       });
     }
@@ -306,8 +310,9 @@ const CreateClient: React.FC = () => {
                   <Label>Target Cloud Providers</Label>
                   <div className="grid grid-cols-2 gap-2">
                     {CloudProviders.map(provider => (
-                      <label key={provider.value} className="flex items-center space-x-2">
+                      <div key={provider.value} className="flex items-center space-x-2">
                         <Checkbox
+                          id={`cloud-${provider.value}`}
                           checked={formData.target_cloud_providers.includes(provider.value)}
                           onCheckedChange={(checked) => {
                             const currentArray = formData.target_cloud_providers;
@@ -318,8 +323,10 @@ const CreateClient: React.FC = () => {
                             }
                           }}
                         />
-                        <span className="text-sm">{provider.label}</span>
-                      </label>
+                        <label htmlFor={`cloud-${provider.value}`} className="text-sm cursor-pointer">
+                          {provider.label}
+                        </label>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -328,8 +335,9 @@ const CreateClient: React.FC = () => {
                   <Label>Business Priorities</Label>
                   <div className="grid grid-cols-2 gap-2">
                     {BusinessPriorities.map(priority => (
-                      <label key={priority.value} className="flex items-center space-x-2">
+                      <div key={priority.value} className="flex items-center space-x-2">
                         <Checkbox
+                          id={`priority-${priority.value}`}
                           checked={formData.business_priorities.includes(priority.value)}
                           onCheckedChange={(checked) => {
                             const currentArray = formData.business_priorities;
@@ -340,8 +348,10 @@ const CreateClient: React.FC = () => {
                             }
                           }}
                         />
-                        <span className="text-sm">{priority.label}</span>
-                      </label>
+                        <label htmlFor={`priority-${priority.value}`} className="text-sm cursor-pointer">
+                          {priority.label}
+                        </label>
+                      </div>
                     ))}
                   </div>
                 </div>

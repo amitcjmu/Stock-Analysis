@@ -1,13 +1,5 @@
 import React from 'react';
-import { useRouter } from 'next/router';
-import { 
-  Sidebar, 
-  SidebarContent, 
-  SidebarHeader, 
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton 
-} from '@/components/ui/sidebar';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -21,6 +13,12 @@ import {
 } from 'lucide-react';
 import { useAssessmentFlow, AssessmentPhase } from '@/hooks/useAssessmentFlow';
 import { cn } from '@/lib/utils';
+
+import MainSidebar from '../Sidebar';
+import ContextBreadcrumbs from '../context/ContextBreadcrumbs';
+import AgentClarificationPanel from '../discovery/AgentClarificationPanel';
+import AgentInsightsSection from '../discovery/AgentInsightsSection';
+import AgentPlanningDashboard from '../discovery/AgentPlanningDashboard';
 
 interface AssessmentFlowLayoutProps {
   children: React.ReactNode;
@@ -48,280 +46,252 @@ const PHASE_CONFIG: PhaseConfig[] = [
   {
     id: 'tech_debt_analysis', 
     title: 'Technical Debt Analysis',
-    description: 'Analyze components and identify modernization opportunities',
+    description: 'Identify and analyze technical debt across applications',
     route: 'tech-debt',
-    icon: ({ className }) => <Circle className={className} />,
-    estimatedTime: '20-45 min'
+    icon: ({ className }) => <AlertCircle className={className} />,
+    estimatedTime: '20-40 min'
   },
   {
     id: 'component_sixr_strategies',
     title: '6R Strategy Review',
-    description: 'Review and modify component-level modernization strategies',
-    route: 'sixr-review', 
-    icon: ({ className }) => <Circle className={className} />,
+    description: 'Review and approve component-level migration strategies',
+    route: 'sixr-review',
+    icon: ({ className }) => <CheckCircle2 className={className} />,
     estimatedTime: '30-60 min'
   },
   {
     id: 'app_on_page_generation',
-    title: 'Application Review',
-    description: 'Comprehensive review of all application assessments',
+    title: 'Application Summary',
+    description: 'Generate comprehensive application summaries',
     route: 'app-on-page',
     icon: ({ className }) => <Circle className={className} />,
-    estimatedTime: '15-30 min'
+    estimatedTime: '10-20 min'
   },
   {
     id: 'finalization',
-    title: 'Assessment Summary',
-    description: 'Finalize assessment and prepare for planning',
+    title: 'Summary & Export',
+    description: 'Review assessment and export to planning',
     route: 'summary',
-    icon: ({ className }) => <Circle className={className} />,
-    estimatedTime: '10-15 min'
+    icon: ({ className }) => <CheckCircle2 className={className} />,
+    estimatedTime: '5-10 min'
   }
 ];
 
-export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({
-  children,
-  flowId
+export const AssessmentFlowLayout: React.FC<AssessmentFlowLayoutProps> = ({ 
+  children, 
+  flowId 
 }) => {
-  const router = useRouter();
-  const {
-    state,
-    navigateToPhase,
-    canNavigateToPhase,
-    isPhaseComplete,
-    getPhaseProgress
-  } = useAssessmentFlow(flowId);
+  const navigate = useNavigate();
+  const { state, navigateToPhase } = useAssessmentFlow(flowId);
   
-  const getPhaseStatus = (phase: AssessmentPhase) => {
-    if (state.currentPhase === phase) {
-      if (state.status === 'processing') return 'processing';
-      if (state.status === 'paused_for_user_input') return 'active';
-      if (state.status === 'error') return 'error';
+  const getPhaseStatus = (phaseId: AssessmentPhase) => {
+    if (state.error) return 'error';
+    if (state.currentPhase === phaseId) {
+      return state.status === 'processing' ? 'processing' : 'active';
     }
+    // Simple phase completion logic - can be enhanced
+    const phaseOrder = ['architecture_minimums', 'tech_debt_analysis', 'component_sixr_strategies', 'app_on_page_generation', 'finalization'];
+    const currentIndex = phaseOrder.indexOf(state.currentPhase);
+    const phaseIndex = phaseOrder.indexOf(phaseId);
     
-    if (isPhaseComplete(phase)) return 'completed';
-    if (canNavigateToPhase(phase)) return 'available';
+    if (phaseIndex < currentIndex) return 'completed';
+    if (phaseIndex === currentIndex) return 'active';
     return 'disabled';
   };
-  
-  const getPhaseIcon = (phase: AssessmentPhase, status: string) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircle2 className="h-5 w-5 text-green-600" />;
-      case 'processing':
-        return <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />;
-      case 'active':
-        return <Clock className="h-5 w-5 text-blue-600" />;
-      case 'error':
-        return <AlertCircle className="h-5 w-5 text-red-600" />;
-      default:
-        return <Circle className="h-5 w-5 text-gray-400" />;
-    }
+
+  const isPhaseComplete = (phaseId: AssessmentPhase) => {
+    return getPhaseStatus(phaseId) === 'completed';
   };
-  
+
+  const canNavigateToPhase = (phaseId: AssessmentPhase) => {
+    const status = getPhaseStatus(phaseId);
+    return status === 'completed' || status === 'active' || status === 'processing';
+  };
+
+  const getPhaseIcon = (phaseId: AssessmentPhase, status: string) => {
+    if (status === 'completed') return <CheckCircle2 className="h-4 w-4" />;
+    if (status === 'processing') return <Loader2 className="h-4 w-4 animate-spin" />;
+    if (status === 'error') return <AlertCircle className="h-4 w-4" />;
+    
+    const phase = PHASE_CONFIG.find(p => p.id === phaseId);
+    const IconComponent = phase?.icon || Circle;
+    return <IconComponent className="h-4 w-4" />;
+  };
+
   const handlePhaseNavigation = async (phase: AssessmentPhase, route: string) => {
     if (!canNavigateToPhase(phase)) return;
     
     try {
       await navigateToPhase(phase);
-      await router.push(`/assessment/${flowId}/${route}`);
+      await navigate(`/assessment/${flowId}/${route}`);
     } catch (error) {
       console.error('Navigation failed:', error);
     }
   };
   
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Left Sidebar */}
-      <Sidebar className="w-80 border-r border-gray-200 bg-white">
-        <SidebarHeader className="p-6 border-b border-gray-200">
-          <div className="space-y-4">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">
-                Assessment Flow
-              </h2>
-              <p className="text-sm text-gray-600 mt-1">
-                {state.selectedApplicationIds.length} applications selected
-              </p>
-            </div>
-            
-            {/* Overall Progress */}
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-gray-700">
-                  Overall Progress
-                </span>
-                <span className="text-sm text-gray-600">
-                  {state.progress}%
-                </span>
-              </div>
-              <Progress value={state.progress} className="h-2" />
-            </div>
-            
-            {/* Status Badge */}
-            <div className="flex items-center space-x-2">
-              <Badge 
-                variant={
-                  state.status === 'completed' ? 'default' :
-                  state.status === 'error' ? 'destructive' :
-                  state.status === 'processing' ? 'default' : 'secondary'
-                }
-              >
-                {state.status.replace('_', ' ').toUpperCase()}
-              </Badge>
-              
-              {state.appsReadyForPlanning.length > 0 && (
-                <Badge variant="outline">
-                  {state.appsReadyForPlanning.length} ready for planning
+    <div className="flex min-h-screen bg-gray-50">
+      <div className="hidden lg:block w-64 border-r bg-white">
+        <MainSidebar />
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-7xl">
+          <div className="mb-6">
+            <ContextBreadcrumbs />
+          </div>
+
+          {/* Assessment Flow Progress Header */}
+          <div className="mb-6">
+            <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Assessment Flow Progress
+                  </h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {state.selectedApplicationIds?.length || 0} applications • {state.currentPhase?.replace('_', ' ') || 'Unknown phase'}
+                  </p>
+                </div>
+                
+                <Badge 
+                  variant={
+                    state.status === 'completed' ? 'default' :
+                    state.status === 'error' ? 'destructive' :
+                    state.status === 'processing' ? 'default' : 'secondary'
+                  }
+                >
+                  {state.status?.replace('_', ' ').toUpperCase() || 'UNKNOWN'}
                 </Badge>
+              </div>
+              
+              {/* Overall Progress */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-gray-700">
+                    Overall Progress
+                  </span>
+                  <span className="text-sm text-gray-600">
+                    {state.progress || 0}%
+                  </span>
+                </div>
+                <Progress value={state.progress || 0} className="h-2" />
+              </div>
+              
+              {/* Phase Navigation */}
+              <div className="mt-4 flex flex-wrap gap-2">
+                {PHASE_CONFIG.map((phase) => {
+                  const status = getPhaseStatus(phase.id);
+                  const isCurrentPhase = state.currentPhase === phase.id;
+                  const canNavigate = canNavigateToPhase(phase.id);
+                  
+                  return (
+                    <Button
+                      key={phase.id}
+                      variant={isCurrentPhase ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => handlePhaseNavigation(phase.id, phase.route)}
+                      disabled={!canNavigate}
+                      className={cn(
+                        "flex items-center space-x-2",
+                        status === 'completed' && "border-green-300 text-green-700"
+                      )}
+                    >
+                      {getPhaseIcon(phase.id, status)}
+                      <span>{phase.title}</span>
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+            <div className="xl:col-span-3 space-y-6">
+              {/* Status Alerts */}
+              {state.error && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <AlertCircle className="h-5 w-5 text-red-600" />
+                    <p className="text-sm text-red-600">{state.error}</p>
+                  </div>
+                </div>
+              )}
+              
+              {state.status === 'paused_for_user_input' && (
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <Clock className="h-5 w-5 text-blue-600" />
+                    <p className="text-sm text-blue-600">
+                      Waiting for your input to continue...
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Main Content */}
+              {children}
+            </div>
+
+            <div className="xl:col-span-1 space-y-6">
+              {/* Agent Communication Panel */}
+              <AgentClarificationPanel 
+                pageContext={`assessment-${state.currentPhase || 'unknown'}`}
+                refreshTrigger={0}
+                onQuestionAnswered={(questionId, response) => {
+                  console.log('Assessment question answered:', questionId, response);
+                }}
+              />
+
+              {/* Agent Insights */}
+              <AgentInsightsSection 
+                pageContext={`assessment-${state.currentPhase || 'unknown'}`}
+                refreshTrigger={0}
+                onInsightAction={(insightId, action) => {
+                  console.log('Assessment insight action:', insightId, action);
+                }}
+              />
+
+              {/* Agent Planning Dashboard */}
+              <AgentPlanningDashboard pageContext={`assessment-${state.currentPhase || 'unknown'}`} />
+              
+              {/* Real-time Agent Updates */}
+              {state.agentUpdates?.length > 0 && state.status === 'processing' && (
+                <div className="bg-white border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-center space-x-2 mb-3">
+                    <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
+                    <span className="text-sm font-medium text-gray-900">
+                      AI Agents Working...
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    {state.agentUpdates.slice(-3).map((update, index) => (
+                      <p key={index} className="text-xs text-gray-600 p-2 bg-gray-50 rounded">
+                        {update.message}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Continue to Planning */}
+              {state.status === 'completed' && (
+                <div className="bg-white border border-gray-200 rounded-lg p-4">
+                  <Button 
+                    className="w-full" 
+                    onClick={() => navigate(`/planning`)}
+                  >
+                    Continue to Planning
+                  </Button>
+                </div>
               )}
             </div>
           </div>
-        </SidebarHeader>
-        
-        <SidebarContent className="p-4">
-          <SidebarMenu>
-            {PHASE_CONFIG.map((phase, index) => {
-              const status = getPhaseStatus(phase.id);
-              const isCurrentPhase = state.currentPhase === phase.id;
-              const canNavigate = canNavigateToPhase(phase.id);
-              
-              return (
-                <SidebarMenuItem key={phase.id}>
-                  <SidebarMenuButton
-                    onClick={() => canNavigate && handlePhaseNavigation(phase.id, phase.route)}
-                    className={cn(
-                      "w-full p-4 rounded-lg transition-all duration-200",
-                      isCurrentPhase && "bg-blue-50 border-2 border-blue-200",
-                      canNavigate && !isCurrentPhase && "hover:bg-gray-50",
-                      !canNavigate && "opacity-50 cursor-not-allowed"
-                    )}
-                    disabled={!canNavigate}
-                  >
-                    <div className="flex items-start space-x-3 w-full">
-                      {/* Phase Number & Icon */}
-                      <div className="flex-shrink-0 flex flex-col items-center">
-                        <div className={cn(
-                          "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
-                          status === 'completed' && "bg-green-100 text-green-700",
-                          status === 'active' && "bg-blue-100 text-blue-700", 
-                          status === 'processing' && "bg-blue-100 text-blue-700",
-                          status === 'error' && "bg-red-100 text-red-700",
-                          status === 'available' && "bg-gray-100 text-gray-600",
-                          status === 'disabled' && "bg-gray-50 text-gray-400"
-                        )}>
-                          {getPhaseIcon(phase.id, status)}
-                        </div>
-                        
-                        {/* Connector Line */}
-                        {index < PHASE_CONFIG.length - 1 && (
-                          <div className={cn(
-                            "w-0.5 h-8 mt-2",
-                            isPhaseComplete(phase.id) ? "bg-green-300" : "bg-gray-200"
-                          )} />
-                        )}
-                      </div>
-                      
-                      {/* Phase Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <h3 className={cn(
-                            "font-medium truncate",
-                            isCurrentPhase ? "text-blue-900" : "text-gray-900"
-                          )}>
-                            {phase.title}
-                          </h3>
-                          
-                          {canNavigate && (
-                            <ChevronRight className="h-4 w-4 text-gray-400" />
-                          )}
-                        </div>
-                        
-                        <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                          {phase.description}
-                        </p>
-                        
-                        <div className="flex items-center justify-between mt-2">
-                          <span className="text-xs text-gray-500">
-                            {phase.estimatedTime}
-                          </span>
-                          
-                          {status === 'completed' && (
-                            <span className="text-xs text-green-600 font-medium">
-                              Complete
-                            </span>
-                          )}
-                          
-                          {status === 'processing' && (
-                            <span className="text-xs text-blue-600 font-medium">
-                              Processing...
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              );
-            })}
-          </SidebarMenu>
-        </SidebarContent>
-        
-        {/* Footer Actions */}
-        <div className="p-4 border-t border-gray-200 space-y-3">
-          {state.error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-600">{state.error}</p>
-            </div>
-          )}
-          
-          {state.status === 'paused_for_user_input' && (
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-600">
-                Waiting for your input to continue...
-              </p>
-            </div>
-          )}
-          
-          {state.status === 'completed' && (
-            <Button 
-              className="w-full" 
-              onClick={() => router.push(`/planning`)}
-            >
-              Continue to Planning
-            </Button>
-          )}
         </div>
-      </Sidebar>
-      
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto">
-        <div className="h-full">
-          {children}
-        </div>
-      </main>
-      
-      {/* Real-time Updates Overlay */}
-      {state.agentUpdates.length > 0 && state.status === 'processing' && (
-        <div className="fixed bottom-4 right-4 max-w-sm">
-          <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-4">
-            <div className="flex items-center space-x-2 mb-2">
-              <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
-              <span className="text-sm font-medium text-gray-900">
-                AI Agents Working...
-              </span>
-            </div>
-            
-            <div className="space-y-1">
-              {state.agentUpdates.slice(-3).map((update, index) => (
-                <p key={index} className="text-xs text-gray-600">
-                  {update.message}
-                </p>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 };
+
+export default AssessmentFlowLayout;

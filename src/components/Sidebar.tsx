@@ -111,7 +111,8 @@ const Sidebar = () => {
         { name: 'Treatment', path: '/assess/treatment', icon: ClipboardList },
         { name: 'Wave Planning', path: '/assess/waveplanning', icon: Calendar },
         { name: 'Roadmap', path: '/assess/roadmap', icon: Route },
-        { name: 'Editor', path: '/assess/editor', icon: Edit }
+        { name: 'Editor', path: '/assess/editor', icon: Edit },
+        { name: 'Assessment Flow', path: '/assessment/initialize', icon: GitBranch }
       ]
     },
     { 

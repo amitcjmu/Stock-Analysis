@@ -17,7 +17,7 @@ os.environ["DATABASE_URL"] = "postgresql://test_user:test_pass@localhost:5434/te
 try:
     from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
     from sqlalchemy.orm import sessionmaker
-    from app.core.database import Base, get_async_db
+    from app.core.database import Base, get_db
     from app.core.flow_context import FlowContext
     SQLALCHEMY_AVAILABLE = True
 except ImportError:

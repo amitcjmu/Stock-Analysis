@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class ContextAwareRepository:
     """Base repository with context awareness for multi-tenant data access."""
     
-    def __init__(self, db: Session, client_account_id: Optional[int] = None, engagement_id: Optional[int] = None, user_id: Optional[str] = None):
+    def __init__(self, db: Session, client_account_id: Optional[str] = None, engagement_id: Optional[str] = None, user_id: Optional[str] = None):
         self.db = db
         self.client_account_id = client_account_id
         self.engagement_id = engagement_id

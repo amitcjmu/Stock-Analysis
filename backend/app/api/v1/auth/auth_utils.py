@@ -1,7 +1,7 @@
 """
 Authentication Utilities
 """
-from typing import Annotated
+from typing import Annotated, Optional
 from uuid import UUID
 
 from fastapi import Depends, HTTPException, status
@@ -15,13 +15,14 @@ from app.models.client_account import User
 from app.schemas.auth_schemas import TokenPayload
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/token")
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/token", auto_error=False)
 
-# Demo mode constants - SECURITY: Only demo user, no admin@democorp
-DEMO_USER_ID = UUID("44444444-4444-4444-4444-444444444444")
-DEMO_USER_EMAIL = "demo@democorp.com"
+# Demo mode constants - Fixed UUIDs for frontend fallback
+DEMO_USER_ID = UUID("33333333-3333-3333-3333-333333333333")
+DEMO_USER_EMAIL = "demo@demo-corp.com"
 DEMO_CLIENT_ID = UUID("11111111-1111-1111-1111-111111111111")
 DEMO_ENGAGEMENT_ID = UUID("22222222-2222-2222-2222-222222222222")
-DEMO_FLOW_ID = UUID("33333333-3333-3333-3333-333333333333")
+DEMO_FLOW_ID = UUID("44444444-4444-4444-4444-444444444444")
 
 async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db = Depends(get_db)):
     credentials_exception = HTTPException(
@@ -65,7 +66,7 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db = D
 
             # If user not found in DB, create a mock user object based on ID
             # SECURITY: Only create demo user mock - no admin@democorp fallback
-            mock_user = User(id=DEMO_USER_ID, email=DEMO_USER_EMAIL, is_active=True, is_mock=True)
+            mock_user = User(id=DEMO_USER_ID, email=DEMO_USER_EMAIL, is_active=True)
             mock_user.role = "demo"
             
             # Attach required relationship data to the mock object
@@ -78,14 +79,14 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db = D
     except Exception:
         # Fallback for any other error during token processing or DB access
         # This ensures the app can run in a "demo" mode even if DB is down
-        mock_user = User(id=DEMO_USER_ID, email=DEMO_USER_EMAIL, is_active=True, is_mock=True)
+        mock_user = User(id=DEMO_USER_ID, email=DEMO_USER_EMAIL, is_active=True)
         mock_user.role = "demo"
         mock_user.client_accounts = [{"id": str(DEMO_CLIENT_ID), "name": "Democorp"}]
         mock_user.engagements = [{"id": str(DEMO_ENGAGEMENT_ID), "name": "Cloud Migration 2024"}]
         return mock_user
 
     # Fallback for any error during token processing or DB access
-    mock_user = User(id=DEMO_USER_ID, email=DEMO_USER_EMAIL, is_active=True, is_mock=True)
+    mock_user = User(id=DEMO_USER_ID, email=DEMO_USER_EMAIL, is_active=True)
     mock_user.role = "demo"
     mock_user.client_accounts = [{"id": str(DEMO_CLIENT_ID), "name": "Democorp"}]
     mock_user.engagements = [{"id": str(DEMO_ENGAGEMENT_ID), "name": "Cloud Migration 2024"}]
@@ -97,4 +98,19 @@ def get_current_active_user(
 ):
     if not current_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
-    return current_user 
+    return current_user
+
+
+async def get_current_user_optional(token: Annotated[Optional[str], Depends(oauth2_scheme_optional)], db = Depends(get_db)) -> Optional[User]:
+    """
+    Optional version of get_current_user that returns None if no token provided.
+    This is useful for endpoints that need to work for both authenticated and anonymous users.
+    """
+    if not token:
+        return None
+    
+    try:
+        return await get_current_user(token, db)
+    except HTTPException:
+        # If token is invalid, return None instead of raising
+        return None 

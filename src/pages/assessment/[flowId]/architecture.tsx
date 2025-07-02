@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { GetServerSideProps } from 'next/router';
+import { useParams } from 'react-router-dom';
+import { SidebarProvider } from '@/components/ui/sidebar';
 import { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayout';
 import { ArchitectureStandardsForm } from '@/components/assessment/ArchitectureStandardsForm';
 import { TemplateSelector } from '@/components/assessment/TemplateSelector';
@@ -9,11 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle, Save, ArrowRight } from 'lucide-react';
 
-interface ArchitecturePageProps {
-  flowId: string;
-}
-
-const ArchitecturePage: React.FC<ArchitecturePageProps> = ({ flowId }) => {
+const ArchitecturePage: React.FC = () => {
+  const { flowId } = useParams<{ flowId: string }>() as { flowId: string };
   const {
     state,
     updateArchitectureStandards,
@@ -60,7 +58,8 @@ const ArchitecturePage: React.FC<ArchitecturePageProps> = ({ flowId }) => {
   };
   
   return (
-    <AssessmentFlowLayout flowId={flowId}>
+    <SidebarProvider>
+      <AssessmentFlowLayout flowId={flowId}>
       <div className="p-6 max-w-6xl mx-auto space-y-6">
         {/* Header */}
         <div className="space-y-2">
@@ -167,16 +166,10 @@ const ArchitecturePage: React.FC<ArchitecturePageProps> = ({ flowId }) => {
           </Button>
         </div>
       </div>
-    </AssessmentFlowLayout>
+      </AssessmentFlowLayout>
+    </SidebarProvider>
   );
 };
 
-export const getServerSideProps: GetServerSideProps = async (context) => {
-  return {
-    props: {
-      flowId: context.params?.flowId as string
-    }
-  };
-};
 
 export default ArchitecturePage;
