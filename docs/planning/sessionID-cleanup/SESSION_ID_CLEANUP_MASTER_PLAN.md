@@ -3,9 +3,9 @@
 ## 🎯 **Mission Statement**
 
 **Goal**: Complete elimination of all session_id references from the codebase  
-**Context**: The flow_id migration is 75% complete. This is the FINAL CLEANUP to remove 132+ residual session_id references that are causing active bugs.  
-**Approach**: Direct replacement - NO backward compatibility, NO deprecation warnings  
-**Timeline**: 2-3 weeks with 6 parallel agents
+**Context**: The flow_id migration is 75% complete. Recent comprehensive audit reveals 246 total files with session_id references (originally estimated 132+).  
+**Approach**: Staged cleanup with backend focus - maintain migration infrastructure during transition  
+**Timeline**: 6-8 weeks with enhanced backend team allocation
 
 ## 🚨 **Critical Context**
 
@@ -22,33 +22,41 @@
 
 ## 📊 **Scope of Work**
 
-**Total Files Identified**: 47 files with active session_id usage
+**Total Files Identified**: 246 files with session_id usage
+- **216 Backend Files** (88%): Core systems, APIs, services, models, repositories
+- **30 Frontend Files** (12%): Components, hooks, services (reduced due to modularization)
 - **18 Critical Files**: Core system components (must fix first)
-- **15 High Priority Files**: Frontend components and services
-- **14 Medium Priority Files**: Utilities and cleanup
+- **Modularization Progress**: Main components like CMDBImport.tsx successfully cleaned
 
 ## 👥 **Agent Assignments Overview**
 
-| Agent | Focus Area | File Count | Priority Level |
-|-------|------------|------------|----------------|
-| Agent 1 | Core Backend Context | 6 | 🔥 CRITICAL |
-| Agent 2 | Database Models & Repos | 8 | 🔥 CRITICAL |
-| Agent 3 | APIs & Services | 10 | 🔥 CRITICAL |
-| Agent 4 | Frontend Infrastructure | 8 | 🔴 HIGH |
-| Agent 5 | Frontend Components | 10 | 🔴 HIGH |
-| Agent 6 | Testing & Migrations | 5 | 🟡 MEDIUM |
+| Agent | Focus Area | File Count | Priority Level | Notes |
+|-------|------------|------------|----------------|-------|
+| **Agent 1** | Core Backend Context | **15** | 🔥 CRITICAL | Expanded scope |
+| **Agent 2** | Database Models & Repos | **60** | 🔥 CRITICAL | Major expansion |
+| **Agent 3** | Backend APIs & Services | **80** | 🔥 CRITICAL | Massive expansion |
+| **Agent 4** | Frontend Infrastructure | **8** | 🔴 HIGH | Preserve migration utils |
+| **Agent 5** | Frontend Components | **15** | 🔴 HIGH | Focus on modular hooks |
+| **Agent 6** | Backend Services & Testing | **68** | 🔥 CRITICAL | New backend focus |
 
 ## 🔄 **Execution Timeline**
 
-### **Week 1 (Days 1-7)**
-- **Days 1-2**: Agents 1-3 tackle critical backend files
-- **Days 3-4**: Agent 4 starts frontend infrastructure (after Agent 1 completes context.py)
-- **Days 5-7**: Agent 5 begins component updates, Agent 6 prepares migrations
+### **Weeks 1-2: Critical Backend Foundation**
+- **Days 1-3**: Agent 1 completes core context system (CRITICAL BLOCKER)
+- **Days 4-7**: Agents 2-3-6 tackle database models, APIs, and core services
+- **Days 8-14**: Continue massive backend cleanup (216 files)
 
-### **Week 2 (Days 8-14)**
-- **Days 8-10**: Complete all frontend work
-- **Days 11-12**: Run database migrations, update all tests
-- **Days 13-14**: Final verification and bug fixes
+### **Weeks 3-4: Backend Services & API Consolidation**
+- **Days 15-21**: Complete backend service layer cleanup
+- **Days 22-28**: API v3 cleanup and V1 deprecation
+
+### **Weeks 5-6: Frontend & Testing**
+- **Days 29-35**: Frontend infrastructure and component updates (30 files)
+- **Days 36-42**: Comprehensive testing and final verification
+
+### **Weeks 7-8: Buffer & Completion**
+- **Days 43-49**: Bug fixes and integration issues
+- **Days 50-56**: Final testing and documentation
 
 ## 🛠️ **Technical Patterns**
 
@@ -112,12 +120,12 @@ After completing each file, update this tracker:
 
 | Agent | Files Completed | Files Remaining | Status | Notes |
 |-------|----------------|-----------------|---------|-------|
-| Agent 1 | 0/6 | 6 | Not Started | - |
-| Agent 2 | 0/8 | 8 | Not Started | - |
-| Agent 3 | 0/10 | 10 | Not Started | - |
-| Agent 4 | 0/8 | 8 | Not Started | - |
-| Agent 5 | 0/10 | 10 | Not Started | - |
-| Agent 6 | 0/5 | 5 | Not Started | - |
+| Agent 1 | 4/15 | 11 | In Progress | Core Backend Context - context.py COMPLETED, sessions.py deleted |
+| Agent 2 | 8/60 | 52 | In Progress | Models & repos cleaned, migration created |
+| Agent 3 | 0/80 | 80 | Not Started | APIs & Services |
+| Agent 4 | 0/8 | 8 | Not Started | Frontend Infrastructure |
+| Agent 5 | 0/15 | 15 | Not Started | Frontend Components |
+| Agent 6 | 9/68 | 59 | In Progress | Backend Services & Testing - Cleaning services and tests |
 
 ### **Blocker Log**
 
@@ -158,11 +166,15 @@ Each agent has their own detailed task file:
 
 ### **Search Patterns**
 ```bash
-# Find backend session_id
+# Find backend session_id (216 files)
 grep -r "session_id" backend/app/ --include="*.py"
 
-# Find frontend sessionId
+# Find frontend sessionId (30 files)  
 grep -r "sessionId" src/ --include="*.ts" --include="*.tsx"
+
+# Count remaining files
+grep -r "session_id" backend/ --include="*.py" | wc -l
+grep -r "sessionId" src/ --include="*.ts" --include="*.tsx" | wc -l
 
 # Common replacements
 session_id → flow_id
@@ -171,6 +183,12 @@ import_session_id → flow_id
 get_session_id → get_flow_id
 by_session_id → by_flow_id
 ```
+
+### **⚠️ Modularization Notes**
+- **CMDBImport.tsx**: Main component is now clean, focus on modular hooks
+- **SessionToFlowMigration**: Preserve during transition (working infrastructure)
+- **Repository patterns**: Check modularized subfolders (queries/, commands/)
+- **Backend scope**: 88% of work is backend (216/246 files)
 
 ### **Git Branch Naming**
 ```bash
@@ -190,6 +208,8 @@ cleanup/session-id-agent-2-models
 
 ---
 
-**Start Date**: [To be filled]  
-**Target Completion**: 2-3 weeks from start  
+**Scope Update**: 246 files total (5x larger than originally estimated)  
+**Backend Heavy**: 216 files (88%) require backend expertise  
+**Target Completion**: 6-8 weeks from start  
+**Modularization Impact**: Frontend main components successfully cleaned  
 **Daily Sync**: Update the Progress Tracker above
