@@ -40,7 +40,7 @@ class CrewAIExecutionHandler:
                         "timestamp": datetime.now().isoformat()
                     }
                 ],
-                "crewai_session_id": f"crew-{flow_id}",
+                "crewai_flow_id": f"crew-{flow_id}",
                 "agents_deployed": 7,
                 "execution_mode": "hybrid"
             }

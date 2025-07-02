@@ -35,8 +35,7 @@ class AgentServiceLayer:
         self.context = RequestContext(
             client_account_id=client_account_id,
             engagement_id=engagement_id,
-            user_id=user_id,
-            session_id=None
+            user_id=user_id
         )
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         self._metrics = {

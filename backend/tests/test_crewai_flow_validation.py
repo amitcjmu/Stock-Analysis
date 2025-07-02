@@ -87,26 +87,26 @@ class TestCrewAIFlowValidation:
         result = response.json()
         
         # Verify response structure
-        assert "session_id" in result
+        assert "flow_id" in result
         assert "status" in result
         assert "current_phase" in result
         assert result["status"] in ["running", "completed", "error"]
         
-        return result["session_id"]
+        return result["flow_id"]
     
     def test_workflow_state_retrieval(self, api_client, sample_cmdb_data):
         """Test retrieving workflow state."""
         # First initiate a workflow
-        session_id = self.test_discovery_workflow_initiation(api_client, sample_cmdb_data)
+        flow_id = self.test_discovery_workflow_initiation(api_client, sample_cmdb_data)
         
         # Then retrieve its state
-        response = api_client.get(f"{self.BASE_URL}/api/v1/discovery/flow/state/{session_id}")
+        response = api_client.get(f"{self.BASE_URL}/api/v1/discovery/flow/state/{flow_id}")
         
         assert response.status_code == 200
         state = response.json()
         
         # Verify state structure
-        assert state["session_id"] == session_id
+        assert state["flow_id"] == flow_id
         assert "status" in state
         assert "current_phase" in state
         assert "phases_completed" in state
@@ -153,7 +153,7 @@ class TestCrewAIFlowValidation:
     
     def test_concurrent_workflows(self, api_client, sample_cmdb_data):
         """Test handling multiple concurrent workflows."""
-        session_ids = []
+        flow_ids = []
         
         # Start multiple workflows concurrently
         for i in range(3):
@@ -168,7 +168,7 @@ class TestCrewAIFlowValidation:
             
             assert response.status_code == 200
             result = response.json()
-            session_ids.append(result["session_id"])
+            flow_ids.append(result["flow_id"])
         
         # Verify all workflows are tracked
         response = api_client.get(f"{self.BASE_URL}/api/v1/discovery/flow/active")
@@ -178,8 +178,8 @@ class TestCrewAIFlowValidation:
         assert summary["total_active_flows"] >= 3
         
         # Verify each session can be retrieved
-        for session_id in session_ids:
-            response = api_client.get(f"{self.BASE_URL}/api/v1/discovery/flow/state/{session_id}")
+        for flow_id in flow_ids:
+            response = api_client.get(f"{self.BASE_URL}/api/v1/discovery/flow/state/{flow_id}")
             assert response.status_code == 200
     
     def test_fallback_execution_mode(self, api_client, sample_cmdb_data):
@@ -198,8 +198,8 @@ class TestCrewAIFlowValidation:
         assert result["status"] in ["running", "completed"]
         
         # Verify state can be retrieved
-        session_id = result["session_id"]
-        response = api_client.get(f"{self.BASE_URL}/api/v1/discovery/flow/state/{session_id}")
+        flow_id = result["flow_id"]
+        response = api_client.get(f"{self.BASE_URL}/api/v1/discovery/flow/state/{flow_id}")
         assert response.status_code == 200
         
         state = response.json()
@@ -257,13 +257,13 @@ class TestCrewAIFlowValidation:
         
         assert response.status_code == 200
         result = response.json()
-        session_id = result["session_id"]
+        flow_id = result["flow_id"]
         
         # Wait a moment for processing
         time.sleep(2)
         
         # Get final state
-        response = api_client.get(f"{self.BASE_URL}/api/v1/discovery/flow/state/{session_id}")
+        response = api_client.get(f"{self.BASE_URL}/api/v1/discovery/flow/state/{flow_id}")
         assert response.status_code == 200
         
         state = response.json()
@@ -285,13 +285,13 @@ class TestCrewAIFlowValidation:
         
         assert response.status_code == 200
         result = response.json()
-        session_id = result["session_id"]
+        flow_id = result["flow_id"]
         
         # Wait for processing
         time.sleep(3)
         
         # Get state
-        response = api_client.get(f"{self.BASE_URL}/api/v1/discovery/flow/state/{session_id}")
+        response = api_client.get(f"{self.BASE_URL}/api/v1/discovery/flow/state/{flow_id}")
         assert response.status_code == 200
         
         state = response.json()
@@ -313,13 +313,13 @@ class TestCrewAIFlowValidation:
         
         assert response.status_code == 200
         result = response.json()
-        session_id = result["session_id"]
+        flow_id = result["flow_id"]
         
         # Wait for processing
         time.sleep(5)
         
         # Get state
-        response = api_client.get(f"{self.BASE_URL}/api/v1/discovery/flow/state/{session_id}")
+        response = api_client.get(f"{self.BASE_URL}/api/v1/discovery/flow/state/{flow_id}")
         assert response.status_code == 200
         
         state = response.json()

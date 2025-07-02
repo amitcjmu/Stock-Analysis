@@ -51,7 +51,7 @@ os.makedirs(VALIDATION_SESSIONS_PATH, exist_ok=True)
 
 class ImportStorageResponse(BaseModel):
     success: bool
-    import_session_id: Optional[str] = None
+    data_import_id: Optional[str] = None
     flow_id: Optional[str] = None  # ✅ CrewAI-generated flow ID
     error: Optional[str] = None
     message: str
@@ -264,7 +264,7 @@ async def store_import_data(
         
         return ImportStorageResponse(
             success=flow_success,  # Only success if flow succeeded
-            import_session_id=str(data_import.id),
+            data_import_id=str(data_import.id),
             flow_id=crewai_flow_id,
             message=message,
             records_stored=records_stored,
@@ -315,7 +315,7 @@ async def _trigger_discovery_flow(
         # Create proper flow using the factory function
         logger.info(f"🔍 DEBUG: Creating discovery flow...")
         discovery_flow = create_unified_discovery_flow(
-            session_id=data_import_id,
+            flow_id=data_import_id,
             client_account_id=client_account_id,
             engagement_id=engagement_id,
             user_id=user_id,
@@ -465,13 +465,13 @@ async def _validate_no_incomplete_discovery_flow(
         if actual_incomplete_flows:
             first_flow = actual_incomplete_flows[0]  # Use the most recent incomplete flow
             
-            logger.info(f"🚫 Blocking data import due to incomplete discovery flow: {first_flow['session_id']} in phase {first_flow['current_phase']}")
+            logger.info(f"🚫 Blocking data import due to incomplete discovery flow: {first_flow['flow_id']} in phase {first_flow['current_phase']}")
             
             return {
                 "can_proceed": False,
                 "message": f"An incomplete Discovery Flow exists for this engagement. Please complete the existing flow before importing new data.",
                 "existing_flow": {
-                    "session_id": first_flow["session_id"],
+                    "flow_id": first_flow["flow_id"],
                     "current_phase": first_flow["current_phase"],
                     "progress_percentage": first_flow["progress_percentage"],
                     "status": first_flow["status"],
@@ -811,30 +811,30 @@ async def get_latest_import(
             }
         }
 
-@router.get("/import/{import_session_id}")
+@router.get("/import/{data_import_id}")
 async def get_import_by_id(
-    import_session_id: str,
+    data_import_id: str,
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Get specific import data by session ID.
-    Enables linking and retrieving specific import sessions.
+    Get specific import data by data import ID.
+    Enables linking and retrieving specific import data.
     """
     try:
-        # Find the import session using async session pattern
-        session_query = select(DataImport).where(
-            DataImport.id == import_session_id
+        # Find the data import using async session pattern
+        import_query = select(DataImport).where(
+            DataImport.id == data_import_id
         )
         
-        result = await db.execute(session_query)
-        import_session = result.scalar_one_or_none()
+        result = await db.execute(import_query)
+        data_import = result.scalar_one_or_none()
         
-        if not import_session:
-            raise HTTPException(status_code=404, detail="Import session not found")
+        if not data_import:
+            raise HTTPException(status_code=404, detail="Data import not found")
         
         # Get the raw records using async session pattern
         records_query = select(RawImportRecord).where(
-            RawImportRecord.data_import_id == import_session.id
+            RawImportRecord.data_import_id == data_import.id
         ).order_by(RawImportRecord.row_number)
         
         records_result = await db.execute(records_query)
@@ -845,13 +845,13 @@ async def get_import_by_id(
         
         return {
             "success": True,
-            "import_session_id": str(import_session.id),
+            "data_import_id": str(data_import.id),
             "import_metadata": {
-                "filename": import_session.filename,
-                "import_type": import_session.import_type,
-                "imported_at": import_session.completed_at.isoformat() if import_session.completed_at else None,
-                "total_records": import_session.total_records,
-                "status": import_session.status
+                "filename": data_import.filename,
+                "import_type": data_import.import_type,
+                "imported_at": data_import.completed_at.isoformat() if data_import.completed_at else None,
+                "total_records": data_import.total_records,
+                "status": data_import.status
             },
             "data": imported_data
         }
@@ -859,7 +859,7 @@ async def get_import_by_id(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to retrieve import {import_session_id}: {e}")
+        logger.error(f"Failed to retrieve import {data_import_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve import: {str(e)}")
 
 @router.get("/flow/{flow_id}/import-data")

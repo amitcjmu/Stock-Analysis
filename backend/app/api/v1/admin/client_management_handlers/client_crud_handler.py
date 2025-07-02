@@ -295,19 +295,19 @@ class ClientCRUDHandler:
                 
                 # Delete related records in proper order to avoid foreign key constraints
                 
-                # 1. Delete workflow_states that reference data_import_sessions for this client's engagements
+                # 1. Delete workflow_states that reference data_imports for this client's engagements
                 await db.execute(text("""
                     DELETE FROM workflow_states 
-                    WHERE session_id IN (
-                        SELECT dis.id FROM data_import_sessions dis
-                        JOIN engagements e ON dis.engagement_id = e.id
+                    WHERE data_import_id IN (
+                        SELECT di.id FROM data_imports di
+                        JOIN engagements e ON di.engagement_id = e.id
                         WHERE e.client_account_id = :client_id
                     )
                 """), {"client_id": client_id})
                 
-                # 2. Delete data_import_sessions for this client's engagements
+                # 2. Delete data_imports for this client's engagements  
                 await db.execute(text("""
-                    DELETE FROM data_import_sessions 
+                    DELETE FROM data_imports 
                     WHERE engagement_id IN (
                         SELECT id FROM engagements 
                         WHERE client_account_id = :client_id

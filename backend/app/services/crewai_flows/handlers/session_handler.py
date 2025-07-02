@@ -53,7 +53,7 @@ class SessionHandler:
                 
                 # Track session
                 self.session_state["active_sessions"][crew_name] = {
-                    "session_id": id(session),
+                    "db_session_id": id(session),
                     "created_at": datetime.utcnow().isoformat(),
                     "transactions": 0,
                     "last_activity": datetime.utcnow().isoformat()

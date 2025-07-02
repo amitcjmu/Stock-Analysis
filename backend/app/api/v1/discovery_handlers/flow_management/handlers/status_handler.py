@@ -94,8 +94,8 @@ class StatusHandler:
         extracted_data = self._extract_crewai_state_data(flow)
         
         # Get raw data if not in state
-        if not extracted_data["raw_data"] and flow.import_session_id:
-            extracted_data["raw_data"] = await self._get_import_raw_data(flow.import_session_id)
+        if not extracted_data["raw_data"] and flow.data_import_id:
+            extracted_data["raw_data"] = await self._get_import_raw_data(flow.data_import_id)
         
         # Create field mapping data if we have raw data but no mappings
         if extracted_data["raw_data"] and not extracted_data["field_mapping_data"]:
@@ -106,7 +106,7 @@ class StatusHandler:
         # Build final status
         flow_status = {
             "flow_id": str(flow.flow_id),
-            "data_import_id": str(flow.import_session_id) if flow.import_session_id else None,
+            "data_import_id": str(flow.data_import_id) if flow.data_import_id else None,
             "status": flow.status,
             "current_phase": current_phase,
             "progress_percentage": progress_percentage,
@@ -284,11 +284,11 @@ class StatusHandler:
         
         return stats
     
-    async def _get_import_raw_data(self, import_session_id: str) -> List[Dict[str, Any]]:
+    async def _get_import_raw_data(self, data_import_id: str) -> List[Dict[str, Any]]:
         """Get raw data from import session"""
         try:
             records_query = select(RawImportRecord).where(
-                RawImportRecord.data_import_id == import_session_id
+                RawImportRecord.data_import_id == data_import_id
             ).order_by(RawImportRecord.row_number)
             
             records_result = await self.db.execute(records_query)

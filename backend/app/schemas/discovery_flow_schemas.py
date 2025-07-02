@@ -155,7 +155,7 @@ class PerformanceMetrics(BaseModel):
 class AdvancedRecoveryResponse(BaseModel):
     """Response for advanced flow recovery"""
     success: bool
-    session_id: str
+    flow_id: str
     recovery_actions: List[str]
     flow_state: Dict[str, Any]
     performance_metrics: PerformanceMetrics
@@ -163,7 +163,7 @@ class AdvancedRecoveryResponse(BaseModel):
 
 class ExpiredFlow(BaseModel):
     """Expired flow information"""
-    session_id: str
+    flow_id: str
     current_phase: FlowPhase
     status: FlowStatus
     last_activity: str
@@ -280,7 +280,7 @@ class FlowContextValidation(BaseModel):
 
 class FlowAuditEntry(BaseModel):
     """Flow audit entry"""
-    session_id: str
+    flow_id: str
     action: str
     user_id: str
     timestamp: str
@@ -301,7 +301,7 @@ class FlowManagementError(BaseModel):
     message: str
     details: Optional[Dict[str, Any]] = None
     timestamp: str
-    session_id: Optional[str] = None
+    flow_id: Optional[str] = None
 
 class FlowContinuationResult(BaseModel):
     """Result of flow continuation analysis from CrewAI agents"""

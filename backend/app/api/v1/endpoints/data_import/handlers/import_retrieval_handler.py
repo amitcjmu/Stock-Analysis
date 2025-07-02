@@ -69,7 +69,7 @@ async def get_raw_import_records(
             "is_processed": record.is_processed,
             "is_valid": record.is_valid,
             "created_at": record.created_at.isoformat() if record.created_at else None,
-            "session_id": record.session_id
+            "data_import_id": str(record.data_import_id)
         })
     
     return {

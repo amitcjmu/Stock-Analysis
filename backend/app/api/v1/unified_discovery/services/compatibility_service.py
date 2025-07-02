@@ -26,7 +26,7 @@ class CompatibilityService:
         
         # Add v3-specific fields
         if "flow_id" not in v3_data:
-            v3_data["flow_id"] = v1_data.get("session_id", "unknown")
+            v3_data["flow_id"] = v1_data.get("flow_id", "unknown")
         
         # Transform status format
         if "status" in v1_data:
@@ -43,7 +43,7 @@ class CompatibilityService:
         
         # Map v3 fields to v1 equivalents
         if "flow_id" in v3_data:
-            v1_data["session_id"] = v3_data["flow_id"]
+            v1_data["flow_id"] = v3_data["flow_id"]
         
         if "execution_status" in v3_data:
             v1_data["status"] = v3_data["execution_status"]

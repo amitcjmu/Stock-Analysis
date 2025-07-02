@@ -185,7 +185,7 @@ class OrphanFlowMigrator:
                     user_id=flow.user_id,
                     flow_name=flow.flow_name or f"Discovery Flow {str(flow.flow_id)[:8]}",
                     flow_configuration={
-                        "import_session_id": str(flow.import_session_id) if flow.import_session_id else None,
+                        "data_import_id": str(flow.data_import_id) if flow.data_import_id else None,
                         "migration_source": "orphan_flow_migrator",
                         "original_created_at": flow.created_at.isoformat() if flow.created_at else None,
                         "crewai_state_data": flow.crewai_state_data or {}

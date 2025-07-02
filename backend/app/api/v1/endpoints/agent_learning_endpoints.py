@@ -29,7 +29,7 @@ async def learn_field_mapping_pattern(
         context = LearningContext(
             client_account_id=request.headers.get('X-Client-ID'),
             engagement_id=request.headers.get('X-Engagement-ID'),
-            session_id=request.headers.get('X-Session-ID')
+            flow_id=request.headers.get('X-Flow-ID')
         )
         
         await agent_learning_system.learn_field_mapping_pattern(learning_data, context)
@@ -55,7 +55,7 @@ async def suggest_field_mapping(
         context = LearningContext(
             client_account_id=request.headers.get('X-Client-ID'),
             engagement_id=request.headers.get('X-Engagement-ID'),
-            session_id=request.headers.get('X-Session-ID')
+            flow_id=request.headers.get('X-Flow-ID')
         )
         
         suggestion = await agent_learning_system.suggest_field_mapping(field_name, context_data, context)

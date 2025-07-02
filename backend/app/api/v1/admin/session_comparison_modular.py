@@ -42,7 +42,7 @@ async def get_sessions_for_comparison(
         # Demo data
         demo_sessions = [
             {
-                "session_id": "1",
+                "flow_id": "1",
                 "session_name": "Initial Discovery Session",
                 "created_at": "2025-01-10T10:30:00Z",
                 "status": "completed",
@@ -53,7 +53,7 @@ async def get_sessions_for_comparison(
                 "can_compare": True
             },
             {
-                "session_id": "2",
+                "flow_id": "2",
                 "session_name": "Enhanced Data Import",
                 "created_at": "2025-01-15T14:20:00Z",
                 "status": "completed",
@@ -85,18 +85,18 @@ async def perform_session_comparison(
 ):
     """Perform session comparison."""
     try:
-        source_session_id = comparison_request.get("source_session_id")
-        target_session_id = comparison_request.get("target_session_id")
+        source_flow_id = comparison_request.get("source_flow_id")
+        target_flow_id = comparison_request.get("target_flow_id")
         comparison_type = comparison_request.get("comparison_type", "full_comparison")
         
-        if not source_session_id or not target_session_id:
+        if not source_flow_id or not target_flow_id:
             raise HTTPException(status_code=400, detail="Both source and target session IDs are required")
         
         # Demo comparison result
         comparison_result = {
-            "comparison_id": f"comp_{source_session_id}_{target_session_id}",
-            "source_session_id": source_session_id,
-            "target_session_id": target_session_id,
+            "comparison_id": f"comp_{source_flow_id}_{target_flow_id}",
+            "source_flow_id": source_flow_id,
+            "target_flow_id": target_flow_id,
             "comparison_type": comparison_type,
             "generated_at": "2025-01-16T10:00:00Z",
             "summary": {

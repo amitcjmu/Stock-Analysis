@@ -14,8 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
 from app.models.asset import Asset
-from app.models.data_import import RawImportRecord
-from app.models.field_mapping import FieldMapping
+from app.models.data_import import RawImportRecord, ImportFieldMapping
 
 logger = logging.getLogger(__name__)
 
@@ -148,14 +147,14 @@ class FlowService:
     
     async def check_processed_records(self, flow) -> bool:
         """Check if there are processed records for the flow"""
-        if not flow.import_session_id:
+        if not flow.data_import_id:
             return False
             
         try:
             # Check if there are processed raw records
             records_query = await self.db.execute(
                 select(func.count(RawImportRecord.id)).where(
-                    RawImportRecord.session_id == flow.import_session_id
+                    RawImportRecord.data_import_id == flow.data_import_id
                 )
             )
             record_count = records_query.scalar() or 0
@@ -169,9 +168,9 @@ class FlowService:
     async def check_field_mappings(self, flow_id: str) -> bool:
         """Check if field mappings exist and are approved"""
         try:
-            stmt = select(func.count(FieldMapping.id)).where(
-                FieldMapping.flow_id == flow_id,
-                FieldMapping.is_approved == True
+            stmt = select(func.count(ImportFieldMapping.id)).where(
+                ImportFieldMapping.flow_id == flow_id,
+                ImportFieldMapping.is_approved == True
             )
             result = await self.db.execute(stmt)
             count = result.scalar() or 0

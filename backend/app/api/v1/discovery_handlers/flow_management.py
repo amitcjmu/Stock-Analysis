@@ -13,6 +13,6 @@ For backward compatibility, the FlowManagementHandler is re-exported.
 """
 
 # Re-export the main handler from the package
-from .flow_management import FlowManagementHandler
+from .flow_management.handlers.flow_handler import FlowManagementHandler
 
 __all__ = ['FlowManagementHandler']

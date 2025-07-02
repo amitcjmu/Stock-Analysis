@@ -38,7 +38,7 @@ router = APIRouter(prefix="/session-comparison", tags=["Session Comparison"])
 # Pydantic schemas for session comparison
 class SessionSnapshotRequest(BaseModel):
     """Request schema for creating session snapshot."""
-    session_id: str = Field(..., description="Session ID to create snapshot for")
+    flow_id: str = Field(..., description="Flow ID to create snapshot for")
     include_assets: bool = Field(True, description="Whether to include detailed asset data")
     snapshot_name: Optional[str] = Field(None, description="Optional name for the snapshot")
     description: Optional[str] = Field(None, description="Optional description for the snapshot")
@@ -46,8 +46,8 @@ class SessionSnapshotRequest(BaseModel):
 
 class SessionComparisonRequest(BaseModel):
     """Request schema for session comparison."""
-    source_session_id: str = Field(..., description="First session for comparison")
-    target_session_id: str = Field(..., description="Second session for comparison")
+    source_flow_id: str = Field(..., description="First flow for comparison")
+    target_flow_id: str = Field(..., description="Second flow for comparison")
     comparison_type: str = Field("full_comparison", description="Type of comparison to perform")
     save_to_history: bool = Field(True, description="Whether to save comparison to history")
     comparison_name: Optional[str] = Field(None, description="Optional name for the comparison")

@@ -21,7 +21,7 @@ router = APIRouter()
 async def get_dependency_analysis(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    session_id: Optional[str] = None
+    flow_id: Optional[str] = None
 ):
     """Get comprehensive dependency analysis."""
     try:
@@ -38,7 +38,7 @@ async def get_dependency_analysis(
             db,
             context.client_account_id,
             context.engagement_id,
-            session_id
+            flow_id
         )
         return await service.get_dependency_analysis()
     except Exception as e:
@@ -49,7 +49,7 @@ async def analyze_dependencies(
     request: Request,
     analysis_type: str,
     db: AsyncSession = Depends(get_db),
-    session_id: Optional[str] = None
+    flow_id: Optional[str] = None
 ):
     """Trigger CrewAI analysis for dependencies."""
     try:
@@ -66,7 +66,7 @@ async def analyze_dependencies(
             db,
             context.client_account_id,
             context.engagement_id,
-            session_id
+            flow_id
         )
         return await service.analyze_with_crew(analysis_type)
     except ValueError as e:

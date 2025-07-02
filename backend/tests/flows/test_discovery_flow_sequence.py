@@ -197,7 +197,7 @@ def mock_discovery_workflow():
     """Create mock discovery workflow for testing"""
     workflow = Mock(spec=DiscoveryWorkflow)
     workflow.id = 456
-    workflow.import_session_id = 123
+    workflow.data_import_id = 123
     workflow.status = "running"
     workflow.current_phase = "field_mapping"
     return workflow

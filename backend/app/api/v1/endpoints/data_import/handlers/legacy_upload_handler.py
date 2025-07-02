@@ -85,7 +85,6 @@ async def upload_data_file(
         data_import = DataImport(
             client_account_id=context.client_account_id or "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990",
             engagement_id=context.engagement_id,
-            session_id=flow_id,  # Use flow_id as session_id for V2 compatibility
             import_name=import_name or f"{file.filename} Import",
             import_type=import_type,
             description=description,
@@ -110,7 +109,7 @@ async def upload_data_file(
         return {
             "import_id": str(data_import.id),
             "flow_id": flow_id,  # Return flow_id instead of session_id
-            "session_id": flow_id,  # Backward compatibility
+            # "session_id": flow_id,  # Backward compatibility - removed as field doesn't exist
             "client_account_id": context.client_account_id,
             "engagement_id": context.engagement_id,
             "status": data_import.status,
@@ -155,7 +154,6 @@ async def process_uploaded_file(data_import: DataImport, content: bytes, db: Asy
             data_import_id=data_import.id,
             client_account_id=context.client_account_id,
             engagement_id=context.engagement_id,
-            session_id=data_import.session_id,  # This is now flow_id
             row_number=row_number,
             record_id=row.get('ID') or row.get('id') or f"ROW_{row_number}",
             raw_data=dict(row),

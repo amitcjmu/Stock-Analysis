@@ -66,7 +66,7 @@ async def escalate_to_think(
             "escalation_type": "think",
             "client_account_id": context.client_account_id,
             "engagement_id": context.engagement_id,
-            "session_id": context.session_id,
+            "flow_id_context": context.flow_id,
             "timestamp": datetime.utcnow().isoformat()
         }
         
@@ -138,7 +138,7 @@ async def escalate_to_ponder_more(
             "escalation_type": "ponder_more",
             "client_account_id": context.client_account_id,
             "engagement_id": context.engagement_id,
-            "session_id": context.session_id,
+            "flow_id_context": context.flow_id,
             "timestamp": datetime.utcnow().isoformat()
         }
         

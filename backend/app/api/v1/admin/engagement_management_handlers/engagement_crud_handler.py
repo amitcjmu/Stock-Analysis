@@ -368,26 +368,26 @@ class EngagementCRUDHandler:
             try:
                 # Delete records in proper order based on actual foreign key relationships
                 
-                # 1. Delete records that reference data_import_sessions
+                # 1. Delete records that reference data_imports
                 await db.execute(text("""
                     DELETE FROM raw_import_records 
-                    WHERE session_id IN (
-                        SELECT id FROM data_import_sessions 
+                    WHERE data_import_id IN (
+                        SELECT id FROM data_imports 
                         WHERE engagement_id = :engagement_id
                     )
                 """), {"engagement_id": engagement_id})
                 
                 await db.execute(text("""
                     DELETE FROM import_field_mappings 
-                    WHERE session_id IN (
-                        SELECT id FROM data_import_sessions 
+                    WHERE data_import_id IN (
+                        SELECT id FROM data_imports 
                         WHERE engagement_id = :engagement_id
                     )
                 """), {"engagement_id": engagement_id})
                 
-                # 2. Delete data_import_sessions for this engagement
+                # 2. Delete data_imports for this engagement
                 await db.execute(text("""
-                    DELETE FROM data_import_sessions 
+                    DELETE FROM data_imports 
                     WHERE engagement_id = :engagement_id
                 """), {"engagement_id": engagement_id})
                 
@@ -520,11 +520,11 @@ class EngagementCRUDHandler:
                 assessment_criteria={},  # Default empty dict
                 current_phase=engagement.status or "planning",
                 completion_percentage=0.0,  # Default to 0.0
-                current_session_id=None,  # Default to None
+                current_flow_id=None,  # Default to None
                 created_at=engagement.created_at,
                 updated_at=engagement.updated_at,
                 is_active=engagement.is_active,
-                total_sessions=0,  # Default to 0
+                total_flows=0,  # Default to 0
                 total_assets=0  # Default to 0
             )
         except Exception as e:

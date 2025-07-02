@@ -566,21 +566,6 @@ class CrewAIFlowService:
                 "message": "Failed to resume flow at phase"
             }
 
-    # Legacy compatibility methods (deprecated)
-    async def get_flow_state_by_session(
-        self,
-        session_id: str,
-        context: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
-        """
-        DEPRECATED: Legacy method for session-based flow lookup.
-        Use get_flow_status(flow_id) instead.
-        """
-        logger.warning(f"⚠️ Deprecated method called: get_flow_state_by_session({session_id})")
-        logger.warning("Use get_flow_status(flow_id) instead")
-        
-        # Treat session_id as flow_id for backward compatibility
-        return await self.get_flow_status(session_id, context)
 
 # Factory function for dependency injection
 async def get_crewai_flow_service(

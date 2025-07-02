@@ -10,6 +10,7 @@ This directory contains Architecture Decision Records for the AI Force Migration
 | [ADR-002](002-api-consolidation-strategy.md) | Consolidate APIs into Unified v3 Interface | Accepted | 2024-01-20 |
 | [ADR-003](003-postgresql-only-state-management.md) | PostgreSQL-Only State Management for CrewAI Flows | Accepted | 2024-01-20 |
 | [ADR-004](004-field-mapping-stabilization.md) | Field Mapping UI/UX Stabilization Strategy | Accepted | 2024-01-20 |
+| [ADR-005](005-database-consolidation-architecture.md) | Database Consolidation Architecture | Accepted | 2025-06-27 |
 
 ## ADR Template
 
@@ -49,5 +50,6 @@ What other options were considered and why were they rejected?
 For new team members, we recommend reading ADRs in this order:
 1. ADR-001 - Understand the identifier migration
 2. ADR-003 - Understand state management architecture
-3. ADR-002 - Understand API consolidation
-4. ADR-004 - Understand UI stabilization approach
+3. ADR-005 - Understand database consolidation architecture
+4. ADR-002 - Understand API consolidation
+5. ADR-004 - Understand UI stabilization approach

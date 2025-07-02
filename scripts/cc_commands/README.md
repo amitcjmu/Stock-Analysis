@@ -1,6 +1,6 @@
-# Claude Code Commands
+# CC Commands
 
-This directory contains custom Claude Code commands for the migration orchestrator platform.
+This directory contains custom CC commands for the migration orchestrator platform.
 
 ## Available Commands
 
@@ -11,16 +11,16 @@ This directory contains custom Claude Code commands for the migration orchestrat
 **Usage**:
 ```bash
 # Check all tables for schema mismatches
-./scripts/claude_commands/check-db-sync
+./scripts/cc_commands/check-db-sync
 
 # Check specific table only
-./scripts/claude_commands/check-db-sync --table users
+./scripts/cc_commands/check-db-sync --table users
 
 # Generate migration scripts for detected differences
-./scripts/claude_commands/check-db-sync --fix --verbose
+./scripts/cc_commands/check-db-sync --fix --verbose
 
 # Save detailed report to JSON file
-./scripts/claude_commands/check-db-sync --output schema_report.json
+./scripts/cc_commands/check-db-sync --output schema_report.json
 ```
 
 **What it checks**:
@@ -81,21 +81,21 @@ Column Type Mismatch:
 **Integration with Development Workflow**:
 ```bash
 # Daily development check
-./scripts/claude_commands/check-db-sync
+./scripts/cc_commands/check-db-sync
 
 # Before creating PR
-./scripts/claude_commands/check-db-sync --fix
+./scripts/cc_commands/check-db-sync --fix
 
 # CI/CD pipeline check
-./scripts/claude_commands/check-db-sync --output ci_report.json
+./scripts/cc_commands/check-db-sync --output ci_report.json
 
 # Production deployment verification
-./scripts/claude_commands/check-db-sync --table critical_table_name
+./scripts/cc_commands/check-db-sync --table critical_table_name
 ```
 
 ## Command Development Guidelines
 
-When creating new Claude Code commands:
+When creating new CC commands:
 
 1. **Make them executable**: `chmod +x script_name`
 2. **Include help**: `--help` flag with usage examples
@@ -107,7 +107,7 @@ When creating new Claude Code commands:
 ## Directory Structure
 
 ```
-scripts/claude_commands/
+scripts/cc_commands/
 ├── README.md              # This file
 ├── check-db-sync          # Database sync checker
 └── [future commands]      # Additional commands as needed

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Claude Code Command: check-db-sync
+# CC Command: check-db-sync
 # Check database model synchronization and identify schema mismatches
 
 set -e

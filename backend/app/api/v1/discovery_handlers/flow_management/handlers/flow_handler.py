@@ -112,7 +112,7 @@ class FlowManagementHandler:
                     for flow in all_flows:
                         flows.append({
                             "flow_id": str(flow.flow_id),
-                            "data_import_id": str(flow.import_session_id) if flow.import_session_id else None,
+                            "data_import_id": str(flow.data_import_id) if flow.data_import_id else None,
                             "status": flow.status,
                             "current_phase": flow.get_next_phase() or "completed",
                             "phases": {
@@ -197,7 +197,7 @@ class FlowManagementHandler:
         """Convert flow ORM object to dictionary"""
         return {
             "flow_id": str(flow.flow_id),
-            "data_import_id": str(flow.import_session_id) if flow.import_session_id else None,
+            "data_import_id": str(flow.data_import_id) if flow.data_import_id else None,
             "status": flow.status,
             "current_phase": flow.get_next_phase() or "completed",
             "phases": {
