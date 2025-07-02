@@ -50,7 +50,7 @@ class AgentQuestion:
     # Client context fields for multi-tenancy
     client_account_id: str = None
     engagement_id: str = None
-    session_id: str = None
+    flow_id: str = None
     created_at: datetime = None
     answered_at: Optional[datetime] = None
     user_response: Optional[Any] = None
@@ -95,7 +95,7 @@ class AgentInsight:
     # Client context fields for multi-tenancy
     client_account_id: str = None
     engagement_id: str = None
-    session_id: str = None
+    flow_id: str = None
     created_at: datetime = None
     
     def __post_init__(self):

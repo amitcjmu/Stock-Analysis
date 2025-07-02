@@ -364,7 +364,6 @@ class AccessAuditLog(Base):
     # Context
     client_account_id = Column(PostgresUUID(as_uuid=True), ForeignKey('client_accounts.id'), nullable=True)
     engagement_id = Column(PostgresUUID(as_uuid=True), ForeignKey('engagements.id'), nullable=True)
-    session_id = Column(PostgresUUID(as_uuid=True), ForeignKey('data_import_sessions.id'), nullable=True)
     
     # Result and details
     result = Column(String(20), nullable=False)  # success, denied, error
@@ -382,7 +381,6 @@ class AccessAuditLog(Base):
     user = relationship("User")
     client_account = relationship("ClientAccount")
     engagement = relationship("Engagement")
-    session = relationship("DataImportSession")
     
     def __repr__(self):
         return f"<AccessAuditLog(id={self.id}, user_id={self.user_id}, action='{self.action_type}', result='{self.result}')>"

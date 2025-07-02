@@ -28,7 +28,7 @@ class LLMUsageLog(Base):
     engagement_id = Column(UUID(as_uuid=True), ForeignKey('engagements.id'), nullable=True)
     user_id = Column(Integer, nullable=True)  # Reference to user system when implemented
     username = Column(String(255), nullable=True)
-    session_id = Column(String(255), nullable=True)
+    flow_id = Column(String(255), nullable=True)
     
     # Request context
     request_id = Column(String(255), nullable=True)

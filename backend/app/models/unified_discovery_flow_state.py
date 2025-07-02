@@ -47,8 +47,6 @@ class UnifiedDiscoveryFlowState(BaseModel):
     # CORE IDENTIFICATION (Required)
     # ========================================
     flow_id: str = ""  # Primary identifier from CrewAI Flow - NEVER generate our own
-    # Legacy session_id maintained for backward compatibility during migration
-    session_id: str = ""  # DEPRECATED: Use flow_id instead
     client_account_id: str = ""
     engagement_id: str = ""
     user_id: str = ""
@@ -489,7 +487,6 @@ class UnifiedDiscoveryFlowState(BaseModel):
         # Generate comprehensive summary
         self.discovery_summary = {
             "flow_id": self.flow_id,
-            "session_id": self.session_id,
             "total_duration_seconds": self._calculate_duration(),
             "phases_completed": self.phase_completion,
             "total_assets_processed": self.asset_inventory.get("total_assets", 0),
