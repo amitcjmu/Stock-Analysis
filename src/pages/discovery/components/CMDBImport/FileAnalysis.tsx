@@ -36,7 +36,7 @@ export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNav
     isLoading: isStatusLoading, 
     error: statusError,
     refetch: refetchStatus 
-  } = useAuthenticatedDiscoveryStatus(file.sessionId);
+  } = useAuthenticatedDiscoveryStatus(file.flowId);
   
   // Log any status errors for debugging
   useEffect(() => {
@@ -127,7 +127,7 @@ export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNav
 
   const handleCancelWorkflow = async () => {
     // This would call an API to cancel the existing workflow
-    console.log('Cancel workflow requested for session:', file.sessionId);
+    console.log('Cancel workflow requested for flow:', file.flowId);
     setShowWorkflowControls(false);
     // In the future, implement actual cancellation logic
   };
@@ -149,7 +149,7 @@ export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNav
         <div>
           <h3 className="font-medium text-gray-900">{file.filename}</h3>
           <p className="text-sm text-gray-500">
-            {file.recordCount} records • Session: {file.sessionId?.slice(0, 8)}...
+            {file.recordCount} records • Flow: {file.flowId?.slice(0, 8)}...
           </p>
         </div>
       </div>
@@ -218,7 +218,7 @@ export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNav
       {/* CrewAI Agent Feedback Panel */}
       {statusData?.status && ['running', 'in_progress', 'processing', 'completed'].includes(statusData.status) && (
         <AgentFeedbackPanel 
-          sessionId={file.sessionId || 'unknown'} 
+          flowId={file.flowId || 'unknown'} 
           statusData={statusData}
         />
       )}

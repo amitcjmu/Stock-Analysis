@@ -5,24 +5,21 @@ Update all frontend components to use flowId instead of sessionId. Fix navigatio
 
 ## 📋 **Your Files**
 
-### **1. CMDB Import Page**
+### **1. CMDB Import Page (Modularized)**
 **File**: `/src/pages/discovery/CMDBImport.tsx`  
-**Lines to modify**: 174-198, 234, 267
+**Status**: ✅ **MAIN COMPONENT ALREADY CLEAN**
 
-**Specific Changes**:
+**Current State**: Successfully modularized - main file is now just:
 ```typescript
-// Lines 174-198 - UPDATE handler:
-// FROM:
-const handleContinueFlow = useCallback(async (sessionId: string) => {
-  try {
-    const flowStatus = await discoveryUnifiedService.getFlowStatus(sessionId);
-    if (flowStatus.success) {
-      navigate(`/discovery/flow?sessionId=${sessionId}`);
-    }
-  } catch (error) {
-    console.error('Error continuing flow:', error);
-  }
-}, [navigate]);
+export { default } from './CMDBImport/index';
+```
+
+**Focus Areas**:
+- `/src/pages/discovery/CMDBImport/hooks/useFlowManagement.ts` - Lines 26, 30, 34, 38, 42
+- `/src/pages/discovery/CMDBImport/hooks/useFileUpload.ts` - Review tempSessionId usage (may be upload-specific)
+- Update modular component props and interfaces
+
+**Original plan was**: Update main component handlers:
 
 // TO:
 const handleContinueFlow = useCallback(async (flowId: string) => {
@@ -214,16 +211,36 @@ docker exec -it migration_frontend npm run type-check
 ## 📝 **Progress Tracking**
 
 Update the master plan tracker after each file:
-- [ ] `/src/pages/discovery/CMDBImport.tsx`
-- [ ] `/src/pages/discovery/AttributeMapping.tsx`
-- [ ] `/src/pages/discovery/DiscoveryFlow.tsx`
-- [ ] `/src/components/navigation/DiscoveryNav.tsx`
-- [ ] `/src/pages/dashboard/DiscoveryDashboard.tsx`
-- [ ] `/src/components/forms/DiscoveryForms.tsx`
-- [ ] `/src/components/tables/DiscoveryTables.tsx`
-- [ ] `/src/components/DiscoveryFlowStatus.tsx`
-- [ ] `/src/utils/exportUtils.ts`
-- [ ] `/src/utils/importUtils.ts`
+- [x] `/src/pages/discovery/CMDBImport/hooks/useFlowManagement.ts` - ✅ CLEANED
+- [x] `/src/pages/discovery/CMDBImport/hooks/useFileUpload.ts` - ✅ CLEANED (tempSessionId → uploadId)
+- [x] `/src/pages/discovery/AttributeMapping/` - ✅ CLEANED (modular components + types)
+- [x] `/src/hooks/discovery/useAttributeMappingLogic.ts` - ✅ CLEANED
+- [x] `/src/pages/discovery/DiscoveryFlow.tsx` - NOT FOUND (doesn't exist)
+- [x] `/src/components/navigation/DiscoveryNav.tsx` - NOT FOUND (doesn't exist)
+- [x] `/src/pages/dashboard/DiscoveryDashboard.tsx` - NO SESSION REFS FOUND
+- [x] `/src/pages/discovery/DataCleansing.tsx` - ✅ CLEANED
+- [x] `/src/components/discovery/EnhancedAgentOrchestrationPanel.tsx` - ✅ CLEANED
+- [x] `/src/components/discovery/EnhancedFlowManagementDashboard.tsx` - ✅ CLEANED
+- [x] `/src/components/forms/DiscoveryForms.tsx` - NOT FOUND (doesn't exist)
+- [x] `/src/components/tables/DiscoveryTables.tsx` - NOT FOUND (doesn't exist)
+- [x] `/src/components/DiscoveryFlowStatus.tsx` - NOT FOUND (doesn't exist)
+- [x] `/src/utils/exportUtils.ts` - NOT FOUND (doesn't exist)
+- [x] `/src/utils/importUtils.ts` - NOT FOUND (doesn't exist)
+
+## 🎯 **Additional Files Cleaned**
+
+Found and cleaned these additional files with sessionId references:
+- [x] `/src/App.tsx` - ✅ CLEANED (removed legacy session-based routes)
+- [x] `/src/pages/discovery/components/CMDBImport/FileAnalysis.tsx` - ✅ CLEANED
+- [x] `/src/pages/discovery/components/CMDBImport/AgentFeedbackPanel.tsx` - ✅ CLEANED
+- [x] `/src/pages/discovery/components/CMDBImport/AgentOrchestrationPanel.tsx` - ✅ CLEANED
+- [x] `/src/pages/discovery/components/EnhancedAgentOrchestrationPanel/index.tsx` - ✅ CLEANED
+- [x] `/src/pages/discovery/components/EnhancedAgentOrchestrationPanel/types.ts` - ✅ CLEANED
+- [x] `/src/pages/discovery/components/EnhancedAgentOrchestrationPanel/hooks/useEnhancedMonitoring.ts` - ✅ CLEANED
+
+## ✅ **AGENT 5 COMPLETE**
+
+**Final Status**: All frontend sessionId references have been successfully cleaned up. The frontend is now 100% flow-based.
 
 ## 🔄 **Commit Pattern**
 

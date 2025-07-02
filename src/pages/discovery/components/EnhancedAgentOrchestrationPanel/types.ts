@@ -71,7 +71,7 @@ export interface MemoryAnalytics {
 }
 
 export interface EnhancedAgentOrchestrationPanelProps {
-  sessionId: string;
+  flowId: string;
   flowState: any;
   onStatusUpdate?: (status: any) => void;
 }

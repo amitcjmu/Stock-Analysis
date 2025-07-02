@@ -80,13 +80,13 @@ interface PlanningData {
 }
 
 interface AgentOrchestrationPanelProps {
-  sessionId: string;
+  flowId: string;
   flowState: any;
   onStatusUpdate?: (status: any) => void;
 }
 
 const AgentOrchestrationPanel: React.FC<AgentOrchestrationPanelProps> = ({
-  sessionId,
+  flowId,
   flowState,
   onStatusUpdate
 }) => {
@@ -613,7 +613,7 @@ const AgentOrchestrationPanel: React.FC<AgentOrchestrationPanelProps> = ({
                 Current Phase: {currentPhase}
               </span>
               <span className="text-gray-600">
-                Session: {sessionId?.substring(0, 8)}...
+                Flow: {flowId?.substring(0, 8)}...
               </span>
             </div>
           </div>

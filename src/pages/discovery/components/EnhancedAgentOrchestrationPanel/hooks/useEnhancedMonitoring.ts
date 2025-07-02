@@ -3,7 +3,7 @@ import { apiCall } from '@/config/api';
 import { CrewProgress, CollaborationData, PlanningData, MemoryAnalytics } from '../types';
 import { INITIAL_CREWS } from '../constants';
 
-export const useEnhancedMonitoring = (sessionId: string, flowState: any) => {
+export const useEnhancedMonitoring = (flowId: string, flowState: any) => {
   const [crews, setCrews] = useState<CrewProgress[]>(INITIAL_CREWS);
   const [collaborationData, setCollaborationData] = useState<CollaborationData | null>(null);
   const [planningData, setPlanningData] = useState<PlanningData | null>(null);
@@ -52,14 +52,14 @@ export const useEnhancedMonitoring = (sessionId: string, flowState: any) => {
   }, []);
 
   const fetchEnhancedData = useCallback(async () => {
-    if (!sessionId) return;
+    if (!flowId) return;
 
     setLoading(true);
     try {
       // Fetch collaboration analytics
       const collabResponse = await apiCall('/api/v1/agents/collaboration/analytics', {
         method: 'POST',
-        body: JSON.stringify({ session_id: sessionId })
+        body: JSON.stringify({ flow_id: flowId })
       });
       
       if (collabResponse?.data) {
@@ -69,7 +69,7 @@ export const useEnhancedMonitoring = (sessionId: string, flowState: any) => {
       // Fetch planning intelligence
       const planningResponse = await apiCall('/api/v1/agents/planning/intelligence', {
         method: 'POST',
-        body: JSON.stringify({ session_id: sessionId })
+        body: JSON.stringify({ flow_id: flowId })
       });
       
       if (planningResponse?.data) {
@@ -79,7 +79,7 @@ export const useEnhancedMonitoring = (sessionId: string, flowState: any) => {
       // Fetch memory analytics
       const memoryResponse = await apiCall('/api/v1/agents/memory/analytics', {
         method: 'POST',
-        body: JSON.stringify({ session_id: sessionId })
+        body: JSON.stringify({ flow_id: flowId })
       });
       
       if (memoryResponse?.data) {
@@ -89,7 +89,7 @@ export const useEnhancedMonitoring = (sessionId: string, flowState: any) => {
       // Fetch crew monitoring data
       const monitoringResponse = await apiCall('/api/v1/agents/monitoring/enhanced', {
         method: 'POST',
-        body: JSON.stringify({ session_id: sessionId })
+        body: JSON.stringify({ flow_id: flowId })
       });
       
       if (monitoringResponse?.data) {
@@ -100,7 +100,7 @@ export const useEnhancedMonitoring = (sessionId: string, flowState: any) => {
     } finally {
       setLoading(false);
     }
-  }, [sessionId, updateCrewsWithMonitoringData]);
+  }, [flowId, updateCrewsWithMonitoringData]);
 
   useEffect(() => {
     fetchEnhancedData();

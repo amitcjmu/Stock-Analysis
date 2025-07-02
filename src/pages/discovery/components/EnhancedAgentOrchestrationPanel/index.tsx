@@ -16,7 +16,7 @@ import { EnhancedAgentOrchestrationPanelProps } from './types';
 import { TAB_ITEMS } from './constants';
 
 const EnhancedAgentOrchestrationPanel: React.FC<EnhancedAgentOrchestrationPanelProps> = ({
-  sessionId,
+  flowId,
   flowState,
   onStatusUpdate
 }) => {
@@ -28,7 +28,7 @@ const EnhancedAgentOrchestrationPanel: React.FC<EnhancedAgentOrchestrationPanelP
     planningData,
     memoryAnalytics,
     loading
-  } = useEnhancedMonitoring(sessionId, flowState);
+  } = useEnhancedMonitoring(flowId, flowState);
 
   // Update parent component when status changes
   useEffect(() => {

@@ -120,24 +120,18 @@ const AuthenticatedApp = () => {
               <Route path="/discovery/import" element={<DataImport />} />
               <Route path="/discovery/inventory" element={<Inventory />} />
               <Route path="/discovery/inventory/:flowId" element={<Inventory />} />
-              {/* Legacy session-based routes for backward compatibility */}
-              <Route path="/discovery/inventory/session-:sessionId" element={<Inventory />} />
               
               <Route path="/discovery/dependencies" element={<Dependencies />} />
               <Route path="/discovery/dependencies/:flowId" element={<Dependencies />} />
-              <Route path="/discovery/dependencies/session-:sessionId" element={<Dependencies />} />
               
               <Route path="/discovery/data-cleansing" element={<DataCleansing />} />
               <Route path="/discovery/data-cleansing/:flowId" element={<DataCleansing />} />
-              <Route path="/discovery/data-cleansing/session-:sessionId" element={<DataCleansing />} />
               
               <Route path="/discovery/attribute-mapping" element={<AttributeMapping />} />
               <Route path="/discovery/attribute-mapping/:flowId" element={<AttributeMapping />} />
-              <Route path="/discovery/attribute-mapping/session-:sessionId" element={<AttributeMapping />} />
               
               <Route path="/discovery/tech-debt" element={<TechDebtAnalysis />} />
               <Route path="/discovery/tech-debt/:flowId" element={<TechDebtAnalysis />} />
-              <Route path="/discovery/tech-debt/session-:sessionId" element={<TechDebtAnalysis />} />
               <Route path="/assess" element={<Assess />} />
               <Route path="/assess/overview" element={<AssessIndex />} />
               <Route path="/assess/treatment" element={<Treatment />} />

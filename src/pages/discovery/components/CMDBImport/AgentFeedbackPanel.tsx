@@ -21,12 +21,12 @@ import {
 } from 'lucide-react';
 
 interface AgentFeedbackPanelProps {
-  sessionId: string;
+  flowId: string;
   statusData: any;
 }
 
 const AgentFeedbackPanel: React.FC<AgentFeedbackPanelProps> = ({
-  sessionId,
+  flowId,
   statusData
 }) => {
   // Show loading state while waiting for data
@@ -104,7 +104,7 @@ const AgentFeedbackPanel: React.FC<AgentFeedbackPanelProps> = ({
               <div>
                 <CardTitle>Agent Analysis Status</CardTitle>
                 <CardDescription>
-                  Session: {sessionId?.substring(0, 8)}...
+                  Flow: {flowId?.substring(0, 8)}...
                 </CardDescription>
               </div>
             </div>
