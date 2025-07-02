@@ -9,13 +9,13 @@ Using fixed UUIDs allows us to easily identify demo/mock data without database q
 DEMO_USER_ID = '44444444-4444-4444-4444-444444444444'
 DEMO_CLIENT_ID = '11111111-1111-1111-1111-111111111111'
 DEMO_ENGAGEMENT_ID = '22222222-2222-2222-2222-222222222222'
-DEMO_SESSION_ID = '33333333-3333-3333-3333-333333333333'
+DEMO_FLOW_ID = '33333333-3333-3333-3333-333333333333'
 
 # Demo Data Identifiers
 DEMO_USER_EMAIL = 'demo@democorp.com'
 DEMO_CLIENT_NAME = 'Democorp'
 DEMO_ENGAGEMENT_NAME = 'Cloud Migration 2024'
-DEMO_SESSION_NAME = 'Demo Session'
+DEMO_FLOW_NAME = 'Demo Flow'
 
 def is_demo_user_id(user_id: str) -> bool:
     """Check if a user ID is the demo user."""
@@ -29,13 +29,13 @@ def is_demo_engagement_id(engagement_id: str) -> bool:
     """Check if an engagement ID is the demo engagement."""
     return str(engagement_id) == DEMO_ENGAGEMENT_ID
 
-def is_demo_session_id(session_id: str) -> bool:
-    """Check if a session ID is the demo session."""
-    return str(session_id) == DEMO_SESSION_ID
+def is_demo_flow_id(flow_id: str) -> bool:
+    """Check if a flow ID is the demo flow."""
+    return str(flow_id) == DEMO_FLOW_ID
 
 def is_demo_data(entity_id: str) -> bool:
     """Check if any entity ID is demo data."""
     return (is_demo_user_id(entity_id) or 
             is_demo_client_id(entity_id) or 
             is_demo_engagement_id(entity_id) or 
-            is_demo_session_id(entity_id)) 
+            is_demo_flow_id(entity_id)) 
