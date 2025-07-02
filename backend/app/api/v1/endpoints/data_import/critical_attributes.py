@@ -136,9 +136,9 @@ async def _get_agentic_critical_attributes(
         # Check if there are existing discovery flow results for this import
         crewai_service = CrewAIFlowService()
         
-        # Look for existing flow results in the session data
-        session_id = f"import_{data_import.id}"
-        flow_state = crewai_service.get_flow_status(session_id)
+        # Look for existing flow results 
+        flow_id = data_import.id  # Use data import ID directly as flow ID
+        flow_state = crewai_service.get_flow_status(flow_id)
         
         if flow_state and flow_state.get("agent_results", {}).get("field_mapping"):
             logger.info("🤖 Found existing agentic discovery flow results")
@@ -300,7 +300,7 @@ async def _trigger_discovery_flow_analysis(
         crewai_service = CrewAIFlowService()
         
         # Prepare data for discovery flow
-        session_id = f"import_{data_import.id}"
+        flow_id = data_import.id  # Use data import ID directly as flow ID
         
         # Get sample data from the import
         mappings_query = select(ImportFieldMapping).where(
@@ -324,7 +324,7 @@ async def _trigger_discovery_flow_analysis(
                 'client_account_id': context.client_account_id,
                 'engagement_id': context.engagement_id,
                 'user_id': context.user_id or "system",
-                'session_id': session_id,
+                'flow_id': flow_id,
                 'data_import_id': str(data_import.id),
                 'source': 'critical_attributes_analysis'
             })()
@@ -333,7 +333,7 @@ async def _trigger_discovery_flow_analysis(
                 sample_data, flow_context
             )
             
-            logger.info(f"🚀 Discovery flow triggered for critical attributes analysis: {session_id}")
+            logger.info(f"🚀 Discovery flow triggered for critical attributes analysis: {flow_id}")
         
     except ImportError:
         logger.warning("Discovery flow service not available")

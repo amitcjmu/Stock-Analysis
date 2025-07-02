@@ -218,9 +218,9 @@ async def get_validation_agents():
         }
     }
 
-@router.get("/validation-session/{session_id}", response_model=Dict[str, Any])
+@router.get("/validation-session/{flow_id}", response_model=Dict[str, Any])
 async def get_validation_session(
-    session_id: str,
+    flow_id: str,
     db: AsyncSession = Depends(get_async_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -228,7 +228,7 @@ async def get_validation_session(
     Get validation session details and results
     """
     validation_service = DataImportValidationService(db)
-    session = await validation_service.get_validation_session(session_id)
+    session = await validation_service.get_validation_session(flow_id)
     
     if not session:
         raise HTTPException(status_code=404, detail="Validation session not found")

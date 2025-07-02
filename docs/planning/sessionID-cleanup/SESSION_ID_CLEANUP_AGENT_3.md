@@ -171,16 +171,26 @@ docker exec -it migration_backend pytest tests/api/ -v
 ## 📝 **Progress Tracking**
 
 Update the master plan tracker after each file:
-- [ ] `/backend/app/api/v3/data_import.py`
-- [ ] `/backend/app/api/v1/unified_discovery.py`
-- [ ] `/backend/app/services/discovery_flow_service.py`
-- [ ] `/backend/app/services/data_import_service.py`
-- [ ] `/backend/app/services/unified_discovery_service.py`
-- [ ] `/backend/app/api/v2/discovery_flow_v2.py`
-- [ ] `/backend/app/tasks/discovery_tasks.py`
-- [ ] `/backend/app/websocket/handlers.py`
-- [ ] `/backend/app/services/agent_bridge_service.py`
-- [ ] Admin endpoints cleanup
+- [x] `/backend/app/api/v3/data_import.py` - ✅ Cleaned
+- [x] `/backend/app/api/v1/unified_discovery.py` - ✅ Already clean (unified_discovery_api.py)
+- [x] `/backend/app/services/discovery_flow_service.py` - ✅ Cleaned
+- [ ] `/backend/app/services/data_import_service.py` - Not found
+- [ ] `/backend/app/services/unified_discovery_service.py` - Not found
+- [ ] `/backend/app/api/v2/discovery_flow_v2.py` - Not found
+- [ ] `/backend/app/tasks/discovery_tasks.py` - Not found
+- [ ] `/backend/app/websocket/handlers.py` - Not found
+- [ ] `/backend/app/services/agent_bridge_service.py` - Not found
+- [x] Admin endpoints cleanup - ✅ context/api/admin_routes.py cleaned
+- [x] `/backend/app/api/v1/endpoints/monitoring.py` - ✅ Cleaned
+- [x] `/backend/app/api/v1/endpoints/discovery_main.py` - ✅ Cleaned  
+- [x] `/backend/app/services/discovery_flow_service/discovery_flow_integration_service.py` - ✅ Cleaned
+- [x] `/backend/app/services/discovery_flow_service/integrations/crewai_integration.py` - ✅ Cleaned
+- [x] `/backend/app/api/v1/endpoints/discovery_flow_management.py` - ✅ Cleaned (44 session_id references)
+- [x] `/backend/app/api/v1/endpoints/discovery/real_time_processing.py` - ✅ Cleaned
+- [x] `/backend/app/api/v1/endpoints/agents/discovery/handlers/agent_ui_integration.py` - ✅ Cleaned
+- [x] `/backend/app/api/v1/endpoints/data_import/asset_processing.py` - ✅ Cleaned
+- [x] `/backend/app/api/v1/endpoints/data_import/data_validation.py` - ✅ Cleaned
+- [x] `/backend/app/api/v1/endpoints/data_import/critical_attributes.py` - ✅ Cleaned
 
 ## 🔄 **Commit Pattern**
 
