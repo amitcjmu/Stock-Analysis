@@ -261,7 +261,7 @@ def create_user_friendly_message(event_type: str, crew_name: str, details: Dict[
             return f"❌ {crew_name}: Data serialization error. The system encountered UUID formatting issues. Please try uploading your file again."
         elif "multiply" in str(error_message).lower() and "sequence" in str(error_message).lower():
             return f"❌ {crew_name}: Data validation error. There appears to be an issue with the data format. Please check that your file contains valid numeric data."
-        elif "import_session_id" in str(error_message).lower():
+        elif "flow_id" in str(error_message).lower() or "import_session_id" in str(error_message).lower():
             return f"❌ {crew_name}: Database configuration error. The system is being updated to fix this issue."
         elif "validation" in str(error_message).lower():
             return f"❌ {crew_name}: File validation failed. Please check your file format and ensure it contains the expected data structure."

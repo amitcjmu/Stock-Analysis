@@ -208,7 +208,7 @@ async def get_agent_insights(
                 actionable=True,
                 client_account_id=context.client_account_id,
                 engagement_id=context.engagement_id,
-                session_id=context.session_id
+                flow_id=context.flow_id
             )
             
             # Get updated insights

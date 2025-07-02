@@ -35,7 +35,7 @@ def get_safe_context() -> RequestContext:
 
 @router.post("/process-raw-to-assets")
 async def process_raw_to_assets(
-    import_session_id: str = None,
+    flow_id: str = None,
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -47,14 +47,15 @@ async def process_raw_to_assets(
     IMPORTANT: This endpoint now enforces field mapping approval before asset creation.
     """
     
-    if not import_session_id:
-        raise HTTPException(status_code=400, detail="import_session_id is required")
+    if not flow_id:
+        raise HTTPException(status_code=400, detail="flow_id is required")
     
     try:
         context = get_safe_context()
         # SECURITY CHECK: Verify field mappings are approved before asset creation
+        # During migration: flow_id maps to data import session
         mappings_query = select(ImportFieldMapping).where(
-            ImportFieldMapping.data_import_id == import_session_id
+            ImportFieldMapping.data_import_id == flow_id
         )
         mappings_result = await db.execute(mappings_query)
         mappings = mappings_result.scalars().all()
@@ -86,7 +87,7 @@ async def process_raw_to_assets(
         # Check if we have raw records to process
         raw_count_query = await db.execute(
             select(func.count(RawImportRecord.id)).where(
-                RawImportRecord.data_import_id == import_session_id
+                RawImportRecord.data_import_id == flow_id
             )
         )
         raw_count = raw_count_query.scalar()
@@ -95,10 +96,10 @@ async def process_raw_to_assets(
             return {
                 "status": "error",
                 "message": "No raw import records found for the specified session",
-                "import_session_id": import_session_id
+                "flow_id": flow_id
             }
         
-        logger.info(f"🔄 Processing {raw_count} raw records from session: {import_session_id}")
+        logger.info(f"🔄 Processing {raw_count} raw records from flow: {flow_id}")
         
         # Use the unified CrewAI Flow Service with proper modular architecture
         try:
@@ -113,7 +114,7 @@ async def process_raw_to_assets(
                     cmdb_data={
                         "headers": [],  # Will be loaded from raw records
                         "sample_data": [],  # Will be loaded from raw records
-                        "import_session_id": import_session_id
+                        "flow_id": flow_id
                     },
                     client_account_id=context.client_account_id,
                     engagement_id=context.engagement_id,
@@ -157,7 +158,7 @@ async def process_raw_to_assets(
                         "classification_results": result.get("classification_results", {}),
                         "workflow_progression": result.get("workflow_progression", {}),
                         "processed_asset_ids": result.get("processed_asset_ids", []),
-                        "import_session_id": import_session_id,
+                        "flow_id": flow_id,
                         "completed_at": result.get("completed_at"),
                         "duplicate_detection": {
                             "detection_active": True,
@@ -180,7 +181,7 @@ async def process_raw_to_assets(
             pass
         
         # Fallback processing when CrewAI is not available
-        return await _fallback_raw_to_assets_processing(import_session_id, db, context)
+        return await _fallback_raw_to_assets_processing(flow_id, db, context)
         
     except Exception as e:
         logger.error(f"Asset processing failed: {e}")
@@ -317,7 +318,7 @@ def _determine_asset_type_agentic(raw_data: Dict[str, Any], asset_classification
         return "server"  # Default fallback
 
 async def _fallback_raw_to_assets_processing(
-    import_session_id: str, 
+    flow_id: str, 
     db: AsyncSession, 
     context: RequestContext
 ) -> dict:
@@ -331,7 +332,7 @@ async def _fallback_raw_to_assets_processing(
         # Get raw records
         raw_records_query = await db.execute(
             select(RawImportRecord).where(
-                RawImportRecord.data_import_id == import_session_id
+                RawImportRecord.data_import_id == flow_id
             )
         )
         raw_records = raw_records_query.scalars().all()
@@ -340,7 +341,7 @@ async def _fallback_raw_to_assets_processing(
             return {
                 "status": "error",
                 "message": "No raw import records found",
-                "import_session_id": import_session_id
+                "flow_id": flow_id
             }
         
         processed_count = 0
@@ -406,7 +407,7 @@ async def _fallback_raw_to_assets_processing(
                 "other_assets": 0
             },
             "processed_asset_ids": created_assets,
-            "import_session_id": import_session_id,
+            "flow_id": flow_id,
             "completed_at": datetime.utcnow().isoformat(),
             "duplicate_detection": {
                 "detection_active": False,
@@ -420,9 +421,9 @@ async def _fallback_raw_to_assets_processing(
         logger.error(f"Fallback processing failed: {e}")
         raise HTTPException(status_code=500, detail=f"Fallback processing failed: {str(e)}")
 
-@router.get("/processing-status/{import_session_id}")
+@router.get("/processing-status/{flow_id}")
 async def get_processing_status(
-    import_session_id: str,
+    flow_id: str,
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context)
 ):
@@ -432,14 +433,14 @@ async def get_processing_status(
         # Get processing statistics
         total_query = await db.execute(
             select(func.count(RawImportRecord.id)).where(
-                RawImportRecord.data_import_id == import_session_id
+                RawImportRecord.data_import_id == flow_id
             )
         )
         total_records = total_query.scalar()
         
         processed_query = await db.execute(
             select(func.count(RawImportRecord.id)).where(
-                RawImportRecord.data_import_id == import_session_id,
+                RawImportRecord.data_import_id == flow_id,
                 RawImportRecord.is_processed == True
             )
         )
@@ -455,7 +456,7 @@ async def get_processing_status(
         total_assets = assets_query.scalar()
         
         return {
-            "import_session_id": import_session_id,
+            "flow_id": flow_id,
             "total_records": total_records,
             "processed_records": processed_records,
             "pending_records": total_records - processed_records,
