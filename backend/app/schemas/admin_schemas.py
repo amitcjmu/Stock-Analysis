@@ -267,7 +267,7 @@ class EngagementResponse(BaseModel):
     # Status and Progress
     current_phase: Optional[str] = "planning"
     completion_percentage: float = 0.0
-    current_session_id: Optional[str] = None
+    current_flow_id: Optional[str] = None
     
     # Metadata
     created_at: datetime

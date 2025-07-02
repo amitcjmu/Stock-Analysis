@@ -287,8 +287,7 @@ class FlowStateValidator:
         warnings = []
         
         # Check for deprecated fields
-        if 'session_id' in state and state['session_id'] and 'flow_id' in state:
-            warnings.append("session_id is deprecated, use flow_id instead")
+        # session_id deprecated warning removed - session_id fully eliminated
         
         # Check for empty optional collections
         optional_collections = ['agent_insights', 'user_clarifications', 'errors', 'warnings']

@@ -44,8 +44,7 @@ class FlowContext(BaseModel):
 
 class FlowInfo(BaseModel):
     """Basic flow information"""
-    session_id: str
-    flow_id: Optional[str] = None
+    flow_id: str
     current_phase: FlowPhase
     status: FlowStatus
     progress_percentage: float = Field(ge=0, le=100)
@@ -70,7 +69,7 @@ class IncompleteFlowsResponse(BaseModel):
 
 class FlowDetailsResponse(BaseModel):
     """Response for flow details query"""
-    session_id: str
+    flow_id: str
     flow_state: Dict[str, Any]
     can_resume: bool
     validation_errors: List[str] = Field(default_factory=list)
@@ -84,7 +83,7 @@ class FlowResumeRequest(BaseModel):
 class FlowResumeResponse(BaseModel):
     """Response for flow resumption"""
     success: bool
-    session_id: str
+    flow_id: str
     message: str
     resumed_at: str
     current_phase: Optional[str] = None
@@ -95,19 +94,19 @@ class FlowResumeResponse(BaseModel):
 class FlowDeleteResponse(BaseModel):
     """Response for flow deletion"""
     success: bool
-    session_id: str
+    flow_id: str
     cleanup_summary: Dict[str, Any]
     deleted_at: str
 
 class BulkOperationsRequest(BaseModel):
     """Request for bulk operations"""
     operation: BulkOperation
-    session_ids: List[str] = Field(min_items=1)
+    flow_ids: List[str] = Field(min_items=1)
     options: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
 class BulkOperationResult(BaseModel):
     """Result for individual bulk operation"""
-    session_id: str
+    flow_id: str
     result: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
 
